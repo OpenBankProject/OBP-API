@@ -3956,21 +3956,21 @@ object NewStyle extends MdcLoggable{
       Future {
         Views.views.vend.createCustomView(bankAccountId, createViewJson)
       } map { i =>
-        (unboxFullOrFail(i, callContext, s"$CreateCustomViewError", 404), callContext)
+        (unboxFullOrFail(i, callContext, s"$CreateCustomViewError"), callContext)
       }
       
     def updateCustomView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON, callContext: Option[CallContext]): OBPReturnType[View] =
       Future {
         Views.views.vend.updateCustomView(bankAccountId, viewId, viewUpdateJson)
       } map { i =>
-        (unboxFullOrFail(i, callContext, s"$UpdateCustomViewError", 404), callContext)
+        (unboxFullOrFail(i, callContext, s"$UpdateCustomViewError"), callContext)
       }
 
     def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) =
       Future {
         Views.views.vend.removeCustomView(viewId, bankAccountId)
       } map { i =>
-        (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError", 404), callContext)
+        (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError"), callContext)
       }
 
   }

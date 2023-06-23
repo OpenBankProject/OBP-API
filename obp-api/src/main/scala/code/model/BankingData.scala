@@ -152,17 +152,6 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def bankRoutingAddress : String =
     Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).map(_.bankRoutingAddress).getOrElse("")
 
-  /*
-    * Delete this account (if connector allows it, e.g. local mirror of account data)
-    * */
-  final def remove(user : User, callContext: Option[CallContext]): Box[Boolean] = {
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)){
-      Full(Connector.connector.vend.removeAccount(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox))
-    } else {
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
-    }
-  }
-  
   /**
     * Note: There are two types of account-owners in OBP: the OBP users and the customers(in a real bank, these should from Main Frame)
     *

@@ -189,7 +189,7 @@ trait APIMethods300 {
               ) {anyViewContainsCanCreateCustomViewPermission}
               (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, callContext)
             } yield {
-               (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
+               (JSONFactory300.createViewJSON(view), HttpCode.`201`(callContext))
             }
       }
     }
