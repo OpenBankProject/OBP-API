@@ -622,7 +622,13 @@ trait APIMethods121 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createCustomView (u, createViewJson, Some(cc))
+            anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanCreateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canCreateCustomView_.dbColumnName}` permission on any your views"
+            )
+            view <- Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), createViewJson)?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -677,7 +683,13 @@ trait APIMethods121 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
+            anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCancanUpdateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canUpdateCustomView_.dbColumnName}` permission on any your views"
+            )
+            updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId),viewId,  updateViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
@@ -716,7 +728,17 @@ trait APIMethods121 {
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
-            deleted <- NewStyle.function.removeView(account, u, viewId, callContext)
+
+            anyViewContainsCanDeleteCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canDeleteCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canDeleteCustomView_.dbColumnName}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanDeleteCustomViewPermission
+            }
+
+            deleted <- NewStyle.function.removeCustomView(viewId, BankIdAccountId(bankId, accountId),callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }

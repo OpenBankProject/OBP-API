@@ -27,6 +27,7 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.grum.geocalc.{Coordinate, EarthCalc, Point}
 import com.openbankproject.commons.model._
@@ -167,7 +168,6 @@ trait APIMethods300 {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
-          val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               createViewJson <- Future { tryo{json.extract[CreateViewJson]} } map {
@@ -179,14 +179,18 @@ trait APIMethods300 {
                 checkCustomViewIdOrName(createViewJson.name)
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+
+              anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+                .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+              
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canCreateCustomView_.dbColumnName}` permission on any your views",
+                cc = callContext
+              ) {anyViewContainsCanCreateCustomViewPermission}
+              (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, callContext)
             } yield {
-              for {
-                view <- account.createCustomView (u, createViewJson, callContext)
-              } yield {
-                (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
-              }
+               (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -253,7 +257,6 @@ trait APIMethods300 {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
-          val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               updateJson <- Future { tryo{json.extract[UpdateViewJsonV300]} } map {
@@ -273,14 +276,20 @@ trait APIMethods300 {
                 !view.isSystem
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            } yield {
-              for {
-                updatedView <- account.updateView(u, viewId, updateJson.toUpdateViewJson, callContext)
-              } yield {
-                (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+
+              anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+                .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canUpdateCustomView_.dbColumnName}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCancanUpdateCustomViewPermission
               }
+              (view, callContext) <- NewStyle.function.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateJson.toUpdateViewJson, callContext)
+            } yield {
+              (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 

@@ -304,6 +304,16 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canCreateStandingOrder_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  
+  object canCreateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canDeleteCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
@@ -410,6 +420,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canSeeTransactionRequestTypes_(actions.exists(_ == "can_see_transaction_request_types"))
     canUpdateBankAccountLabel_(actions.exists(_ == "can_update_bank_account_label"))
     canSeeAvailableViewsForBankAccount_(actions.exists(_ == "can_see_available_views_for_bank_account"))
+    canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
+    canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
+    canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
   }
 
   
@@ -544,6 +557,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   
   def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
   def canCreateStandingOrder: Boolean = canCreateStandingOrder_.get
+  def canCreateCustomView: Boolean = canCreateCustomView_.get
+  def canDeleteCustomView: Boolean = canDeleteCustomView_.get
+  def canUpdateCustomView: Boolean = canUpdateCustomView_.get
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }

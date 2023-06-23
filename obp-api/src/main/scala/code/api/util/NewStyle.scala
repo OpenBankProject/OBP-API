@@ -529,11 +529,6 @@ object NewStyle extends MdcLoggable{
     } map { fullBoxOrException(_)
     } map { unboxFull(_) } 
     
-    def removeView(account: BankAccount, user: User, viewId: ViewId, callContext: Option[CallContext]) = Future {
-      account.removeView(user, viewId, callContext)
-    } map { fullBoxOrException(_)
-    } map { unboxFull(_) }
-    
     def grantAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String, callContext: Option[CallContext]) = Future {
       account.grantAccessToView(u, viewIdBankIdAccountId, provider, providerId, callContext: Option[CallContext])
     } map { fullBoxOrException(_)
@@ -3956,6 +3951,28 @@ object NewStyle extends MdcLoggable{
             .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             , callContext)
       }
+
+    def createCustomView(bankAccountId: BankIdAccountId, createViewJson: CreateViewJson, callContext: Option[CallContext]): OBPReturnType[View] =
+      Future {
+        Views.views.vend.createCustomView(bankAccountId, createViewJson)
+      } map { i =>
+        (unboxFullOrFail(i, callContext, s"$CreateCustomViewError", 404), callContext)
+      }
+      
+    def updateCustomView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON, callContext: Option[CallContext]): OBPReturnType[View] =
+      Future {
+        Views.views.vend.updateCustomView(bankAccountId, viewId, viewUpdateJson)
+      } map { i =>
+        (unboxFullOrFail(i, callContext, s"$UpdateCustomViewError", 404), callContext)
+      }
+
+    def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) =
+      Future {
+        Views.views.vend.removeCustomView(viewId, bankAccountId)
+      } map { i =>
+        (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError", 404), callContext)
+      }
+
   }
 
 }

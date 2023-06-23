@@ -338,51 +338,6 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
   }
 
-
-  final def createCustomView(userDoingTheCreate : User,v: CreateViewJson, callContext: Option[CallContext]): Box[View] = {
-    if(!userDoingTheCreate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
-      Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
-    } else {
-      val view = Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), v)
-
-      //if(view.isDefined) {
-      //  logger.debug("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
-      //      " for account " + accountId + "at bank " + bankId)
-      //}
-
-      view
-    }
-  }
-
-  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: UpdateViewJSON, callContext: Option[CallContext]) : Box[View] = {
-    if(!userDoingTheUpdate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
-      Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
-    } else {
-      val view = Views.views.vend.updateCustomView(BankIdAccountId(bankId,accountId), viewId, v)
-      //if(view.isDefined) {
-      //  logger.debug("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
-      //      " for account " + accountId + "at bank " + bankId)
-      //}
-
-      view
-    }
-  }
-
-  final def removeView(userDoingTheRemove : User, viewId: ViewId, callContext: Option[CallContext]) : Box[Boolean] = {
-    if(!userDoingTheRemove.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
-      return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
-    } else {
-      val deleted = Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
-
-      //if (deleted.isDefined) {
-      //    logger.debug("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
-      //    " for account " + accountId + "at bank " + bankId)
-      //}
-
-      deleted
-    }
-  }
-
   final def moderatedTransaction(transactionId: TransactionId, view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
     if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
       for{

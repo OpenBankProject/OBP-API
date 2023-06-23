@@ -421,4 +421,8 @@ trait View {
   def canCreateDirectDebit: Boolean
   
   def canCreateStandingOrder: Boolean
+
+  def canCreateCustomView: Boolean
+  def canDeleteCustomView: Boolean
+  def canUpdateCustomView: Boolean
 }

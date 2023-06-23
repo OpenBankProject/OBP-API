@@ -170,8 +170,14 @@ trait APIMethods220 {
               createViewJsonV121.which_alias_to_use,
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
+            ) 
+            anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanCreateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canCreateCustomView_.dbColumnName}` permission on any your views"
             )
-            view <- account.createCustomView(u, createViewJson, Some(cc))
+            view <- Views.views.vend.createCustomView(BankIdAccountId(bankId, accountId), createViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -224,7 +230,13 @@ trait APIMethods220 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
+            anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCancanUpdateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canUpdateCustomView_.dbColumnName}` permission on any your views"
+            )
+            updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)

@@ -439,6 +439,15 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeBankAccountCreditLimit_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canCreateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canDeleteCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   def id: Long = id_.get
   def isSystem: Boolean = isSystem_.get
@@ -555,6 +564,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canCreateStandingOrder: Boolean = false
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
+
+  def canCreateCustomView: Boolean = canCreateCustomView_.get
+  def canDeleteCustomView: Boolean = canDeleteCustomView_.get
+  def canUpdateCustomView: Boolean = canUpdateCustomView_.get
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{

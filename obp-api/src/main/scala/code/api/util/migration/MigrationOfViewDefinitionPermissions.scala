@@ -24,6 +24,9 @@ object MigrationOfViewDefinitionPermissions {
             .canSeeTransactionRequests_(true)
             .canSeeAvailableViewsForBankAccount_(true)
             .canUpdateBankAccountLabel_(true)
+            .canCreateCustomView_(true)
+            .canDeleteCustomView_(true)
+            .canUpdateCustomView_(true)
             .save
         ).head
 
@@ -37,6 +40,9 @@ object MigrationOfViewDefinitionPermissions {
              |${ViewDefinition.canSeeTransactionRequests_.dbColumnName}
              |${ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName}
              |${ViewDefinition.canUpdateBankAccountLabel_.dbColumnName}
+             |${ViewDefinition.canCreateCustomView_.dbColumnName}
+             |${ViewDefinition.canDeleteCustomView_.dbColumnName}
+             |${ViewDefinition.canUpdateCustomView_.dbColumnName}
              |Duration: ${endDate - startDate} ms;
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
