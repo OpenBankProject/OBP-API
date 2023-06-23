@@ -314,6 +314,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canUpdateCustomView_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeePermissionsForAllUsers_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeePermissionForOneUser_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
@@ -423,6 +429,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
     canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
     canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
+    canSeePermissionsForAllUsers_(actions.exists(_ == "can_see_permissions_for_all_users"))
+    canSeePermissionForOneUser_(actions.exists(_ == "can_see_permission_for_one_user"))
   }
 
   
@@ -502,6 +510,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
   def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
   def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
+  def canSeePermissionForOneUser: Boolean = canSeePermissionForOneUser_.get
+  def canSeePermissionsForAllUsers : Boolean = canSeePermissionsForAllUsers_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get

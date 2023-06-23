@@ -797,6 +797,8 @@ object MapperViews extends Views with MdcLoggable {
       .canCreateCustomView_(false)
       .canDeleteCustomView_(false)
       .canUpdateCustomView_(false)
+      .canSeePermissionForOneUser_(false)
+      .canSeePermissionsForAllUsers_(false)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID =>
@@ -808,6 +810,8 @@ object MapperViews extends Views with MdcLoggable {
           .canCreateCustomView_(true)
           .canDeleteCustomView_(true)
           .canUpdateCustomView_(true)
+          .canSeePermissionForOneUser_(true)
+          .canSeePermissionsForAllUsers_(true)
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)

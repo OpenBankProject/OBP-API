@@ -27,6 +27,8 @@ object MigrationOfViewDefinitionPermissions {
             .canCreateCustomView_(true)
             .canDeleteCustomView_(true)
             .canUpdateCustomView_(true)
+            .canSeePermissionForOneUser_(true)
+            .canSeePermissionsForAllUsers_(true)
             .save
         ).head
 
@@ -43,6 +45,8 @@ object MigrationOfViewDefinitionPermissions {
              |${ViewDefinition.canCreateCustomView_.dbColumnName}
              |${ViewDefinition.canDeleteCustomView_.dbColumnName}
              |${ViewDefinition.canUpdateCustomView_.dbColumnName}
+             |${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}
+             |${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}
              |Duration: ${endDate - startDate} ms;
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

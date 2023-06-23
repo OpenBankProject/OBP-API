@@ -211,37 +211,6 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
   private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
 
-
-
-  /**
-    * @param user a user requesting to see the other users' permissions
-    * @return a Box of all the users' permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
-    */
-  final def permissions(user : User, callContext: Option[CallContext]) : Box[List[Permission]] = {
-    //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext))
-      Full(Views.views.vend.permissions(BankIdAccountId(bankId, accountId)))
-    else
-      Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
-  }
-
-  /**
-    * @param user the user requesting to see the other users permissions on this account
-    * @param otherUserProvider the authentication provider of the user whose permissions will be retrieved
-    * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) whose permissions will be retrieved
-    * @return a Box of the user permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
-    */
-  final def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Permission] = {
-    //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext))
-      for{
-        u <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
-        p <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), u)
-      } yield p
-    else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
-  }
-
   /**
     * @param user the user that wants to grant another user access to a view on this account
     * @param viewUID uid of the view to which we want to grant access

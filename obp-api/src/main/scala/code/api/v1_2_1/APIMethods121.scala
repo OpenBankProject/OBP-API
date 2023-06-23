@@ -15,7 +15,7 @@ import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, UserX, toBankAccountExtended, toBankExtended, toUserExtended}
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
@@ -768,7 +768,13 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permissions <- account.permissions(u, Some(cc))
+            anyViewContainsCanSeePermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canSeePermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeePermissionsForAllUsersPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}` permission on any your views"
+            )
+            permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
             successJsonResponse(Extraction.decompose(permissionsJSON))
@@ -801,12 +807,20 @@ trait APIMethods121 {
   
     lazy val getPermissionForUserForBankAccount: OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            loggedInUser <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permission <- account permission(u, providerId, userId, Some(cc))
+            loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
+            anyViewContainsCanSeePermissionForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeePermissionForOneUser)
+              .find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeePermissionForOneUserPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}` permission on any your views"
+            )
+            userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
+            permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
           } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))

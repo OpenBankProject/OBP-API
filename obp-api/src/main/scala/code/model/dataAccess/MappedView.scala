@@ -304,6 +304,12 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeBankAccountRoutingAddress_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeePermissionForOneUser_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeePermissionsForAllUsers_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeOtherAccountNationalIdentifier_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -508,6 +514,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
   def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
   def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
+  def canSeePermissionForOneUser: Boolean = canSeePermissionForOneUser_.get
+  def canSeePermissionsForAllUsers: Boolean = canSeePermissionsForAllUsers_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get

@@ -1011,7 +1011,15 @@ trait APIMethods200 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            permissions <- NewStyle.function.permissions(account, u, callContext)
+            anyViewContainsCanSeePermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanSeePermissionsForAllUsersPermission
+            }
+            permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
             (permissionsJSON, HttpCode.`200`(callContext))
@@ -1042,10 +1050,18 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            loggedInUser <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
             account <- BankAccountX(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permission <- account permission(u, provider, providerId, Some(cc))
+            loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
+            anyViewContainsCanSeePermissionForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeePermissionForOneUser)
+              .find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeePermissionForOneUserPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}` permission on any your views"
+            )
+            userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
+            permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
           } yield {
             // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
             val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))

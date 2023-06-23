@@ -217,12 +217,21 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <-  authenticatedAccess(cc)
+            (Full(loggedInUser), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            permission <- Future { account.permission(u, provider, providerId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            anyViewContainsCanSeePermissionForOneUserPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
+              .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanSeePermissionForOneUserPermission
+            }
+            (userFromURL, callContext) <- Future{UserX.findByProviderId(provider, providerId)} map { i =>
+              (unboxFullOrFail(i, callContext, UserNotFoundByProviderAndProvideId, 404), callContext)
+            }
+            permission <- NewStyle.function.permission(bankId, accountId, userFromURL, callContext)
           } yield {
             (createViewsJSON(permission.views.sortBy(_.viewId.value)), HttpCode.`200`(callContext))
           }

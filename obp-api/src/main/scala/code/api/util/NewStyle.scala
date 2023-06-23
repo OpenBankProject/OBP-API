@@ -519,11 +519,6 @@ object NewStyle extends MdcLoggable{
       }
     }
     
-    def permissions(account: BankAccount, user: User, callContext: Option[CallContext]) = Future {
-      account.permissions(user, callContext)
-    } map { fullBoxOrException(_)
-    } map { unboxFull(_) } 
-    
     def permission(bankId: BankId,accountId: AccountId, user: User, callContext: Option[CallContext]) = Future {
       Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
     } map { fullBoxOrException(_)
