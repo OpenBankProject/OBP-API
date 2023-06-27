@@ -19,7 +19,7 @@ import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsIdsJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
-import code.consent.{ConsentRequests, Consents}
+import code.consent.{ConsentRequest, ConsentRequests, Consents}
 import code.entitlement.Entitlement
 import code.metrics.APIMetrics
 import code.model._
@@ -611,9 +611,11 @@ trait APIMethods500 {
       postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
-        $BankNotFound,
         InvalidJsonFormat,
         ConsentMaxTTL,
+        X509CannotGetCertificate,
+        X509GeneralError,
+        InvalidConnectorResponse,
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
@@ -643,14 +645,7 @@ trait APIMethods500 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (
-              ConsentRequestResponseJson(
-                createdConsentRequest.consentRequestId,
-                net.liftweb.json.parse(createdConsentRequest.payload),
-                createdConsentRequest.consumerId,
-                ), 
-              HttpCode.`201`(callContext)
-            )
+            (JSONFactory500.createConsentRequestResponseJson(createdConsentRequest), HttpCode.`201`(callContext))
           }
       }
     }  
