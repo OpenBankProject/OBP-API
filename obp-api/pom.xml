@@ -261,6 +261,11 @@
       <version>${avro.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.23.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>chill-akka_${scala.version}</artifactId>
       <version>0.9.1</version>
