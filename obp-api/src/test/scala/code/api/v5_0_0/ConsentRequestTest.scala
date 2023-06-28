@@ -60,6 +60,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.createConsentByConsentRequestId))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsers))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations5_0_0.getConsentRequest))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
   lazy val forbiddenEntitlementOneBank = List(PostConsentEntitlementJsonV310(testBankId1.value, CanCreateEntitlementAtOneBank.toString()))
@@ -163,7 +164,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
 //      responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
 //    }
 
-    scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJsonV310))
       Then("We should get a 201")

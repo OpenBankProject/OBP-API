@@ -661,8 +661,11 @@ trait APIMethods500 {
       EmptyBody,
       consentRequestResponseJson,
       List(
-        $BankNotFound,
-        ConsentRequestNotFound,
+        InvalidJsonFormat,
+        ConsentMaxTTL,
+        X509CannotGetCertificate,
+        X509GeneralError,
+        InvalidConnectorResponse,
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
@@ -680,12 +683,7 @@ trait APIMethods500 {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
           } yield {
-            (ConsentRequestResponseJson(
-              consent_request_id = createdConsentRequest.consentRequestId,
-              payload = json.parse(createdConsentRequest.payload),
-              consumer_id = createdConsentRequest.consumerId
-              ), 
-              HttpCode.`200`(callContext)
+            (JSONFactory500.createConsentRequestResponseJson(createdConsentRequest), HttpCode.`200`(callContext)
             )
           }
       }
