@@ -3541,7 +3541,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                (status, callContext) <- NewStyle.function.sendCustomerNotification(
                   StrongCustomerAuthentication.EMAIL, 
                   postConsentEmailJson.email, 
                   Some("OBP Consent Challenge"),
@@ -3558,7 +3558,7 @@ trait APIMethods310 {
                   json.extract[PostConsentPhoneJsonV310]
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
-                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                (status, callContext) <- NewStyle.function.sendCustomerNotification(
                   StrongCustomerAuthentication.SMS, 
                   phoneNumber, 
                   None,
@@ -3571,7 +3571,7 @@ trait APIMethods310 {
                 (consentImplicitSCA, callContext) <- NewStyle.function.getConsentImplicitSCA(user, callContext)
                 status <- consentImplicitSCA.scaMethod match {
                   case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
-                    Connector.connector.vend.sendCustomerNotification (
+                    NewStyle.function.sendCustomerNotification (
                       StrongCustomerAuthentication.EMAIL,
                       consentImplicitSCA.recipient,
                       Some ("OBP Consent Challenge"),
@@ -3579,7 +3579,7 @@ trait APIMethods310 {
                       callContext
                     )
                   case v if v == StrongCustomerAuthentication.SMS =>
-                    Connector.connector.vend.sendCustomerNotification(
+                    NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.SMS,
                       consentImplicitSCA.recipient,
                       None,
