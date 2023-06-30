@@ -841,7 +841,7 @@ trait APIMethods500 {
             consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
               consentRequestJson.email.head
             }
-            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+            (status, callContext) <- NewStyle.function.sendCustomerNotification(
               StrongCustomerAuthentication.EMAIL,
               consentScaEmail,
               Some("OBP Consent Challenge"),
@@ -860,7 +860,7 @@ trait APIMethods500 {
             consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
               consentRequestJson.phone_number.head
             }
-            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+            (status, callContext) <- NewStyle.function.sendCustomerNotification(
               StrongCustomerAuthentication.SMS,
               consentScaPhoneNumber,
               None,
