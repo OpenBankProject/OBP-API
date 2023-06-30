@@ -17,8 +17,6 @@ import net.liftweb.json
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.util.Helpers
-import org.elasticsearch.common.settings.Settings
-
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace
@@ -303,7 +301,8 @@ class elasticsearchWarehouse extends elasticsearch {
   val props = ElasticProperties(s"http://$esHost:${esPortTCP.toInt}")
   var client: ElasticClient = null
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_warehouse", false) ) {
-    val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
+    //this is not used in the current code, first comment to solve the vulnerability issue 
+    // val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
     client = ElasticClient(JavaClient(props))
   }
 }

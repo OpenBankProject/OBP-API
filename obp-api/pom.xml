@@ -209,7 +209,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>7.17.1</version>
+      <version>8.8.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
@@ -259,6 +259,11 @@
       <groupId>com.sksamuel.avro4s</groupId>
       <artifactId>avro4s-core_${scala.version}</artifactId>
       <version>${avro.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.23.0</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
