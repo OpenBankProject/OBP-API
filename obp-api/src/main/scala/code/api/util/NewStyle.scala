@@ -3911,6 +3911,29 @@ object NewStyle extends MdcLoggable{
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def sendCustomerNotification(
+      scaMethod: StrongCustomerAuthentication,
+      recipient: String,
+      subject: Option[String], //Only for EMAIL, SMS do not need it, so here it is Option
+      message: String,
+      callContext: Option[CallContext]
+    ):  OBPReturnType[String] = {
+      Connector.connector.vend.sendCustomerNotification(
+        scaMethod: StrongCustomerAuthentication,
+        recipient: String,
+        subject: Option[String], //Only for EMAIL, SMS do not need it, so here it is Option
+        message: String,
+        callContext: Option[CallContext]
+      ) map {
+        i =>
+          (unboxFullOrFail(
+            i._1,
+            callContext,
+            s"$InvalidConnectorResponse sendCustomerNotification does not return proper response from backend"),
+            i._2)
+      }
+    }
     
     def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
       Connector.connector.vend.createCustomerAccountLink(customerId: String, bankId, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
