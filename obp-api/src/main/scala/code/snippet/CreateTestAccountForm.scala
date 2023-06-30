@@ -91,9 +91,12 @@ object CreateTestAccountForm{
           s"Account with id $accountId already exists at bank $bankId")
         bankAccount <- Connector.connector.vend.createBankAccountLegacy(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name,
                                                                          "", List.empty)//added field in V220
-                                                                        
+
+        //1 Create or Update the `Owner` for the new account
+        //2 Add permission to the user
+        //3 Set the user as the account holder
+        _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, user, callContext)
       } yield {
-        BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, user, None)
         bankAccount
       }
     }
