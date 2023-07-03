@@ -1436,11 +1436,12 @@ def restoreSomeSessions(): Unit = {
           _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewBankAccountIds-------" + csbNewBankAccountIds)
           view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//TODO, only support system views so far, may add custom views later.
           _=UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+          view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView`
+              Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)
+            else //otherwise, we will call `grantAccessToCustomView`
+              Views.views.vend.grantAccessToCustomView(view.uid, user)
         } yield {
-          if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
-            Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)
-          else //otherwise, we will call `grantAccessToCustomView`
-            Views.views.vend.grantAccessToCustomView(view.uid, user)
+          view
         }
 
         //3rd: if the ids are not change, but views are changed, we still need compare the view for each account:
@@ -1471,12 +1472,12 @@ def restoreSomeSessions(): Unit = {
                 newViewForAccount <- csbNewViewsForAccount
                 view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
                 _ = UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
-              }yield{
-                if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
-                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
+                view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView` 
+                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user) 
                 else //otherwise, we will call `grantAccessToCustomView`
                   Views.views.vend.grantAccessToCustomView(view.uid, user)
-                
+              }yield{
+                view
               }
             } 
           } yield {
