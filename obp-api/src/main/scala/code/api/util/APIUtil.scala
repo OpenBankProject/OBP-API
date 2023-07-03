@@ -58,6 +58,7 @@ import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api._
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.v5_0_0.OBPAPI5_0_0
+import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -4597,7 +4598,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
   
-  lazy val allStaticResourceDocs = (OBPAPI5_0_0.allResourceDocs
+  lazy val allStaticResourceDocs = (OBPAPI5_1_0.allResourceDocs
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
     ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs

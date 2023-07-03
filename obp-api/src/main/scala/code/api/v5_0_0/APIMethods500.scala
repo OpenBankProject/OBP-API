@@ -388,11 +388,11 @@ trait APIMethods500 {
               None,
               callContext: Option[CallContext]
             )
-          } yield {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+          } yield {
             (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
           }
         }
@@ -845,7 +845,7 @@ trait APIMethods500 {
             consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
               consentRequestJson.email.head
             }
-            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+            (status, callContext) <- NewStyle.function.sendCustomerNotification(
               StrongCustomerAuthentication.EMAIL,
               consentScaEmail,
               Some("OBP Consent Challenge"),
@@ -864,7 +864,7 @@ trait APIMethods500 {
             consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
               consentRequestJson.phone_number.head
             }
-            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+            (status, callContext) <- NewStyle.function.sendCustomerNotification(
               StrongCustomerAuthentication.SMS,
               consentScaPhoneNumber,
               None,
@@ -984,7 +984,7 @@ trait APIMethods500 {
             _ <- scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
                 sendEmailNotification(callContext, consentRequestJson, challengeText)
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+              case v if v == StrongCustomerAuthentication.SMS.toString =>
                 sendSmsNotification(callContext, consentRequestJson, challengeText)
               case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
                 for {
@@ -992,7 +992,7 @@ trait APIMethods500 {
                   status <- consentImplicitSCA.scaMethod match {
                     case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
                       sendEmailNotification(callContext, consentRequestJson.copy(email=Some(consentImplicitSCA.recipient)), challengeText)
-                    case v if v == StrongCustomerAuthentication.SMS => // Not implemented
+                    case v if v == StrongCustomerAuthentication.SMS =>
                       sendSmsNotification(callContext, consentRequestJson.copy(phone_number=Some(consentImplicitSCA.recipient)), challengeText)
                     case _ => Future {
                       "Success"

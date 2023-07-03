@@ -3543,7 +3543,7 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                (status, callContext) <- NewStyle.function.sendCustomerNotification(
                   StrongCustomerAuthentication.EMAIL, 
                   postConsentEmailJson.email, 
                   Some("OBP Consent Challenge"),
@@ -3551,7 +3551,7 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
-            case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+            case v if v == StrongCustomerAuthentication.SMS.toString =>
               for {
                 failMsg <- Future {
                   s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
@@ -3560,7 +3560,7 @@ trait APIMethods310 {
                   json.extract[PostConsentPhoneJsonV310]
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
-                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                (status, callContext) <- NewStyle.function.sendCustomerNotification(
                   StrongCustomerAuthentication.SMS, 
                   phoneNumber, 
                   None,
@@ -3568,20 +3568,20 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
-            case v if v == StrongCustomerAuthentication.IMPLICIT.toString => // Not implemented
+            case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
               for {
                 (consentImplicitSCA, callContext) <- NewStyle.function.getConsentImplicitSCA(user, callContext)
                 status <- consentImplicitSCA.scaMethod match {
                   case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
-                    Connector.connector.vend.sendCustomerNotification (
+                    NewStyle.function.sendCustomerNotification (
                       StrongCustomerAuthentication.EMAIL,
                       consentImplicitSCA.recipient,
                       Some ("OBP Consent Challenge"),
                       challengeText,
                       callContext
                     )
-                  case v if v == StrongCustomerAuthentication.SMS => // Not implemented
-                    Connector.connector.vend.sendCustomerNotification(
+                  case v if v == StrongCustomerAuthentication.SMS =>
+                    NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.SMS,
                       consentImplicitSCA.recipient,
                       None,
@@ -5425,11 +5425,11 @@ trait APIMethods310 {
               None,
               callContext: Option[CallContext]
             )
-          } yield {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+          } yield {
             (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
           }
         }

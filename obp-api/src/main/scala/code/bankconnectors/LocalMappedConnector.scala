@@ -2234,7 +2234,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       List.empty
     )
 
-    Full((bank, account))
+    account.map(account => (bank, account))
   }
 
   override def updateBankAccount(
@@ -2409,11 +2409,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                        ): Box[BankAccount] = {
 
     for {
-      (bank, _) <- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
-    } yield {
-
-      val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(
+      (_, _) <- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
+      account <- createAccountIfNotExisting (
         bankId,
         accountId,
         accountNumber,
@@ -2424,7 +2422,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         accountHolderName,
         branchId,
         accountRoutings
-      )
+        ) ?~! AccountRoutingAlreadyExist
+    } yield {
+      account
     }
 
   }
@@ -2441,12 +2441,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           accountHolderName: String,
                                           branchId: String,
                                           accountRoutings: List[AccountRouting],
-                                        ): BankAccount = {
+                                        ): Box[BankAccount] = {
     getBankAccountOld(bankId, accountId) match {
       case Full(a) =>
         logger.debug(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
-        a
-      case _ =>
+        Full(a)
+      case _ => tryo {
         accountRoutings.map(accountRouting =>
           BankAccountRouting.create
             .BankId(bankId.value)
@@ -2466,6 +2466,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .holder(accountHolderName)
           .mBranchId(branchId)
           .saveMe()
+      }
     }
   }
 

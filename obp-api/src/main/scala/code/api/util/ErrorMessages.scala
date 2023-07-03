@@ -448,7 +448,7 @@ object ErrorMessages {
   val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
   val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
   val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
-  val GetConsentImplicitSCAError = "OBP-30229: Could not get the consent implicit SCA."
+  val GetConsentImplicitSCAError = "OBP-30229: Could not get the implicit SCA consent."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
@@ -522,7 +522,7 @@ object ErrorMessages {
   val ConsumerKeyIsToLong = "OBP-35031: The Consumer Key max length <= 512"
   val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
   val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
-  val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Only SMS and EMAIL are supported as SCA methods. "
+  val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Unsupported as SCA method. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
