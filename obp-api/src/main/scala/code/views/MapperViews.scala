@@ -609,7 +609,7 @@ object MapperViews extends Views with MdcLoggable {
 
   
   def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
-    logger.debug(s"-->getOrCreateSystemViewFromCbs.${viewId} --- start ")
+    logger.debug(s"-->getOrCreateSystemViewFromCbs--- start--${viewId}  ")
     
     val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
@@ -633,7 +633,7 @@ object MapperViews extends Views with MdcLoggable {
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
       }
     
-    logger.debug(s"-->getOrCreateSystemViewFromCbs.${viewId } --- finish : ${theView} ")
+    logger.debug(s"-->getOrCreateSystemViewFromCbs --- finish.${viewId } : ${theView} ")
     
     theView
   }
