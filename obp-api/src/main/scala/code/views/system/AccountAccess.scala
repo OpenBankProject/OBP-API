@@ -28,6 +28,16 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
 }
 object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAccess] {
   override def dbIndexes: List[BaseIndex[AccountAccess]] = UniqueIndex(bank_id, account_id, view_id, user_fk, consumer_id) :: super.dbIndexes
+  
+  def findByUniqueIndex(bankId: BankId, accountId: AccountId, viewId: ViewId, userPrimaryKey: UserPrimaryKey, consumerId: String) =
+    AccountAccess.find(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value),
+      By(AccountAccess.view_id, viewId.value),
+      By(AccountAccess.user_fk, userPrimaryKey.value),
+      By(AccountAccess.consumer_id, consumerId),
+    )
+  
   def findAllBySystemViewId(systemViewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.view_id, systemViewId.value)
   ) 
@@ -38,13 +48,11 @@ object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAcces
       AccountAccess.findAllByBankIdAccountIdViewId(view.bankId, view.accountId, view.viewId)
     }
   def findAllByUserPrimaryKey(userPrimaryKey:UserPrimaryKey)= AccountAccess.findAll(
-    By(AccountAccess.user_fk, userPrimaryKey.value),
-    PreCache(AccountAccess.view_fk)
+    By(AccountAccess.user_fk, userPrimaryKey.value)
   )
   def findAllByBankIdAccountId(bankId:BankId, accountId:AccountId) = AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
-    By(AccountAccess.account_id, accountId.value),
-    PreCache(AccountAccess.view_fk)
+    By(AccountAccess.account_id, accountId.value)
   )
   def findAllByBankIdAccountIdViewId(bankId:BankId, accountId:AccountId, viewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
@@ -55,8 +63,7 @@ object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAcces
   def findByBankIdAccountIdUserPrimaryKey(bankId: BankId, accountId: AccountId, userPrimaryKey: UserPrimaryKey) = AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),
-    By(AccountAccess.user_fk, userPrimaryKey.value),
-    PreCache(AccountAccess.view_fk)
+    By(AccountAccess.user_fk, userPrimaryKey.value)
   )
 
   def findByBankIdAccountIdViewIdUserPrimaryKey(bankId: BankId, accountId: AccountId, viewId: ViewId, userPrimaryKey: UserPrimaryKey) = AccountAccess.find(

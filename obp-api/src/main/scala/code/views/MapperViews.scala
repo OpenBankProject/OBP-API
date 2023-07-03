@@ -91,19 +91,21 @@ object MapperViews extends Views with MdcLoggable {
   }
   // This is an idempotent function
   private def getOrGrantAccessToCustomView(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
-    if (AccountAccess.count(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value), 
-      By(AccountAccess.bank_id, bankId), 
-      By(AccountAccess.account_id, accountId), 
-      By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
-      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId)")
+    if (AccountAccess.findByUniqueIndex(
+      BankId(bankId),
+      AccountId(accountId), 
+      viewDefinition.viewId,
+      user.userPrimaryKey, 
+      ALL_CONSUMERS).isEmpty) {
+      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create" +
+        s"user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId), consumerId($ALL_CONSUMERS)")
       // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
         bank_id(bankId).
         account_id(accountId).
         view_id(viewDefinition.viewId.value).
-        view_fk(viewDefinition.id).
+        consumer_id(ALL_CONSUMERS).
         save
       if (saved) {
         //logger.debug("saved AccountAccessList")
