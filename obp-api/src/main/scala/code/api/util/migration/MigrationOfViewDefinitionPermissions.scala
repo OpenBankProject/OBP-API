@@ -1,6 +1,6 @@
 package code.api.util.migration
 
-import code.api.Constant.SYSTEM_OWNER_VIEW_ID
+import code.api.Constant.{ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT, SYSTEM_OWNER_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.ViewDefinition
@@ -29,15 +29,42 @@ object MigrationOfViewDefinitionPermissions {
             .canUpdateCustomView_(true)
             .canSeePermissionForOneUser_(true)
             .canSeePermissionsForAllUsers_(true)
+            .canGrantAccessToCustomViews_(true)
+            .canRevokeAccessToCustomViews_(true)
+            .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+            .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+            .save
+        ).head
+        
+        val standardView = ViewDefinition.find(
+          NullRef(ViewDefinition.bank_id),
+          NullRef(ViewDefinition.account_id),
+          By(ViewDefinition.view_id, SYSTEM_STANDARD_VIEW_ID),
+          By(ViewDefinition.isSystem_,true)
+        ).map(view => 
+          view
+            .canSeeTransactionRequestTypes_(true)
+            .canSeeTransactionRequests_(true)
+            .canSeeAvailableViewsForBankAccount_(true)
+            .canUpdateBankAccountLabel_(true)
+            .canCreateCustomView_(true)
+            .canDeleteCustomView_(true)
+            .canUpdateCustomView_(true)
+            .canSeePermissionForOneUser_(true)
+            .canSeePermissionsForAllUsers_(true)
+            .canGrantAccessToCustomViews_(true)
+            .canRevokeAccessToCustomViews_(true)
+            .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+            .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
             .save
         ).head
 
       
-        val isSuccessful = ownerView
+        val isSuccessful = ownerView && standardView
         val endDate = System.currentTimeMillis()
 
         val comment: String =
-          s"""ViewDefinition system owner view, update the following rows to true:
+          s"""ViewDefinition system $SYSTEM_OWNER_VIEW_ID and $SYSTEM_STANDARD_VIEW_ID views, update the following rows to true:
              |${ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName}
              |${ViewDefinition.canSeeTransactionRequests_.dbColumnName}
              |${ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName}
@@ -47,6 +74,10 @@ object MigrationOfViewDefinitionPermissions {
              |${ViewDefinition.canUpdateCustomView_.dbColumnName}
              |${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}
              |${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}
+             |${ViewDefinition.canGrantAccessToCustomViews_.dbColumnName}
+             |${ViewDefinition.canRevokeAccessToCustomViews_.dbColumnName}
+             |${ViewDefinition.canGrantAccessToViews_.dbColumnName}
+             |${ViewDefinition.canRevokeAccessToViews_.dbColumnName}
              |Duration: ${endDate - startDate} ms;
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

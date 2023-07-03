@@ -327,7 +327,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = {
-    canRevokeAccessToViewCommon(bankId, accountId, user, callContext) match {
+    canRevokeAccessToAllViews(bankId, accountId, user, callContext) match {
       case true =>
         val permissions = AccountAccess.findAll(
           By(AccountAccess.user_fk, user.userPrimaryKey.value),
@@ -337,7 +337,7 @@ object MapperViews extends Views with MdcLoggable {
         permissions.foreach(_.delete_!)
         Full(true)
       case false =>
-        Failure(CannotRevokeAccountAccess)
+        Failure(UserLacksPermissionCanRevokeAccessToViewForTargetAccount)
     }
   }
 
@@ -799,9 +799,11 @@ object MapperViews extends Views with MdcLoggable {
       .canUpdateCustomView_(false)
       .canSeePermissionForOneUser_(false)
       .canSeePermissionsForAllUsers_(false)
+      .canRevokeAccessToCustomViews_(false)
+      .canGrantAccessToCustomViews_(false)
 
     viewId match {
-      case SYSTEM_OWNER_VIEW_ID =>
+      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
         entity
           .canSeeAvailableViewsForBankAccount_(true)
           .canSeeTransactionRequests_(true)
@@ -812,6 +814,10 @@ object MapperViews extends Views with MdcLoggable {
           .canUpdateCustomView_(true)
           .canSeePermissionForOneUser_(true)
           .canSeePermissionsForAllUsers_(true)
+          .canRevokeAccessToCustomViews_(true)
+          .canGrantAccessToCustomViews_(true)
+          .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+          .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)

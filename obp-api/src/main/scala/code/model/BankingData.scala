@@ -30,7 +30,7 @@ import java.util.Date
 
 import code.accountholders.AccountHolders
 import code.api.{APIFailureNewStyle, Constant}
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToView, canGrantAccessToMultipleViews, canRevokeAccessToAllViews, canRevokeAccessToView, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.{Connector, LocalMappedConnector}
@@ -226,13 +226,13 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
         case _ => Views.views.vend.grantAccessToCustomView(viewUID, user)
       }
     }
-    if(canGrantAccessToViewCommon(bankId, accountId, user, callContext))
+    if(canGrantAccessToView(bankId, accountId, viewUID.viewId , user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         savedView <- grantAccessToCustomOrSystemView(otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
+      Failure(UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewId(${viewUID.viewId.value}) and current UserId(${user.userId})")
   }
 
   /**
@@ -244,13 +244,13 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     */
   final def grantAccessToMultipleViews(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String, 
     callContext: Option[CallContext]) : Box[List[View]] = {
-    if(canGrantAccessToViewCommon(bankId, accountId, user, callContext))
+    if(canGrantAccessToMultipleViews(bankId, accountId, viewUIDs.map(_.viewId), user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser, callContext) ?~ "could not save the privilege"
       } yield grantedViews
     else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
+      Failure(UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds${viewUIDs.map(_.viewId.value)} and current UserId${user.userId}")
   }
 
   /**
@@ -269,13 +269,13 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       }
     }
     //check if the user have access to the owner view in this the account
-    if(canRevokeAccessToViewCommon(bankId, accountId, user, callContext: Option[CallContext]))
+    if(canRevokeAccessToView(bankId, accountId, viewUID.viewId, user, callContext: Option[CallContext]))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- revokeAccessToCustomOrSystemView(otherUser: User) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
+      Failure(UserLacksPermissionCanRevokeAccessToViewForTargetAccount + s"Current ViewId(${viewUID.viewId.value}) and current UserId(${user.userId})")
   }
 
   /**
@@ -287,13 +287,13 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     */
 
   final def revokeAllAccountAccess(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Boolean] = {
-    if(canRevokeAccessToViewCommon(bankId, accountId, user, callContext))
+    if(canRevokeAccessToAllViews(bankId, accountId, user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByProviderAndUsername
         isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
       } yield isRevoked
     else
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
+      Failure(UserLacksPermissionCanRevokeAccessToViewForTargetAccount + s"current UserId${user.userId}")
   }
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {

@@ -864,7 +864,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             failMsg = "wrong format JSON"
             viewIds <- NewStyle.function.tryons(failMsg, 400, callContext) { json.extract[ViewIdsJson] }
-            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId,callContext)
+            (addedViews, callContext) <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId,callContext)
           } yield {
             (JSONFactory.createViewsJSON(addedViews), HttpCode.`201`(callContext))
           }
@@ -891,6 +891,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         BankAccountNotFound,
         UnknownError,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         "could not save the privilege",
         "user does not have access to owner view on account"
         ),
@@ -904,7 +905,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
+            (addedView, callContext) <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             (viewJson, HttpCode.`201`(callContext))

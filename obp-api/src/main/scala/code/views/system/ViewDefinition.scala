@@ -6,7 +6,7 @@ import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
-import net.liftweb.mapper._
+import net.liftweb.mapper.{MappedBoolean, _}
 
 import scala.collection.immutable.List
 
@@ -56,6 +56,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   }
   object canRevokeAccessToViews_ extends MappedText(this){
     override def defaultValue = ""
+  }
+  object canRevokeAccessToCustomViews_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canGrantAccessToCustomViews_ extends MappedBoolean(this) {
+    override def defaultValue = false
   }
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
@@ -340,11 +346,15 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     isFirehose_(viewData.is_firehose.getOrElse(false))
     metadataView_(viewData.metadata_view)
     
-    canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
-    canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
-
     val actions = viewData.allowed_actions
 
+    if (isSystem) { //The following are admin permissions, only system views are allowed to use them.
+      canGrantAccessToCustomViews_(actions.exists(_ == "can_grant_access_to_custom_views"))
+      canRevokeAccessToCustomViews_(actions.exists(_ == "can_revoke_access_to_custom_views"))
+      canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
+      canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
+    }
+    
     canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
     canSeeTransactionOtherBankAccount_(actions.exists(_ =="can_see_transaction_other_bank_account"))
     canSeeTransactionMetadata_(actions.exists(_ == "can_see_transaction_metadata"))
@@ -456,18 +466,24 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
+  //This current view can grant access to other views.
   override def canGrantAccessToViews : Option[List[String]] = {
     canGrantAccessToViews_.get == null || canGrantAccessToViews_.get.isEmpty() match {
       case true => None
       case _ => Some(canGrantAccessToViews_.get.split(",").toList.map(_.trim))
     }
   }
+
+  def canGrantAccessToCustomViews : Boolean = canGrantAccessToCustomViews_.get
+  
+  //the current view can revoke access to other views.
   override def canRevokeAccessToViews : Option[List[String]] = {
     canRevokeAccessToViews_.get == null || canRevokeAccessToViews_.get.isEmpty()  match {
       case true => None
       case _ => Some(canRevokeAccessToViews_.get.split(",").toList.map(_.trim))
     }
   }
+  override def canRevokeAccessToCustomViews : Boolean = canRevokeAccessToCustomViews_.get
   
   //reading access
 

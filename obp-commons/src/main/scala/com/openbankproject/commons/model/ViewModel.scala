@@ -250,10 +250,12 @@ trait View {
   def usePrivateAliasIfOneExists: Boolean
 
   def hideOtherAccountMetadataIfAlias: Boolean
-
-  // Introduced in version 5.0.0
+  //TODO, in progress, we only make the system view work, the custom views are still in progress.. 
+//  https://gitlab-external.tesobe.com/tesobe/boards/tech-internal/-/issues/314
   def canGrantAccessToViews : Option[List[String]] = None
+  def canGrantAccessToCustomViews : Boolean // if this true, we can grant custom views, if it is false, no one can grant custom views.
   def canRevokeAccessToViews : Option[List[String]] = None
+  def canRevokeAccessToCustomViews : Boolean // if this true, we can revoke custom views,if it is false, no one can revoke custom views.
 
   //reading access
 

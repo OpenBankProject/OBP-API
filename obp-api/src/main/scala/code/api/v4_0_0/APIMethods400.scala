@@ -4373,7 +4373,7 @@ trait APIMethods400 {
       viewJsonV300,
       List(
         $UserNotLoggedIn,
-        UserMissOwnerViewOrNotAccountHolder,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
@@ -4393,7 +4393,7 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, u, callContext)
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, ViewId(postJson.view.view_id), u, callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- getView(bankId, accountId, postJson.view, callContext)
             addedView <- grantAccountAccessToUser(bankId, accountId, user, view, callContext)
@@ -4430,7 +4430,7 @@ trait APIMethods400 {
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
-        UserMissOwnerViewOrNotAccountHolder,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         SystemViewNotFound,
         ViewNotFound,
@@ -4444,6 +4444,7 @@ trait APIMethods400 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
           for {
+            (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostCreateUserAccountAccessJsonV400]
             }
@@ -4451,8 +4452,10 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
               postJson.provider.startsWith("dauth.")
             }
-
-            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
+            viewIdList = postJson.views.map(view =>ViewId(view.view_id))
+            _ <- Helper.booleanToFuture(s"$UserLacksPermissionCanGrantAccessToViewForTargetAccount ", 403, cc = Some(cc)) {
+              APIUtil.canGrantAccessToMultipleViews(bankId, accountId, viewIdList, u, callContext)
+            }
             (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.provider, postJson.username, cc.callContext)
             views <- getViews(bankId, accountId, postJson, callContext)
             addedView <- grantMultpleAccountAccessToUser(bankId, accountId, targetUser, views, callContext)
@@ -4479,7 +4482,7 @@ trait APIMethods400 {
       revokedJsonV400,
       List(
         $UserNotLoggedIn,
-        UserMissOwnerViewOrNotAccountHolder,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
@@ -4496,14 +4499,16 @@ trait APIMethods400 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
+            (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
+            viewId = ViewId(postJson.view.view_id)
+            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, viewId, u, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
             view <- postJson.view.is_system match {
-              case true => NewStyle.function.systemView(ViewId(postJson.view.view_id), callContext)
-              case false => NewStyle.function.customView(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
+              case true => NewStyle.function.systemView(viewId, callContext)
+              case false => NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             }
             revoked <- postJson.view.is_system match {
               case true => NewStyle.function.revokeAccessToSystemView(bankId, accountId, view, user, callContext)
@@ -4531,7 +4536,7 @@ trait APIMethods400 {
       revokedJsonV400,
       List(
         $UserNotLoggedIn,
-        UserMissOwnerViewOrNotAccountHolder,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
@@ -4543,21 +4548,20 @@ trait APIMethods400 {
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
 
     lazy val revokeGrantUserAccessToViews : OBPEndpoint = {
-      //add access for specific user to a specific system view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access" :: Nil JsonPut json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
+            (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostRevokeGrantAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (user, callContext) <- NewStyle.function.findByUserId(cc.loggedInUser.userId, cc.callContext)
-           _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user, callContext)) map {
+            _ <- NewStyle.function.canRevokeAccessToAllView(bankId, accountId, u, cc.callContext)
+           _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, u, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
             grantViews = for (viewId <- postJson.views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
-            _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user, callContext)) map {
+            _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, u, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.views.mkString(",")}")
             }
           } yield {

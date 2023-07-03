@@ -168,7 +168,10 @@ object ErrorMessages {
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserMissOwnerViewOrNotAccountHolder = "OBP-20047: User must have access to the owner view or must be an account holder."
+  val UserLacksPermissionCanGrantAccessToViewForTargetAccount = 
+    s"OBP-20047: The current user does not have access to a view which lists the target account in ${ViewDefinition.canGrantAccessToViews_.dbColumnName} permissions"
+  val UserLacksPermissionCanRevokeAccessToViewForTargetAccount = 
+    s"OBP-20048: The current user does not have access to a view which lists the target account in ${ViewDefinition.canRevokeAccessToViews_.dbColumnName} permissions"
 
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
@@ -735,6 +738,8 @@ object ErrorMessages {
 //    InvalidConsumerCredentials -> 401, // or 400
     UsernameHasBeenLocked -> 401,
     UserNoPermissionAccessView -> 403,
+    UserLacksPermissionCanGrantAccessToViewForTargetAccount -> 403,
+    UserLacksPermissionCanRevokeAccessToViewForTargetAccount -> 403,
     UserNotSuperAdminOrMissRole -> 403,
     ConsumerHasMissingRoles -> 403,
     UserNotFoundByProviderAndUsername -> 404,
