@@ -1376,8 +1376,11 @@ def restoreSomeSessions(): Unit = {
         connectorEmptyResponse(_, callContext)
       }
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
+      
+      success = refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
+      
     }yield {
-      refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
+      success
     }
   }
 
@@ -1387,7 +1390,7 @@ def restoreSomeSessions(): Unit = {
     * This method can only be used by the original user(account holder).
    *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
-    def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount], callContext: Option[CallContext]): Unit = {
+    def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount], callContext: Option[CallContext])  = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
@@ -1471,7 +1474,7 @@ def restoreSomeSessions(): Unit = {
             //cbs has new views which are not in obp yet, we need to create new data for these accounts.
             csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
             _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount-------" + csbNewViewsForAccount)
-            _ = if(csbNewViewsForAccount.nonEmpty){
+            success = if(csbNewViewsForAccount.nonEmpty){
               for{
                 newViewForAccount <- csbNewViewsForAccount
                 _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount start:-------" + newViewForAccount)
@@ -1487,10 +1490,14 @@ def restoreSomeSessions(): Unit = {
               }
             } 
           } yield {
-            bankAccountId
+            success
           }
         }
-      } 
+        true
+      }  
+      else {
+        false
+      }
   }
   /**
     * Find the authUser by author user name(authUser and resourceUser are the same).

@@ -85,7 +85,7 @@ package code.model.dataAccess {
       *             
       * @return This is a procedure, no return value. Just use the side effect.
       */
-    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext]): Unit = {
+    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext])  = {
       // Here, we can call `addPermissionToSystemOwnerView` directly, but from now on, we try to simulate the CBS account creation.
       // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))

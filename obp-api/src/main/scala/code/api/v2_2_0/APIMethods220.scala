@@ -832,7 +832,7 @@ trait APIMethods220 {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
           } yield {
             (JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount), HttpCode.`200`(callContext))
 
