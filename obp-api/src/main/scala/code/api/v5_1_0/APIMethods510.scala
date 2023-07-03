@@ -8,6 +8,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
@@ -26,6 +27,7 @@ import code.util.Helper
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
 import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
@@ -1194,6 +1196,46 @@ trait APIMethods510 {
 
       }
     }
+
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersForUserIdsOnly,
+      implementedInApiVersion,
+      nameOf(getCustomersForUserIdsOnly),
+      "GET",
+      "/users/current/customers/customer_ids",
+      "Get Customers for Current User (IDs only)",
+      s"""Gets all Customers Ids that are linked to a User.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customersWithAttributesJsonV300,
+      List(
+        $UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser)
+    )
+    
+    lazy val getCustomersForUserIdsOnly : OBPEndpoint = {
+      case "users" :: "current" :: "customers" :: "customer_ids" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(cc.userId, cc.callContext) map {
+              connectorEmptyResponse(_, cc.callContext)
+            }
+          } yield {
+            (JSONFactory510.createCustomersIds(customers), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       createAtm,

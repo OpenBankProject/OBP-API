@@ -31,13 +31,13 @@ import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
 import code.api.util.APIUtil.gitCommit
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
-import code.api.v3_0_0.{AddressJsonV300, OpeningTimesV300}
+import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.UserAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, Location, Meta}
+import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import java.util.Date
 
@@ -226,9 +226,13 @@ case class UserAttributesResponseJsonV510(
   user_attributes: List[UserAttributeResponseJsonV510]
 )
 
-
+case class CustomerIdJson(id: String)
+case class CustomersIdsJsonV510(customers: List[CustomerIdJson])
 
 object JSONFactory510 extends CustomJsonFormats {
+
+  def createCustomersIds(customers :  List[Customer]): CustomersIdsJsonV510 =
+    CustomersIdsJsonV510(customers.map(x => CustomerIdJson(x.customerId)))
   
   def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 

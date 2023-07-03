@@ -3,8 +3,11 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole
+import code.api.util.ApiRole.CanCreateCustomer
 import code.api.v2_0_0.BasicAccountsJSON
+import code.api.v3_1_0.CustomerJsonV310
 import code.api.v4_0_0.{AtmJsonV400, BanksJson400}
+import code.api.v5_0_0.PostCustomerJsonV500
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.util.ApiShortVersions
@@ -52,6 +55,15 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val accountsJson = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts //TODO, how to make this map automatically.
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition).id
+  }
+
+  def createCustomerEndpointV510(bankId: String, legalName: String, mobilePhoneNumber: String): CustomerJsonV310 = {
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+    val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val response = makePostRequest(request, write(PostCustomerJsonV500(legal_name = legalName,mobile_phone_number = mobilePhoneNumber)))
+    Then("We should get a 201")
+    response.code should equal(201)
+    response.body.extract[CustomerJsonV310]
   }
   
 }
