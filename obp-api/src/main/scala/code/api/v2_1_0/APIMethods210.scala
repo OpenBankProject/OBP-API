@@ -701,7 +701,6 @@ trait APIMethods210 {
         BankNotFound,
         AccountNotFound,
         UserHasMissingRoles,
-        UserNoOwnerView,
         UnknownError
       ),
       List(apiTagTransactionRequest, apiTagPsd2))

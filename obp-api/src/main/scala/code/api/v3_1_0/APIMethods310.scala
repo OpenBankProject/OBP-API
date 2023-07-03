@@ -1073,7 +1073,6 @@ trait APIMethods310 {
         BankAccountNotFound,
         UserNoPermissionAccessView,
         ViewDoesNotPermitAccess,
-        UserNoOwnerView,
         GetTransactionRequestsException,
         UnknownError
       ),

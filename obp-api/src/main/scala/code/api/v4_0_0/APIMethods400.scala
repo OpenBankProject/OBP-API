@@ -5155,7 +5155,6 @@ trait APIMethods400 {
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
-        UserNoOwnerView,
         GetTransactionRequestsException,
         UnknownError
       ),
