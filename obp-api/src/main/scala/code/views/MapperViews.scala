@@ -309,13 +309,12 @@ object MapperViews extends Views with MdcLoggable {
    * we already has the guard `canRevokeAccessToAllViews` on the top level.
    */
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-      AccountAccess.find(
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.user_fk, user.userPrimaryKey.value)
-      ).foreach(_.delete_!)
-      Full(true)
-    }
+    AccountAccess.find(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value),
+      By(AccountAccess.user_fk, user.userPrimaryKey.value)
+    ).foreach(_.delete_!)
+    Full(true)
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = {
