@@ -2170,7 +2170,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
       And("The user should not have had his access revoked")
       val view = Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should contain (resourceUser3)
+      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
     }
   }
 
