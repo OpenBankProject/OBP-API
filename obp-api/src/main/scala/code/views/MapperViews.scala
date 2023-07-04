@@ -306,22 +306,9 @@ object MapperViews extends Views with MdcLoggable {
 
   /**
    * remove all the accountAccess for one user and linked account.
-   * If the user has `owner` view accountAccess and also the accountHolder, we can not revoke, just return `false`.
-   * all the other case, we can revoke all the account access for that user.
+   * we already has the guard `canRevokeAccessToAllViews` on the top level.
    */
-
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    val userIsAccountHolder_? = MapperAccountHolders.getAccountHolders(bankId, accountId).map(h => h.userPrimaryKey).contains(user.userPrimaryKey)
-    val userHasOwnerViewAccess_? = AccountAccess.find(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value),
-      By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-    ).isDefined
- 
-    if(userIsAccountHolder_? && userHasOwnerViewAccess_?){
-      Full(false)
-    }else{
       AccountAccess.find(
         By(AccountAccess.bank_id, bankId.value),
         By(AccountAccess.account_id, accountId.value),
