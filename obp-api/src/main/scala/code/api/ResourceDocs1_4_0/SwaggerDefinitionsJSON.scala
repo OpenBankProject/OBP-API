@@ -278,8 +278,8 @@ object SwaggerDefinitionsJSON {
     "can_create_custom_view",
     "can_delete_custom_view",
     "can_update_custom_view",
-    "can_see_permission_for_one_user",
-    "can_see_permissions_for_all_users",
+    "can_see_views_with_permissions_for_one_user",
+    "can_see_views_with_permissions_for_all_users",
     "can_grant_access_to_custom_views",
     "can_revoke_access_to_custom_views"
   )

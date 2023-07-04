@@ -327,9 +327,9 @@ trait View {
 
   def canSeeBankAccountRoutingAddress: Boolean
 
-  def canSeePermissionForOneUser: Boolean 
+  def canSeeViewsWithPermissionsForOneUser: Boolean 
 
-  def canSeePermissionsForAllUsers: Boolean
+  def canSeeViewsWithPermissionsForAllUsers: Boolean
   
   //other bank account (counterparty) fields
   def canSeeOtherAccountNationalIdentifier: Boolean

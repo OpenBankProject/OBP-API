@@ -320,10 +320,10 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canUpdateCustomView_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeePermissionsForAllUsers_ extends MappedBoolean(this){
+  object canSeeViewsWithPermissionsForAllUsers_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeePermissionForOneUser_ extends MappedBoolean(this){
+  object canSeeViewsWithPermissionsForOneUser_ extends MappedBoolean(this){
     override def defaultValue = false
   }
 
@@ -439,8 +439,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
     canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
     canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
-    canSeePermissionsForAllUsers_(actions.exists(_ == "can_see_permissions_for_all_users"))
-    canSeePermissionForOneUser_(actions.exists(_ == "can_see_permission_for_one_user"))
+    canSeeViewsWithPermissionsForAllUsers_(actions.exists(_ == "can_see_views_with_permissions_for_all_users")) 
+    canSeeViewsWithPermissionsForOneUser_(actions.exists(_ == "can_see_views_with_permissions_for_one_user"))
   }
 
   
@@ -526,8 +526,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
   def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
   def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
-  def canSeePermissionForOneUser: Boolean = canSeePermissionForOneUser_.get
-  def canSeePermissionsForAllUsers : Boolean = canSeePermissionsForAllUsers_.get
+  def canSeeViewsWithPermissionsForOneUser: Boolean = canSeeViewsWithPermissionsForOneUser_.get
+  def canSeeViewsWithPermissionsForAllUsers : Boolean = canSeeViewsWithPermissionsForAllUsers_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get

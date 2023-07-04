@@ -27,8 +27,8 @@ object MigrationOfViewDefinitionPermissions {
             .canCreateCustomView_(true)
             .canDeleteCustomView_(true)
             .canUpdateCustomView_(true)
-            .canSeePermissionForOneUser_(true)
-            .canSeePermissionsForAllUsers_(true)
+            .canSeeViewsWithPermissionsForOneUser_(true)
+            .canSeeViewsWithPermissionsForAllUsers_(true)
             .canGrantAccessToCustomViews_(true)
             .canRevokeAccessToCustomViews_(true)
             .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
@@ -50,8 +50,8 @@ object MigrationOfViewDefinitionPermissions {
             .canCreateCustomView_(true)
             .canDeleteCustomView_(true)
             .canUpdateCustomView_(true)
-            .canSeePermissionForOneUser_(true)
-            .canSeePermissionsForAllUsers_(true)
+            .canSeeViewsWithPermissionsForOneUser_(true)
+            .canSeeViewsWithPermissionsForAllUsers_(true)
             .canGrantAccessToCustomViews_(true)
             .canRevokeAccessToCustomViews_(true)
             .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
@@ -72,8 +72,8 @@ object MigrationOfViewDefinitionPermissions {
              |${ViewDefinition.canCreateCustomView_.dbColumnName}
              |${ViewDefinition.canDeleteCustomView_.dbColumnName}
              |${ViewDefinition.canUpdateCustomView_.dbColumnName}
-             |${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}
-             |${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}
+             |${ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName}
+             |${ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName}
              |${ViewDefinition.canGrantAccessToCustomViews_.dbColumnName}
              |${ViewDefinition.canRevokeAccessToCustomViews_.dbColumnName}
              |${ViewDefinition.canGrantAccessToViews_.dbColumnName}

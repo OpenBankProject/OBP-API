@@ -768,11 +768,11 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            anyViewContainsCanSeePermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
-              .map(_.views.map(_.canSeePermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canSeeViewsWithPermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
-              anyViewContainsCanSeePermissionsForAllUsersPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeePermissionsForAllUsers_.dbColumnName}` permission on any your views"
+              anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName}` permission on any your views"
             )
             permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
@@ -813,11 +813,11 @@ trait APIMethods121 {
             loggedInUser <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
-            anyViewContainsCanSeePermissionForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeePermissionForOneUser)
+            anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeeViewsWithPermissionsForOneUser)
               .find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
-              anyViewContainsCanSeePermissionForOneUserPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeePermissionForOneUser_.dbColumnName}` permission on any your views"
+              anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName}` permission on any your views"
             )
             userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
             permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
