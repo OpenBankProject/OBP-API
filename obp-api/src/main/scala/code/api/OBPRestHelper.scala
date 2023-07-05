@@ -145,8 +145,17 @@ case class APIFailureNewStyle(failMsg: String,
         locale,
       if(locale.toString.startsWith("en") || ?!(str, resourceBundleList)==str) //If can not find the value from props or the local is `en`, then return 
         errorBody 
-      else 
-        s": ${?!(str, resourceBundleList)}"
+      else {
+        val originalErrorMessageFromScalaCode = ErrorMessages.getValueMatches(_.startsWith(errorCode)).getOrElse("")
+        // we need to keep the extra message, 
+        // eg: OBP-20006: usuario le faltan uno o más roles':  CanGetUserInvitation for BankId(gh.29.uk). 
+        if(failMsg.contains(originalErrorMessageFromScalaCode)){ 
+          s": ${?!(str, resourceBundleList)}"+failMsg.replace(originalErrorMessageFromScalaCode,"")
+        } else{
+          s": ${?!(str, resourceBundleList)}"
+        }
+      }
+
       )
     
     val translatedErrorBody = ?(errorCode, locale)
