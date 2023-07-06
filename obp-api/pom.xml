@@ -445,7 +445,7 @@
     <dependency>
       <groupId>sh.ory.hydra</groupId>
       <artifactId>hydra-client</artifactId>
-      <version>1.7.8</version>
+      <version>1.7.0</version>
     </dependency>
 
     <!--json schema validation start-->
