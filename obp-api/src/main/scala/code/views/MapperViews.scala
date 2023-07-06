@@ -807,8 +807,6 @@ object MapperViews extends Views with MdcLoggable {
           .canUpdateBankAccountLabel_(true)
           .canSeeViewsWithPermissionsForOneUser_(true)
           .canSeeViewsWithPermissionsForAllUsers_(true)
-          .canRevokeAccessToCustomViews_(true)
-          .canGrantAccessToCustomViews_(true)
           .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
           .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
       case SYSTEM_STAGE_ONE_VIEW_ID =>
@@ -817,6 +815,8 @@ object MapperViews extends Views with MdcLoggable {
           .canAddTransactionRequestToAnyAccount_(false)
       case SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID =>
         entity
+          .canRevokeAccessToCustomViews_(true)
+          .canGrantAccessToCustomViews_(true)
           .canCreateCustomView_(true)
           .canDeleteCustomView_(true)
           .canUpdateCustomView_(true)

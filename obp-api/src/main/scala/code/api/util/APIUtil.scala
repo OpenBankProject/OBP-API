@@ -4123,7 +4123,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
     
     //check if we can revoke all systemViews Access
-    val allCanRevokeAccessToViewsPermissions: List[String] = permissionBox.map(_.views.filter(_.canRevokeAccessToCustomViews).map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    val allCanRevokeAccessToViewsPermissions: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
     val allAccountAccessSystemViews: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct.filter(checkSystemViewIdOrName)
     val canRevokeAccessToAllSystemViews = allAccountAccessSystemViews.forall(allCanRevokeAccessToViewsPermissions.contains)
 
