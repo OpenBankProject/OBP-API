@@ -683,10 +683,10 @@ trait APIMethods121 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+            anyViewContainsCanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
-              anyViewContainsCancanUpdateCustomViewPermission,
+              anyViewContainsCanUpdateCustomViewPermission,
               s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canUpdateCustomView_.dbColumnName}` permission on any your views"
             )
             updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId),viewId,  updateViewJson) ?~ CreateCustomViewError

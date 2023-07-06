@@ -794,6 +794,9 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeViewsWithPermissionsForAllUsers_(false)
       .canRevokeAccessToCustomViews_(false)
       .canGrantAccessToCustomViews_(false)
+      .canCreateCustomView_(false)
+      .canDeleteCustomView_(false)
+      .canUpdateCustomView_(false)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
@@ -802,9 +805,6 @@ object MapperViews extends Views with MdcLoggable {
           .canSeeTransactionRequests_(true)
           .canSeeTransactionRequestTypes_(true)
           .canUpdateBankAccountLabel_(true)
-          .canCreateCustomView_(true)
-          .canDeleteCustomView_(true)
-          .canUpdateCustomView_(true)
           .canSeeViewsWithPermissionsForOneUser_(true)
           .canSeeViewsWithPermissionsForAllUsers_(true)
           .canRevokeAccessToCustomViews_(true)
@@ -815,6 +815,11 @@ object MapperViews extends Views with MdcLoggable {
         entity
           .canSeeTransactionDescription_(false)
           .canAddTransactionRequestToAnyAccount_(false)
+      case SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID =>
+        entity
+          .canCreateCustomView_(true)
+          .canDeleteCustomView_(true)
+          .canUpdateCustomView_(true)
       case SYSTEM_FIREHOSE_VIEW_ID =>
         entity
           .isFirehose_(true)

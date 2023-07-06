@@ -428,6 +428,7 @@ trait View {
   
   def canCreateStandingOrder: Boolean
 
+  //If any view set these to true, you can create/delete/update the custom view
   def canCreateCustomView: Boolean
   def canDeleteCustomView: Boolean
   def canUpdateCustomView: Boolean
