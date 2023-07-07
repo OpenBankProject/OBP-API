@@ -4092,16 +4092,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val allSystemViewsAccessTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(checkSystemViewIdOrName)
     val canGrantAccessToAllSystemViews = allSystemViewsAccessTobeGranted.forall(allCanGrantAccessToViewsPermissions.contains)
 
-    if (allSystemViewsAccessTobeGranted.find(checkCustomViewIdOrName).isDefined){
+    if (viewIdsTobeGranted.map(_.value).distinct.find(checkCustomViewIdOrName).isDefined){
       //check if we can grant all customViews Access
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
       val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
       canGrantAccessToAllSystemViews && canGrantAccessToAllCustomViews
-    } else if (allSystemViewsAccessTobeGranted.find(checkSystemViewIdOrName).isDefined) {
-      canGrantAccessToAllSystemViews
     } else {
-      false
+      canGrantAccessToAllSystemViews
     }
   }
   

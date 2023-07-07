@@ -1995,16 +1995,18 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = resourceUser2.idGivenByProvider
+      val userId2 = resourceUser2.idGivenByProvider
       val viewId = getTheRandomView(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
-      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val replyGranted = grantUserAccessToViews(bankId, bankAccount.id, userId2, viewsIdsToGrant, user1)
+      Then("we should get a 201")
+      replyGranted.code should equal(201)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)
     }
 
