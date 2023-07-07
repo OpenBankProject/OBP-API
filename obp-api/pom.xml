@@ -438,15 +438,6 @@
       <artifactId>scala-xml_${scala.version}</artifactId>
       <version>1.2.0</version>
     </dependency>
-    <!-- 
-    Java Client for ORY Hydra
-    https://github.com/ory/hydra-client-java 
-    -->
-    <dependency>
-      <groupId>sh.ory.hydra</groupId>
-      <artifactId>hydra-client</artifactId>
-      <version>1.7.0</version>
-    </dependency>
 
     <!--json schema validation start-->
     <dependency>
