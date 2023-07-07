@@ -4092,12 +4092,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val allSystemViewsAccessTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(checkSystemViewIdOrName)
     val canGrantAccessToAllSystemViews = allSystemViewsAccessTobeGranted.forall(allCanGrantAccessToViewsPermissions.contains)
 
-    //check if we can grant all customViews Access
-    val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
-    val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
-
-    //we need merge both system and custom access
-    canGrantAccessToAllSystemViews && canGrantAccessToAllCustomViews
+    if (allSystemViewsAccessTobeGranted.find(checkCustomViewIdOrName).isDefined){
+      //check if we can grant all customViews Access
+      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
+      val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
+      //we need merge both system and custom access
+      canGrantAccessToAllSystemViews && canGrantAccessToAllCustomViews
+    } else if (allSystemViewsAccessTobeGranted.find(checkSystemViewIdOrName).isDefined) {
+      canGrantAccessToAllSystemViews
+    } else {
+      false
+    }
   }
   
   def canRevokeAccessToView(bankId: BankId, accountId: AccountId, viewIdToBeRevoked : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
@@ -4127,12 +4132,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val allAccountAccessSystemViews: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct.filter(checkSystemViewIdOrName)
     val canRevokeAccessToAllSystemViews = allAccountAccessSystemViews.forall(allCanRevokeAccessToViewsPermissions.contains)
 
-    //check if we can revoke all customViews Access
-    val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
-    val canRevokeAccessToAllCustomViews =  allCanRevokeAccessToCustomViewsPermissions.contains(true)
-
-    //we need merge both system and custom access
-    canRevokeAccessToAllSystemViews && canRevokeAccessToAllCustomViews
+    if (allAccountAccessSystemViews.find(checkCustomViewIdOrName).isDefined){
+      //check if we can revoke all customViews Access
+      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
+      val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
+      //we need merge both system and custom access
+      canRevokeAccessToAllSystemViews && canRevokeAccessToAllCustomViews
+    }else if(allAccountAccessSystemViews.find(checkSystemViewIdOrName).isDefined){
+      canRevokeAccessToAllSystemViews
+    }else{
+      false
+    }
 
   }
 

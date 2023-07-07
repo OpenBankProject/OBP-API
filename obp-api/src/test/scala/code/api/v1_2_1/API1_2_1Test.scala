@@ -31,6 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.checkSystemViewIdOrName
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
@@ -164,9 +165,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID))
-      .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
-      .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
+      .filterNot(view=> checkSystemViewIdOrName(view.id))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
@@ -183,6 +182,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
       .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
       .filterNot(_.id.contains(SYSTEM_FIREHOSE_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }

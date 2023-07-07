@@ -298,7 +298,14 @@ object ErrorMessages {
   val CreateCardError = "OBP-30032: Could not insert the Card"
   val UpdateCardError = "OBP-30033: Could not update the Card"
 
-  val ViewIdNotSupported = "OBP-30034: This ViewId is not supported. Only support four now: Owner, Accountant, Auditor, StageOne, Standard, _Public."
+  val ViewIdNotSupported = s"OBP-30034: This ViewId is not supported. Only support four now: " +
+    s"$SYSTEM_OWNER_VIEW_ID, " +
+    s"$SYSTEM_ACCOUNTANT_VIEW_ID, " +
+    s"$SYSTEM_AUDITOR_VIEW_ID, " +
+    s"$SYSTEM_STAGE_ONE_VIEW_ID, " +
+    s"$SYSTEM_STANDARD_VIEW_ID, " +
+    s"$SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID, " +
+    s"$CUSTOM_PUBLIC_VIEW_ID."
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 

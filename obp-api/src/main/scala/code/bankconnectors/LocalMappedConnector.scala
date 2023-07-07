@@ -10,11 +10,11 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
-import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
 import code.api.util._
@@ -555,7 +555,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List("owner") //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
