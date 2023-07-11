@@ -752,7 +752,7 @@ trait APIMethods510 {
       "/consumer/consents/CONSENT_ID",
       "Get Consent By Consent Id",
       s"""
-         |0
+         |
          |This endpoint gets the Consent By consent id.
          |
          |${authenticationRequiredMessage(true)}
