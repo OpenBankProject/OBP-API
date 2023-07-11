@@ -53,7 +53,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer, Props}
+import net.liftweb.util.{Helpers, Mailer, Props, StringHelpers}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
@@ -1088,7 +1088,7 @@ trait APIMethods310 {
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})",
               cc=callContext){
               view.canSeeTransactionRequests
             }

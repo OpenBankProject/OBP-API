@@ -1,7 +1,6 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
-
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.{APIFailure, APIFailureNewStyle}
@@ -43,6 +42,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future
 // Makes JValue assignment to Nil work
@@ -1014,7 +1014,7 @@ trait APIMethods200 {
             anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission
@@ -1058,7 +1058,7 @@ trait APIMethods200 {
               .find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanSeePermissionForOneUserPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views"
             )
             userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
             permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
@@ -1455,7 +1455,7 @@ trait APIMethods200 {
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
               view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(view.canSeeTransactionRequests,
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value} )")
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )")
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
               yield {

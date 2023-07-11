@@ -49,6 +49,7 @@ import code.model
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
+import net.liftweb.util.StringHelpers
 
 
 trait APIMethods300 {
@@ -184,7 +185,7 @@ trait APIMethods300 {
                 .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
               
               _ <- Helper.booleanToFuture(
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canCreateCustomView_.dbColumnName}` permission on any your views",
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
                 cc = callContext
               ) {anyViewContainsCanCreateCustomViewPermission}
               (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, callContext)
@@ -223,7 +224,7 @@ trait APIMethods300 {
             anyViewContainsCanSeePermissionForOneUserPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
               .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanSeePermissionForOneUserPermission
@@ -290,7 +291,7 @@ trait APIMethods300 {
                 .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
 
               _ <- Helper.booleanToFuture(
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canUpdateCustomView_.dbColumnName}` permission on any your views",
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
                 cc = callContext
               ) {
                 anyViewContainsCancanUpdateCustomViewPermission

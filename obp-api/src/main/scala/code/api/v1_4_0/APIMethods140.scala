@@ -22,7 +22,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
+import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -424,7 +424,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName}` permission on the View(${viewId.value} )",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )",
               cc = callContext
             ) {
               view.canSeeTransactionRequestTypes
@@ -475,7 +475,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(
                 view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value})"
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})"
               )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }

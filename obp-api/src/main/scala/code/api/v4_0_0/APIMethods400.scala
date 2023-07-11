@@ -2782,7 +2782,7 @@ trait APIMethods400 {
             anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canUpdateBankAccountLabel_.dbColumnName}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateBankAccountLabel_.dbColumnName).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanUpdateBankAccountLabelPermission
@@ -5168,7 +5168,7 @@ trait APIMethods400 {
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})",
               cc = callContext) {
               view.canSeeTransactionRequests
             }
