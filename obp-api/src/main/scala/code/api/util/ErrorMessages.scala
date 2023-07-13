@@ -556,7 +556,7 @@ object ErrorMessages {
     "because the login user doesn't have access to the view of the from account " +
     "or the consumer doesn't have the access to the view of the from account " +
     s"or the login user does not have the `${CanCreateAnyTransactionRequest.toString()}` role " +
-    s"or the view have the permission ${StringHelpers.snakify(ViewDefinition.canAddTransactionRequestToAnyAccount_.dbColumnName).dropRight(1)}."
+    s"or the view does not have the permission ${StringHelpers.snakify(ViewDefinition.canAddTransactionRequestToAnyAccount_.dbColumnName).dropRight(1)}."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
