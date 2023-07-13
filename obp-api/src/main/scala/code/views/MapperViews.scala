@@ -602,7 +602,7 @@ object MapperViews extends Views with MdcLoggable {
     val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
     val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
     val stageOneView = SYSTEM_STAGE_ONE_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
-    val enableCustomViews = SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
+    val manageCustomViews = SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
     
     val theView =
       if (ownerView)
@@ -615,8 +615,8 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID)
       else if (stageOneView)
         getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID)
-      else if (enableCustomViews)
-        getOrCreateSystemView(SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID)
+      else if (manageCustomViews)
+        getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID)
       else {
         logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
@@ -816,7 +816,7 @@ object MapperViews extends Views with MdcLoggable {
         entity
           .canSeeTransactionDescription_(false)
           .canAddTransactionRequestToAnyAccount_(false)
-      case SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID =>
+      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
         entity
           .canRevokeAccessToCustomViews_(true)
           .canGrantAccessToCustomViews_(true)

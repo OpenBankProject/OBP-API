@@ -10,13 +10,13 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
-import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
+import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -72,7 +72,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
-import code.util.Helper.{MdcLoggable, _}
+import code.util.Helper._
 import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -555,7 +555,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List(SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}

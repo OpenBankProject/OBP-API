@@ -29,7 +29,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
   final val SYSTEM_STANDARD_VIEW_ID = "standard"
   final val SYSTEM_STAGE_ONE_VIEW_ID = "StageOne"
-  final val SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID = "EnableCustomViews"
+  final val SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID = "ManageCustomViews"
   final val SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
   final val SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID = "ReadAccountsDetail"
   final val SYSTEM_READ_BALANCES_VIEW_ID = "ReadBalances"
@@ -49,7 +49,7 @@ object Constant extends MdcLoggable {
     SYSTEM_FIREHOSE_VIEW_ID,
     SYSTEM_STANDARD_VIEW_ID,
     SYSTEM_STAGE_ONE_VIEW_ID,
-    SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID,
+    SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,
     SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
     SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
     SYSTEM_READ_BALANCES_VIEW_ID,

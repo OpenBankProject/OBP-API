@@ -305,7 +305,7 @@ object ErrorMessages {
     s"$SYSTEM_AUDITOR_VIEW_ID, " +
     s"$SYSTEM_STAGE_ONE_VIEW_ID, " +
     s"$SYSTEM_STANDARD_VIEW_ID, " +
-    s"$SYSTEM_ENABLE_CUSTOM_VIEWS_VIEW_ID, " +
+    s"$SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, " +
     s"$CUSTOM_PUBLIC_VIEW_ID."
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
