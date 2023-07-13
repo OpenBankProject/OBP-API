@@ -6,7 +6,7 @@ import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
-import net.liftweb.mapper._
+import net.liftweb.mapper.{MappedBoolean, _}
 
 import scala.collection.immutable.List
 
@@ -57,7 +57,19 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canRevokeAccessToViews_ extends MappedText(this){
     override def defaultValue = ""
   }
+  object canRevokeAccessToCustomViews_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canGrantAccessToCustomViews_ extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeTransactionRequests_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeTransactionRequestTypes_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeTransactionOtherBankAccount_ extends MappedBoolean(this){
@@ -102,6 +114,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeBankAccountOwners_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeAvailableViewsForBankAccount_ extends MappedBoolean(this){
+    override def defaultValue = true
+  }
   object canSeeBankAccountType_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -115,6 +130,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     override def defaultValue = false
   }
   object canSeeBankAccountLabel_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateBankAccountLabel_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeBankAccountNationalIdentifier_ extends MappedBoolean(this){
@@ -292,6 +310,22 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canCreateStandingOrder_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  
+  object canCreateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canDeleteCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeViewsWithPermissionsForAllUsers_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeViewsWithPermissionsForOneUser_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
@@ -312,11 +346,18 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     isFirehose_(viewData.is_firehose.getOrElse(false))
     metadataView_(viewData.metadata_view)
     
-    canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
-    canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
-
     val actions = viewData.allowed_actions
 
+    if (isSystem) { //The following are admin permissions, only system views are allowed to use them.
+      canGrantAccessToCustomViews_(actions.exists(_ == "can_grant_access_to_custom_views"))
+      canRevokeAccessToCustomViews_(actions.exists(_ == "can_revoke_access_to_custom_views"))
+      canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
+      canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
+      canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
+      canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
+      canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
+    }
+    
     canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
     canSeeTransactionOtherBankAccount_(actions.exists(_ =="can_see_transaction_other_bank_account"))
     canSeeTransactionMetadata_(actions.exists(_ == "can_see_transaction_metadata"))
@@ -394,6 +435,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
     canCreateDirectDebit_(actions.exists(_ == "can_create_direct_debit"))
     canCreateStandingOrder_(actions.exists(_ == "can_create_standing_order"))
+    canSeeTransactionRequests_(actions.exists(_ == "can_see_transaction_requests"))
+    canSeeTransactionRequestTypes_(actions.exists(_ == "can_see_transaction_request_types"))
+    canUpdateBankAccountLabel_(actions.exists(_ == "can_update_bank_account_label"))
+    canSeeAvailableViewsForBankAccount_(actions.exists(_ == "can_see_available_views_for_bank_account"))
+    canSeeViewsWithPermissionsForAllUsers_(actions.exists(_ == "can_see_views_with_permissions_for_all_users")) 
+    canSeeViewsWithPermissionsForOneUser_(actions.exists(_ == "can_see_views_with_permissions_for_one_user"))
   }
 
   
@@ -419,23 +466,31 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
+  //This current view can grant access to other views.
   override def canGrantAccessToViews : Option[List[String]] = {
     canGrantAccessToViews_.get == null || canGrantAccessToViews_.get.isEmpty() match {
       case true => None
       case _ => Some(canGrantAccessToViews_.get.split(",").toList.map(_.trim))
     }
   }
+
+  def canGrantAccessToCustomViews : Boolean = canGrantAccessToCustomViews_.get
+  
+  //the current view can revoke access to other views.
   override def canRevokeAccessToViews : Option[List[String]] = {
     canRevokeAccessToViews_.get == null || canRevokeAccessToViews_.get.isEmpty()  match {
       case true => None
       case _ => Some(canRevokeAccessToViews_.get.split(",").toList.map(_.trim))
     }
   }
+  override def canRevokeAccessToCustomViews : Boolean = canRevokeAccessToCustomViews_.get
   
   //reading access
 
   //transaction fields
   def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
+  def canSeeTransactionRequests : Boolean = canSeeTransactionRequests_.get
+  def canSeeTransactionRequestTypes: Boolean = canSeeTransactionRequestTypes_.get
   def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
   def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
   def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get
@@ -453,12 +508,14 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeImages : Boolean = canSeeImages_.get
 
   //Bank account fields
+  def canSeeAvailableViewsForBankAccount : Boolean = canSeeAvailableViewsForBankAccount_.get
   def canSeeBankAccountOwners : Boolean = canSeeBankAccountOwners_.get
   def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
   def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get
   def canSeeBankAccountCurrency : Boolean = canSeeBankAccountCurrency_.get
   def canQueryAvailableFunds : Boolean = canQueryAvailableFunds_.get
   def canSeeBankAccountLabel : Boolean = canSeeBankAccountLabel_.get
+  def canUpdateBankAccountLabel : Boolean = canUpdateBankAccountLabel_.get
   def canSeeBankAccountNationalIdentifier : Boolean = canSeeBankAccountNationalIdentifier_.get
   def canSeeBankAccountSwift_bic : Boolean = canSeeBankAccountSwift_bic_.get
   def canSeeBankAccountIban : Boolean = canSeeBankAccountIban_.get
@@ -469,6 +526,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
   def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
   def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
+  def canSeeViewsWithPermissionsForOneUser: Boolean = canSeeViewsWithPermissionsForOneUser_.get
+  def canSeeViewsWithPermissionsForAllUsers : Boolean = canSeeViewsWithPermissionsForAllUsers_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get
@@ -524,6 +583,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   
   def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
   def canCreateStandingOrder: Boolean = canCreateStandingOrder_.get
+  def canCreateCustomView: Boolean = canCreateCustomView_.get
+  def canDeleteCustomView: Boolean = canDeleteCustomView_.get
+  def canUpdateCustomView: Boolean = canUpdateCustomView_.get
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }

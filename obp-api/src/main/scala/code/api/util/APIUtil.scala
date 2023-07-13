@@ -47,7 +47,7 @@ import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
-import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
+import code.api.util.ApiRole.{canCreateAnyTransactionRequest, canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
@@ -3615,6 +3615,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  final def checkAuthorisationToCreateTransactionRequest(viewId: ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]): Box[Boolean] = {
+    lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest)
+
+    lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), callContext)
+
+    lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+
+    //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
+    if (hasCanCreateAnyTransactionRequestRole) {
+      Full(true)
+      //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+    } else if (canAddTransactionRequestToAnyAccount) {
+      Full(true)
+    } else {
+      Empty
+    }
+  }
+
   // TODO Use this in code as a single point of entry whenever we need to check owner view
   def isOwnerView(viewId: ViewId): Boolean = {
     viewId.value == SYSTEM_OWNER_VIEW_ID ||
@@ -4047,13 +4065,83 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case _ => false
   }
 
-  def canGrantAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
-    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext) || // TODO Use an action instead of the owner view
-      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  def canGrantAccessToView(bankId: BankId, accountId: AccountId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+    //all the permission this user have for the bankAccount 
+    val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
+
+    //1. if viewIdTobeGranted is systemView. just compare all the permissions
+    if(checkSystemViewIdOrName(viewIdTobeGranted.value)){
+      val allCanGrantAccessToViewsPermissions: List[String] = permission
+        .map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+
+      allCanGrantAccessToViewsPermissions.contains(viewIdTobeGranted.value)
+    } else{
+      //2. if viewIdTobeGranted is customView, we only need to check the `canGrantAccessToCustomViews`. 
+      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
+
+      allCanGrantAccessToCustomViewsPermissions.contains(true)
+    }
   }
-  def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
-    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext) || // TODO Use an action instead of the owner view
-      AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
+  
+  def canGrantAccessToMultipleViews(bankId: BankId, accountId: AccountId, viewIdsTobeGranted : List[ViewId], user: User, callContext: Option[CallContext]): Boolean = {
+    //all the permission this user have for the bankAccount 
+    val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
+
+    //check if we can grant all systemViews Access
+    val allCanGrantAccessToViewsPermissions: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    val allSystemViewsAccessTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(checkSystemViewIdOrName)
+    val canGrantAccessToAllSystemViews = allSystemViewsAccessTobeGranted.forall(allCanGrantAccessToViewsPermissions.contains)
+
+    if (viewIdsTobeGranted.map(_.value).distinct.find(checkCustomViewIdOrName).isDefined){
+      //check if we can grant all customViews Access
+      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
+      val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
+      //we need merge both system and custom access
+      canGrantAccessToAllSystemViews && canGrantAccessToAllCustomViews
+    } else {
+      canGrantAccessToAllSystemViews
+    }
+  }
+  
+  def canRevokeAccessToView(bankId: BankId, accountId: AccountId, viewIdToBeRevoked : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+    //all the permission this user have for the bankAccount 
+    val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
+
+    //1. if viewIdTobeRevoked is systemView. just compare all the permissions
+    if (checkSystemViewIdOrName(viewIdToBeRevoked.value)) {
+      val allCanRevokeAccessToViewsPermissions: List[String] = permission
+        .map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+
+      allCanRevokeAccessToViewsPermissions.contains(viewIdToBeRevoked.value)
+    } else {
+      //2. if viewIdTobeRevoked is customView, we only need to check the `canRevokeAccessToCustomViews`. 
+      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
+
+      allCanRevokeAccessToCustomViewsPermissions.contains(true)
+    }
+  }
+  
+  def canRevokeAccessToAllViews(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
+    
+    val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
+    
+    //check if we can revoke all systemViews Access
+    val allCanRevokeAccessToViewsPermissions: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    val allAccountAccessSystemViews: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct.filter(checkSystemViewIdOrName)
+    val canRevokeAccessToAllSystemViews = allAccountAccessSystemViews.forall(allCanRevokeAccessToViewsPermissions.contains)
+
+    if (allAccountAccessSystemViews.find(checkCustomViewIdOrName).isDefined){
+      //check if we can revoke all customViews Access
+      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
+      val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
+      //we need merge both system and custom access
+      canRevokeAccessToAllSystemViews && canRevokeAccessToAllCustomViews
+    }else if(allAccountAccessSystemViews.find(checkSystemViewIdOrName).isDefined){
+      canRevokeAccessToAllSystemViews
+    }else{
+      false
+    }
+
   }
 
   def getJValueFromJsonFile(path: String) = {

@@ -6,6 +6,8 @@ import java.util.regex.Pattern
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
+import code.views.system.ViewDefinition
+import net.liftweb.util.StringHelpers
 
 object ErrorMessages {
   import code.api.util.APIUtil._
@@ -167,7 +169,10 @@ object ErrorMessages {
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserMissOwnerViewOrNotAccountHolder = "OBP-20047: User must have access to the owner view or must be an account holder."
+  val UserLacksPermissionCanGrantAccessToViewForTargetAccount = 
+    s"OBP-20047: The current user does not have access to a view which lists the target account in ${ViewDefinition.canGrantAccessToViews_.dbColumnName} permissions"
+  val UserLacksPermissionCanRevokeAccessToViewForTargetAccount = 
+    s"OBP-20048: The current user does not have access to a view which lists the target account in ${ViewDefinition.canRevokeAccessToViews_.dbColumnName} permissions"
 
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
@@ -181,7 +186,6 @@ object ErrorMessages {
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
   val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
   val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID."
-  val NoAccountAccessOnView = "OBP-20061: Current user does not have access to the view "
   val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
   val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 
@@ -207,6 +211,7 @@ object ErrorMessages {
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
   val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
+  val UserNotFoundByProviderAndProvideId= "OBP-20104: User not found by PROVIDER and PROVIDER_ID."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -294,7 +299,14 @@ object ErrorMessages {
   val CreateCardError = "OBP-30032: Could not insert the Card"
   val UpdateCardError = "OBP-30033: Could not update the Card"
 
-  val ViewIdNotSupported = "OBP-30034: This ViewId is not supported. Only support four now: Owner, Accountant, Auditor, StageOne, Standard, _Public."
+  val ViewIdNotSupported = s"OBP-30034: This ViewId is not supported. Only the following can be used: " +
+    s"$SYSTEM_OWNER_VIEW_ID, " +
+    s"$SYSTEM_ACCOUNTANT_VIEW_ID, " +
+    s"$SYSTEM_AUDITOR_VIEW_ID, " +
+    s"$SYSTEM_STAGE_ONE_VIEW_ID, " +
+    s"$SYSTEM_STANDARD_VIEW_ID, " +
+    s"$SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, " +
+    s"$CUSTOM_PUBLIC_VIEW_ID."
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
@@ -455,6 +467,8 @@ object ErrorMessages {
   val DeleteCustomViewError = "OBP-30256: Could not delete the custom view"
   val CannotFindCustomViewError = "OBP-30257: Could not find the custom view"
   val SystemViewCannotBePublicError = "OBP-30258: System view cannot be public"
+  val CreateCustomViewError = "OBP-30259: Could not create the custom view"
+  val UpdateCustomViewError = "OBP-30260: Could not update the custom view"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
@@ -467,6 +481,7 @@ object ErrorMessages {
 
   val DeleteCounterpartyError = "OBP-30317: Could not delete the Counterparty."
   val DeleteCounterpartyMetadataError = "OBP-30318: Could not delete CounterpartyMetadata"
+  val UpdateBankAccountLabelError = "OBP-30319: Could not update Bank Account Label."
   
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
@@ -539,9 +554,9 @@ object ErrorMessages {
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. " +
     "The Transaction Request could not be created " +
     "because the login user doesn't have access to the view of the from account " +
-    s"or the view don't have the `${CanCreateAnyTransactionRequest.toString()}` permission " +
-    "or your consumer doesn't not have the access to the view of the from account " +
-    "or you don't have the role CanCreateAnyTransactionRequest."
+    "or the consumer doesn't have the access to the view of the from account " +
+    s"or the login user does not have the `${CanCreateAnyTransactionRequest.toString()}` role " +
+    s"or the view does not have the permission ${StringHelpers.snakify(ViewDefinition.canAddTransactionRequestToAnyAccount_.dbColumnName).dropRight(1)}."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
@@ -731,6 +746,8 @@ object ErrorMessages {
 //    InvalidConsumerCredentials -> 401, // or 400
     UsernameHasBeenLocked -> 401,
     UserNoPermissionAccessView -> 403,
+    UserLacksPermissionCanGrantAccessToViewForTargetAccount -> 403,
+    UserLacksPermissionCanRevokeAccessToViewForTargetAccount -> 403,
     UserNotSuperAdminOrMissRole -> 403,
     ConsumerHasMissingRoles -> 403,
     UserNotFoundByProviderAndUsername -> 404,

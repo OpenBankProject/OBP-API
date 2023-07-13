@@ -27,6 +27,7 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.grum.geocalc.{Coordinate, EarthCalc, Point}
 import com.openbankproject.commons.model._
@@ -48,6 +49,7 @@ import code.model
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
+import net.liftweb.util.StringHelpers
 
 
 trait APIMethods300 {
@@ -109,13 +111,18 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
-              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext){
-                u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
+              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+              permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${code.views.system.ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCanSeeAvailableViewsForBankAccountPermission
               }
             } yield {
               for {
-                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
               } yield {
                 (createViewsJSON(views), HttpCode.`200`(callContext))
               }
@@ -131,8 +138,8 @@ trait APIMethods300 {
       nameOf(createViewForBankAccount),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View",
-      s"""Create a view on bank account
+      "Create Custom View",
+      s"""Create a custom view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
@@ -162,7 +169,6 @@ trait APIMethods300 {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
-          val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               createViewJson <- Future { tryo{json.extract[CreateViewJson]} } map {
@@ -174,14 +180,18 @@ trait APIMethods300 {
                 checkCustomViewIdOrName(createViewJson.name)
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+
+              anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+                .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+              
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
+                cc = callContext
+              ) {anyViewContainsCanCreateCustomViewPermission}
+              (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, callContext)
             } yield {
-              for {
-                view <- account.createCustomView (u, createViewJson, callContext)
-              } yield {
-                (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
-              }
+               (JSONFactory300.createViewJSON(view), HttpCode.`201`(callContext))
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
@@ -208,12 +218,21 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <-  authenticatedAccess(cc)
+            (Full(loggedInUser), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            permission <- Future { account.permission(u, provider, providerId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            anyViewContainsCanSeePermissionForOneUserPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
+              .map(_.views.map(_.canSeeViewsWithPermissionsForOneUser).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanSeePermissionForOneUserPermission
+            }
+            (userFromURL, callContext) <- Future{UserX.findByProviderId(provider, providerId)} map { i =>
+              (unboxFullOrFail(i, callContext, UserNotFoundByProviderAndProvideId, 404), callContext)
+            }
+            permission <- NewStyle.function.permission(bankId, accountId, userFromURL, callContext)
           } yield {
             (createViewsJSON(permission.views.sortBy(_.viewId.value)), HttpCode.`200`(callContext))
           }
@@ -226,8 +245,8 @@ trait APIMethods300 {
       nameOf(updateViewForBankAccount),
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View",
-      s"""Update an existing view on a bank account
+      "Update Custom View",
+      s"""Update an existing custom view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
@@ -248,7 +267,6 @@ trait APIMethods300 {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
-          val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               updateJson <- Future { tryo{json.extract[UpdateViewJsonV300]} } map {
@@ -268,14 +286,20 @@ trait APIMethods300 {
                 !view.isSystem
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            } yield {
-              for {
-                updatedView <- account.updateView(u, viewId, updateJson.toUpdateViewJson, callContext)
-              } yield {
-                (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+
+              anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+                .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCancanUpdateCustomViewPermission
               }
+              (view, callContext) <- NewStyle.function.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateJson.toUpdateViewJson, callContext)
+            } yield {
+              (JSONFactory300.createViewJSON(view), HttpCode.`200`(callContext))
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 

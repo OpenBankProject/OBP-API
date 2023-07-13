@@ -120,12 +120,12 @@ class ModeratedTransactionMetadata(
   /**
   * @return Full if deleting the tag worked, or a failure message if it didn't
   */
-  def deleteTag(tagId : String, user: Option[User], bankAccount : BankAccount, callContext: Option[CallContext]) : Box[Unit] = {
+  def deleteTag(tagId : String, user: Option[User], bankAccount : BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
       u <- Box(user) ?~ { UserNotLoggedIn}
       tagList <- Box(tags) ?~ { s"$NoViewPermission can_delete_tag. " }
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
-      deleteFunc <- if(tag.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext))
+      deleteFunc <- if(tag.postedBy == user||view.canDeleteTag)
     	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
                     else
                       Failure("deleting tags not permitted for the current user")
@@ -137,12 +137,12 @@ class ModeratedTransactionMetadata(
   /**
   * @return Full if deleting the image worked, or a failure message if it didn't
   */
-  def deleteImage(imageId : String, user: Option[User], bankAccount : BankAccount, callContext: Option[CallContext]) : Box[Unit] = {
+  def deleteImage(imageId : String, user: Option[User], bankAccount : BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
       u <- Box(user) ?~ { UserNotLoggedIn}
       imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
-      deleteFunc <- if(image.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext))
+      deleteFunc <- if(image.postedBy == user || view.canDeleteImage)
     	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
@@ -151,12 +151,12 @@ class ModeratedTransactionMetadata(
     }
   }
 
-  def deleteComment(commentId: String, user: Option[User],bankAccount: BankAccount, callContext: Option[CallContext]) : Box[Unit] = {
+  def deleteComment(commentId: String, user: Option[User],bankAccount: BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
       u <- Box(user) ?~ { UserNotLoggedIn}
       commentList <- Box(comments) ?~ { s"$NoViewPermission can_delete_comment." }
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
-      deleteFunc <- if(comment.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext))
+      deleteFunc <- if(comment.postedBy == user || view.canDeleteComment)
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
                   else
                     Failure("Deleting comments not permitted for the current user")
@@ -165,12 +165,12 @@ class ModeratedTransactionMetadata(
     }
   }
 
-  def deleteWhereTag(viewId: ViewId, user: Option[User],bankAccount: BankAccount, callContext: Option[CallContext]) : Box[Boolean] = {
+  def deleteWhereTag(viewId: ViewId, user: Option[User],bankAccount: BankAccount, view: View, callContext: Option[CallContext]) : Box[Boolean] = {
     for {
       u <- Box(user) ?~ { UserNotLoggedIn}
       whereTagOption <- Box(whereTag) ?~ { s"$NoViewPermission can_delete_where_tag. Current ViewId($viewId)" }
       whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
-      deleteFunc <- if(whereTag.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId),callContext))
+      deleteFunc <- if(whereTag.postedBy == user || view.canDeleteWhereTag)
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"
                     else
                       Failure("Deleting tags not permitted for the current user")

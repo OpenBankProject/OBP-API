@@ -91,19 +91,21 @@ object MapperViews extends Views with MdcLoggable {
   }
   // This is an idempotent function
   private def getOrGrantAccessToCustomView(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
-    if (AccountAccess.count(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value), 
-      By(AccountAccess.bank_id, bankId), 
-      By(AccountAccess.account_id, accountId), 
-      By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
-      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId)")
+    if (AccountAccess.findByUniqueIndex(
+      BankId(bankId),
+      AccountId(accountId), 
+      viewDefinition.viewId,
+      user.userPrimaryKey, 
+      ALL_CONSUMERS).isEmpty) {
+      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create" +
+        s"user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId), consumerId($ALL_CONSUMERS)")
       // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
         bank_id(bankId).
         account_id(accountId).
         view_id(viewDefinition.viewId.value).
-        view_fk(viewDefinition.id).
+        consumer_id(ALL_CONSUMERS).
         save
       if (saved) {
         //logger.debug("saved AccountAccessList")
@@ -304,33 +306,19 @@ object MapperViews extends Views with MdcLoggable {
 
   /**
    * remove all the accountAccess for one user and linked account.
-   * If the user has `owner` view accountAccess and also the accountHolder, we can not revoke, just return `false`.
-   * all the other case, we can revoke all the account access for that user.
+   * we already has the guard `canRevokeAccessToAllViews` on the top level.
    */
-
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    val userIsAccountHolder_? = MapperAccountHolders.getAccountHolders(bankId, accountId).map(h => h.userPrimaryKey).contains(user.userPrimaryKey)
-    val userHasOwnerViewAccess_? = AccountAccess.find(
+    AccountAccess.find(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value),
-      By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-    ).isDefined
- 
-    if(userIsAccountHolder_? && userHasOwnerViewAccess_?){
-      Full(false)
-    }else{
-      AccountAccess.find(
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.user_fk, user.userPrimaryKey.value)
-      ).foreach(_.delete_!)
-      Full(true)
-    }
+      By(AccountAccess.user_fk, user.userPrimaryKey.value)
+    ).foreach(_.delete_!)
+    Full(true)
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = {
-    canRevokeAccessToViewCommon(bankId, accountId, user, callContext) match {
+    canRevokeAccessToAllViews(bankId, accountId, user, callContext) match {
       case true =>
         val permissions = AccountAccess.findAll(
           By(AccountAccess.user_fk, user.userPrimaryKey.value),
@@ -340,7 +328,7 @@ object MapperViews extends Views with MdcLoggable {
         permissions.foreach(_.delete_!)
         Full(true)
       case false =>
-        Failure(CannotRevokeAccountAccess)
+        Failure(UserLacksPermissionCanRevokeAccessToViewForTargetAccount)
     }
   }
 
@@ -607,12 +595,14 @@ object MapperViews extends Views with MdcLoggable {
 
   
   def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
-
+    logger.debug(s"-->getOrCreateSystemViewFromCbs--- start--${viewId}  ")
+    
     val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
     val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
     val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
     val stageOneView = SYSTEM_STAGE_ONE_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
+    val manageCustomViews = SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
     
     val theView =
       if (ownerView)
@@ -625,12 +615,14 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID)
       else if (stageOneView)
         getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID)
+      else if (manageCustomViews)
+        getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID)
       else {
         logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
       }
     
-    logger.debug(s"-->getOrCreateSystemViewFromCbs.${viewId } : ${theView} ")
+    logger.debug(s"-->getOrCreateSystemViewFromCbs --- finish.${viewId } : ${theView} ")
     
     theView
   }
@@ -794,12 +786,43 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherAccountRoutingAddress_(true)
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
+      .canSeeAvailableViewsForBankAccount_(false)
+      .canSeeTransactionRequests_(false)
+      .canSeeTransactionRequestTypes_(false)
+      .canUpdateBankAccountLabel_(false)
+      .canCreateCustomView_(false)
+      .canDeleteCustomView_(false)
+      .canUpdateCustomView_(false)
+      .canSeeViewsWithPermissionsForOneUser_(false)
+      .canSeeViewsWithPermissionsForAllUsers_(false)
+      .canRevokeAccessToCustomViews_(false)
+      .canGrantAccessToCustomViews_(false)
+      .canCreateCustomView_(false)
+      .canDeleteCustomView_(false)
+      .canUpdateCustomView_(false)
 
     viewId match {
+      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
+        entity
+          .canSeeAvailableViewsForBankAccount_(true)
+          .canSeeTransactionRequests_(true)
+          .canSeeTransactionRequestTypes_(true)
+          .canUpdateBankAccountLabel_(true)
+          .canSeeViewsWithPermissionsForOneUser_(true)
+          .canSeeViewsWithPermissionsForAllUsers_(true)
+          .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+          .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)
           .canAddTransactionRequestToAnyAccount_(false)
+      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
+        entity
+          .canRevokeAccessToCustomViews_(true)
+          .canGrantAccessToCustomViews_(true)
+          .canCreateCustomView_(true)
+          .canDeleteCustomView_(true)
+          .canUpdateCustomView_(true)
       case SYSTEM_FIREHOSE_VIEW_ID =>
         entity
           .isFirehose_(true)
@@ -809,9 +832,9 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def createAndSaveSystemView(viewId: String) : Box[View] = {
-    logger.debug(s"-->createAndSaveSystemView.viewId: ${viewId} ")
+    logger.debug(s"-->createAndSaveSystemView.viewId.start${viewId} ")
     val res = unsavedSystemView(viewId).saveMe
-    logger.debug(s"-->createAndSaveSystemView: ${res} ")
+    logger.debug(s"-->createAndSaveSystemView.finish: ${res} ")
     Full(res)
   }
 
@@ -877,16 +900,16 @@ object MapperViews extends Views with MdcLoggable {
       canAddPrivateAlias_(true).
       canAddCounterparty_(true).
       canGetCounterparty_(true).
-      canDeleteCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
+      canDeleteCounterparty_(false).
+      canDeleteCorporateLocation_(false).
+      canDeletePhysicalLocation_(false).
       canEditOwnerComment_(true).
       canAddComment_(true).
-      canDeleteComment_(true).
+      canDeleteComment_(false).
       canAddTag_(true).
-      canDeleteTag_(true).
+      canDeleteTag_(false).
       canAddImage_(true).
-      canDeleteImage_(true).
+      canDeleteImage_(false).
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
       canSeeBankRoutingScheme_(true). //added following in V300
@@ -898,7 +921,10 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherAccountRoutingScheme_(true).
       canSeeOtherAccountRoutingAddress_(true).
       canAddTransactionRequestToOwnAccount_(false). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
+      canAddTransactionRequestToAnyAccount_(false).
+      canSeeTransactionRequests_(false).
+      canSeeTransactionRequestTypes_(false).
+      canUpdateBankAccountLabel_(false)
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

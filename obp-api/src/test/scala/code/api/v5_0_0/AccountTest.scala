@@ -64,10 +64,6 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       val response = makePutRequest(request, write(putCreateAccountJSONV310))
       Then("We should get a 201")
       response.code should equal(201)
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
-      
       
       val account = response.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJSONV310.product_code)
@@ -80,10 +76,6 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       account.account_routings should be (putCreateAccountJSONV310.account_routings)
 
 
-      //We need to waite some time for the account creation, because we introduce `AuthUser.refreshUser(user, callContext)`
-      //It may not finished when we call the get accounts directly.
-      TimeUnit.SECONDS.sleep(2)
-      
       Then(s"we call $ApiEndpoint4 to get the account back")
       val requestApiEndpoint4 = (v5_0_0_Request / "my" / "accounts" ).PUT <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
@@ -141,9 +133,6 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       val response500 = makePutRequest(request500, write(putCreateAccountJson))
       Then("We should get a 201")
       response500.code should equal(201)
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
       
       val account = response500.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJson.product_code)
@@ -172,11 +161,6 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responseUser2_500.code should equal(201)
 
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
-
-
       Then(s"we call $ApiEndpoint6 to get the account back by user2")
       val requestApiUser2Endpoint6 = (v5_0_0_Request /"banks" / testBankId.value / "accounts" / userAccountId / Constant.SYSTEM_OWNER_VIEW_ID/ "account" ).GET <@(user2)
       val responseApiUser2Endpoint6 = makeGetRequest(requestApiUser2Endpoint6)
@@ -193,9 +177,6 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       Then("We should get a 201")
       response310_1.code should equal(201)
 
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
       val account = response310_1.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJSONV310.product_code)
       account.`label` should be (putCreateAccountJSONV310.`label`)

@@ -22,6 +22,7 @@ import code.model.dataAccess.BankAccountCreation
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -32,6 +33,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future
 
@@ -99,8 +101,13 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
+            permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+            anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views",
+              cc= callContext
+            ){
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission
             }
             views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
@@ -162,8 +169,14 @@ trait APIMethods220 {
               createViewJsonV121.which_alias_to_use,
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
+            ) 
+            anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanCreateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
             )
-            view <- account.createCustomView(u, createViewJson, Some(cc))
+            view <- Views.views.vend.createCustomView(BankIdAccountId(bankId, accountId), createViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -216,7 +229,13 @@ trait APIMethods220 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
+            anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCancanUpdateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
@@ -812,7 +831,7 @@ trait APIMethods220 {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
           } yield {
             (JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount), HttpCode.`200`(callContext))
 

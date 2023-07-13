@@ -85,7 +85,7 @@ class TransactionRequestTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserNoPermissionAccessView)
-      response310.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
+      response310.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
   }
 

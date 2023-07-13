@@ -63,6 +63,7 @@ object Migration extends MdcLoggable {
       dummyScript()
       addAccountAccessConsumerId()
       populateTableViewDefinition()
+      populateMigrationOfViewDefinitionPermissions()
       populateTableAccountAccess()
       generateAndPopulateMissingCustomerUUIDs(startedBeforeSchemifier)
       generateAndPopulateMissingConsumersUUIDs(startedBeforeSchemifier)
@@ -124,6 +125,14 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateTableViewDefinition)
       runOnce(name) {
         TableViewDefinition.populate(name)
+      }
+    }  
+    
+
+    private def populateMigrationOfViewDefinitionPermissions(): Boolean = {
+      val name = nameOf(populateMigrationOfViewDefinitionPermissions)
+      runOnce(name) {
+        MigrationOfViewDefinitionPermissions.populate(name)
       }
     }  
     

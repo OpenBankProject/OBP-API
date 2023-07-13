@@ -15,14 +15,6 @@ import scala.util.Random
 
 class AccountTest extends V220ServerSetup with DefaultUsers {
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-  }
-
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
-  
   val mockAccountId1 = "NEW_MOCKED_ACCOUNT_ID_01"
   val mockAccountId2 = "NEW_MOCKED_ACCOUNT_ID_02"
   
@@ -51,9 +43,6 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
       And("We should get a 200")
       responsePut.code should equal(200)
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
 
       When("We make the authenticated access request")
       val requestGetAll = (v2_2Request / "accounts").GET <@ (user1)
@@ -97,10 +86,6 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val accountPutJSON = createAccountJSONV220
       val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
-
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
 
       And("We should get a 200")
       responsePut.code should equal(200)
@@ -165,12 +150,8 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(2)
-
       Then("we get the account access for this account")
-      val accountViewsRequest = v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views" <@(user1)
+      val accountViewsRequest = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views").GET <@(user1)
       val accountViewsResponse = makeGetRequest(accountViewsRequest)
       val accountViews = accountViewsResponse.body.extract[ViewsJSONV220]
       //Note: now when we create new account, will have the systemOwnerView access to this view.
