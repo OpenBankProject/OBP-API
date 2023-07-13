@@ -70,10 +70,6 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       val account = response400.body.extract[CreateAccountResponseJsonV310]
       account.account_id should not be empty
 
-      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
-      //it is an asynchronous process, need some time to be done.
-      TimeUnit.SECONDS.sleep(3)
-      
       val postBodyView = createViewJsonV300.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false).toCreateViewJson
       createViewViaEndpoint(bankId, account.account_id, postBodyView, user1)
       

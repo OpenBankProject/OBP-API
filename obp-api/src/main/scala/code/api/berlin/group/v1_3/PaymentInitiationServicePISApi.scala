@@ -14,6 +14,7 @@ import code.model._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.SEPA_CREDIT_TRANSFERS
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -565,10 +566,16 @@ $additionalInstructions
              _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext)) Future.successful(Full(Unit))
-                  else NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
+             //no accountAccess and no canAddTransactionRequestToOwnAccount ==> this will not throw exception,only return false! 
+             anyViewContainsCanAddTransactionRequestToAnyAccountPermission = Views.views.vend.permission(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), u)
+               .map(_.views.map(_.canAddTransactionRequestToAnyAccount).find(_.==(true)).getOrElse(false)).getOrElse(false)
 
-               // Prevent default value for transaction request type (at least).
+             _ <- if (anyViewContainsCanAddTransactionRequestToAnyAccountPermission) 
+               Future.successful(Full(Unit))
+             else 
+               NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
+
+             // Prevent default value for transaction request type (at least).
              _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc=callContext) {
                transDetailsJson.instructedAmount.currency == fromAccount.currency
              }

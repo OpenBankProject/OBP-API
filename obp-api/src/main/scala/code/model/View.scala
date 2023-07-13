@@ -354,7 +354,7 @@ case class ViewExtended(val view: View) {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` permission on the view(${view.viewId.value})")
   }
 
   @deprecated("This have the performance issue, call `Connector.connector.vend.getBankLegacy` four times in the backend. use @moderateAccount instead ","08-01-2020")
@@ -402,7 +402,7 @@ case class ViewExtended(val view: View) {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` permission on the view(${view.viewId.value})")
   }
 
   def moderateAccountCore(bankAccount: BankAccount) : Box[ModeratedBankAccountCore] = {
@@ -435,7 +435,7 @@ case class ViewExtended(val view: View) {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` access for the view(${view.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionThisBankAccount` permission on the view(${view.viewId.value})")
   }
 
   // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
@@ -558,7 +558,7 @@ case class ViewExtended(val view: View) {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${view.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` permission on the view(${view.viewId.value})")
   }
 
   def moderateCore(counterpartyCore : CounterpartyCore) : Box[ModeratedOtherBankAccountCore] = {
@@ -607,6 +607,6 @@ case class ViewExtended(val view: View) {
       )
     }
     else
-      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` access for the view(${view.viewId.value})")
+      Failure(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionOtherBankAccount` permission on the view(${view.viewId.value})")
   }
 }

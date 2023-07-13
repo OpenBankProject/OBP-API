@@ -365,7 +365,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
           case _ => ""
         }
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error contains  (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest) shouldBe( true)
 
       }
 
@@ -425,7 +425,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
           case _ => ""
         }
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error contains  (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest) shouldBe( true)
 
 
       }

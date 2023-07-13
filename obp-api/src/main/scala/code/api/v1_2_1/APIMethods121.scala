@@ -4,7 +4,6 @@ import java.net.URL
 import java.util.Random
 import java.security.SecureRandom
 import java.util.UUID.randomUUID
-
 import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.Caching
@@ -16,10 +15,11 @@ import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, UserX, toBankAccountExtended, toBankExtended, toUserExtended}
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.model.{Bank, UpdateViewJSON, _}
 import com.openbankproject.commons.util.ApiVersion
@@ -37,6 +37,7 @@ import scala.language.postfixOps
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future
 
@@ -494,8 +495,21 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[UpdateAccountJSON] }
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateBankAccountLabel_.dbColumnName).dropRight(1)}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanUpdateBankAccountLabelPermission
+            }
+            (success, callContext) <- Future{
+              Connector.connector.vend.updateAccountLabel(bankId, accountId, json.label)
+            } map { i =>
+              (unboxFullOrFail(i, callContext, 
+                s"$UpdateBankAccountLabelError Current BankId is $bankId and Current AccountId is $accountId", 404), callContext)
+            }
           } yield {
-            account.updateLabel(u, json.label,callContext)
             (successMessage, HttpCode.`200`(callContext))
           }
       }
@@ -543,11 +557,15 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), Some(cc)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
-            views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+            bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
+            permission <- Views.views.vend.permission(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), u)
+            anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+            _ <- Helper.booleanToBox(
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission, 
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {
-            // TODO Include system views as well
             val viewsJSON = JSONFactory.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
           }
@@ -605,7 +623,13 @@ trait APIMethods121 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createCustomView (u, createViewJson, Some(cc))
+            anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanCreateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            view <- Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), createViewJson)?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -660,7 +684,13 @@ trait APIMethods121 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
+            anyViewContainsCanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanUpdateCustomViewPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId),viewId,  updateViewJson) ?~ CreateCustomViewError
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
@@ -674,8 +704,8 @@ trait APIMethods121 {
       "deleteViewForBankAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Delete View",
-      "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
+      "Delete Custom View",
+      "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
       emptyObjectJson,
       emptyObjectJson,
       List(
@@ -699,7 +729,17 @@ trait APIMethods121 {
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
-            deleted <- NewStyle.function.removeView(account, u, viewId, callContext)
+
+            anyViewContainsCanDeleteCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canDeleteCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canDeleteCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanDeleteCustomViewPermission
+            }
+
+            deleted <- NewStyle.function.removeCustomView(viewId, BankIdAccountId(bankId, accountId),callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
@@ -729,7 +769,13 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permissions <- account.permissions(u, Some(cc))
+            anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canSeeViewsWithPermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
             successJsonResponse(Extraction.decompose(permissionsJSON))
@@ -762,12 +808,20 @@ trait APIMethods121 {
   
     lazy val getPermissionForUserForBankAccount: OBPEndpoint = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            loggedInUser <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permission <- account permission(u, providerId, userId, Some(cc))
+            loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
+            anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeeViewsWithPermissionsForOneUser)
+              .find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
+            permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
           } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))
@@ -811,7 +865,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             failMsg = "wrong format JSON"
             viewIds <- NewStyle.function.tryons(failMsg, 400, callContext) { json.extract[ViewIdsJson] }
-            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId,callContext)
+            (addedViews, callContext) <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId,callContext)
           } yield {
             (JSONFactory.createViewsJSON(addedViews), HttpCode.`201`(callContext))
           }
@@ -838,6 +892,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         BankAccountNotFound,
         UnknownError,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         "could not save the privilege",
         "user does not have access to owner view on account"
         ),
@@ -851,7 +906,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
+            (addedView, callContext) <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             (viewJson, HttpCode.`201`(callContext))
@@ -2658,10 +2713,11 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
+            (Full(user), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteComment(commentId, user, account, callContext)) map {
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            delete <- Future(metadata.deleteComment(commentId, Full(user), account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2777,10 +2833,11 @@ trait APIMethods121 {
 
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteTag(tagId, user, bankAccount, callContext)) map {
+            delete <- Future(metadata.deleteTag(tagId, Full(user), bankAccount, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2900,10 +2957,11 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
             (account, _) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteImage(imageId, user, account, callContext)) map {
+            delete <- Future(metadata.deleteImage(imageId, Full(user), account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -3076,7 +3134,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteWhereTag(viewId, user, account, callContext)) map {
+            delete <- Future(metadata.deleteWhereTag(viewId, user, account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "Delete not completed")
             }
           } yield {

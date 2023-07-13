@@ -1,7 +1,6 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
-
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.{APIFailure, APIFailureNewStyle}
@@ -30,6 +29,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
@@ -42,6 +42,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future
 // Makes JValue assignment to Nil work
@@ -1010,7 +1011,15 @@ trait APIMethods200 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            permissions <- NewStyle.function.permissions(account, u, callContext)
+            anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canSeeViewsWithPermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName).dropRight(1)}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission
+            }
+            permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
             (permissionsJSON, HttpCode.`200`(callContext))
@@ -1041,10 +1050,18 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            loggedInUser <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
             account <- BankAccountX(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permission <- account permission(u, provider, providerId, Some(cc))
+            loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
+            anyViewContainsCanSeePermissionForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.canSeeViewsWithPermissionsForOneUser)
+              .find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- booleanToBox(
+              anyViewContainsCanSeePermissionForOneUserPermission,
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views"
+            )
+            userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
+            permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
           } yield {
             // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
             val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
@@ -1283,11 +1300,11 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              _ <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext) match {
-                case Full(_) =>
-                  booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext) == true)
-                case _ =>
-                  NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
               }
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -1351,11 +1368,12 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
-              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext)) Full(Unit)
-                  else NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
-              // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
-
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+              }
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //check the transReqId validation.
@@ -1436,6 +1454,8 @@ trait APIMethods200 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
               view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+              _ <- Helper.booleanToBox(view.canSeeTransactionRequests,
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )")
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
               yield {

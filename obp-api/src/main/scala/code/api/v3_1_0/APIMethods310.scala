@@ -1,12 +1,11 @@
 package code.api.v3_1_0
 
 import code.api.Constant
-import code.api.Constant.localIdentityProvider
+import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
@@ -40,6 +39,7 @@ import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+import code.views.system.ViewDefinition
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -53,7 +53,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer, Props}
+import net.liftweb.util.{Helpers, Mailer, Props, StringHelpers}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
@@ -1072,7 +1072,7 @@ trait APIMethods310 {
         BankNotFound,
         BankAccountNotFound,
         UserNoPermissionAccessView,
-        UserNoOwnerView,
+        ViewDoesNotPermitAccess,
         GetTransactionRequestsException,
         UnknownError
       ),
@@ -1086,9 +1086,11 @@ trait APIMethods310 {
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)
+            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})",
+              cc=callContext){
+              view.canSeeTransactionRequests
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)
@@ -1888,7 +1890,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
             (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            _ = AuthUser.refreshUser(user, callContext) 
+            _ <- AuthUser.refreshUser(user, callContext) 
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
@@ -2338,8 +2340,9 @@ trait APIMethods310 {
                     "",
                     List.empty,
                     callContext)
+                  success <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, u, callContext)
                 }yield {
-                  BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, u, callContext)
+                  success
                 }
               case _ => Future{""}
             }
@@ -5426,7 +5429,7 @@ trait APIMethods310 {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
           } yield {
             (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
           }

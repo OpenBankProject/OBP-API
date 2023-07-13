@@ -10,13 +10,13 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
-import code.api.util.APIUtil.{DateWithMsFormat, OBPReturnType, generateUUID, hasEntitlement, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull, unboxFullOrFail}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
-import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
+import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
@@ -72,7 +72,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
-import code.util.Helper.{MdcLoggable, _}
+import code.util.Helper._
 import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -555,7 +555,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List("owner") //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
@@ -4673,7 +4673,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     for {
       fromAccount <- getBankAccountOld(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       toAccount <- getBankAccountOld(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -4731,7 +4730,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val request = for {
       fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
@@ -4793,7 +4791,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // Always create a new Transaction Request
     val request = for {
       fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
         BigDecimal(body.value.amount)
@@ -5220,7 +5217,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       for {
         fromAccount <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
           s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-        isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
         transactionRequests <- getTransactionRequestsImpl(fromAccount)
       } yield transactionRequests
 
@@ -5275,13 +5271,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getTransactionRequestTypes(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[List[TransactionRequestType]] = {
     for {
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes
   }
 
   override def getTransactionRequestTypesImpl(fromAccount: BankAccount): Box[List[TransactionRequestType]] = {
-    //TODO: write logic / data access
     // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
     val validTransactionRequestTypes = APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
     Full(validTransactionRequestTypes)

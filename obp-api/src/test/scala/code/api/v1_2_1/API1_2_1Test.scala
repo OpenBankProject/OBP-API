@@ -31,6 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.checkSystemViewIdOrName
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
@@ -164,9 +165,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID))
-      .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
-      .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
+      .filterNot(view=> checkSystemViewIdOrName(view.id))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
@@ -183,6 +182,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
       .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
       .filterNot(_.id.contains(SYSTEM_FIREHOSE_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }
@@ -1865,8 +1865,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, randomString(10), randomCustomViewPermalink(bankId, bankAccount), user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -1879,10 +1879,10 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message contains(UserLacksPermissionCanGrantAccessToViewForTargetAccount) shouldBe(true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -1895,8 +1895,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomCustomViewPermalink(bankId, bankAccount), user3)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
@@ -1935,8 +1935,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -1949,10 +1949,10 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsIdsToGrant= List(randomString(10),randomString(10))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message contains(UserLacksPermissionCanGrantAccessToViewForTargetAccount) shouldBe(true)
     }
 
     scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2_1, PostPermissions){
@@ -1964,10 +1964,10 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message contains(UserLacksPermissionCanGrantAccessToViewForTargetAccount) shouldBe(true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -1981,8 +1981,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
@@ -1995,16 +1995,18 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = resourceUser2.idGivenByProvider
+      val userId2 = resourceUser2.idGivenByProvider
       val viewId = getTheRandomView(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
-      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val replyGranted = grantUserAccessToViews(bankId, bankAccount.id, userId2, viewsIdsToGrant, user1)
+      Then("we should get a 201")
+      replyGranted.code should equal(201)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)
     }
 
@@ -2032,8 +2034,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, randomString(10), randomCustomViewPermalink(bankId, bankAccount), user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
     }
 
     scenario("we can revoke the access of a user to owner view on a bank account if that user is an account holder of that account", API1_2_1, DeletePermission){
@@ -2065,8 +2067,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2079,8 +2081,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomCustomViewPermalink(bankId, bankAccount), user3)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2108,8 +2110,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, randomString(510), user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the user does not have owner view access", API1_2_1, DeletePermissions){
@@ -2123,8 +2125,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 403 ok code")
+      reply.code should equal (403)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2170,7 +2172,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
       And("The user should not have had his access revoked")
       val view = Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should contain (resourceUser3)
+      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
     }
   }
 

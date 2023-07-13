@@ -11,7 +11,9 @@ import code.bankconnectors.Connector
 import code.branches.Branches
 import code.customer.CustomerX
 import code.usercustomerlinks.UserCustomerLink
+import code.util.Helper
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
@@ -20,7 +22,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
+import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -421,6 +423,14 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )",
+              cc = callContext
+            ) {
+              view.canSeeTransactionRequestTypes
+            }
+            // TODO: Consider storing allowed_transaction_request_types (List of String) in View Definition. 
+            // TODO:  This would allow us to restrict transaction request types available to the User for an Account
             transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, callContext)) map {
               connectorEmptyResponse(_, callContext)
             }
@@ -462,7 +472,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              _ <- booleanToBox( u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+              _ <- Helper.booleanToBox(
+                view.canSeeTransactionRequests, 
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})"
+              )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
             yield {
@@ -533,6 +547,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId : ViewId,  BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~!  {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " + 
+                  s"Current ViewId(${viewId.value})," + 
+                  s"current UserId(${u.userId})" + 
+                  s"current ConsumerId(${callContext.map (_.consumer.map (_.consumerId.get).getOrElse ("")).getOrElse ("")})"
+              }
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccountX(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -594,7 +614,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), Some(cc))
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+              }
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)

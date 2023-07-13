@@ -85,24 +85,14 @@ package code.model.dataAccess {
       *             
       * @return This is a procedure, no return value. Just use the side effect.
       */
-    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext]): Unit = {
-      // Here, we can call `addPermissionToSystemOwnerView` directly, but from now on, we try to simulate the CBS account creation.
+    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext])  = {
       // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
       
       // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
       AuthUser.refreshUser(user, callContext)
     }
-    
-    private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
-      Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID) match {
-        case Full(ownerView) =>
-          Views.views.vend.grantAccessToSystemView(bankId, accountId, ownerView, user)
-        case _ =>
-          logger.debug(s"Cannot create/get system view: ${SYSTEM_OWNER_VIEW_ID}")
-      }
-    }
-  
+   
   }
 
   object BankAccountCreationListener extends MdcLoggable {

@@ -250,14 +250,19 @@ trait View {
   def usePrivateAliasIfOneExists: Boolean
 
   def hideOtherAccountMetadataIfAlias: Boolean
-
-  // Introduced in version 5.0.0
+  //TODO, in progress, we only make the system view work, the custom views are VIP.
   def canGrantAccessToViews : Option[List[String]] = None
+  def canGrantAccessToCustomViews : Boolean // if this true, we can grant custom views, if it is false, no one can grant custom views.
   def canRevokeAccessToViews : Option[List[String]] = None
+  def canRevokeAccessToCustomViews : Boolean // if this true, we can revoke custom views,if it is false, no one can revoke custom views.
 
   //reading access
 
   //transaction fields
+  def canSeeTransactionRequests: Boolean
+  
+  def canSeeTransactionRequestTypes: Boolean
+  
   def canSeeTransactionThisBankAccount: Boolean
 
   def canSeeTransactionOtherBankAccount: Boolean
@@ -288,9 +293,12 @@ trait View {
   def canSeeImages: Boolean
 
   //Bank account fields
+  def canSeeAvailableViewsForBankAccount: Boolean
+  
   def canSeeBankAccountOwners: Boolean
 
   def canSeeBankAccountType: Boolean
+  def canUpdateBankAccountLabel: Boolean
 
   def canSeeBankAccountBalance: Boolean
 
@@ -318,6 +326,10 @@ trait View {
 
   def canSeeBankAccountRoutingAddress: Boolean
 
+  def canSeeViewsWithPermissionsForOneUser: Boolean 
+
+  def canSeeViewsWithPermissionsForAllUsers: Boolean
+  
   //other bank account (counterparty) fields
   def canSeeOtherAccountNationalIdentifier: Boolean
 
@@ -414,4 +426,9 @@ trait View {
   def canCreateDirectDebit: Boolean
   
   def canCreateStandingOrder: Boolean
+
+  //If any view set these to true, you can create/delete/update the custom view
+  def canCreateCustomView: Boolean
+  def canDeleteCustomView: Boolean
+  def canUpdateCustomView: Boolean
 }

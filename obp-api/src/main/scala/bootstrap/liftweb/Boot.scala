@@ -760,6 +760,7 @@ class Boot extends MdcLoggable {
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
       val standard = Views.views.vend.getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID).isDefined
       val stageOne = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
+      val manageCustomViews = Views.views.vend.getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -773,6 +774,7 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
            |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
            |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
+           |System view ${SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID} exists/created at the instance: ${manageCustomViews}
            |""".stripMargin
       logger.info(comment)
 

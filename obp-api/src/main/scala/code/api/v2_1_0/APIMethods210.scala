@@ -6,7 +6,7 @@ import code.api.util
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiRole, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages, NewStyle}
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -27,12 +27,13 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
+import net.liftweb.util.{Props, StringHelpers}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -700,7 +701,6 @@ trait APIMethods210 {
         BankNotFound,
         AccountNotFound,
         UserHasMissingRoles,
-        UserNoOwnerView,
         UnknownError
       ),
       List(apiTagTransactionRequest, apiTagPsd2))
@@ -713,8 +713,9 @@ trait APIMethods210 {
               u <- cc.user ?~ UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
-              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext), UserNoOwnerView)
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+              _ <- Helper.booleanToBox(view.canSeeTransactionRequests, 
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )")
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {

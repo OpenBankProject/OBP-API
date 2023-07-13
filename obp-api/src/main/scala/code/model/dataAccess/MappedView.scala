@@ -54,7 +54,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
-  
+
   //This field used ManyToMany  
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
@@ -203,6 +203,14 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+
+  object canSeeTransactionRequests_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+
+  object canSeeTransactionRequestTypes_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeTransactionOtherBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -245,6 +253,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeBankAccountOwners_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeAvailableViewsForBankAccount_ extends MappedBoolean(this){
+    override def defaultValue = true
+  }
   object canSeeBankAccountType_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -258,6 +269,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeBankAccountLabel_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateBankAccountLabel_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeBankAccountNationalIdentifier_ extends MappedBoolean(this){
@@ -288,6 +302,12 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeBankAccountRoutingAddress_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeViewsWithPermissionsForOneUser_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeViewsWithPermissionsForAllUsers_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeOtherAccountNationalIdentifier_ extends MappedBoolean(this){
@@ -425,6 +445,21 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeBankAccountCreditLimit_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canCreateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canDeleteCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canUpdateCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canRevokeAccessToCustomViews_ extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
+  object canGrantAccessToCustomViews_ extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
 
   def id: Long = id_.get
   def isSystem: Boolean = isSystem_.get
@@ -448,6 +483,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
   //transaction fields
   def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
+  def canSeeTransactionRequests : Boolean = canSeeTransactionRequests_.get
+  def canSeeTransactionRequestTypes : Boolean = canSeeTransactionRequestTypes_.get
   def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
   def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
   def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get
@@ -465,12 +502,14 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeImages : Boolean = canSeeImages_.get
 
   //Bank account fields
+  def canSeeAvailableViewsForBankAccount : Boolean = canSeeAvailableViewsForBankAccount_.get
   def canSeeBankAccountOwners : Boolean = canSeeBankAccountOwners_.get
   def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
   def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get
   def canSeeBankAccountCurrency : Boolean = canSeeBankAccountCurrency_.get
   def canQueryAvailableFunds : Boolean = canQueryAvailableFunds_.get
   def canSeeBankAccountLabel : Boolean = canSeeBankAccountLabel_.get
+  def canUpdateBankAccountLabel : Boolean = canUpdateBankAccountLabel_.get
   def canSeeBankAccountNationalIdentifier : Boolean = canSeeBankAccountNationalIdentifier_.get
   def canSeeBankAccountSwift_bic : Boolean = canSeeBankAccountSwift_bic_.get
   def canSeeBankAccountIban : Boolean = canSeeBankAccountIban_.get
@@ -481,6 +520,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
   def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
   def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
+  def canSeeViewsWithPermissionsForOneUser: Boolean = canSeeViewsWithPermissionsForOneUser_.get
+  def canSeeViewsWithPermissionsForAllUsers: Boolean = canSeeViewsWithPermissionsForAllUsers_.get
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get
@@ -537,6 +578,13 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canCreateStandingOrder: Boolean = false
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
+
+  def canCreateCustomView: Boolean = canCreateCustomView_.get
+  def canDeleteCustomView: Boolean = canDeleteCustomView_.get
+  def canUpdateCustomView: Boolean = canUpdateCustomView_.get
+
+  override def canGrantAccessToCustomViews: Boolean = canGrantAccessToCustomViews_.get
+  override def canRevokeAccessToCustomViews: Boolean = canRevokeAccessToCustomViews_.get
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{

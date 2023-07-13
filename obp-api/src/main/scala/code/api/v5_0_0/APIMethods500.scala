@@ -1,7 +1,6 @@
 package code.api.v5_0_0
 
 import java.util.concurrent.ThreadLocalRandom
-
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -39,12 +38,13 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{Helpers, Props}
-import java.util.concurrent.ThreadLocalRandom
+import net.liftweb.util.{Helpers, Props, StringHelpers}
 
+import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.util.Helper.booleanToFuture
-import code.views.system.AccountAccess
+import code.views.system.{AccountAccess, ViewDefinition}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -391,7 +391,7 @@ trait APIMethods500 {
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
           } yield {
             (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
           }
@@ -1587,8 +1587,14 @@ trait APIMethods500 {
         cc =>
           val res =
             for {
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + cc.userId + ". account : " + accountId, cc=cc.callContext){
-                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), Some(cc))
+              (Full(u), callContext) <- SS.user
+              permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCanSeeAvailableViewsForBankAccountPermission
               }
             } yield {
               for {
