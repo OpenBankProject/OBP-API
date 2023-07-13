@@ -353,6 +353,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
       canRevokeAccessToCustomViews_(actions.exists(_ == "can_revoke_access_to_custom_views"))
       canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
       canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
+      canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
+      canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
+      canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
     }
     
     canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
@@ -436,9 +439,6 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canSeeTransactionRequestTypes_(actions.exists(_ == "can_see_transaction_request_types"))
     canUpdateBankAccountLabel_(actions.exists(_ == "can_update_bank_account_label"))
     canSeeAvailableViewsForBankAccount_(actions.exists(_ == "can_see_available_views_for_bank_account"))
-    canCreateCustomView_(actions.exists(_ == "can_create_custom_view"))
-    canDeleteCustomView_(actions.exists(_ == "can_delete_custom_view"))
-    canUpdateCustomView_(actions.exists(_ == "can_update_custom_view"))
     canSeeViewsWithPermissionsForAllUsers_(actions.exists(_ == "can_see_views_with_permissions_for_all_users")) 
     canSeeViewsWithPermissionsForOneUser_(actions.exists(_ == "can_see_views_with_permissions_for_one_user"))
   }
