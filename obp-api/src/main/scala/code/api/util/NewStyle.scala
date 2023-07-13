@@ -716,22 +716,6 @@ object NewStyle extends MdcLoggable{
           }
       }
     }
-    
-    def canGrantAccessToView(bankId: BankId, accountId: AccountId, viewIdToBeGranted : ViewId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
-      Helper.wrapStatementToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount) {
-        APIUtil.canGrantAccessToView(bankId, accountId, viewIdToBeGranted, user, callContext)
-      }
-    }
-    def canRevokeAccessToView(bankId: BankId, accountId: AccountId, viewIdToBeRevoked : ViewId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
-      Helper.wrapStatementToFuture(UserLacksPermissionCanRevokeAccessToViewForTargetAccount) {
-        APIUtil.canRevokeAccessToView(bankId, accountId,viewIdToBeRevoked, user, callContext)
-      }
-    }
-    def canRevokeAccessToAllView(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) : Future[Box[Boolean]] = {
-      Helper.wrapStatementToFuture(UserLacksPermissionCanRevokeAccessToViewForTargetAccount) {
-        APIUtil.canRevokeAccessToAllViews(bankId, accountId, user, callContext)
-      }
-    }
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.createSystemView(view) map {
         unboxFullOrFail(_, callContext, s"$CreateSystemViewError")

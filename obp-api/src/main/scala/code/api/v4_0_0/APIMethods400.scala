@@ -4393,7 +4393,9 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, ViewId(postJson.view.view_id), u, callContext)
+            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+              APIUtil.canGrantAccessToView(bankId, accountId, ViewId(postJson.view.view_id), u, callContext)
+            }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- getView(bankId, accountId, postJson.view, callContext)
             addedView <- grantAccountAccessToUser(bankId, accountId, user, view, callContext)
@@ -4504,7 +4506,9 @@ trait APIMethods400 {
               json.extract[PostAccountAccessJsonV400]
             }
             viewId = ViewId(postJson.view.view_id)
-            _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, viewId, u, cc.callContext)
+            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+              APIUtil.canRevokeAccessToView(bankId, accountId, viewId, u, callContext)
+            }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
             view <- postJson.view.is_system match {
               case true => NewStyle.function.systemView(viewId, callContext)
@@ -4556,7 +4560,9 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostRevokeGrantAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canRevokeAccessToAllView(bankId, accountId, u, cc.callContext)
+            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+              APIUtil.canRevokeAccessToAllViews(bankId, accountId, u, callContext)
+            }
            _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, u, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
