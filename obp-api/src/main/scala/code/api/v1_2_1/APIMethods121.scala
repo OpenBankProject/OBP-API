@@ -704,8 +704,8 @@ trait APIMethods121 {
       "deleteViewForBankAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Delete View",
-      "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
+      "Delete Custom View",
+      "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
       emptyObjectJson,
       emptyObjectJson,
       List(

@@ -138,8 +138,8 @@ trait APIMethods300 {
       nameOf(createViewForBankAccount),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Create View",
-      s"""Create a view on bank account
+      "Create Custom View",
+      s"""Create a custom view on bank account
         |
         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         | The 'alias' field in the JSON can take one of three values:
@@ -245,8 +245,8 @@ trait APIMethods300 {
       nameOf(updateViewForBankAccount),
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Update View",
-      s"""Update an existing view on a bank account
+      "Update Custom View",
+      s"""Update an existing custom view on a bank account
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
         |
