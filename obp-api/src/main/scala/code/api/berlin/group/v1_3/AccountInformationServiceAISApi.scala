@@ -374,7 +374,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
        "GET",
        "/card-accounts",
        "Reads a list of card accounts",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Reads a list of card accounts with additional information, e.g. balance information. 
 It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
 The addressed list of card accounts depends then on the PSU ID and the stored consent addressed by consentId, 
@@ -761,7 +761,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET", 
        "/accounts/ACCOUNT_ID/transactions/TRANSACTIONID", 
        "Read Transaction Details",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Reads transaction details from a given transaction addressed by "transactionId" on a given account addressed 
 by "account-id". This call is only available on transactions as reported in a JSON format. 
 
