@@ -27,20 +27,24 @@
 package code.api.v5_1_0
 
 import code.api.Constant
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
 import code.api.util.APIUtil.gitCommit
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
-import code.api.v3_0_0.{AddressJsonV300, OpeningTimesV300}
+import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.UserAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, Location, Meta}
+import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-
 import java.util.Date
+
+import code.consent.MappedConsent
+import net.liftweb.common.Box
+import net.liftweb.json.parse
+
 import scala.collection.immutable.List
 import scala.util.Try
 
@@ -73,6 +77,13 @@ case class CheckSystemIntegrityJsonV510(
   success: Boolean,
   debug_info: Option[String] = None
 )
+
+case class ConsentJsonV510(consent_id: String, 
+                           jwt: String, 
+                           status: String,
+                           consent_request_id: Option[String],
+                           scopes: Option[List[Role]])
+
 case class CurrencyJsonV510(alphanumeric_code: String)
 case class CurrenciesJsonV510(currencies: List[CurrencyJsonV510])
 
@@ -215,9 +226,13 @@ case class UserAttributesResponseJsonV510(
   user_attributes: List[UserAttributeResponseJsonV510]
 )
 
+case class CustomerIdJson(id: String)
+case class CustomersIdsJsonV510(customers: List[CustomerIdJson])
 
+object JSONFactory510 extends CustomJsonFormats {
 
-object JSONFactory510 {
+  def createCustomersIds(customers :  List[Customer]): CustomersIdsJsonV510 =
+    CustomersIdsJsonV510(customers.map(x => CustomerIdJson(x.customerId)))
   
   def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 
@@ -422,6 +437,17 @@ object JSONFactory510 {
     CheckSystemIntegrityJsonV510(
       success = success,
       debug_info = debugInfo
+    )
+  }
+  
+  def getConsentInfoJson(consent: MappedConsent): ConsentJsonV510 = {
+    val jsonWebTokenAsJValue: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+    ConsentJsonV510(
+      consent.consentId,
+      consent.jsonWebToken,
+      consent.status,
+      Some(consent.consentRequestId),
+      jsonWebTokenAsJValue.map(_.entitlements).toOption
     )
   }
   

@@ -480,7 +480,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
     val url = cc.map(_.url).getOrElse("")
-    val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    val hash = HashUtil.calculateETag(url, httpBody)
     if (httpCode == 200 && hash == headerValue) 304 else httpCode
   }
 
@@ -542,7 +542,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         s"""consumerId${consumerId}::userId${userId}"""
       }
     val cacheKey = s"""$compositeKey::${hashedRequestPayload}"""
-    val eTag = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    val eTag = HashUtil.calculateETag(url, httpBody)
     
     if(httpVerb.toUpperCase() == "GET" || httpVerb.toUpperCase() == "HEAD") { // If-Modified-Since can only be used with a GET or HEAD
       val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
@@ -631,7 +631,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   private def getRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
     cc.map { i =>
-      val hash = HashUtil.Sha256Hash(s"${i.url}${httpBody.getOrElse("")}")
+      val hash = HashUtil.calculateETag(i.url, httpBody)
       CustomResponseHeaders(
         List(
           (ResponseHeader.ETag, hash), 

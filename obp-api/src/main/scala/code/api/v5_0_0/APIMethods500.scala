@@ -18,7 +18,7 @@ import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsIdsJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
-import code.consent.{ConsentRequests, Consents}
+import code.consent.{ConsentRequest, ConsentRequests, Consents}
 import code.entitlement.Entitlement
 import code.metrics.APIMetrics
 import code.model._
@@ -611,9 +611,11 @@ trait APIMethods500 {
       postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
-        $BankNotFound,
         InvalidJsonFormat,
         ConsentMaxTTL,
+        X509CannotGetCertificate,
+        X509GeneralError,
+        InvalidConnectorResponse,
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
@@ -643,14 +645,7 @@ trait APIMethods500 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (
-              ConsentRequestResponseJson(
-                createdConsentRequest.consentRequestId,
-                net.liftweb.json.parse(createdConsentRequest.payload),
-                createdConsentRequest.consumerId,
-                ), 
-              HttpCode.`201`(callContext)
-            )
+            (JSONFactory500.createConsentRequestResponseJson(createdConsentRequest), HttpCode.`201`(callContext))
           }
       }
     }  
@@ -666,8 +661,11 @@ trait APIMethods500 {
       EmptyBody,
       consentRequestResponseJson,
       List(
-        $BankNotFound,
-        ConsentRequestNotFound,
+        InvalidJsonFormat,
+        ConsentMaxTTL,
+        X509CannotGetCertificate,
+        X509GeneralError,
+        InvalidConnectorResponse,
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
@@ -685,12 +683,7 @@ trait APIMethods500 {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
           } yield {
-            (ConsentRequestResponseJson(
-              consent_request_id = createdConsentRequest.consentRequestId,
-              payload = json.parse(createdConsentRequest.payload),
-              consumer_id = createdConsentRequest.consumerId
-              ), 
-              HttpCode.`200`(callContext)
+            (JSONFactory500.createConsentRequestResponseJson(createdConsentRequest), HttpCode.`200`(callContext)
             )
           }
       }
@@ -722,8 +715,11 @@ trait APIMethods500 {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
-            consent<- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId)} map {
+            consent <- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId)} map {
               unboxFullOrFail(_, callContext, ConsentRequestNotFound)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+              consent.mUserId == cc.userId
             }
           } yield {
             (
@@ -960,6 +956,7 @@ trait APIMethods500 {
 
             postConsentBodyCommonJson = PostConsentBodyCommonJson(
               everything = consentRequestJson.everything,
+              bank_id = consentRequestJson.bank_id,
               views = postConsentViewJsons,
               entitlements = consentRequestJson.entitlements.getOrElse(Nil),
               consumer_id = consentRequestJson.consumer_id,

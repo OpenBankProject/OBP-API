@@ -121,10 +121,11 @@
       <artifactId>ojdbc8</artifactId>
       <version>21.5.0.0</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>2.1.214</version>
+      <version>2.2.220</version>
       <scope>runtime</scope>
     </dependency>
     <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
@@ -296,10 +297,11 @@
       <artifactId>scala-nameof_${scala.version}</artifactId>
       <version>1.0.3</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.19</version>
+      <version>9.31</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
@@ -436,12 +438,6 @@
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-xml_${scala.version}</artifactId>
       <version>1.2.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>sh.ory.hydra</groupId>
-      <artifactId>hydra-client</artifactId>
-      <version>1.11.8</version>
     </dependency>
 
     <!--json schema validation start-->

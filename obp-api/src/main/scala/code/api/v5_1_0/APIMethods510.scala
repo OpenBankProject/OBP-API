@@ -8,10 +8,12 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.api.v5_0_0.ConsentJsonV500
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.Consents
@@ -25,12 +27,14 @@ import code.util.Helper
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
 import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.parse
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
@@ -738,9 +742,45 @@ trait APIMethods510 {
           }
       }
     }
-    
-    
 
+
+    staticResourceDocs += ResourceDoc(
+      getConsentByConsentId,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentId),
+      "GET",
+      "/consumer/consents/CONSENT_ID",
+      "Get Consent By Consent Id",
+      s"""
+         |
+         |This endpoint gets the Consent By consent id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV500,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
+    lazy val getConsentByConsentId: OBPEndpoint = {
+      case "consumer" :: "consents" :: consentId :: Nil  JsonGet _  => {
+        cc =>
+          for {
+            consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
+              unboxFullOrFail(_, cc.callContext, ConsentNotFound)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+              consent.mUserId == cc.userId
+            }
+          } yield {
+            (JSONFactory510.getConsentInfoJson(consent), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       revokeConsentAtBank,
       implementedInApiVersion,
@@ -1156,6 +1196,46 @@ trait APIMethods510 {
 
       }
     }
+
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersForUserIdsOnly,
+      implementedInApiVersion,
+      nameOf(getCustomersForUserIdsOnly),
+      "GET",
+      "/users/current/customers/customer_ids",
+      "Get Customers for Current User (IDs only)",
+      s"""Gets all Customers Ids that are linked to a User.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customersWithAttributesJsonV300,
+      List(
+        $UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser)
+    )
+    
+    lazy val getCustomersForUserIdsOnly : OBPEndpoint = {
+      case "users" :: "current" :: "customers" :: "customer_ids" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(cc.userId, cc.callContext) map {
+              connectorEmptyResponse(_, cc.callContext)
+            }
+          } yield {
+            (JSONFactory510.createCustomersIds(customers), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       createAtm,

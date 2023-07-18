@@ -66,7 +66,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
        "DELETE",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Payment Cancellation Request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method initiates the cancellation of a payment. Depending on the payment-service, the payment-product 
 and the ASPSP's implementation, this TPP call might be sufficient to cancel a payment. If an authorisation 
 of the payment cancellation is mandated by the ASPSP, a corresponding hyperlink will be contained in the 

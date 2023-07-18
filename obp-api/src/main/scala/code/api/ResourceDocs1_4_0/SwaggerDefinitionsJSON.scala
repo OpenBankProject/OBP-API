@@ -5116,6 +5116,7 @@ object SwaggerDefinitionsJSON {
   
   val postConsentRequestJsonV500 = PostConsentRequestJsonV500(
     everything = false,
+    bank_id = None,
     account_access = List(AccountAccessV500(
       account_routing = accountRoutingJsonV121,
       view_id = viewIdExample.value

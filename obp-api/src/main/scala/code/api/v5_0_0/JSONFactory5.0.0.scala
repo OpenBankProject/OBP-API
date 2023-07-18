@@ -39,6 +39,7 @@ import code.api.v3_0_0.{AdapterInfoJsonV300, CustomerAttributeResponseJsonV300, 
 import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
+import code.consent.ConsentRequest
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, CreateViewJson, Customer, CustomerAttribute, InboundAdapterInfoInternal, InboundStatusMessage, PhysicalCardTrait, UpdateViewJSON, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
@@ -220,6 +221,7 @@ case class AccountAccessV500(
 
 case class PostConsentRequestJsonV500(
   everything: Boolean,
+  bank_id: Option[String],
   account_access: List[AccountAccessV500],
   entitlements: Option[List[PostConsentEntitlementJsonV310]],
   consumer_id: Option[String],
@@ -749,7 +751,13 @@ object JSONFactory500 {
     CustomerAccountLinksJson(customerAccountLinks.map(createCustomerAccountLinkJson))
   }
 
-
+  def createConsentRequestResponseJson(createdConsentRequest: ConsentRequest): ConsentRequestResponseJson = {
+    ConsentRequestResponseJson(
+      createdConsentRequest.consentRequestId,
+      net.liftweb.json.parse(createdConsentRequest.payload),
+      createdConsentRequest.consumerId,
+    )
+  }
 
   def createViewJsonV500(view : View) : ViewJsonV500 = {
     val alias =

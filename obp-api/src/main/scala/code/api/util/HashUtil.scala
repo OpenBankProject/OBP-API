@@ -1,6 +1,7 @@
 package code.api.util
 
 import java.math.BigInteger
+import net.liftweb.common.Box
 
 object HashUtil {
   def Sha256Hash(in: String): String = {
@@ -9,6 +10,11 @@ object HashUtil {
     // To create the hex, use String.format
     val hashedValue = String.format("%032x", new BigInteger(1, MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))))
     hashedValue
+  }
+  
+  // Single Point of Entry in order to calculate ETag
+  def calculateETag(url: String, httpBody: Box[String]): String = {
+    HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
   }
 
   def main(args: Array[String]): Unit = {
