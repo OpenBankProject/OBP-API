@@ -1,6 +1,8 @@
 package code.api.berlin.group.v1_3
 
 import code.api.BerlinGroup.ScaStatus
+import code.api.Constant
+import code.api.Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
@@ -9,9 +11,10 @@ import code.api.util.ErrorMessages.{AuthorisationNotFound, InvalidJsonFormat, No
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13}
+import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, ViewId}
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -111,6 +114,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
+      
+      grantAccountAccess(acountRoutingIbanFrom)
 
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
@@ -163,6 +168,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |"creditorName": "70charname"
             }""".stripMargin
 
+      grantAccountAccess(acountRoutingIbanFrom)
+
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
@@ -185,6 +192,18 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(0))
     }
   }
+
+  private def grantAccountAccess(acountRoutingIbanFrom: BankAccountRouting) = {
+    Views.views.vend.systemView(ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)).flatMap(view =>
+      // Grant account access
+      Views.views.vend.grantAccessToSystemView(acountRoutingIbanFrom.bankId,
+        acountRoutingIbanFrom.accountId,
+        view,
+        resourceUser1
+      )
+    )
+  }
+
   feature(s"test the BG v1.3 -${getPaymentInformation.name}") {
     scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
@@ -205,6 +224,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
+
+      grantAccountAccess(accountsRoutingIban.head)
 
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
@@ -247,6 +268,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
+
+      grantAccountAccess(accountsRoutingIban.head)
 
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
@@ -304,6 +327,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
+
+      grantAccountAccess(accountsRoutingIban.head)
 
       val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val responseInitiatePaymentJson: APIResponse = makePostRequest(requestInitiatePaymentJson, initiatePaymentJson)
@@ -404,6 +429,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
+
+      grantAccountAccess(accountsRoutingIban.head)
 
       val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
       val responseInitiatePaymentJson: APIResponse = makePostRequest(requestInitiatePaymentJson, initiatePaymentJson)
