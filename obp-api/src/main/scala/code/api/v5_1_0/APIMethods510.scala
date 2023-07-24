@@ -8,6 +8,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -24,12 +25,13 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
+import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
-import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
+import com.openbankproject.commons.model.{AtmId, AtmT, BankId, Permission}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.S
@@ -282,6 +284,43 @@ trait APIMethods510 {
             ) 
           } yield {
             (JSONFactory510.createUserAttributesJson(userAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    staticResourceDocs += ResourceDoc(
+      getEntitlementsAndPermissions,
+      implementedInApiVersion,
+      "getEntitlementsAndPermissions",
+      "GET",
+      "/users/USER_ID/entitlements",
+      "Get Entitlements and Permissions for a User",
+      s"""
+         |
+         |
+      """.stripMargin,
+      EmptyBody,
+      userJsonV300,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId, 
+        UserHasMissingRoles, 
+        UnknownError),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
+
+
+    lazy val getEntitlementsAndPermissions: OBPEndpoint = {
+      case "users" :: userId :: "entitlements-and-permissions" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(userId, callContext)
+          } yield {
+            val permissions: Option[Permission] = Views.views.vend.getPermissionForUser(user).toOption
+            (JSONFactory300.createUserInfoJSON (user, entitlements, permissions), HttpCode.`200`(callContext))
           }
       }
     }
