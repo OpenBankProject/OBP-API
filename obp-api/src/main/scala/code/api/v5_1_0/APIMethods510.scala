@@ -295,7 +295,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       "getEntitlementsAndPermissions",
       "GET",
-      "/users/USER_ID/entitlements",
+      "/users/USER_ID/entitlements-and-permissions",
       "Get Entitlements and Permissions for a User",
       s"""
          |
