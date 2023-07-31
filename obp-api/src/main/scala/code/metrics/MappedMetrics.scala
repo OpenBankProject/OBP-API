@@ -5,6 +5,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
+import code.api.util.APIUtil.generateUUID
 import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
@@ -531,8 +532,9 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this){
+  object correlationId extends MappedString(this, 128) {
     override def dbNotNull_? = true
+    override def defaultValue = generateUUID()
   }
 
 
