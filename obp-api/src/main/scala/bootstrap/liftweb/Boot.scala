@@ -137,7 +137,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
-import net.liftweb.db.DBLogEntry
+import net.liftweb.db.{DB, DBLogEntry}
 import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.http.provider.HTTPCookie
@@ -835,15 +835,26 @@ class Boot extends MdcLoggable {
 
   // create Hydra client if exists active consumer but missing Hydra client
   def createHydraClients() = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    // exists hydra clients id
-    val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
-      .map[String](_.getClientId)
-      .collect(Collectors.toSet())
+    try {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      // exists hydra clients id
+      val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
+        .map[String](_.getClientId)
+        .collect(Collectors.toSet())
 
-    Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
-      consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
-        .foreach(HydraUtil.createHydraClient(_))
+      Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
+        consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
+          .foreach(HydraUtil.createHydraClient(_))
+      }
+    } catch {
+      case e: Exception =>
+        if(HydraUtil.integrateWithHydra) {
+          logger.error("------------------------------ Mirror consumer in hydra issue ------------------------------")
+          e.printStackTrace()
+        } else {
+          logger.warn("------------------------------ Mirror consumer in hydra issue ------------------------------")
+          logger.warn(e)
+        }
     }
   }
 
