@@ -14,6 +14,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
+import net.liftweb.db.DB
 import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -91,7 +92,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   private def trueOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
+  private def trueOrFalseString(condition: Boolean) = if (condition) s"1=1" else s"0=1"
   private def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
+  private def falseOrTrueString(condition: Boolean) = if (condition) s"0=1" else s"1=1"
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: do this all at the db level using an actual group by query
@@ -215,6 +218,26 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         sqls""
         
       sqls"${params.head})"+ sqlSingleLine + sqls" and url  ${isLikeQuery} LIKE (${params.last}"
+    }
+  }
+  private def extendLikeQueryString(params:  List[String], isLike: Boolean): String = {
+    val isLikeQuery = if (isLike) s"" else s"NOT"
+    
+    if (params.length == 1)
+      s"'${params.head}'"
+    else
+    {
+      val sqlList: immutable.Seq[String] = for (i <- 1 to (params.length - 2)) yield
+        {
+          s" and url ${isLikeQuery} LIKE ('${params(i)}')"
+        }
+        
+      val sqlSingleLine = if (sqlList.length>1)
+        sqlList.reduce(_+_)
+      else
+        s""
+        
+      s"${params.head})"+ sqlSingleLine + s" and url  ${isLikeQuery} LIKE ('${params.last}''"
     }
   }
   
@@ -373,7 +396,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
       val url = queryParams.collect { case OBPUrl(value) => value }.headOption
       val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+      val excludeAppNames: Option[List[String]] = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
       val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
       val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
       val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
@@ -385,47 +408,51 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
       
       val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
-      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
-      val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
+      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
+      val excludeImplementedByPartialFunctionsNumberList = 
+        excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
-      val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
+      val excludeUrlPatternsQueries: String = extendLikeQueryString(excludeUrlPatternsList, false)
       
       val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
       val result: List[TopApi] = scalikeDB readOnly { implicit session =>
         // MS SQL server has the specific syntax for limiting number of rows
-        val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
+        val msSqlLimit = if (dbUrl.contains("sqlserver")) s"TOP ($limit)" else s""
         // TODO Make it work in case of Oracle database
-        val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
-        val sqlResult =
-          sql"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
+        val otherDbLimit = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
+        val sqlQuery: String =
+          s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
                 FROM metric 
                 WHERE 
-                date_c >= ${new Timestamp(fromDate.get.getTime)} AND
-                date_c <= ${new Timestamp(toDate.get.getTime)}
-                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
-                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
-                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
-                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
-                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
-                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
-                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesNumberList))
-                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
+                date_c >= '${new Timestamp(fromDate.get.getTime)}' AND
+                date_c <= '${new Timestamp(toDate.get.getTime)}'
+                AND (${trueOrFalseString(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
+                AND (${trueOrFalseString(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
+                AND (${trueOrFalseString(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
+                AND (${trueOrFalseString(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("null")})
+                AND (${trueOrFalseString(url.isEmpty)} or url = ${url.getOrElse("null")})
+                AND (${trueOrFalseString(appName.isEmpty)} or appname = ${appName.getOrElse("null")})
+                AND (${trueOrFalseString(verb.isEmpty)} or verb = ${verb.getOrElse("null")})
+                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
+                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
+                AND (${trueOrFalseString(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalseString(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesNumberList))
+                AND (${trueOrFalseString(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
                 GROUP BY metric.implementedbypartialfunction, metric.implementedinversion 
                 ORDER BY count(*) DESC
                 ${otherDbLimit}
                 """.stripMargin
-          .map(
-            rs => // Map result to case class
-              TopApi(
-                rs.string(1).toInt, 
-                rs.string(2), 
-                rs.string(3))
-          ).list.apply()
+
+        val (_, rows) = DB.runQuery(sqlQuery, List())
+        val sqlResult = 
+          rows.map { rs => // Map result to case class
+            TopApi(
+              rs(0).toInt, 
+              rs(1), 
+              rs(2)
+            )
+          }
         sqlResult
       }
       tryo(result)
