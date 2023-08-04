@@ -100,6 +100,9 @@ read_authentication_type_validation_requires_role=false
 ## enable logging all the database queries in log file
 #logging.database.queries.enable=true
 
+## enable logging all the database queries in log file
+#database_query_timeout_in_seconds=
+
 ##Added Props property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
 #system_environment_property_name_prefix=OBP_
 
