@@ -149,7 +149,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{DefaultConnectionIdentifier, Helpers, Props, Schedule, _}
 import org.apache.commons.io.FileUtils
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -279,6 +279,25 @@ class Boot extends MdcLoggable {
        }
      }
     }
+
+    // Database query timeout
+    APIUtil.getPropsValue("database_query_timeout_in_seconds").map { timeoutInSeconds =>
+      tryo(timeoutInSeconds.toInt).isDefined match {
+        case true =>
+          DB.queryTimeout = Full(timeoutInSeconds.toInt)
+          logger.info(s"Query timeout database_query_timeout_in_seconds is set to ${timeoutInSeconds} seconds")
+        case false =>
+          logger.error(
+            s"""
+               |------------------------------------------------------------------------------------
+               |Query timeout database_query_timeout_in_seconds [${timeoutInSeconds}] is not an integer value.
+               |Actual DB.queryTimeout value: ${DB.queryTimeout}
+               |------------------------------------------------------------------------------------""".stripMargin)
+      }
+      
+    }
+    
+    
     implicit val formats = CustomJsonFormats.formats 
     LiftRules.statelessDispatch.prepend {
       case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
