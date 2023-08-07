@@ -4,23 +4,18 @@ import java.sql.{PreparedStatement, Timestamp}
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.api.Constant
 import code.api.cache.Caching
 import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.db.DB
 import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext}
-import scalikejdbc.DB.CPContext
-import scalikejdbc.{DB => scalikeDB, _}
 
 import scala.collection.immutable
 import scala.collection.immutable.List
@@ -91,10 +86,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     metric.save
   }
 
-  private def trueOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
-  private def trueOrFalseString(condition: Boolean) = if (condition) s"1=1" else s"0=1"
-  private def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
-  private def falseOrTrueString(condition: Boolean) = if (condition) s"0=1" else s"1=1"
+  private def trueOrFalse(condition: Boolean): String = if (condition) s"1=1" else s"0=1"
+  private def falseOrTrue(condition: Boolean): String = if (condition) s"0=1" else s"1=1"
   
   private def sqlFriendly(value : Option[String]): String = {
     value.isDefined match {
@@ -207,28 +200,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       }
     }
   }
-
-  private def extendLikeQuery(params:  List[String], isLike: Boolean) = {
-    val isLikeQuery = if (isLike) sqls"" else sqls"NOT"
-    
-    if (params.length == 1)
-      sqls"${params.head}"
-    else
-    {
-      val sqlList: immutable.Seq[SQLSyntax] = for (i <- 1 to (params.length - 2)) yield
-        {
-          sqls" and url ${isLikeQuery} LIKE ('${params(i)}')"
-        }
-        
-      val sqlSingleLine = if (sqlList.length>1)
-        sqlList.reduce(_+_)
-      else
-        sqls""
-        
-      sqls"${params.head})"+ sqlSingleLine + sqls" and url  ${isLikeQuery} LIKE (${params.last}"
-    }
-  }
-  private def extendLikeQueryString(params:  List[String], isLike: Boolean): String = {
+  
+  private def extendLikeQuery(params:  List[String], isLike: Boolean): String = {
     val isLikeQuery = if (isLike) s"" else s"NOT"
     
     if (params.length == 1)
@@ -262,24 +235,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       stmt.setString(startLine+i, excludeFiledValues.toList(i))
     }
   }
-
-  /**
-   * this connection pool context corresponding db.url in default.props
-   */
-  implicit lazy val context: CPContext = {
-    val settings = ConnectionPoolSettings(
-      initialSize = 5,
-      maxSize = 20,
-      connectionTimeoutMillis = 3000L,
-      validationQuery = "select 1",
-      connectionPoolFactoryName = "commons-dbcp2"
-    )
-   val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
-    val dbName = "DB_NAME" // corresponding props db.url DB
-    ConnectionPool.add(dbName, dbUrl, user, password, settings)
-    val connectionPool = ConnectionPool.get(dbName)
-    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
- }
+  
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
@@ -311,68 +267,71 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeImplementedByPartialFunctions = queryParams.collect { case OBPIncludeImplementedByPartialFunctions(value) => value }.headOption
 
       val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
-      val excludeAppNamesList = excludeAppNames.getOrElse(List(""))
-      val excludeImplementedByPartialFunctionsList = excludeImplementedByPartialFunctions.getOrElse(List(""))
+      val excludeAppNamesList = excludeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
+      val excludeImplementedByPartialFunctionsList = 
+        excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
       val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
       
       val includeUrlPatternsList= includeUrlPatterns.getOrElse(List(""))
-      val includeAppNamesList = includeAppNames.getOrElse(List(""))
-      val includeImplementedByPartialFunctionsList = includeImplementedByPartialFunctions.getOrElse(List(""))
+      val includeAppNamesList = includeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
+      val includeImplementedByPartialFunctionsList = 
+        includeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
       val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
-      val includeUrlPatternsQueriesSql = sqls"$includeUrlPatternsQueries" 
+      val includeUrlPatternsQueriesSql = s"$includeUrlPatternsQueries" 
       
-      val result = scalikeDB readOnly { implicit session =>
+      val result = {
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
-          sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
+          s"""SELECT count(*), avg(duration), min(duration), max(duration)  
               FROM metric
-              WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
-              AND date_c <= ${new Timestamp(toDate.get.getTime)}
-              AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
-              AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
-              AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
-              AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
-              AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
-              AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
-              AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+              WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
+              AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+              AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+              AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
+              AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
+              AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
+              AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
+              AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
+              AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-              AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${correlationId.getOrElse("")})
+              AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${sqlFriendly(correlationId)})
               AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($includeUrlPatternsQueriesSql)))
               AND (${trueOrFalse(includeAppNames.isEmpty) } or (appname in ($includeAppNamesList)))
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
         else
-          sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
+          s"""SELECT count(*), avg(duration), min(duration), max(duration)  
             FROM metric
-            WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
-            AND date_c <= ${new Timestamp(toDate.get.getTime)}
-            AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
-            AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
-            AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
-            AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
-            AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
-            AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
-            AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+            WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
+            AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+            AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+            AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
+            AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
+            AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
+            AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
+            AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
+            AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
             AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
             AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null')
-            AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${correlationId.getOrElse("")})
+            AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${sqlFriendly(correlationId)})
             AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
             AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
             AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
             """.stripMargin
-        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlQuery --:  " +sqlQuery.statement)
-        val sqlResult = sqlQuery.map(
+        val (_, rows) = DB.runQuery(sqlQuery, List())
+        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlQuery --:  " + sqlQuery)
+        val sqlResult = rows.map(
               rs => // Map result to case class
                 AggregateMetrics(
-                  rs.stringOpt(1).map(_.toInt).getOrElse(0), 
-                  rs.stringOpt(2).map(avg => "%.2f".format(avg.toDouble).toDouble).getOrElse(0), 
-                  rs.stringOpt(3).map(_.toDouble).getOrElse(0), 
-                  rs.stringOpt(4).map(_.toDouble).getOrElse(0)
+                  tryo(rs(0).toInt).getOrElse(0),
+                  tryo("%.2f".format(rs(1).toDouble).toDouble).getOrElse(0),
+                  tryo(rs(2).toDouble).getOrElse(0),
+                  tryo(rs(3).toDouble).getOrElse(0)
                 )
-            ).list().apply()
-        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  "+sqlResult.toString)
+        )
+        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  " + sqlResult)
         sqlResult
       }
       tryo(result)
@@ -420,7 +379,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeImplementedByPartialFunctionsNumberList = 
         excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
-      val excludeUrlPatternsQueries: String = extendLikeQueryString(excludeUrlPatternsList, false)
+      val excludeUrlPatternsQueries: String = extendLikeQuery(excludeUrlPatternsList, false)
       
       val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
@@ -435,18 +394,18 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 WHERE 
                 date_c >= '${new Timestamp(fromDate.get.getTime)}' AND
                 date_c <= '${new Timestamp(toDate.get.getTime)}'
-                AND (${trueOrFalseString(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
-                AND (${trueOrFalseString(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
-                AND (${trueOrFalseString(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
-                AND (${trueOrFalseString(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("null")})
-                AND (${trueOrFalseString(url.isEmpty)} or url = ${url.getOrElse("null")})
-                AND (${trueOrFalseString(appName.isEmpty)} or appname = ${appName.getOrElse("null")})
-                AND (${trueOrFalseString(verb.isEmpty)} or verb = ${verb.getOrElse("null")})
-                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
-                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
-                AND (${trueOrFalseString(excludeUrlPatterns.isEmpty)} or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalseString(excludeAppNames.isEmpty)} or appname not in ($excludeAppNamesNumberList))
-                AND (${trueOrFalseString(excludeImplementedByPartialFunctions.isEmpty)} or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
+                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
+                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
+                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
+                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("null")})
+                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("null")})
+                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("null")})
+                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("null")})
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
+                AND (${trueOrFalse(excludeUrlPatterns.isEmpty)} or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalse(excludeAppNames.isEmpty)} or appname not in ($excludeAppNamesNumberList))
+                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty)} or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
                 GROUP BY metric.implementedbypartialfunction, metric.implementedinversion 
                 ORDER BY count(*) DESC
                 ${otherDbLimit}
@@ -500,7 +459,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeImplementedByPartialFunctionsList =
         excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
-      val excludeUrlPatternsQueries: String = extendLikeQueryString(excludeUrlPatternsList, false)
+      val excludeUrlPatternsQueries: String = extendLikeQuery(excludeUrlPatternsList, false)
 
       val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
@@ -517,18 +476,18 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 WHERE metric.appname = consumer.name  
                 AND date_c >= '${new Timestamp(fromDate.get.getTime)}'
                 AND date_c <= '${new Timestamp(toDate.get.getTime)}'
-                AND (${trueOrFalseString(consumerId.isEmpty)} or consumer.consumerid = ${sqlFriendly(consumerId)})
-                AND (${trueOrFalseString(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
-                AND (${trueOrFalseString(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
-                AND (${trueOrFalseString(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
-                AND (${trueOrFalseString(url.isEmpty)} or url = ${sqlFriendly(url)})
-                AND (${trueOrFalseString(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
-                AND (${trueOrFalseString(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
-                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
-                AND (${falseOrTrueString(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
-                AND (${trueOrFalseString(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalseString(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
-                AND (${trueOrFalseString(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
+                AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${sqlFriendly(consumerId)})
+                AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
+                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
+                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
+                AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
+                AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
+                AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
+                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
+                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
                 GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
                 ORDER BY count DESC
                 ${otherDbLimit}
