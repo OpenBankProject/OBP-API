@@ -807,6 +807,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def check401(message: String): Boolean = {
       message.contains(extractErrorMessageCode(UserNotLoggedIn))
     }
+    def check408(message: String): Boolean = {
+      message.contains(extractErrorMessageCode(requestTimeout))
+    }
     val (code, responseHeaders) =
       message match {
         case msg if check401(msg) =>
@@ -816,6 +819,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           (401, getHeaders() ::: headers.list ::: addHeader)
         case msg if check403(msg) =>
           (403, getHeaders() ::: headers.list)
+        case msg if check408(msg) =>
+          (408, getHeaders() ::: headers.list)
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }

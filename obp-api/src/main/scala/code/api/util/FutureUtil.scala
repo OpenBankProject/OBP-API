@@ -33,7 +33,7 @@ object FutureUtil {
 
     val timerTask = new TimerTask() {
       def run() : Unit = {
-        p.tryFailure(new TimeoutException("Request Timeout"))
+        p.tryFailure(new TimeoutException(ErrorMessages.requestTimeout))
       }
     }
 
