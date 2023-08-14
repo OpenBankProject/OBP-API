@@ -114,11 +114,11 @@ trait APIMethods510 {
         cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-          } yield {
-            val sleep: String = httpParams.filter(_.name == "sleep").headOption
+            sleep: String = httpParams.filter(_.name == "sleep").headOption
               .map(_.values.headOption.getOrElse("0")).getOrElse("0")
-            val sleepInMillis: Long = tryo(sleep.trim.toLong).getOrElse(0)
-            Thread.sleep(sleepInMillis)
+            sleepInMillis: Long = tryo(sleep.trim.toLong).getOrElse(0)
+            _ <- Future(Thread.sleep(sleepInMillis))
+          } yield {
             (JSONFactory510.waitingForGodot(sleepInMillis), HttpCode.`200`(cc.callContext))
           }
       }
