@@ -6,6 +6,7 @@ import java.util.{Timer, TimerTask}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
+import scala.concurrent.duration._
 
 object FutureUtil {
 
@@ -15,6 +16,8 @@ object FutureUtil {
   // the program from shutting down
 
   val timer: Timer = new Timer(true)
+  
+  val defaultTimeout: Int = APIUtil.getPropsAsIntValue(nameOfProperty = "medium_endpoint_timeout", 7)
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first
@@ -24,7 +27,7 @@ object FutureUtil {
    * @param timeout Time before we return a Timeout exception instead of future's outcome
    * @return Future[T]
    */
-  def futureWithTimeout[T](future : Future[T], timeout : FiniteDuration)(implicit ec: ExecutionContext): Future[T] = {
+  def futureWithTimeout[T](future : Future[T], timeout : FiniteDuration = defaultTimeout seconds)(implicit ec: ExecutionContext): Future[T] = {
 
     // Promise will be fulfilled with either the callers Future or the timer task if it times out
     var p = Promise[T]
