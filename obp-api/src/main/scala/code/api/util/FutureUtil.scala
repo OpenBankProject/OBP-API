@@ -17,7 +17,7 @@ object FutureUtil {
 
   val timer: Timer = new Timer(true)
   
-  val defaultTimeout: Int = APIUtil.getPropsAsIntValue(nameOfProperty = "medium_endpoint_timeout", 7)
+  val defaultTimeout: Int = APIUtil.getPropsAsIntValue(nameOfProperty = "long_endpoint_timeout", 60)
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first

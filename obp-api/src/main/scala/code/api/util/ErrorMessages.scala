@@ -42,7 +42,7 @@ object ErrorMessages {
   val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
 
   // Exceptions (OBP-01XXX) ------------------------------------------------>
-  val requestTimeout = "OBP-01000: Request Timeout. "
+  val requestTimeout = "OBP-01000: Request Timeout. The OBP API decided to return a timeout. This is probably because a backend service did not respond in time. "
   // <------------------------------------------------ Exceptions (OBP-01XXX)
   
   // WebUiProps Exceptions (OBP-08XXX)
