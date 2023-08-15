@@ -2956,7 +2956,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return
    */
   implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
-    futureToBoxedResponse(scalaFutureToLaFuture(scf))
+    futureToBoxedResponse(scalaFutureToLaFuture(FutureUtil.futureWithTimeout(scf)))
   }
 
 
