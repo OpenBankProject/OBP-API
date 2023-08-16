@@ -41,6 +41,10 @@ object ErrorMessages {
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
   val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
 
+  // Exceptions (OBP-01XXX) ------------------------------------------------>
+  val requestTimeout = "OBP-01000: Request Timeout. The OBP API decided to return a timeout. This is probably because a backend service did not respond in time. "
+  // <------------------------------------------------ Exceptions (OBP-01XXX)
+  
   // WebUiProps Exceptions (OBP-08XXX)
   val InvalidWebUiProps = "OBP-08001: Incorrect format of name."
   val WebUiPropsNotFound = "OBP-08002: WebUi props not found. Please specify a valid value for WEB_UI_PROPS_ID."

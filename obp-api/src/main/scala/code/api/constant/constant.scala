@@ -14,6 +14,10 @@ object Constant extends MdcLoggable {
     final val limit = 500
   }
   
+  final val shortEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "short_endpoint_timeout", 1L * 1000L)
+  final val mediumEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "medium_endpoint_timeout", 7L * 1000L)
+  final val longEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "long_endpoint_timeout", 60L * 1000L)
+  
   final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
@@ -102,6 +106,7 @@ object ResponseHeader {
   final lazy val `WWW-Authenticate` = "WWW-Authenticate"
   final lazy val ETag = "ETag"
   final lazy val `Cache-Control` = "Cache-Control"
+  final lazy val Connection = "Connection"
 }
 
 object BerlinGroup extends Enumeration {

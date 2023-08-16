@@ -116,6 +116,7 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
+import code.api.util.FutureUtil.EndpointTimeout
 import code.etag.MappedETag
 import code.users.Users
 import net.liftweb.mapper.By
@@ -807,6 +808,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def check401(message: String): Boolean = {
       message.contains(extractErrorMessageCode(UserNotLoggedIn))
     }
+    def check408(message: String): Boolean = {
+      message.contains(extractErrorMessageCode(requestTimeout))
+    }
     val (code, responseHeaders) =
       message match {
         case msg if check401(msg) =>
@@ -816,6 +820,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           (401, getHeaders() ::: headers.list ::: addHeader)
         case msg if check403(msg) =>
           (403, getHeaders() ::: headers.list)
+        case msg if check408(msg) =>
+          (408, getHeaders() ::: headers.list ::: List((ResponseHeader.Connection, "close")))
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }
@@ -2950,8 +2956,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @tparam T
    * @return
    */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
-    futureToBoxedResponse(scalaFutureToLaFuture(scf))
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, m: Manifest[T]): Box[JsonResponse] = {
+    futureToBoxedResponse(scalaFutureToLaFuture(FutureUtil.futureWithTimeout(scf)))
   }
 
 

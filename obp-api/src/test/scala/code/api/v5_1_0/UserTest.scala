@@ -1,10 +1,12 @@
 package code.api.v5_1_0
 
+import java.util.UUID
+
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetAnyUser
+import code.api.util.ApiRole.{CanGetAnyUser, CanGetEntitlementsForAnyUserAtAnyBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn, attemptedToOpenAnEmptyBox}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
-import code.api.v4_0_0.{UserIdJsonV400, UserJsonV400}
+import code.api.v3_0_0.UserJsonV300
+import code.api.v4_0_0.UserJsonV400
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.model.UserX
@@ -13,8 +15,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
-
-import java.util.UUID
 
 class UserTest extends V510ServerSetup {
   /**
@@ -26,6 +26,7 @@ class UserTest extends V510ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.getUserByProviderAndUsername))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getEntitlementsAndPermissions))
   
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -62,5 +63,46 @@ class UserTest extends V510ServerSetup {
       Users.users.vend.deleteResourceUser(user.id.get)
     }
   }
+
+
+
+  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v5.1.0")
+      val request = (v5_1_0_Request / "users" / "USER_ID" / "entitlements-and-permissions").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 401")
+      response.code should equal(401)
+      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+      val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+      When("We make a request v5.1.0")
+      val request = (v5_1_0_Request / "users" / user.userId / "entitlements-and-permissions").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("error should be " + UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      // Clean up
+      Users.users.vend.deleteResourceUser(user.id.get)
+    }
+  }
+  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetEntitlementsForAnyUserAtAnyBank.toString)
+      val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+      When("We make a request v5.1.0")
+      val request = (v5_1_0_Request / "users" / user.userId / "entitlements-and-permissions").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We get successful response")
+      response.code should equal(200)
+      response.body.extract[UserJsonV300]
+      // Clean up
+      Users.users.vend.deleteResourceUser(user.id.get)
+    }
+  }
+  
   
 }

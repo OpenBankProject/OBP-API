@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import code.actorsystem.ObpLookupSystem
 import code.util.Helper.MdcLoggable
-import net.liftweb.db.DB
+import net.liftweb.db.{DB, SuperConnection}
 
 import scala.concurrent.duration._
 
@@ -25,11 +25,26 @@ object DatabaseDriverScheduler extends MdcLoggable {
       }
     )
   }
+  
+  def logWarnings(conn: SuperConnection) = {
+    var warning = conn.getWarnings()
+    if (warning != null) {
+      logger.warn("---Warning---")
+      while (warning != null)
+      {
+        logger.warn("Message: " + warning.getMessage())
+        logger.warn("SQLState: " + warning.getSQLState())
+        logger.warn("Vendor error code: " + warning.getErrorCode())
+        warning = warning.getNextWarning()
+      }
+    }
+  }
 
   def clearAllMessages() = {
     DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
       conn => 
         try {
+          logWarnings(conn)
           conn.clearWarnings()
           logger.warn("DatabaseDriverScheduler.clearAllMessages - DONE")
         } catch {
