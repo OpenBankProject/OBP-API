@@ -3,6 +3,8 @@ package code.api.util
 import java.util.concurrent.TimeoutException
 import java.util.{Timer, TimerTask}
 
+import code.api.Constant
+
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 
@@ -15,17 +17,19 @@ object FutureUtil {
 
   val timer: Timer = new Timer(true)
   
-  val defaultTimeout: Long = APIUtil.getPropsAsLongValue(nameOfProperty = "long_endpoint_timeout", 60L * 1000L)
+  case class EndpointTimeout(inMillis: Long)
+  
+  implicit val defaultTimeout: EndpointTimeout = EndpointTimeout(Constant.longEndpointTimeoutInMillis)
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first
    * This uses Java Timer which runs a single thread to handle all futureWithTimeouts and does not block like a
    * Thread.sleep would
    * @param future Caller passes a future to execute
-   * @param timeoutInMillis Time before we return a Timeout exception instead of future's outcome
+   * @param timeout Time before we return a Timeout exception instead of future's outcome
    * @return Future[T]
    */
-  def futureWithTimeout[T](future : Future[T], timeoutInMillis : Long = defaultTimeout)(implicit ec: ExecutionContext): Future[T] = {
+  def futureWithTimeout[T](future : Future[T])(implicit timeout : EndpointTimeout, ec: ExecutionContext): Future[T] = {
 
     // Promise will be fulfilled with either the callers Future or the timer task if it times out
     var p = Promise[T]
@@ -39,7 +43,7 @@ object FutureUtil {
     }
 
     // Set the timeout to check in the future
-    timer.schedule(timerTask, timeoutInMillis)
+    timer.schedule(timerTask, timeout.inMillis)
 
     future.map {
       a =>

@@ -1,11 +1,13 @@
 package code.api.v5_1_0
 
 
+import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310, _}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
+import code.api.util.FutureUtil.EndpointTimeout
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
@@ -112,6 +114,7 @@ trait APIMethods510 {
     lazy val waitingForGodot: OBPEndpoint = {
       case "waiting-for-godot" :: Nil JsonGet _ => {
         cc =>
+          implicit val timeout = EndpointTimeout(Constant.mediumEndpointTimeoutInMillis) // Set endpoint timeout explicitly
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             sleep: String = httpParams.filter(_.name == "sleep").headOption
