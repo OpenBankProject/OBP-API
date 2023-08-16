@@ -102,6 +102,7 @@ object ResponseHeader {
   final lazy val `WWW-Authenticate` = "WWW-Authenticate"
   final lazy val ETag = "ETag"
   final lazy val `Cache-Control` = "Cache-Control"
+  final lazy val Connection = "Connection"
 }
 
 object BerlinGroup extends Enumeration {

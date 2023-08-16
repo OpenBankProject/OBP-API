@@ -820,7 +820,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case msg if check403(msg) =>
           (403, getHeaders() ::: headers.list)
         case msg if check408(msg) =>
-          (408, getHeaders() ::: headers.list)
+          (408, getHeaders() ::: headers.list ::: List((ResponseHeader.Connection, "close")))
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }
