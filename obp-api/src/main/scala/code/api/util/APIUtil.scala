@@ -116,7 +116,7 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
-import code.api.util.FutureUtil.EndpointTimeout
+import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.etag.MappedETag
 import code.users.Users
 import net.liftweb.mapper.By
@@ -2956,7 +2956,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @tparam T
    * @return
    */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, m: Manifest[T]): Box[JsonResponse] = {
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, context: EndpointContext, m: Manifest[T]): Box[JsonResponse] = {
     futureToBoxedResponse(scalaFutureToLaFuture(FutureUtil.futureWithTimeout(scf)))
   }
 

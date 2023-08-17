@@ -3,7 +3,8 @@ package code.api.util
 import java.util.concurrent.TimeoutException
 import java.util.{Timer, TimerTask}
 
-import code.api.Constant
+import code.api.{APIFailureNewStyle, Constant}
+import net.liftweb.json.{Extraction, JsonAST}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
@@ -18,8 +19,11 @@ object FutureUtil {
   val timer: Timer = new Timer(true)
   
   case class EndpointTimeout(inMillis: Long)
+  case class EndpointContext(context: Option[CallContext])
   
   implicit val defaultTimeout: EndpointTimeout = EndpointTimeout(Constant.longEndpointTimeoutInMillis)
+  implicit val callContext = EndpointContext(context = None)
+  implicit val formats = CustomJsonFormats.formats
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first
@@ -29,7 +33,7 @@ object FutureUtil {
    * @param timeout Time before we return a Timeout exception instead of future's outcome
    * @return Future[T]
    */
-  def futureWithTimeout[T](future : Future[T])(implicit timeout : EndpointTimeout, ec: ExecutionContext): Future[T] = {
+  def futureWithTimeout[T](future : Future[T])(implicit timeout : EndpointTimeout, cc: EndpointContext, ec: ExecutionContext): Future[T] = {
 
     // Promise will be fulfilled with either the callers Future or the timer task if it times out
     var p = Promise[T]
@@ -38,7 +42,14 @@ object FutureUtil {
 
     val timerTask = new TimerTask() {
       def run() : Unit = {
-        p.tryFailure(new TimeoutException(ErrorMessages.requestTimeout))
+        p.tryFailure {
+          val error: String = JsonAST.compactRender(
+            Extraction.decompose(
+              APIFailureNewStyle(failMsg = ErrorMessages.requestTimeout, failCode = 408, cc.context.map(_.toLight))
+            )
+          )
+          new TimeoutException(error)
+        }
       }
     }
 
