@@ -31,12 +31,12 @@ object MigrationOfMetricTable {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE metric ALTER COLUMN correlationid varchar(128);
+                    |ALTER TABLE metric ALTER COLUMN correlationid varchar(256);
                     |""".stripMargin
               case _ =>
                 () =>
                   """
-                    |ALTER TABLE metric ALTER COLUMN correlationid TYPE character varying(128);
+                    |ALTER TABLE metric ALTER COLUMN correlationid TYPE character varying(256);
                     |""".stripMargin
             }
           }

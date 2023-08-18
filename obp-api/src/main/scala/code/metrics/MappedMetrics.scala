@@ -532,7 +532,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedString(this, 128) {
+  object correlationId extends MappedString(this, 256) {
     override def dbNotNull_? = true
     override def defaultValue = generateUUID()
   }
