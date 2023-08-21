@@ -6,7 +6,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
-import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
@@ -56,9 +55,7 @@ object MigrationOfMetricTable {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedAccountWebhook._dbTableNameLC} table does not exist or 
-             |${BankAccountNotificationWebhook._dbTableNameLC} table does not exist or 
-             |${SystemAccountNotificationWebhook._dbTableNameLC} table does not exist""".stripMargin
+          s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
