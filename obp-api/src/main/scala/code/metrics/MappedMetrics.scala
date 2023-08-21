@@ -5,6 +5,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
+import code.api.util.APIUtil.generateUUID
 import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
@@ -90,9 +91,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   private def falseOrTrue(condition: Boolean): String = if (condition) s"0=1" else s"1=1"
   
   private def sqlFriendly(value : Option[String]): String = {
-    value.isDefined match {
-      case true => s"'$value'"
-      case false => "null"
+    value match {
+      case Some(value) => s"'$value'"
+      case None => "null"
         
     }
   }
@@ -218,7 +219,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       else
         s""
         
-      s"${params.head})"+ sqlSingleLine + s" and url  ${isLikeQuery} LIKE ('${params.last}''"
+      s"'${params.head}')"+ sqlSingleLine + s" and url  ${isLikeQuery} LIKE ('${params.last}'"
     }
   }
   
@@ -531,8 +532,9 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this){
+  object correlationId extends MappedString(this, 256) {
     override def dbNotNull_? = true
+    override def defaultValue = generateUUID()
   }
 
 

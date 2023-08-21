@@ -27,12 +27,14 @@ object MetricsArchiveScheduler extends MdcLoggable {
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit = {
-          logger.info("Hello from MetricsArchiveScheduler.start.run")
+          logger.info("Starting MetricsArchiveScheduler.start.run")
           conditionalDeleteMetricsRow()
           deleteOutdatedRowsFromMetricsArchive()
+          logger.info("End of MetricsArchiveScheduler.start.run")
         } 
       }
     )
+    logger.info("Bye from MetricsArchiveScheduler.start")
   }
 
   def deleteOutdatedRowsFromMetricsArchive() = {
@@ -80,6 +82,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
     maybeDeletedRows.filter(_._1 == false).map { i => 
       logger.warn(s"Row with primary key ${i._2} of the table Metric is not successfully copied.")
     }
+    logger.info("Bye from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
   }
 
   private def copyRowToMetricsArchive(i: APIMetric): Unit = {

@@ -99,6 +99,7 @@ object Migration extends MdcLoggable {
       alterUserAttributeNameLength()
       alterMappedCustomerAttribute(startedBeforeSchemifier)
       dropMappedBadLoginAttemptIndex()
+      alterMetricColumnUrlLength()
     }
     
     private def dummyScript(): Boolean = {
@@ -413,6 +414,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterWebhookColumnUrlLength)
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
+      }
+    }
+
+    private def alterMetricColumnUrlLength(): Boolean = {
+      val name = nameOf(alterMetricColumnUrlLength)
+      runOnce(name) {
+        MigrationOfMetricTable.alterColumnCorrelationidLength(name)
       }
     }
 
