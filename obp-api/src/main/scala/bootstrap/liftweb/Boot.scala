@@ -108,7 +108,7 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.{DatabaseDriverScheduler, MetricsArchiveScheduler}
+import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -1044,6 +1044,7 @@ object ToSchemify {
   // The following tables are accessed directly via Mapper / JDBC
   val models: List[MetaMapper[_]] = List(
     AuthUser,
+    JobScheduler,
     MappedETag,
     AtmAttribute,
     Admin,
