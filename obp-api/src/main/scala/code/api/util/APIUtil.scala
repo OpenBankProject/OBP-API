@@ -3233,6 +3233,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             throw JsonResponseException(jsonResponse)
           case _ => it
         }
+    } map { result =>
+      result._1 match {
+        case Failure(msg, t, c) =>
+          (
+            fullBoxOrException(result._1 ~> APIFailureNewStyle(msg, 401, Some(cc.toLight))),
+            result._2
+          )
+        case _ => result
+      }
     }
   }
 
