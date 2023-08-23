@@ -3,10 +3,12 @@ package code.api.util
 import java.util.Objects
 import java.util.regex.Pattern
 
+import code.api.APIFailureNewStyle
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
 import code.views.system.ViewDefinition
+import net.liftweb.json.{Extraction, JsonAST}
 import net.liftweb.util.StringHelpers
 
 object ErrorMessages {
@@ -20,6 +22,15 @@ object ErrorMessages {
   // 6) Any messaage defined here should be considered "fair game" to return over the API. Thus:
   // 7) Since the existance of "OBP-..." in a message is used to determine if we should display to a user if display_internal_errors=false, do *not* concatenate internal or core banking system error messages to these strings.
 
+
+  def apiFailureToString(code: Int, message: String, context: Option[CallContext]): String = JsonAST.compactRender(
+    Extraction.decompose(
+      APIFailureNewStyle(failMsg = message, failCode = code, context.map(_.toLight))
+    )
+  )
+  def apiFailureToString(code: Int, message: String, context: CallContext): String =
+    apiFailureToString(code, message, Some(context))
+  
   // Infrastructure / config level messages (OBP-00XXX)
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
   val DataImportDisabled  = "OBP-00002: Data import is disabled for this API instance."
