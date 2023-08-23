@@ -116,7 +116,7 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
-import code.api.util.FutureUtil.EndpointTimeout
+import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.etag.MappedETag
 import code.users.Users
 import net.liftweb.mapper.By
@@ -2956,7 +2956,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @tparam T
    * @return
    */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, m: Manifest[T]): Box[JsonResponse] = {
+  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, context: EndpointContext, m: Manifest[T]): Box[JsonResponse] = {
     futureToBoxedResponse(scalaFutureToLaFuture(FutureUtil.futureWithTimeout(scf)))
   }
 
@@ -3182,7 +3182,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map{
       x => (
-        fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
+        fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 401, Some(cc.toLight))),
         x._2
       )
     } map {
@@ -3233,6 +3233,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             throw JsonResponseException(jsonResponse)
           case _ => it
         }
+    } map { result =>
+      result._1 match {
+        case Failure(msg, t, c) =>
+          (
+            fullBoxOrException(result._1 ~> APIFailureNewStyle(msg, 401, Some(cc.toLight))),
+            result._2
+          )
+        case _ => result
+      }
     }
   }
 
