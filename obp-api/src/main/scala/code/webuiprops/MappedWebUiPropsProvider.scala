@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
 import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
-import code.api.util.APIUtil.{activeBrand, saveConnectorMetric}
+import code.api.util.APIUtil.{activeBrand, writeMetricEndpointTiming}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -37,7 +37,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // 2) Get requested + language if any
   // 3) Get requested if any
   // 4) Get default value
-  override def getWebUiPropsValue(requestedPropertyName: String, defaultValue: String, language: String = I18NUtil.currentLocale().toString()): String = saveConnectorMetric {
+  override def getWebUiPropsValue(requestedPropertyName: String, defaultValue: String, language: String = I18NUtil.currentLocale().toString()): String = writeMetricEndpointTiming {
     import scala.concurrent.duration._
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {

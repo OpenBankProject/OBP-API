@@ -310,7 +310,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def logAPICall(callContext: Option[CallContextLight]) = {
+  def writeEndpointMetric(callContext: Option[CallContextLight]) = {
     callContext match {
       case Some(cc) =>
         if(getPropsAsBoolValue("write_metrics", false)) {
@@ -353,7 +353,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
+  def writeEndpointMetric(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     val authorization = S.request.map(_.header("Authorization")).flatten
     val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     if(getPropsAsBoolValue("write_metrics", false)) {
@@ -2465,7 +2465,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
 
-  def saveConnectorMetric[R](blockOfCode: => R)(nameOfFunction: String = "")(implicit nameOfConnector: String): R = {
+  def writeMetricEndpointTiming[R](blockOfCode: => R)(nameOfFunction: String = "")(implicit nameOfConnector: String): R = {
     val t0 = System.currentTimeMillis()
     // call-by-name
     val result = blockOfCode
@@ -2480,7 +2480,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     result
   }
 
-  def logEndpointTiming[R](callContext: Option[CallContextLight])(blockOfCode: => R): R = {
+  def writeMetricEndpointTiming[R](callContext: Option[CallContextLight])(blockOfCode: => R): R = {
     val result = blockOfCode
     // call-by-name
     val endTime = Helpers.now
@@ -2491,7 +2491,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
       // There are no enough information for logging
     }
-    logAPICall(callContext.map(_.copy(endTime = Some(endTime))))
+    writeEndpointMetric(callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
 
@@ -2834,7 +2834,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
+        t => writeMetricEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
         case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
@@ -2847,7 +2847,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
+              writeMetricEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               reply.apply(errorResponse)
@@ -2884,7 +2884,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
           reply(jsonResponse)
         case t => Full(
-          logEndpointTiming(t._2.map(_.toLight))(
+          writeMetricEndpointTiming(t._2.map(_.toLight))(
             reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))
           )
         )
@@ -2908,7 +2908,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              Full(logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
+              Full(writeMetricEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               Full((reply.apply(errorResponse)))
@@ -4656,5 +4656,39 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return
    */
   def `checkIfContains::::` (value: String) = value.contains("::::")
+
+  def getBackOffFactor (openCalls: Int) = openCalls match {
+    case x if x < 100 => 1 // i.e. every call will get passed through
+    case x if x < 1000 => 2
+    case x if x < 2000 => 4
+    case x if x < 3000 => 8
+    case x if x < 4000 => 16
+    case x if x < 5000 => 32
+    case x if x < 6000 => 64
+    case x if x < 7000 => 128
+    case x if x < 8000 => 256
+    case _ => 1024 // the default, catch-all
+  }
+  
+  type serviceNameOpenCallsCounterInt = Int
+  type serviceNameCounterInt = Int
+  val serviceNameCountersMap = new ConcurrentHashMap[String, (serviceNameCounterInt, serviceNameOpenCallsCounterInt)]
+  
+  def canOpenFuture(serviceName :String) = {
+    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
+    serviceNameCounter % getBackOffFactor(serviceNameOpenCallsCounter) == 0
+  }
+
+  def incrementFutureCounter(serviceName:String) = {
+    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
+    serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenCallsCounter+1))
+    logger.debug(s"incrementFutureCounter --> serviceName ($serviceName) ==== serviceNameCounter+1=($serviceNameCounter):serviceNameOpenCallsCounter+1($serviceNameOpenCallsCounter)")
+  }
+
+  def decrementFutureCounter(serviceName:String) = {
+    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
+    serviceNameCountersMap.put(serviceName, (serviceNameCounter, serviceNameOpenCallsCounter - 1))
+    logger.debug(s"decrementFutureCounter --> serviceName ($serviceName) ==== serviceNameCounter($serviceNameCounter):serviceNameOpenCallsCounter-1($serviceNameOpenCallsCounter)")
+  }
     
 }

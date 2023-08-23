@@ -31,7 +31,7 @@ import code.api.APIFailure
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util._
@@ -46,11 +46,11 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{AmountOfMoneyTrait, CounterpartyTrait, CreditRatingTrait, _}
+import com.openbankproject.commons.model._
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb
-import net.liftweb.common.{Box, _}
+import net.liftweb.common._
 import net.liftweb.json.{MappingException, parse}
 import net.liftweb.util.Helpers.tryo
 
@@ -142,7 +142,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  override def getAdapterInfo(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
+  override def getAdapterInfo(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -220,7 +220,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Bank", 1))
   )
-  override def getBank(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
+  override def getBank(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -297,7 +297,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Bank", 1))
   )
-  override def getBanks(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
+  override def getBanks(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -377,7 +377,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Account", 1))
   )
-  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = saveConnectorMetric {
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -504,7 +504,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Branch", 1))
   )
-  override def getBranch(bankId: BankId, branchId: BranchId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = saveConnectorMetric {
+  override def getBranch(bankId: BankId, branchId: BranchId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -634,7 +634,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Branch", 1))
   )
-  override def getBranches(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = saveConnectorMetric {
+  override def getBranches(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -741,7 +741,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("ATM", 1))
   )
-  override def getAtm(bankId: BankId, atmId: AtmId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = saveConnectorMetric {
+  override def getAtm(bankId: BankId, atmId: AtmId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -851,7 +851,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("ATM", 1))
   )
-  override def getAtms(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = saveConnectorMetric {
+  override def getAtms(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -943,7 +943,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Customer", 1))
   )
-  override def getCustomersByUserId(userId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
+  override def getCustomersByUserId(userId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -1035,7 +1035,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Customer", 1))
   )
-  override def getCustomerByCustomerId(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
+  override def getCustomerByCustomerId(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -1128,7 +1128,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
     ),
     adapterImplementation = Some(AdapterImplementation("Customer", 1))
   )
-  override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
+  override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = writeMetricEndpointTiming {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.

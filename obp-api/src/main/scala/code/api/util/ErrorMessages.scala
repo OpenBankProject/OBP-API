@@ -103,6 +103,7 @@ object ErrorMessages {
   val InvalidJsonValue = "OBP-10035: Incorrect json value."
   val InvalidHttpMethod = "OBP-10037: Incorrect http_method."
   val InvalidHttpProtocol = "OBP-10038: Incorrect http_protocol."
+  val ServiceIsTooBusy = "OBP-10040: The Service is too busy, please try it later."
   
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

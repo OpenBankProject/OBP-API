@@ -507,7 +507,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //gets a particular bank handled by this connector
-  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = saveConnectorMetric {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = writeMetricEndpointTiming {
     getMappedBank(bankId).map(bank => (bank, callContext))
   }("getBank")
 
@@ -526,7 +526,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = saveConnectorMetric {
+  override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = writeMetricEndpointTiming {
     Full(MappedBank
       .findAll()
       .map(

@@ -600,7 +600,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             failIfBadJSON(r, handler)
           }
           val endTime = Helpers.now
-          logAPICall(startTime, endTime.getTime - startTime.getTime, rd)
+          writeEndpointMetric(startTime, endTime.getTime - startTime.getTime, rd)
           response
         }
         def isDefinedAt(r : Req) = {

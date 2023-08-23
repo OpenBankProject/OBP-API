@@ -4,6 +4,7 @@ import java.util.concurrent.TimeoutException
 import java.util.{Timer, TimerTask}
 
 import code.api.Constant
+import code.api.util.APIUtil.{decrementFutureCounter, incrementFutureCounter}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
@@ -58,6 +59,28 @@ object FutureUtil {
           }
       }
 
+    p.future
+  }
+
+  def futureWithLimits[T](future: Future[T], serviceName: String)(implicit ec: ExecutionContext): Future[T] = {
+
+    incrementFutureCounter(serviceName)
+
+    // Promise will be fulfilled with either the callers Future
+    val p = Promise[T]
+
+    future.map {
+      result =>
+        if (p.trySuccess(result)) {
+          decrementFutureCounter(serviceName)
+        }
+    }.recover {
+      case e: Exception =>
+        if (p.tryFailure(e)) {
+          decrementFutureCounter(serviceName)
+        }
+    }
+    
     p.future
   }
 
