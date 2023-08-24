@@ -3,6 +3,10 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+24/08/2023    bcb8fcfd      Added props expectedOpenFuturesPerService, default is 100. 
+16/08/2023    4d8dfa66      Added props short_endpoint_timeout, default is 1. 
+                            Added props medium_endpoint_timeout, default is 7. 
+                            Added props long_endpoint_timeout, default is 60. 
 03/05/2023    bcb8fcfd      Added props transactionRequests_payment_limit, default is 100000. 
 20/01/2023    c26226e6      Added props show_ip_address_change_warning, default is false. 
 29/09/2022    eaa32f41      Added props excluded.response.behaviour, default is false. Set it to true to activate the props: excluded.response.field.values. Note: excluded.response.field.values can also be activated on a per call basis by the url param ?exclude-optional-fields=true
