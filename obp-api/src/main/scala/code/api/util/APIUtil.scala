@@ -4691,13 +4691,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def incrementFutureCounter(serviceName:String) = {
     val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
     serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenCallsCounter+1))
-    logger.debug(s"incrementFutureCounter --> serviceName ($serviceName) ==== serviceNameCounter+1=($serviceNameCounter):serviceNameOpenCallsCounter+1($serviceNameOpenCallsCounter)")
+    logger.debug(s"incrementFutureCounter says: serviceName is $serviceName, serviceNameCounter is $serviceNameCounter, serviceNameOpenCallsCounter is $serviceNameOpenCallsCounter")
   }
 
   def decrementFutureCounter(serviceName:String) = {
     val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
     serviceNameCountersMap.put(serviceName, (serviceNameCounter, serviceNameOpenCallsCounter - 1))
-    logger.debug(s"decrementFutureCounter --> serviceName ($serviceName) ==== serviceNameCounter($serviceNameCounter):serviceNameOpenCallsCounter-1($serviceNameOpenCallsCounter)")
+    logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounter is $serviceNameCounter, serviceNameOpenCallsCounter is $serviceNameOpenCallsCounter")
   }
     
 }
