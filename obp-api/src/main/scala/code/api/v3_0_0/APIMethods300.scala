@@ -2378,7 +2378,7 @@ trait APIMethods300 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (banks, callContext) <- if(false) {
+            (banks, callContext) <- if(canOpenFuture("NewStyle.function.getBanks")) {
               FutureUtil.futureWithLimits(NewStyle.function.getBanks(callContext), "NewStyle.function.getBanks")
             } else {
               Future {
