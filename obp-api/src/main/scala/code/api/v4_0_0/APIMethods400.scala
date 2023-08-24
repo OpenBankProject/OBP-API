@@ -4,6 +4,7 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util
 import java.util.{Calendar, Date}
+
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -43,6 +44,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.api.dynamic.endpoint.helper._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
+import code.api.util.FutureUtil.{EndpointContext}
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
@@ -147,9 +149,11 @@ trait APIMethods400 {
 
     lazy val getMapperDatabaseInfo: OBPEndpoint = {
       case "database" :: "info" :: Nil JsonGet _ => {
-        cc => Future {
-          (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(cc.callContext))
-        }
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          Future {
+            (Migration.DbFunction.mapperDatabaseInfo(), HttpCode.`200`(cc.callContext))
+          }
       }
     }
 
@@ -172,7 +176,9 @@ trait APIMethods400 {
 
     lazy val getLogoutLink: OBPEndpoint = {
       case "users" :: "current" :: "logout-link" :: Nil JsonGet _ => {
-        cc => Future {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          Future {
             val link = code.api.Constant.HostName + AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
             val logoutLink = LogoutLinkJson(link)
             (logoutLink, HttpCode.`200`(cc.callContext))
@@ -216,7 +222,7 @@ trait APIMethods400 {
 
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canSetCallLimits, callContext)
@@ -268,7 +274,8 @@ trait APIMethods400 {
 
     lazy val getBanks: OBPEndpoint = {
       case "banks" :: Nil JsonGet _ => {
-        cc =>
+        cc => 
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
           } yield {
@@ -300,7 +307,7 @@ trait APIMethods400 {
 
     lazy val getBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
@@ -328,7 +335,7 @@ trait APIMethods400 {
 
     lazy val ibanChecker: OBPEndpoint = {
       case "account" :: "check" :: "scheme" :: "iban" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(ibanCheckerPostJsonV400))}"
           for {
             ibanJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -376,7 +383,7 @@ trait APIMethods400 {
 
     lazy val getDoubleEntryTransaction : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "double-entry-transaction" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
@@ -412,7 +419,7 @@ trait APIMethods400 {
 
     lazy val getBalancingTransaction : OBPEndpoint = {
       case "transactions" :: TransactionId(transactionId) :: "balancing-transaction" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (doubleEntryTransaction, callContext) <- NewStyle.function.getBalancingTransaction(transactionId, cc.callContext)
             _ <- NewStyle.function.checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction, cc.user, cc.callContext)
@@ -469,7 +476,7 @@ trait APIMethods400 {
 
     lazy val createSettlementAccount: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(settlementAccountRequestJson))}"
           for {
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -570,7 +577,7 @@ trait APIMethods400 {
 
     lazy val getSettlementAccounts: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "settlement-accounts" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- NewStyle.function.hasEntitlement(bankId.value, cc.userId, canGetSettlementAccountAtOneBank, cc.callContext)
 
@@ -1366,7 +1373,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestAccount: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "ACCOUNT" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("ACCOUNT")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1374,7 +1381,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestAccountOtp: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "ACCOUNT_OTP" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("ACCOUNT_OTP")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1382,7 +1389,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestSepa: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "SEPA" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("SEPA")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1390,7 +1397,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "COUNTERPARTY" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("COUNTERPARTY")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1398,7 +1405,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestRefund: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "REFUND" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("REFUND")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1406,7 +1413,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestFreeForm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "FREE_FORM" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("FREE_FORM")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1414,7 +1421,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestSimple: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         "SIMPLE" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("SIMPLE")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
@@ -1460,7 +1467,7 @@ trait APIMethods400 {
     
     lazy val createTransactionRequestCard: OBPEndpoint = {
       case "transaction-request-types" :: "CARD" :: "transaction-requests" :: Nil JsonPost json -> _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("CARD")
           createTransactionRequest(BankId(""), AccountId(""), ViewId("owner"), transactionRequestType, json)
     }
@@ -1535,7 +1542,7 @@ trait APIMethods400 {
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, fromAccount, callContext) <- SS.userBankAccount
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
@@ -1687,7 +1694,7 @@ trait APIMethods400 {
 
     lazy val createTransactionRequestAttribute : OBPEndpoint = {
       case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attribute" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $transactionRequestAttributeJsonV400 "
           for {
             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
@@ -1742,7 +1749,7 @@ trait APIMethods400 {
 
     lazy val getTransactionRequestAttributeById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) ::  "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: transactionRequestAttributeId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
             (transactionRequestAttribute, callContext) <- NewStyle.function.getTransactionRequestAttributeById(
@@ -1783,7 +1790,7 @@ trait APIMethods400 {
 
     lazy val getTransactionRequestAttributes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
             (transactionRequestAttribute, callContext) <- NewStyle.function.getTransactionRequestAttributes(
@@ -1825,7 +1832,7 @@ trait APIMethods400 {
 
     lazy val updateTransactionRequestAttribute : OBPEndpoint = {
       case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transaction-requests" :: TransactionRequestId(transactionRequestId) :: "attributes" :: transactionRequestAttributeId :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionRequestAttributeJsonV400"
           for {
             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
@@ -1883,7 +1890,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateTransactionRequestAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction-request" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -1941,7 +1948,7 @@ trait APIMethods400 {
 
     lazy val getTransactionRequestAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction-request" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.TransactionRequest.toString),
@@ -1978,7 +1985,7 @@ trait APIMethods400 {
 
     lazy val deleteTransactionRequestAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction-request" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -2016,7 +2023,7 @@ trait APIMethods400 {
 
     lazy val getSystemDynamicEntities: OBPEndpoint = {
       case "management" :: "system-dynamic-entities" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
@@ -2052,7 +2059,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bankId),false))
           } yield {
@@ -2120,7 +2127,7 @@ trait APIMethods400 {
 
     lazy val createSystemDynamicEntity: OBPEndpoint = {
       case "management" :: "system-dynamic-entities" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId, None)
           createDynamicEntityMethod(cc, dynamicEntity)
       }
@@ -2164,7 +2171,7 @@ trait APIMethods400 {
       Some(List(canCreateBankLevelDynamicEntity)))
     lazy val createBankLevelDynamicEntity: OBPEndpoint = {
       case "management" ::"banks" :: BankId(bankId) :: "dynamic-entities" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId, Some(bankId.value))
           createDynamicEntityMethod(cc, dynamicEntity)
       }
@@ -2229,7 +2236,7 @@ trait APIMethods400 {
       Some(List(canUpdateSystemDynamicEntity)))
     lazy val updateSystemDynamicEntity: OBPEndpoint = {
       case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateDynamicEntityMethod(None, dynamicEntityId, json, cc)
       }
     }    
@@ -2272,7 +2279,7 @@ trait APIMethods400 {
       Some(List(canUpdateBankLevelDynamicEntity)))
     lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateDynamicEntityMethod(Some(bankId),dynamicEntityId, json, cc)
       }
     }
@@ -2298,7 +2305,7 @@ trait APIMethods400 {
       Some(List(canDeleteSystemLevelDynamicEntity)))
     lazy val deleteSystemDynamicEntity: OBPEndpoint = {
       case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEntityMethod(None, dynamicEntityId, cc)
       }
     }
@@ -2340,7 +2347,7 @@ trait APIMethods400 {
       Some(List(canDeleteBankLevelDynamicEntity)))
     lazy val deleteBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEntityMethod(Some(bankId), dynamicEntityId, cc)
       }
     }
@@ -2367,7 +2374,7 @@ trait APIMethods400 {
 
     lazy val getMyDynamicEntities: OBPEndpoint = {
       case "my" :: "dynamic-entities" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
           } yield {
@@ -2416,7 +2423,7 @@ trait APIMethods400 {
 
     lazy val updateMyDynamicEntity: OBPEndpoint = {
       case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
             entityOption =  dynamicEntities.find(_.dynamicEntityId.equals(Some(dynamicEntityId)))
@@ -2460,7 +2467,7 @@ trait APIMethods400 {
 
     lazy val deleteMyDynamicEntity: OBPEndpoint = {
       case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
             entityOption =  dynamicEntities.find(_.dynamicEntityId.equals(Some(dynamicEntityId)))
@@ -2516,7 +2523,7 @@ trait APIMethods400 {
 
     lazy val resetPasswordUrl : OBPEndpoint = {
       case "management" :: "user" :: "reset-password-url" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.NotAllowedEndpoint, cc=cc.callContext) {
               APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
@@ -2571,7 +2578,8 @@ trait APIMethods400 {
     lazy val addAccount : OBPEndpoint = {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonPost json -> _ => {
-        cc =>{
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
           for {
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -2695,9 +2703,11 @@ trait APIMethods400 {
 
     def root (apiVersion : ApiVersion, apiVersionStatus: String): OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
-        cc => Future {
-          getApiInfoJSON(apiVersion, apiVersionStatus) -> HttpCode.`200`(cc.callContext)
-        }
+        cc => 
+          implicit val ec = EndpointContext(Some(cc)) 
+          Future {
+            getApiInfoJSON(apiVersion, apiVersionStatus) -> HttpCode.`200`(cc.callContext)
+          }
       }
     }
 
@@ -2720,7 +2730,9 @@ trait APIMethods400 {
 
     lazy val getCallContext: OBPEndpoint = {
       case "development" :: "call_context" :: Nil JsonGet _ => {
-        cc => Future{
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          Future{
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }
@@ -2744,7 +2756,9 @@ trait APIMethods400 {
 
     lazy val verifyRequestSignResponse: OBPEndpoint = {
       case "development" :: "echo":: "jws-verified-request-jws-signed-response" :: Nil JsonGet _ => {
-        cc => Future{
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          Future{
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }
@@ -2772,7 +2786,7 @@ trait APIMethods400 {
 
     lazy val updateAccountLabel : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), account, callContext) <- SS.userAccount
             failMsg = s"$InvalidJsonFormat The Json body should be the $InvalidJsonFormat "
@@ -2820,7 +2834,7 @@ trait APIMethods400 {
 
     lazy val lockUser : OBPEndpoint = {
       case "users" :: username ::  "locks" :: Nil JsonPost req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <-  SS.user
             userLocks <- Future { UserLocksProvider.lockUser(localIdentityProvider,username) } map {
@@ -2882,7 +2896,7 @@ trait APIMethods400 {
 
     lazy val createUserWithRoles: OBPEndpoint = {
       case "user-entitlements" :: Nil JsonPost json -> _ =>  {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(loggedInUser), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserWithRolesJsonV400 "
@@ -2945,7 +2959,7 @@ trait APIMethods400 {
 
     lazy val getEntitlements: OBPEndpoint = {
       case "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             entitlements <- NewStyle.function.getEntitlementsByUserId(userId, cc.callContext)
           } yield {
@@ -2984,7 +2998,7 @@ trait APIMethods400 {
 
     lazy val getEntitlementsForBank: OBPEndpoint = {
       case "banks" :: bankId :: "entitlements" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             entitlements <- NewStyle.function.getEntitlementsByBankId(bankId, cc.callContext)
           } yield {
@@ -3022,7 +3036,7 @@ trait APIMethods400 {
     lazy val addTagForViewOnAccount : OBPEndpoint = {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)", cc=callContext) {
@@ -3066,7 +3080,7 @@ trait APIMethods400 {
     lazy val deleteTagForViewOnAccount : OBPEndpoint = {
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)", cc=callContext) {
@@ -3108,7 +3122,7 @@ trait APIMethods400 {
     lazy val getTagsForViewOnAccount : OBPEndpoint = {
       //get tags
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)", cc=callContext) {
@@ -3155,7 +3169,7 @@ trait APIMethods400 {
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), account, callContext) <- SS.userAccount
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
@@ -3203,7 +3217,7 @@ trait APIMethods400 {
     )
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
@@ -3248,7 +3262,7 @@ trait APIMethods400 {
     )
     lazy val getAccountByAccountRouting : OBPEndpoint = {
       case "management" :: "accounts" :: "account-routing-query" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $accountRoutingJsonV121"
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3320,7 +3334,7 @@ trait APIMethods400 {
     )
     lazy val getAccountsByAccountRoutingRegex : OBPEndpoint = {
       case "management" :: "accounts" :: "account-routing-regex-query" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $accountRoutingJsonV121"
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3371,7 +3385,7 @@ trait APIMethods400 {
 
     lazy val getBankAccountsBalances : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
@@ -3398,7 +3412,7 @@ trait APIMethods400 {
 
     lazy val getBankAccountBalances : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
@@ -3451,7 +3465,7 @@ trait APIMethods400 {
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), bank, callContext) <- SS.userBank
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
@@ -3533,7 +3547,7 @@ trait APIMethods400 {
     lazy val getFastFirehoseAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for all banks
       case "management":: "banks" :: BankId(bankId):: "fast-firehose" :: "accounts"  :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), bank, callContext) <- SS.userBank
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
@@ -3576,7 +3590,7 @@ trait APIMethods400 {
 
     lazy val getCustomersByCustomerPhoneNumber : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "search"  :: "customers" :: "mobile-phone-number" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerPhoneNumberJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3608,6 +3622,7 @@ trait APIMethods400 {
     lazy val getCurrentUserId: OBPEndpoint = {
       case "users" :: "current" :: "user_id" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
           } yield {
@@ -3639,7 +3654,7 @@ trait APIMethods400 {
 
     lazy val getUserByUserId: OBPEndpoint = {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => unboxFullOrFail(x, cc.callContext, s"$UserNotFoundByUserId Current UserId($userId)")
@@ -3679,7 +3694,7 @@ trait APIMethods400 {
 
     lazy val getUserByUsername: OBPEndpoint = {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             user <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
@@ -3715,7 +3730,7 @@ trait APIMethods400 {
 
     lazy val getUsersByEmail: OBPEndpoint = {
       case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             users <- Users.users.vend.getUsersByEmail(email)
           } yield {
@@ -3753,7 +3768,7 @@ trait APIMethods400 {
 
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
@@ -3806,7 +3821,7 @@ trait APIMethods400 {
 
     lazy val createUserInvitation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitation" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3875,7 +3890,7 @@ trait APIMethods400 {
 
     lazy val getUserInvitationAnonymous : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitations" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationAnonymousJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3923,7 +3938,7 @@ trait APIMethods400 {
 
     lazy val getUserInvitation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitations" :: secretLink :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (invitation, callContext) <- NewStyle.function.getUserInvitation(bankId, secretLink.toLong, cc.callContext)
           } yield {
@@ -3958,7 +3973,7 @@ trait APIMethods400 {
 
     lazy val getUserInvitations : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitations" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (invitations, callContext) <- NewStyle.function.getUserInvitations(bankId, cc.callContext)
           } yield {
@@ -3993,7 +4008,7 @@ trait APIMethods400 {
 
     lazy val deleteUser : OBPEndpoint = {
       case "users" :: userId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user, callContext) <- NewStyle.function.findByUserId(userId, cc.callContext)
             (userDeleted, callContext) <- NewStyle.function.deleteUser(user.userPrimaryKey, callContext)
@@ -4038,7 +4053,7 @@ trait APIMethods400 {
 
     lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJson400 "
           for {
             bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -4124,7 +4139,7 @@ trait APIMethods400 {
 
     lazy val createDirectDebit : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)", cc=callContext) {
@@ -4184,7 +4199,7 @@ trait APIMethods400 {
 
     lazy val createDirectDebitManagement : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -4243,7 +4258,7 @@ trait APIMethods400 {
 
     lazy val createStandingOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)", cc=callContext) {
@@ -4318,7 +4333,7 @@ trait APIMethods400 {
 
     lazy val createStandingOrderManagement : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -4386,7 +4401,7 @@ trait APIMethods400 {
     lazy val grantUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access" :: "grant" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
             (Full(u), callContext) <- SS.user
@@ -4443,7 +4458,7 @@ trait APIMethods400 {
 
     lazy val createUserWithAccountAccess : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
           for {
             (Full(u), callContext) <- SS.user
@@ -4498,7 +4513,7 @@ trait APIMethods400 {
     lazy val revokeUserAccessToView : OBPEndpoint = {
       //add access for specific user to a specific system view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access" :: "revoke" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
             (Full(u), callContext) <- SS.user
@@ -4553,7 +4568,7 @@ trait APIMethods400 {
 
     lazy val revokeGrantUserAccessToViews : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
             (Full(u), callContext) <- SS.user
@@ -4604,7 +4619,7 @@ trait APIMethods400 {
 
     lazy val createCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attribute" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $CustomerAttributeJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -4659,7 +4674,7 @@ trait APIMethods400 {
 
     lazy val updateCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $CustomerAttributeJsonV400"
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -4717,7 +4732,7 @@ trait APIMethods400 {
 
     lazy val getCustomerAttributes : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
             _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
@@ -4758,7 +4773,7 @@ trait APIMethods400 {
 
     lazy val getCustomerAttributeById : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attributes" :: customerAttributeId ::Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
             _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
@@ -4803,7 +4818,7 @@ trait APIMethods400 {
 
     lazy val getCustomersByAttributes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" ::  Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (customerIds, callContext) <- NewStyle.function.getCustomerIdsByAttributeNameValues(bankId, req.params, Some(cc))
             list: List[CustomerWithAttributesJsonV310] <- {
@@ -4854,7 +4869,7 @@ trait APIMethods400 {
 
     lazy val createTransactionAttribute : OBPEndpoint = {
       case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: TransactionId(transactionId) :: "attribute" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
@@ -4909,7 +4924,7 @@ trait APIMethods400 {
 
     lazy val updateTransactionAttribute : OBPEndpoint = {
       case "banks" ::  BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: TransactionId(transactionId) :: "attributes" :: transactionAttributeId :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400"
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
@@ -4964,7 +4979,7 @@ trait APIMethods400 {
 
     lazy val getTransactionAttributes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: TransactionId(transactionId) :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
             (accountAttribute, callContext) <- NewStyle.function.getTransactionAttributes(
@@ -5005,7 +5020,7 @@ trait APIMethods400 {
 
     lazy val getTransactionAttributeById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) ::  "transactions" :: TransactionId(transactionId) :: "attributes" :: transactionAttributeId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
             (accountAttribute, callContext) <- NewStyle.function.getTransactionAttributeById(
@@ -5066,7 +5081,7 @@ trait APIMethods400 {
 
     lazy val createHistoricalTransactionAtBank : OBPEndpoint =  {
       case "banks" :: BankId(bankId) :: "management"  :: "historical" :: "transactions" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateHistoricalTransactionAtBank, callContext)
@@ -5168,7 +5183,7 @@ trait APIMethods400 {
 
     lazy val getTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
@@ -5213,7 +5228,7 @@ trait APIMethods400 {
 
     lazy val getPrivateAccountsAtOneBank: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), bank, callContext) <- SS.userBank
             (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -5274,7 +5289,7 @@ trait APIMethods400 {
 
     lazy val createConsumer: OBPEndpoint = {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) {
@@ -5331,6 +5346,7 @@ trait APIMethods400 {
     lazy val getCustomersAtAnyBank : OBPEndpoint = {
       case "customers" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
             (customers, callContext) <- getCustomersAtAllBanks(callContext, requestParams)
@@ -5367,6 +5383,7 @@ trait APIMethods400 {
     lazy val getCustomersMinimalAtAnyBank : OBPEndpoint = {
       case "customers-minimal" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
             (customers, callContext) <- getCustomersAtAllBanks(callContext, requestParams)
@@ -5398,7 +5415,7 @@ trait APIMethods400 {
 
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: uuidOfConsumer :: "scopes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             consumer <- Future{callContext.get.consumer} map {
@@ -5446,7 +5463,7 @@ trait APIMethods400 {
 
     lazy val addScope : OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
@@ -5513,7 +5530,7 @@ trait APIMethods400 {
 
     lazy val deleteCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (customerAttribute, callContext) <- NewStyle.function.deleteCustomerAttribute(customerAttributeId, cc.callContext)
           } yield {
@@ -5554,7 +5571,7 @@ trait APIMethods400 {
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           createDynamicEndpointMethod(None, json, cc)
       }
     }
@@ -5592,7 +5609,7 @@ trait APIMethods400 {
 
     lazy val createBankLevelDynamicEndpoint: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) ::"dynamic-endpoints" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           createDynamicEndpointMethod(Some(bankId.value), json, cc)
       }
     }
@@ -5621,7 +5638,7 @@ trait APIMethods400 {
 
     lazy val updateDynamicEndpointHost: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateDynamicEndpointHostMethod(None, dynamicEndpointId, json, cc)
       }
     }
@@ -5664,7 +5681,7 @@ trait APIMethods400 {
 
     lazy val updateBankLevelDynamicEndpointHost: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateDynamicEndpointHostMethod(Some(bankId), dynamicEndpointId, json, cc)
       }
     }
@@ -5696,7 +5713,7 @@ trait APIMethods400 {
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getDynamicEndpointMethod(None, dynamicEndpointId, cc)
       }
     }
@@ -5729,7 +5746,7 @@ trait APIMethods400 {
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getDynamicEndpointsMethod(None, cc)
       }
     }
@@ -5770,7 +5787,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelDynamicEndpoint: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getDynamicEndpointMethod(Some(bankId), dynamicEndpointId, cc)
       }
     }
@@ -5814,7 +5831,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelDynamicEndpoints: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-endpoints" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getDynamicEndpointsMethod(Some(bankId), cc)
       }
     }
@@ -5847,7 +5864,7 @@ trait APIMethods400 {
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEndpointMethod(None, dynamicEndpointId, cc)
       }
     }
@@ -5873,7 +5890,7 @@ trait APIMethods400 {
 
     lazy val deleteBankLevelDynamicEndpoint : OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEndpointMethod(Some(bankId), dynamicEndpointId, cc)
       }
     }
@@ -5901,7 +5918,7 @@ trait APIMethods400 {
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
       case "my" :: "dynamic-endpoints" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpointsByUserId(cc.userId, cc.callContext)
           } yield {
@@ -5934,7 +5951,7 @@ trait APIMethods400 {
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
       case "my" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(None, dynamicEndpointId, cc.callContext)
             _ <- Helper.booleanToFuture(InvalidMyDynamicEndpointUser, cc=callContext) {
@@ -5977,7 +5994,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateCustomerAttributeAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6041,7 +6058,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateAccountAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6104,7 +6121,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateProductAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6191,7 +6208,7 @@ trait APIMethods400 {
 
     lazy val createProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
@@ -6253,7 +6270,7 @@ trait APIMethods400 {
 
     lazy val updateProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateProductAttribute, callContext)
@@ -6312,7 +6329,7 @@ trait APIMethods400 {
 
     lazy val getProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canGetProductAttribute, callContext)
@@ -6351,7 +6368,7 @@ trait APIMethods400 {
 
     lazy val createProductFee : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fee" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 " , 400, Some(cc)) {
               json.extract[ProductFeeJsonV400]
@@ -6403,7 +6420,7 @@ trait APIMethods400 {
 
     lazy val updateProductFee : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonPut json -> _ =>{
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 ", 400, Some(cc)) {
               json.extract[ProductFeeJsonV400]
@@ -6454,7 +6471,7 @@ trait APIMethods400 {
 
     lazy val getProductFee : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getProductsIsPublic match {
               case false => authenticatedAccess(cc)
@@ -6490,7 +6507,7 @@ trait APIMethods400 {
 
     lazy val getProductFees : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getProductsIsPublic match {
               case false => authenticatedAccess(cc)
@@ -6529,7 +6546,7 @@ trait APIMethods400 {
 
     lazy val deleteProductFee : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
             (productFee, callContext) <- NewStyle.function.deleteProductFee(productFeeId, Some(cc))
@@ -6568,7 +6585,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateBankAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "bank" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6643,7 +6660,7 @@ trait APIMethods400 {
 
     lazy val createBankAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "attribute" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
@@ -6697,7 +6714,7 @@ trait APIMethods400 {
 
     lazy val getBankAttributes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, cc.callContext)
           } yield {
@@ -6732,7 +6749,7 @@ trait APIMethods400 {
 
     lazy val getBankAttribute : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attributes" :: bankAttributeId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attribute, callContext) <- NewStyle.function.getBankAttributeById(bankAttributeId, cc.callContext)
           } yield {
@@ -6766,7 +6783,7 @@ trait APIMethods400 {
 
     lazy val updateBankAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "attributes" :: bankAttributeId :: Nil JsonPut json -> _ =>{
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateBankAttribute, callContext)
@@ -6822,7 +6839,7 @@ trait APIMethods400 {
 
     lazy val deleteBankAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "attributes" :: bankAttributeId ::  Nil JsonDelete _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canDeleteBankAttribute, callContext)
@@ -6864,7 +6881,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateTransactionAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6928,7 +6945,7 @@ trait APIMethods400 {
 
     lazy val createOrUpdateCardAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -6987,7 +7004,7 @@ trait APIMethods400 {
 
     lazy val deleteTransactionAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "transaction" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -7025,7 +7042,7 @@ trait APIMethods400 {
 
     lazy val deleteCustomerAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "customer" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -7063,7 +7080,7 @@ trait APIMethods400 {
 
     lazy val deleteAccountAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "account" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -7101,7 +7118,7 @@ trait APIMethods400 {
 
     lazy val deleteProductAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "product" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -7139,7 +7156,7 @@ trait APIMethods400 {
 
     lazy val deleteCardAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: attributeDefinitionId :: "card" :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- deleteAttributeDefinition(
               attributeDefinitionId,
@@ -7177,7 +7194,7 @@ trait APIMethods400 {
 
     lazy val getProductAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "product" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Product.toString),
@@ -7214,7 +7231,7 @@ trait APIMethods400 {
 
     lazy val getCustomerAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "customer" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Customer.toString),
@@ -7251,7 +7268,7 @@ trait APIMethods400 {
 
     lazy val getAccountAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "account" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Account.toString),
@@ -7288,7 +7305,7 @@ trait APIMethods400 {
 
     lazy val getTransactionAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "transaction" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Transaction.toString),
@@ -7326,7 +7343,7 @@ trait APIMethods400 {
 
     lazy val getCardAttributeDefinition : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "attribute-definitions" :: "card" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributeDefinitions, callContext) <- getAttributeDefinition(
               AttributeCategory.withName(AttributeCategory.Card.toString),
@@ -7364,7 +7381,7 @@ trait APIMethods400 {
 
     lazy val deleteUserCustomerLink : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: userCustomerLinkId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (deleted, callContext) <- UserCustomerLinkNewStyle.deleteUserCustomerLink(
               userCustomerLinkId,
@@ -7401,7 +7418,7 @@ trait APIMethods400 {
 
     lazy val getUserCustomerLinksByUserId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: "users" :: userId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinksByUserId(
               userId,
@@ -7443,7 +7460,7 @@ trait APIMethods400 {
 
     lazy val createUserCustomerLinks : OBPEndpoint = {
       case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- NewStyle.function.tryons(s"$InvalidBankIdFormat", 400, cc.callContext) {
               assert(isValidID(bankId.value))
@@ -7500,7 +7517,7 @@ trait APIMethods400 {
 
     lazy val getUserCustomerLinksByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: "customers" :: customerId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, cc.callContext)
           } yield {
@@ -7533,7 +7550,7 @@ trait APIMethods400 {
 
     lazy val getCorrelatedUsersInfoByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "correlated-users" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
             (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, callContext)
@@ -7577,7 +7594,7 @@ trait APIMethods400 {
     
     lazy val getMyCorrelatedEntities : OBPEndpoint = {
       case "my" :: "correlated-entities" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user  
             (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinksByUserId(
@@ -7629,7 +7646,7 @@ trait APIMethods400 {
     )
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 ", 400, cc.callContext) {
               json.extract[PostCustomerJsonV310]
@@ -7689,7 +7706,7 @@ trait APIMethods400 {
 
     lazy val getAccountsMinimalByCustomerId : OBPEndpoint = {
       case "customers" :: customerId :: "accounts-minimal" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getCustomerByCustomerId(customerId, cc.callContext)
             (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, callContext)
@@ -7729,7 +7746,7 @@ trait APIMethods400 {
     lazy val deleteTransactionCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: 
         "transactions" :: TransactionId(transactionId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
             _ <- Future(DeleteTransactionCascade.atomicDelete(bankId, accountId, transactionId))
@@ -7766,7 +7783,7 @@ trait APIMethods400 {
 
     lazy val deleteAccountCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             result <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
           } yield {
@@ -7804,7 +7821,7 @@ trait APIMethods400 {
 
     lazy val deleteBankCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- Future(DeleteBankCascade.atomicDelete(bankId))
           } yield {
@@ -7840,7 +7857,7 @@ trait APIMethods400 {
 
     lazy val deleteProductCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "products" :: ProductCode(code) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getProduct(bankId, code, Some(cc))
             _ <- Future(DeleteProductCascade.atomicDelete(bankId, code))
@@ -7878,7 +7895,7 @@ trait APIMethods400 {
 
     lazy val deleteCustomerCascade : OBPEndpoint = {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId.value, Some(cc))
             _ <- Future(DeleteCustomerCascade.atomicDelete(customerId))
@@ -7997,7 +8014,7 @@ trait APIMethods400 {
 
     lazy val createExplicitCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
@@ -8101,7 +8118,7 @@ trait APIMethods400 {
 
     lazy val deleteExplicitCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
@@ -8149,7 +8166,7 @@ trait APIMethods400 {
 
     lazy val deleteCounterpartyForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             
@@ -8277,7 +8294,7 @@ trait APIMethods400 {
 
     lazy val createCounterpartyForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  callContext) {
@@ -8371,7 +8388,7 @@ trait APIMethods400 {
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
@@ -8424,7 +8441,7 @@ trait APIMethods400 {
 
     lazy val getCounterpartiesForAnyAccount : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
@@ -8468,7 +8485,7 @@ trait APIMethods400 {
 
     lazy val getExplictCounterpartyById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
@@ -8512,7 +8529,7 @@ trait APIMethods400 {
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparty-names" :: counterpartyName :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), bank, account, callContext) <- SS.userBankAccount
 
@@ -8561,7 +8578,7 @@ trait APIMethods400 {
 
     lazy val getCounterpartyByIdForAnyAccount: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, callContext) <- SS.userBankAccount
             (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
@@ -8609,7 +8626,7 @@ trait APIMethods400 {
 
     lazy val addConsentUser : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "user-update-request" :: Nil JsonPut json -> _  => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- SS.user
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutConsentUserJsonV400 "
@@ -8666,7 +8683,7 @@ trait APIMethods400 {
 
     lazy val updateConsentStatus : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents"  :: consentId :: Nil JsonPut json -> _  => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(user), callContext) <- SS.user
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutConsentStatusJsonV400 "
@@ -8717,7 +8734,7 @@ trait APIMethods400 {
 
     lazy val getConsents: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
               .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
@@ -8753,7 +8770,7 @@ trait APIMethods400 {
 
     lazy val getConsentInfos: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consent-infos" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
               .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
@@ -8787,7 +8804,7 @@ trait APIMethods400 {
 
     lazy val getMyPersonalUserAttributes: OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(cc.userId, cc.callContext)
           } yield {
@@ -8820,7 +8837,7 @@ trait APIMethods400 {
 
     lazy val getUserWithAttributes: OBPEndpoint = {
       case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
             (attributes, callContext) <- NewStyle.function.getUserAttributes(user.userId, callContext)
@@ -8857,7 +8874,7 @@ trait APIMethods400 {
 
     lazy val createMyPersonalUserAttribute : OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: Nil JsonPost json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
@@ -8909,7 +8926,7 @@ trait APIMethods400 {
 
     lazy val updateMyPersonalUserAttribute : OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(cc.userId, cc.callContext)
             failMsg = s"$UserAttributeNotFound"
@@ -8962,7 +8979,7 @@ trait APIMethods400 {
 
     lazy val getScannedApiVersions: OBPEndpoint = {
       case "api" :: "versions" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           Future {
             val versions: List[ScannedApiVersion] = ApiVersion.allScannedApiVersion.asScala.toList
             (ListResult("scanned_api_versions", versions), HttpCode.`200`(cc.callContext))
@@ -8994,7 +9011,7 @@ trait APIMethods400 {
 
     lazy val createMyApiCollection: OBPEndpoint = {
       case "my" :: "api-collections" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionJson400]
@@ -9039,7 +9056,7 @@ trait APIMethods400 {
 
     lazy val getMyApiCollectionByName: OBPEndpoint = {
       case "my" :: "api-collections" :: "name" ::apiCollectionName :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
           } yield {
@@ -9071,7 +9088,7 @@ trait APIMethods400 {
 
     lazy val getMyApiCollectionById: OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
           } yield {
@@ -9100,7 +9117,7 @@ trait APIMethods400 {
 
     lazy val getSharableApiCollectionById: OBPEndpoint = {
       case "api-collections" :: "sharable" :: apiCollectionId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointNotFound Current api_collection_id(${apiCollectionId}) is not sharable.", cc=callContext) {
@@ -9135,7 +9152,7 @@ trait APIMethods400 {
 
     lazy val getApiCollectionsForUser: OBPEndpoint = {
       case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
             (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(userId, callContext)
@@ -9166,7 +9183,7 @@ trait APIMethods400 {
 
     lazy val getFeaturedApiCollections: OBPEndpoint = {
       case "api-collections" :: "featured" ::  Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollections, callContext) <- NewStyle.function.getFeaturedApiCollections(cc.callContext)
           } yield {
@@ -9199,7 +9216,7 @@ trait APIMethods400 {
 
     lazy val getMyApiCollections: OBPEndpoint = {
       case "my" :: "api-collections" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(cc.userId, Some(cc))
           } yield {
@@ -9236,7 +9253,7 @@ trait APIMethods400 {
 
     lazy val deleteMyApiCollection : OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
             (deleted, callContext) <- NewStyle.function.deleteApiCollectionById(apiCollectionId, callContext)
@@ -9273,7 +9290,7 @@ trait APIMethods400 {
 
     lazy val createMyApiCollectionEndpoint: OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
@@ -9322,7 +9339,7 @@ trait APIMethods400 {
 
     lazy val createMyApiCollectionEndpointById: OBPEndpoint = {
       case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
@@ -9369,7 +9386,7 @@ trait APIMethods400 {
     
     lazy val getMyApiCollectionEndpoint: OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(
@@ -9405,7 +9422,7 @@ trait APIMethods400 {
 
     lazy val getApiCollectionEndpoints: OBPEndpoint = {
       case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollectionId, Some(cc))
           } yield {
@@ -9437,7 +9454,7 @@ trait APIMethods400 {
 
     lazy val getMyApiCollectionEndpoints: OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints":: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
             (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
@@ -9470,7 +9487,7 @@ trait APIMethods400 {
 
     lazy val getMyApiCollectionEndpointsById: OBPEndpoint = {
       case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints":: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
             (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
@@ -9507,7 +9524,7 @@ trait APIMethods400 {
 
     lazy val deleteMyApiCollectionEndpoint : OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
@@ -9544,7 +9561,7 @@ trait APIMethods400 {
 
     lazy val deleteMyApiCollectionEndpointByOperationId : OBPEndpoint = {
       case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
@@ -9581,7 +9598,7 @@ trait APIMethods400 {
 
     lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
       case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoint-ids" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, callContext)
@@ -9617,7 +9634,7 @@ trait APIMethods400 {
 
     lazy val createJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonPost _ -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val httpBody: String = cc.httpBody.getOrElse("")
           for {
             (Full(u), callContext) <- SS.user
@@ -9663,7 +9680,7 @@ trait APIMethods400 {
 
     lazy val updateJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonPut _ -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val httpBody: String = cc.httpBody.getOrElse("")
           for {
             (Full(u), callContext) <- SS.user
@@ -9708,7 +9725,7 @@ trait APIMethods400 {
 
     lazy val deleteJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
 
@@ -9745,7 +9762,7 @@ trait APIMethods400 {
 
     lazy val getJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, cc.callContext)
           } yield {
@@ -9778,7 +9795,7 @@ trait APIMethods400 {
 
     lazy val getAllJsonSchemaValidations: OBPEndpoint = {
       case ("management" | "endpoints") :: "json-schema-validations" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(cc.callContext)
           } yield {
@@ -9839,7 +9856,7 @@ trait APIMethods400 {
 
     lazy val createAuthenticationTypeValidation: OBPEndpoint = {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPost jArray -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
 
@@ -9883,7 +9900,7 @@ trait APIMethods400 {
 
     lazy val updateAuthenticationTypeValidation: OBPEndpoint = {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPut jArray -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
 
@@ -9926,7 +9943,7 @@ trait APIMethods400 {
 
     lazy val deleteAuthenticationTypeValidation: OBPEndpoint = {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
 
@@ -9964,7 +9981,7 @@ trait APIMethods400 {
 
     lazy val getAuthenticationTypeValidation: OBPEndpoint = {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, cc.callContext)
           } yield {
@@ -9997,7 +10014,7 @@ trait APIMethods400 {
 
     lazy val getAllAuthenticationTypeValidations: OBPEndpoint = {
       case ("management" | "endpoints") :: "authentication-type-validations" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(cc.callContext)
           } yield {
@@ -10054,7 +10071,7 @@ trait APIMethods400 {
 
     lazy val createConnectorMethod: OBPEndpoint = {
       case "management" :: "connector-methods" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             jsonConnectorMethod <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonConnectorMethod", 400, cc.callContext) {
               json.extract[JsonConnectorMethod]
@@ -10101,7 +10118,7 @@ trait APIMethods400 {
 
     lazy val updateConnectorMethod: OBPEndpoint = {
       case "management" :: "connector-methods" :: connectorMethodId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             connectorMethodBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonConnectorMethod", 400, cc.callContext) {
               json.extract[JsonConnectorMethodMethodBody]
@@ -10144,7 +10161,7 @@ trait APIMethods400 {
 
     lazy val getConnectorMethod: OBPEndpoint = {
       case "management" :: "connector-methods" :: connectorMethodId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (connectorMethod, callContext) <- NewStyle.function.getJsonConnectorMethodById(connectorMethodId, cc.callContext)
           } yield {
@@ -10175,7 +10192,7 @@ trait APIMethods400 {
 
     lazy val getAllConnectorMethods: OBPEndpoint = {
       case "management" :: "connector-methods" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (connectorMethods, callContext) <- NewStyle.function.getJsonConnectorMethods(cc.callContext)
           } yield {
@@ -10208,7 +10225,7 @@ trait APIMethods400 {
 
     lazy val createDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
@@ -10272,7 +10289,7 @@ trait APIMethods400 {
 
     lazy val updateDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
@@ -10334,7 +10351,7 @@ trait APIMethods400 {
 
     lazy val deleteDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, cc.callContext)
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(None, dynamicResourceDocId, callContext)
@@ -10366,7 +10383,7 @@ trait APIMethods400 {
 
     lazy val getDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, cc.callContext)
           } yield {
@@ -10397,7 +10414,7 @@ trait APIMethods400 {
 
     lazy val getAllDynamicResourceDocs: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(None, cc.callContext)
           } yield {
@@ -10431,7 +10448,7 @@ trait APIMethods400 {
 
     lazy val createBankLevelDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
@@ -10503,7 +10520,7 @@ trait APIMethods400 {
 
     lazy val updateBankLevelDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
@@ -10573,7 +10590,7 @@ trait APIMethods400 {
 
     lazy val deleteBankLevelDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, cc.callContext)
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, callContext)
@@ -10606,7 +10623,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelDynamicResourceDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, cc.callContext)
           } yield {
@@ -10638,7 +10655,7 @@ trait APIMethods400 {
 
     lazy val getAllBankLevelDynamicResourceDocs: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(Some(bankId), cc.callContext)
           } yield {
@@ -10671,7 +10688,7 @@ trait APIMethods400 {
 
     lazy val buildDynamicEndpointTemplate: OBPEndpoint = {
       case "management" :: "dynamic-resource-docs" :: "endpoint-code" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             resourceDocFragment <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ResourceDocFragment", 400, cc.callContext) {
               json.extract[ResourceDocFragment]
@@ -10720,7 +10737,7 @@ trait APIMethods400 {
 
     lazy val createDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "dynamic-message-docs" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
@@ -10765,7 +10782,7 @@ trait APIMethods400 {
 
     lazy val createBankLevelDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId ::"dynamic-message-docs" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
@@ -10809,7 +10826,7 @@ trait APIMethods400 {
 
     lazy val updateDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
@@ -10850,7 +10867,7 @@ trait APIMethods400 {
 
     lazy val getDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
           } yield {
@@ -10881,7 +10898,7 @@ trait APIMethods400 {
 
     lazy val getAllDynamicMessageDocs: OBPEndpoint = {
       case "management" :: "dynamic-message-docs" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(None, cc.callContext)
           } yield {
@@ -10912,7 +10929,7 @@ trait APIMethods400 {
 
     lazy val deleteDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(None, dynamicMessageDocId, callContext)
@@ -10945,7 +10962,7 @@ trait APIMethods400 {
 
     lazy val updateBankLevelDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId::"dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
@@ -10987,7 +11004,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
           } yield {
@@ -11019,7 +11036,7 @@ trait APIMethods400 {
 
     lazy val getAllBankLevelDynamicMessageDocs: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(Some(bankId), cc.callContext)
           } yield {
@@ -11051,7 +11068,7 @@ trait APIMethods400 {
 
     lazy val deleteBankLevelDynamicMessageDoc: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, cc.callContext)
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, callContext)
@@ -11085,7 +11102,7 @@ trait APIMethods400 {
 
     lazy val createEndpointMapping: OBPEndpoint = {
       case "management" :: "endpoint-mappings" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           createEndpointMappingMethod(None, json, cc)
       }
     }
@@ -11126,7 +11143,7 @@ trait APIMethods400 {
 
     lazy val updateEndpointMapping: OBPEndpoint = {
       case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateEndpointMappingMethod(None, endpointMappingId, json, cc)
       }
     }
@@ -11172,7 +11189,7 @@ trait APIMethods400 {
 
     lazy val getEndpointMapping: OBPEndpoint = {
       case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getEndpointMappingMethod(None, endpointMappingId, cc)
       }
     }
@@ -11208,7 +11225,7 @@ trait APIMethods400 {
 
     lazy val getAllEndpointMappings: OBPEndpoint = {
       case "management" :: "endpoint-mappings" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getEndpointMappingsMethod(None, cc)
       }
     }
@@ -11244,7 +11261,7 @@ trait APIMethods400 {
 
     lazy val deleteEndpointMapping: OBPEndpoint = {
       case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteEndpointMappingMethod(None, endpointMappingId, cc)
       }
     }
@@ -11282,7 +11299,7 @@ trait APIMethods400 {
 
     lazy val createBankLevelEndpointMapping: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoint-mappings" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           createEndpointMappingMethod(Some(bankId), json, cc)
       }
     }
@@ -11310,7 +11327,7 @@ trait APIMethods400 {
 
     lazy val updateBankLevelEndpointMapping: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoint-mappings" :: endpointMappingId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           updateEndpointMappingMethod(Some(bankId), endpointMappingId, json, cc)
       }
     }
@@ -11338,7 +11355,7 @@ trait APIMethods400 {
 
     lazy val getBankLevelEndpointMapping: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoint-mappings" :: endpointMappingId :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getEndpointMappingMethod(Some(bankId), endpointMappingId, cc)
       }
     }
@@ -11366,7 +11383,7 @@ trait APIMethods400 {
 
     lazy val getAllBankLevelEndpointMappings: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoint-mappings" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           getEndpointMappingsMethod(Some(bankId), cc)
       }
     }
@@ -11394,7 +11411,7 @@ trait APIMethods400 {
 
     lazy val deleteBankLevelEndpointMapping: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoint-mappings" :: endpointMappingId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           deleteEndpointMappingMethod(Some(bankId), endpointMappingId, cc)
       }
     }
@@ -11420,7 +11437,7 @@ trait APIMethods400 {
     
     lazy val updateAtmSupportedCurrencies : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-currencies" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             supportedCurrencies <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedCurrenciesJson]}", 400, cc.callContext) {
               json.extract[SupportedCurrenciesJson].supported_currencies
@@ -11454,7 +11471,7 @@ trait APIMethods400 {
     
     lazy val updateAtmSupportedLanguages : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-languages" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             supportedLanguages <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedLanguagesJson]}", 400, cc.callContext) {
               json.extract[SupportedLanguagesJson].supported_languages
@@ -11488,7 +11505,7 @@ trait APIMethods400 {
     
     lazy val updateAtmAccessibilityFeatures : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "accessibility-features" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             accessibilityFeatures <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AccessibilityFeaturesJson]}", 400, cc.callContext) {
               json.extract[AccessibilityFeaturesJson].accessibility_features
@@ -11522,7 +11539,7 @@ trait APIMethods400 {
     
     lazy val updateAtmServices : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "services" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             services <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmServicesJsonV400]}", 400, cc.callContext) {
               json.extract[AtmServicesJsonV400].services
@@ -11556,7 +11573,7 @@ trait APIMethods400 {
     
     lazy val updateAtmNotes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "notes" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             notes <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmNotesJsonV400]}", 400, cc.callContext) {
               json.extract[AtmNotesJsonV400].notes
@@ -11590,7 +11607,7 @@ trait APIMethods400 {
     
     lazy val updateAtmLocationCategories : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "location-categories" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             locationCategories <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmLocationCategoriesJsonV400]}", 400, cc.callContext) {
               json.extract[AtmLocationCategoriesJsonV400].location_categories
@@ -11623,7 +11640,7 @@ trait APIMethods400 {
     )
     lazy val createAtm : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
               val atm = json.extract[AtmJsonV400]
@@ -11662,7 +11679,7 @@ trait APIMethods400 {
     )
     lazy val updateAtm : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
             atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
@@ -11698,7 +11715,7 @@ trait APIMethods400 {
     )
     lazy val deleteAtm : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
             (deleted, callContext) <- NewStyle.function.deleteAtm(atm, callContext)
@@ -11738,7 +11755,7 @@ trait APIMethods400 {
     )
     lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
@@ -11790,7 +11807,7 @@ trait APIMethods400 {
     )
     lazy val getAtm : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getAtmsIsPublic match {
               case false => authenticatedAccess(cc)
@@ -11823,7 +11840,7 @@ trait APIMethods400 {
       Some(List(canCreateSystemLevelEndpointTag)))
     lazy val createSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
@@ -11864,7 +11881,7 @@ trait APIMethods400 {
       Some(List(canUpdateSystemLevelEndpointTag)))
     lazy val updateSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
@@ -11904,7 +11921,7 @@ trait APIMethods400 {
       Some(List(canGetSystemLevelEndpointTag)))
     lazy val getSystemLevelEndpointTags: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (endpointTags, callContext) <- NewStyle.function.getSystemLevelEndpointTags(operationId, cc.callContext)
           } yield {
@@ -11936,7 +11953,7 @@ trait APIMethods400 {
       Some(List(canDeleteSystemLevelEndpointTag)))
     lazy val deleteSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
             
@@ -11968,7 +11985,7 @@ trait APIMethods400 {
       Some(List(canCreateBankLevelEndpointTag)))
     lazy val createBankLevelEndpointTag: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
@@ -12011,7 +12028,7 @@ trait APIMethods400 {
       Some(List(canUpdateBankLevelEndpointTag)))
     lazy val updateBankLevelEndpointTag: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
@@ -12053,7 +12070,7 @@ trait APIMethods400 {
       Some(List(canGetBankLevelEndpointTag)))
     lazy val getBankLevelEndpointTags: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (endpointTags, callContext) <- NewStyle.function.getBankLevelEndpointTags(bankId, operationId, cc.callContext)
           } yield {
@@ -12087,7 +12104,7 @@ trait APIMethods400 {
       Some(List(canDeleteBankLevelEndpointTag)))
     lazy val deleteBankLevelEndpointTag: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
 
@@ -12116,7 +12133,7 @@ trait APIMethods400 {
     )
     lazy val getMySpaces: OBPEndpoint = {
       case "my" :: "spaces" ::  Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
@@ -12165,6 +12182,7 @@ trait APIMethods400 {
     lazy val getProducts : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getProductsIsPublic match {
               case false => authenticatedAccess(cc)
@@ -12220,7 +12238,7 @@ trait APIMethods400 {
     )
     lazy val createProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
@@ -12294,6 +12312,7 @@ trait APIMethods400 {
     lazy val getProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getProductsIsPublic match {
               case false => authenticatedAccess(cc)
@@ -12338,6 +12357,7 @@ trait APIMethods400 {
     lazy val createCustomerMessage : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "messages" :: Nil JsonPost json -> _ => {
         cc =>{
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user 
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateMessageJsonV400 "
@@ -12384,6 +12404,7 @@ trait APIMethods400 {
     lazy val getCustomerMessages: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "messages" :: Nil JsonGet _ => {
         cc =>{
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user 
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)   
@@ -12458,7 +12479,7 @@ trait APIMethods400 {
 
     lazy val createSystemAccountNotificationWebhook : OBPEndpoint = {
       case "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "
@@ -12515,7 +12536,7 @@ trait APIMethods400 {
 
     lazy val createBankAccountNotificationWebhook : OBPEndpoint = {
       case  "banks" :: BankId(bankId) :: "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "

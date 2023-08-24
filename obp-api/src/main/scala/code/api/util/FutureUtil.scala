@@ -44,11 +44,7 @@ object FutureUtil {
     val timerTask = new TimerTask() {
       def run() : Unit = {
         p.tryFailure {
-          val error: String = JsonAST.compactRender(
-            Extraction.decompose(
-              APIFailureNewStyle(failMsg = ErrorMessages.requestTimeout, failCode = 408, cc.context.map(_.toLight))
-            )
-          )
+          val error: String = ErrorMessages.apiFailureToString(408, ErrorMessages.requestTimeout, cc.context)
           new TimeoutException(error)
         }
       }
