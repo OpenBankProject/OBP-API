@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout, endpointContext}
+import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}

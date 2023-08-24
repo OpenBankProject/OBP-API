@@ -44,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
-import code.api.util.FutureUtil.{EndpointContext, endpointContext}
+import code.api.util.FutureUtil.{EndpointContext}
 import code.util.Helper.booleanToFuture
 import code.views.system.{AccountAccess, ViewDefinition}
 

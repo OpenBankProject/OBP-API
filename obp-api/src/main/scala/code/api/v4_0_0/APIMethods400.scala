@@ -44,7 +44,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.api.dynamic.endpoint.helper._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.util.FutureUtil.{EndpointContext, endpointContext}
+import code.api.util.FutureUtil.{EndpointContext}
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
