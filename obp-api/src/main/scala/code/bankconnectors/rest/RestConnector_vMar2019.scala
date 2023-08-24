@@ -28,13 +28,13 @@ import java.util.Date
 import java.util.UUID.randomUUID
 import _root_.akka.stream.StreamTcpException
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{HttpProtocol, _}
+import akka.http.scaladsl.model._
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.MockResponseHolder
-import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.RSAUtil.{computeXSign, getPrivateKeyFromString}
@@ -47,14 +47,14 @@ import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.AkkaHttpClient._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.dto.{InBoundTrait, _}
+import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType}
-import com.openbankproject.commons.model.{ErrorMessage, TopicTrait, _}
+import com.openbankproject.commons.model.{Meta, _}
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
-import net.liftweb.common.{Box, Empty, _}
+import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonDSL._

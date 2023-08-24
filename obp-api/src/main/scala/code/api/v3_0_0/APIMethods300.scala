@@ -2378,7 +2378,13 @@ trait APIMethods300 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (banks, callContext) <- NewStyle.function.getBanks(callContext)
+            (banks, callContext) <- if(canOpenFuture("NewStyle.function.getBanks")) {
+              FutureUtil.futureWithLimits(NewStyle.function.getBanks(callContext), "NewStyle.function.getBanks")
+            } else {
+              Future {
+                throw new RuntimeException(ServiceIsTooBusy +"Current Service(NewStyle.function.getBanks) ")
+              }
+            }
           } yield 
             (JSONFactory300.createBanksJson(banks), HttpCode.`200`(callContext))
       }

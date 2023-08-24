@@ -1240,3 +1240,7 @@ retain_metrics_scheduler_interval_in_seconds = 3600
 
 #if same session used for different ip address, we can show this warning, default is false.
 show_ip_address_change_warning=false
+
+
+#the default expected Open Futures Per Service for the BackOffFactor parameter
+expectedOpenFuturesPerService=100
