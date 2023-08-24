@@ -4666,16 +4666,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def `checkIfContains::::` (value: String) = value.contains("::::")
 
+  val expectedOpenFuturesPerService = APIUtil.getPropsAsIntValue("expectedOpenFuturesPerService", 100)
   def getBackOffFactor (openCalls: Int) = openCalls match {
-    case x if x < 100 => 1 // i.e. every call will get passed through
-    case x if x < 1000 => 2
-    case x if x < 2000 => 4
-    case x if x < 3000 => 8
-    case x if x < 4000 => 16
-    case x if x < 5000 => 32
-    case x if x < 6000 => 64
-    case x if x < 7000 => 128
-    case x if x < 8000 => 256
+    case x if x < expectedOpenFuturesPerService*1 => 1 // i.e. every call will get passed through
+    case x if x < expectedOpenFuturesPerService*2  => 2
+    case x if x < expectedOpenFuturesPerService*3  => 4
+    case x if x < expectedOpenFuturesPerService*4  => 8
+    case x if x < expectedOpenFuturesPerService*5  => 16
+    case x if x < expectedOpenFuturesPerService*6  => 32
+    case x if x < expectedOpenFuturesPerService*7  => 64
+    case x if x < expectedOpenFuturesPerService*8  => 128
+    case x if x < expectedOpenFuturesPerService*9  => 256
     case _ => 1024 // the default, catch-all
   }
   
@@ -4691,6 +4692,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def incrementFutureCounter(serviceName:String) = {
     val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
     serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenCallsCounter+1))
+    if(serviceNameOpenCallsCounter>=expectedOpenFuturesPerService) {
+      logger.warn(s"incrementFutureCounter says: current service($serviceName) open future is ${serviceNameOpenCallsCounter+1}, which is over expectedOpenFuturesPerService($expectedOpenFuturesPerService)")
+    }
     logger.debug(s"incrementFutureCounter says: serviceName is $serviceName, serviceNameCounter is $serviceNameCounter, serviceNameOpenCallsCounter is $serviceNameOpenCallsCounter")
   }
 
