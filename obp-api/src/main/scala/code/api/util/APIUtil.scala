@@ -1879,6 +1879,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
            * - We cannot assign the role to non existing bank
            */
           cc: CallContext => {
+            implicit val ec = EndpointContext(Some(cc)) // Supply call context in case of saving row to the metric table
             // if authentication check, do authorizedAccess, else do Rate Limit check
             for {
               (boxUser, callContext) <- checkAuth(cc)
