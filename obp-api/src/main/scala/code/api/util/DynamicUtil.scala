@@ -234,7 +234,7 @@ object DynamicUtil {
       |import code.api.APIFailureNewStyle
       |import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
       |import code.api.cache.Caching
-      |import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
+      |import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, writeMetricEndpointTiming, _}
       |import code.api.util.ErrorMessages._
       |import code.api.util.ExampleValue._
       |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
