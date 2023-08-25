@@ -27,7 +27,7 @@ import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
+import code.util.Helper.{booleanToBox, booleanToFuture}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
@@ -2386,13 +2386,10 @@ trait APIMethods300 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (banks, callContext) <- if(canOpenFuture("NewStyle.function.getBanks")) {
-              FutureUtil.futureWithLimits(NewStyle.function.getBanks(callContext), "NewStyle.function.getBanks")
-            } else {
-              Future {
-                throw new RuntimeException(ServiceIsTooBusy +"Current Service(NewStyle.function.getBanks) ")
-              }
+            _ <- booleanToFuture(ServiceIsTooBusy +"Current Service(NewStyle.function.getBanks)", 503, callContext) {
+              canOpenFuture("NewStyle.function.getBanks")
             }
+            (banks, callContext) <- FutureUtil.futureWithLimits(NewStyle.function.getBanks(callContext), "NewStyle.function.getBanks")
           } yield 
             (JSONFactory300.createBanksJson(banks), HttpCode.`200`(callContext))
       }
