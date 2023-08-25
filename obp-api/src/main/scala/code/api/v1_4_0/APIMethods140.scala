@@ -2,6 +2,7 @@ package code.api.v1_4_0
 
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -148,6 +149,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     lazy val addCustomerMessage : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
         cc =>{
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AddCustomerMessageJson "
@@ -414,7 +416,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)

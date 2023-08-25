@@ -4,6 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
@@ -45,6 +46,7 @@ trait APIMethods130 {
     lazy val getCards : OBPEndpoint = {
       case "cards" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
               (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)

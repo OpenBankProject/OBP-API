@@ -5,6 +5,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.FutureUtil.EndpointContext
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Full
@@ -98,7 +99,7 @@ object APIMethods_EventNotificationApi extends RestHelper {
 
      lazy val eventNotificationsPost : OBPEndpoint = {
        case "event-notifications" :: Nil JsonPost _ => {
-         cc =>
+         cc => implicit val ec = EndpointContext(Some(cc))
            for {
              (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
              } yield {

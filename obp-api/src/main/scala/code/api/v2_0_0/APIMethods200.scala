@@ -1,6 +1,7 @@
 package code.api.v2_0_0
 
 import java.util.{Calendar, Date}
+
 import code.api.Constant._
 import code.TransactionTypes.TransactionType
 import code.api.{APIFailure, APIFailureNewStyle}
@@ -9,6 +10,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.OBPAPI1_2_1._
@@ -232,7 +234,7 @@ trait APIMethods200 {
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (publicViews, publicAccountAccess) <- Future(Views.views.vend.publicViews)
             publicAccountsJson <- NewStyle.function.tryons(CannotGetAccounts, 400, Some(cc)){
@@ -273,7 +275,7 @@ trait APIMethods200 {
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
 
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for{
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -320,7 +322,7 @@ trait APIMethods200 {
     lazy val corePrivateAccountsAtOneBank : OBPEndpoint = {
       // get private accounts for a single bank
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -333,7 +335,7 @@ trait APIMethods200 {
       }
       // Also we support accounts/private to maintain compatibility with 1.4.0
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -346,7 +348,7 @@ trait APIMethods200 {
       }
       // Supports idea of default bank
       case "bank" :: "accounts" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
@@ -387,7 +389,7 @@ trait APIMethods200 {
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -424,7 +426,7 @@ trait APIMethods200 {
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -459,6 +461,7 @@ trait APIMethods200 {
     lazy val getKycDocuments  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycDocuments, callContext)
@@ -492,6 +495,7 @@ trait APIMethods200 {
     lazy val getKycMedia  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycMedia, callContext)
@@ -525,6 +529,7 @@ trait APIMethods200 {
     lazy val getKycChecks  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycChecks, callContext)
@@ -557,6 +562,7 @@ trait APIMethods200 {
     lazy val getKycStatuses  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyKycStatuses, callContext)
@@ -627,6 +633,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_documents" :: documentId :: Nil JsonPut json -> _ => {
         // customerNumber is duplicated in postedData. remove from that?
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycDocument, callContext)
@@ -676,6 +683,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_media" :: mediaId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycMedia, callContext)
@@ -725,6 +733,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: checkId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycCheck, callContext)
@@ -775,6 +784,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_statuses" :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canAddKycStatus, callContext)
@@ -1006,7 +1016,7 @@ trait APIMethods200 {
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -1199,6 +1209,7 @@ trait APIMethods200 {
     lazy val getTransactionTypes : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             // Get Transaction Types from the active provider
             (_, callContext) <- getTransactionTypesIsPublic match {
@@ -1967,7 +1978,7 @@ trait APIMethods200 {
     lazy val addEntitlement : OBPEndpoint = {
       //add access for specific user to a list of views
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
@@ -2066,7 +2077,7 @@ trait APIMethods200 {
 
     lazy val deleteEntitlement: OBPEndpoint = {
       case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
               _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank, cc.callContext)
@@ -2104,7 +2115,7 @@ trait APIMethods200 {
 
     lazy val getAllEntitlements: OBPEndpoint = {
       case "entitlements" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank,callContext)
