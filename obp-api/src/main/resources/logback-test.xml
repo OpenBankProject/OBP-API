@@ -9,10 +9,4 @@
   <root level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </root>
-
-  <!-- LOG "com.gargoylesoftware.htmlunit.javascript*" at OFF (closed) level -->
-  <logger name="com.gargoylesoftware.htmlunit.javascript"  level="OFF" additivity="false">
-    <appender-ref ref="RollingFile" />
-    <appender-ref ref="Console" />
-  </logger>
 </configuration>
