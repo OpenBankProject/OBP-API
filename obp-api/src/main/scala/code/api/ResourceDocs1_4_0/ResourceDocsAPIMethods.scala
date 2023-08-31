@@ -1,8 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.Constant.PARAM_LOCALE
-
 import java.util.UUID.randomUUID
+
 import code.api.OBPRestHelper
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomersJson
 import code.api.builder.OBP_APIBuilder
@@ -36,11 +36,12 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
 import java.util.concurrent.ConcurrentHashMap
+
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.v5_0_0.OBPAPI5_0_0
-import code.api.v5_1_0.OBPAPI5_1_0
+import code.api.v5_1_0.{OBPAPI5_1_0, UserAttributeJsonV510}
 import code.util.Helper
 
 import scala.collection.immutable.{List, Nil}
@@ -692,15 +693,20 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     def getResourceDocsSwagger : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
-        cc =>{
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          val (resourceDocTags, partialFunctions, _, _, _, _) = ResourceDocsAPIMethodsUtil.getParams()
           for {
-            (resourceDocTags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
-            requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
-            staticJson <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
-            dynamicJson <- getResourceDocsSwagger(requestedApiVersionString, resourceDocTags, partialFunctions)
+            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
+              ApiVersionUtils.valueOf(requestedApiVersionString)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
+              versionIsAllowed(requestedApiVersion)
+            }
+            staticJson <- Future(getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions).getOrElse(JNull))
+            dynamicJson <- Future(getResourceDocsSwagger(requestedApiVersionString, resourceDocTags, partialFunctions).getOrElse(JNull))
           } yield {
-            successJsonResponse(staticJson.merge(dynamicJson))
+            (staticJson.merge(dynamicJson), HttpCode.`200`(cc.callContext))
           }
         }
       }
