@@ -2076,7 +2076,7 @@ object Glossary extends MdcLoggable  {
         |
         |
         |
-        |An example App using this flow can be found [here](https://github.com/OpenBankProject/OBP-Hydra-OAuth2)
+        |An example Consent Testing App (Hola) using this flow can be found [here](https://github.com/OpenBankProject/OBP-Hola)
         |
         |
         |
