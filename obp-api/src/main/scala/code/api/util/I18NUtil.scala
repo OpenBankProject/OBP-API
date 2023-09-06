@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.api.Constant.PARAM_LOCALE
+import code.util.Helper.SILENCE_IS_GOLDEN
 
 import java.util.{Date, Locale}
 
@@ -29,7 +30,7 @@ object I18NUtil {
     val localeCookieName = "SELECTED_LOCALE"
     S.param(PARAM_LOCALE) match {
       // 1st choice: Use query parameter as a source of truth if any
-      case Full(requestedLocale) if requestedLocale != null => {
+      case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale) == SILENCE_IS_GOLDEN => {
         val computedLocale = I18NUtil.computeLocale(requestedLocale)
         S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
         computedLocale
