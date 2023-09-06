@@ -5,13 +5,14 @@ import code.util.Helper.SILENCE_IS_GOLDEN
 
 import java.util.{Date, Locale}
 
+import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.enums.I18NResourceDocField
 import net.liftweb.common.Full
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPCookie
 
-object I18NUtil {
+object I18NUtil extends MdcLoggable {
   // Copied from Sofit
   def getLocalDate(date: Date): String = {
     import java.text.DateFormat
@@ -47,6 +48,10 @@ object I18NUtil {
     case Array(lang) => new Locale(lang)
     case Array(lang, country) => new Locale(lang, country)
     case Array(lang, country, variant) => new Locale(lang, country, variant)
+    case _ => 
+      val locale = getDefaultLocale()
+      logger.warn(s"Cannot parse the string $tag to Locale. Use default value: ${locale.toString()}")
+      locale
   }
   
   object ResourceDocTranslation {

@@ -488,8 +488,6 @@ import net.liftweb.util.Helpers._
       } else {
         logger.debug(ErrorMessages.CurrentUserNotFoundException)
         Failure(ErrorMessages.CurrentUserNotFoundException)
-        //This is a big problem, if there is no current user from here.
-        //throw new RuntimeException(ErrorMessages.CurrentUserNotFoundException)
       }
     } yield {
       resourceUser

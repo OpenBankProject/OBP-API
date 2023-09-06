@@ -634,9 +634,14 @@ class Boot extends MdcLoggable {
         S.param(PARAM_LOCALE) match {
           case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale)==SILENCE_IS_GOLDEN => {
             val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
-            val id: Long = AuthUser.getCurrentUser.map(_.user.userPrimaryKey.value).getOrElse(0)
-            Users.users.vend.getResourceUserByResourceUserId(id).map { 
-              u => u.LastUsedLocale(computedLocale.toString).save
+            AuthUser.getCurrentUser.map(_.user.userPrimaryKey.value) match {
+              case Full(id) =>
+                Users.users.vend.getResourceUserByResourceUserId(id).map {
+                  u =>
+                    u.LastUsedLocale(computedLocale.toString).save
+                    logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
+                }
+              case _ => // There is no current user
             }
             S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
             computedLocale
