@@ -2762,7 +2762,9 @@ trait APIMethods400 {
       case "development" :: "echo":: "jws-verified-request-jws-signed-response" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          Future{
+          for {
+            _ <- Future() // Just start async call
+          } yield {
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }
