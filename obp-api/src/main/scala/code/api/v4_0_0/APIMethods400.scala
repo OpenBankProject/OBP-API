@@ -2704,9 +2704,11 @@ trait APIMethods400 {
     def root (apiVersion : ApiVersion, apiVersionStatus: String): OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => 
-          implicit val ec = EndpointContext(Some(cc)) 
-          Future {
-            getApiInfoJSON(apiVersion, apiVersionStatus) -> HttpCode.`200`(cc.callContext)
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -2732,7 +2734,9 @@ trait APIMethods400 {
       case "development" :: "call_context" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          Future{
+          for {
+            _ <- Future() // Just start async call
+          } yield {
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }
@@ -2758,7 +2762,9 @@ trait APIMethods400 {
       case "development" :: "echo":: "jws-verified-request-jws-signed-response" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          Future{
+          for {
+            _ <- Future() // Just start async call
+          } yield {
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
         }

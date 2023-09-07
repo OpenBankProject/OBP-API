@@ -155,8 +155,15 @@ trait APIMethods121 {
       apiTagApi :: Nil)
 
     def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
-      case "root" :: Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
-      case Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
     }
 
 
@@ -177,7 +184,7 @@ trait APIMethods121 {
       emptyObjectJson,
       banksJSON,
       List(UnknownError),
-      apiTagBank :: apiTagPsd2 :: Nil)
+      apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     lazy val getBanks : OBPEndpoint = {
       //get banks
@@ -212,7 +219,7 @@ trait APIMethods121 {
       emptyObjectJson,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      apiTagBank :: apiTagPsd2 :: Nil)
+      apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
 
     lazy val bankById : OBPEndpoint = {
@@ -244,7 +251,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
-      apiTagAccount :: apiTagPsd2 :: Nil)
+      apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
@@ -277,7 +284,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
-      apiTagAccount :: apiTagPsd2 :: Nil)
+      apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     lazy val privateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
@@ -309,7 +316,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UnknownError),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagOldStyle :: Nil)
 
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
@@ -341,7 +348,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      apiTagAccount :: Nil)
+      apiTagAccount :: apiTagOldStyle :: Nil)
 
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
@@ -374,7 +381,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      List(apiTagAccount, apiTagPsd2))
+      List(apiTagAccount, apiTagPsd2, apiTagOldStyle))
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
       //get private accounts for a single bank
@@ -406,7 +413,7 @@ trait APIMethods121 {
       emptyObjectJson,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  Nil)
+      apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  apiTagOldStyle :: Nil)
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
@@ -449,7 +456,7 @@ trait APIMethods121 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(UserNotLoggedIn, UnknownError, BankAccountNotFound),
-      apiTagAccount ::  Nil)
+      apiTagAccount ::  apiTagOldStyle :: Nil)
 
     lazy val accountById : OBPEndpoint = {
       //get account by id
@@ -551,7 +558,7 @@ trait APIMethods121 {
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
-      List(apiTagView, apiTagAccount))
+      List(apiTagView, apiTagAccount, apiTagOldStyle))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -603,7 +610,7 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      List(apiTagAccount, apiTagView)
+      List(apiTagAccount, apiTagView, apiTagOldStyle)
     )
 
     lazy val createViewForBankAccount : OBPEndpoint = {
@@ -662,7 +669,7 @@ trait APIMethods121 {
         UnknownError,
         "user does not have owner access"
       ),
-      List(apiTagAccount, apiTagView)
+      List(apiTagAccount, apiTagView, apiTagOldStyle)
     )
   
     lazy val updateViewForBankAccount: OBPEndpoint = {
@@ -761,7 +768,7 @@ trait APIMethods121 {
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagView, apiTagAccount, apiTagEntitlement)
+      List(apiTagView, apiTagAccount, apiTagEntitlement, apiTagOldStyle)
     )
   
     lazy val getPermissionsForBankAccount: OBPEndpoint = {
@@ -804,7 +811,7 @@ trait APIMethods121 {
         UnknownError,
         "user does not have access to owner view on account"
     ),
-      List(apiTagAccount, apiTagView, apiTagEntitlement)
+      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOldStyle)
     )
   
   
@@ -1028,7 +1035,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount, apiTagPsd2))
+      List(apiTagCounterparty, apiTagAccount, apiTagPsd2, apiTagOldStyle))
 
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       //get other accounts for one account
@@ -1058,7 +1065,7 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagOldStyle))
 
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       //get one other account by id
@@ -2101,7 +2108,7 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Corporate Location cannot be deleted",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagOldStyle))
 
     lazy val addCounterpartyCorporateLocation : OBPEndpoint = {
       //add corporate location to other bank account
@@ -2144,7 +2151,7 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Corporate Location cannot be updated",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagOldStyle))
 
     lazy val updateCounterpartyCorporateLocation : OBPEndpoint = {
       //update corporate location of other bank account
@@ -2236,7 +2243,7 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Physical Location cannot be added",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagOldStyle))
 
     lazy val addCounterpartyPhysicalLocation : OBPEndpoint = {
       //add physical location to other bank account
@@ -2280,7 +2287,7 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Physical Location cannot be updated",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagOldStyle))
 
     lazy val updateCounterpartyPhysicalLocation : OBPEndpoint = {
       //update physical location to other bank account
@@ -2369,7 +2376,7 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle))
   
   
   
@@ -2435,7 +2442,7 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagPsd2))
+      List(apiTagTransaction, apiTagPsd2, apiTagOldStyle))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       //get transaction by id
