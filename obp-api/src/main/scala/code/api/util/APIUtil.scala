@@ -4679,7 +4679,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def `checkIfContains::::` (value: String) = value.contains("::::")
 
   val expectedOpenFuturesPerService = APIUtil.getPropsAsIntValue("expectedOpenFuturesPerService", 100)
-  def getBackOffFactor (openCalls: Int) = openCalls match {
+  def getBackOffFactor (openFutures: Int) = openFutures match {
     case x if x < expectedOpenFuturesPerService*1 => 1 // i.e. every call will get passed through
     case x if x < expectedOpenFuturesPerService*2  => 2
     case x if x < expectedOpenFuturesPerService*3  => 4
@@ -4697,23 +4697,41 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val serviceNameCountersMap = new ConcurrentHashMap[String, (serviceNameCounterInt, serviceNameOpenCallsCounterInt)]
   
   def canOpenFuture(serviceName :String) = {
-    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
-    serviceNameCounter % getBackOffFactor(serviceNameOpenCallsCounter) == 0
+    val (serviceNameCounter, serviceNameOpenFuturesCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
+    //eg: 
+    //1%1 == 0
+    //2%1 == 0
+    //3%1 == 0
+    //
+    //1%2 == 1
+    //2%2 == 0
+    //3%2 == 1
+    //4%2 == 0
+    //
+    //1%4 == 1
+    //2%4 == 2
+    //3%4 == 3
+    //4%4 == 0
+    
+    serviceNameCounter % getBackOffFactor(serviceNameOpenFuturesCounter) == 0
   }
 
   def incrementFutureCounter(serviceName:String) = {
-    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
-    serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenCallsCounter+1))
-    if(serviceNameOpenCallsCounter>=expectedOpenFuturesPerService) {
-      logger.warn(s"incrementFutureCounter says: current service($serviceName) open future is ${serviceNameOpenCallsCounter+1}, which is over expectedOpenFuturesPerService($expectedOpenFuturesPerService)")
+    val (serviceNameCounter, serviceNameOpenFuturesCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
+    serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenFuturesCounter+1))
+    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
+    
+    if(serviceNameOpenFuturesCounterLatest>=expectedOpenFuturesPerService) {
+      logger.warn(s"incrementFutureCounter says: serviceName is $serviceName, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}, which is over expectedOpenFuturesPerService($expectedOpenFuturesPerService)")
     }
-    logger.debug(s"incrementFutureCounter says: serviceName is $serviceName, serviceNameCounter is $serviceNameCounter, serviceNameOpenCallsCounter is $serviceNameOpenCallsCounter")
+    logger.debug(s"incrementFutureCounter says: serviceName is $serviceName, serviceNameCounterLatest is ${serviceNameCounterLatest}, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}")
   }
 
   def decrementFutureCounter(serviceName:String) = {
-    val (serviceNameCounter, serviceNameOpenCallsCounter) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
-    serviceNameCountersMap.put(serviceName, (serviceNameCounter, serviceNameOpenCallsCounter - 1))
-    logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounter is $serviceNameCounter, serviceNameOpenCallsCounter is $serviceNameOpenCallsCounter")
+    val (serviceNameCounter, serviceNameOpenFuturesCounter) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
+    serviceNameCountersMap.put(serviceName, (serviceNameCounter, serviceNameOpenFuturesCounter - 1))
+    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
+    logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounterLatest is $serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}")
   }
     
 }
