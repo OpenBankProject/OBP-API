@@ -155,8 +155,15 @@ trait APIMethods121 {
       apiTagApi :: Nil)
 
     def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
-      case "root" :: Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
-      case Nil JsonGet req => cc =>Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
     }
 
 
