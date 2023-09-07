@@ -13,6 +13,7 @@ object ApiTag {
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
   // When using these tags in resource docs, as we now have many APIs, it's best not to have too use too many tags per endpoint.
+  val apiTagOldStyle = ResourceDocTag("Old-Style")
   val apiTagTransactionRequest = ResourceDocTag("Transaction-Request")
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
