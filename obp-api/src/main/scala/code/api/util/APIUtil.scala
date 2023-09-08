@@ -2180,9 +2180,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  def fullBaseUrl : String = {
-    val crv = CurrentReq.value
-    val apiPathZeroFromRequest = crv.path.partPath(0)
+  def fullBaseUrl(callContext: Option[CallContext]) : String = {
+    // callContext.map(_.url).getOrElse("") --> eg: /obp/v2.0.0/banks/gh.29.uk/accounts/202309071568
+    val urlFromRequestArrary = callContext.map(_.url).getOrElse("").split("/") //eg: Array("", obp, v2.0.0, banks, gh.29.uk, accounts, 202309071568)
+    
+    val apiPathZeroFromRequest = if( urlFromRequestArrary.length>1) urlFromRequestArrary.apply(1) else urlFromRequestArrary.head
+    
     if (apiPathZeroFromRequest != ApiPathZero) throw new Exception("Configured ApiPathZero is not the same as the actual.")
 
     val path = s"$HostName/$ApiPathZero"
@@ -2191,7 +2194,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   // Modify URL replacing placeholders for Ids
-  def contextModifiedUrl(url: String, context: DataContext) = {
+  def contextModifiedUrl(url: String, context: DataContext, callContext: Option[CallContext]) = {
 
     // Potentially replace BANK_ID
     val url2: String = context.bankId match {
@@ -2224,7 +2227,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // Add host, port, prefix, version.
 
     // not correct because call could be in other version
-    val fullUrl = s"$fullBaseUrl$url6"
+    val fullUrl = s"${fullBaseUrl(callContext)}$url6"
 
     fullUrl
   }
@@ -2280,19 +2283,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   // Returns API links (a list of them) that have placeholders (e.g. BANK_ID) replaced by values (e.g. ulster-bank)
-  def getApiLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : List[ApiLink]  = {
+  def getApiLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext, callContext: Option[CallContext]) : List[ApiLink]  = {
     val templates = getApiLinkTemplates(callerContext, codeContext)
     // Replace place holders in the urls like BANK_ID with the current value e.g. 'ulster-bank' and return as ApiLinks for external consumption
     val links = templates.map(i => ApiLink(i.rel,
-      contextModifiedUrl(i.requestUrl, dataContext) )
+      contextModifiedUrl(i.requestUrl, dataContext, callContext))
     )
     links
   }
 
 
   // Returns links formatted at objects.
-  def getHalLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : JValue  = {
-    val links = getApiLinks(callerContext, codeContext, dataContext)
+  def getHalLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext, callContext: Option[CallContext]) : JValue  = {
+    val links = getApiLinks(callerContext, codeContext, dataContext, callContext: Option[CallContext])
     getHalLinksFromApiLinks(links)
   }
 
