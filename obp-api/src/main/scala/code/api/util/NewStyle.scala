@@ -1071,17 +1071,16 @@ object NewStyle extends MdcLoggable{
       validateRequestPayload(callContext)(boxResult)
     }
 
-    def createUserAuthContext(user: User, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
-      Connector.connector.vend.createUserAuthContext(user.userId, key, value, callContext) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      } map {
-        result =>
-          //We will call the `refreshUserAccountAccess` after we successfully create the UserAuthContext
-          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUser
-          AuthUser.refreshUser(user, callContext)
-          result
+    def createUserAuthContext(user: User, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = 
+      for{
+        (userAuthContext, callContext) <- Connector.connector.vend.createUserAuthContext(user.userId, key, value, callContext) map { 
+          i => (connectorEmptyResponse(i._1, callContext), i._2)
+        }
+        _ <- AuthUser.refreshUser(user, callContext)
+      }yield{
+        (userAuthContext, callContext)
       }
-    }
+    
     def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
       Connector.connector.vend.createUserAuthContextUpdate(userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -1098,17 +1097,15 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    def deleteUserAuthContextById(user: User, userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      }map {
-        result =>
-          // We will call the `refreshUserAccountAccess` after we successfully delete the UserAuthContext
-          // because `deleteUserAuthContextById` is a connector method, here is the entry point for OBP to refreshUser
-          AuthUser.refreshUser(user, callContext)
-          result
+    def deleteUserAuthContextById(user: User, userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      for {
+        (userAuthContext, callContext) <- Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext)  map {
+          i => (connectorEmptyResponse(i._1, callContext), i._2)
+        }
+        _ <- AuthUser.refreshUser(user, callContext)
+      } yield {
+        (userAuthContext, callContext)
       }
-    }
     
     def deleteUser(userPrimaryKey: UserPrimaryKey, callContext: Option[CallContext]): OBPReturnType[Boolean] = Future {
       AuthUser.scrambleAuthUser(userPrimaryKey) match {

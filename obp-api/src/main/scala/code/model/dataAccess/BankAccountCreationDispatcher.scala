@@ -92,6 +92,15 @@ package code.model.dataAccess {
       // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
       AuthUser.refreshUser(user, callContext)
     }
+    
+    @deprecated("This return Box, not a future, try to use @setAccountHolderAndRefreshUserAccountAccess instead. ","08-09-2023")
+    def setAccountHolderAndRefreshUserAccountAccessLegacy(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext])  = {
+      // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
+      
+      // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
+      AuthUser.refreshUserLegacy(user, callContext)
+    }
    
   }
 
@@ -132,7 +141,7 @@ package code.model.dataAccess {
             )
           } yield {
             logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None)
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccessLegacy(bankAccount.bankId, bankAccount.accountId, user, None)
           }
 
           result match {
