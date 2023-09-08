@@ -219,7 +219,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("we fake the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
-      val result = Await.result(AuthUser.refreshUser(resourceUser1, None), Duration.Inf)
+      val result = AuthUser.refreshUserLegacy(resourceUser1, None)
 
       Then("We check the accountHolders")
       var accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId1.bankId, bankIdAccountId1.accountId)

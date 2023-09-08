@@ -440,7 +440,6 @@ object ConnectorBuilderUtil {
     //"setAccountHolder", //deprecated
     // "createImportedTransaction", // should create manually
     // "createViews", // should not be auto generated
-    // "UpdateUserAccoutViewsByUsername", // a helper function should not be auto generated
     // "updateUserAccountViewsOld", // deprecated
     //"createBankAccountLegacy", // should not generate for Legacy methods //deprecated
 
