@@ -1084,7 +1084,7 @@ trait APIMethods300 {
         InsufficientAuthorisationToCreateBranch,
         UnknownError
       ),
-      List(apiTagBranch),
+      List(apiTagBranch, apiTagOldStyle),
       Some(List(canCreateBranch, canCreateBranchAtAnyBank))
     )
 
@@ -1126,7 +1126,7 @@ trait APIMethods300 {
         InsufficientAuthorisationToCreateBranch,
         UnknownError
       ),
-      List(apiTagBranch),
+      List(apiTagBranch, apiTagOldStyle),
       Some(List(canUpdateBranch))
     )
 
@@ -1187,7 +1187,7 @@ trait APIMethods300 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagOldStyle),
       Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
 
