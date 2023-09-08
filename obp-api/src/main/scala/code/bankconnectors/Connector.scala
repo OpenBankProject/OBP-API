@@ -1818,22 +1818,6 @@ trait Connector extends MdcLoggable {
     */
   def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Failure(setUnimplementedError)
 
-
-  //////// Following Methods are only existing in some connectors, they are in process,
-  /// Please do not move the following methods, for Merge issues.
-  //  If you modify these methods, if will make some forks automatically merging broken .
-  /**
-    * This a Helper method, it is only used in some connectors. Not all the connectors need it yet.
-    * This is in progress.
-    * Here just return some String to make sure the method return sth, and the API level is working well !
-    *
-    * @param username
-    * @return
-    */
-  def UpdateUserAccoutViewsByUsername(username: String): Box[Any] = {
-    Full(setUnimplementedError)
-  }
-
   def createTransactionAfterChallengev300(
                                            initiator: User,
                                            fromAccount: BankAccount,

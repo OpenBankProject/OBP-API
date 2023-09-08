@@ -1974,8 +1974,6 @@ trait APIMethods200 {
               x => unboxFullOrFail(x, callContext, CreateUserCustomerLinksError, 400)
             }
             
-            _ <- Future {Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)}
-            
             _ <- AuthUser.refreshUser(user, callContext)
             
           } yield {

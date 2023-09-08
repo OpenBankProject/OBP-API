@@ -1386,7 +1386,6 @@ trait APIMethods210 {
               "") ?~! CreateConsumerError
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, new Date(), true) ?~! CreateUserCustomerLinksError
-            _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(customer_user.name)
             
           } yield {
             val json = JSONFactory210.createCustomerJson(customer)
