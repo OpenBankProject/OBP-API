@@ -149,7 +149,7 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagAccount, apiTagView))
+      List(apiTagAccount, apiTagView, apiTagOldStyle))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
@@ -206,7 +206,7 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagAccount, apiTagView)
+      List(apiTagAccount, apiTagView, apiTagOldStyle)
     )
 
     lazy val updateViewForBankAccount : OBPEndpoint = {
@@ -448,7 +448,7 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagOldStyle),
       Some(List(canCreateBank))
     )
 
@@ -527,7 +527,7 @@ trait APIMethods220 {
         InsufficientAuthorisationToCreateBranch,
         UnknownError
       ),
-      List(apiTagBranch, apiTagOpenData),
+      List(apiTagBranch, apiTagOpenData, apiTagOldStyle),
       Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
 
@@ -573,7 +573,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagOldStyle),
       Some(List(canCreateAtm,canCreateAtmAtAnyBank))
     )
 
@@ -621,7 +621,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagOldStyle),
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
 
@@ -694,7 +694,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagFx),
+      List(apiTagFx, apiTagOldStyle),
       Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
 
@@ -979,7 +979,7 @@ trait APIMethods220 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagOldStyle),
       Some(List(canCreateConsumer)))
 
 

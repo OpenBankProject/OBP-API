@@ -104,7 +104,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSandbox),
+      List(apiTagSandbox, apiTagOldStyle),
       Some(List(canCreateSandbox)))
 
 
@@ -705,7 +705,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -836,7 +836,7 @@ trait APIMethods210 {
         InvalidConsumerId,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagOldStyle),
       Some(List(canGetConsumers)))
 
 
@@ -874,7 +874,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagOldStyle),
       Some(List(canGetConsumers)))
 
 
@@ -911,7 +911,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagOldStyle),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 
@@ -1131,7 +1131,7 @@ trait APIMethods210 {
       emptyObjectJson,
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      List(apiTagATM)
+      List(apiTagATM, apiTagOldStyle)
     )
 
     lazy val getAtm: OBPEndpoint = {
@@ -1180,7 +1180,7 @@ trait APIMethods210 {
         BranchNotFoundByBranchId,
         UnknownError
       ),
-      List(apiTagBranch)
+      List(apiTagBranch, apiTagOldStyle)
     )
 
     lazy val getBranch: OBPEndpoint = {
@@ -1231,7 +1231,7 @@ trait APIMethods210 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      List(apiTagProduct)
+      List(apiTagProduct, apiTagOldStyle)
     )
 
     lazy val getProduct: OBPEndpoint = {
@@ -1282,7 +1282,7 @@ trait APIMethods210 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      List(apiTagProduct)
+      List(apiTagProduct, apiTagOldStyle)
     )
 
     lazy val getProducts : OBPEndpoint = {
@@ -1341,7 +1341,7 @@ trait APIMethods210 {
         CreateConsumerError,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagPerson),
+      List(apiTagCustomer, apiTagPerson, apiTagOldStyle),
       Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
 
     // TODO in next version?
@@ -1413,7 +1413,7 @@ trait APIMethods210 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagUser))
+      List(apiTagCustomer, apiTagUser, apiTagOldStyle))
 
     lazy val getCustomersForUser : OBPEndpoint = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
@@ -1492,7 +1492,7 @@ trait APIMethods210 {
         UserHasMissingRoles, 
         UnknownError
       ),
-      List(apiTagBranch),
+      List(apiTagBranch, apiTagOldStyle),
       Some(List(canUpdateBranch)))
 
 
@@ -1535,7 +1535,7 @@ trait APIMethods210 {
         InsufficientAuthorisationToCreateBranch, 
         UnknownError
       ),
-      List(apiTagBranch, apiTagOpenData),
+      List(apiTagBranch, apiTagOpenData, apiTagOldStyle),
       Some(List(canCreateBranch)))
 
     lazy val createBranch: OBPEndpoint = {
@@ -1576,7 +1576,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagOldStyle),
       Some(List(canUpdateConsumerRedirectUrl))
     )
     

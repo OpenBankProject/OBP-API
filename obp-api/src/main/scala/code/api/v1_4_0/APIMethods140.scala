@@ -75,7 +75,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       customerJsonV140,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagCustomer))
+      List(apiTagCustomer, apiTagOldStyle))
 
     lazy val getCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
@@ -110,7 +110,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagMessage, apiTagCustomer))
+      List(apiTagMessage, apiTagCustomer, apiTagOldStyle))
 
     lazy val getCustomersMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -198,7 +198,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No branches available. License may not be set.",
         UnknownError),
-      List(apiTagBranch)
+      List(apiTagBranch, apiTagOldStyle)
     )
 
     lazy val getBranches : OBPEndpoint = {
@@ -250,7 +250,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
-      List(apiTagBank)
+      List(apiTagBank, apiTagOldStyle)
     )
 
     lazy val getAtms : OBPEndpoint = {
@@ -309,7 +309,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "No products available.",
         "License may not be set.",
         UnknownError),
-      List(apiTagBank)
+      List(apiTagBank, apiTagOldStyle)
     )
 
     lazy val getProducts : OBPEndpoint = {
@@ -349,7 +349,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No CRM Events available.",
         UnknownError),
-      List(apiTagCustomer)
+      List(apiTagCustomer, apiTagOldStyle)
     )
 
     // TODO Require Role
@@ -464,7 +464,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "account not found at bank",
         "user does not have access to owner view",
         UnknownError),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -532,7 +532,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Can't send a payment with a value of 0 or less.",
         TransactionRequestsNotEnabled,
         UnknownError),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val createTransactionRequest: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -605,7 +605,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Transaction Request not found",
         "Couldn't create Transaction",
         UnknownError),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -666,7 +666,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Could not create customer",
         "Could not create user_customer_links",
         UnknownError),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagOldStyle),
       Some(List(canCreateCustomer, canCreateUserCustomerLink)))
 
     lazy val addCustomer : OBPEndpoint = {
@@ -749,7 +749,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         emptyObjectJson,
         apiInfoJSON,
         List(UserNotLoggedIn, UnknownError),
-        List(apiTagDocumentation))
+        List(apiTagDocumentation, apiTagOldStyle))
       }
 
 
