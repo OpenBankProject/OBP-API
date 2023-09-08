@@ -303,51 +303,16 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   /**
    * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
    * @param rd Resource Document which contains all description of an Endpoint
-   * @return true if some endpoint can get User from Authorization Header
+   * @return true if some endpoint is written as a new style one
    */
-  def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
+  // TODO Remove Option type in case of Resource Doc
+  def isNewStyleEndpoint(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
-      // Versions that precede the 3.0.0 are mostly written as Old Style endpoint.
-      // In this case we assume all are written as Old Style and explicitly list NewStyle endpoints.
-      case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion.toString())) =>
-        true
-      // Since the 3.0.0 we assume that endpoints are written in New Style.
-      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
-      case Some(e) if APIMethods300.newStyleEndpoints.exists {
-        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
-      } =>
-        true
-      // Since the 3.0.0 we assume that endpoints are written in New Style.
-      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
-      case Some(e) if APIMethods310.newStyleEndpoints.exists {
-        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
-      } =>
-        true
-      // Since the 3.0.0 we assume that endpoints are written in New Style.
-      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
-      case Some(e) if APIMethods400.newStyleEndpoints.exists {
-        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
-      } =>
-        true
-      // Berlin Group endpoints are written in New Style
-      case Some(e) if APIMethods_AccountInformationServiceAISApi.newStyleEndpoints.exists {
-        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
-      } =>
-        true
-      case Some(e) if List(
-        ApiVersion.v1_2_1.toString,
-        ApiVersion.v1_3_0.toString,
-        ApiVersion.v1_4_0.toString,
-        ApiVersion.v2_0_0.toString,
-        ApiVersion.v2_1_0.toString,
-        ApiVersion.v2_2_0.toString,
-        ApiVersion.b1.toString, //apiBuilder is the old style.
-      ).exists(_ == e.implementedInApiVersion.toString()) =>
+      case Some(e) if e.tags.exists(_ == ApiTag.apiTagOldStyle) =>
         false
-      case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
-        false
-      case None => //added the None resource doc endpoint is the false
-        false
+      case None =>
+        logger.error("Function isNewStyleEndpoint received empty resource doc")
+        true
       case _ =>
         true
     }
@@ -398,7 +363,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
     if(maybeJsonResponse.isDefined) {
       maybeJsonResponse
-    } else if(newStyleEndpoints(rd)) {
+    } else if(isNewStyleEndpoint(rd)) {
       fn(cc)
     } else if (APIUtil.hasConsentJWT(reqHeaders)) {
       val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentJWT(reqHeaders), cc)
