@@ -69,7 +69,7 @@ trait APIMethods130 {
       emptyObjectJson,
       physicalCardsJSON,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
-      List(apiTagCard))
+      List(apiTagCard, apiTagOldStyle))
 
 
     lazy val getCardsForBank : OBPEndpoint = {
