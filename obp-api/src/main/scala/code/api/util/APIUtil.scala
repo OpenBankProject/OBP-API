@@ -2182,9 +2182,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def fullBaseUrl(callContext: Option[CallContext]) : String = {
     // callContext.map(_.url).getOrElse("") --> eg: /obp/v2.0.0/banks/gh.29.uk/accounts/202309071568
-    val urlFromRequestArrary = callContext.map(_.url).getOrElse("").split("/") //eg: Array("", obp, v2.0.0, banks, gh.29.uk, accounts, 202309071568)
+    val urlFromRequestArray = callContext.map(_.url).getOrElse("").split("/") //eg: Array("", obp, v2.0.0, banks, gh.29.uk, accounts, 202309071568)
     
-    val apiPathZeroFromRequest = if( urlFromRequestArrary.length>1) urlFromRequestArrary.apply(1) else urlFromRequestArrary.head
+    val apiPathZeroFromRequest = if( urlFromRequestArray.length>1) urlFromRequestArray.apply(1) else urlFromRequestArray.head
     
     if (apiPathZeroFromRequest != ApiPathZero) throw new Exception("Configured ApiPathZero is not the same as the actual.")
 
