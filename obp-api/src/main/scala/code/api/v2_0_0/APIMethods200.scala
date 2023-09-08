@@ -152,7 +152,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagOldStyle))
 
 
     lazy val getPrivateAccountsAllBanks : OBPEndpoint = {
@@ -186,7 +186,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagOldStyle))
 
 
     apiRelations += ApiRelation(corePrivateAccountsAllBanks, getCoreAccountById, "detail")
@@ -589,7 +589,7 @@ trait APIMethods200 {
       emptyObjectJson,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagOldStyle),
       Some(List(canGetSocialMediaHandles)))
 
     lazy val getSocialMediaHandles  : OBPEndpoint = {
@@ -826,7 +826,7 @@ trait APIMethods200 {
         UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagOldStyle),
       Some(List(canAddSocialMediaHandle))
     )
 
@@ -880,7 +880,7 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
-      apiTagAccount :: apiTagPsd2 ::  Nil)
+      apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
@@ -922,7 +922,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagAccount, apiTagPsd2))
+      List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle))
     
     //Note: we already have the method: getTransactionsForBankAccount in V121.
     //The only difference here is "Core implies 'owner' view" 
@@ -974,7 +974,7 @@ trait APIMethods200 {
       emptyObjectJson,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount ::  Nil)
+      apiTagAccount :: apiTagOldStyle :: Nil)
 
     lazy val accountById : OBPEndpoint = {
       //get account by id
@@ -1053,7 +1053,7 @@ trait APIMethods200 {
       emptyObjectJson,
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
-      List(apiTagView, apiTagAccount, apiTagUser))
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle))
 
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
@@ -1116,7 +1116,7 @@ trait APIMethods200 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagOldStyle),
       Some(List(canCreateAccount))
     )
 
@@ -1203,7 +1203,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagOldStyle)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
@@ -1291,7 +1291,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      List(apiTagTransactionRequest, apiTagPsd2),
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle),
       Some(List(canCreateAnyTransactionRequest)))
 
     lazy val createTransactionRequest: OBPEndpoint = {
@@ -1366,7 +1366,7 @@ trait APIMethods200 {
         TransactionDisabled,
         UnknownError
       ),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1454,7 +1454,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionRequestWithChargesJson,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
-      List(apiTagTransactionRequest, apiTagPsd2))
+      List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
 
     lazy val getTransactionRequests: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -1503,7 +1503,7 @@ trait APIMethods200 {
       createUserJson,
       userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
-      List(apiTagUser, apiTagOnboarding))
+      List(apiTagUser, apiTagOnboarding, apiTagOldStyle))
 
     lazy val createUser: OBPEndpoint = {
       case "users" :: Nil JsonPost json -> _ => {
@@ -1748,7 +1748,7 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagPerson),
+      List(apiTagCustomer, apiTagPerson, apiTagOldStyle),
       Some(List(canCreateCustomer,canCreateUserCustomerLink)))
 
 
@@ -1822,7 +1822,7 @@ trait APIMethods200 {
       emptyObjectJson,
       userJsonV200,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagUser))
+      List(apiTagUser, apiTagOldStyle))
 
 
     lazy val getCurrentUser: OBPEndpoint = {
@@ -1856,7 +1856,7 @@ trait APIMethods200 {
       emptyObjectJson,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      List(apiTagUser),
+      List(apiTagUser, apiTagOldStyle),
       Some(List(canGetAnyUser)))
 
 
@@ -1910,7 +1910,7 @@ trait APIMethods200 {
         CreateUserCustomerLinksError,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagUser),
+      List(apiTagCustomer, apiTagUser, apiTagOldStyle),
       Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
 
     // TODO
@@ -2027,7 +2027,7 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagOldStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
 
@@ -2204,7 +2204,7 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
-        List(apiTagSearchWarehouse),
+        List(apiTagSearchWarehouse, apiTagOldStyle),
         Some(List(canSearchWarehouse)))
 
     val esw = new elasticsearchWarehouse
@@ -2290,7 +2290,7 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-        List(apiTagMetric, apiTagApi),
+        List(apiTagMetric, apiTagApi, apiTagOldStyle),
         Some(List(canSearchMetrics)))
 
     val esm = new elasticsearchMetrics
@@ -2320,7 +2320,7 @@ trait APIMethods200 {
       emptyObjectJson,
       customersJsonV140,
       List(UserNotLoggedIn, UserCustomerLinksNotFoundForUser, UnknownError),
-      List(apiTagPerson, apiTagCustomer))
+      List(apiTagPerson, apiTagCustomer, apiTagOldStyle))
 
     lazy val getCustomers : OBPEndpoint = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
