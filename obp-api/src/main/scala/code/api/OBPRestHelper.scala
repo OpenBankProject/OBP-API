@@ -388,7 +388,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       val (user, callContext) = OAuth2Login.getUser(cc)
       user match {
         case Full(u) =>
-          AuthUser.refreshUser(u, callContext)
+          AuthUser.refreshUserLegacy(u, callContext)
           fn(cc.copy(user = Full(u))) // Authentication is successful
         case Empty => fn(cc.copy(user = Empty)) // Anonymous access
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)

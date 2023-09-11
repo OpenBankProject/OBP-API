@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 
 import akka.http.scaladsl.model.HttpMethod
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
-import code.api.util.{CallContext, NewStyle}
+import code.api.util.{CallContext, FutureUtil, NewStyle}
 import code.methodrouting.{MethodRouting, MethodRoutingT}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -17,8 +17,8 @@ import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
-import code.api.util.ErrorMessages.InvalidConnectorResponseForMissingRequiredValues
-import code.api.util.APIUtil.fullBoxOrException
+import code.api.util.ErrorMessages.{InvalidConnectorResponseForMissingRequiredValues, ServiceIsTooBusy}
+import code.api.util.APIUtil.{canOpenFuture, fullBoxOrException}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -48,13 +48,24 @@ package object bankconnectors extends MdcLoggable {
     object StubConnector extends Connector
 
     val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-      if (method.getName.contains("$default$")) {
-          method.invoke(StubConnector, args:_*)
+      if (method.getReturnType.getName == "scala.concurrent.Future" && !canOpenFuture(method.getName)) {
+        throw new RuntimeException(ServiceIsTooBusy + s"Current Service(${method.getName})")
       } else {
-        val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
-        logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
-        val apiVersion = ApiVersionHolder.getApiVersion
-        validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
+        if (method.getName.contains("$default$")) {
+          val connectorMethodResult = method.invoke(StubConnector, args:_*)
+          if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
+            FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
+          }
+          connectorMethodResult
+        } else {
+          val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
+          if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
+            FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
+          }
+          logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
+          val apiVersion = ApiVersionHolder.getApiVersion
+          validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
+        }
       }
     }
     val enhancer: Enhancer = new Enhancer()

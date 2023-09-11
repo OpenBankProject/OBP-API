@@ -28,8 +28,9 @@ import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
+import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
+import code.util.Helper.{booleanToBox, booleanToFuture}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
@@ -72,8 +73,8 @@ trait APIMethods200 {
   }
   
   // Shows accounts without view
-  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): JValue = {
-    Extraction.decompose(coreBankAccountList(callerContext, codeContext, user, bankAccounts, privateViewsUserCanAccess))
+  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View], callContext: Option[CallContext]): JValue = {
+    Extraction.decompose(coreBankAccountList(callerContext, codeContext, user, bankAccounts, privateViewsUserCanAccess, callContext))
   }
 
   private def privateBasicBankAccountList(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): List[BasicAccountJSON] = {
@@ -100,7 +101,7 @@ trait APIMethods200 {
     accJson
   }
 
-  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): List[CoreAccountJSON] = {
+  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View], callContext: Option[CallContext]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val viewsAvailable : List[BasicViewJson] =
         privateViewsUserCanAccess
@@ -110,7 +111,7 @@ trait APIMethods200 {
 
       val dataContext = DataContext(Full(user), Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
 
-      val links = code.api.util.APIUtil.getHalLinks(callerContext, codeContext, dataContext)
+      val links = code.api.util.APIUtil.getHalLinks(callerContext, codeContext, dataContext, callContext)
 
       JSONFactory200.createCoreAccountJSON(account, links)
     })
@@ -203,7 +204,7 @@ trait APIMethods200 {
                 (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
                 privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
               } yield {
-                val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, u, privateAccounts, privateViewsUserCanAccess)
+                val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, u, privateAccounts, privateViewsUserCanAccess, Some(cc))
                 val response = successJsonResponse(coreBankAccountListJson)
                 response
               }
@@ -287,8 +288,8 @@ trait APIMethods200 {
       }
     }
 
-    def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext,  user: User, privateAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]) ={
-      successJsonResponse(coreBankAccountListToJson(callerContext, codeContext,  user: User, privateAccounts, privateViewsUserCanAccess))
+    def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext,  user: User, privateAccounts: List[BankAccount], privateViewsUserCanAccess : List[View], callContext: Option[CallContext]) ={
+      successJsonResponse(coreBankAccountListToJson(callerContext, codeContext,  user: User, privateAccounts, privateViewsUserCanAccess, callContext))
     }
 
     resourceDocs += ResourceDoc(
@@ -329,7 +330,7 @@ trait APIMethods200 {
             (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
             (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
-            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank, callContext)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -342,7 +343,7 @@ trait APIMethods200 {
             (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
             (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
-           val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+           val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank, callContext)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -355,7 +356,7 @@ trait APIMethods200 {
             (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
             (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
-            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, availablePrivateAccounts, privateViewsUserCanAccessAtOneBank, callContext)
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -1133,43 +1134,71 @@ trait APIMethods200 {
         cc =>{
 
           for {
-            loggedInUser <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~! ErrorMessages.InvalidJsonFormat
-            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! ErrorMessages.InvalidUserId
-            _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            postedOrLoggedInUser <- UserX.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! s"Bank $bankId not found"
-            // User can create account for self or an account for another user if they have CanCreateAccount role
-            _ <- if (user_id == loggedInUser.userId) Full(Unit)
-                else NewStyle.function.ownEntitlement(bankId.value, loggedInUser.userId, canCreateAccount, callContext, s"User must either create account for self or have role $CanCreateAccount")
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSON "
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateAccountJSON]
+            }
 
-            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! ErrorMessages.InvalidAccountBalanceAmount
-            accountType <- tryo(jsonBody.`type`) ?~! ErrorMessages.InvalidAccountType
-            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel // TODO looks strange.
-            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
-            _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! s"Initial balance must be zero"
-            currency <- tryo (jsonBody.balance.currency) ?~! ErrorMessages.InvalidAccountBalanceCurrency
-            // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
-            _ <- booleanToBox(BankAccountX(bankId, accountId).isEmpty,
-              s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createBankAccountLegacy(
-              bankId, accountId, accountType, 
-              accountLabel, currency, initialBalanceAsNumber, 
+            loggedInUserId = u.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = callContext) {
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = callContext) {
+              isValidID(accountId.value)
+            }
+
+            (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
+
+            // User can create account for self or an account for another user if they have CanCreateAccount role
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = callContext) {
+              isValidID(accountId.value)
+            }
+
+            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
+            else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateAccount, callContext, s"${UserHasMissingRoles} $canCreateAccount or create account for self")
+
+            initialBalanceAsString = createAccountJson.balance.amount
+            accountType = createAccountJson.`type`
+            accountLabel = createAccountJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+
+            _ <- Helper.booleanToFuture(InitialBalanceMustBeZero, cc = callContext) {
+              0 == initialBalanceAsNumber
+            }
+
+            _ <- Helper.booleanToFuture(InvalidISOCurrencyCode, cc = callContext) {
+              isValidCurrencyISOCode(createAccountJson.balance.currency)
+            }
+
+
+            currency = createAccountJson.balance.currency
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+
+            (bankAccount, callContext) <- NewStyle.function.createBankAccount(
+              bankId,
+              accountId,
+              accountType,
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
               postedOrLoggedInUser.name,
-              "", //added new field in V220
-              List.empty
+              "",
+              List.empty,
+              callContext
             )
             //1 Create or Update the `Owner` for the new account
             //2 Add permission to the user
             //3 Set the user as the account holder
-            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
             dataContext = DataContext(cc.user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
-            links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
-            json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
-            
+            links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext, callContext)
           } yield {
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory200.createCoreAccountJSON(bankAccount, links), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1920,25 +1949,35 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            postedData <- tryo{json.extract[CreateUserCustomerLinkJson]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- booleanToBox(postedData.user_id.nonEmpty) ?~! "Field user_id is not defined in the posted json!"
-            user <- UserX.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
-            _ <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
-            (customer, callContext) <- Connector.connector.vend.getCustomerByCustomerIdLegacy(postedData.customer_id, callContext) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            _ <- NewStyle.function.hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank,
-                  createUserCustomerLinksEntitlementsRequiredForAnyBank, callContext)
-            _ <- booleanToBox(customer.bankId == bank.bankId.value, s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bank.bankId.value}) in URL")
-            _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
-            _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)
-            _ <- Full(AuthUser.refreshUser(user, callContext))
+            _ <- NewStyle.function.tryons(s"$InvalidBankIdFormat", 400, cc.callContext) {
+              assert(isValidID(bankId.value))
+            }
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateUserCustomerLinkJson ", 400, cc.callContext) {
+              json.extract[CreateUserCustomerLinkJson]
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUserId, 404)
+            }
+            _ <- booleanToFuture("Field customer_id is not defined in the posted json!", 400, cc.callContext) {
+              postedData.customer_id.nonEmpty
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, cc.callContext)
+            _ <- booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bankId.value}) in URL", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            _ <- booleanToFuture(CustomerAlreadyExistsForUser, 400, callContext) {
+              UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true
+            }
+            userCustomerLink <- Future {
+              UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true)
+            } map {
+              x => unboxFullOrFail(x, callContext, CreateUserCustomerLinksError, 400)
+            }
+            
+            _ <- AuthUser.refreshUser(user, callContext)
             
           } yield {
-            val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
-            successJsonResponse(successJson, 201)
+            (JSONFactory200.createUserCustomerLinkJSON(userCustomerLink),HttpCode.`200`(callContext))
           }
       }
     }

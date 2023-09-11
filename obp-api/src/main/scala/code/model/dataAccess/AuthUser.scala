@@ -1245,7 +1245,7 @@ def restoreSomeSessions(): Unit = {
       for {
        u <- Users.users.vend.getUserByUserName(provider, username)
       } yield {
-        refreshUser(u, None)
+        refreshUserLegacy(u, None)
       }
     }
   }
@@ -1373,7 +1373,21 @@ def restoreSomeSessions(): Unit = {
       (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.provider, user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-      _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
+      _ = logger.debug(s"--> for user($user): AuthUser.refreshUser.accountsHeld : ${accountsHeld}")
+      
+      success = refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
+      
+    }yield {
+      success
+    }
+  }
+  
+  @deprecated("This return Box, not a future, try to use @refreshUser instead. ","08-09-2023")
+  def refreshUserLegacy(user: User, callContext: Option[CallContext]) = {
+    for{
+      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUserLegacy(user.provider, user.name, callContext) 
+      
+      _ = logger.debug(s"--> for user($user): AuthUser.refreshUserLegacy.accountsHeld : ${accountsHeld}")
       
       success = refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
       
