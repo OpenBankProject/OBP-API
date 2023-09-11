@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.Constant.PARAM_LOCALE
-import code.util.Helper.SILENCE_IS_GOLDEN
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 
 import java.util.{Date, Locale}
 
@@ -29,7 +29,7 @@ object I18NUtil extends MdcLoggable {
   def currentLocale() : Locale = {
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
-    S.param(PARAM_LOCALE) match {
+    ObpS.param(PARAM_LOCALE) match {
       // 1st choice: Use query parameter as a source of truth if any
       case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale) == SILENCE_IS_GOLDEN => {
         val computedLocale = I18NUtil.computeLocale(requestedLocale)

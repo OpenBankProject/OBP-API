@@ -27,7 +27,7 @@ import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.{booleanToBox, booleanToFuture}
+import code.util.Helper.{booleanToBox, booleanToFuture,ObpS}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
@@ -1330,12 +1330,12 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         cc => {
           implicit val ec = EndpointContext(Some(cc))
-          val limit = S.param("limit")
-          val offset = S.param("offset")
-          val city = S.param("city")
-          val withinMetersOf = S.param("withinMetersOf")
-          val nearLatitude = S.param("nearLatitude")
-          val nearLongitude = S.param("nearLongitude")
+          val limit = ObpS.param("limit")
+          val offset = ObpS.param("offset")
+          val city = ObpS.param("city")
+          val withinMetersOf = ObpS.param("withinMetersOf")
+          val nearLatitude = ObpS.param("nearLatitude")
+          val nearLongitude = ObpS.param("nearLongitude")
           for {
             (_, callContext) <- getBranchesIsPublic match {
                 case false => authenticatedAccess(cc)
@@ -1463,8 +1463,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet req => {
         cc => {
           implicit val ec = EndpointContext(Some(cc))
-          val limit = S.param("limit")
-          val offset = S.param("offset")
+          val limit = ObpS.param("limit")
+          val offset = ObpS.param("offset")
           for {
             (_, callContext) <- getAtmsIsPublic match {
                 case false => authenticatedAccess(cc)

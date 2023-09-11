@@ -4,7 +4,6 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util
 import java.util.{Calendar, Date}
-
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -44,7 +43,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.api.dynamic.endpoint.helper._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.util.FutureUtil.{EndpointContext}
+import code.api.util.FutureUtil.EndpointContext
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
@@ -73,7 +72,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.booleanToFuture
+import code.util.Helper.{ObpS, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
@@ -11756,8 +11755,8 @@ trait APIMethods400 {
     lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          val limit = S.param("limit")
-          val offset = S.param("offset")
+          val limit = ObpS.param("limit")
+          val offset = ObpS.param("offset")
           for {
             (_, callContext) <- getAtmsIsPublic match {
               case false => authenticatedAccess(cc)

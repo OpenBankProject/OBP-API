@@ -30,7 +30,7 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.InvalidJsonFormat
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.v3_1_0.{APIMethods310, UserAuthContextUpdateJson}
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
@@ -52,7 +52,7 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
 
 
   def addUserAuthContextUpdateRequest = {
-    identifierKey.set(S.param("key").openOr(identifierKey.get))
+    identifierKey.set(ObpS.param("key").openOr(identifierKey.get))
     // CUSTOMER_NUMBER --> Customer Number
     val inputValue = identifierKey.get.split("_").map(_.toLowerCase.capitalize).mkString(" ")
     "#add-user-auth-context-update-request-form-title *" #> s"Please enter your ${inputValue}:" &
@@ -73,7 +73,7 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
       case Right(response) => {
         tryo {json.parse(response).extract[UserAuthContextUpdateJson]} match {
           case Full(userAuthContextUpdateJson) => S.redirectTo(
-            s"/confirm-user-auth-context-update-request?BANK_ID=${S.param("BANK_ID")openOr("")}&AUTH_CONTEXT_UPDATE_ID=${userAuthContextUpdateJson.user_auth_context_update_id}"
+            s"/confirm-user-auth-context-update-request?BANK_ID=${ObpS.param("BANK_ID")openOr("")}&AUTH_CONTEXT_UPDATE_ID=${userAuthContextUpdateJson.user_auth_context_update_id}"
           )
           case _ => S.error("identifier-error",s"$InvalidJsonFormat The Json body should be the $UserAuthContextUpdateJson. " +
             s"Please check `Create User Auth Context Update Request` endpoint separately! ")
@@ -102,8 +102,8 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
   private def callCreateUserAuthContextUpdateRequest: Either[(String, Int), String] = {
 
     val requestParam = List(
-      S.param("BANK_ID"),
-      S.param("SCA_METHOD")
+      ObpS.param("BANK_ID"),
+      ObpS.param("SCA_METHOD")
     )
 
     if(requestParam.count(_.isDefined) < requestParam.size) {
@@ -112,11 +112,11 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
 
     val pathOfEndpoint = List(
       "banks",
-      S.param("BANK_ID")openOr(""),
+      ObpS.param("BANK_ID")openOr(""),
       "users",
       "current",
       "auth-context-updates",
-      S.param("SCA_METHOD")openOr("")
+      ObpS.param("SCA_METHOD")openOr("")
     )
 
     val requestBody = s"""{"key":"${identifierKey.get}","value":"${identifierValue.get}"}"""
@@ -129,8 +129,8 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
   private def callConfirmUserAuthContextUpdateRequest: Either[(String, Int), String] = {
 
     val requestParam = List(
-      S.param("BANK_ID"),
-      S.param("AUTH_CONTEXT_UPDATE_ID")
+      ObpS.param("BANK_ID"),
+      ObpS.param("AUTH_CONTEXT_UPDATE_ID")
     )
 
     if(requestParam.count(_.isDefined) < requestParam.size) {
@@ -139,11 +139,11 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
 
     val pathOfEndpoint = List(
       "banks",
-      S.param("BANK_ID")openOr(""),
+      ObpS.param("BANK_ID")openOr(""),
       "users",
       "current",
       "auth-context-updates",
-      S.param("AUTH_CONTEXT_UPDATE_ID")openOr(""),
+      ObpS.param("AUTH_CONTEXT_UPDATE_ID")openOr(""),
       "challenge"
     )
 

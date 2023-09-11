@@ -21,7 +21,7 @@ import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
@@ -941,7 +941,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
 
   def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[String], Option[ContentParam], Option[String], Option[String]) = {
 
-    val rawTagsParam = S.param("tags")
+    val rawTagsParam = ObpS.param("tags")
 
 
     val tags: Option[List[ResourceDocTag]] =
@@ -965,7 +965,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     logger.debug(s"tagsOption is $tags")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
-    val rawPartialFunctionNames = S.param("functions")
+    val rawPartialFunctionNames = ObpS.param("functions")
 
     val partialFunctionNames: Option[List[String]] =
       rawPartialFunctionNames match {
@@ -987,23 +987,23 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
       }
     logger.debug(s"partialFunctionNames is $partialFunctionNames")
 
-    val locale = S.param(PARAM_LOCALE).or(S.param("language")) // we used language before, so keep it there. 
+    val locale = ObpS.param(PARAM_LOCALE).or(ObpS.param("language")) // we used language before, so keep it there. 
     logger.debug(s"locale is $locale")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val contentParam = for {
-      x <- S.param("content")
+      x <- ObpS.param("content")
       y <- stringToContentParam(x)
     } yield y
     logger.debug(s"content is $contentParam")
 
     val apiCollectionIdParam = for {
-      x <- S.param("api-collection-id")
+      x <- ObpS.param("api-collection-id")
     } yield x
     logger.debug(s"apiCollectionIdParam is $apiCollectionIdParam")
     
     val cacheModifierParam = for {
-      x <- S.param("cache-modifier")
+      x <- ObpS.param("cache-modifier")
     } yield x
     logger.debug(s"cacheModifierParam is $cacheModifierParam")
 

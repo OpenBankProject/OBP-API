@@ -71,7 +71,7 @@ import code.model.dataAccess.AuthUser
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
 import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -711,10 +711,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(h) =>
             Full(h)
           case _ =>
-            S.param(nameOfSpellingParam())
+            ObpS.param(nameOfSpellingParam())
         }
       case _ =>
-        S.param(nameOfSpellingParam())
+        ObpS.param(nameOfSpellingParam())
     }
   }
 
@@ -3534,7 +3534,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val brandParameter = "brand"
 
     // Use brand in parameter (query or form)
-    val brand: Option[String] = S.param(brandParameter) match {
+    val brand: Option[String] = ObpS.param(brandParameter) match {
       case Full(value) => {
         // If found, and has a valid format, set the session.
         if (isValidID(value)) {

@@ -42,7 +42,7 @@ import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.common._
@@ -439,7 +439,7 @@ import net.liftweb.util.Helpers._
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
-        "#login_challenge [value]" #> S.param("login_challenge").getOrElse("") &
+        "#login_challenge [value]" #> ObpS.param("login_challenge").getOrElse("") &
         "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
@@ -1004,7 +1004,7 @@ def restoreSomeSessions(): Unit = {
     */
   override def login: NodeSeq = {
     // This query parameter is specific to ORY Hydra login request
-    val loginChallenge: Box[String] = S.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
+    val loginChallenge: Box[String] = ObpS.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -1073,10 +1073,10 @@ def restoreSomeSessions(): Unit = {
     
     def loginAction = {
       if (S.post_?) {
-        val usernameFromGui = S.param("username").getOrElse("")
-        val passwordFromGui = S.param("password").getOrElse("")
-        val usernameEmptyField = S.param("username").map(_.isEmpty()).getOrElse(true)
-        val passwordEmptyField = S.param("password").map(_.isEmpty()).getOrElse(true)
+        val usernameFromGui = ObpS.param("username").getOrElse("")
+        val passwordFromGui = ObpS.param("password").getOrElse("")
+        val usernameEmptyField = ObpS.param("username").map(_.isEmpty()).getOrElse(true)
+        val passwordEmptyField = ObpS.param("password").map(_.isEmpty()).getOrElse(true)
         val emptyField = usernameEmptyField || passwordEmptyField
         emptyField match {
           case true =>

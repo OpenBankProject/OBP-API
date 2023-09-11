@@ -6,7 +6,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.tesobe.ErrorMessage
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.model.Transaction
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Full
@@ -181,7 +181,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
         }
       }
 
-      S.param("secret") match {
+      ObpS.param("secret") match {
         case Full(s) => {
           APIUtil.getPropsValue("importer_secret") match {
             case Full(localS) =>

@@ -34,7 +34,7 @@ import code.api.util.{CallContext, CustomJsonFormats}
 import code.api.v2_1_0.TransactionRequestWithChargeJSON210
 import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, Failure, Full}
@@ -68,7 +68,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
     }
 
     def PaymentOTP = {
-      val result = S.param("flow") match {
+      val result = ObpS.param("flow") match {
         case Full("payment") => processPaymentOTP
         case Full(unSupportedFlow) => Left((s"flow $unSupportedFlow is not correct.", 500))
         case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
@@ -93,7 +93,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
       }
     }
     def transactionRequestOTP = {
-      val result = S.param("flow") match {
+      val result = ObpS.param("flow") match {
         case Full("transaction_request") => processTransactionRequestOTP
         case Full(unSupportedFlow) => Left((s"flow $unSupportedFlow is not correct.", 500))
         case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
@@ -119,7 +119,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
           "#otp-validation-success" #> "" &
           "#otp-validation-errors .errorContent *" #> "please input OTP value"
       } else {
-        S.param("flow") match {
+        ObpS.param("flow") match {
           case Full("payment") => PaymentOTP
           case Full("transaction_request") => transactionRequestOTP
           case _ => transactionRequestOTP
@@ -137,7 +137,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
 
   private def processPaymentOTP: Either[(String, Int), String] = {
 
-    val requestParam = List(S.param("paymentService"), S.param("paymentProduct"), S.param("paymentId"))
+    val requestParam = List(ObpS.param("paymentService"), ObpS.param("paymentProduct"), ObpS.param("paymentId"))
 
     if(requestParam.count(_.isDefined) < requestParam.size) {
       return Left(("There are one or many mandatory request parameter not present, please check request parameter: paymentService, paymentProduct, paymentId", 500))
@@ -166,12 +166,12 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
   private def processTransactionRequestOTP: Either[(String, Int), String] = {
 
     val requestParam = List(
-      S.param("id"),
-      S.param("bankId"),
-      S.param("accountId"),
-      S.param("viewId"),
-      S.param("transactionRequestType"),
-      S.param("transactionRequestId")
+      ObpS.param("id"),
+      ObpS.param("bankId"),
+      ObpS.param("accountId"),
+      ObpS.param("viewId"),
+      ObpS.param("transactionRequestType"),
+      ObpS.param("transactionRequestId")
     )
 
     if(requestParam.count(_.isDefined) < requestParam.size) {
@@ -180,18 +180,18 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
 
     val pathOfEndpoint = List(
       "banks",
-      S.param("bankId")openOr(""),
+      ObpS.param("bankId")openOr(""),
       "accounts",
-      S.param("accountId")openOr(""),
-      S.param("viewId")openOr(""),
+      ObpS.param("accountId")openOr(""),
+      ObpS.param("viewId")openOr(""),
       "transaction-request-types",
-      S.param("transactionRequestType")openOr(""),
+      ObpS.param("transactionRequestType")openOr(""),
       "transaction-requests",
-      S.param("transactionRequestId")openOr(""),
+      ObpS.param("transactionRequestId")openOr(""),
       "challenge"
     )
 
-    val requestBody = s"""{"id":"${S.param("id").getOrElse("")}","answer":"${otpVar.get}"}"""
+    val requestBody = s"""{"id":"${ObpS.param("id").getOrElse("")}","answer":"${otpVar.get}"}"""
 
     val authorisationsResult = callEndpoint(Implementations4_0_0.answerTransactionRequestChallenge, pathOfEndpoint, PostRequest, requestBody)
 
