@@ -106,7 +106,7 @@ read_authentication_type_validation_requires_role=false
 ## Define endpoint timeouts in miliseconds
 short_endpoint_timeout = 1000
 medium_endpoint_timeout = 7000
-long_endpoint_timeout = 60000
+long_endpoint_timeout = 55000
 
 ##Added Props property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
 #system_environment_property_name_prefix=OBP_
