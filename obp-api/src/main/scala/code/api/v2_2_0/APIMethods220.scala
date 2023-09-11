@@ -1,11 +1,13 @@
 package code.api.v2_2_0
 
 import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canCreateBranch, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ErrorMessages, _}
 import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
@@ -97,7 +99,7 @@ trait APIMethods220 {
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
@@ -278,7 +280,7 @@ trait APIMethods220 {
 
     lazy val getCurrentFxRate: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getCurrentFxRateIsPublic match {
               case false => authenticatedAccess(cc)
@@ -326,7 +328,7 @@ trait APIMethods220 {
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
@@ -376,7 +378,7 @@ trait APIMethods220 {
   
     lazy val getExplictCounterpartyById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
@@ -416,6 +418,7 @@ trait APIMethods220 {
     lazy val getMessageDocs: OBPEndpoint = {
       case "message-docs" :: connector :: Nil JsonGet _ => {
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
             connectorObject <- Future(tryo{Connector.getConnectorInstance(connector)}) map { i =>
               val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vSept2018..."
@@ -774,6 +777,7 @@ trait APIMethods220 {
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         cc =>{
+          implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
@@ -865,7 +869,7 @@ trait APIMethods220 {
 
     lazy val config: OBPEndpoint = {
       case "config" :: Nil JsonGet _ =>
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig, callContext)
@@ -923,7 +927,7 @@ trait APIMethods220 {
 
     lazy val getConnectorMetrics : OBPEndpoint = {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
-        cc => 
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics, callContext)
@@ -1113,7 +1117,7 @@ trait APIMethods220 {
   
     lazy val createCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
