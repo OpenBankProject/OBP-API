@@ -2222,6 +2222,20 @@ object NewStyle extends MdcLoggable{
         unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported)
       }
     
+    def createOrUpdateFXRate(bankId: String,
+                             fromCurrencyCode: String,
+                             toCurrencyCode: String,
+                             conversionValue: Double,
+                             inverseConversionValue: Double,
+                             effectiveDate: Date,
+                             callContext: Option[CallContext]
+                            ): Future[FXRate] =
+      Future(
+        Connector.connector.vend.createOrUpdateFXRate(bankId, fromCurrencyCode, toCurrencyCode, conversionValue, inverseConversionValue, effectiveDate)
+      ) map {
+        unboxFullOrFail(_, callContext, createFxCurrencyIssue)
+      }
+    
     def createMeeting(
       bankId: BankId,
       staffUser: User,

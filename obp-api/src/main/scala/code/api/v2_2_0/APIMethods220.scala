@@ -697,7 +697,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagFx, apiTagOldStyle),
+      List(apiTagFx),
       Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))
     )
 
@@ -705,25 +705,36 @@ trait APIMethods220 {
 
     lazy val createFx: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "fx" ::  Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank, createFxEntitlementsRequiredForAnyBank, callContext)
-              fx <- tryo {json.extract[FXRateJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- booleanToBox(APIUtil.isValidCurrencyISOCode(fx.from_currency_code),InvalidISOCurrencyCode+s"Current from_currency_code is ${fx.from_currency_code}") 
-            _ <- booleanToBox(APIUtil.isValidCurrencyISOCode(fx.to_currency_code),InvalidISOCurrencyCode+s"Current to_currency_code is ${fx.to_currency_code}")
-            success <- Connector.connector.vend.createOrUpdateFXRate(
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Future {
+              NewStyle.function.hasAllEntitlements(
+                bank.bankId.value, 
+                u.userId, 
+                createFxEntitlementsRequiredForSpecificBank, 
+                createFxEntitlementsRequiredForAnyBank, 
+                callContext
+              )
+            }
+            fx <- NewStyle.function.tryons(ErrorMessages.InvalidJsonFormat, 400, callContext) {
+              json.extract[FXRateJsonV220]
+            }
+            _ <- NewStyle.function.isValidCurrencyISOCode(fx.from_currency_code, callContext)
+            _ <- NewStyle.function.isValidCurrencyISOCode(fx.to_currency_code, callContext)
+            fxRate <- NewStyle.function.createOrUpdateFXRate(
               bankId = fx.bank_id,
               fromCurrencyCode = fx.from_currency_code,
               toCurrencyCode = fx.to_currency_code,
               conversionValue = fx.conversion_value,
               inverseConversionValue = fx.inverse_conversion_value,
-              effectiveDate = fx.effective_date
+              effectiveDate = fx.effective_date,
+              callContext
             )
           } yield {
-            val json = JSONFactory220.createFXRateJSON(success)
-            createdJsonResponse(Extraction.decompose(json))
+            val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
+            (viewJSON, HttpCode.`200`(callContext))
           }
       }
     }

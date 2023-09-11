@@ -130,6 +130,9 @@ object ErrorMessages {
 
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
 
+  val createFxCurrencyIssue = "OBP-10050: Cannot create FX currency. "
+
+
 
 
   // Authentication / Authorisation / User messages (OBP-20XXX)
