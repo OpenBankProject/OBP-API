@@ -467,8 +467,9 @@ object Helper extends Loggable {
       if (methodName.equals("param")&&result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined) {
         //we provide the basic check for all the parameters
         val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
-        if(resultAfterChecked.isEmpty) 
-          logger.debug(s"ObpS.param validation failed. The input value is:$result")
+        if(resultAfterChecked.isEmpty) { 
+          logger.debug(s"ObpS.param validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
+        }
         resultAfterChecked
       } else {
         result
