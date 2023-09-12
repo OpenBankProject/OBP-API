@@ -734,7 +734,7 @@ trait APIMethods220 {
             )
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
-            (viewJSON, HttpCode.`200`(callContext))
+            (viewJSON, HttpCode.`201`(callContext))
           }
       }
     }
