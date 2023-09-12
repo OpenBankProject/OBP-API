@@ -466,7 +466,18 @@ object Helper extends Loggable {
       val methodName = method.getName
       if (methodName.equals("param")&&result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined) {
         //we provide the basic check for all the parameters
-        val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
+        val resultAfterChecked = 
+          if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("username")) {
+            result.asInstanceOf[Box[String]].filter(APIUtil.checkUsernameString(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("password")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicPasswordValidation(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("consumer_key")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicConsumerKeyValidation(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("redirectUrl")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicUrlValidation(_))
+          } else{
+            result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
+          }
         if(resultAfterChecked.isEmpty) { 
           logger.debug(s"ObpS.param validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
         }
