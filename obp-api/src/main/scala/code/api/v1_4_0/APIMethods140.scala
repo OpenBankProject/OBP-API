@@ -110,20 +110,21 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagMessage, apiTagCustomer, apiTagOldStyle))
+      List(apiTagMessage, apiTagCustomer))
 
     lazy val getCustomersMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
-        cc =>{
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             //au <- ResourceUser.find(By(ResourceUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)
             val json = JSONFactory1_4_0.createCustomerMessagesJson(messages)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
