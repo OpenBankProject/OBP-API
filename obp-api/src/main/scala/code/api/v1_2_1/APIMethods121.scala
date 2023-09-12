@@ -2151,26 +2151,36 @@ trait APIMethods121 {
         "Coordinates not possible",
         "Corporate Location cannot be updated",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagOldStyle))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : OBPEndpoint = {
       //update corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
-            corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
-            correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a corporate location", cc=callContext) {
+              otherBankAccount.metadata.get.addCorporateLocation.isDefined
+            }
+            corpLocationJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+              json.extract[CorporateLocationJSON]
+            }
+            _ <- Helper.booleanToFuture(failMsg = "Coordinates not possible", 400, callContext) {
+              checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude).isDefined
+            }
+            (updated, _) <- Future(Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude)) map { i =>
+              (unboxFullOrFail(i, callContext, "Corporate Location cannot be updated", 400), i)
+            }
             if(updated)
           } yield {
-            val successJson = SuccessMessage("corporate location updated")
-            successJsonResponse(Extraction.decompose(successJson))
+            (SuccessMessage("corporate location updated"), HttpCode.`200`(callContext))
           }
       }
     }
