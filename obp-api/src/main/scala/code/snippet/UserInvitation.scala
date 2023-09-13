@@ -133,7 +133,7 @@ class UserInvitation extends MdcLoggable {
               UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
               // Set a new password
               // Please note that the query parameter is used to alter the message at password reset page i.e. at next code:
-              // <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+              // <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
               // placed into function AuthZUser.passwordResetXhtml
               val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
               S.redirectTo(resetLink)

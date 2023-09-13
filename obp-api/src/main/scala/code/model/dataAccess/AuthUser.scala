@@ -1538,7 +1538,7 @@ def restoreSomeSessions(): Unit = {
 
   override def passwordResetXhtml = {
     <div id="recover-password" tabindex="-1">
-      <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+      <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
       <form action={S.uri} method="post">
         <div class="form-group">
           <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
