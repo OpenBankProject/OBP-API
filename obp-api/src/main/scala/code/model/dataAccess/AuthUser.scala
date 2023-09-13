@@ -435,7 +435,7 @@ import net.liftweb.util.Helpers._
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
-        "form [action]" #> {S.uri} &
+        "form [action]" #> {ObpS.uri} &
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
@@ -583,7 +583,7 @@ import net.liftweb.util.Helpers._
     <div id="recover-password" tabindex="-1">
           <h1>Recover Password</h1>
           <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
-          <form action={S.uri} method="post">
+          <form action={ObpS.uri} method="post">
             <div class="form-group">
               <label>Username or email address</label> <span id="recover-password-email"><input id="email" type="text" /></span>
             </div>
@@ -744,7 +744,7 @@ import net.liftweb.util.Helpers._
   
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup" tabindex="-1">
-      <form method="post" action={ObpS.uriAndQueryString.getOrElse(S.uri)}>
+      <form method="post" action={ObpS.uriAndQueryString.getOrElse(ObpS.uri)}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}
           <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
@@ -1539,7 +1539,7 @@ def restoreSomeSessions(): Unit = {
   override def passwordResetXhtml = {
     <div id="recover-password" tabindex="-1">
       <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
-      <form action={S.uri} method="post">
+      <form action={ObpS.uri} method="post">
         <div class="form-group">
           <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
         </div>

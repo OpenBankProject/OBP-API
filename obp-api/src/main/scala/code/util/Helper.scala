@@ -483,8 +483,15 @@ object Helper extends Loggable {
           logger.debug(s"ObpS.${methodName} validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
         }
         resultAfterChecked
-      } else if (methodName.equals("uri") && result.isInstanceOf[String] ||
-        methodName.equals("uriAndQueryString") && result.isInstanceOf[Box[String]] && result.asInstanceOf[Box[String]].isDefined ||
+      } else if (methodName.equals("uri") && result.isInstanceOf[String]){
+        val resultAfterChecked = Full(result.asInstanceOf[String]).filter(APIUtil.basicUriAndQueryStringValidation(_))
+        if(resultAfterChecked.isDefined) {
+          resultAfterChecked.head
+        }else{
+          logger.debug(s"ObpS.${methodName} validation failed. The value is:$result")
+          resultAfterChecked.getOrElse("")
+        }
+      } else if (methodName.equals("uriAndQueryString") && result.isInstanceOf[Box[String]] && result.asInstanceOf[Box[String]].isDefined ||
         methodName.equals("queryString") && result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined){
         val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
         if(resultAfterChecked.isEmpty) { 

@@ -89,7 +89,7 @@ class WebUI extends MdcLoggable{
       val hyphenLocale = locale.replace("_", "-")
       if (supportedLocales.contains(locale) || supportedLocales.contains(hyphenLocale) ) {""} else {"none"}
     }
-    val page = Constant.HostName + S.uri
+    val page = Constant.HostName + ObpS.uri
     val language = I18NUtil.currentLocale().getLanguage()
 
     "#es a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=es_ES")}") &
