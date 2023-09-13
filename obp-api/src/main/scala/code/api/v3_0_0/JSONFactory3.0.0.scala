@@ -1134,11 +1134,23 @@ object JSONFactory300{
 
   // This goes FROM JSON TO internal representation of a Branch
   def transformToBranchFromV300(branchJsonV300: BranchJsonV300): Box[Branch] = {
+    
+    val branch: Branch = transforToBranchCommon(branchJsonV300)
 
+    Full(branch)
+  }  
+  // This goes FROM JSON TO internal representation of a Branch
+  def transformToBranch(branchJsonV300: BranchJsonV300): Branch = {
+    
+    val branch: Branch = transforToBranchCommon(branchJsonV300)
 
-    val address : Address = transformToAddressFromV300(branchJsonV300.address) // Note the address in V220 is V140
-    val location: Location =  transformToLocationFromV140(branchJsonV300.location)  // Note the location is V140
-    val meta: Meta =  transformToMetaFromV140(branchJsonV300.meta)  // Note the meta  is V140
+    branch
+  }
+
+  private def transforToBranchCommon(branchJsonV300: BranchJsonV300) = {
+    val address: Address = transformToAddressFromV300(branchJsonV300.address) // Note the address in V220 is V140
+    val location: Location = transformToLocationFromV140(branchJsonV300.location) // Note the location is V140
+    val meta: Meta = transformToMetaFromV140(branchJsonV300.meta) // Note the meta  is V140
 
 
     val lobby: Lobby = Lobby(
@@ -1177,11 +1189,7 @@ object JSONFactory300{
     )
 
 
-
-
     val branchRouting = Some(Routing(branchJsonV300.branch_routing.scheme, branchJsonV300.branch_routing.address))
-
-
 
 
     val isAccessible: Boolean = Try(branchJsonV300.is_accessible.toBoolean).getOrElse(false)
@@ -1207,8 +1215,7 @@ object JSONFactory300{
       phoneNumber = Some(branchJsonV300.phone_number),
       isDeleted = Some(false)
     )
-
-    Full(branch)
+    branch
   }
 
   def createUserJSON(user : User, entitlements: List[Entitlement]) : UserJsonV200 = {

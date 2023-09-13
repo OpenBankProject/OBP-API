@@ -1232,7 +1232,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagOldStyle)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
@@ -1532,41 +1532,43 @@ trait APIMethods200 {
       createUserJson,
       userJsonV200,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
-      List(apiTagUser, apiTagOnboarding, apiTagOldStyle))
+      List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {
       case "users" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            postedData <- tryo {json.extract[CreateUserJson]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(fullPasswordValidation(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
-          } yield {
-            if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
-              val userCreated = AuthUser.create
+            postedData <- NewStyle.function.tryons(ErrorMessages.InvalidJsonFormat, 400, cc.callContext) {
+              json.extract[CreateUserJson]
+            }
+            _ <- Helper.booleanToFuture(ErrorMessages.InvalidStrongPasswordFormat, 400, cc.callContext) {
+              fullPasswordValidation(postedData.password)
+            }
+            _ <- Helper.booleanToFuture("User with the same username already exists.", 409, cc.callContext) {
+              AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty
+            }
+            userCreated <- Future {
+              AuthUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
                 .username(postedData.username)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(APIUtil.getPropsAsBoolValue("user_account_validated", false))
-              if(userCreated.validate.size > 0){
-                Full(errorJsonResponse(userCreated.validate.map(_.msg).mkString(";")))
-              }
-              else
-              {
-                userCreated.saveMe()
-                if (userCreated.saved_?) {
-                  AuthUser.grantDefaultEntitlementsToAuthUser(userCreated)
-                  val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
-                  successJsonResponse(Extraction.decompose(json), 201)
-                }
-                else
-                  Full(errorJsonResponse("Error occurred during user creation."))
-              }
             }
-            else {
-              Full(errorJsonResponse("User with the same username already exists.", 409))
+            _ <- Helper.booleanToFuture(userCreated.validate.map(_.msg).mkString(";"), 400, cc.callContext) {
+              userCreated.validate.size == 0
             }
+            savedUser <- NewStyle.function.tryons(ErrorMessages.InvalidJsonFormat, 400, cc.callContext) {
+              userCreated.saveMe()
+            }
+            _ <- Helper.booleanToFuture("Error occurred during user creation.", 400, cc.callContext) {
+              userCreated.saved_?
+            }
+          } yield {
+            AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
+            val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
+            (json, HttpCode.`201`(cc.callContext))
           }
       }
     }
