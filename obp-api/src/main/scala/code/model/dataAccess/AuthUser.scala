@@ -1588,8 +1588,8 @@ def restoreSomeSessions(): Unit = {
             case _ =>
               //if the register page url (user_mgt/sign_up?after-signup=link-to-customer) contains the parameter 
               //after-signup=link-to-customer,then it will redirect to the on boarding customer page.
-              S.params("after-signup") match { 
-                case url if (url.nonEmpty && url.head.equals("link-to-customer")) =>
+              ObpS.param("after-signup") match { 
+                case url if (url.equals("link-to-customer")) =>
                   "/add-user-auth-context-update-request"
                 case _ =>
                   homePage
