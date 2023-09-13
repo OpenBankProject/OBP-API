@@ -134,6 +134,14 @@ object NewStyle extends MdcLoggable{
         x => fullBoxOrException(x ~> APIFailureNewStyle(BranchNotFoundByBranchId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
+    
+    def createOrUpdateBranch(branch: BranchT, callContext: Option[CallContext]): Future[BranchT] = {
+      Future {
+        Connector.connector.vend.createOrUpdateBranch(branch)
+      } map {
+        unboxFullOrFail(_, callContext, ErrorMessages.CountNotSaveOrUpdateResource + " Branch", 400)
+      }
+    }
 
     /**
       * delete a branch, just set isDeleted field to true, marks it is deleted
