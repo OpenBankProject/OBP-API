@@ -3891,8 +3891,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postCorporateLocationForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc, user3)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 403 code")
+      postReply.code should equal (403)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -3906,8 +3906,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postCorporateLocationForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomLoc, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 403 code")
+      postReply.code should equal (403)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
