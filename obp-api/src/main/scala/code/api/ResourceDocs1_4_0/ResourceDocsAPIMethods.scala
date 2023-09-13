@@ -250,7 +250,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
-          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersionString")
+          logger.debug(s"Generating OBP-getStaticResourceDocsObpCached requestedApiVersion is $requestedApiVersionString")
           val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
 
           val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames, isVersion4OrHigher, locale)
@@ -284,7 +284,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
-          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersionString")
+          logger.debug(s"Generating getAllResourceDocsObpCached-Docs requestedApiVersion is $requestedApiVersionString")
           val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
           
           val dynamicDocs = allDynamicResourceDocs
@@ -723,7 +723,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
-          logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
+          logger.debug(s"Generating Swagger-getResourceDocsSwaggerCached requestedApiVersion is $requestedApiVersionString")
 
           Box.tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) match {
             case Full(requestedApiVersion) =>

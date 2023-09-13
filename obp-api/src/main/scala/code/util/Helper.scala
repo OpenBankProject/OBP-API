@@ -464,6 +464,7 @@ object Helper extends Loggable {
 
       lazy val result = method.invoke(net.liftweb.http.S, args: _*)
       val methodName = method.getName
+      
       if (methodName.equals("param")&&result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined) {
         //we provide the basic check for all the parameters
         val resultAfterChecked = 
@@ -479,7 +480,15 @@ object Helper extends Loggable {
             result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
           }
         if(resultAfterChecked.isEmpty) { 
-          logger.debug(s"ObpS.param validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
+          logger.debug(s"ObpS.${methodName} validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
+        }
+        resultAfterChecked
+      } else if (methodName.equals("uri") && result.isInstanceOf[String] ||
+        methodName.equals("uriAndQueryString") && result.isInstanceOf[Box[String]] && result.asInstanceOf[Box[String]].isDefined ||
+        methodName.equals("queryString") && result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined){
+        val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
+        if(resultAfterChecked.isEmpty) { 
+          logger.debug(s"ObpS.${methodName} validation failed. The value is:$result")
         }
         resultAfterChecked
       } else {

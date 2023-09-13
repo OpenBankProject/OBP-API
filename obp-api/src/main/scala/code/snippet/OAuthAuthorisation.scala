@@ -122,7 +122,7 @@ object OAuthAuthorisation {
           S.redirectTo(appendParams(redirectionUrl, redirectionParam))
         }
       } else {
-        val currentUrl = S.uriAndQueryString.getOrElse("/")
+        val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
         /*if (AuthUser.loggedIn_?) {
           AuthUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get

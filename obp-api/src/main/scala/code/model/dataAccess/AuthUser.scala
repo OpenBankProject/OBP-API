@@ -744,7 +744,7 @@ import net.liftweb.util.Helpers._
   
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup" tabindex="-1">
-      <form method="post" action={S.uriAndQueryString.getOrElse(S.uri)}>
+      <form method="post" action={ObpS.uriAndQueryString.getOrElse(S.uri)}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}
           <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
@@ -786,13 +786,13 @@ import net.liftweb.util.Helpers._
   def userLoginFailed = {
     logger.info("failed: " + failedLoginRedirect.get)
     // variable redir is from failedLoginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
     val redir = failedLoginRedirect.get
 
     //Check the internal redirect, in case for open redirect issue.
     // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     if (Helper.isValidInternalRedirectUrl(redir.toString)) {
         S.redirectTo(redir.toString)
@@ -1016,7 +1016,7 @@ def restoreSomeSessions(): Unit = {
     }
     //Check the internal redirect, in case for open redirect issue.
     // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     def checkInternalRedirectAndLogUserIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
       if (Helper.isValidInternalRedirectUrl(redirect)) {
@@ -1573,7 +1573,7 @@ def restoreSomeSessions(): Unit = {
 
     //Check the internal redirect, in case for open redirect issue.
     // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     val loginRedirectSave = loginRedirect.is
 
