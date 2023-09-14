@@ -71,6 +71,8 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.crm.CrmEvent
+import code.crm.CrmEvent.CrmEvent
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
@@ -116,6 +118,15 @@ object NewStyle extends MdcLoggable{
   object function {
 
     import com.openbankproject.commons.ExecutionContext.Implicits.global
+
+
+    def getCrmEvents(bankId : BankId, callContext: Option[CallContext]): Future[List[CrmEvent]] = {
+      Future {
+        CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)
+      } map {
+        unboxFullOrFail(_, callContext, "No CRM Events available.", 404)
+      }
+    }
 
     private def validateBankId(bankId: Option[String], callContext: Option[CallContext]): Unit = {
       bankId.foreach(validateBankId(_, callContext))
