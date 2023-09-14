@@ -496,7 +496,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, false, false)
+          implicit val ec = EndpointContext(Some(cc))
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, false, false)
+          resourceDocs
       }
     }
     
@@ -519,7 +521,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, true, false)
+          implicit val ec = EndpointContext(Some(cc))
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, true, false)
+          resourceDocs
       }
     }
 
