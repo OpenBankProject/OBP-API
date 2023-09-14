@@ -350,24 +350,22 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         BankNotFound,
         "No CRM Events available.",
         UnknownError),
-      List(apiTagCustomer, apiTagOldStyle)
+      List(apiTagCustomer)
     )
 
     // TODO Require Role
 
     lazy val getCrmEvents : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
-        cc =>{
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
-            // Get crm events from the active provider
-            _ <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-            crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
+            (_, callContext) <- authenticatedAccess(cc)
+            (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            crmEvents <- NewStyle.function.getCrmEvents(bank.bankId, callContext)
           } yield {
-            // Format the data as json
             val json = JSONFactory1_4_0.createCrmEventsJson(crmEvents)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
