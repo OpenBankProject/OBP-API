@@ -40,7 +40,7 @@ import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.NOOP_SELECTOR
+import code.util.Helper.{NOOP_SELECTOR, ObpS}
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.S
 import net.liftweb.util.Helpers._
@@ -58,7 +58,7 @@ object OAuthAuthorisation {
   val VerifierBlocSel = "#verifierBloc"
 
   def shouldNotLogUserOut(): Boolean = {
-    S.param(LogUserOutParam) match {
+    ObpS.param(LogUserOutParam) match {
       case Full("false") => true
       case Empty => true
       case _ => false
@@ -66,7 +66,7 @@ object OAuthAuthorisation {
   }
 
   def hideFailedLoginMessageIfNeeded() = {
-    S.param(FailedLoginParam) match {
+    ObpS.param(FailedLoginParam) match {
       case Full("true") => NOOP_SELECTOR
       case _ => ".login-error" #> ""
     }
@@ -122,7 +122,7 @@ object OAuthAuthorisation {
           S.redirectTo(appendParams(redirectionUrl, redirectionParam))
         }
       } else {
-        val currentUrl = S.uriAndQueryString.getOrElse("/")
+        val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
         /*if (AuthUser.loggedIn_?) {
           AuthUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
@@ -161,7 +161,7 @@ object OAuthAuthorisation {
 
     //TODO: improve error messages
     val cssSel = for {
-      tokenParam <- S.param(TokenName) ?~! "There is no Token."
+      tokenParam <- ObpS.param(TokenName) ?~! "There is no Token."
       token <- Tokens.tokens.vend.getTokenByKeyAndType(Helpers.urlDecode(tokenParam.toString), TokenType.Request) ?~! "This token does not exist"
       tokenValid <- Helper.booleanToBox(token.isValid, "Token expired")
     } yield {

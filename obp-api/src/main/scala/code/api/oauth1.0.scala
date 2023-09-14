@@ -39,7 +39,7 @@ import code.model.{Consumer, TokenType, UserX}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -282,7 +282,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
     val sRequest = S.request
     val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
-    val sUri = S.uri
+    val sUri = ObpS.uri
 
     //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
@@ -547,7 +547,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     
     val sRequest = S.request
     val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
-    val sUri = S.uri
+    val sUri = ObpS.uri
 
     // Please note that after this point S.request for instance cannot be used directly
     // If you need it later assign it to some variable and pass it

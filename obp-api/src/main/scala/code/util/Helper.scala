@@ -20,7 +20,8 @@ import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, 
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.http.S
 import net.liftweb.util.Helpers
-
+import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
+import java.lang.reflect.Method
 import scala.concurrent.Future
 import scala.util.Random
 import scala.reflect.runtime.universe.Type
@@ -29,7 +30,7 @@ import scala.concurrent.duration._
 
 
 
-object Helper{
+object Helper extends Loggable {
 
   /**
     *
@@ -456,6 +457,56 @@ object Helper{
     } else {
       convertId[T](obj, customerIdConverter, accountIdConverter)
     }
+  }
+
+  lazy val ObpS: S = {
+    val intercept: MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
+
+      lazy val result = method.invoke(net.liftweb.http.S, args: _*)
+      val methodName = method.getName
+      
+      if (methodName.equals("param")&&result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined) {
+        //we provide the basic check for all the parameters
+        val resultAfterChecked = 
+          if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("username")) {
+            result.asInstanceOf[Box[String]].filter(APIUtil.checkUsernameString(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("password")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicPasswordValidation(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("consumer_key")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicConsumerKeyValidation(_)==SILENCE_IS_GOLDEN)
+          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("redirectUrl")){
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicUrlValidation(_))
+          } else{
+            result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
+          }
+        if(resultAfterChecked.isEmpty) { 
+          logger.debug(s"ObpS.${methodName} validation failed. The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
+        }
+        resultAfterChecked
+      } else if (methodName.equals("uri") && result.isInstanceOf[String]){
+        val resultAfterChecked = Full(result.asInstanceOf[String]).filter(APIUtil.basicUriAndQueryStringValidation(_))
+        if(resultAfterChecked.isDefined) {
+          resultAfterChecked.head
+        }else{
+          logger.debug(s"ObpS.${methodName} validation failed. The value is:$result")
+          resultAfterChecked.getOrElse("")
+        }
+      } else if (methodName.equals("uriAndQueryString") && result.isInstanceOf[Box[String]] && result.asInstanceOf[Box[String]].isDefined ||
+        methodName.equals("queryString") && result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined){
+        val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
+        if(resultAfterChecked.isEmpty) { 
+          logger.debug(s"ObpS.${methodName} validation failed. The value is:$result")
+        }
+        resultAfterChecked
+      } else {
+        result
+      }
+    }
+    
+    val enhancer: Enhancer = new Enhancer()
+    enhancer.setSuperclass(classOf[S])
+    enhancer.setCallback(intercept)
+    enhancer.create().asInstanceOf[S]
   }
 
 }

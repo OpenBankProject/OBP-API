@@ -1,8 +1,7 @@
 package code.snippet
 
 import code.api.util.APIUtil
-import code.util.Helper.MdcLoggable
-import net.liftweb.http.S
+import code.util.Helper.{MdcLoggable, ObpS}
 import net.liftweb.util.{CssSel, PassThru}
 import net.liftweb.util.Helpers._
 
@@ -26,7 +25,7 @@ class OpenIDConnectSnippet extends MdcLoggable{
       "*" #> NodeSeq.Empty
     // In case of a url ends with something like this: user_mgt/login?login_challenge=f587e7ac91044fe5aa138d6a1ab46250
     // we know that we just Hydra OIDC button and ORY Hydra is using OBP-API for login request so hide the OIDC buttons
-    else if(S.param("login_challenge").isDefined)
+    else if(ObpS.param("login_challenge").isDefined)
       "*" #> NodeSeq.Empty
     else 
       PassThru
@@ -36,7 +35,7 @@ class OpenIDConnectSnippet extends MdcLoggable{
       "*" #> NodeSeq.Empty
     // In case of a url ends with something like this: user_mgt/login?login_challenge=f587e7ac91044fe5aa138d6a1ab46250
     // we know that we just Hydra OIDC button and ORY Hydra is using OBP-API for login request so hide the OIDC buttons
-    else if(S.param("login_challenge").isDefined)
+    else if(ObpS.param("login_challenge").isDefined)
       "*" #> NodeSeq.Empty
     else 
       PassThru
@@ -48,7 +47,7 @@ class OpenIDConnectSnippet extends MdcLoggable{
       "*" #> NodeSeq.Empty
     // In case of a url ends with something like this: user_mgt/login?login_challenge=f587e7ac91044fe5aa138d6a1ab46250
     // we know that we just Hydra OIDC button and ORY Hydra is using OBP-API for login request so hide the OIDC buttons
-    else if(S.param("login_challenge").isDefined)
+    else if(ObpS.param("login_challenge").isDefined)
       "*" #> NodeSeq.Empty
     else
       PassThru

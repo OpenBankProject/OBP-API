@@ -35,7 +35,7 @@ import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
 import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
 import code.util.Helper
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -70,7 +70,7 @@ class UserInvitation extends MdcLoggable {
   def registerForm: CssSel = {
 
     val secretLink: Box[Long] = tryo {
-      S.param("id").getOrElse("0").toLong
+      ObpS.param("id").getOrElse("0").toLong
     }
     val userInvitation: Box[users.UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.getOrElse(0))
     firstNameVar.set(userInvitation.map(_.firstName).getOrElse("None"))
@@ -133,7 +133,7 @@ class UserInvitation extends MdcLoggable {
               UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
               // Set a new password
               // Please note that the query parameter is used to alter the message at password reset page i.e. at next code:
-              // <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+              // <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
               // placed into function AuthZUser.passwordResetXhtml
               val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
               S.redirectTo(resetLink)

@@ -29,7 +29,7 @@
 //        logger.debug("Hello from v1.0 data-import")
 //        for{
 //          correctToken <- APIUtil.getPropsValue("sandbox_data_import_secret") ~> APIFailure("Data import is disabled for this API instance.", 403)
-//          providedToken <- S.param("secret_token") ~> APIFailure("secret_token parameter required", 403)
+//          providedToken <- ObpS.param("secret_token") ~> APIFailure("secret_token parameter required", 403)
 //          tokensMatch <- Helper.booleanToBox(providedToken == correctToken) ~> APIFailure("incorrect secret token", 403)
 //          importData <- tryo{json.extract[SandboxDataImport]} ?~ ErrorMessages.InvalidJsonFormat
 //          importWorked <- OBPDataImport.importer.vend.importData(importData)

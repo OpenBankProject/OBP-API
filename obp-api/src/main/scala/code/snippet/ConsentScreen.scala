@@ -28,7 +28,7 @@ package code.snippet
 
 import code.api.util.APIUtil
 import code.model.dataAccess.AuthUser
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import code.util.HydraUtil.integrateWithHydra
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.http.{RequestVar, S, SHtml}
@@ -41,8 +41,8 @@ import scala.jdk.CollectionConverters.seqAsJavaListConverter
 class ConsentScreen extends MdcLoggable {
 
   private object skipConsentScreenVar extends RequestVar(false)
-  private object consentChallengeVar extends RequestVar(S.param("consent_challenge").getOrElse(""))
-  private object csrfVar extends RequestVar(S.param("_csrf").getOrElse(""))
+  private object consentChallengeVar extends RequestVar(ObpS.param("consent_challenge").getOrElse(""))
+  private object csrfVar extends RequestVar(ObpS.param("_csrf").getOrElse(""))
 
   def submitAllowAction: Unit = {
     integrateWithHydra match {

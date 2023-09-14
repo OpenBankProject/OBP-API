@@ -42,7 +42,7 @@ import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.common._
@@ -435,11 +435,11 @@ import net.liftweb.util.Helpers._
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
-        "form [action]" #> {S.uri} &
+        "form [action]" #> {ObpS.uri} &
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
-        "#login_challenge [value]" #> S.param("login_challenge").getOrElse("") &
+        "#login_challenge [value]" #> ObpS.param("login_challenge").getOrElse("") &
         "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
@@ -583,7 +583,7 @@ import net.liftweb.util.Helpers._
     <div id="recover-password" tabindex="-1">
           <h1>Recover Password</h1>
           <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
-          <form action={S.uri} method="post">
+          <form action={ObpS.uri} method="post">
             <div class="form-group">
               <label>Username or email address</label> <span id="recover-password-email"><input id="email" type="text" /></span>
             </div>
@@ -744,7 +744,7 @@ import net.liftweb.util.Helpers._
   
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup" tabindex="-1">
-      <form method="post" action={S.uriAndQueryString.getOrElse(S.uri)}>
+      <form method="post" action={ObpS.uriAndQueryString.getOrElse(ObpS.uri)}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}
           <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
@@ -786,13 +786,13 @@ import net.liftweb.util.Helpers._
   def userLoginFailed = {
     logger.info("failed: " + failedLoginRedirect.get)
     // variable redir is from failedLoginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
     val redir = failedLoginRedirect.get
 
     //Check the internal redirect, in case for open redirect issue.
     // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     if (Helper.isValidInternalRedirectUrl(redir.toString)) {
         S.redirectTo(redir.toString)
@@ -1004,7 +1004,7 @@ def restoreSomeSessions(): Unit = {
     */
   override def login: NodeSeq = {
     // This query parameter is specific to ORY Hydra login request
-    val loginChallenge: Box[String] = S.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
+    val loginChallenge: Box[String] = ObpS.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -1016,7 +1016,7 @@ def restoreSomeSessions(): Unit = {
     }
     //Check the internal redirect, in case for open redirect issue.
     // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     def checkInternalRedirectAndLogUserIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
       if (Helper.isValidInternalRedirectUrl(redirect)) {
@@ -1073,10 +1073,10 @@ def restoreSomeSessions(): Unit = {
     
     def loginAction = {
       if (S.post_?) {
-        val usernameFromGui = S.param("username").getOrElse("")
-        val passwordFromGui = S.param("password").getOrElse("")
-        val usernameEmptyField = S.param("username").map(_.isEmpty()).getOrElse(true)
-        val passwordEmptyField = S.param("password").map(_.isEmpty()).getOrElse(true)
+        val usernameFromGui = ObpS.param("username").getOrElse("")
+        val passwordFromGui = ObpS.param("password").getOrElse("")
+        val usernameEmptyField = ObpS.param("username").map(_.isEmpty()).getOrElse(true)
+        val passwordEmptyField = ObpS.param("password").map(_.isEmpty()).getOrElse(true)
         val emptyField = usernameEmptyField || passwordEmptyField
         emptyField match {
           case true =>
@@ -1538,8 +1538,8 @@ def restoreSomeSessions(): Unit = {
 
   override def passwordResetXhtml = {
     <div id="recover-password" tabindex="-1">
-      <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
-      <form action={S.uri} method="post">
+      <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+      <form action={ObpS.uri} method="post">
         <div class="form-group">
           <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
         </div>
@@ -1573,7 +1573,7 @@ def restoreSomeSessions(): Unit = {
 
     //Check the internal redirect, in case for open redirect issue.
     // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     val loginRedirectSave = loginRedirect.is
 
@@ -1588,8 +1588,8 @@ def restoreSomeSessions(): Unit = {
             case _ =>
               //if the register page url (user_mgt/sign_up?after-signup=link-to-customer) contains the parameter 
               //after-signup=link-to-customer,then it will redirect to the on boarding customer page.
-              S.params("after-signup") match { 
-                case url if (url.nonEmpty && url.head.equals("link-to-customer")) =>
+              ObpS.param("after-signup") match { 
+                case url if (url.equals("link-to-customer")) =>
                   "/add-user-auth-context-update-request"
                 case _ =>
                   homePage
