@@ -1604,7 +1604,7 @@ trait APIMethods210 {
             updatedConsumer <- NewStyle.function.updateConsumer(consumer.id.get, None, None, Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None, callContext)
           } yield {
             val json = JSONFactory210.createConsumerJSON(updatedConsumer)
-            (json, HttpCode.`201`(callContext))
+            (json, HttpCode.`200`(callContext))
           }
       }
     }
