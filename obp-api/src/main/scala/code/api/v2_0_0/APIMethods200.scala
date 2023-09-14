@@ -827,7 +827,7 @@ trait APIMethods200 {
         UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
-      List(apiTagCustomer, apiTagOldStyle),
+      List(apiTagCustomer),
       Some(List(canAddSocialMediaHandle))
     )
 
@@ -835,23 +835,29 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
+          implicit val ec = EndpointContext(Some(cc))
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canAddSocialMediaHandle, cc.callContext)
-            _ <- CustomerX.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            _ <- booleanToBox(
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postedData <- NewStyle.function.tryons(ErrorMessages.InvalidJsonFormat, 400, callContext) {
+              json.extract[SocialMediaJSON]
+            }
+            _ <- Helper.booleanToFuture(ErrorMessages.InvalidBankIdFormat, 400, callContext){
+              isValidID(bankId.value)
+            }
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bank.bankId.value, u.userId, canAddSocialMediaHandle, cc.callContext)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            _ <- Helper.booleanToFuture("Server error: could not add", 400, callContext){
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
                 postedData.customer_number,
                 postedData.`type`,
                 postedData.handle,
                 postedData.date_added,
-                postedData.date_activated),
-              "Server error: could not add")
+                postedData.date_activated
+              )
+            }
           } yield {
-            successJsonResponse(Extraction.decompose(successMessage), 201)
+            (successMessage, HttpCode.`201`(callContext))
           }
         }
       }
