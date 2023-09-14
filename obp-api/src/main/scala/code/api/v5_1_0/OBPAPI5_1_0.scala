@@ -89,7 +89,7 @@ object OBPAPI5_1_0 extends OBPRestHelper
   private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = Implementations5_1_0.root(version, versionStatus) :: // For now we make this mandatory 
+  val routes : List[OBPEndpoint] = Implementations5_1_0.root :: // For now we make this mandatory 
     getAllowedEndpoints(endpoints, allResourceDocs)
 
   // register v5.1.0 apis first, Make them available for use!
