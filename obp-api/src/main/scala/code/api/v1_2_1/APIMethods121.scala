@@ -138,7 +138,7 @@ trait APIMethods121 {
     val apiVersionStatus : String = "STABLE"
 
     resourceDocs += ResourceDoc(
-      root(apiVersion, apiVersionStatus),
+      root,
       apiVersion,
       "root",
       "GET",
@@ -154,7 +154,7 @@ trait APIMethods121 {
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
 
-    def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
+    lazy val root : OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))

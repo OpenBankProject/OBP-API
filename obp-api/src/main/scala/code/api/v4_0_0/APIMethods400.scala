@@ -2682,7 +2682,7 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
-      root(OBPAPI4_0_0.version, OBPAPI4_0_0.versionStatus),
+      root,
       implementedInApiVersion,
       "root",
       "GET",
@@ -2700,14 +2700,14 @@ trait APIMethods400 {
       List(UnknownError, "no connector set"),
       apiTagApi  :: Nil)
 
-    def root (apiVersion : ApiVersion, apiVersionStatus: String): OBPEndpoint = {
+    lazy val root: OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => 
           implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- Future() // Just start async call
           } yield {
-            (getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
+            (getApiInfoJSON(OBPAPI4_0_0.version,OBPAPI4_0_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
       }
     }
