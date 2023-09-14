@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
+import code.util.Helper.ObpS
 import net.liftweb.mapper._
 import net.liftweb.common._
 import net.liftweb.http.SessionVar
@@ -68,7 +69,7 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
   }
   
   override def loginXhtml = {
-    (<form method="post" action={S.uri}><table><tr><td
+    (<form method="post" action={ObpS.uri}><table><tr><td
               colspan="2">Admin Log In</td></tr>
           <tr><td>{userNameFieldString}</td><td><user:email /></td></tr>
           <tr><td>{S.?("password")}</td><td><user:password /></td></tr>

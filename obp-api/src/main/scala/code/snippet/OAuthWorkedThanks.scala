@@ -30,7 +30,7 @@ import code.api.OAuthHandshake
 import code.model.Consumer
 import code.token.Tokens
 import code.util.Helper
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.common.{Box, Full}
@@ -45,7 +45,7 @@ import net.liftweb.sitemap.Menu
 class OAuthWorkedThanks extends MdcLoggable {
 
   def thanks = {
-    val redirectUrl = S.param("redirectUrl").map(urlDecode(_))
+    val redirectUrl = ObpS.param("redirectUrl").map(urlDecode(_))
     logger.debug(s"OAuthWorkedThanks.thanks.redirectUrl $redirectUrl")
     //extract the clean(omit the parameters) redirect url from request url
     val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")

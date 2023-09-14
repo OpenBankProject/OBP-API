@@ -125,7 +125,7 @@ import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequ
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.users._
-import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
 import code.views.Views
@@ -631,7 +631,7 @@ class Boot extends MdcLoggable {
 
         // Check to see if the user explicitly requests a new locale 
         // In case it's true we use that value to set up a new cookie value
-        S.param(PARAM_LOCALE) match {
+        ObpS.param(PARAM_LOCALE) match {
           case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale)==SILENCE_IS_GOLDEN => {
             val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
             AuthUser.getCurrentUser.map(_.user.userPrimaryKey.value) match {

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 
 package code.snippet
+import code.util.Helper.ObpS
 import net.liftweb.http.S
 import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
@@ -72,7 +73,7 @@ class Nav {
   }
 
   def markIfSelected(href : String) : Box[String]= {
-    val currentHref = S.uri
+    val currentHref = ObpS.uri
     if(href.equals(currentHref)) Full("selected")
     else Empty
   }

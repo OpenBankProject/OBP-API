@@ -35,7 +35,7 @@ import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.ApiRole.CanReadGlossary
 import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, I18NUtil, PegdownOptions}
 import code.model.dataAccess.AuthUser
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable,ObpS}
 import net.liftweb.http.{LiftRules, S, SessionVar}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
@@ -67,17 +67,17 @@ class WebUI extends MdcLoggable{
 
   def currentPage = {
     def replaceLocale(replacement: String) = {
-      S.queryString.isDefined match {
+      ObpS.queryString.isDefined match {
         case true =>
-          S.queryString.exists(_.contains("locale=")) match {
+          ObpS.queryString.exists(_.contains("locale=")) match {
             case true =>
-              val queryString = S.queryString
+              val queryString = ObpS.queryString
               queryString.map(
                 _.replaceAll("locale=en_GB", replacement)
                   .replaceAll("locale=es_ES", replacement)
               )
             case false =>
-              S.queryString.map(i => i + s"&$replacement")
+              ObpS.queryString.map(i => i + s"&$replacement")
           }
         case false =>
           Full(s"$replacement")
@@ -89,7 +89,7 @@ class WebUI extends MdcLoggable{
       val hyphenLocale = locale.replace("_", "-")
       if (supportedLocales.contains(locale) || supportedLocales.contains(hyphenLocale) ) {""} else {"none"}
     }
-    val page = Constant.HostName + S.uri
+    val page = Constant.HostName + ObpS.uri
     val language = I18NUtil.currentLocale().getLanguage()
 
     "#es a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=es_ES")}") &

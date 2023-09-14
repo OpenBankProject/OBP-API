@@ -33,7 +33,7 @@ import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, _}
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import code.util.HydraUtil
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.common.{Box, Failure, Full}
@@ -478,7 +478,7 @@ class ConsumerRegistration extends MdcLoggable {
   }
 
   def showDummyCustomerTokens(): CssSel = {
-    val consumerKeyBox = S.param("consumer_key")
+    val consumerKeyBox = ObpS.param("consumer_key")
     // The following will check the login user and the user from the consumerkey. we do not want to share consumerkey to others.
     val loginUserId = AuthUser.getCurrentUser.map(_.userId).openOr("")
     val userCreatedByUserId = consumerKeyBox.map(Consumers.consumers.vend.getConsumerByConsumerKey(_)).flatten.map(_.createdByUserId.get).openOr("")

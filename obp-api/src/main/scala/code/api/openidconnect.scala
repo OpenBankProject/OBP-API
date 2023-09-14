@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.HttpURLConnection
-
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, AfterApiAuth, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
@@ -37,7 +36,7 @@ import code.model.dataAccess.AuthUser
 import code.snippet.OpenIDConnectSessionState
 import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import javax.net.ssl.HttpsURLConnection
@@ -182,8 +181,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   }
 
   private def extractParams(s: S): (String, String, String) = {
-    val code = s.param("code")
-    val state = s.param("state")
+    val code = ObpS.param("code")
+    val state = ObpS.param("state")
     val sessionState = OpenIDConnectSessionState.get
     (code.getOrElse(""), state.getOrElse("0"), sessionState.map(_.toString).getOrElse("1"))
   }

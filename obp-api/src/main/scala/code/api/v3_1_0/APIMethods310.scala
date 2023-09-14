@@ -13,7 +13,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.ExampleValue._
-import code.api.util.FutureUtil.{EndpointContext}
+import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
@@ -39,6 +39,7 @@ import code.ratelimiting.RateLimitingDI
 import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper
+import code.util.Helper.ObpS
 import code.views.Views
 import code.views.system.ViewDefinition
 import code.webhook.AccountWebhook
@@ -5731,7 +5732,7 @@ trait APIMethods310 {
     lazy val getWebUiProps: OBPEndpoint = {
       case "management" :: "webui_props":: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          val active = S.param("active").getOrElse("false")
+          val active = ObpS.param("active").getOrElse("false")
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             invalidMsg = s"""$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: ${active} """

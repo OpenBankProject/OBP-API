@@ -71,7 +71,7 @@ import code.model.dataAccess.AuthUser
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
 import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -419,7 +419,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
       //(GET, POST etc.) --S.request.get.requestType.method
       val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-      val url = S.uriAndQueryString.getOrElse("")
+      val url = ObpS.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
 
       //execute saveMetric in future, as we do not need to know result of operation
@@ -711,10 +711,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(h) =>
             Full(h)
           case _ =>
-            S.param(nameOfSpellingParam())
+            ObpS.param(nameOfSpellingParam())
         }
       case _ =>
-        S.param(nameOfSpellingParam())
+        ObpS.param(nameOfSpellingParam())
     }
   }
 
@@ -883,6 +883,31 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     password match {
       case password if(password.length > 16 && password.length <= 512 && basicPasswordValidation(password) ==SILENCE_IS_GOLDEN) => true
       case regex(password) if(basicPasswordValidation(password) ==SILENCE_IS_GOLDEN) => true
+      case _ => false
+    }
+  }
+  
+  def basicUrlValidation(urlString: String): Boolean = {
+    //in scala test - org.scalatest.FeatureSpecLike.scenario: 
+    // redirectUrl = http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461
+    // URLDecoder.decode(urlString,"UTF-8")-->http://localhost:8016?oauth_token=EBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK&oauth_verifier=63461
+    val regex =
+      """((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)""".r
+    val decodeUrlValue = URLDecoder.decode(urlString, "UTF-8").trim()
+    decodeUrlValue match {
+      case regex(_*) if (decodeUrlValue.length <= 2048) => true
+      case _ => false
+    }
+  }
+  
+  
+  /** only  A-Z, a-z, 0-9,-,_,. =, & and max length <= 2048  */
+  def basicUriAndQueryStringValidation(urlString: String): Boolean = {
+    val regex =
+      """^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?""".r
+    val decodeUrlValue = URLDecoder.decode(urlString, "UTF-8").trim()
+    decodeUrlValue match {
+      case regex(_*) if (decodeUrlValue.length <= 2048) => true
       case _ => false
     }
   }
@@ -2988,7 +3013,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val body: Box[String] = getRequestBody(S.request)
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
+    val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
@@ -3534,7 +3559,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val brandParameter = "brand"
 
     // Use brand in parameter (query or form)
-    val brand: Option[String] = S.param(brandParameter) match {
+    val brand: Option[String] = ObpS.param(brandParameter) match {
       case Full(value) => {
         // If found, and has a valid format, set the session.
         if (isValidID(value)) {
