@@ -492,7 +492,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
-    def getResourceDocsObp : OBPEndpoint = {
+    lazy val getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
@@ -515,7 +515,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       Some(List(canReadResourceDoc))
     )
     
-    def getResourceDocsObpV400 : OBPEndpoint = {
+    lazy val getResourceDocsObpV400 : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
