@@ -694,6 +694,21 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    def updateConsumer(id: Long, 
+                       key: Option[String], 
+                       secret: Option[String], 
+                       isActive: Option[Boolean], 
+                       name: Option[String], 
+                       appType: Option[AppType], 
+                       description: Option[String], 
+                       developerEmail: Option[String], 
+                       redirectURL: Option[String], 
+                       createdByUserId: Option[String], 
+                       callContext: Option[CallContext]): Future[Consumer] = {
+      Future(Consumers.consumers.vend.updateConsumer(id, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId)) map {
+        unboxFullOrFail(_, callContext, UpdateConsumerError, 404)
+      }
+    }
     def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByPrimaryIdFuture(id) map {
         unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 404)
