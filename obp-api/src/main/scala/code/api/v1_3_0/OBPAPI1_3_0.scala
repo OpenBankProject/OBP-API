@@ -20,7 +20,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
 
   lazy val endpointsOf1_2_1 = List(
-    Implementations1_2_1.root(version, versionStatus),
+    Implementations1_2_1.root,
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.getPrivateAccountsAllBanks,
@@ -103,7 +103,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
+    List(Implementations1_2_1.root) ::: // For now we make this mandatory
       getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs)
 
