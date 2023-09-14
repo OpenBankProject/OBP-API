@@ -43,7 +43,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
-  val endpointsOf1_2_1 =  List(
+  lazy val endpointsOf1_2_1 =  List(
     Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,

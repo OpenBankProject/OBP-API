@@ -40,7 +40,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable wit
   val version : ApiVersion = ApiVersion.v1_2_1  //    "1.2.1"
   val versionStatus = ApiVersionStatus.STABLE.toString
 
-  val endpointsOf1_2_1 = List(
+  lazy val endpointsOf1_2_1 = List(
     Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,

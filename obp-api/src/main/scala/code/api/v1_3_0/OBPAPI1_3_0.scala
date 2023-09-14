@@ -19,7 +19,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
 
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
 
-  val endpointsOf1_2_1 = List(
+  lazy val endpointsOf1_2_1 = List(
     Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,

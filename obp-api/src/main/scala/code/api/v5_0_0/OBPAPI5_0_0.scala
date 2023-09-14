@@ -69,7 +69,7 @@ object OBPAPI5_0_0 extends OBPRestHelper
 
   // Possible Endpoints from 5.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
-  val endpointsOf5_0_0 = getEndpoints(Implementations5_0_0)
+  lazy val endpointsOf5_0_0 = getEndpoints(Implementations5_0_0)
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(

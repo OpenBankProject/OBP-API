@@ -19,7 +19,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val versionStatus = ApiVersionStatus.STABLE.toString
 
   // Possible Endpoints from 1.2.1
-  val endpointsOf1_2_1 = Implementations1_2_1.addCommentForViewOnTransaction ::
+  lazy val endpointsOf1_2_1 = Implementations1_2_1.addCommentForViewOnTransaction ::
                           Implementations1_2_1.addCounterpartyCorporateLocation::
                           Implementations1_2_1.addCounterpartyImageUrl ::
                           Implementations1_2_1.addCounterpartyMoreInfo ::
