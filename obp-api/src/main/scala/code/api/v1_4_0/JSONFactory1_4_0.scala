@@ -521,6 +521,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocUpdatedTags: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
+    logger.debug(s"createResourceDocJson createResourceDocJsonMemo.size is ${createResourceDocJsonMemo.size()}")
     createResourceDocJsonMemo.compute(resourceDocUpdatedTags, (k, v) => {
       // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
       // But we don't want to have to escape underscores (\_) in our documentation
