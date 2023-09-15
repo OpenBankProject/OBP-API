@@ -448,7 +448,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /*
   Return the git commit. If we can't for some reason (not a git root etc) then log and return ""
    */
-  def gitCommit : String = {
+  lazy val gitCommit : String = {
     val commit = try {
       val properties = new java.util.Properties()
       logger.debug("Before getResourceAsStream git.properties")
