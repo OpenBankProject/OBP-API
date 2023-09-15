@@ -452,9 +452,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val commit = try {
       val properties = new java.util.Properties()
       logger.debug("Before getResourceAsStream git.properties")
-      properties.load(getClass().getClassLoader().getResourceAsStream("git.properties"))
-      logger.debug("Before get Property git.commit.id")
-      properties.getProperty("git.commit.id", "")
+      val stream = getClass().getClassLoader().getResourceAsStream("git.properties")
+      try {
+        properties.load(stream)
+        logger.debug("Before get Property git.commit.id")
+        properties.getProperty("git.commit.id", "")
+      } finally {
+        stream.close()
+      }
     } catch {
       case e : Throwable => {
         logger.warn("gitCommit says: Could not return git commit. Does resources/git.properties exist?")

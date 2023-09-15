@@ -5,6 +5,8 @@ import code.api.util.ApiTag._
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v1_2_1.JSONFactory
+import code.api.v1_3_0.OBPAPI1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.atms.Atms
@@ -61,6 +63,36 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     val emptyObjectJson = EmptyClassJson()
     val apiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
     val apiVersionStatus : String = "STABLE"
+
+
+    resourceDocs += ResourceDoc(
+      root,
+      apiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI1_4_0.version, OBPAPI1_4_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getCustomer,

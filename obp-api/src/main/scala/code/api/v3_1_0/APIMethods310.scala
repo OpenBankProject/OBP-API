@@ -81,6 +81,36 @@ trait APIMethods310 {
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
+
+    resourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI3_1_0.version, OBPAPI3_1_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
     resourceDocs += ResourceDoc(
       getCheckbookOrders,
       implementedInApiVersion,

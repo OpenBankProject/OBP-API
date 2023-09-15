@@ -174,6 +174,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints 2.2.0
   val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
+                          Implementations2_2_0.root ::
                           Implementations2_2_0.createViewForBankAccount ::
                           Implementations2_2_0.updateViewForBankAccount ::
                           Implementations2_2_0.getCurrentFxRate ::
@@ -201,8 +202,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root(version, versionStatus)) ::: // For now we make this mandatory
-      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
+    getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf2_0_0, Implementations2_0_0.resourceDocs) :::

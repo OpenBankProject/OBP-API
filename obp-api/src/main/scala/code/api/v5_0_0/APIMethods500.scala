@@ -16,7 +16,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
-import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
+import code.api.v4_0_0.{JSONFactory400, OBPAPI4_0_0, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsIdsJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequest, ConsentRequests, Consents}
@@ -44,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
-import code.api.util.FutureUtil.{EndpointContext}
+import code.api.util.FutureUtil.EndpointContext
 import code.util.Helper.booleanToFuture
 import code.views.system.{AccountAccess, ViewDefinition}
 
@@ -83,6 +83,37 @@ trait APIMethods500 {
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
 
 
+    staticResourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
+      List(UnknownError, "no connector set"),
+      apiTagApi  :: Nil)
+
+    lazy val root: OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory400.getApiInfoJSON(OBPAPI5_0_0.version,OBPAPI5_0_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       getBank,
       implementedInApiVersion,

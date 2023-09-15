@@ -28,10 +28,11 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
+import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, gitCommit, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
@@ -60,6 +61,7 @@ import code.views.system.AccountAccess
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import net.liftweb.mapper.By
@@ -1088,6 +1090,38 @@ case class JsonCodeTemplateJson(
 )
 
 object JSONFactory400 {
+
+  def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
+    val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
+    val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
+    val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+    val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
+    val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
+
+    val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
+    val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
+    val hostedAt = new HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
+
+    val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
+    val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
+    val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
+
+    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+
+    APIInfoJson400(
+      apiVersion.vDottedApiVersion,
+      apiVersionStatus,
+      gitCommit,
+      connector,
+      Constant.HostName,
+      Constant.localIdentityProvider,
+      hostedBy,
+      hostedAt,
+      energySource,
+      resourceDocsRequiresRole
+    )
+  }
 
   def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJsonV400 = {
     CustomerMessageJsonV400(
