@@ -29,7 +29,9 @@ package code.api.v5_0_0
 import java.lang
 import java.util.Date
 
-import code.api.util.APIUtil.{nullToString, stringOptionOrNull, stringOrNull}
+import code.api.Constant
+import code.api.util.APIUtil
+import code.api.util.APIUtil.{gitCommit, nullToString, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
@@ -37,11 +39,12 @@ import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{AdapterInfoJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300}
 import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
-import code.api.v4_0_0.BankAttributeBankResponseJsonV400
+import code.api.v4_0_0.{APIInfoJson400, BankAttributeBankResponseJsonV400, EnergySource400, HostedAt400, HostedBy400}
 import code.bankattribute.BankAttribute
 import code.consent.ConsentRequest
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, CreateViewJson, Customer, CustomerAttribute, InboundAdapterInfoInternal, InboundStatusMessage, PhysicalCardTrait, UpdateViewJSON, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
@@ -526,6 +529,38 @@ case class ViewJsonV500(
 
 
 object JSONFactory500 {
+
+  def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
+    val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
+    val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
+    val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+    val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
+    val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
+
+    val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
+    val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
+    val hostedAt = new HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
+
+    val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
+    val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
+    val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
+
+    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+
+    APIInfoJson400(
+      apiVersion.vDottedApiVersion,
+      apiVersionStatus,
+      gitCommit,
+      connector,
+      Constant.HostName,
+      Constant.localIdentityProvider,
+      hostedBy,
+      hostedAt,
+      energySource,
+      resourceDocsRequiresRole
+    )
+  }
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {
     UserAuthContextJsonV500(

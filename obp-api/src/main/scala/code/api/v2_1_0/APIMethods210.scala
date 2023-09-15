@@ -9,6 +9,7 @@ import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole, ErrorMessages, NewStyle}
+import code.api.v1_2_1.JSONFactory
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -75,6 +76,36 @@ trait APIMethods210 {
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
+    resourceDocs += ResourceDoc(
+      root,
+      apiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI2_1_0.version, OBPAPI2_1_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    
     // TODO Add example body below
 
     resourceDocs += ResourceDoc(

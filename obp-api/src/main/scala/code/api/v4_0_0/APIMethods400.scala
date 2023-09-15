@@ -2647,38 +2647,7 @@ trait APIMethods400 {
     }
 
 
-
-    private def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
-      val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
-      val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
-      val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
-      val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
-      val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
-
-      val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
-      val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
-      val hostedAt = new HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
-
-      val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
-      val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
-      val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
-
-      val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-      val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
-
-      APIInfoJson400(
-        apiVersion.vDottedApiVersion, 
-        apiVersionStatus, 
-        gitCommit, 
-        connector,
-        Constant.HostName,
-        Constant.localIdentityProvider, 
-        hostedBy, 
-        hostedAt, 
-        energySource, 
-        resourceDocsRequiresRole
-      )
-    }
+    
 
 
     staticResourceDocs += ResourceDoc(
@@ -2707,7 +2676,7 @@ trait APIMethods400 {
           for {
             _ <- Future() // Just start async call
           } yield {
-            (getApiInfoJSON(OBPAPI4_0_0.version,OBPAPI4_0_0.versionStatus), HttpCode.`200`(cc.callContext))
+            (JSONFactory400.getApiInfoJSON(OBPAPI4_0_0.version,OBPAPI4_0_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
       }
     }

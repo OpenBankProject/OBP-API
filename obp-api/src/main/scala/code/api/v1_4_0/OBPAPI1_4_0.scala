@@ -13,7 +13,6 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
   val versionStatus = ApiVersionStatus.STABLE.toString
 
   lazy val endpointsOf1_2_1 = List(
-    Implementations1_2_1.root,
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.getPrivateAccountsAllBanks,
@@ -95,6 +94,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
 
     // New in 1.4.0
     val endpointsOf1_4_0 = List(
+    Implementations1_4_0.root,
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.addCustomer,
     Implementations1_4_0.getCustomersMessages,
@@ -117,8 +117,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root) ::: // For now we make this mandatory
-      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
+    getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) ::: 
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
 

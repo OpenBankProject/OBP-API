@@ -44,7 +44,6 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
   lazy val endpointsOf1_2_1 =  List(
-    Implementations1_2_1.root,
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     // Now in 2_0_0
@@ -139,6 +138,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // Updated in 2.0.0 (less info about the views)
     val endpointsOf2_0_0 =  List(
+      Implementations2_0_0.root,
       Implementations2_0_0.getPrivateAccountsAllBanks,
       Implementations2_0_0.corePrivateAccountsAllBanks,
       Implementations2_0_0.publicAccountsAllBanks,
@@ -194,8 +194,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root) ::: // For now we make this mandatory
-      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
+    getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf2_0_0, Implementations2_0_0.resourceDocs)

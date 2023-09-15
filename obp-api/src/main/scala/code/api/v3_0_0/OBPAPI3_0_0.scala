@@ -226,6 +226,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   
   // Possible Endpoints from 3.0.0
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
+                          Implementations3_0_0.root ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
                           Implementations3_0_0.getPrivateAccountById ::
                           Implementations3_0_0.getPublicAccountById ::
@@ -288,8 +289,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root) ::: // For now we make this mandatory
-  getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
+    getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf2_0_0, Implementations2_0_0.resourceDocs) :::

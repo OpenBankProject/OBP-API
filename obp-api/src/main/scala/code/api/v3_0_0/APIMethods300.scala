@@ -16,7 +16,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.JSONFactory
-import code.api.v2_0_0.JSONFactory200
+import code.api.v2_0_0.{JSONFactory200, OBPAPI2_0_0}
 import code.api.v3_0_0.JSONFactory300._
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -27,7 +27,7 @@ import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.{booleanToBox, booleanToFuture,ObpS}
+import code.util.Helper.{ObpS, booleanToBox, booleanToFuture}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
@@ -66,6 +66,37 @@ trait APIMethods300 {
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
+
+    
+    resourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI3_0_0.version, OBPAPI3_0_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
       implementedInApiVersion,

@@ -117,8 +117,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable wit
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
-    List(Implementations1_2_1.root) ::: // For now we make this mandatory
-      getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs)
+    getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs)
 
 
   registerRoutes(routes, allResourceDocs, apiPrefix)

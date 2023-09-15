@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ErrorMessages, NewStyle}
+import code.api.v1_2_1.JSONFactory
 import code.bankconnectors.Connector
 import code.model.BankX
 import com.openbankproject.commons.model.BankId
@@ -18,6 +19,7 @@ import net.liftweb.json.Extraction
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -30,6 +32,35 @@ trait APIMethods130 {
     val apiVersion = ApiVersion.v1_3_0 // was String "1_3_0"
 
 
+    resourceDocs += ResourceDoc(
+      root,
+      apiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI1_3_0.version, OBPAPI1_3_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
     resourceDocs += ResourceDoc(
       getCards,
       apiVersion,

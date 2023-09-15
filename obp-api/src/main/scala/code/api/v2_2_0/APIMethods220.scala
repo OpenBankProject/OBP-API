@@ -10,7 +10,8 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ErrorMessages, _}
-import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
+import code.api.v1_2_1.{CreateViewJsonV121, JSONFactory, UpdateViewJsonV121}
+import code.api.v2_0_0.OBPAPI2_0_0
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
@@ -56,6 +57,36 @@ trait APIMethods220 {
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
+    resourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Git Commit""",
+      emptyObjectJson,
+      apiInfoJSON,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory.getApiInfoJSON(OBPAPI2_2_0.version, OBPAPI2_2_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
       implementedInApiVersion,
