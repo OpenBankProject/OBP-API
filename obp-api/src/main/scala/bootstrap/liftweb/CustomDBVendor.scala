@@ -96,8 +96,8 @@ trait CustomProtoDBVendor extends ConnectionManager {
             logger.debug("Temporarily expanding pool. name=%s, tempMaxSize=%d".format(name, tempMaxSize))
             newConnection(name)
           }else{
-            logger.debug(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
-            throw new RuntimeException(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
+            logger.error(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
+            Failure(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
           }
 
         case x :: xs =>
