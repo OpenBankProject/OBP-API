@@ -2,7 +2,7 @@ package bootstrap.liftweb
 
 import java.sql.{Connection, DriverManager}
 
-import net.liftweb.common.{Box, Full, Logger}
+import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.db.ConnectionManager
 import net.liftweb.util.ConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
@@ -89,13 +89,16 @@ trait CustomProtoDBVendor extends ConnectionManager {
         case Nil =>
           val curSize = poolSize
           logger.trace("No connection left in pool, waiting...")
-          wait(50L)
+          wait(50L*poolSize )
           // if we've waited 50 ms and the pool is still empty, temporarily expand it
           if (pool.isEmpty && poolSize == curSize && canExpand_?) {
             tempMaxSize += 1
             logger.debug("Temporarily expanding pool. name=%s, tempMaxSize=%d".format(name, tempMaxSize))
+            newConnection(name)
+          }else{
+            logger.debug(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
+            throw new RuntimeException(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
           }
-          newConnection(name)
 
         case x :: xs =>
           logger.trace("Found connection in pool, name=%s".format(name))
