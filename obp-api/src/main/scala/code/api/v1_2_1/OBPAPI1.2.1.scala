@@ -113,14 +113,14 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable wit
     Implementations1_2_1.getOtherAccountForTransaction
     //Implementations1_2_1.makePayment
   )
-  val allResourceDocs = Implementations1_2_1.resourceDocs
+  lazy val allResourceDocs = Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] =
+  lazy val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs)
 
 
-  registerRoutes(routes, allResourceDocs, apiPrefix)
+  val registerApiRoutes = () => registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

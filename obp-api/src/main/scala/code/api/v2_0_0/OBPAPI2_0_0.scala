@@ -118,13 +118,13 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   )
 
     // New in 1.3.0
-    val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
+    lazy val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
     Implementations1_3_0.getCardsForBank::
     Nil
 
     // New in 1.4.0
     // Possible Endpoints 2.0.0 (less info about the views)
-    val endpointsOf1_4_0 = List(   Implementations1_4_0.getCustomer,
+    lazy val endpointsOf1_4_0 = List(   Implementations1_4_0.getCustomer,
     //  Now in 2.0.0 Implementations1_4_0.addCustomer,
     Implementations1_4_0.getCustomersMessages,
     Implementations1_4_0.addCustomerMessage,
@@ -137,7 +137,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_4_0.getTransactionRequestTypes)
 
     // Updated in 2.0.0 (less info about the views)
-    val endpointsOf2_0_0 =  List(
+    lazy val endpointsOf2_0_0 =  List(
       Implementations2_0_0.root,
       Implementations2_0_0.getPrivateAccountsAllBanks,
       Implementations2_0_0.corePrivateAccountsAllBanks,
@@ -186,14 +186,14 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   )
 
 
-  val allResourceDocs =
+  lazy val allResourceDocs =
     Implementations2_0_0.resourceDocs ++
       Implementations1_4_0.resourceDocs ++
       Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] =
+  lazy val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
@@ -201,7 +201,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
 
-  registerRoutes(routes, allResourceDocs, apiPrefix)
+  val registerApiRoutes = () => registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
