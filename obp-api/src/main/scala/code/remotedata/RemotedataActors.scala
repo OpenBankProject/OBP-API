@@ -4,13 +4,13 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorSystem, Props => ActorProps}
 import bootstrap.liftweb.ToSchemify
+import bootstrap.liftweb.CustomDBVendor
 import code.actorsystem.{ObpActorConfig, ObpLookupSystem}
 import code.api.util.APIUtil
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common._
-import net.liftweb.db.StandardDBVendor
 import net.liftweb.http.LiftRules
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.Props
@@ -94,11 +94,11 @@ object RemotedataActors extends MdcLoggable {
       val vendor =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
-            new StandardDBVendor(driver,
+            new CustomDBVendor(driver,
               APIUtil.getPropsValue("remotedata.db.url") openOr "jdbc:h2:./lift_proto.remotedata.db;AUTO_SERVER=TRUE",
               APIUtil.getPropsValue("remotedata.db.user"), APIUtil.getPropsValue("remotedata.db.password"))
           case _ =>
-            new StandardDBVendor(
+            new CustomDBVendor(
               driver,
               "jdbc:h2:mem:OBPData;DB_CLOSE_DELAY=-1",
               Empty, Empty)
