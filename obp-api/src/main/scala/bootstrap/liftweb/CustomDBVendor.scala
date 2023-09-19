@@ -47,15 +47,15 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   /**
    *  Override this method if you want something other than
-   * 4 connections in the pool
+   * 20 connections in the pool
    */
-  protected def maxPoolSize = 4
+  protected def maxPoolSize = 20
 
   /**
    * The absolute maximum that this pool can extend to
-   * The default is 20.  Override this method to change.
+   * The default is 40.  Override this method to change.
    */
-  protected def doNotExpandBeyond = 20
+  protected def doNotExpandBeyond = 30
 
   /**
    * The logic for whether we can expand the pool beyond the current size.  By
