@@ -2,8 +2,10 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.UUID
+
 import code.accountholders.AccountHolders
-import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID, localIdentityProvider}
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiPropsWithAlias, ErrorMessages}
 import code.bankconnectors.Connector
@@ -385,15 +387,34 @@ trait OBPDataImport extends MdcLoggable {
         createPublicView(bankId, accountId, "Public View")
       else Empty
 
+    // Note, we are creating these unconditionally even though the endpoint has booleans (so we ignore the Api in this case)
+    // TODO create a new version of the endpoint that removes those booleans.
     val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).asInstanceOf[Box[ViewType]]
     val auditorsView = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).asInstanceOf[Box[ViewType]]
     val accountantsView = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).asInstanceOf[Box[ViewType]]
-    val accountFirehose = 
+
+    val accountFirehose =
       if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).asInstanceOf[Box[ViewType]]
       else Empty
-    
-    List(accountFirehose, ownerView, accountantsView, auditorsView, publicView).flatten
+
+
+    // Note, we are creating these unconditionally
+    // UK
+    val readAccountsBasicView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readAccountsDetailView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readBalancesView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_BALANCES_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readTransactionsBasicView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readTransactionsDebitsView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readTransactionsDetailView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID).asInstanceOf[Box[ViewType]]
+    // Berlin Group
+    val readAccountsBerlinGroupView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readBalancesBerlinGroupView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readTransactionsBerlinGroupView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID).asInstanceOf[Box[ViewType]]
+
+
+
+    List(accountFirehose, ownerView, accountantsView, auditorsView, publicView, readAccountsBasicView, readAccountsDetailView, readBalancesView, readTransactionsBasicView, readTransactionsDebitsView, readTransactionsDetailView, readAccountsBerlinGroupView, readBalancesBerlinGroupView, readTransactionsBerlinGroupView).flatten
     
   }
   
