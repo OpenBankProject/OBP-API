@@ -47,15 +47,15 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   /**
    *  Override this method if you want something other than
-   * 4 connections in the pool
+   * 20 connections in the pool
    */
-  protected def maxPoolSize = 4
+  protected def maxPoolSize = 20
 
   /**
    * The absolute maximum that this pool can extend to
-   * The default is 20.  Override this method to change.
+   * The default is 40.  Override this method to change.
    */
-  protected def doNotExpandBeyond = 20
+  protected def doNotExpandBeyond = 30
 
   /**
    * The logic for whether we can expand the pool beyond the current size.  By
@@ -96,8 +96,8 @@ trait CustomProtoDBVendor extends ConnectionManager {
             logger.debug("Temporarily expanding pool. name=%s, tempMaxSize=%d".format(name, tempMaxSize))
             newConnection(name)
           }else{
-            logger.debug(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
-            throw new RuntimeException(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
+            logger.error(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
+            Failure(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
           }
 
         case x :: xs =>
