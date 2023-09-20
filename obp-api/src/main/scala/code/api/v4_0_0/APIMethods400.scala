@@ -191,9 +191,11 @@ trait APIMethods400 {
       nameOf(callsLimit),
       "PUT",
       "/management/consumers/CONSUMER_ID/consumer/call-limits",
-      "Set Calls Limit for a Consumer",
+      "Set Rate Limits / Call Limits per Consumer",
       s"""
-         |Set the API call limits for a Consumer:
+         |Set the API rate limits / call limits for a Consumer:
+         |
+         |Rate limiting can be set:
          |
          |Per Second
          |Per Minute
@@ -216,7 +218,7 @@ trait APIMethods400 {
         UpdateConsumerError,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagRateLimits),
       Some(List(canSetCallLimits)))
 
     lazy val callsLimit : OBPEndpoint = {

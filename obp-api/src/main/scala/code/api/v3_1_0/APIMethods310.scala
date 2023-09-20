@@ -513,9 +513,11 @@ trait APIMethods310 {
       nameOf(callsLimit),
       "PUT",
       "/management/consumers/CONSUMER_ID/consumer/call-limits",
-      "Set Calls Limit for a Consumer",
+      "Set Rate Limiting (call limits) per Consumer",
       s"""
-         |Set the API call limits for a Consumer:
+         |Set the API rate limiting (call limits) per Consumer:
+         |
+         |Call limits can be set:
          |
          |Per Second
          |Per Minute
@@ -1221,6 +1223,9 @@ trait APIMethods310 {
          |Is rate limiting enabled and active?
          |What backend is used to keep track of the API calls (e.g. REDIS).
          |
+         |Note: Rate limiting can be set at the Consumer level and also for anonymous calls.
+         |
+         |See the consumer rate limits / call limits endpoints.
          |
         |${authenticationRequiredMessage(true)}
          |
@@ -1228,7 +1233,7 @@ trait APIMethods310 {
       EmptyBody,
       rateLimitingInfoV310,
       List(UnknownError),
-      List(apiTagApi))
+      List(apiTagApi, apiTagRateLimits))
 
 
     lazy val getRateLimitingInfo: OBPEndpoint = {
