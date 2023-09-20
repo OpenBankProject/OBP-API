@@ -324,8 +324,8 @@ trait APIMethods400 {
       nameOf(ibanChecker),
       "POST",
       "/account/check/scheme/iban",
-      "Validate and check IBAN number",
-      """Validate and check IBAN number for errors
+      "Validate and check IBAN",
+      """Validate and check IBAN for errors
         |
         |""",
       ibanCheckerPostJsonV400,
@@ -781,7 +781,7 @@ trait APIMethods400 {
       s"""
          |Special instructions for SIMPLE:
          |
-         |You can transfer money to the Bank Account Number or Iban directly. 
+         |You can transfer money to the Bank Account Number or IBAN directly.
          |
          |$transactionRequestGeneralText
          |
@@ -1306,7 +1306,7 @@ trait APIMethods400 {
             }
             case SEPA => {
               for {
-                //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
+                //For SEPA, Use the IBAN to find the toCounterparty and set up the toAccount
                 transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, callContext) {
                   json.extract[TransactionRequestBodySEPAJsonV400]
                 }
@@ -7913,7 +7913,7 @@ trait APIMethods400 {
          |
          |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
          |
-         |other_account_secondary_routing_scheme : eg: IBan or any other strings
+         |other_account_secondary_routing_scheme : eg: IBAN or any other strings
          |
          |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty.
          |
@@ -8192,7 +8192,7 @@ trait APIMethods400 {
          |
          |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
          |
-         |other_account_secondary_routing_scheme : eg: IBan or any other strings
+         |other_account_secondary_routing_scheme : eg: IBAN or any other strings
          |
          |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty.
          |
