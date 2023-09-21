@@ -36,32 +36,33 @@ class CustomDBVendor(driverName: String,
 
 trait CustomProtoDBVendor extends ConnectionManager {
   private val logger = Logger(classOf[CustomProtoDBVendor])
-  private var pool: List[Connection] = Nil
-  private var poolSize = 0
-  private var tempMaxSize = maxPoolSize
+  private var freePool: List[Connection] = Nil // no process use the connections, they are available for use
+  private var usedPool: List[Connection] = Nil // connections are already used, not available for use
+//  private var totalConnectionsCount = 0
+//  private var tempMaxSize = maxPoolSize
 
   /**
-   * Override and set to false if the maximum pool size can temporarily be expanded to avoid pool starvation
+   * Override and set to false if the maximum freePool size can temporarily be expanded to avoid freePool starvation
    */
-  protected def allowTemporaryPoolExpansion = true
+  protected def allowTemporaryPoolExpansion = false
 
   /**
    *  Override this method if you want something other than
-   * 20 connections in the pool
+   * 4 connections in the freePool
    */
-  protected def maxPoolSize = 20
+  protected def maxPoolSize = 4
 
   /**
-   * The absolute maximum that this pool can extend to
+   * The absolute maximum that this freePool can extend to
    * The default is 40.  Override this method to change.
    */
-  protected def doNotExpandBeyond = 30
+  protected def doNotExpandBeyond = 40
 
   /**
-   * The logic for whether we can expand the pool beyond the current size.  By
-   * default, the logic tests allowTemporaryPoolExpansion &amp;&amp; poolSize &lt;= doNotExpandBeyond
+   * The logic for whether we can expand the freePool beyond the current size.  By
+   * default, the logic tests allowTemporaryPoolExpansion &amp;&amp; totalConnectionsCount &lt;= doNotExpandBeyond
    */
-  protected def canExpand_? : Boolean = allowTemporaryPoolExpansion && poolSize <= doNotExpandBeyond
+//  protected def canExpand_? : Boolean = allowTemporaryPoolExpansion && totalConnectionsCount <= doNotExpandBeyond
 
   /**
    *   How is a connection created?
@@ -78,56 +79,58 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   def newConnection(name: ConnectionIdentifier): Box[Connection] =
     synchronized {
-      pool match {
-        case Nil if poolSize < tempMaxSize =>
-          val ret = createOne
-          ret.foreach(_.setAutoCommit(false))
-          poolSize = poolSize + 1
-          logger.debug("Created new pool entry. name=%s, poolSize=%d".format(name, poolSize))
-          ret
-
-        case Nil =>
-          val curSize = poolSize
-          logger.trace("No connection left in pool, waiting...")
-          wait(500L)
-          // if we've waited 50 ms and the pool is still empty, temporarily expand it
-          if (pool.isEmpty && poolSize == curSize && canExpand_?) {
-            tempMaxSize += 1
-            logger.debug("Temporarily expanding pool. name=%s, tempMaxSize=%d".format(name, tempMaxSize))
-            newConnection(name)
-          }else{
-            logger.error(s"The poolSize is expanding to tempMaxSize ($tempMaxSize), we can not create new connection, need to restart OBP now.")
-            Failure(s"Database may be down, please check database connection! OBP already create $tempMaxSize connections, because all connections are occupied!")
-          }
-
-        case x :: xs =>
-          logger.trace("Found connection in pool, name=%s".format(name))
-          pool = xs
+      freePool match {
+        case Nil if (freePool.size + usedPool.size) < maxPoolSize =>{ //we set maxPoolSize 4. 
+          val ret = createOne // get oneConnection from JDBC, not in the freePool yet, we add ot the Pool when we release it .
           try {
-            this.testConnection(x)
-            Full(x)
+            ret.head.setAutoCommit(false) // we test the connection status, if it is success, we return it back.
+            usedPool = ret.head :: usedPool
+            logger.debug(s"Created connection is good, detail is $ret ")
+          } catch {
+            case e: Exception =>
+              logger.debug(s"Created connection is bad, detail is $e")
+          }
+         
+          //Note: we may return the invalid connection
+          ret
+        }
+
+        case Nil => //freePool is empty and we are at maxPoolSize limit 
+          wait(500L)
+          logger.error(s"The (freePool.size + usedPool.size) is expanding to maxPoolSize ($maxPoolSize), we can not create new connection, need to restart OBP now.")
+          Failure(s"Database may be down, please check database connection! OBP already create $maxPoolSize connections, because all connections are occupied!")
+
+        case freeHead :: freeTail =>//if freePool is not empty, we just get connection from freePool, no need to create new connection from JDBC.
+          logger.trace("Found connection in freePool, name=%s freePool size =%s".format(name, freePool.size))
+          
+          freePool = freeTail // remove the head from freePool
+          //TODO check if we need add head or tail
+          usedPool = freeHead :: usedPool // we added connection to usedPool
+          
+          try {
+            this.testConnection(freeHead) // we test the connection status, if it is success, we return it back.
+            Full(freeHead)
           } catch {
             case e: Exception => try {
-              logger.debug("Test connection failed, removing connection from pool, name=%s".format(name))
-              poolSize = poolSize - 1
-              tryo(x.close)
-              newConnection(name)
+              logger.error(s"testConnection failed, try to close it and call newConnection(name), detail is $e")
+              tryo(freeHead.close)       // call JDBC to close this connection
+              newConnection(name) // try to get new connection from freePool
             } catch {
-              case e: Exception => newConnection(name)
+              case e: Exception =>{
+                logger.error(s"could not close connection and call newConnection(name), detail is $e")
+                newConnection(name) // if any other cases, just get new connection
+              }
             }
           }
       }
     }
 
   def releaseConnection(conn: Connection): Unit = synchronized {
-    if (tempMaxSize > maxPoolSize) {
-      tryo {conn.close()}
-      tempMaxSize -= 1
-      poolSize -= 1
-    } else {
-      pool = conn :: pool
-    }
-    logger.debug("Released connection. poolSize=%d".format(poolSize))
+    usedPool = usedPool.filterNot(_ ==conn)
+    logger.debug(s"Released connection. removed connection from usedPool size is ${usedPool.size}")
+    //TODO check if we need add head or tail
+    freePool = conn :: freePool
+    logger.debug(s"Released connection. added connection to freePool size is ${freePool.size}")
     notifyAll
   }
 
@@ -136,12 +139,14 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   private def _closeAllConnections_!(cnt: Int): Unit = synchronized {
     logger.info("Closing all connections")
-    if (poolSize <= 0 || cnt > 10) ()
+    if (cnt > 10) ()//we only try this 10 times,
     else {
-      pool.foreach {c => tryo(c.close); poolSize -= 1}
-      pool = Nil
+      freePool.foreach {c => tryo(c.close);}
+      usedPool.foreach {c => tryo(c.close);}
+      freePool = Nil
+      usedPool = Nil
 
-      if (poolSize > 0) wait(250)
+      if (usedPool.length > 0) wait(250)
 
       _closeAllConnections_!(cnt + 1)
     }
