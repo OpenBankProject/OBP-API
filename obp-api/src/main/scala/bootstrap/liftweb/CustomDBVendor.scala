@@ -22,7 +22,7 @@ class CustomDBVendor(driverName: String,
 
   private val logger = Logger(classOf[CustomDBVendor])
 
-  protected def createOne: Box[Connection] =  {
+  def createOne: Box[Connection] =  {
     tryo{t:Throwable => logger.error("Cannot load database driver: %s".format(driverName), t)}{Class.forName(driverName);()}
 
     (dbUser, dbPassword) match {
@@ -67,7 +67,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
   /**
    *   How is a connection created?
    */
-  protected def createOne: Box[Connection]
+  def createOne: Box[Connection]
 
   /**
    * Test the connection.  By default, setAutoCommit(false),
@@ -138,7 +138,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
 
   private def _closeAllConnections_!(cnt: Int): Unit = synchronized {
-    logger.info("Closing all connections")
+    logger.debug("Closing all connections")
     if (cnt > 10) ()//we only try this 10 times,
     else {
       freePool.foreach {c => tryo(c.close);}
