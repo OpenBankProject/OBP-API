@@ -673,7 +673,7 @@ class Boot extends MdcLoggable {
     })
     
     LiftRules.exceptionHandler.prepend{
-      case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
+      case(_, r, e) if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).getOrElse(true) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
           Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
