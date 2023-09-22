@@ -442,7 +442,7 @@ Next types are supported:
 5. per week
 6. per month
 ```    
-If you exced rate limit per minute for instance you will get the response:
+If you exceed rate limit per minute for instance you will get the response:
 ```json
 {
     "error": "OBP-10018: Too Many Requests.We only allow 3 requests per minute for this Consumer."

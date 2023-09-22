@@ -89,7 +89,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
         case Nil =>
           val curSize = poolSize
           logger.trace("No connection left in pool, waiting...")
-          wait(50L*poolSize )
+          wait(500L)
           // if we've waited 50 ms and the pool is still empty, temporarily expand it
           if (pool.isEmpty && poolSize == curSize && canExpand_?) {
             tempMaxSize += 1

@@ -14,6 +14,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
 
   object bank extends UUIDString(this)
   object theAccountId extends AccountIdString(this)
+  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
   object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
   object accountNumber extends MappedAccountNumber(this)
@@ -34,9 +35,13 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   //the last time this account was updated via hbci [when transaction data was refreshed from the bank.]
   //It means last transaction refresh date only used for HBCI now.
   object accountLastUpdate extends MappedDateTime(this)
-  
+
+
+  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
   object mAccountRoutingScheme extends MappedString(this, 32)
+  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
   object mAccountRoutingAddress extends MappedString(this, 128)
+
   object mBranchId extends UUIDString(this)
 
   object accountRuleScheme1 extends MappedString(this, 10)

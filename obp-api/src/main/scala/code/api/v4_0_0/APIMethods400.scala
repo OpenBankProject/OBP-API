@@ -191,9 +191,11 @@ trait APIMethods400 {
       nameOf(callsLimit),
       "PUT",
       "/management/consumers/CONSUMER_ID/consumer/call-limits",
-      "Set Calls Limit for a Consumer",
+      "Set Rate Limits / Call Limits per Consumer",
       s"""
-         |Set the API call limits for a Consumer:
+         |Set the API rate limits / call limits for a Consumer:
+         |
+         |Rate limiting can be set:
          |
          |Per Second
          |Per Minute
@@ -216,7 +218,7 @@ trait APIMethods400 {
         UpdateConsumerError,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagRateLimits),
       Some(List(canSetCallLimits)))
 
     lazy val callsLimit : OBPEndpoint = {
@@ -322,8 +324,8 @@ trait APIMethods400 {
       nameOf(ibanChecker),
       "POST",
       "/account/check/scheme/iban",
-      "Validate and check IBAN number",
-      """Validate and check IBAN number for errors
+      "Validate and check IBAN",
+      """Validate and check IBAN for errors
         |
         |""",
       ibanCheckerPostJsonV400,
@@ -779,7 +781,7 @@ trait APIMethods400 {
       s"""
          |Special instructions for SIMPLE:
          |
-         |You can transfer money to the Bank Account Number or Iban directly. 
+         |You can transfer money to the Bank Account Number or IBAN directly.
          |
          |$transactionRequestGeneralText
          |
@@ -1304,7 +1306,7 @@ trait APIMethods400 {
             }
             case SEPA => {
               for {
-                //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
+                //For SEPA, Use the IBAN to find the toCounterparty and set up the toAccount
                 transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, callContext) {
                   json.extract[TransactionRequestBodySEPAJsonV400]
                 }
@@ -2547,7 +2549,7 @@ trait APIMethods400 {
       "Create Account (POST)",
       """Create Account at bank specified by BANK_ID.
         |
-        |The User can create an Account for himself  - or -  the User that has the USER_ID specified in the POST body.
+        |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
         |
         |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
         |
@@ -7911,7 +7913,7 @@ trait APIMethods400 {
          |
          |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
          |
-         |other_account_secondary_routing_scheme : eg: IBan or any other strings
+         |other_account_secondary_routing_scheme : eg: IBAN or any other strings
          |
          |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty.
          |
@@ -8190,7 +8192,7 @@ trait APIMethods400 {
          |
          |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
          |
-         |other_account_secondary_routing_scheme : eg: IBan or any other strings
+         |other_account_secondary_routing_scheme : eg: IBAN or any other strings
          |
          |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty.
          |
