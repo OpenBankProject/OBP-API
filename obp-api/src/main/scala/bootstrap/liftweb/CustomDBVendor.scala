@@ -48,8 +48,8 @@ trait CustomProtoDBVendor extends ConnectionManager {
   protected def allowTemporaryPoolExpansion = false
 
   /**
-   *  Override this method if you want something other than 30 connections in the freePool and usedPool
-   *  freePool.size + usedPool.size <=30
+   *  Override this method if you want something other than 10 connections in the freePool and usedPool
+   *  freePool.size + usedPool.size <=10
    */
   val dbMaxPoolSize = APIUtil.getPropsAsIntValue("db.maxPoolSize",10)
   protected def maxPoolSize = dbMaxPoolSize
