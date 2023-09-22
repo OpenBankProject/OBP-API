@@ -27,10 +27,21 @@ object DatabaseConnectionPoolScheduler extends MdcLoggable {
   }
 
   def clearAllConnections(vendor: CustomProtoDBVendor) = {
-    //if the connection is Failure or empty, both is true
-    if (vendor.createOne.isEmpty) {
-      vendor.closeAllConnections_!()
-      logger.debug("ThreadPoolConnectionsScheduler.clearAllConnections")
+    val connectionBox = vendor.createOne
+    try {
+      if (connectionBox.isEmpty) {
+        vendor.closeAllConnections_!()
+        logger.debug("ThreadPoolConnectionsScheduler.clearAllConnections")
+      }
+    } catch {
+      case e => logger.debug(s"ThreadPoolConnectionsScheduler.clearAllConnections() method throwed exception, details is $e")
+    }finally {
+      try {
+        if (connectionBox.isDefined)
+          connectionBox.head.close()
+      } catch {
+        case e =>logger.debug(s"ThreadPoolConnectionsScheduler.clearAllConnections.close method throwed exception, details is $e")
+      }
     }
   }
 
