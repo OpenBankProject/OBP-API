@@ -99,7 +99,7 @@ import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.migration.MigrationScriptLog
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
-import code.model.{Consumer, _}
+import code.model._
 import code.obp.grpc.HelloWorldServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
@@ -108,7 +108,7 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
+import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler, DatabaseConnectionPoolScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -146,7 +146,7 @@ import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{DefaultConnectionIdentifier, Helpers, Props, Schedule, _}
+import net.liftweb.util.{DefaultConnectionIdentifier, _}
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -263,6 +263,8 @@ class Boot extends MdcLoggable {
       LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
+      DatabaseConnectionPoolScheduler.start(vendor, 10)// 10 seconds
+//      logger.debug("ThreadPoolConnectionsScheduler.start(vendor, 10)")
     }
     
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
