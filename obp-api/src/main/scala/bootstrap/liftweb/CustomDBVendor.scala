@@ -110,9 +110,9 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
         case Nil => //freePool is empty and we are at maxPoolSize limit 
           wait(50L)
-          logger.error(s"The (freePool.size + usedPool.size) is expanding to maxPoolSize ($maxPoolSize), we can not create new connection, need to restart OBP now.")
+          logger.error(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections.")
           (
-            Failure(s"Database may be down, please check database connection! OBP already create $maxPoolSize connections, because all connections are occupied!"),
+            Failure(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections."),
             true
           )
 
