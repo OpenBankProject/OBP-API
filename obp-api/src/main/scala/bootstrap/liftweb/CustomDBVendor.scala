@@ -77,7 +77,18 @@ trait CustomProtoDBVendor extends ConnectionManager {
     conn.setAutoCommit(false)
   }
 
-  def newConnection(name: ConnectionIdentifier): Box[Connection] =
+  // Tail Recursive function in order to avoid Stack Overflow
+  // PLEASE NOTE: Changing this function you can break the above named feature
+  def newConnection(name: ConnectionIdentifier): Box[Connection] = {
+    val (connection: Box[Connection], needRecursiveAgain: Boolean) = commonPart(name)
+    needRecursiveAgain match {
+      case true => newConnection(name)
+      case false => connection
+    }
+  }
+
+
+  def commonPart(name: ConnectionIdentifier): (Box[Connection], Boolean) =
     synchronized {
       freePool match {
         case Nil if (freePool.size + usedPool.size) < maxPoolSize =>{ //we set maxPoolSize 4. 
@@ -92,13 +103,16 @@ trait CustomProtoDBVendor extends ConnectionManager {
           }
          
           //Note: we may return the invalid connection
-          ret
+          (ret, false)
         }
 
         case Nil => //freePool is empty and we are at maxPoolSize limit 
           wait(50L)
           logger.error(s"The (freePool.size + usedPool.size) is expanding to maxPoolSize ($maxPoolSize), we can not create new connection, need to restart OBP now.")
-          Failure(s"Database may be down, please check database connection! OBP already create $maxPoolSize connections, because all connections are occupied!")
+          (
+            Failure(s"Database may be down, please check database connection! OBP already create $maxPoolSize connections, because all connections are occupied!"),
+            true
+          )
 
         case freeHead :: freeTail =>//if freePool is not empty, we just get connection from freePool, no need to create new connection from JDBC.
           logger.trace("Found connection in freePool, name=%s freePool size =%s".format(name, freePool.size))
@@ -109,16 +123,22 @@ trait CustomProtoDBVendor extends ConnectionManager {
           
           try {
             this.testConnection(freeHead) // we test the connection status, if it is success, we return it back.
-            Full(freeHead)
+            (Full(freeHead),false)
           } catch {
             case e: Exception => try {
               logger.error(s"testConnection failed, try to close it and call newConnection(name), detail is $e")
-              tryo(freeHead.close)       // call JDBC to close this connection
-              newConnection(name) // try to get new connection from freePool
+              tryo(freeHead.close) // call JDBC to close this connection
+              (
+                Failure(s"testConnection failed, try to close it and call newConnection(name), detail is $e"),
+                true
+              )
             } catch {
               case e: Exception =>{
                 logger.error(s"could not close connection and call newConnection(name), detail is $e")
-                newConnection(name) // if any other cases, just get new connection
+                (
+                  Failure(s"could not close connection and call newConnection(name), detail is $e"),
+                  true
+                )
               }
             }
           }
