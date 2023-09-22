@@ -168,7 +168,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
       freePool = Nil
       usedPool = Nil
 
-      if (usedPool.length > 0) wait(250)
+      if (usedPool.length > 0 || freePool.length > 0) wait(250)
 
       _closeAllConnections_!(cnt + 1)
     }
