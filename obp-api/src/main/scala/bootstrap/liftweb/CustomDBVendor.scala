@@ -1,5 +1,6 @@
 package bootstrap.liftweb
 
+import code.api.util.APIUtil
 import java.sql.{Connection, DriverManager}
 
 import net.liftweb.common.{Box, Failure, Full, Logger}
@@ -50,7 +51,8 @@ trait CustomProtoDBVendor extends ConnectionManager {
    *  Override this method if you want something other than 30 connections in the freePool and usedPool
    *  freePool.size + usedPool.size <=30
    */
-  protected def maxPoolSize = 30
+  val dbMaxPoolSize = APIUtil.getPropsAsIntValue("db.maxPoolSize",10)
+  protected def maxPoolSize = dbMaxPoolSize
 
   /**
    * The absolute maximum that this freePool can extend to

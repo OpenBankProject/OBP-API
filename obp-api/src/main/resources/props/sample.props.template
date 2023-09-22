@@ -182,6 +182,9 @@ write_connector_metrics=true
 db.driver=org.h2.Driver
 db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 
+#the default max database connection pool size is 10
+db.maxPoolSize=10
+
 
 #If you want to use the postgres , be sure to create your database and update the line below!
 #db.driver=org.postgresql.Driver
