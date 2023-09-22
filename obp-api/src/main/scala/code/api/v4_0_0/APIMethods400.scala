@@ -2549,7 +2549,7 @@ trait APIMethods400 {
       "Create Account (POST)",
       """Create Account at bank specified by BANK_ID.
         |
-        |The User can create an Account for himself  - or -  the User that has the USER_ID specified in the POST body.
+        |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
         |
         |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
         |

@@ -301,7 +301,7 @@ trait APIMethods500 {
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Create Account",
+      "Create Account (PUT)",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
         |
         |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
