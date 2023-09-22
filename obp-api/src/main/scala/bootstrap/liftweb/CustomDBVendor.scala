@@ -158,7 +158,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
 
   private def _closeAllConnections_!(cnt: Int): Unit = synchronized {
-    logger.debug("Closing all connections")
+    logger.debug(s"Closing all connections, try the $cnt time")
     if (cnt > 10) ()//we only try this 10 times,
     else {
       freePool.foreach {c => tryo(c.close);}
