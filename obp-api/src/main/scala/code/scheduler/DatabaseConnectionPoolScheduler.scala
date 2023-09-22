@@ -20,6 +20,7 @@ object DatabaseConnectionPoolScheduler extends MdcLoggable {
       runnable = new Runnable {
         def run(): Unit = {
           clearAllConnections(vendor)
+//          vendor.logAllConnectionsStatus //This is only to be used for debugging .
         }
       }
     )

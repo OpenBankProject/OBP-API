@@ -47,10 +47,10 @@ trait CustomProtoDBVendor extends ConnectionManager {
   protected def allowTemporaryPoolExpansion = false
 
   /**
-   *  Override this method if you want something other than
-   * 4 connections in the freePool
+   *  Override this method if you want something other than 30 connections in the freePool and usedPool
+   *  freePool.size + usedPool.size <=30
    */
-  protected def maxPoolSize = 4
+  protected def maxPoolSize = 30
 
   /**
    * The absolute maximum that this freePool can extend to
@@ -96,7 +96,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
         }
 
         case Nil => //freePool is empty and we are at maxPoolSize limit 
-          wait(500L)
+          wait(50L)
           logger.error(s"The (freePool.size + usedPool.size) is expanding to maxPoolSize ($maxPoolSize), we can not create new connection, need to restart OBP now.")
           Failure(s"Database may be down, please check database connection! OBP already create $maxPoolSize connections, because all connections are occupied!")
 
@@ -149,6 +149,22 @@ trait CustomProtoDBVendor extends ConnectionManager {
       if (usedPool.length > 0) wait(250)
 
       _closeAllConnections_!(cnt + 1)
+    }
+  }
+
+
+  //This is only for debugging 
+  def logAllConnectionsStatus = {
+    logger.debug(s"Hello from logAllConnectionsStatus: usedPool.size is ${usedPool.length}, freePool.size is ${freePool.length}")
+    for {
+      usedConnection <- usedPool
+    } yield {
+      logger.debug(s"usedConnection (${usedConnection.toString}): isClosed-${usedConnection.isClosed}, getWarnings-${usedConnection.getWarnings}")
+    }
+    for {
+      freeConnection <- freePool
+    } yield {
+      logger.debug(s"freeConnection (${freeConnection.toString}): isClosed-${freeConnection.isClosed}, getWarnings-${freeConnection.getWarnings}")
     }
   }
 }

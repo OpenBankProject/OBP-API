@@ -264,7 +264,7 @@ class Boot extends MdcLoggable {
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
       DatabaseConnectionPoolScheduler.start(vendor, 10)// 10 seconds
-      logger.debug("ThreadPoolConnectionsScheduler.start(vendor, 10)")
+//      logger.debug("ThreadPoolConnectionsScheduler.start(vendor, 10)")
     }
     
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
