@@ -51,7 +51,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
    *  Override this method if you want something other than 10 connections in the freePool and usedPool
    *  freePool.size + usedPool.size <=10
    */
-  val dbMaxPoolSize = APIUtil.getPropsAsIntValue("db.maxPoolSize",10)
+  val dbMaxPoolSize = APIUtil.getPropsAsIntValue("db.maxPoolSize",30)
   protected def maxPoolSize = dbMaxPoolSize
 
   /**
@@ -93,15 +93,15 @@ trait CustomProtoDBVendor extends ConnectionManager {
   def commonPart(name: ConnectionIdentifier): (Box[Connection], Boolean) =
     synchronized {
       freePool match {
-        case Nil if (freePool.size + usedPool.size) < maxPoolSize =>{ //we set maxPoolSize 4. 
+        case Nil if (freePool.size + usedPool.size) < maxPoolSize =>{
           val ret = createOne // get oneConnection from JDBC, not in the freePool yet, we add ot the Pool when we release it .
           try {
             ret.head.setAutoCommit(false) // we test the connection status, if it is success, we return it back.
             usedPool = ret.head :: usedPool
-            logger.debug(s"Created connection is good, detail is $ret ")
+            logger.trace(s"Created connection is good, detail is $ret ")
           } catch {
             case e: Exception =>
-              logger.debug(s"Created connection is bad, detail is $e")
+              logger.trace(s"Created connection is bad, detail is $e")
           }
          
           //Note: we may return the invalid connection
@@ -111,10 +111,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
         case Nil => //freePool is empty and we are at maxPoolSize limit 
           wait(50L)
           logger.error(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections.")
-          (
-            Failure(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections."),
-            true
-          )
+          throw new RuntimeException(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections.")
 
         case freeHead :: freeTail =>//if freePool is not empty, we just get connection from freePool, no need to create new connection from JDBC.
           logger.trace("Found connection in freePool, name=%s freePool size =%s".format(name, freePool.size))
@@ -149,10 +146,10 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   def releaseConnection(conn: Connection): Unit = synchronized {
     usedPool = usedPool.filterNot(_ ==conn)
-    logger.debug(s"Released connection. removed connection from usedPool size is ${usedPool.size}")
+    logger.trace(s"Released connection. removed connection from usedPool size is ${usedPool.size}")
     //TODO check if we need add head or tail
     freePool = conn :: freePool
-    logger.debug(s"Released connection. added connection to freePool size is ${freePool.size}")
+    logger.trace(s"Released connection. added connection to freePool size is ${freePool.size}")
     notifyAll
   }
 
@@ -160,7 +157,7 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
 
   private def _closeAllConnections_!(cnt: Int): Unit = synchronized {
-    logger.debug(s"Closing all connections, try the $cnt time")
+    logger.trace(s"Closing all connections, try the $cnt time")
     if (cnt > 10) ()//we only try this 10 times,
     else {
       freePool.foreach {c => tryo(c.close);}
@@ -177,16 +174,16 @@ trait CustomProtoDBVendor extends ConnectionManager {
 
   //This is only for debugging 
   def logAllConnectionsStatus = {
-    logger.debug(s"Hello from logAllConnectionsStatus: usedPool.size is ${usedPool.length}, freePool.size is ${freePool.length}")
+    logger.trace(s"Hello from logAllConnectionsStatus: usedPool.size is ${usedPool.length}, freePool.size is ${freePool.length}")
     for {
       usedConnection <- usedPool
     } yield {
-      logger.debug(s"usedConnection (${usedConnection.toString}): isClosed-${usedConnection.isClosed}, getWarnings-${usedConnection.getWarnings}")
+      logger.trace(s"usedConnection (${usedConnection.toString}): isClosed-${usedConnection.isClosed}, getWarnings-${usedConnection.getWarnings}")
     }
     for {
       freeConnection <- freePool
     } yield {
-      logger.debug(s"freeConnection (${freeConnection.toString}): isClosed-${freeConnection.isClosed}, getWarnings-${freeConnection.getWarnings}")
+      logger.trace(s"freeConnection (${freeConnection.toString}): isClosed-${freeConnection.isClosed}, getWarnings-${freeConnection.getWarnings}")
     }
   }
 }
