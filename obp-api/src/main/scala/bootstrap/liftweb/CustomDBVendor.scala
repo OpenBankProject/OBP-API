@@ -111,7 +111,10 @@ trait CustomProtoDBVendor extends ConnectionManager {
         case Nil => //freePool is empty and we are at maxPoolSize limit 
           wait(50L)
           logger.error(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections.")
-          throw new RuntimeException(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections.")
+          (
+            Failure(s"The (freePool.size + usedPool.size) is at the limit ($maxPoolSize) and there are no free connections."),
+            false
+          )
 
         case freeHead :: freeTail =>//if freePool is not empty, we just get connection from freePool, no need to create new connection from JDBC.
           logger.trace("Found connection in freePool, name=%s freePool size =%s".format(name, freePool.size))
