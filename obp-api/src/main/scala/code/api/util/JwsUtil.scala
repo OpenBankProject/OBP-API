@@ -191,7 +191,7 @@ object JwsUtil extends MdcLoggable {
          |psu-geo-location: ${psuGeoLocation.getOrElse("None")}
          |digest: $digest
          |""".stripMargin)
-    logger.debug("Detached Payload of Signing: " + detachedPayload)
+    logger.debug("signRequestResponseCommon says Detached Payload of Signing: " + detachedPayload)
     
     val sigD =
       s"""{
@@ -206,15 +206,24 @@ object JwsUtil extends MdcLoggable {
         |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
         |  }
         |  """.stripMargin
-    // We create the time in next format: '2011-12-03T10:15:30Z' 
+    // We create the time in the following format: '2011-12-03T10:15:30Z'
+
+    logger.debug("signRequestResponseCommon says sigD is: " + sigD)
+
     val sigT: String = signingTime match {
       case None => ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
       case Some(time) => time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     }
+    logger.debug("signRequestResponseCommon says sigT is: " + sigT)
+
     val criticalParams: util.Set[String] = new util.HashSet[String]()
+    logger.debug("signRequestResponseCommon says criticalParams is: " + criticalParams)
+
     criticalParams.add("b64")
     criticalParams.addAll(getDeferredCriticalHeaders)
     // Create and sign JWS
+
+    logger.debug("signRequestResponseCommon says before Create and sign JWS")
     val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
       .base64URLEncodePayload(false)
       .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
@@ -226,11 +235,13 @@ object JwsUtil extends MdcLoggable {
 
 
     // Compute the RSA signature
+    logger.debug("signRequestResponseCommon says before Compute the RSA signature")
     jwsObject.sign(CertificateUtil.rsaSigner)
 
     val isDetached = true
     val jws: String = jwsObject.serialize(isDetached)
 
+    logger.debug("signRequestResponseCommon says returning..")
     List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest))) :::
     List(
       HTTPParam("host", List(host)),
