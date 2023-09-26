@@ -3,7 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
-22/09/2023    752ff04b      Added props db.maxPoolSize, default is 10. 
+22/09/2023    752ff04b      Added props db.maxPoolSize, default is 30. 
 24/08/2023    bcb8fcfd      Added props expectedOpenFuturesPerService, default is 100. 
 16/08/2023    4d8dfa66      Added props short_endpoint_timeout, default is 1. 
                             Added props medium_endpoint_timeout, default is 7. 
