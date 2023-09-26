@@ -86,14 +86,14 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
   )
 
     // New in 1.3.0
-    lazy val endpointsOf1_3_0 = List(
+    val endpointsOf1_3_0 = List(
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank
   )
 
 
     // New in 1.4.0
-    lazy val endpointsOf1_4_0 = List(
+    val endpointsOf1_4_0 = List(
     Implementations1_4_0.root,
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.addCustomer,
@@ -110,18 +110,18 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
   )
 
 
-  lazy val allResourceDocs =
+  val allResourceDocs =
     Implementations1_4_0.resourceDocs ++
       Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  lazy val routes : List[OBPEndpoint] =
+  val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) ::: 
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
 
-  val registerApiRoutes = () => registerRoutes(routes, allResourceDocs, apiPrefix)
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

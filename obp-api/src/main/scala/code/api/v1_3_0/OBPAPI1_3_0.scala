@@ -91,23 +91,23 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     //Implementations1_2_1.makePayment
   )
 
-  lazy val endpointsOf1_3_0 = List(
+  val endpointsOf1_3_0 = List(
     Implementations1_3_0.root,
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank
   )
 
-  lazy val allResourceDocs =
+  val allResourceDocs =
     Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  lazy val routes : List[OBPEndpoint] =
+  val routes : List[OBPEndpoint] =
       getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs)
 
 
-  val registerApiRoutes = () => registerRoutes(routes, allResourceDocs, apiPrefix)
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

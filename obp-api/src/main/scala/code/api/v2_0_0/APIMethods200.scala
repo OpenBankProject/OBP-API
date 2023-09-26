@@ -1162,7 +1162,7 @@ trait APIMethods200 {
     apiRelations += ApiRelation(createAccount, getCoreAccountById, "detail")
 
     // Note: This doesn't currently work (links only have access to same version resource docs). TODO fix me.
-    // apiRelations += ApiRelation(createAccount, Implementations1_2_1.updateAccountLabel, "update_label")
+    apiRelations += ApiRelation(createAccount, Implementations1_2_1.updateAccountLabel, "update_label")
 
 
     lazy val createAccount : OBPEndpoint = {

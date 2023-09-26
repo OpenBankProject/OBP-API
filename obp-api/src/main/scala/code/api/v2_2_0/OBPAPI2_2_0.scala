@@ -85,7 +85,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints 1.3.0
-  lazy val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
+  val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
                          Implementations1_3_0.getCardsForBank ::
                          Nil
 
@@ -94,7 +94,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints 1.4.0
-  lazy val endpointsOf1_4_0 = Implementations1_4_0.getCustomersMessages ::
+  val endpointsOf1_4_0 = Implementations1_4_0.getCustomersMessages ::
                           Implementations1_4_0.addCustomerMessage ::
                           Implementations1_4_0.getBranches ::
                           Implementations1_4_0.getAtms ::
@@ -104,7 +104,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints 2.0.0 (less info about the views)
-  lazy val endpointsOf2_0_0 = Implementations2_0_0.getPrivateAccountsAllBanks ::
+  val endpointsOf2_0_0 = Implementations2_0_0.getPrivateAccountsAllBanks ::
                           Implementations2_0_0.accountById ::
                           Implementations2_0_0.addEntitlement ::
                           Implementations2_0_0.addKycCheck ::
@@ -145,7 +145,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints 2.1.0
-  lazy val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
+  val endpointsOf2_1_0 = Implementations2_1_0.sandboxDataImport ::
                           Implementations2_1_0.getTransactionRequestTypesSupportedByBank ::
                           Implementations2_1_0.createTransactionRequest ::
                           Implementations2_1_0.answerTransactionRequestChallenge ::
@@ -173,7 +173,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Nil
 
   // Possible Endpoints 2.2.0
-  lazy val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
+  val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
                           Implementations2_2_0.root ::
                           Implementations2_2_0.createViewForBankAccount ::
                           Implementations2_2_0.updateViewForBankAccount ::
@@ -191,8 +191,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createProduct ::
                           Implementations2_2_0.createCounterparty ::
                           Nil
-
-  lazy val allResourceDocs = Implementations2_2_0.resourceDocs ++
+  
+  val allResourceDocs = Implementations2_2_0.resourceDocs ++
                         Implementations2_1_0.resourceDocs ++
                         Implementations2_0_0.resourceDocs ++
                         Implementations1_4_0.resourceDocs ++
@@ -201,7 +201,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  lazy val routes : List[OBPEndpoint] =
+  val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
@@ -210,7 +210,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
       getAllowedEndpoints(endpointsOf2_2_0, Implementations2_2_0.resourceDocs)
 
 
-  val registerApiRoutes = () => registerRoutes(routes, allResourceDocs, apiPrefix)
+  registerRoutes(routes, allResourceDocs, apiPrefix)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 
