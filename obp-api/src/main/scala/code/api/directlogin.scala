@@ -339,7 +339,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
     def validAccessTokenFuture(tokenKey: String) = {
       Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
-        case Full(token) => token.isValid match {
+        case Full(token) => token.isValid /*match {
           case true => 
             // Only last issued token is considered as a valid one
             val isNotLastIssuedToken = Token.findAll(
@@ -349,7 +349,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
             ).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
-        }
+        }*/
         case _ => false
       }
     }
