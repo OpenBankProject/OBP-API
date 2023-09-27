@@ -66,13 +66,20 @@ object CertificateUtil extends MdcLoggable {
   @throws[CertificateException]
   @throws[RuntimeException]
   def getKeyStoreCertificate() = {
+    // TODO SENSITIVE DATA LOGGING
+    logger.debug("getKeyStoreCertificate says hello.")
     val jkspath = APIUtil.getPropsValue("keystore.path").getOrElse("")
+    logger.debug("getKeyStoreCertificate says jkspath is: " + jkspath)
     val jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
+    logger.debug("getKeyStoreCertificate says jkspasswd is: " + jkspasswd)
     val keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd)
+    logger.debug("getKeyStoreCertificate says keypasswd is: " + keypasswd)
     // This is used for QWAC certificate. Alias needs to be of that certificate.
     val alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
+    logger.debug("getKeyStoreCertificate says alias is: " + alias)
     val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
     val inputStream = new FileInputStream(jkspath)
+    logger.debug("getKeyStoreCertificate says before keyStore.load inputStream")
     keyStore.load(inputStream, jkspasswd.toArray)
     inputStream.close()
     val privateKey: Key = keyStore.getKey(alias, keypasswd.toCharArray())

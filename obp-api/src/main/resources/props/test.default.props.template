@@ -118,7 +118,7 @@ COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy
 SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy
 
 
-# control the create and access to public views. 
+# control the create and access to public views.
 allow_public_views =true
 
 # Used to run external test against some OBP-API instance

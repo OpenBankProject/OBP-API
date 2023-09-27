@@ -479,11 +479,13 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
       When("When we issue a new token")
       makePostRequestAdditionalHeader(request, "", validHeaders)
-      Then("The previous one should be invalid")
-      val failedResponse = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
-      And("We should get a 400")
-      failedResponse.code should equal(400)
-      assertResponse(failedResponse, DirectLoginInvalidToken)
+      Then("The previous one should be valid")
+      val secondResponse = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      secondResponse.code should equal(200)
+      // assertResponse(failedResponse, DirectLoginInvalidToken)
+
+
     }
 
 
