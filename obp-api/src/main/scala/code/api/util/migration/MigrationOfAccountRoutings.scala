@@ -22,51 +22,11 @@ object MigrationOfAccountRoutings {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
 
-        val accountsIban = MappedBankAccount.findAll(
-          NotNullRef(MappedBankAccount.accountIban)
-        )
-
-        val accountsOtherScheme = MappedBankAccount.findAll(
-          NotNullRef(MappedBankAccount.mAccountRoutingScheme),
-          NotNullRef(MappedBankAccount.mAccountRoutingAddress)
-        )
-
-        // Make back up
-        DbFunction.makeBackUpOfTable(MappedBankAccount)
-
-        // Add iban rows into table "BankAccountRouting"
-        val addIbanRows: List[Boolean] = {
-          val definedAccountsIban = accountsIban.filter(_.iban.getOrElse("").nonEmpty)
-          for {
-            accountIban <- definedAccountsIban
-          } yield {
-            createBankAccountRouting(accountIban.bankId.value, accountIban.accountId.value,
-              "IBAN", accountIban.iban.get)
-          }
-        }
-
-        // Add other routing scheme rows into table "BankAccountRouting"
-        val addOtherRoutingSchemeRows: List[Boolean] = {
-          val accountsOtherSchemeNonDuplicatedIban = accountsOtherScheme
-            .filterNot(a =>
-              (a.iban.getOrElse("").nonEmpty && a.accountRoutingScheme == "IBAN")
-                || a.accountRoutingScheme.isEmpty || a.accountRoutingAddress.isEmpty
-            )
-          for {
-            accountOtherScheme <- accountsOtherSchemeNonDuplicatedIban
-          } yield {
-            createBankAccountRouting(accountOtherScheme.bankId.value, accountOtherScheme.accountId.value,
-              accountOtherScheme.accountRoutingScheme, accountOtherScheme.accountRoutingAddress)
-          }
-        }
-
-
-        val isSuccessful = addIbanRows.forall(_ == true) && addOtherRoutingSchemeRows.forall(_ == true)
+        val isSuccessful = true
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""Number of iban rows inserted at table BankAccountRouting: ${addIbanRows.size}
-             |Number of other routing scheme rows inserted at table BankAccountRouting: ${addOtherRoutingSchemeRows.size}
-             |""".stripMargin
+          s""""Use BankAccountRouting model to store IBAN and other account routings
+             |The field MappedBankAccount.accountIban has been removed""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
 
