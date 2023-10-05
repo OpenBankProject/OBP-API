@@ -1105,6 +1105,9 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # user_invitation.ttl.seconds=86400
 # User Invitation is mandatory in case of onboarding a user
 # user_invitation.mandatory=false
+# webui_user_invitation_notice_text=Thank you for expressing interest in the API Playground. At this time access to the \
+                                    API Playground is on an invitation basis only. Those invited will be invited to join \
+                                    by email, where you will be able to complete registration.
 
 # User (Developer) Invitation
 webui_post_user_invitation_submit_button_value=Register as a Developer
