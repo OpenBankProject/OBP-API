@@ -3022,6 +3022,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val title = s"Request Headers for verb: $verb, URL: $url"
+    surroundDebugMessage(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString, title)
     val remoteIpAddress = getRemoteIpAddress()
     val res =
       if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
