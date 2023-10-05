@@ -17,7 +17,7 @@ object Glossary extends MdcLoggable  {
 
 	def getGlossaryItem(title: String): String = {
 
-		logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+		//logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
 
 		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
 			case Some(foundItem) =>
@@ -36,7 +36,7 @@ object Glossary extends MdcLoggable  {
 				 |""".stripMargin
 				case None => ""
 		}
-		logger.debug(s"getGlossaryItem says the text to return is $something")
+		//logger.debug(s"getGlossaryItem says the text to return is $something")
 		something
 	}
 
