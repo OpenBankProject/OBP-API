@@ -349,7 +349,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           }
         }
       case _ =>
-        logger.error("SessionContext is not defined. Metrics cannot be saved.")
+        logger.error("CallContextLight is not defined. Metrics cannot be saved.")
     }
   }
 
