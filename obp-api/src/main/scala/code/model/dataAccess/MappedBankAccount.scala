@@ -14,8 +14,6 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
 
   object bank extends UUIDString(this)
   object theAccountId extends AccountIdString(this)
-  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
-  object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
   object accountNumber extends MappedAccountNumber(this)
 
@@ -36,12 +34,6 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   //It means last transaction refresh date only used for HBCI now.
   object accountLastUpdate extends MappedDateTime(this)
 
-
-  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
-  object mAccountRoutingScheme extends MappedString(this, 32)
-  @deprecated("Use BankAccountRouting model to store IBAN and other account routings", "22 Sept 2023" )
-  object mAccountRoutingAddress extends MappedString(this, 128)
-
   object mBranchId extends UUIDString(this)
 
   object accountRuleScheme1 extends MappedString(this, 10)
@@ -50,10 +42,6 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountRuleValue2 extends MappedLong(this)
 
   override def accountId: AccountId = AccountId(theAccountId.get)
-  def iban: Option[String] = {
-    val i = accountIban.get
-    if(i.isEmpty) None else Some(i)
-  }
   override def bankId: BankId = BankId(bank.get)
   override def currency: String = accountCurrency.get.toUpperCase
   override def number: String = accountNumber.get
@@ -64,9 +52,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate : Date = accountLastUpdate.get
-
-  def accountRoutingScheme: String = mAccountRoutingScheme.get
-  def accountRoutingAddress: String = mAccountRoutingAddress.get
+  
   def branchId: String = mBranchId.get
 
   def createAccountRule(scheme: String, value: Long) = {
