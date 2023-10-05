@@ -325,6 +325,11 @@ object Helper extends Loggable {
       logger.error(s"| $msg |")
       logger.error(s"+-${StringUtils.repeat("-", msg.length)}-+")
     }
+    protected def surroundDebugMessage(msg: String, title: String = ""): Unit = {
+      logger.debug(s"+-${title}${StringUtils.repeat("-", msg.length - title.length)}-+")
+      logger.debug(s"| $msg |")
+      logger.debug(s"+-${StringUtils.repeat("-", msg.length)}-+")
+    }
     initiate()
     MDC.put("host" -> getHostname)
   }
