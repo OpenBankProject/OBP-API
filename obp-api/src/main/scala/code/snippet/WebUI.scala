@@ -154,6 +154,12 @@ class WebUI extends MdcLoggable{
     "#main-about [style]" #> ("background-image: url(" + getWebUiPropsValue("webui_index_page_about_section_background_image_url", "") + ");")
   }
 
+  def webuiUserInvitationNoticeText: CssSel = {
+    "#webui_user_invitation_notice_text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_user_invitation_notice_text", 
+      "Thank you for expressing interest in the API Playground. At this time access to the API Playground is on an invitation basis only. " +
+        "Those invited will be invited to join by email, where you will be able to complete registration."))
+  }
+
   def aboutText: CssSel = {
     "#main-about-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_index_page_about_section_text", ""))
   }
