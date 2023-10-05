@@ -152,7 +152,7 @@ object ErrorMessages {
 
   val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
 
-  val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
+  val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact an administrator!"
 
   val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
 
