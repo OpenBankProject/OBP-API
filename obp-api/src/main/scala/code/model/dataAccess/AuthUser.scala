@@ -26,9 +26,12 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
+import java.util.UUID.randomUUID
+
 import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
+import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -58,6 +61,7 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf.nameOf
+import com.tesobe.CacheKeyFromArguments
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
 import net.liftweb.sitemap.Loc.{If, LocParam, Template}
@@ -453,6 +457,35 @@ import net.liftweb.util.Helpers._
 
     <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
+
+
+  // Update ResourceUser.LastUsedLocale only once per session in 60 seconds
+  def updateComputedLocale(sessionId: String, computedLocale: String): Boolean = {
+    /**
+     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+     * is just a temporary value field with UUID values in order to prevent any ambiguity.
+     * The real value will be assigned by Macro during compile time at this line of a code:
+     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+     */
+    import scala.concurrent.duration._
+    val ttl: Duration = FiniteDuration(60, "second")
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(ttl) {
+        logger.debug(s"AuthUser.updateComputedLocale(sessionId = $sessionId, computedLocale = $computedLocale)")
+        getCurrentUser.map(_.userPrimaryKey.value) match {
+          case Full(id) =>
+            Users.users.vend.getResourceUserByResourceUserId(id).map {
+              u =>
+                u.LastUsedLocale(computedLocale).save
+                logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
+            }.isDefined
+          case _ => true// There is no current user
+        }
+      }
+    }
+  }
+  
   
   /**
     * Find current ResourceUser from the server. 
