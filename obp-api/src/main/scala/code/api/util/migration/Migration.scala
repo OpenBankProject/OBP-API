@@ -15,9 +15,9 @@ import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
+import com.zaxxer.hikari.pool.ProxyConnection
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
 import net.liftweb.mapper.{BaseMetaMapper, DB, SuperConnection}
-import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
@@ -528,10 +528,19 @@ object Migration extends MdcLoggable {
       */
     def mapperDatabaseInfo(vendor: CustomDBVendor): DatabaseInfoJson = {
       val connection = vendor.createOne.openOrThrowException(DatabaseConnectionClosedError)
-      val md = connection.getMetaData
-      val productName = md.getDatabaseProductName()
-      val productVersion = md.getDatabaseProductVersion()
-      DatabaseInfoJson(product_name = productName, product_version = productVersion)
+      try {
+        val md = connection.getMetaData
+        val productName = md.getDatabaseProductName()
+        val productVersion = md.getDatabaseProductVersion()
+        DatabaseInfoJson(product_name = productName, product_version = productVersion)
+      } finally {
+        try {
+          connection.asInstanceOf[ProxyConnection].close()
+        } catch {
+          case t: Throwable => logger.error(s"mapperDatabaseInfo.close connection throw exception, detail is: $t")
+        }
+      }
+      
     }
 
     /**
