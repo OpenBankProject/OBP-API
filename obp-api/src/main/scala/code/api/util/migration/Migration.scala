@@ -1,10 +1,12 @@
 package code.api.util.migration
 
+import bootstrap.liftweb.CustomDBVendor
+
 import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
+import code.api.util.ErrorMessages.DatabaseConnectionClosedError
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
@@ -524,8 +526,8 @@ object Migration extends MdcLoggable {
     /**
       * The purpose is to provide info about the database in mapper mode.
       */
-    def mapperDatabaseInfo(): DatabaseInfoJson = {
-      val connection = DB.use(DefaultConnectionIdentifier){ conn => conn}
+    def mapperDatabaseInfo(vendor: CustomDBVendor): DatabaseInfoJson = {
+      val connection = vendor.createOne.openOrThrowException(DatabaseConnectionClosedError)
       val md = connection.getMetaData
       val productName = md.getDatabaseProductName()
       val productVersion = md.getDatabaseProductVersion()

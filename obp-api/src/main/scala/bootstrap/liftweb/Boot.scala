@@ -232,37 +232,10 @@ class Boot extends MdcLoggable {
 
   def boot {
     implicit val formats = CustomJsonFormats.formats
-   // set up the way to connect to the relational DB we're using (ok if other connector than relational)
-    val driver =
-      Props.mode match {
-        case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
-        case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
-        case _ => "org.h2.Driver"
-      }
-    val vendor =
-      Props.mode match {
-        case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
-          new CustomDBVendor(driver,
-            APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-            APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
-        case Props.RunModes.Test =>
-          new CustomDBVendor(
-            driver,
-            APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue,
-            APIUtil.getPropsValue("db.user").orElse(Empty), 
-            APIUtil.getPropsValue("db.password").orElse(Empty)
-          )
-        case _ =>
-          new CustomDBVendor(
-            driver,
-            h2DatabaseDefaultUrlValue,
-            Empty, Empty)
-      }
       
-    logger.debug("Using database driver: " + driver)
-//      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
+    logger.debug("Using database driver: " + APIUtil.driver)
 
-    DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
+    DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
 
     /**
      * Function that determines if foreign key constraints are
@@ -277,7 +250,7 @@ class Boot extends MdcLoggable {
     
     schemifyAll()
     
-//    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
+    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo(APIUtil.vendor))
 
     //    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
     //      case true => // DB already exist
@@ -388,6 +361,8 @@ class Boot extends MdcLoggable {
       }
       
     }
+
+    //      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
     
     LiftRules.statelessDispatch.prepend {
       case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>

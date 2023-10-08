@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
+import bootstrap.liftweb.CustomDBVendor
 import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
@@ -4767,5 +4768,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
     logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounterLatest is $serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}")
   }
+
+  val driver =
+    Props.mode match {
+      case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+      case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+      case _ => "org.h2.Driver"
+    }
+    
+  val vendor =
+    Props.mode match {
+      case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
+        new CustomDBVendor(driver,
+          APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+          APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
+      case Props.RunModes.Test =>
+        new CustomDBVendor(
+          driver,
+          APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue,
+          APIUtil.getPropsValue("db.user").orElse(Empty),
+          APIUtil.getPropsValue("db.password").orElse(Empty)
+        )
+      case _ =>
+        new CustomDBVendor(
+          driver,
+          h2DatabaseDefaultUrlValue,
+          Empty, Empty)
+    }
     
 }
