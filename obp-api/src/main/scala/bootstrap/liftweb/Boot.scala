@@ -108,7 +108,7 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler, DatabaseConnectionPoolScheduler}
+import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -231,42 +231,132 @@ class Boot extends MdcLoggable {
 
 
   def boot {
-    // set up the way to connect to the relational DB we're using (ok if other connector than relational)
-    if (!DB.jndiJdbcConnAvailable_?) {
-      val driver =
-        Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
-          case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
-          case _ => "org.h2.Driver"
-        }
-      val vendor =
-        Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
-            new CustomDBVendor(driver,
-              APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-              APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
-          case Props.RunModes.Test =>
-            new CustomDBVendor(
-              driver,
-              APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue,
-              APIUtil.getPropsValue("db.user").orElse(Empty), 
-              APIUtil.getPropsValue("db.password").orElse(Empty)
-            )
-          case _ =>
-            new CustomDBVendor(
-              driver,
-              h2DatabaseDefaultUrlValue,
-              Empty, Empty)
-        }
+    implicit val formats = CustomJsonFormats.formats
+   // set up the way to connect to the relational DB we're using (ok if other connector than relational)
+    val driver =
+      Props.mode match {
+        case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+        case Props.RunModes.Test => APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+        case _ => "org.h2.Driver"
+      }
+    val vendor =
+      Props.mode match {
+        case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
+          new CustomDBVendor(driver,
+            APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+            APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
+        case Props.RunModes.Test =>
+          new CustomDBVendor(
+            driver,
+            APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue,
+            APIUtil.getPropsValue("db.user").orElse(Empty), 
+            APIUtil.getPropsValue("db.password").orElse(Empty)
+          )
+        case _ =>
+          new CustomDBVendor(
+            driver,
+            h2DatabaseDefaultUrlValue,
+            Empty, Empty)
+      }
+      
+    logger.debug("Using database driver: " + driver)
+//      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
-      logger.debug("Using database driver: " + driver)
-      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
+    DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
 
-      DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
-      DatabaseConnectionPoolScheduler.start(vendor, 10)// 10 seconds
-//      logger.debug("ThreadPoolConnectionsScheduler.start(vendor, 10)")
-    }
+    /**
+     * Function that determines if foreign key constraints are
+     * created by Schemifier for the specified connection.
+     *
+     * Note: The chosen driver must also support foreign keys for
+     * creation to happen
+     *
+     * In case of PostgreSQL it works
+     */
+    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
     
+    schemifyAll()
+    
+//    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
+
+    //    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    //      case true => // DB already exist
+    //        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+    //        // Please note that migration scripts are executed before Lift Mapper Schemifier
+    ////        Migration.database.executeScripts(startedBeforeSchemifier = true)
+    //        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
+    //      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+    //        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
+    //    }
+
+    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+    
+    // Please note that migration scripts are executed after Lift Mapper Schemifier
+    //Migration.database.executeScripts(startedBeforeSchemifier = false)
+
+    if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
+      // Create system views
+      val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
+      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
+      val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      val standard = Views.views.vend.getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID).isDefined
+      val stageOne = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
+      val manageCustomViews = Views.views.vend.getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID).isDefined
+      // Only create Firehose view if they are enabled at instance.
+      val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
+        Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
+      else Empty.isDefined
+
+      val comment: String =
+        s"""
+           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
+           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
+           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
+           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
+           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
+           |System view ${SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID} exists/created at the instance: ${manageCustomViews}
+           |""".stripMargin
+      logger.info(comment)
+
+      APIUtil.getPropsValue("additional_system_views") match {
+        case Full(value) =>
+          val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
+          val viewsUKOpenBanking = List(
+            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+            SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
+            SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
+            SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID,
+            SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
+          )
+          for {
+            systemView <- viewSetUKOpenBanking
+            if viewsUKOpenBanking.exists(_ == systemView)
+          } {
+            Views.views.vend.getOrCreateSystemView(systemView)
+            val comment = s"System view ${systemView} exists/created at the instance"
+            logger.info(comment)
+          }
+        case _ => // Do nothing
+      }
+
+    }
+
+    ApiWarnings.logWarningsRegardingProperties()
+    ApiWarnings.customViewNamesCheck()
+    ApiWarnings.systemViewNamesCheck()
+
+    //see the notes for this method:
+    createDefaultBankAndDefaultAccountsIfNotExisting()
+    
+    //launch the scheduler to clean the database from the expired tokens and nonces
+    Schedule.schedule(() => OAuthAuthorisation.dataBaseCleaner, 2 minutes)
+
+//    if (Props.devMode || Props.testMode) {
+//      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
+//    }
+
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
       DB.addLogFunc
      {
@@ -299,8 +389,6 @@ class Boot extends MdcLoggable {
       
     }
     
-    
-    implicit val formats = CustomJsonFormats.formats 
     LiftRules.statelessDispatch.prepend {
       case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
         Props.mode match {
@@ -314,8 +402,6 @@ class Boot extends MdcLoggable {
               )
         }
     }
-    
-    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
@@ -342,21 +428,9 @@ class Boot extends MdcLoggable {
       }
     }
     
-    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
-      case true => // DB already exist
-        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-        // Please note that migration scripts are executed before Lift Mapper Schemifier
-        Migration.database.executeScripts(startedBeforeSchemifier = true)
-        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
-      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
-        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
-    }
-    
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-    schemifyAll()
-
-
+    
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
       case Props.RunModes.Staging => "Staging mode"
@@ -379,11 +453,7 @@ class Boot extends MdcLoggable {
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
     }
-
-    if (Props.devMode || Props.testMode) {
-      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
-    }
-
+    
     // where to search snippets
     LiftRules.addToPackages("code")
 
@@ -398,16 +468,6 @@ class Boot extends MdcLoggable {
         ) => false})
     }
 
-    /**
-      * Function that determines if foreign key constraints are
-      * created by Schemifier for the specified connection.
-      *
-      * Note: The chosen driver must also support foreign keys for
-      * creation to happen
-      *
-      * In case of PostgreSQL it works
-      */
-    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
 
 
@@ -492,11 +552,6 @@ class Boot extends MdcLoggable {
 
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
-
-
-    //launch the scheduler to clean the database from the expired tokens and nonces
-    Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
-
     val accountCreation = {
       if(APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
@@ -750,11 +805,6 @@ class Boot extends MdcLoggable {
 
     // Sanity check for incompatible Props values for Scopes.
     sanityCheckOPropertiesRegardingScopes()
-
-    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-    // Please note that migration scripts are executed after Lift Mapper Schemifier
-    Migration.database.executeScripts(startedBeforeSchemifier = false)
-
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
       // validate whether "connector.name.export.as.endpoints" have set a correct value
@@ -778,63 +828,6 @@ class Boot extends MdcLoggable {
 
       ConnectorEndpoints.registerConnectorEndpoints
     }
-
-    if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)){
-      // Create system views
-      val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
-      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
-      val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
-      val standard = Views.views.vend.getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID).isDefined
-      val stageOne = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
-      val manageCustomViews = Views.views.vend.getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID).isDefined
-      // Only create Firehose view if they are enabled at instance.
-      val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
-        Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
-      else Empty.isDefined
-      
-      val comment: String =
-        s"""
-           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
-           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
-           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
-           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
-           |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
-           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
-           |System view ${SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID} exists/created at the instance: ${manageCustomViews}
-           |""".stripMargin
-      logger.info(comment)
-
-      APIUtil.getPropsValue("additional_system_views") match {
-        case Full(value) =>
-          val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
-          val viewsUKOpenBanking = List(
-            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
-            SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
-            SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
-          )
-          for {
-            systemView <- viewSetUKOpenBanking
-            if viewsUKOpenBanking.exists(_ == systemView)
-          } {
-            Views.views.vend.getOrCreateSystemView(systemView)
-            val comment = s"System view ${systemView} exists/created at the instance"
-            logger.info(comment)
-          }
-        case _ => // Do nothing
-      }
-      
-    }
-
-    ApiWarnings.logWarningsRegardingProperties()
-    ApiWarnings.customViewNamesCheck()
-    ApiWarnings.systemViewNamesCheck()
-
-    //see the notes for this method:
-    createDefaultBankAndDefaultAccountsIfNotExisting()
-
     if(HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
     }
