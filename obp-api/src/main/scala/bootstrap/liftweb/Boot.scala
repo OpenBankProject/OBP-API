@@ -118,7 +118,7 @@ import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionRequestAttribute.TransactionRequestAttribute
-import code.transactionStatusScheduler.TransactionStatusScheduler
+import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
@@ -146,7 +146,7 @@ import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{DefaultConnectionIdentifier, _}
+import net.liftweb.util._
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -346,37 +346,36 @@ class Boot extends MdcLoggable {
     }
 
     // Database query timeout
-    APIUtil.getPropsValue("database_query_timeout_in_seconds").map { timeoutInSeconds =>
-      tryo(timeoutInSeconds.toInt).isDefined match {
-        case true =>
-          DB.queryTimeout = Full(timeoutInSeconds.toInt)
-          logger.info(s"Query timeout database_query_timeout_in_seconds is set to ${timeoutInSeconds} seconds")
-        case false =>
-          logger.error(
-            s"""
-               |------------------------------------------------------------------------------------
-               |Query timeout database_query_timeout_in_seconds [${timeoutInSeconds}] is not an integer value.
-               |Actual DB.queryTimeout value: ${DB.queryTimeout}
-               |------------------------------------------------------------------------------------""".stripMargin)
-      }
-      
-    }
+//    APIUtil.getPropsValue("database_query_timeout_in_seconds").map { timeoutInSeconds =>
+//      tryo(timeoutInSeconds.toInt).isDefined match {
+//        case true =>
+//          DB.queryTimeout = Full(timeoutInSeconds.toInt)
+//          logger.info(s"Query timeout database_query_timeout_in_seconds is set to ${timeoutInSeconds} seconds")
+//        case false =>
+//          logger.error(
+//            s"""
+//               |------------------------------------------------------------------------------------
+//               |Query timeout database_query_timeout_in_seconds [${timeoutInSeconds}] is not an integer value.
+//               |Actual DB.queryTimeout value: ${DB.queryTimeout}
+//               |------------------------------------------------------------------------------------""".stripMargin)
+//      }
+//    }
 
-    //      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
+//    LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
     
-    LiftRules.statelessDispatch.prepend {
-      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
-        Props.mode match {
-          case Props.RunModes.Development =>
-            () =>
-              Full(
-                JsonResponse(
-                  Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-                  500
-                )
-              )
-        }
-    }
+//    LiftRules.statelessDispatch.prepend {
+//      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
+//        Props.mode match {
+//          case Props.RunModes.Development =>
+//            () =>
+//              Full(
+//                JsonResponse(
+//                  Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+//                  500
+//                )
+//              )
+//        }
+//    }
 
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
@@ -689,6 +688,7 @@ class Boot extends MdcLoggable {
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+    logger.info("Note: Http request is in one database transaction.")
 
     try {
       val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)
@@ -703,13 +703,13 @@ class Boot extends MdcLoggable {
     })
     
     LiftRules.exceptionHandler.prepend{
-      case(_, r, e) if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).getOrElse(true) => {
-        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-        JsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-          500
-        )
-      }
+//      case(_, r, e) if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).getOrElse(true) => {
+//        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+//        JsonResponse(
+//          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+//          500
+//        )
+//      }
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
@@ -734,9 +734,9 @@ class Boot extends MdcLoggable {
       )
     }
 
-    if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
-      val delay = APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
-      TransactionStatusScheduler.start(delay)
+    if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {
+      val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
+      TransactionRequestStatusScheduler.start(delay)
     }
     APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
       case Full(i) => DatabaseDriverScheduler.start(i)

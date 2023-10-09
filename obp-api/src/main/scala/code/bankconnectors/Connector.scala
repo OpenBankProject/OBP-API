@@ -955,12 +955,12 @@ trait Connector extends MdcLoggable {
   def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal, transactionRequestType: TransactionRequestType): Future[TransactionRequestStatus.Value] = {
     Future(
       if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
-        // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
+        // For any connector != mapped we should probably assume that transaction_request_status_scheduler_delay will be > 0
         // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
-        // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
+        // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_request_status_scheduler_delay
         // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
         // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty || (transactionRequestType.value ==REFUND.toString))
+        if (APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty || (transactionRequestType.value ==REFUND.toString))
           TransactionRequestStatus.COMPLETED
         else
           TransactionRequestStatus.PENDING
