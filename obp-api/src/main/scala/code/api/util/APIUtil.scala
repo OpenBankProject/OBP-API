@@ -687,7 +687,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getPropsAsBoolValue("echo_request_headers", defaultValue = false)
     (callContext, echoRequestHeaders) match {
       case (Some(cc), true) =>
-        CustomResponseHeaders(cc.requestHeaders.map(item => (s"ECHO_${item.name}", item.values.head)))
+        CustomResponseHeaders(cc.requestHeaders.map(item => (s"echo_${item.name}", item.values.head)))
       case _ =>
         CustomResponseHeaders(Nil)
     }
