@@ -597,7 +597,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getGatewayLoginHeader(cc).list ::: 
         getRateLimitHeadersNewStyle(cc).list ::: 
         getPaginationHeadersNewStyle(cc).list ::: 
-        getRequestHeadersToMirror(cc).list
+        getRequestHeadersToMirror(cc).list :::
+        getRequestHeadersToEcho(cc).list
     )
   }
 
@@ -675,6 +676,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             CustomResponseHeaders(headers)
         }
       case None =>
+        CustomResponseHeaders(Nil)
+    }
+  }
+  /**
+   *
+   */
+  def getRequestHeadersToEcho(callContext: Option[CallContextLight]): CustomResponseHeaders = {
+    val echoRequestHeaders: Boolean =
+      getPropsAsBoolValue("echo_request_headers", defaultValue = false)
+    (callContext, echoRequestHeaders) match {
+      case (Some(cc), true) =>
+        CustomResponseHeaders(cc.requestHeaders.map(item => (s"ECHO_${item.name}", item.values.head)))
+      case _ =>
         CustomResponseHeaders(Nil)
     }
   }
