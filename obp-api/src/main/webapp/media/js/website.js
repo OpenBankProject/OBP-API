@@ -441,3 +441,10 @@ function copyConsumerRegistrationResultToClipboard(element) {
   // Revert the original values of text and icon after 2 seconds
   revertTextAndClassDeferred(titleText, iconClass);
 }
+
+function setCookie(cName, cValue) {
+    if(cName) {
+      document.cookie = cName + "=" + cValue + ";" + "SameSite=Lax";
+      location.reload();
+    }
+}

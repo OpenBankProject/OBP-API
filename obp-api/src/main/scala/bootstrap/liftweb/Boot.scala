@@ -639,7 +639,6 @@ class Boot extends MdcLoggable {
             // Simon: if we are not using resource_user.last_used_local we don't need to set it. It is not returned in the Agent User endpoint. Thus, for now, we don't need to set it in the database.
             // val sessionId = S.session.map(_.uniqueId).openOr("")
             // AuthUser.updateComputedLocale(sessionId, computedLocale.toString())
-            S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
             computedLocale
           }
           case _ => currentLocale
