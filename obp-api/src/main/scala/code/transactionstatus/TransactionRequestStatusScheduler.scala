@@ -9,7 +9,7 @@ import code.util.Helper.MdcLoggable
 import scala.concurrent.duration._
 
 
-object TransactionStatusScheduler extends MdcLoggable {
+object TransactionRequestStatusScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
   implicit lazy val executor = actorSystem.dispatcher
