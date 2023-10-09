@@ -8,6 +8,8 @@ import com.openbankproject.commons.util.ApiStandards
 // Note: Import this with: import code.api.Constant._
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
+
+  final val directLoginHeaderName = "directlogin"
   
   object Pagination {
     final val offset = 0
