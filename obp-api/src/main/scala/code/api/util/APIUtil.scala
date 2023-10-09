@@ -196,7 +196,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
   
-  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name.toLowerCase == "DirectLogin".toLowerCase()).isDefined
   
   def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
 
@@ -688,7 +688,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getPropsAsBoolValue("echo_request_headers", defaultValue = false)
     (callContext, echoRequestHeaders) match {
       case (Some(cc), true) =>
-        CustomResponseHeaders(cc.requestHeaders.map(item => (s"ECHO_${item.name}", item.values.head)))
+        CustomResponseHeaders(cc.requestHeaders.map(item => (s"echo_${item.name}", item.values.head)))
       case _ =>
         CustomResponseHeaders(Nil)
     }

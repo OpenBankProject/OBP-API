@@ -451,7 +451,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
 
 
-    scenario("Test oly last issued token is valid", ApiEndpoint2) {
+    scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
 
       When("The header and credentials are good")
       val request = directLoginRequest
@@ -468,6 +468,44 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       }
 
       val headerWithToken = ("DirectLogin", "token=%s".format(token))
+      val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
+      When("When we use the token to get current user and it should work - New Style")
+      val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
+      val responseCurrentUserNewStyle = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserNewStyle.code should equal(200)
+      val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
+      currentUserNewStyle.username shouldBe USERNAME
+
+      When("When we issue a new token")
+      makePostRequestAdditionalHeader(request, "", validHeaders)
+      Then("The previous one should be valid")
+      val secondResponse = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      secondResponse.code should equal(200)
+      // assertResponse(failedResponse, DirectLoginInvalidToken)
+
+
+    }
+
+
+    scenario("Test DirectLogin header value is case insensitive", ApiEndpoint2) {
+
+      When("The header and credentials are good")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", validHeaders)
+      var token = ""
+      Then("We should get a 201 - OK and a token")
+      response.code should equal(201)
+      response.body match {
+        case JObject(List(JField(name, JString(value)))) =>
+          name should equal("token")
+          value.length should be > 0
+          token = value
+        case _ => fail("Expected a token")
+      }
+
+      val headerWithToken = ("dIreCtLoGin", "token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
       When("When we use the token to get current user and it should work - New Style")
       val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
