@@ -342,6 +342,11 @@
       <artifactId>flexmark-util-options</artifactId>
       <version>0.64.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+      <version>4.0.3</version>
+    </dependency>
     <!-- ********** flexmark END ********** -->
     <!--scala utils, for type scan-->
     <dependency>
