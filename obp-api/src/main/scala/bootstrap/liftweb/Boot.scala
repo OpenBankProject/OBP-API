@@ -703,13 +703,13 @@ class Boot extends MdcLoggable {
     })
     
     LiftRules.exceptionHandler.prepend{
-//      case(_, r, e) if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).getOrElse(true) => {
-//        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-//        JsonResponse(
-//          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-//          500
-//        )
-//      }
+      case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
+        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+          500
+        )
+      }
       case(Props.RunModes.Development, r, e) => {
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
         JsonResponse(
@@ -719,7 +719,7 @@ class Boot extends MdcLoggable {
       }
       case (_, r , e) => {
         sendExceptionEmail(e)
-        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
         JsonResponse(
           Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
           500
