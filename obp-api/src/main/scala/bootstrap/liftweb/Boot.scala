@@ -108,7 +108,7 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
+import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler, DataBaseCleanerScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -323,8 +323,8 @@ class Boot extends MdcLoggable {
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
     
-    //launch the scheduler to clean the database from the expired tokens and nonces
-    Schedule.schedule(() => OAuthAuthorisation.dataBaseCleaner, 2 minutes)
+    //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
+    DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
 
 //    if (Props.devMode || Props.testMode) {
 //      StoredProceduresMockedData.createOrDropMockedPostgresStoredProcedures()
