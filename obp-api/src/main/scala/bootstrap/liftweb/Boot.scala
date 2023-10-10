@@ -361,7 +361,7 @@ class Boot extends MdcLoggable {
 //      }
 //    }
 
-//    LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
+    LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
     
 //    LiftRules.statelessDispatch.prepend {
 //      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
