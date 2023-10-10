@@ -1112,14 +1112,17 @@ object Glossary extends MdcLoggable  {
 		title = "Echo Request Headers",
 		description =
 			s"""
-|Echo Request Headers to Response Headers
+			 |Question: How can I see the request headers that OBP API finally receives from a REST client after the request has passed through HTTP infrastructure such as load balancers, firewalls and proxies?
 |
-			 |### How to see the Request Headers that OBP API receives from the REST client via any Proxy?
+|Answer: If your OBP administrator (you?) sets the following OBP API Props:
 |
+|```echo_request_headers=true```
 |
+|then OBP API will echo all the request headers it receives to the response headers except that every request header name is prefixed with echo_
 |
-|If the Props echo_request_headers is set to true then OBP API will echo all the Request Headers it receives to the Response Headers
-				|except that every Request Header is prefixed with echo_
+|e.g. if you send the request header:value "DirectLogin:hello" it will be echoed in the response headers as "echo_DirectLogin:hello"
+|
+|Note: HTTP/2.0 requires that header names must be *lower* case. This can be a source of confusion as some libraries / tools may drop or convert header names to lowercase.
 			 |
 		  """)
 
