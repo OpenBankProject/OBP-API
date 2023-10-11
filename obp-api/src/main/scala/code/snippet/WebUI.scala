@@ -243,7 +243,12 @@ class WebUI extends MdcLoggable{
 
   // Link to API Manager
   def apiManagerLink: CssSel = {
-    ".api-manager-link a [href]" #> wrapPropsUrlLocaleParameter("webui_api_manager_url")
+    if (getWebUiPropsValue("webui_api_manager_url", "").isEmpty) {
+      ".api-manager-link a [style]" #> "display:none"
+    } else {
+      ".api-manager-link a  [style]" #> "display:block" &
+        ".api-manager-link a [href]" #> wrapPropsUrlLocaleParameter("webui_api_manager_url")
+    }
   }
   
   // Link to OBP-CLI
