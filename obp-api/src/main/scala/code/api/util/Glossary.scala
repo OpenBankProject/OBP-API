@@ -32,13 +32,32 @@ object Glossary extends MdcLoggable  {
 				 |  
 				 |  ${foundItem.htmlDescription}
 				 |</details>
+				 |
 				 |<br></br>
 				 |""".stripMargin
-				case None => ""
+				case None => "glossary-item-not-found"
 		}
 		//logger.debug(s"getGlossaryItem says the text to return is $something")
 		something
 	}
+
+	def getGlossaryItemSimple(title: String): String = {
+    // This function just returns a string without Title and collapsable element.
+		// Can use this if getGlossaryItem is problematic with a certain glossary item (e.g. JSON Schema Validation Glossary Item) or just want a simple inclusion of text.
+
+		//logger.debug(s"getGlossaryItemSimple says Hello. title to find is: $title")
+
+		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+			case Some(foundItem) =>
+				s"""
+				 |  ${foundItem.htmlDescription}
+				 |""".stripMargin
+			case None => "glossary-item-simple-not-found"
+		}
+		//logger.debug(s"getGlossaryItemSimple says the text to return is $something")
+		something
+	}
+
 
 	// reason of description is function: because we want make description is dynamic, so description can read
 	// webui_ props dynamic instead of a constant string.
@@ -3052,21 +3071,23 @@ object Glossary extends MdcLoggable  {
 		title = "JSON Schema Validation",
 		description =
 			s"""
+   |
    |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
    |
-   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+   |By applying JSON Schema Validation to your OBP endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
 	 |
-	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the JSON Schema standard.
+|
+|To create a JSON Schema from an any JSON Request body you can use [JSON Schema Net](https://jsonschema.net/app/schemas/0)
+|
+|(The video link below shows how to use that)
    |
-   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |Note: OBP Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
    |
-
+   | You can apply JSON schema validations to any OBP endpoint's request body using the POST and PUT endpoints listed in the link below.
    |
-   |  We provide the schema validations over the endpoints.
-   | All the OBP endpoints request/response body fields can be validated by the schema.
+   |PLEASE SEE the following video explanation: [JSON schema validation of request for Static and Dynamic Endpoints and Entities](https://vimeo.com/485287014)
    |
-   |The following videos are available:
-   |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
    |""".stripMargin)
 
 

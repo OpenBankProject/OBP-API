@@ -22,7 +22,7 @@ import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
 import code.api.util.ErrorMessages.{BankNotFound, _}
 import code.api.util.ExampleValue._
-import code.api.util.Glossary.getGlossaryItem
+import code.api.util.Glossary.{getGlossaryItem,getGlossaryItemSimple}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.{isValidCurrencyISOCode => isValidCurrencyISOCodeNS, _}
 import code.api.util._
@@ -9594,7 +9594,12 @@ trait APIMethods400 {
       "Create a JSON Schema Validation",
       s"""Create a JSON Schema Validation.
          |
-         |Please supply a json-schema as request body.
+         |Introduction:
+         |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
+         |
+         |To use this endpoint, please supply a valid json-schema in the request body.
+         |
+         |Note: It might take a few minutes for the newly created JSON Schema to take effect!
          |""",
       postOrPutJsonSchemaV400,
       responseJsonSchema,
@@ -9640,7 +9645,11 @@ trait APIMethods400 {
       "Update a JSON Schema Validation",
       s"""Update a JSON Schema Validation.
          |
-         |Please supply a json-schema as request body
+         |Introduction:
+         |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
+         |
+         |To use this endpoint, please supply a valid json-schema in the request body.
+         |
          |""",
       postOrPutJsonSchemaV400,
       responseJsonSchema,
