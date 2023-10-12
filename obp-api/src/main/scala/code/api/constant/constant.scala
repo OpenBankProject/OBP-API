@@ -23,7 +23,7 @@ object Constant extends MdcLoggable {
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
   
   final val ApiInstanceId = {
-    val apiInstanceIdFromProps = APIUtil.getPropsValue("api_instance_id").openOrThrowException(ErrorMessages.HostnameNotSpecified)
+    val apiInstanceIdFromProps = APIUtil.getPropsValue("api_instance_id").openOrThrowException(ErrorMessages.ApiInstanceIdNotSpecified)
     if(apiInstanceIdFromProps.endsWith("final")){
       apiInstanceIdFromProps
     }else{
