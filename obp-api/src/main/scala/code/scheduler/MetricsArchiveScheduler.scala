@@ -2,8 +2,8 @@ package code.scheduler
 
 import java.util.concurrent.TimeUnit
 import java.util.{Calendar, Date}
-
 import code.actorsystem.ObpLookupSystem
+import code.api.Constant
 import code.api.util.APIUtil.generateUUID
 import code.api.util.{APIUtil, OBPLimit, OBPToDate}
 import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive}
@@ -21,7 +21,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000
   private val jobName = "MetricsArchiveScheduler"
-  private val apiInstanceId = APIUtil.getPropsValue("api_instance_id", "NOT_SET")
+  private val apiInstanceId = Constant.ApiInstanceId
 
   def start(intervalInSeconds: Long): Unit = {
     logger.info("Hello from MetricsArchiveScheduler.start")

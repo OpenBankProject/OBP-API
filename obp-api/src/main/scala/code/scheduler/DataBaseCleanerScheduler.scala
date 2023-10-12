@@ -1,6 +1,7 @@
 package code.scheduler
 
 import code.actorsystem.ObpLookupSystem
+import code.api.Constant
 import code.api.util.APIUtil.generateUUID
 import code.api.util.APIUtil
 import code.nonce.Nonces
@@ -22,7 +23,7 @@ object DataBaseCleanerScheduler extends MdcLoggable {
   private val oneDayInMillis: Long = 86400000
   //in scala DataBaseCleanerScheduler.getClass.getSimpleName ==> DataBaseCleanerScheduler$
   private val jobName = DataBaseCleanerScheduler.getClass.getSimpleName.replace("$", "")
-  private val apiInstanceId = APIUtil.getPropsValue("api_instance_id", "NOT_SET")
+  private val apiInstanceId = Constant.ApiInstanceId
 
   def start(intervalInSeconds: Long): Unit = {
     logger.info(s"Hello from $jobName.start")
