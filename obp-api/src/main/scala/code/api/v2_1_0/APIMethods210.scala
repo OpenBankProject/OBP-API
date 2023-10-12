@@ -151,7 +151,7 @@ trait APIMethods210 {
             _ <- Helper.booleanToFuture(s"$DataImportDisabled", 403, callContext) {
               APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", defaultValue = false)
             }
-            _ <- NewStyle.function.hasEntitlement("", cc.userId, canCreateSandbox, cc.callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateSandbox, cc.callContext)
             _ <- Helper.booleanToFuture(s"Cannot import the sandbox data", 400, callContext) {
               OBPDataImport.importer.vend.importData(importData).isDefined
             }
