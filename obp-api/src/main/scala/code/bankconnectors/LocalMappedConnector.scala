@@ -153,21 +153,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     import org.iban4j.InvalidCheckDigitException
     import org.iban4j.UnsupportedCountryException
 
-    // Validate Iban 
-    try { // 1st try
-      IbanUtil.validate(iban) // IBAN as String: "DE89370400440532013000"
-      (Full(IbanChecker(true, None)), callContext) // valid
-    } catch {
-      case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
-      // invalid
-        try { // 2nd try
-          IbanUtil.validate(iban, IbanFormat.Default) // IBAN as formatted String: "DE89 3704 0044 0532 0130 00"
-          (Full(IbanChecker(true, None)), callContext) // valid
-        } catch {
-          case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
-            (Full(IbanChecker(false, None)), callContext) // invalid
-        }
+    if(getPropsAsBoolValue("validate_iban", false)) {
+      // Validate Iban
+      try { // 1st try
+        IbanUtil.validate(iban) // IBAN as String: "DE89370400440532013000"
+        (Full(IbanChecker(true, None)), callContext) // valid
+      } catch {
+        case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+          // invalid
+          try { // 2nd try
+            IbanUtil.validate(iban, IbanFormat.Default) // IBAN as formatted String: "DE89 3704 0044 0532 0130 00"
+            (Full(IbanChecker(true, None)), callContext) // valid
+          } catch {
+            case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+              (Full(IbanChecker(false, None)), callContext) // invalid
+          }
+      }
+    } else {
+      (Full(IbanChecker(true, None)), callContext)
     }
+
   }
 
   // Gets current challenge level for transaction request

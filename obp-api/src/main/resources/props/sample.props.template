@@ -1257,3 +1257,6 @@ show_ip_address_change_warning=false
 
 #the default expected Open Futures Per Service for the BackOffFactor parameter
 expectedOpenFuturesPerService=100
+
+# Enable /Disable IBAN validation
+validate_iban=false

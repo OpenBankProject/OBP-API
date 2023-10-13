@@ -135,23 +135,28 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSandbox, apiTagOldStyle),
+      List(apiTagSandbox),
       Some(List(canCreateSandbox)))
 
 
     lazy val sandboxDataImport: OBPEndpoint = {
       // Import data into the sandbox
       case "sandbox" :: "data-import" :: Nil JsonPost json -> _ => {
-        cc =>
+        cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            importData <- tryo {json.extract[SandboxDataImport]} ?~! {InvalidJsonFormat}
-            u <- cc.user ?~! UserNotLoggedIn
-            allowDataImportProp <- APIUtil.getPropsValue("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
-            _ <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
-            _ <- NewStyle.function.ownEntitlement("", u.userId, canCreateSandbox, cc.callContext)
-            _ <- OBPDataImport.importer.vend.importData(importData)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            importData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SandboxDataImport ", 400, cc.callContext) {
+              json.extract[SandboxDataImport]
+            }
+            _ <- Helper.booleanToFuture(s"$DataImportDisabled", 403, callContext) {
+              APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", defaultValue = false)
+            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateSandbox, cc.callContext)
+            _ <- Helper.booleanToFuture(s"Cannot import the sandbox data", 400, callContext) {
+              OBPDataImport.importer.vend.importData(importData).isDefined
+            }
           } yield {
-            successJsonResponse(Extraction.decompose(successMessage), 201)
+            (successMessage, HttpCode.`201`(callContext))
           }
       }
     }
