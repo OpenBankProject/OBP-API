@@ -4796,7 +4796,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     Props.mode match {
       case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
         new CustomDBVendor(driver,
-          APIUtil.getPropsValue("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+          APIUtil.getPropsValue("db.url") openOr h2DatabaseDefaultUrlValue,
           APIUtil.getPropsValue("db.user"), APIUtil.getPropsValue("db.password"))
       case Props.RunModes.Test =>
         new CustomDBVendor(

@@ -53,6 +53,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
   setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
   setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+  setPropsValues("api_instance_id" -> "1_final")
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)
