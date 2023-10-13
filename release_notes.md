@@ -3,6 +3,12 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+13/10/2023    d87c99d8      Added props hikari.connectionTimeout, default is from hakari. 
+                            Added props hikari.maximumPoolSize, default is from hakari. 
+                            Added props hikari.idleTimeout, default is from hakari. 
+                            Added props hikari.keepaliveTime, default is from hakari. 
+                            Added props hikari.maxLifetime, default is from hakari. 
+                            Added props hikari.metricRegistry, default is from hakari. 
 22/09/2023    752ff04b      Added props db.maxPoolSize, default is 10. 
 24/08/2023    bcb8fcfd      Added props expectedOpenFuturesPerService, default is 100. 
 16/08/2023    4d8dfa66      Added props short_endpoint_timeout, default is 1. 
