@@ -29,29 +29,25 @@ class CustomDBVendor(driverName: String,
     val config = new HikariConfig()
     
     val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout")
-    val maximumPoolSize = APIUtil.getPropsAsLongValue("hikari.maximumPoolSize")
+    val maximumPoolSize = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize")
     val idleTimeout = APIUtil.getPropsAsLongValue("hikari.idleTimeout")
     val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime")
     val maxLifetime = APIUtil.getPropsAsLongValue("hikari.maxLifetime")
-    val metricRegistry = APIUtil.getPropsAsLongValue("hikari.metricRegistry")
     
     if(connectionTimeout.isDefined){
       config.setConnectionTimeout(connectionTimeout.head)
     }
     if(maximumPoolSize.isDefined){
-      config.setConnectionTimeout(maximumPoolSize.head)
+      config.setMaximumPoolSize(maximumPoolSize.head)
     }
     if(idleTimeout.isDefined){
-      config.setConnectionTimeout(idleTimeout.head)
+      config.setIdleTimeout(idleTimeout.head)
     }
     if(keepaliveTime.isDefined){
-      config.setConnectionTimeout(keepaliveTime.head)
+      config.setKeepaliveTime(keepaliveTime.head)
     }
     if(maxLifetime.isDefined){
-      config.setConnectionTimeout(maxLifetime.head)
-    }
-    if(metricRegistry.isDefined){
-      config.setConnectionTimeout(connectionTimeout.head)
+      config.setMaxLifetime(maxLifetime.head)
     }
 
     (dbUser, dbPassword) match {
