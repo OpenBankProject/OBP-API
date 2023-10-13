@@ -123,9 +123,12 @@ long_endpoint_timeout = 55000
 
 #This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
 #This is also used for scheduler.
-#OBP will concatenate the UUID string with the value. If we set the value to end with "final", obp will retain that value.
+#OBP set the default as the non-persistent UUID string.
+#api_instance_id=7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh
+#If a value is set, OBP will concatenate the UUID string with the value.
 #api_instance_id=1
-api_instance_id=1_final
+#When the value is set to conclude with "final," OBP will preserve that value.
+#api_instance_id=1_final
 
 ## DEPRECATED
 ## Enable user authentication via kafka

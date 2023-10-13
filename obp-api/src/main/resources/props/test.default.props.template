@@ -15,9 +15,6 @@
 ### if logger.logfile is defined
 #logger.logfile="obp-api.log"
 
-#This is the api instance
-api_instance_id=1_final
-
 #which data connector to use
 
 #connector=rest

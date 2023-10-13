@@ -122,7 +122,7 @@ Date          Commit        Action
                             1. accountaccess_backup_2019_05_17_11_16_32_134
                             2.  viewdefinition_backup_2019_05_17_11_16_31_862
 29/04/2019    a6b58a1       Added Props system_environment_property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
-07/07/2018    4944572       Added Props api_instance_id, default is 1. This deceides the current api instance number, start from 1.  
+07/07/2018    4944572       Added Props api_instance_id, default is non-persistent UUID 7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh. 
 29/06/2018    7422894       Added Props logging.database.queries.enable, default is false. This should enable logging all the database queries in log file.
 01/06/2018    a286684       Added Props write_connector_metrics, default is false. This decides whether the connector level metric save or not
 29/05/2018    c0d50b5       Added Props kafka.partitions, default is 3. This should match the partitions in Kafka config
