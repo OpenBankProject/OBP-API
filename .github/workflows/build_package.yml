@@ -52,6 +52,7 @@ jobs:
 
           echo kafka.akka.timeout = 9 >> obp-api/src/main/resources/props/test.default.props
           echo remotedata.timeout = 10 >> obp-api/src/main/resources/props/test.default.props
+          echo api_instance_id = 1 >> obp-api/src/main/resources/props/test.default.props
 
           echo allow_oauth2_login=true >> obp-api/src/main/resources/props/test.default.props
           echo oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs >> obp-api/src/main/resources/props/test.default.props

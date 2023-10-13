@@ -51,6 +51,7 @@ object ErrorMessages {
   val MissingPropsValueAtThisInstance = "OBP-00010: Missing props value at this API instance - "
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
   val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
+  val ApiInstanceIdNotSpecified = "OBP-00013: 'api_instance_id' not specified. Please edit your props file."
 
   // Exceptions (OBP-01XXX) ------------------------------------------------>
   val requestTimeout = "OBP-01000: Request Timeout. The OBP API decided to return a timeout. This is probably because a backend service did not respond in time. "

@@ -120,8 +120,12 @@ long_endpoint_timeout = 55000
 #kafka.bootstrap_hosts=localhost:9092
 # WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
 #kafka.partitions=3
+
 #This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
+#This is also used for scheduler.
+#OBP will concatenate the UUID string with the value. If we set the value to end with "final", obp will retain that value.
 #api_instance_id=1
+api_instance_id=1_final
 
 ## DEPRECATED
 ## Enable user authentication via kafka

@@ -23,6 +23,16 @@ object Constant extends MdcLoggable {
   final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
+  
+  final val ApiInstanceId = {
+    val apiInstanceIdFromProps = APIUtil.getPropsValue("api_instance_id").openOrThrowException(ErrorMessages.ApiInstanceIdNotSpecified)
+    if(apiInstanceIdFromProps.endsWith("final")){
+      apiInstanceIdFromProps
+    }else{
+      s"${apiInstanceIdFromProps}_${APIUtil.generateUUID()}"
+    }
+  }
+  
   def localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
 
   // This is the part before the version. Do not change this default!

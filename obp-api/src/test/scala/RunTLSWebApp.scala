@@ -118,7 +118,7 @@ object RunTLSWebApp extends App with PropsProgrammatically {
   context.setWar(s"${basePath}src/main/webapp")
 
   // rename JSESSIONID, avoid conflict with other project when start two project at local
-  val propsApiInstanceId = APIUtil.getPropsValue("api_instance_id").openOrThrowException("connector props filed `api_instance_id` not set")
+  val propsApiInstanceId = Constant.ApiInstanceId
   context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API_" + propsApiInstanceId)
 
   server.setHandler(context)
