@@ -1,9 +1,10 @@
 package bootstrap.liftweb
 
+import code.api.util.APIUtil
 import com.zaxxer.hikari.pool.ProxyConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
-import java.sql.{Connection}
+import java.sql.Connection
 import net.liftweb.common.{Box, Full, Logger}
 import net.liftweb.db.ConnectionManager
 import net.liftweb.util.ConnectionIdentifier
@@ -26,6 +27,28 @@ class CustomDBVendor(driverName: String,
 
   object HikariDatasource {
     val config = new HikariConfig()
+    
+    val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout")
+    val maximumPoolSize = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize")
+    val idleTimeout = APIUtil.getPropsAsLongValue("hikari.idleTimeout")
+    val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime")
+    val maxLifetime = APIUtil.getPropsAsLongValue("hikari.maxLifetime")
+    
+    if(connectionTimeout.isDefined){
+      config.setConnectionTimeout(connectionTimeout.head)
+    }
+    if(maximumPoolSize.isDefined){
+      config.setMaximumPoolSize(maximumPoolSize.head)
+    }
+    if(idleTimeout.isDefined){
+      config.setIdleTimeout(idleTimeout.head)
+    }
+    if(keepaliveTime.isDefined){
+      config.setKeepaliveTime(keepaliveTime.head)
+    }
+    if(maxLifetime.isDefined){
+      config.setMaxLifetime(maxLifetime.head)
+    }
 
     (dbUser, dbPassword) match {
       case (Full(user), Full(pwd)) =>

@@ -23,6 +23,14 @@ connector=star
 #connector=proxy
 #connector=...
 
+#OBP uses Hikari as the default database connection pool. OBP supports the following 5 configurations at the moment.
+#https://github.com/brettwooldridge/HikariCP#frequently-used
+#hikari.connectionTimeout=
+#hikari.maximumPoolSize=
+#hikari.idleTimeout=
+#hikari.keepaliveTime=
+#hikari.maxLifetime=
+
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka, kafka. If you set kafka, then you need to start the kafka server.
 starConnector_supported_types=mapped,internal
 
