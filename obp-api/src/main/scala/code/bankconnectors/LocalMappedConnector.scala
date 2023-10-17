@@ -329,14 +329,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       challengeId.toList
     }
 
-    Authorisations.authorisationProvider.vend.createAuthorization(
-      transactionRequestId.getOrElse(""),
-      consentId.getOrElse(""),
-      AuthenticationType.SMS_OTP.toString,
-      "",
-      ScaStatus.received.toString,
-      "12345" // TODO Implement SMS sending
-    )
+    //We use obp MappedExpectedChallengeAnswer instead of  Authorisations now.
+    // please also check Challenges.ChallengeProvider.vend.saveChallenge
+//    Authorisations.authorisationProvider.vend.createAuthorization(
+//      transactionRequestId.getOrElse(""),
+//      consentId.getOrElse(""),
+//      AuthenticationType.SMS_OTP.toString,
+//      "",
+//      ScaStatus.received.toString,
+//      "12345" // TODO Implement SMS sending
+//    )
     
     (Full(challenges.flatten), callContext)
   }
@@ -391,12 +393,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             for {
               smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
               smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret)
+              scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
+              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
               phoneNumber = tuple._2
               messageText = s"Your consent challenge : ${challengeAnswer}";
-              message: Box[Message] = tryo(Message.creator(new PhoneNumber(phoneNumber), new PhoneNumber(phoneNumber), messageText).create())
-              failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.map(_.getErrorMessage).getOrElse("")}"
-              _ <- Helper.booleanToBox(message.forall(_.getErrorMessage.isEmpty), failMsg)
+              message: Message <- tryo {Message.creator(
+                new PhoneNumber(phoneNumber), 
+                scaPhoneApiId, 
+                messageText).create()}
+              
+              isSuccess <- tryo {message.getErrorMessage == null}
+              
+              _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
+              
+              failMsg = if (message.getErrorMessage ==null) 
+                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.getErrorMessage}"
+                else
+                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
+                  
+              _ <- Helper.booleanToBox(isSuccess, failMsg)
             } yield true
         }
         val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
