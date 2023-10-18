@@ -34,7 +34,6 @@ import code.customer._
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
-import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
 import code.endpointTag.{EndpointTag, EndpointTagT}
 import code.fx.fx.TTL
