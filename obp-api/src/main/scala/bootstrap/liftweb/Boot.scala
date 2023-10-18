@@ -44,7 +44,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue, gitCommit}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
@@ -108,7 +108,7 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.{DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler, DataBaseCleanerScheduler}
+import code.scheduler.{DataBaseCleanerScheduler, DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -232,6 +232,9 @@ class Boot extends MdcLoggable {
 
   def boot {
     implicit val formats = CustomJsonFormats.formats
+
+    logger.info("Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
+
       
     logger.debug("Using database driver: " + APIUtil.driver)
 
