@@ -51,7 +51,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 
-class ConnectorMethodTest extends V400ServerSetupAsync {
+class ConnectorMethodTest extends V400ServerSetup {
 
   val requestGetBank = (v4_0_0_Request / "banks" / "123").GET
   val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
