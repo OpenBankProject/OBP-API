@@ -170,6 +170,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     oneYearAgo.add(Calendar.YEAR, -1)
     oneYearAgo.getTime()
   }
+  def ToDateInFuture = new Date(2100, 0, 1) //Sat Jan 01 00:00:00 CET 4000
   def DefaultToDate = new Date()
   def oneYearAgoDate = oneYearAgo(DefaultToDate)
   val theEpochTime: Date = new Date(0) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
@@ -1134,7 +1135,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (_, Full(right)) =>
         parseObpStandardDate(right.head)
       case _ => {
-        Full(APIUtil.DefaultToDate)
+        Full(APIUtil.ToDateInFuture)
       }
     }
 
