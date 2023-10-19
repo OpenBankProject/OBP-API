@@ -69,7 +69,7 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
       And("We make the request")
       val firstFullName = "A new full name"
       val secondFullName = "A second new full name"
-      val postBank = postBankJson500.copy(id = Some(APIUtil.generateUUID()))
+      val postBank = postBankJson500.copy(id = Some(APIUtil.generateUUID().substring(25)))
       val bankId = postBank.id.getOrElse("some_bank_id")
       val request = (v5_0_0_Request / "banks").POST <@ (user1)
       val requestPut = (v5_0_0_Request / "banks").PUT <@ (user1)
