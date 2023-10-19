@@ -887,9 +887,10 @@ database_messages_scheduler_interval=3600
 # ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
-# For now, OBP-API use `Twilio` server as the SMS provider. Please check `Twilio` website, and get the api key and value there.
-# sca_phone_api_key = oXAjqAJ6rvCunpzN
-# sca_phone_api_secret =oXAjqAJ6rvCunpzN123sdf
+# For now, OBP-API use `Twilio` server as the SMS provider. Please check `Twilio` website, and get the api key, value and phone number there.
+# sca_phone_api_key = ACobpb72ab850501b5obp8dobp9dobp111
+# sca_phone_api_secret =7afobpdacobpd427obpff87a22obp222
+# sca_phone_api_id =MGcobp8575119887f10b62a2461obpb333
 # 
 
 # -- PSD2 Certificates --------------------------

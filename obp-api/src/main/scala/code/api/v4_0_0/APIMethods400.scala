@@ -72,7 +72,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.{ObpS, booleanToFuture}
+import code.util.Helper.{ObpS, SILENCE_IS_GOLDEN, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
@@ -4037,6 +4037,12 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
+            }
+
+            checkShortStringValue = APIUtil.checkShortString(bank.id)
+            
+            _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc=cc.callContext) {
+              checkShortStringValue==SILENCE_IS_GOLDEN
             }
 
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.", cc=cc.callContext) {

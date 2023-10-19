@@ -26,7 +26,7 @@ import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
-import code.util.Helper.booleanToFuture
+import code.util.Helper.{SILENCE_IS_GOLDEN, booleanToFuture}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -183,6 +183,13 @@ trait APIMethods500 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostBankJson500]
             }
+
+            //if postJson.id is empty, just return SILENCE_IS_GOLDEN, and will pass the guard.
+            checkShortStringValue = APIUtil.checkShortString(postJson.id.getOrElse(SILENCE_IS_GOLDEN))
+            _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc = cc.callContext) {
+              checkShortStringValue == SILENCE_IS_GOLDEN
+            }
+            
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
             }
