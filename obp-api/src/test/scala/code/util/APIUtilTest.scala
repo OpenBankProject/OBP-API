@@ -38,7 +38,6 @@ import code.setup.PropsReset
 import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import org.scalatest.matchers.Matcher
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
@@ -238,16 +237,25 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario("test the wrong case: wrong name (wrongName) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
+      val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
-      returnValue.toString should startWith("Full(OBPEmpty")
+      returnValue.toString should startWith("Full(OBPFromDate")
+
+      val currentTime = OBPFromDate(theEpochTime)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
     
     scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
+      val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
-      returnValue.toString should startWith("Full(OBPEmpty())")
+      returnValue.toString should startWith("Full(OBPFromDate")
 
+      val currentTime = OBPFromDate(theEpochTime)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
   }
 
@@ -282,19 +290,28 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
 
+      val startTime = OBPToDate(DefaultToDate)
 
       val returnValue = getToDate(httpParams)
-      returnValue.toString should startWith("Full(OBPEmpty")
+      returnValue.toString should startWith("Full(OBPToDate")
+
+      val currentTime = OBPToDate(DefaultToDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
 
+      val startTime = OBPToDate(DefaultToDate)
 
       val returnValue = getToDate(httpParams)
-      returnValue.toString should startWith("Full(OBPEmpty")
+      returnValue.toString should startWith("Full(OBPToDate")
 
+      val currentTime = OBPToDate(DefaultToDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
   }
   

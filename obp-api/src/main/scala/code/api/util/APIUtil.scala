@@ -1115,28 +1115,30 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   }
 
-  def getFromDate(httpParams: List[HTTPParam]): Box[OBPQueryParam] = {
-    val date = (getHttpValues(httpParams, "from_date"), getHttpValues(httpParams, "obp_from_date")) match {
+  def getFromDate(httpParams: List[HTTPParam]): Box[OBPFromDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "from_date"), getHttpValues(httpParams, "obp_from_date")) match {
       case (Full(left),_) =>
-        parseObpStandardDate(left.head).map(OBPFromDate)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        parseObpStandardDate(right.head).map(OBPFromDate)
+        parseObpStandardDate(right.head)
       case _ =>
-        Full(OBPEmpty())
+        Full(theEpochTime) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
     }
-    date
+    date.map(OBPFromDate(_))
   }
 
-  def getToDate(httpParams: List[HTTPParam]): Box[OBPQueryParam] = {
-    val date: Box[OBPQueryParam] = (getHttpValues(httpParams, "to_date"), getHttpValues(httpParams, "obp_to_date")) match {
+  def getToDate(httpParams: List[HTTPParam]): Box[OBPToDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "to_date"), getHttpValues(httpParams, "obp_to_date")) match {
       case (Full(left),_) =>
-        parseObpStandardDate(left.head).map(OBPToDate)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        parseObpStandardDate(right.head).map(OBPToDate)
-      case _ =>
-        Full(OBPEmpty()) // Avoid implicitly adding a default value in order to prevent caching issue due to always different to date
+        parseObpStandardDate(right.head)
+      case _ => {
+        Full(APIUtil.DefaultToDate)
+      }
     }
-    date
+
+    date.map(OBPToDate(_))
   }
 
   def getOffset(httpParams: List[HTTPParam]): Box[OBPOffset] = {
