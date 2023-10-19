@@ -34,7 +34,7 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   // Note we have an database pk called id but don't expose it
 
-  // Exposed inside address. See below
+
   object mCategory extends MappedString(this, 50)
   object mFamily extends MappedString(this, 50)
   object mSuperFamily extends MappedString(this, 50)
