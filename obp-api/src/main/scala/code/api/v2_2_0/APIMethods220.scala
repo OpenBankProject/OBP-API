@@ -493,6 +493,11 @@ trait APIMethods220 {
             bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
             _ <- Helper.booleanToBox(
               bank.id.length > 5,s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.")
+            
+            checkShortStringValue = APIUtil.checkShortString(bank.id)
+            
+            _ <- Helper.booleanToBox(checkShortStringValue == SILENCE_IS_GOLDEN, s"$checkShortStringValue.")
+            
             _ <- Helper.booleanToBox(
               !`checkIfContains::::` (bank.id), s"$InvalidJsonFormat BANK_ID can not contain `::::` characters")
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
