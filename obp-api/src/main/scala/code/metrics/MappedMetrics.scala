@@ -3,7 +3,6 @@ package code.metrics
 import java.sql.{PreparedStatement, Timestamp}
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import code.api.cache.Caching
 import code.api.util.APIUtil.generateUUID
 import code.api.util._
@@ -18,6 +17,7 @@ import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
+import java.io.OptionalDataException
 import scala.collection.immutable
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -236,7 +236,23 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       stmt.setString(startLine+i, excludeFiledValues.toList(i))
     }
   }
-  
+
+  private def fromDateString(optionalData:  Option[Date], fieldName: String) = {
+    optionalData match {
+      case None =>
+        ""
+      case Some(date) =>
+        s"AND $fieldName >= '${new Timestamp(date.getTime)}'"
+    }
+  }
+  private def toDateString(optionalData:  Option[Date], fieldName: String) = {
+    optionalData match {
+      case None =>
+        ""
+      case Some(date) =>
+        s"AND $fieldName <= '${new Timestamp(date.getTime)}'"
+    }
+  }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
@@ -248,7 +264,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllAggregateMetrics days){
-      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val fromDate: Option[Date] = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
       val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToPrimaryKey)
       val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
@@ -286,9 +302,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
           s"""SELECT count(*), avg(duration), min(duration), max(duration)  
               FROM metric
-              WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
-              AND date_c <= '${new Timestamp(toDate.get.getTime)}'
-              AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+              WHERE
+              (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+              ${fromDateString(fromDate, "date_c")}
+              ${toDateString(toDate, "date_c")}
               AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
               AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
               AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
@@ -305,9 +322,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         else
           s"""SELECT count(*), avg(duration), min(duration), max(duration)  
             FROM metric
-            WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
-            AND date_c <= '${new Timestamp(toDate.get.getTime)}'
-            AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+            WHERE
+            (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
+            ${fromDateString(fromDate, "date_c")}
+            ${toDateString(toDate, "date_c")}
             AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
             AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
             AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
@@ -392,10 +410,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         val sqlQuery: String =
           s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
                 FROM metric 
-                WHERE 
-                date_c >= '${new Timestamp(fromDate.get.getTime)}' AND
-                date_c <= '${new Timestamp(toDate.get.getTime)}'
-                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
+                WHERE
+                (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
+                ${fromDateString(fromDate, "date_c")}
+                ${toDateString(toDate, "date_c")}
                 AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
                 AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
                 AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("null")})
@@ -475,8 +493,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 consumer.developeremail as email, consumer.consumerid as consumerid  
                 FROM metric, consumer 
                 WHERE metric.appname = consumer.name  
-                AND date_c >= '${new Timestamp(fromDate.get.getTime)}'
-                AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+                ${fromDateString(fromDate, "date_c")}
+                ${toDateString(toDate, "date_c")}
                 AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${sqlFriendly(consumerId)})
                 AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
                 AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
