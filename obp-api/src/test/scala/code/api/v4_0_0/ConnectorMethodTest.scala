@@ -53,6 +53,8 @@ import scala.concurrent.duration.Duration
 
 class ConnectorMethodTest extends V400ServerSetup {
 
+  setPropsValues("starConnector_supported_types" -> "mapped,internal")
+  setPropsValues("connector" -> "star")
   val requestGetBank = (v4_0_0_Request / "banks" / "123").GET
   val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
   
