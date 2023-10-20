@@ -14,8 +14,8 @@ import scala.language.postfixOps
 
 object Redis extends MdcLoggable {
 
-  val url = APIUtil.getPropsValue("guava.cache.url", "127.0.0.1")
-  val port = APIUtil.getPropsAsIntValue("guava.cache.port", 6379)
+  val url = APIUtil.getPropsValue("guava.redis.url", "127.0.0.1")
+  val port = APIUtil.getPropsAsIntValue("guava.redis.port", 6379)
 
   implicit val scalaCache = ScalaCache(RedisCache(url, port))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)

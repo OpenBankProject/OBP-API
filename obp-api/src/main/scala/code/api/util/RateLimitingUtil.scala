@@ -9,9 +9,11 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Props
 import redis.clients.jedis.Jedis
+import redis.embedded.RedisServer
 
 import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
+import scala.util.Random
 
 
 object RateLimitingPeriod extends Enumeration {
@@ -71,6 +73,13 @@ object RateLimitingJson {
 
 object RateLimitingUtil extends MdcLoggable {
   import code.api.util.RateLimitingPeriod._
+
+  val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
+  val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
+
+  private val mockedRedisPort = 6380 + Random.nextInt(20)
+  private val mockedRedisHost = "127.0.0.1"
+  private var server: RedisServer = null
   
   def useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
   def inMemoryMode = APIUtil.getPropsAsBoolValue("use_consumer_limits_in_memory_mode", false)
@@ -82,21 +91,18 @@ object RateLimitingUtil extends MdcLoggable {
       if(inMemoryMode == true) {
         startMockedRedis(mode="In-Memory")
       } else {
-        val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
-        val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
         new Jedis(url, port)
       }
   }
 
   private def startMockedRedis(mode: String): Jedis = {
-    import ai.grakn.redismock.RedisServer
     import redis.clients.jedis.Jedis
-    val server = RedisServer.newRedisServer // bind to a random port
+    server = new RedisServer(mockedRedisPort)
     server.start()
-    logger.info(msg = "-------------| Mocked Redis instance has been run in " + mode + " mode") 
-    logger.info(msg = "-------------| at host: " + server.getHost)
-    logger.info(msg = "-------------| at port: " + server.getBindPort)
-    new Jedis(server.getHost, server.getBindPort)
+    logger.info(msg = "-------------| Mocked Redis instance has been run in " + mode + " mode")
+    logger.info(msg = "-------------| at host: " + mockedRedisHost)
+    logger.info(msg = "-------------| at port: " + mockedRedisPort)
+    new Jedis(mockedRedisHost, mockedRedisPort)
   }
 
   def isRedisAvailable() = {
@@ -123,7 +129,7 @@ object RateLimitingUtil extends MdcLoggable {
           case (_, false)  => // Redis is NOT available
             logger.warn("Redis is NOT available")
             true
-          case (l, true) if l > 0 => // Redis is available and limit is set
+          case (l, true) if l >= 0 => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
             val exists = jedis.exists(key)
             exists match {
