@@ -7,7 +7,6 @@ import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.bankconnectors.Connector
 import code.consent.ConsentTrait
-import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}

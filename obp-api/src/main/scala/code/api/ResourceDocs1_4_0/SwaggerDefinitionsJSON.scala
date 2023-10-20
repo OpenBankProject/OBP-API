@@ -1020,7 +1020,7 @@ object SwaggerDefinitionsJSON {
   ) 
   
   val postBankJson500 = PostBankJson500(
-    id = Some(idExample.value),
+    id = Some(bankIdExample.value),
     bank_code = bankCodeExample.value,
     full_name = Some(fullNameExample.value),
     logo = Some(logoExample.value),

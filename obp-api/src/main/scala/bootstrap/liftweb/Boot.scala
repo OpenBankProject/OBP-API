@@ -70,7 +70,6 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
 import code.customerattribute.MappedCustomerAttribute
-import code.database.authorisation.Authorisation
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
@@ -1057,7 +1056,6 @@ object ToSchemify {
     MethodRouting,
     EndpointMapping,
     WebUiProps,
-    Authorisation,
     DynamicEntity,
     DynamicData,
     DynamicEndpoint,
