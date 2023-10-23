@@ -778,15 +778,15 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       
       val actualValue = APIUtil.getAllObpIdKeyValuePairs(json)
       val expectedValue= List(
-        "account_id","1",
-        "id","2"       ,
-        "customer_id","3",
-        "atm_id","4",
-        "bank_id","5",
-        "transaction_id","6",
-        "user_id","7",
-        "id","8",
-        "card_id","9"
+        ("account_id","1"),
+        ("id","2"),
+        ("customer_id","3"),
+        ("atm_id","4"),
+        ("bank_id","5"),
+        ("transaction_id","6"),
+        ("user_id","7"),
+        ("id","8"),
+        ("card_id","9")
       )
       actualValue should be(expectedValue) 
     }
