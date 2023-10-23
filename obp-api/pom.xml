@@ -448,13 +448,13 @@
       <version>1.2.0</version>
     </dependency>
 
-    <!--json schema validation start-->
+    <!-- https://mvnrepository.com/artifact/com.networknt/json-schema-validator -->
     <dependency>
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
-      <version>1.0.45</version>
+      <version>1.0.87</version>
     </dependency>
-    <!--json schema validation end-->
+
 
     <!-- https://mvnrepository.com/artifact/org.iban4j/iban4j -->
     <dependency>
