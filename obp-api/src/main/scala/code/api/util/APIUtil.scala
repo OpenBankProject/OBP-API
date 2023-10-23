@@ -1001,6 +1001,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._]+)$""".r
     value match {
+      case _ if value.isEmpty => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength <= 36) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 36) => ErrorMessages.InvalidValueLength+" The maximum  OBP id length is 36. "
       case _ => ErrorMessages.InvalidValueCharacters + " only  A-Z, a-z, 0-9, -, _, ., and max length <= 32 "
@@ -4854,7 +4855,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case JField(n, v) =>
           (n == "id" || n == "user_id" || n == "bank_id" || n == "account_id" || n == "customer_id"
             || n == "branch_id" || n == "atm_id" || n == "transaction_id" || n == "transaction_request_id"
-            || n == "card_id")&&v.isInstanceOf[JString]}
+            || n == "card_id"|| n == "view_id")&&v.isInstanceOf[JString]}
       .map(
         jField => (jField.name, jField.value.asInstanceOf[JString].s)
       )

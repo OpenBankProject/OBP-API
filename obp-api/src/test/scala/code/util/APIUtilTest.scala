@@ -796,8 +796,9 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val id1 = "gh.29.uk"
       val id2 = "1313_.121"
       val id3 = APIUtil.generateUUID()
-      
-//      error cases
+      val id7 = "" //the empty string
+
+      //      error cases
       val id4 = "+123313" //do not support +
       val id5 = "@#$" //do not support @#$
       val id6 = APIUtil.generateUUID() +"1" //the max length is 36
@@ -805,20 +806,18 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val actualValue1 = APIUtil.checkObpId(id1)
       val actualValue2 = APIUtil.checkObpId(id2)
       val actualValue3 = APIUtil.checkObpId(id3)
-      
-      
+
       val actualValue4 = APIUtil.checkObpId(id4)
       val actualValue5 = APIUtil.checkObpId(id5)
       val actualValue6 = APIUtil.checkObpId(id6)
+      val actualValue7 = APIUtil.checkObpId(id7)
       
-      val expectedValue1= SILENCE_IS_GOLDEN
-      val expectedValue2= SILENCE_IS_GOLDEN
-      val expectedValue3= SILENCE_IS_GOLDEN
       
-      actualValue1 should be(expectedValue1)
-      actualValue2 should be(expectedValue2)
-      actualValue3 should be(expectedValue3)
-      
+      SILENCE_IS_GOLDEN should be(actualValue1)
+      SILENCE_IS_GOLDEN should be(actualValue2)
+      SILENCE_IS_GOLDEN should be(actualValue3)
+      SILENCE_IS_GOLDEN should be(actualValue7)
+
       actualValue4 contains (InvalidValueCharacters) shouldBe (true)
       actualValue5 contains (InvalidValueCharacters) shouldBe (true)
       actualValue6 contains (InvalidValueLength) shouldBe (true)
