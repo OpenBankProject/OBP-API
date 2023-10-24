@@ -54,7 +54,9 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
   setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
   setPropsValues("api_instance_id" -> "1_final")
-
+  setPropsValues("starConnector_supported_types" -> "mapped,internal")
+  setPropsValues("connector" -> "star")
+  
   val server = TestServer
   def baseRequest = host(server.host, server.port)
   val secured = APIUtil.getPropsAsBoolValue("external.https", false)
