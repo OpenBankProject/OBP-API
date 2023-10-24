@@ -1,6 +1,6 @@
 package code.api.dynamic.entity.helper
 
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
@@ -577,10 +577,10 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
   
   def getSingleExample: JObject = if (bankId.isDefined){
-    val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+    val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
     bankIdJObject merge SingleObject
   } else{
-    (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+    (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
   }
 
   def getExampleList: JObject =  if (bankId.isDefined){
