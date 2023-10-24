@@ -1004,7 +1004,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ if value.isEmpty => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength <= 36) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 36) => ErrorMessages.InvalidValueLength+" The maximum  OBP id length is 36. "
-      case _ => ErrorMessages.InvalidValueCharacters + " only  A-Z, a-z, 0-9, -, _, ., and max length <= 32 "
+      case _ => ErrorMessages.InvalidValueCharacters + " only  A-Z, a-z, 0-9, -, _, ., and max length <= 36 "
     }
   }
 
