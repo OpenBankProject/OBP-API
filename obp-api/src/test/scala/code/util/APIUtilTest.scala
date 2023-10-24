@@ -297,7 +297,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val returnValue = getToDate(httpParams)
       returnValue.toString should startWith("Full(OBPToDate")
 
-      val currentTime = OBPToDate(DefaultToDate)
+      val currentTime = OBPToDate(ToDateInFuture)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }
@@ -311,7 +311,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val returnValue = getToDate(httpParams)
       returnValue.toString should startWith("Full(OBPToDate")
 
-      val currentTime = OBPToDate(DefaultToDate)
+      val currentTime = OBPToDate(ToDateInFuture)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }
