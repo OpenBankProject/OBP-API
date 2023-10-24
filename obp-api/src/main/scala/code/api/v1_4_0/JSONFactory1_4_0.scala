@@ -1,6 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.berlin.group.v1_3.JvalueCaseClass
+import code.api.cache.Caching
 import java.util.Date
 
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
@@ -21,10 +22,12 @@ import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
+import com.tesobe.CacheKeyFromArguments
 import org.apache.commons.lang3.StringUtils
-import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 import java.lang.reflect.Field
+import java.util.UUID.randomUUID
+import scala.concurrent.duration._
 
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats
@@ -515,79 +518,97 @@ object JSONFactory1_4_0 extends MdcLoggable{
     jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
 
-  private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
+  val createResourceDocJsonTTL : Int = APIUtil.getPropsValue(s"createResourceDocJson.cache.ttl.seconds", "86400").toInt
 
+  def createResourceDocJsonCached(resourceDocUpdatedTags: ResourceDoc, 
+    isVersion4OrHigher:Boolean, locale: Option[String], 
+    urlParametersI18n:String ,
+    jsonRequestBodyFieldsI18n:String, 
+    jsonResponseBodyFieldsI18n:String
+  ): ResourceDocJson = {
+    /**
+     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+     * is just a temporary value field with UUID values in order to prevent any ambiguity.
+     * The real value will be assigned by Macro during compile time at this line of a code:
+     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+     */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(createResourceDocJsonTTL second) {
+        // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+        // But we don't want to have to escape underscores (\_) in our documentation
+        // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+        // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+
+        //Here area some endpoints, which should not be added the description:
+        // 1st: Dynamic entity endpoint,
+        // 2rd: Dynamic endpoint endpoints,
+        // 3rd: all the user created endpoints,
+        val fieldsDescription =
+        if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
+          || resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
+          || resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
+          || resourceDocUpdatedTags.roles.toString.contains("DynamicEntities")
+          || resourceDocUpdatedTags.roles.toString.contains("DynamicEndpoint")) {
+          ""
+        } else {
+          //1st: prepare the description from URL
+          val urlParametersDescription: String = prepareUrlParameterDescription(resourceDocUpdatedTags.requestUrl, urlParametersI18n)
+          //2rd: get the fields description from the post json body:
+          val exampleRequestBodyFieldsDescription =
+            if (resourceDocUpdatedTags.requestVerb == "POST") {
+              prepareJsonFieldDescription(resourceDocUpdatedTags.exampleRequestBody, "request", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
+            } else {
+              ""
+            }
+          //3rd: get the fields description from the response body:
+          //response body can be a nest class, need to loop all the fields.
+          val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody, "response", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
+          urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
+        }
+
+        val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
+          I18NResourceDocField.DESCRIPTION,
+          resourceDocUpdatedTags.operationId,
+          locale,
+          resourceDocUpdatedTags.description.stripMargin.trim
+        )
+        val description = resourceDocDescription ++ fieldsDescription
+        val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
+        val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
+
+        ResourceDocJson(
+          operation_id = resourceDocUpdatedTags.operationId,
+          request_verb = resourceDocUpdatedTags.requestVerb,
+          request_url = resourceDocUpdatedTags.requestUrl,
+          summary = translatedSummary,
+          // Strip the margin character (|) and line breaks and convert from markdown to html
+          description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
+          description_markdown = description,
+          example_request_body = resourceDocUpdatedTags.exampleRequestBody,
+          success_response_body = resourceDocUpdatedTags.successResponseBody,
+          error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
+          implemented_by = ImplementedByJson(resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion, resourceDocUpdatedTags.partialFunctionName), // was resourceDocUpdatedTags.implementedInApiVersion.noV
+          tags = resourceDocUpdatedTags.tags.map(i => i.tag),
+          typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
+          typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
+          roles = resourceDocUpdatedTags.roles,
+          is_featured = resourceDocUpdatedTags.isFeatured,
+          special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
+          specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
+          connector_methods = resourceDocUpdatedTags.connectorMethods,
+          created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
+        )
+      }
+    }
+  }
+  
   def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
     // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
-    val resourceDocUpdatedTags: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
-    logger.debug(s"createResourceDocJson createResourceDocJsonMemo.size is ${createResourceDocJsonMemo.size()}")
-    createResourceDocJsonMemo.compute(resourceDocUpdatedTags, (k, v) => {
-      // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
-      // But we don't want to have to escape underscores (\_) in our documentation
-      // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-      // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+    val updatedTagsResourceDoc: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
 
-      //Here area some endpoints, which should not be added the description:
-      // 1st: Dynamic entity endpoint,
-      // 2rd: Dynamic endpoint endpoints,
-      // 3rd: all the user created endpoints,
-      val fieldsDescription =
-      if(resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
-        ||resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
-        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
-        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEntities")
-        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEndpoint")) {
-        ""
-      } else{
-        //1st: prepare the description from URL
-        val urlParametersDescription: String = prepareUrlParameterDescription(resourceDocUpdatedTags.requestUrl, urlParametersI18n)
-        //2rd: get the fields description from the post json body:
-        val exampleRequestBodyFieldsDescription =
-          if (resourceDocUpdatedTags.requestVerb=="POST" ){
-            prepareJsonFieldDescription(resourceDocUpdatedTags.exampleRequestBody,"request", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
-          } else {
-            ""
-          }
-        //3rd: get the fields description from the response body:
-        //response body can be a nest class, need to loop all the fields.
-        val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody,"response", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
-        urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
-      }
-
-      val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
-        I18NResourceDocField.DESCRIPTION,
-        resourceDocUpdatedTags.operationId, 
-        locale, 
-        resourceDocUpdatedTags.description.stripMargin.trim
-      )
-      val description = resourceDocDescription ++ fieldsDescription
-      val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-      val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
-      
-      ResourceDocJson(
-        operation_id = resourceDocUpdatedTags.operationId,
-        request_verb = resourceDocUpdatedTags.requestVerb,
-        request_url = resourceDocUpdatedTags.requestUrl,
-        summary = translatedSummary,
-        // Strip the margin character (|) and line breaks and convert from markdown to html
-        description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
-        description_markdown = description,
-        example_request_body = resourceDocUpdatedTags.exampleRequestBody,
-        success_response_body = resourceDocUpdatedTags.successResponseBody,
-        error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
-        implemented_by = ImplementedByJson(resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion, resourceDocUpdatedTags.partialFunctionName), // was resourceDocUpdatedTags.implementedInApiVersion.noV
-        tags = resourceDocUpdatedTags.tags.map(i => i.tag),
-        typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
-        typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
-        roles = resourceDocUpdatedTags.roles,
-        is_featured = resourceDocUpdatedTags.isFeatured,
-        special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
-        specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
-        connector_methods = resourceDocUpdatedTags.connectorMethods,
-        created_by_bank_id= if (isVersion4OrHigher) rd.createdByBankId else None // only for V400 we show the bankId
-      )
-    }) 
+    createResourceDocJsonCached(updatedTagsResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String)
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {

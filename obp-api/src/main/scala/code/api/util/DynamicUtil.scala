@@ -2,6 +2,7 @@ package code.api.util
 
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
@@ -26,7 +27,7 @@ import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
 import scala.tools.reflect.{ToolBox, ToolBoxError}
 
-object DynamicUtil {
+object DynamicUtil extends MdcLoggable{
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
@@ -50,6 +51,7 @@ object DynamicUtil {
    * @return compiled Full[function|object|class] or Failure
    */
   def compileScalaCode[T](code: String): Box[T] = {
+    logger.debug(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
     val compiledResult: Box[Any] = dynamicCompileResult.computeIfAbsent(code, _ => {
       val tree = try {
         toolBox.parse(code)

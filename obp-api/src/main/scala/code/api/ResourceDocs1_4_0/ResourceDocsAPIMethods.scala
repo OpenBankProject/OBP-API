@@ -12,6 +12,7 @@ import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
 import code.api.util.ApiTag._
+import code.api.util.DynamicUtil.{dynamicCompileResult, logger}
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
@@ -82,6 +83,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     private val specialInstructionMap = new ConcurrentHashMap[String, Option[String]]()
     // Find any special instructions for partialFunctionName
     def getSpecialInstructions(partialFunctionName: String):  Option[String] = {
+      logger.debug(s"ResourceDocsAPIMethods.getSpecialInstructions.specialInstructionMap.size is ${specialInstructionMap.size()}")
       specialInstructionMap.computeIfAbsent(partialFunctionName, _ => {
         // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
         // Each file should match a partial function name or it will be ignored.

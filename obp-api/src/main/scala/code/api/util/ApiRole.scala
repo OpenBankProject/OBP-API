@@ -5,6 +5,7 @@ import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import java.util.concurrent.ConcurrentHashMap
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityHelper
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
 import net.liftweb.json.{Formats, JsonAST}
 import net.liftweb.json.JsonDSL._
@@ -63,7 +64,7 @@ object RoleCombination {
 // Remember to add to the list of roles below
 
 
-object ApiRole {
+object ApiRole extends MdcLoggable{
 
   case class CanSearchWarehouse(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchWarehouse = CanSearchWarehouse()
@@ -979,9 +980,11 @@ object ApiRole {
   }
 
   def getOrCreateDynamicApiRole(roleName: String, requiresBankId: Boolean = false): ApiRole = {
+    logger.debug(s"code.api.util.ApiRole.getOrCreateDynamicApiRole.size is ${dynamicApiRoles.size()}")
     dynamicApiRoles.computeIfAbsent(roleName, _ => DynamicApiRole(roleName, requiresBankId))
   }
   def removeDynamicApiRole(roleName: String): ApiRole = {
+    logger.debug(s"code.api.util.ApiRole.removeDynamicApiRole.size is ${dynamicApiRoles.size()}")
     dynamicApiRoles.remove(roleName)
   }
 
