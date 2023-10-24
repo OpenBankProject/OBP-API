@@ -35,9 +35,11 @@ import code.api.util.APIUtil.{DateWithMsFormat, DefaultToDate, theEpochTime, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
+import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
+import net.liftweb.json.{JValue, parse}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
@@ -747,6 +749,79 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val expectedValue = Set()
       val actualValue = APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts)
       actualValue should be(expectedValue)
+    }
+
+    scenario(s"Test the getAllObpIdKeyValuePairs method") {
+      val json: JValue = parse(
+        """{
+          |  "account_id": "1",
+          |  "id": "2",
+          |  "customer_id": "3",
+          |  "age": 1,
+          |  "catchphrase": {
+          |    "one": {
+          |      "atm_id": "4",
+          |      "value": {
+          |        "one": {
+          |          "one": {
+          |            "bank_id": "5",
+          |            "transaction_id": "6"
+          |          },
+          |          "user_id": "7"
+          |        },
+          |        "id":"8"
+          |      }
+          |    },
+          |    "card_id": "9"
+          |  }
+          |}""".stripMargin)
+      
+      val actualValue = APIUtil.getAllObpIdKeyValuePairs(json)
+      val expectedValue= List(
+        ("account_id","1"),
+        ("id","2"),
+        ("customer_id","3"),
+        ("atm_id","4"),
+        ("bank_id","5"),
+        ("transaction_id","6"),
+        ("user_id","7"),
+        ("id","8"),
+        ("card_id","9")
+      )
+      actualValue should be(expectedValue) 
+    }
+    
+
+    scenario(s"Test the checkObpId method") {
+      val id1 = "gh.29.uk"
+      val id2 = "1313_.121"
+      val id3 = APIUtil.generateUUID()
+      val id7 = "" //the empty string
+
+      //      error cases
+      val id4 = "+123313" //do not support +
+      val id5 = "@#$" //do not support @#$
+      val id6 = APIUtil.generateUUID() +"1" //the max length is 36
+
+      val actualValue1 = APIUtil.checkObpId(id1)
+      val actualValue2 = APIUtil.checkObpId(id2)
+      val actualValue3 = APIUtil.checkObpId(id3)
+
+      val actualValue4 = APIUtil.checkObpId(id4)
+      val actualValue5 = APIUtil.checkObpId(id5)
+      val actualValue6 = APIUtil.checkObpId(id6)
+      val actualValue7 = APIUtil.checkObpId(id7)
+      
+      
+      SILENCE_IS_GOLDEN should be(actualValue1)
+      SILENCE_IS_GOLDEN should be(actualValue2)
+      SILENCE_IS_GOLDEN should be(actualValue3)
+      SILENCE_IS_GOLDEN should be(actualValue7)
+
+      actualValue4 contains (InvalidValueCharacters) shouldBe (true)
+      actualValue5 contains (InvalidValueCharacters) shouldBe (true)
+      actualValue6 contains (InvalidValueLength) shouldBe (true)
+      
     }
     
   }
