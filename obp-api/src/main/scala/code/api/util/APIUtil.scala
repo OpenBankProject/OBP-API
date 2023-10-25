@@ -1731,10 +1731,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private var _isEndpointAuthCheck = false
 
     def isNotEndpointAuthCheck = !_isEndpointAuthCheck
-
+//    code.api.util.APIUtil.ResourceDoc.connectorMethods
     // set dependent connector methods
     var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
-      .map("obp."+) // add prefix "obp.", as MessageDoc#process
+      .map(
+        value => ("obp."+value).intern() //
+      ) // add prefix "obp.", as MessageDoc#process
 
     // add connector method to endpoint info
     addEndpointInfos(connectorMethods, partialFunctionName, implementedInApiVersion)
