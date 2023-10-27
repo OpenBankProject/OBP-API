@@ -24,6 +24,7 @@ import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
 import com.tesobe.CacheKeyFromArguments
 import org.apache.commons.lang3.StringUtils
+import scalacache.memoization.cacheKeyExclude
 import java.util.regex.Pattern
 import java.lang.reflect.Field
 import java.util.UUID.randomUUID
@@ -520,11 +521,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   val createResourceDocJsonTTL : Int = APIUtil.getPropsValue(s"createResourceDocJson.cache.ttl.seconds", "86400").toInt
 
-  def createResourceDocJsonCached(resourceDocUpdatedTags: ResourceDoc, 
-    isVersion4OrHigher:Boolean, locale: Option[String], 
+  def createResourceDocJsonCached(
+    @cacheKeyExclude resourceDocUpdatedTags: ResourceDoc,
+    @cacheKeyExclude isVersion4OrHigher:Boolean,
+    locale: Option[String],
     urlParametersI18n:String ,
-    jsonRequestBodyFieldsI18n:String, 
-    jsonResponseBodyFieldsI18n:String
+    jsonRequestBodyFieldsI18n:String,
+    jsonResponseBodyFieldsI18n:String,
+    cacheKey:String
   ): ResourceDocJson = {
     /**
      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -607,8 +611,17 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val updatedTagsResourceDoc: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
-
-    createResourceDocJsonCached(updatedTagsResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String)
+    val cacheKey = updatedTagsResourceDoc.operationId + updatedTagsResourceDoc.tags + updatedTagsResourceDoc
+    
+    createResourceDocJsonCached(
+      updatedTagsResourceDoc, 
+      isVersion4OrHigher:Boolean, 
+      locale: Option[String], 
+      urlParametersI18n:String,
+      jsonRequestBodyFieldsI18n:String, 
+      jsonResponseBodyFieldsI18n:String,
+      cacheKey:String
+    )
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {
