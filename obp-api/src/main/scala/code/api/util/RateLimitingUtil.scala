@@ -129,7 +129,7 @@ object RateLimitingUtil extends MdcLoggable {
           case (_, false)  => // Redis is NOT available
             logger.warn("Redis is NOT available")
             true
-          case (l, true) if l >= 0 => // Redis is available and limit is set
+          case (l, true) if l > 0 => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
             val exists = jedis.exists(key)
             exists match {

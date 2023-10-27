@@ -278,11 +278,13 @@
       <artifactId>chill-bijection_${scala.version}</artifactId>
       <version>0.9.1</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava -->
     <dependency>
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-guava_${scala.version}</artifactId>
       <version>0.9.3</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-redis -->
     <dependency>
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-redis_${scala.version}</artifactId>
@@ -448,13 +450,13 @@
       <version>1.2.0</version>
     </dependency>
 
-    <!--json schema validation start-->
+    <!-- https://mvnrepository.com/artifact/com.networknt/json-schema-validator -->
     <dependency>
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
-      <version>1.0.45</version>
+      <version>1.0.87</version>
     </dependency>
-    <!--json schema validation end-->
+
 
     <!-- https://mvnrepository.com/artifact/org.iban4j/iban4j -->
     <dependency>
