@@ -278,12 +278,6 @@
       <artifactId>chill-bijection_${scala.version}</artifactId>
       <version>0.9.1</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava -->
-    <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-guava_${scala.version}</artifactId>
-      <version>0.9.3</version>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-redis -->
     <dependency>
       <groupId>com.github.cb372</groupId>

@@ -2,20 +2,20 @@ package code.api.cache
 
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scalacache._
 import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 import scalacache.redis._
 import scalacache.serialization.Codec
 
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 
 object Redis extends MdcLoggable {
 
-  val url = APIUtil.getPropsValue("guava.redis.url", "127.0.0.1")
-  val port = APIUtil.getPropsAsIntValue("guava.redis.port", 6379)
+  val url = APIUtil.getPropsValue("cache.redis.url", "127.0.0.1")
+  val port = APIUtil.getPropsAsIntValue("cache.redis.port", 6379)
 
   implicit val scalaCache = ScalaCache(RedisCache(url, port))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
