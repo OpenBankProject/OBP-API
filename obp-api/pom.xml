@@ -318,12 +318,6 @@
       <artifactId>scalameta_${scala.version}</artifactId>
       <version>3.7.4</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.codemonstur/embedded-redis -->
-    <dependency>
-      <groupId>com.github.codemonstur</groupId>
-      <artifactId>embedded-redis</artifactId>
-      <version>1.0.0</version>
-    </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
     <dependency>
