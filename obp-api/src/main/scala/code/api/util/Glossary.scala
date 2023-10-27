@@ -597,7 +597,7 @@ object Glossary extends MdcLoggable  {
 		description =
 			s"""
 				 |
-|$justInTimeEntitlements
+|{$justInTimeEntitlements}
 |
 |This is how Just in Time Entitlements work:
 |
