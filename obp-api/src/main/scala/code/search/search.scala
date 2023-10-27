@@ -242,7 +242,7 @@ class elasticsearchMetrics extends elasticsearch {
   if (esIndex.contains(",")) throw new RuntimeException("Props error: es.metrics.index can not be a list")
 
   val props = ElasticProperties(s"http://$esHost:${esPortTCP.toInt}")
-  val client = ElasticClient(JavaClient(props))
+  lazy val client = ElasticClient(JavaClient(props))
   // we must import the dsl
   import com.sksamuel.elastic4s.ElasticDsl._
   
