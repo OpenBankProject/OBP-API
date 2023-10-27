@@ -1242,15 +1242,9 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             rateLimiting <- NewStyle.function.tryons("", 400, callContext) {
-              RateLimitingUtil.inMemoryMode match {
-                case true =>
-                  val isActive = if(RateLimitingUtil.useConsumerLimits == true) true else false
-                  RateLimiting(RateLimitingUtil.useConsumerLimits, "In-Memory", true, isActive)
-                case false =>
-                  val isRedisAvailable = RateLimitingUtil.isRedisAvailable()
-                  val isActive = if(RateLimitingUtil.useConsumerLimits == true && isRedisAvailable == true) true else false
-                  RateLimiting(RateLimitingUtil.useConsumerLimits, "REDIS", isRedisAvailable, isActive)
-              }
+              val isRedisAvailable = RateLimitingUtil.isRedisAvailable()
+              val isActive = if (RateLimitingUtil.useConsumerLimits && isRedisAvailable) true else false
+              RateLimiting(RateLimitingUtil.useConsumerLimits, "REDIS", isRedisAvailable, isActive)
             }
           } yield {
             (createRateLimitingInfo(rateLimiting), HttpCode.`200`(callContext))

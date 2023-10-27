@@ -1,11 +1,5 @@
 package code.api.v1_2_1
 
-import java.net.URL
-import java.util.Random
-import java.security.SecureRandom
-import java.util.UUID.randomUUID
-
-import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -15,33 +9,30 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.bankconnectors._
-import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, UserX, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, UserX, toBankAccountExtended, toBankExtended}
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import code.views.system.ViewDefinition
-import com.google.common.cache.CacheBuilder
-import com.openbankproject.commons.model.{Bank, UpdateViewJSON, _}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Full, _}
+import com.tesobe.CacheKeyFromArguments
+import net.liftweb.common._
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
-
-import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.util.StringHelpers
 
+import java.net.URL
+import java.util.UUID.randomUUID
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
