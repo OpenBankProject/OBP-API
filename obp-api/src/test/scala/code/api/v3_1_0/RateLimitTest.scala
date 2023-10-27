@@ -28,9 +28,8 @@ package code.api.v3_1_0
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{ApiRole, RateLimitingUtil}
 import code.api.util.ApiRole.{CanReadCallLimits, CanSetCallLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -177,7 +176,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       response310.body.extract[CallLimitJson]
     }
     scenario("We will set calls limit per second for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -201,7 +201,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
     }
     scenario("We will set calls limit per minute for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -225,7 +226,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
     }
     scenario("We will set calls limit per hour for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -249,7 +251,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
     }
     scenario("We will set calls limit per day for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -273,7 +276,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
     }
     scenario("We will set calls limit per week for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -297,7 +301,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
     }
     scenario("We will set calls limit per month for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
+      assume(RateLimitingUtil.isRedisAvailable())
+      When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)

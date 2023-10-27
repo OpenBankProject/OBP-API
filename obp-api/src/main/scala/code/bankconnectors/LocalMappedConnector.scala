@@ -99,7 +99,6 @@ import org.iban4j
 import org.iban4j.{CountryCode, IbanFormat}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
 import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext}
 import scalikejdbc.DB.CPContext
 import scalikejdbc.{DB => scalikeDB, _}
@@ -115,8 +114,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //  override type AccountType = MappedBankAccount
   
-  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
-  implicit val scalaCache = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
   //This is the implicit parameter for saveConnectorMetric function.
