@@ -240,7 +240,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          partialFunctionNames: Option[List[String]],
                                          locale: Option[String],
                                          contentParam: Option[ContentParam],
-                                         cacheModifierParam: Option[String],
                                          isVersion4OrHigher:Boolean
     ) : Box[JValue] = {
       /**
@@ -274,7 +273,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       partialFunctionNames: Option[List[String]],
       locale: Option[String],
       contentParam: Option[ContentParam],
-      cacheModifierParam: Option[String],
       isVersion4OrHigher:Boolean
     ) : Box[JValue] = {
       /**
@@ -330,7 +328,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          partialFunctionNames: Option[List[String]],
                                          locale: Option[String],
                                          contentParam: Option[ContentParam],
-                                         cacheModifierParam: Option[String],
                                          bankId:Option[String],
                                          isVersion4OrHigher:Boolean
                                         ): Option[JValue] = {
@@ -450,8 +447,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          | 
          | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
          |
-         | You can easily pass the cache, use different value for cache-modifier, eg: ?cache-modifier= 123
-         |
          |See the Resource Doc endpoint for more information.
          |
          |Following are more examples:
@@ -461,7 +456,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=zh_CN
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?cache-modifier=3141592653
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -496,10 +490,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     lazy val getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, false, false)
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,false, false)
           resourceDocs
       }
     }
@@ -521,10 +515,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     
     lazy val getResourceDocsObpV400 : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam, true, false)
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,true, false)
           resourceDocs
       }
     }
@@ -546,7 +540,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //
 //    def getStaticResourceDocsObp : OBPEndpoint = {
 //      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
 //        cc =>
 //          getApiLevelResourceDocs(
 //            cc,requestedApiVersionString,
@@ -555,7 +549,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //            locale,
 //            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
 //            apiCollectionIdParam,
-//            cacheModifierParam,
 //            true,
 //            true
 //          )
@@ -572,7 +565,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       locale: Option[String],
       contentParam: Option[ContentParam],
       apiCollectionIdParam: Option[String],
-      cacheModifierParam: Option[String],
       isVersion4OrHigher: Boolean,
       isStaticResource: Boolean,
     ) = {
@@ -602,13 +594,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case _ =>
               contentParam match {
                 case Some(DYNAMIC) =>
-                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam, cacheModifierParam, None, isVersion4OrHigher)
+                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,None, isVersion4OrHigher)
                   Future(dynamicDocs.map(successJsonResponse(_)))
                 case Some(STATIC) =>
-                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, cacheModifierParam, isVersion4OrHigher)
+                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                   Future(staticDocs.map(successJsonResponse(_)))
                 case _ =>
-                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, cacheModifierParam, isVersion4OrHigher)
+                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                   Future(docs.map(successJsonResponse(_)))
               }
           }
@@ -636,7 +628,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getBankLevelDynamicResourceDocsObp : OBPEndpoint = {
       case "banks" :: bankId :: "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           for {
             (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
@@ -653,7 +645,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
-              getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  cacheModifierParam, Some(bankId), false).map(successJsonResponse(_)).get
+              getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  Some(bankId), false).map(successJsonResponse(_)).get
             }
           } yield {
             (Full(json), HttpCode.`200`(callContext))
@@ -701,7 +693,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc => {
           implicit val ec = EndpointContext(Some(cc))
-          val (resourceDocTags, partialFunctions, _, _, _, _) = ResourceDocsAPIMethodsUtil.getParams()
+          val (resourceDocTags, partialFunctions, _, _, _) = ResourceDocsAPIMethodsUtil.getParams()
           for {
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
@@ -945,7 +937,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => None
   }
 
-  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[String], Option[ContentParam], Option[String], Option[String]) = {
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[String], Option[ContentParam], Option[String]) = {
 
     val rawTagsParam = ObpS.param("tags")
 
@@ -1008,12 +1000,9 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     } yield x
     logger.debug(s"apiCollectionIdParam is $apiCollectionIdParam")
     
-    val cacheModifierParam = for {
-      x <- ObpS.param("cache-modifier")
-    } yield x
-    logger.debug(s"cacheModifierParam is $cacheModifierParam")
+  
 
-    (tags, partialFunctionNames, locale, contentParam, apiCollectionIdParam, cacheModifierParam)
+    (tags, partialFunctionNames, locale, contentParam, apiCollectionIdParam)
   }
 
 
