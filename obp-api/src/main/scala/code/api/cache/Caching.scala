@@ -1,5 +1,6 @@
 package code.api.cache
 
+import code.api.util.RateLimitingUtil
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
 
 import scala.concurrent.Future
@@ -12,7 +13,7 @@ object Caching {
     (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
-      case (Some(_), _) => // Caching a call
+      case (Some(_), _) if RateLimitingUtil.isRedisAvailable() => // Caching a call
         Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
       case _  => // Just forwarding a call
         f
