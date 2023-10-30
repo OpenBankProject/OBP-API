@@ -381,17 +381,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
     
-    private val getChineseVersionResourceDocs : Box[JsonResponse] = {
-      val stream = getClass().getClassLoader().getResourceAsStream("ResourceDocs/ResourceDocs-Chinese.json")
-      val chineseVersion = try {
-        val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-        val jsonStringFromFile = bufferedSource.mkString
-        json.parse(jsonStringFromFile);
-      } finally {
-        stream.close()
-      }
-      Full(successJsonResponse(chineseVersion))
-    }
     def upperName(name: String): (String, String) = (name.toUpperCase(), name)
 
 
@@ -584,7 +573,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
           json <- locale match {
-            case _ if(locale.isDefined && locale.get.toLowerCase.contains("zh")) => Future(getChineseVersionResourceDocs)
             case _ if (apiCollectionIdParam.isDefined) =>
               val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
               val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
