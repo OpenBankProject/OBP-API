@@ -3,9 +3,10 @@ package code.api.cache
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import scalacache._
+import redis.clients.jedis.Jedis
 import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
-import scalacache.redis._
+import scalacache.{Flags, ScalaCache}
+import scalacache.redis.RedisCache
 import scalacache.serialization.Codec
 
 import scala.concurrent.Future
@@ -16,6 +17,22 @@ object Redis extends MdcLoggable {
 
   val url = APIUtil.getPropsValue("cache.redis.url", "127.0.0.1")
   val port = APIUtil.getPropsAsIntValue("cache.redis.port", 6379)
+
+  lazy val jedis = new Jedis(url, port)
+
+  def isRedisAvailable() = {
+    try {
+      val uuid = APIUtil.generateUUID()
+      jedis.connect()
+      jedis.set(uuid, "10")
+      jedis.exists(uuid) == true
+    } catch {
+      case e: Throwable =>
+        logger.warn("------------| Redis.isRedisAvailable |------------")
+        logger.warn(e)
+        false
+    }
+  }
 
   implicit val scalaCache = ScalaCache(RedisCache(url, port))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
