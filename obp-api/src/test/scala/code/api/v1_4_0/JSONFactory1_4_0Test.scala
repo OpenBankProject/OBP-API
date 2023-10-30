@@ -115,7 +115,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     
     scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
-      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false, None, 
+      val result: ResourceDocJson = JSONFactory1_4_0.createLocalisedResourceDocJson(resourceDoc,false, None, 
         urlParameters, "JSON request body fields:", "JSON response body fields:")
     }
 
