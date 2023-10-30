@@ -212,7 +212,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>8.8.1</version>
+      <version>8.9.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
