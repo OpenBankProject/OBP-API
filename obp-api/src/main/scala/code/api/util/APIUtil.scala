@@ -4863,4 +4863,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         jField => (jField.name, jField.value.asInstanceOf[JString].s)
       )
   }
+
+    val createLocalisedResourceDocJsonTTL : Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
+  
 }

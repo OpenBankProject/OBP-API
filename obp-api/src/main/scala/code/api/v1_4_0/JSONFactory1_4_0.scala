@@ -3,8 +3,7 @@ package code.api.v1_4_0
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
 import java.util.Date
-
-import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc, createLocalisedResourceDocJsonTTL}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}
@@ -518,17 +517,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
     jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
-
-  val createResourceDocJsonTTL : Int = APIUtil.getPropsValue(s"createResourceDocJson.cache.ttl.seconds", "86400").toInt
-
-  def createResourceDocJsonCached(
+  //cache key will only contain "operationId + locale"
+  def createLocalisedResourceDocJsonCached(
+    operationId: String, // this will be in the cacheKey
+    locale: Option[String],// this will be in the cacheKey
     @cacheKeyExclude resourceDocUpdatedTags: ResourceDoc,
     @cacheKeyExclude isVersion4OrHigher:Boolean,
-    locale: Option[String],
-    urlParametersI18n:String ,
-    jsonRequestBodyFieldsI18n:String,
-    jsonResponseBodyFieldsI18n:String,
-    cacheKey:String
+    @cacheKeyExclude urlParametersI18n:String ,
+    @cacheKeyExclude jsonRequestBodyFieldsI18n:String,
+    @cacheKeyExclude jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
     /**
      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -538,7 +535,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(createResourceDocJsonTTL second) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(createLocalisedResourceDocJsonTTL second) {
         // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
         // But we don't want to have to escape underscores (\_) in our documentation
         // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
@@ -607,21 +604,21 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }
   }
   
-  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
-    // We MUST recompute all resource doc values due to translation via Web UI props
-    val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
-    val updatedTagsResourceDoc: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
-    val cacheKey = updatedTagsResourceDoc.operationId + updatedTagsResourceDoc.tags + updatedTagsResourceDoc
+  def createLocalisedResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
+    // We MUST recompute all resource doc values due to translation via Web UI props --> now need to wait $createLocalisedResourceDocJsonTTL seconds
+    val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
+    val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
-    createResourceDocJsonCached(
-      updatedTagsResourceDoc, 
-      isVersion4OrHigher:Boolean, 
-      locale: Option[String], 
-      urlParametersI18n:String,
-      jsonRequestBodyFieldsI18n:String, 
-      jsonResponseBodyFieldsI18n:String,
-      cacheKey:String
+    createLocalisedResourceDocJsonCached(
+      resourceDocWithUserDefinedEndpointTags.operationId,
+      locale: Option[String],
+      resourceDocWithUserDefinedEndpointTags,
+      isVersion4OrHigher: Boolean,
+      urlParametersI18n: String,
+      jsonRequestBodyFieldsI18n: String,
+      jsonResponseBodyFieldsI18n: String
     )
+    
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {
@@ -647,11 +644,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
     
     if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)),
+        resourceDocList.map(createLocalisedResourceDocJson(_,isVersion4OrHigher, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)))
+      ResourceDocsJson(resourceDocList.map(createLocalisedResourceDocJson(_,false, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)))
     }
   }
   

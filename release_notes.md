@@ -43,7 +43,7 @@ Date          Commit        Action
                             Added props: webui_privacy_policy_url, default is https://openbankproject.com/privacy-policy
 30/06/2021    cf2dd987      Changed props, static will cache 24 hours, dynamic only 1 hour as default.
                             dynamicResourceDocsObp.cache.ttl.seconds=3600
-                            staticResourceDocsObp.cache.ttl.seconds=86400
+                            staticResourceDocsObp.cache.ttl.seconds=3600
 30/06/2021    cf2dd987      Added props: email_domain_to_entitlement_mappings, default is empty
                             We can automatically grant the Entitlements required to the User has access to via their validated email domain. 
                             Entitlements are generated /refreshed both following manual locin and Direct Login token generation (POST).
