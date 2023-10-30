@@ -588,6 +588,8 @@ object Glossary extends MdcLoggable  {
 	)
 
 
+
+
 	glossaryItems += GlossaryItem(
 		title = "API.Access Control",
 		description =
@@ -625,11 +627,38 @@ object Glossary extends MdcLoggable  {
 
 
 
+	val justInTimeEntitlements : String = if (APIUtil.getPropsAsBoolValue("create_just_in_time_entitlements", false))
+	{"Just in Time Entitlements are ENABLED on this instance."} else {"Just in Time Entitlements are NOT enabled on this instance."}
+
+
+	glossaryItems += GlossaryItem(
+		title = "Just In Time Entitlements",
+		description =
+			s"""
+				 |
+				 |${justInTimeEntitlements}
+				 |
+				 |This is how Just in Time Entitlements work:
+				 |
+				 |If Just in Time Entitlements are enabled then OBP does the following:
+				 |If a user is trying to use a Role (via an endpoint) and the user could grant them selves the required Role(s), then OBP automatically grants the Role.
+				 |i.e. if the User already has canCreateEntitlementAtOneBank or canCreateEntitlementAtAnyBank then OBP will automatically grant a role that would be granted by a manual process anyway.
+				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation.
+				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
+				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
+				 |
+				 |To enable / disable this feature set the Props create_just_in_time_entitlements=true or false. The default is false.
+				 |
+				 |"""
+	)
 
 
 
 
-	  glossaryItems += GlossaryItem(
+
+
+
+	glossaryItems += GlossaryItem(
 		title =
 				"Account",
 		description =

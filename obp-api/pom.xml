@@ -278,11 +278,7 @@
       <artifactId>chill-bijection_${scala.version}</artifactId>
       <version>0.9.1</version>
     </dependency>
-    <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-guava_${scala.version}</artifactId>
-      <version>0.9.3</version>
-    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-redis -->
     <dependency>
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-redis_${scala.version}</artifactId>
@@ -315,12 +311,6 @@
       <groupId>org.scalameta</groupId>
       <artifactId>scalameta_${scala.version}</artifactId>
       <version>3.7.4</version>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.codemonstur/embedded-redis -->
-    <dependency>
-      <groupId>com.github.codemonstur</groupId>
-      <artifactId>embedded-redis</artifactId>
-      <version>1.0.0</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
@@ -448,13 +438,13 @@
       <version>1.2.0</version>
     </dependency>
 
-    <!--json schema validation start-->
+    <!-- https://mvnrepository.com/artifact/com.networknt/json-schema-validator -->
     <dependency>
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
-      <version>1.0.45</version>
+      <version>1.0.87</version>
     </dependency>
-    <!--json schema validation end-->
+
 
     <!-- https://mvnrepository.com/artifact/org.iban4j/iban4j -->
     <dependency>

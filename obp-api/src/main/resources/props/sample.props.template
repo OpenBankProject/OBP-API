@@ -781,12 +781,9 @@ featured_apis=elasticSearchWarehouseV300
 ## e.g. OBP-API/src/main/resources/special_instructions_for_resources/dataWarehouseSearch.md
 ## Note: You do NOT need to include anything here for this to work.
 
-# -- ScalaGuava cache -------------------------------------
-# Define which cache provider to use: "in-memory", "redis".
-# In case isn't defined default value is "in-memory"
-# guava.cache=redis
-# guava.redis.url=127.0.0.1
-# guava.redis.port=6379
+# -- Redis cache -------------------------------------
+# cache.redis.url=127.0.0.1
+# cache.redis.port=6379
 # ---------------------------------------------------------
 
 # -- New Style Endpoints -----------------------
@@ -799,8 +796,6 @@ featured_apis=elasticSearchWarehouseV300
 # Define how many calls per hour a consumer can make
 # In case isn't defined default value is "false"
 # use_consumer_limits=false
-# In case isn't defined default value is "false"
-# use_consumer_limits_in_memory_mode=false
 # In case isn't defined default value is 60
 # user_consumer_limit_anonymous_access=100
 # redis_address=127.0.0.1
@@ -867,9 +862,12 @@ featured_apis=elasticSearchWarehouseV300
  
 # -- Just in Time Entitlements -------------------------------
 create_just_in_time_entitlements=false
-# if create_just_in_time_entitlements==true then do the following:
-# If a user is trying to use a Role and the user could grant them selves the required Role(s), 
-# then just automatically grant the Role(s)!
+# if create_just_in_time_entitlements=true then OBP does the following:
+# If a user is trying to use a Role (via an endpoint) and the user could grant them selves the required Role(s), then OBP automatically grants the Role!
+# i.e. if the User already has canCreateEntitlementAtOneBank or canCreateEntitlementAtAnyBank and then OBP will auto grant a role that could be granted by a manual process anyway.
+# This speeds up the process of granting of roles. Certain roles are excluded from this automation.
+# If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
+# Note: In the entitlements model we set createdbyprocess="create_just_in_time_entitlements". For manual operations we set createdbyprocess="manual"
 # -------------------------------------------------------------
 
 # -- Database scheduler -----------------------------

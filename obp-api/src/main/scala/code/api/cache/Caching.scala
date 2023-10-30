@@ -1,13 +1,11 @@
 package code.api.cache
 
-import code.api.util.APIUtil
-import net.liftweb.common.Full
+import code.api.util.RateLimitingUtil
+import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
-import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
-
 import scala.reflect.runtime.universe._
 object Caching {
 
@@ -15,15 +13,8 @@ object Caching {
     (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
-      case (Some(_), _) => // Caching a call
-        APIUtil.getPropsValue("guava.cache") match {
-          case Full(value) if value.toLowerCase == "redis" =>
-            Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
-          case Full(value) if value.toLowerCase == "in-memory" =>
-            InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(f)
-          case _ =>
-            InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(f)
-        }
+      case (Some(_), _) if RateLimitingUtil.isRedisAvailable() => // Caching a call
+        Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
       case _  => // Just forwarding a call
         f
     }
@@ -35,14 +26,7 @@ object Caching {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
-        APIUtil.getPropsValue("guava.cache") match {
-          case Full(value) if value.toLowerCase == "redis" =>
-            Redis.memoizeWithRedis(cacheKey)(ttl)(f)
-          case Full(value) if value.toLowerCase == "in-memory" =>
-            InMemory.memoizeWithInMemory(cacheKey)(ttl)(f)
-          case _ =>
-            InMemory.memoizeWithInMemory(cacheKey)(ttl)(f)
-        }
+        Redis.memoizeWithRedis(cacheKey)(ttl)(f)
       case _  => // Just forwarding a call
         f
     }
