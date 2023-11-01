@@ -83,7 +83,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     private val specialInstructionMap = new ConcurrentHashMap[String, Option[String]]()
     // Find any special instructions for partialFunctionName
     def getSpecialInstructions(partialFunctionName: String):  Option[String] = {
-      logger.debug(s"ResourceDocsAPIMethods.getSpecialInstructions.specialInstructionMap.size is ${specialInstructionMap.size()}")
+      logger.trace(s"ResourceDocsAPIMethods.getSpecialInstructions.specialInstructionMap.size is ${specialInstructionMap.size()}")
       specialInstructionMap.computeIfAbsent(partialFunctionName, _ => {
         // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
         // Each file should match a partial function name or it will be ignored.
