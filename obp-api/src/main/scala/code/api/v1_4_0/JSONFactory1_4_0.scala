@@ -21,7 +21,7 @@ import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
-import com.tesobe.CacheKeyFromArguments
+import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import org.apache.commons.lang3.StringUtils
 import scalacache.memoization.cacheKeyExclude
 import java.util.regex.Pattern
@@ -521,11 +521,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
   def createLocalisedResourceDocJsonCached(
     operationId: String, // this will be in the cacheKey
     locale: Option[String],// this will be in the cacheKey
-    @cacheKeyExclude resourceDocUpdatedTags: ResourceDoc,
-    @cacheKeyExclude isVersion4OrHigher:Boolean,
-    @cacheKeyExclude urlParametersI18n:String ,
-    @cacheKeyExclude jsonRequestBodyFieldsI18n:String,
-    @cacheKeyExclude jsonResponseBodyFieldsI18n:String
+    @CacheKeyOmit resourceDocUpdatedTags: ResourceDoc,
+    @CacheKeyOmit isVersion4OrHigher:Boolean,
+    @CacheKeyOmit urlParametersI18n:String ,
+    @CacheKeyOmit jsonRequestBodyFieldsI18n:String,
+    @CacheKeyOmit jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
     /**
      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
