@@ -241,7 +241,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          locale: Option[String],
                                          contentParam: Option[ContentParam],
                                          isVersion4OrHigher:Boolean
-    ) : Box[JValue] = {
+    ) : JValue = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -255,7 +255,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
 
           val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames, isVersion4OrHigher, locale)
-          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse).head
         }
       }
     }
@@ -274,7 +274,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       locale: Option[String],
       contentParam: Option[ContentParam],
       isVersion4OrHigher:Boolean
-    ) : Box[JValue] = {
+    ) : JValue = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -318,7 +318,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           val allDocs = staticDocs.map( _ ++ filteredDocs)
           
           val resourceDocJson = resourceDocsToResourceDocJson(allDocs, resourceDocTags, partialFunctionNames, isVersion4OrHigher, locale)
-          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse).head
         }
       }
     }
@@ -330,7 +330,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          contentParam: Option[ContentParam],
                                          bankId:Option[String],
                                          isVersion4OrHigher:Boolean
-                                        ): Option[JValue] = {
+                                        ): JValue = {
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocsTTL second) {
@@ -361,7 +361,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           }
     
           val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames, isVersion4OrHigher, locale)
-          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse).head
     }}}
 
 
@@ -582,13 +582,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case _ =>
               contentParam match {
                 case Some(DYNAMIC) =>
-                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,None, isVersion4OrHigher)
+                  val dynamicDocs: Box[JValue] = Full (getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,None, isVersion4OrHigher))
                   Future(dynamicDocs.map(successJsonResponse(_)))
                 case Some(STATIC) =>
-                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
+                  val staticDocs: Box[JValue] = Full(getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher))
                   Future(staticDocs.map(successJsonResponse(_)))
                 case _ =>
-                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
+                  val docs: Box[JValue] = Full(getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher))
                   Future(docs.map(successJsonResponse(_)))
               }
           }
@@ -633,7 +633,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
-              getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  Some(bankId), false).map(successJsonResponse(_)).get
+              Full(getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  Some(bankId), false)).map(successJsonResponse(_)).get
             }
           } yield {
             (Full(json), HttpCode.`200`(callContext))
