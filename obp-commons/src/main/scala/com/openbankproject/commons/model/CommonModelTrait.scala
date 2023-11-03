@@ -716,3 +716,8 @@ case class AtmId(value : String){
 object AtmId {
   def unapply(id : String) = Some(AtmId(id))
 }
+
+case class ApiRoleCommons(
+  role:String,
+  requires_bank_id: Boolean
+)

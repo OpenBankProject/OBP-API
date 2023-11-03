@@ -38,7 +38,7 @@ object JsonSerializers {
   }
 
   val serializers: List[Serializer[_]] =
-      AbstractTypeDeserializer :: SimpleEnumDeserializer ::
+      AbstractTypeDeserializer :: SimpleEnumDeserializer :: ScalaProductDeserializer ::
       BigDecimalSerializer :: StringDeserializer ::
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
@@ -113,6 +113,29 @@ object SimpleEnumDeserializer extends ObpDeSerializer[SimpleEnum] {
       ReflectUtils.getObject(clazz.getName) // get Companion instance
         .asInstanceOf[SimpleEnumCollection[SimpleEnum]]
         .valueOf(enumValue)
+  }
+}
+
+object ScalaProductDeserializer extends ObpDeSerializer[JValue] {
+  private val ScalaProductClazz = classOf[scala.Product]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), JValue]= {
+    case (TypeInfo(ScalaProductClazz, _), json) => json match {
+      case x => json // if it is ScalaProduct, we just return the JValue back. 
+    }
+  }
+}
+
+object ScalaOptionDeserializer extends ObpDeSerializer[JValue] {
+  private val ScalaOptionClazz = classOf[scala.Option[_]]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), JValue]= {
+    case (TypeInfo(ScalaOptionClazz, _), json) => json match {
+      case x => null // if it is ScalaProduct, we just return the JValue back. 
+    }
+//    case (TypeInfo(ScalaProductClazz, _), json) => json match {
+//      case x => json
+//    }
   }
 }
 
