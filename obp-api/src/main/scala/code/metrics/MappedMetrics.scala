@@ -42,7 +42,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     case str => MappedConsumersProvider.getConsumerByConsumerId(str).map(_.id.get.toString).toOption.orElse(Some(str)) 
   }
 
-  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
+                          responseBody: String, sourceIp: String, targetIp: String): Unit = {
     val metric = MappedMetric.create
       .userId(userId)
       .url(url)
@@ -56,6 +57,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .implementedInVersion(implementedInVersion)
       .verb(verb)
       .correlationId(correlationId)
+      .responseBody(responseBody)
+      .sourceIp(sourceIp)
+      .targetIp(targetIp)
       
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -63,7 +67,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
     metric.save
   }
-  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
+  override def saveMetricsArchive(primaryKey: Long, userId: String,
+                                  url: String, date: Date, duration: Long, userName: String,
+                                  appName: String, developerEmail: String, consumerId: String,
+                                  implementedByPartialFunction: String, implementedInVersion: String,
+                                  verb: String, httpCode: Option[Int], correlationId: String,
+                                  responseBody: String, sourceIp: String, targetIp: String): Unit = {
     val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
     metric
       .metricId(primaryKey)
@@ -79,7 +88,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .implementedInVersion(implementedInVersion)
       .verb(verb)
       .correlationId(correlationId)
-      
+      .responseBody(responseBody)
+      .sourceIp(sourceIp)
+      .targetIp(targetIp)
+
     httpCode match {
       case Some(code) => metric.httpCode(code)
       case None =>
@@ -536,7 +548,9 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
     override def dbNotNull_? = true
     override def defaultValue = generateUUID()
   }
-
+  object responseBody extends MappedText(this)
+  object sourceIp extends MappedString(this, 64)
+  object targetIp extends MappedString(this, 64)
 
   override def getMetricId(): Long = id.get
   override def getUrl(): String = url.get
@@ -552,6 +566,9 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getVerb(): String = verb.get
   override def getHttpCode(): Int = httpCode.get
   override def getCorrelationId(): String = correlationId.get
+  override def getResponseBody(): String = responseBody.get
+  override def getSourceIp(): String = sourceIp.get
+  override def getTargetIp(): String = targetIp.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
@@ -589,6 +606,9 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   object correlationId extends MappedUUID(this){
     override def dbNotNull_? = true
   }
+  object responseBody extends MappedText(this)
+  object sourceIp extends MappedString(this, 64)
+  object targetIp extends MappedString(this, 64)
 
 
   override def getMetricId(): Long = metricId.get
@@ -605,6 +625,9 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getVerb(): String = verb.get
   override def getHttpCode(): Int = httpCode.get
   override def getCorrelationId(): String = correlationId.get
+  override def getResponseBody(): String = responseBody.get
+  override def getSourceIp(): String = sourceIp.get
+  override def getTargetIp(): String = targetIp.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes = 

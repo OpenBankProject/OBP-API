@@ -129,7 +129,10 @@ object MetricsArchiveScheduler extends MdcLoggable {
       i.getImplementedInVersion(),
       i.getVerb(),
       Some(i.getHttpCode()),
-      i.getCorrelationId()
+      i.getCorrelationId(),
+      i.getResponseBody(),
+      i.getSourceIp(),
+      i.getTargetIp()
     )
   }
 
