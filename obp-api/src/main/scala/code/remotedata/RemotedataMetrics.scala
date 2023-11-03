@@ -16,12 +16,12 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
 
   val cc = RemotedataMetricsCaseClasses
 
-  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String) : Unit = getValueFromFuture(
-    (actor ? cc.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, httpCode, correlationId)).mapTo[Unit]
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String, responseBody: String, sourceIp: String, targetIp: String) : Unit = getValueFromFuture(
+    (actor ? cc.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, httpCode, correlationId, responseBody, sourceIp, targetIp)).mapTo[Unit]
   )
   
-  def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String) : Unit = getValueFromFuture(
-    (actor ? cc.saveMetricsArchive(primaryKey, userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, httpCode, correlationId)).mapTo[Unit]
+  def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String, responseBody: String, sourceIp: String, targetIp: String) : Unit = getValueFromFuture(
+    (actor ? cc.saveMetricsArchive(primaryKey, userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, httpCode, correlationId, responseBody, sourceIp, targetIp)).mapTo[Unit]
   )
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] =

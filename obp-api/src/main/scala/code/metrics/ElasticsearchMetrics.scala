@@ -13,13 +13,17 @@ object ElasticsearchMetrics extends APIMetrics {
 
   lazy val es = new elasticsearchMetrics
 
-  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String): Unit = {
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
+                          responseBody: String, sourceIp: String, targetIp: String): Unit = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       //TODO ,need to be fixed now add more parameters
       es.indexMetric(userId, url, date, duration, userName, appName, developerEmail, correlationId)
     }
   }
-  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String): Unit = ???
+  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
+                                  responseBody: String,
+                                  sourceIp: String,
+                                  targetIp: String): Unit = ???
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: replace the following with valid ES query

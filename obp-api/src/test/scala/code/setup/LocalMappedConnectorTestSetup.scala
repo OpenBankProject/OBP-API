@@ -1,8 +1,7 @@
 package code.setup
 
-import java.util.Date
-
 import bootstrap.liftweb.ToSchemify
+import code.api.cache.Redis
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.entitlement.Entitlement
@@ -11,6 +10,7 @@ import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Box
@@ -18,9 +18,10 @@ import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
 import org.iban4j
 
+import java.util.Date
 import scala.util.Random
 
-trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermissions {
+trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermissions with MdcLoggable{
   //TODO: replace all these helpers with connector agnostic methods like createRandomBank
   // that call Connector.createBank etc.
   // (same in LocalRecordConnectorTestSetup)
@@ -177,5 +178,15 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+
+    // Flush all data from Redis
+    try {
+      Redis.jedis.connect()
+      Redis.jedis.flushDB()
+    } catch {
+      case e: Throwable =>
+        logger.warn("------------| Redis issue during flushing data |------------")
+        logger.warn(e)
+    }
   }
 }

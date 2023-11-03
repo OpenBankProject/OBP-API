@@ -57,7 +57,10 @@ trait APIMetrics {
                  implementedInVersion: String,
                  verb: String,
                  httpCode: Option[Int],
-                 correlationId: String): Unit
+                 correlationId: String,
+                 responseBody: String,
+                 sourceIp: String,
+                 targetIp: String): Unit
   
   def saveMetricsArchive(primaryKey: Long,
                          userId: String,
@@ -72,7 +75,11 @@ trait APIMetrics {
                          implementedInVersion: String,
                          verb: String,
                          httpCode: Option[Int],
-                         correlationId: String): Unit
+                         correlationId: String,
+                         responseBody: String,
+                         sourceIp: String,
+                         targetIp: String
+                        ): Unit
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
@@ -102,8 +109,14 @@ trait APIMetrics {
 }
 
 class RemotedataMetricsCaseClasses {
-  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String)
-  case class saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String)
+  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
+                        responseBody: String,
+                        sourceIp: String,
+                        targetIp: String)
+  case class saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
+                                responseBody: String,
+                                sourceIp: String,
+                                targetIp: String)
 //  case class getAllGroupedByUrl()
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
@@ -132,6 +145,9 @@ trait APIMetric {
   def getVerb() : String
   def getHttpCode() : Int
   def getCorrelationId(): String
+  def getResponseBody(): String
+  def getSourceIp(): String
+  def getTargetIp(): String
 
 }
 

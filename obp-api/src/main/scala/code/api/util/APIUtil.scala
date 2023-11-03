@@ -347,6 +347,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               cc.verb,
               cc.httpCode,
               cc.correlationId,
+              cc.httpBody.getOrElse(""),
+              cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse(""),
+              cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
             )
           }
         }
@@ -423,6 +426,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
       val url = ObpS.uriAndQueryString.getOrElse("")
       val correlationId = getCorrelationId()
+      val body: Box[String] = getRequestBody(S.request)
+      val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
 
       //execute saveMetric in future, as we do not need to know result of operation
       Future {
@@ -439,7 +444,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           implementedInVersion,
           verb,
           None,
-          correlationId
+          correlationId,
+          body.getOrElse(""),
+          reqHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse(""),
+          reqHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
         )
       }
 

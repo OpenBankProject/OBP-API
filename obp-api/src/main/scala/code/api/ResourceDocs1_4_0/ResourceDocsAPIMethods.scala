@@ -633,7 +633,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
-              Full(getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  Some(bankId), false)).map(successJsonResponse(_)).get
+              getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,  Some(bankId), false)
             }
           } yield {
             (Full(json), HttpCode.`200`(callContext))
