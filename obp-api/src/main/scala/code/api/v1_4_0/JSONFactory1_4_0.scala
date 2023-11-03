@@ -578,7 +578,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
         val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
         val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
 
-        ResourceDocJson(
+       val resourceDoc = ResourceDocJson(
           operation_id = resourceDocUpdatedTags.operationId,
           request_verb = resourceDocUpdatedTags.requestVerb,
           request_url = resourceDocUpdatedTags.requestUrl,
@@ -600,6 +600,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
           connector_methods = resourceDocUpdatedTags.connectorMethods,
           created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
         )
+
+        logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
+        resourceDoc
+        
       }
     }
   }
@@ -609,6 +613,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
+    logger.trace(s"createLocalisedResourceDocJsonCached key is ${resourceDocWithUserDefinedEndpointTags.operationId + resourceDocWithUserDefinedEndpointTags.operationId}")
     createLocalisedResourceDocJsonCached(
       resourceDocWithUserDefinedEndpointTags.operationId,
       locale: Option[String],
