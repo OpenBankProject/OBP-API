@@ -89,15 +89,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         // Each file should match a partial function name or it will be ignored.
         // The format of the file should be mark down.
         val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
-        logger.debug(s"getSpecialInstructions getting $filename")
+        logger.trace(s"getSpecialInstructions getting $filename")
         val source = LiftRules.loadResourceAsString(filename)
-        logger.debug(s"getSpecialInstructions source is $source")
+        logger.trace(s"getSpecialInstructions source is $source")
         source match {
           case Full(payload) =>
-            logger.debug(s"getSpecialInstructions payload is $payload")
+            logger.trace(s"getSpecialInstructions payload is $payload")
             Some(payload)
           case _ =>
-            logger.debug(s"getSpecialInstructions Could not find / load $filename")
+            logger.trace(s"getSpecialInstructions Could not find / load $filename")
             None
         }
       })
