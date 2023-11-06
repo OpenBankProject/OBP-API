@@ -581,15 +581,55 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
             case _ =>
               contentParam match {
-                case Some(DYNAMIC) =>
-                  val dynamicDocs: Box[JValue] = Full (getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam,None, isVersion4OrHigher))
+                case Some(DYNAMIC) =>{
+                  val cacheKey = ("getResourceDocsObpDynamicCached" + tags + partialFunctions+ locale+ contentParam+ isVersion4OrHigher).intern()
+                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+                  
+                  val dynamicDocs: Box[JValue] =
+                    if (cacheValueFromRedis != null) {
+                      Full(json.parse(cacheValueFromRedis))
+                    } else {
+                      val resourceDocJsonJValue = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam, None, isVersion4OrHigher)
+                      val jsonString = json.compactRender(resourceDocJsonJValue)
+                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Full(resourceDocJsonJValue)
+                    }
+                  
                   Future(dynamicDocs.map(successJsonResponse(_)))
-                case Some(STATIC) =>
-                  val staticDocs: Box[JValue] = Full(getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher))
-                  Future(staticDocs.map(successJsonResponse(_)))
-                case _ =>
-                  val docs: Box[JValue] = Full(getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher))
-                  Future(docs.map(successJsonResponse(_)))
+                }
+                  
+                case Some(STATIC) => {
+                  val cacheKey = ("getStaticResourceDocsObpCached" + tags + partialFunctions + locale + contentParam + isVersion4OrHigher).intern()
+                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+
+                  val dynamicDocs: Box[JValue] =
+                    if (cacheValueFromRedis != null) {
+                      Full(json.parse(cacheValueFromRedis))
+                    } else {
+                      val resourceDocJsonJValue = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
+                      val jsonString = json.compactRender(resourceDocJsonJValue)
+                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Full(resourceDocJsonJValue)
+                    }
+
+                  Future(dynamicDocs.map(successJsonResponse(_)))
+                }
+                case _ => {
+                  val cacheKey = ("getAllResourceDocsObpCached" + tags + partialFunctions + locale + contentParam + isVersion4OrHigher).intern()
+                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+
+                  val dynamicDocs: Box[JValue] =
+                    if (cacheValueFromRedis != null) {
+                      Full(json.parse(cacheValueFromRedis))
+                    } else {
+                      val resourceDocJsonJValue = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
+                      val jsonString = json.compactRender(resourceDocJsonJValue)
+                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Full(resourceDocJsonJValue)
+                    }
+
+                  Future(dynamicDocs.map(successJsonResponse(_)))
+                }
               }
           }
         } yield {
