@@ -22,7 +22,7 @@ import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
 import code.api.util.ErrorMessages.{BankNotFound, _}
 import code.api.util.ExampleValue._
-import code.api.util.Glossary.{getGlossaryItem,getGlossaryItemSimple}
+import code.api.util.Glossary.{getGlossaryItem, getGlossaryItemSimple}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.{isValidCurrencyISOCode => isValidCurrencyISOCodeNS, _}
 import code.api.util._
@@ -72,7 +72,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.{ObpS, SILENCE_IS_GOLDEN, booleanToFuture}
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
@@ -109,7 +109,7 @@ import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 import scala.math.BigDecimal
 import scala.xml.XML
 
-trait APIMethods400 {
+trait APIMethods400 extends MdcLoggable {
   self: RestHelper =>
 
   val Implementations4_0_0 = new Implementations400()
@@ -3798,6 +3798,7 @@ trait APIMethods400 {
     lazy val createUserInvitation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitation" ::  Nil JsonPost  json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
+          logger.debug(s"Hello from the endpoint {$createUserInvitation}")
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3823,18 +3824,26 @@ trait APIMethods400 {
               val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
               val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
               val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+              logger.debug(s"customText: ${customText}")
               val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
                 .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
                 .replace(WebUIPlaceholder.activateYourAccount, link)
+              logger.debug(s"customHtmlText: ${customHtmlText}")
+              logger.debug(s"Before send user invitation by email. Purpose: ${UserInvitationPurpose.DEVELOPER}")
               Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
+              logger.debug(s"After send user invitation by email. Purpose: ${UserInvitationPurpose.DEVELOPER}")
             } else {
               val subject = getWebUiPropsValue("webui_customer_user_invitation_email_subject", "Welcome to the API Playground")
               val from = getWebUiPropsValue("webui_customer_user_invitation_email_from", "do-not-reply@openbankproject.com")
               val customText = getWebUiPropsValue("webui_customer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+              logger.debug(s"customText: ${customText}")
               val customHtmlText = getWebUiPropsValue("webui_customer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
                 .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
                 .replace(WebUIPlaceholder.activateYourAccount, link)
+              logger.debug(s"customHtmlText: ${customHtmlText}")
+              logger.debug(s"Before send user invitation by email.")
               Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
+              logger.debug(s"After send user invitation by email.")
             }
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
