@@ -3798,6 +3798,7 @@ trait APIMethods400 extends MdcLoggable {
     lazy val createUserInvitation : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "user-invitation" ::  Nil JsonPost  json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
+          logger.debug(s"Hello from the endpoint {$createUserInvitation}")
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationJsonV400 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
@@ -3828,9 +3829,9 @@ trait APIMethods400 extends MdcLoggable {
                 .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
                 .replace(WebUIPlaceholder.activateYourAccount, link)
               logger.debug(s"customHtmlText: ${customHtmlText}")
-              logger.debug(s"Before send user invitation. Purpose: ${UserInvitationPurpose.DEVELOPER}")
+              logger.debug(s"Before send user invitation by email. Purpose: ${UserInvitationPurpose.DEVELOPER}")
               Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
-              logger.debug(s"After send user invitation. Purpose: ${UserInvitationPurpose.DEVELOPER}")
+              logger.debug(s"After send user invitation by email. Purpose: ${UserInvitationPurpose.DEVELOPER}")
             } else {
               val subject = getWebUiPropsValue("webui_customer_user_invitation_email_subject", "Welcome to the API Playground")
               val from = getWebUiPropsValue("webui_customer_user_invitation_email_from", "do-not-reply@openbankproject.com")
@@ -3840,9 +3841,9 @@ trait APIMethods400 extends MdcLoggable {
                 .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
                 .replace(WebUIPlaceholder.activateYourAccount, link)
               logger.debug(s"customHtmlText: ${customHtmlText}")
-              logger.debug(s"Before send user invitation.")
+              logger.debug(s"Before send user invitation by email.")
               Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
-              logger.debug(s"After send user invitation.")
+              logger.debug(s"After send user invitation by email.")
             }
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
