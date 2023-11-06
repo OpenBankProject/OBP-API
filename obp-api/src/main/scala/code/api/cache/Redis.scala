@@ -24,10 +24,10 @@ object Redis extends MdcLoggable {
 
   def isRedisAvailable() = {
     try {
-      val uuid = APIUtil.generateUUID()
+      val key = "OBP_Check_isRedisAvailable"
       jedis.connect()
-      jedis.set(uuid, "10")
-      jedis.exists(uuid) == true
+      jedis.set(key, "10")
+      jedis.exists(key) == true
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis.isRedisAvailable |------------")

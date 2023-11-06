@@ -1,5 +1,6 @@
 package code.api.cache
 
+import code.api.cache.Redis.jedis
 import code.api.util.RateLimitingUtil
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
@@ -84,4 +85,15 @@ object Caching extends MdcLoggable {
     }
   }
 
+  final val resourceDocCacheKeyPrefix = "rd_"
+
+
+  def getResourceDocCache(key: String) = {
+    jedis.get(resourceDocCacheKeyPrefix + key)
+  }
+  
+  def setResourceDocCache(key:String, value: String)={
+    jedis.set(resourceDocCacheKeyPrefix+key,value)
+  }
+  
 }
