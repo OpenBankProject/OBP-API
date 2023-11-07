@@ -683,7 +683,7 @@ class Boot extends MdcLoggable {
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
-    logger.info("Note: Http request is in one database transaction.")
+    logger.info("Note: We added S.addAround(DB.buildLoanWrapper) so each HTTP request uses ONE database transaction.")
 
     try {
       val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)

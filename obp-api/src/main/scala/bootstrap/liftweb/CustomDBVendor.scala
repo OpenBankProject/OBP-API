@@ -49,8 +49,11 @@ class CustomDBVendor(driverName: String,
     if(maxLifetime.isDefined){
       config.setMaxLifetime(maxLifetime.head)
     }
-    //Liftweb DB.scala will set all the new connections to false, so here we set default to false
-    config.setAutoCommit(true)
+    //Liftweb DB.scala will set all the new connections to false, so here we set default to false - Hmm, check this comment!
+    val autoCommitValue: Boolean = true
+    config.setAutoCommit(autoCommitValue)
+    logger.info(s"We set HikariDatasource config.setAutoCommit=$autoCommitValue")
+    logger.info(s"Note: HirakiCP will reset any connection to autoCommit=$autoCommitValue when it returns it to the pool if it has been otherwise set in code. (This can cause further debug messages and some performance impact.)")
 
     (dbUser, dbPassword) match {
       case (Full(user), Full(pwd)) =>
