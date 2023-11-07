@@ -1,7 +1,7 @@
 package code.api.cache
 
+import code.api.Constant._
 import code.api.cache.Redis.jedis
-import code.api.util.RateLimitingUtil
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
 
@@ -85,41 +85,36 @@ object Caching extends MdcLoggable {
     }
   }
 
-  final val LocalisedResourceDocPrefix = "rd_local_"
-  final val DynamicResourceDocCacheKeyPrefix = "rd_dynamic_"
-  final val StaticResourceDocCacheKeyPrefix = "rd_static_"
-  final val AllResourceDocCacheKeyPrefix = "rd_all_"
-
   def getLocalisedResourceDocCache(key: String) = {
-    jedis.get(LocalisedResourceDocPrefix + key)
+    jedis.get(LOCALISED_RESOURCE_DOC_PREFIX + key)
   }
   
   def setLocalisedResourceDocCache(key:String, value: String)={
-    jedis.set(LocalisedResourceDocPrefix+key,value)
+    jedis.set(LOCALISED_RESOURCE_DOC_PREFIX+key,value)
   }
 
   def getDynamicResourceDocCache(key: String) = {
-    jedis.get(DynamicResourceDocCacheKeyPrefix + key)
+    jedis.get(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
   }
   
   def setDynamicResourceDocCache(key:String, value: String)={
-    jedis.set(DynamicResourceDocCacheKeyPrefix+key,value)
+    jedis.set(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
   }
 
   def getStaticResourceDocCache(key: String) = {
-    jedis.get(StaticResourceDocCacheKeyPrefix + key)
+    jedis.get(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
   }
   
   def setStaticResourceDocCache(key:String, value: String)={
-    jedis.set(StaticResourceDocCacheKeyPrefix+key,value)
+    jedis.set(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
   }
 
   def getAllResourceDocCache(key: String) = {
-    jedis.get(AllResourceDocCacheKeyPrefix + key)
+    jedis.get(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
   }
   
   def setAllResourceDocCache(key:String, value: String)={
-    jedis.set(AllResourceDocCacheKeyPrefix+key,value)
+    jedis.set(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
   }
   
 }

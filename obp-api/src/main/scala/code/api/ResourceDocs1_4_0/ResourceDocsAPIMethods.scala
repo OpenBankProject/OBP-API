@@ -606,7 +606,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     } else {
                       val resourceDocJsonJValue = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
-                      Caching.setLocalisedResourceDocCache(cacheKey, jsonString)
+                      Caching.setStaticResourceDocCache(cacheKey, jsonString)
                       Full(resourceDocJsonJValue)
                     }
 

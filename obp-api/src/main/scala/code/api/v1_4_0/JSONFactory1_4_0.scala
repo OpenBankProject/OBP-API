@@ -598,7 +598,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
-    val cacheKey = ("createLocalisedResourceDocJson"+ resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
+    val cacheKey = (resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
     val cacheValueFromRedis = Caching.getLocalisedResourceDocCache(cacheKey)
     
     if(cacheValueFromRedis != null){
