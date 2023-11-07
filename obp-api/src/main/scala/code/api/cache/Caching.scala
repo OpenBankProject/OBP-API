@@ -85,15 +85,41 @@ object Caching extends MdcLoggable {
     }
   }
 
-  final val resourceDocCacheKeyPrefix = "rd_"
+  final val LocalisedResourceDocPrefix = "rd_local_"
+  final val DynamicResourceDocCacheKeyPrefix = "rd_dynamic_"
+  final val StaticResourceDocCacheKeyPrefix = "rd_static_"
+  final val AllResourceDocCacheKeyPrefix = "rd_all_"
 
-
-  def getResourceDocCache(key: String) = {
-    jedis.get(resourceDocCacheKeyPrefix + key)
+  def getLocalisedResourceDocCache(key: String) = {
+    jedis.get(LocalisedResourceDocPrefix + key)
   }
   
-  def setResourceDocCache(key:String, value: String)={
-    jedis.set(resourceDocCacheKeyPrefix+key,value)
+  def setLocalisedResourceDocCache(key:String, value: String)={
+    jedis.set(LocalisedResourceDocPrefix+key,value)
+  }
+
+  def getDynamicResourceDocCache(key: String) = {
+    jedis.get(DynamicResourceDocCacheKeyPrefix + key)
+  }
+  
+  def setDynamicResourceDocCache(key:String, value: String)={
+    jedis.set(DynamicResourceDocCacheKeyPrefix+key,value)
+  }
+
+  def getStaticResourceDocCache(key: String) = {
+    jedis.get(StaticResourceDocCacheKeyPrefix + key)
+  }
+  
+  def setStaticResourceDocCache(key:String, value: String)={
+    jedis.set(StaticResourceDocCacheKeyPrefix+key,value)
+  }
+
+  def getAllResourceDocCache(key: String) = {
+    jedis.get(AllResourceDocCacheKeyPrefix + key)
+  }
+  
+  def setAllResourceDocCache(key:String, value: String)={
+    jedis.set(AllResourceDocCacheKeyPrefix+key,value)
   }
   
 }

@@ -599,7 +599,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
     val cacheKey = ("createLocalisedResourceDocJson"+ resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
-    val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+    val cacheValueFromRedis = Caching.getLocalisedResourceDocCache(cacheKey)
     
     if(cacheValueFromRedis != null){
       json.parse(cacheValueFromRedis).extract[ResourceDocJson] 
@@ -614,7 +614,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
         jsonResponseBodyFieldsI18n: String
       )
       val jsonString = json.compactRender(Extraction.decompose(resourceDocJson))
-      Caching.setResourceDocCache(cacheKey,jsonString)
+      Caching.setLocalisedResourceDocCache(cacheKey,jsonString)
       
       resourceDocJson
     }

@@ -572,6 +572,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
+          cacheKey = (locale.toString + tags + partialFunctions+ contentParam+ isVersion4OrHigher).intern()
           json <- locale match {
             case _ if (apiCollectionIdParam.isDefined) =>
               val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
@@ -582,16 +583,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case _ =>
               contentParam match {
                 case Some(DYNAMIC) =>{
-                  val cacheKey = ("getResourceDocsObpDynamicCached" + tags + partialFunctions+ locale+ contentParam+ isVersion4OrHigher).intern()
-                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
-                  
+                  val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
                   val dynamicDocs: Box[JValue] =
                     if (cacheValueFromRedis != null) {
                       Full(json.parse(cacheValueFromRedis))
                     } else {
                       val resourceDocJsonJValue = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, contentParam, None, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
-                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Caching.setDynamicResourceDocCache(cacheKey, jsonString)
                       Full(resourceDocJsonJValue)
                     }
                   
@@ -599,8 +598,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 }
                   
                 case Some(STATIC) => {
-                  val cacheKey = ("getStaticResourceDocsObpCached" + tags + partialFunctions + locale + contentParam + isVersion4OrHigher).intern()
-                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+                  val cacheValueFromRedis = Caching.getStaticResourceDocCache(cacheKey)
 
                   val dynamicDocs: Box[JValue] =
                     if (cacheValueFromRedis != null) {
@@ -608,15 +606,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     } else {
                       val resourceDocJsonJValue = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
-                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Caching.setLocalisedResourceDocCache(cacheKey, jsonString)
                       Full(resourceDocJsonJValue)
                     }
 
                   Future(dynamicDocs.map(successJsonResponse(_)))
                 }
                 case _ => {
-                  val cacheKey = ("getAllResourceDocsObpCached" + tags + partialFunctions + locale + contentParam + isVersion4OrHigher).intern()
-                  val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+                  val cacheValueFromRedis = Caching.getAllResourceDocCache(cacheKey)
 
                   val dynamicDocs: Box[JValue] =
                     if (cacheValueFromRedis != null) {
@@ -624,7 +621,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     } else {
                       val resourceDocJsonJValue = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
-                      Caching.setResourceDocCache(cacheKey, jsonString)
+                      Caching.setAllResourceDocCache(cacheKey, jsonString)
                       Full(resourceDocJsonJValue)
                     }
 
