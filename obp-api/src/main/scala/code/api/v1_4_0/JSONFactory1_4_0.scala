@@ -411,7 +411,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case Some(ConnectorField(value, _)) => value
       case _ =>
         //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
-        logger.debug(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
+        logger.trace(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
         parameter
     }
   }
