@@ -50,7 +50,7 @@ class CustomDBVendor(driverName: String,
       config.setMaxLifetime(maxLifetime.head)
     }
     //Liftweb DB.scala will set all the new connections to false, so here we set default to false
-    config.setAutoCommit(true)
+    config.setAutoCommit(false)
 
     (dbUser, dbPassword) match {
       case (Full(user), Full(pwd)) =>
