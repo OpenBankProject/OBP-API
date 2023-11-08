@@ -37,8 +37,10 @@ object JsonSerializers {
     }
   }
 
+  val BoxSerializer: JsonBoxSerializer = new JsonBoxSerializer
+
   val serializers: List[Serializer[_]] =
-      AbstractTypeDeserializer :: SimpleEnumDeserializer :: ScalaProductDeserializer ::
+    BoxSerializer :: AbstractTypeDeserializer :: SimpleEnumDeserializer :: ScalaProductDeserializer ::
       BigDecimalSerializer :: StringDeserializer ::
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
