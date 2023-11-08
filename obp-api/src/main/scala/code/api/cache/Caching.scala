@@ -16,10 +16,6 @@ object Caching extends MdcLoggable {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) if !Redis.isRedisAvailable() => // Redis is NOT available. Warn via log file and forward the call
-        logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        logger.warn("! Redis is NOT available at this instance !")
-        logger.warn("! Caching is skipped                      !")
-        logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         f
       case (Some(_), _) => // Caching a call
         Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
@@ -34,10 +30,6 @@ object Caching extends MdcLoggable {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) if !Redis.isRedisAvailable() => // Redis is NOT available. Warn via log file and forward the call
-        logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        logger.warn("! Redis is NOT available at this instance !")
-        logger.warn("! Caching is skipped                      !")
-        logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         f
       case (Some(_), _) => // Caching a call
         Redis.memoizeWithRedis(cacheKey)(ttl)(f)
