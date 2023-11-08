@@ -2,9 +2,8 @@ package code.api.v1_4_0
 
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
-
 import java.util.Date
-import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc, createLocalisedResourceDocJsonTTL}
+import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}
@@ -411,7 +410,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case Some(ConnectorField(value, _)) => value
       case _ =>
         //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
-        logger.debug(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
+        logger.trace(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
         parameter
     }
   }
@@ -598,8 +597,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
-    val cacheKey = ("createLocalisedResourceDocJson"+ resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
-    val cacheValueFromRedis = Caching.getResourceDocCache(cacheKey)
+    val cacheKey = (resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
+    val cacheValueFromRedis = Caching.getLocalisedResourceDocCache(cacheKey)
     
     if(cacheValueFromRedis != null){
       json.parse(cacheValueFromRedis).extract[ResourceDocJson] 
@@ -614,7 +613,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
         jsonResponseBodyFieldsI18n: String
       )
       val jsonString = json.compactRender(Extraction.decompose(resourceDocJson))
-      Caching.setResourceDocCache(cacheKey,jsonString)
+      Caching.setLocalisedResourceDocCache(cacheKey,jsonString)
       
       resourceDocJson
     }

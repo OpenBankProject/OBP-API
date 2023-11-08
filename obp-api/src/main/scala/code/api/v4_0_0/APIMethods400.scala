@@ -11829,8 +11829,6 @@ trait APIMethods400 extends MdcLoggable {
       "Create System Level Endpoint Tag",
       s"""Create System Level Endpoint Tag
          |
-         |Note: Resource Docs are cached, TTL is ${createLocalisedResourceDocJsonTTL}
-         |
          |""".stripMargin,
       endpointTagJson400,
       bankLevelEndpointTagResponseJson400,
@@ -11872,8 +11870,6 @@ trait APIMethods400 extends MdcLoggable {
       "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
       "Update System Level Endpoint Tag",
       s"""Update System Level Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.
-         |
-         |Note: Resource Docs are cached, TTL is ${createLocalisedResourceDocJsonTTL}
          |
          |""".stripMargin,
       endpointTagJson400,
@@ -11981,8 +11977,6 @@ trait APIMethods400 extends MdcLoggable {
       "Create Bank Level Endpoint Tag",
       s"""Create Bank Level Endpoint Tag
          |
-         |Note: Resource Docs are cached, TTL is ${createLocalisedResourceDocJsonTTL}
-         |
          |
          |""".stripMargin,
       endpointTagJson400,
@@ -12027,8 +12021,6 @@ trait APIMethods400 extends MdcLoggable {
       "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
       "Update Bank Level Endpoint Tag",
       s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.
-         |
-         |Note: Resource Docs are cached, TTL is ${createLocalisedResourceDocJsonTTL}
          |
          |""".stripMargin,
       endpointTagJson400,

@@ -87,6 +87,13 @@ object Constant extends MdcLoggable {
 
   final val PARAM_LOCALE = "locale"
   final val PARAM_TIMESTAMP = "_timestamp_"
+
+
+  final val LOCALISED_RESOURCE_DOC_PREFIX = "rd_localised_"
+  final val DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_dynamic_"
+  final val STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_static_"
+  final val ALL_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_all_"
+  final val STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX = "swagger_static_"
 }
 
 
