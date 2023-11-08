@@ -26,7 +26,8 @@ import scala.concurrent.duration._
 // They are relevant somehow, but they are different data for now. Both data can be get by the following `MapperCounterparties` object. 
 object MapperCounterparties extends Counterparties with MdcLoggable {
 
-  val MetadataTTL = getSecondsCache("getOrCreateMetadata")
+  // TODO Rewrite caching function
+  val MetadataTTL = 0 // getSecondsCache("getOrCreateMetadata")
   
   override def getOrCreateMetadata(bankId: BankId, accountId: AccountId, counterpartyId: String, counterpartyName:String): Box[CounterpartyMetadata] = {
     /**
