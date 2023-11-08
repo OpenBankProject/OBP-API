@@ -4,7 +4,7 @@ import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
 
 import java.util.Date
-import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc, createLocalisedResourceDocJsonTTL}
+import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}

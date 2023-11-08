@@ -116,5 +116,13 @@ object Caching extends MdcLoggable {
   def setAllResourceDocCache(key:String, value: String)={
     jedis.set(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
   }
+
+  def getStaticSwaggerDocCache(key: String) = {
+    jedis.get(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key)
+  }
+  
+  def setStaticSwaggerDocCache(key:String, value: String)={
+    jedis.set(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,value)
+  }
   
 }
