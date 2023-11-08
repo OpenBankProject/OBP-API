@@ -22,14 +22,15 @@ object Redis extends MdcLoggable {
 
   def isRedisAvailable() = {
     try {
-      val uuid = APIUtil.generateUUID()
-      jedis.connect()
-      jedis.set(uuid, "10")
-      jedis.exists(uuid) == true
+      val status = jedis.isConnected
+      if (!status) {
+        logger.warn("------------| Redis is not connected|------------")
+      }
+      status
     } catch {
       case e: Throwable =>
-        logger.warn("------------| Redis.isRedisAvailable |------------")
-        logger.warn(e)
+        logger.error("------------| Redis throw exception|------------")
+        logger.error(e)
         false
     }
   }
@@ -54,7 +55,7 @@ object Redis extends MdcLoggable {
       tryDecode match {
         case Success(v) => v.asInstanceOf[T]
         case Failure(e) =>
-          println(e)
+          logger.error(e)
           "NONE".asInstanceOf[T]
       }
     }

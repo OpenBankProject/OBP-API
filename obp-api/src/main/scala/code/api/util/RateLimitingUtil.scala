@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.api.APIFailureNewStyle
+import code.api.cache.Redis.{isRedisAvailable, jedis}
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.TooManyRequests
 import code.api.util.RateLimitingJson.CallLimit
@@ -70,27 +71,8 @@ object RateLimitingJson {
 
 object RateLimitingUtil extends MdcLoggable {
   import code.api.util.RateLimitingPeriod._
-
-  val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
-  val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
   
   def useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
-
-  lazy val jedis = new Jedis(url, port)
-
-  def isRedisAvailable() = {
-    try {
-      val uuid = APIUtil.generateUUID()
-      jedis.connect()
-      jedis.set(uuid, "10")
-      jedis.exists(uuid) == true
-    } catch {
-      case e : Throwable =>
-        logger.warn("------------| RateLimitUtil.isRedisAvailable |------------")
-        logger.warn(e)
-        false
-    }
-  }
 
   private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + RateLimitingPeriod.toString(period)
 

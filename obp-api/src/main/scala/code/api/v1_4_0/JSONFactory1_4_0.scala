@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
 import java.util.Date
-import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc, createLocalisedResourceDocJsonTTL}
+import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}
@@ -17,13 +17,15 @@ import com.openbankproject.commons.util.{EnumValue, JsonUtils, OBPEnumeration, R
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.{Formats, JDouble, JInt, JString}
+import net.liftweb.json.{Extraction, Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf.nameOf
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import org.apache.commons.lang3.StringUtils
 import scalacache.memoization.cacheKeyExclude
+
 import java.util.regex.Pattern
 import java.lang.reflect.Field
 import java.util.UUID.randomUUID
@@ -408,7 +410,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case Some(ConnectorField(value, _)) => value
       case _ =>
         //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
-        logger.debug(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
+        logger.trace(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
         parameter
     }
   }
@@ -517,35 +519,19 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
     jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
+  
   //cache key will only contain "operationId + locale"
+  
   def createLocalisedResourceDocJsonCached(
     operationId: String, // this will be in the cacheKey
     locale: Option[String],// this will be in the cacheKey
-    @CacheKeyOmit resourceDocUpdatedTags: ResourceDoc,
-    @CacheKeyOmit isVersion4OrHigher:Boolean,
-    @CacheKeyOmit urlParametersI18n:String ,
-    @CacheKeyOmit jsonRequestBodyFieldsI18n:String,
-    @CacheKeyOmit jsonResponseBodyFieldsI18n:String
+    resourceDocUpdatedTags: ResourceDoc,
+    isVersion4OrHigher:Boolean,
+    urlParametersI18n:String ,
+    jsonRequestBodyFieldsI18n:String,
+    jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
-    /**
-     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-     * is just a temporary value field with UUID values in order to prevent any ambiguity.
-     * The real value will be assigned by Macro during compile time at this line of a code:
-     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-     */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(createLocalisedResourceDocJsonTTL second) {
-        // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
-        // But we don't want to have to escape underscores (\_) in our documentation
-        // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-        // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-
-        //Here area some endpoints, which should not be added the description:
-        // 1st: Dynamic entity endpoint,
-        // 2rd: Dynamic endpoint endpoints,
-        // 3rd: all the user created endpoints,
-        val fieldsDescription =
+      val fieldsDescription =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
           || resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
           || resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
@@ -603,26 +589,34 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
         logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
         resourceDoc
-        
-      }
     }
-  }
+  
   
   def createLocalisedResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
     // We MUST recompute all resource doc values due to translation via Web UI props --> now need to wait $createLocalisedResourceDocJsonTTL seconds
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
-    logger.trace(s"createLocalisedResourceDocJsonCached key is ${resourceDocWithUserDefinedEndpointTags.operationId + resourceDocWithUserDefinedEndpointTags.operationId}")
-    createLocalisedResourceDocJsonCached(
-      resourceDocWithUserDefinedEndpointTags.operationId,
-      locale: Option[String],
-      resourceDocWithUserDefinedEndpointTags,
-      isVersion4OrHigher: Boolean,
-      urlParametersI18n: String,
-      jsonRequestBodyFieldsI18n: String,
-      jsonResponseBodyFieldsI18n: String
-    )
+    val cacheKey = (resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
+    val cacheValueFromRedis = Caching.getLocalisedResourceDocCache(cacheKey)
+    
+    if(cacheValueFromRedis != null){
+      json.parse(cacheValueFromRedis).extract[ResourceDocJson] 
+    }else{
+      val resourceDocJson = createLocalisedResourceDocJsonCached(
+        resourceDocWithUserDefinedEndpointTags.operationId,
+        locale: Option[String],
+        resourceDocWithUserDefinedEndpointTags,
+        isVersion4OrHigher: Boolean,
+        urlParametersI18n: String,
+        jsonRequestBodyFieldsI18n: String,
+        jsonResponseBodyFieldsI18n: String
+      )
+      val jsonString = json.compactRender(Extraction.decompose(resourceDocJson))
+      Caching.setLocalisedResourceDocCache(cacheKey,jsonString)
+      
+      resourceDocJson
+    }
     
   }
 

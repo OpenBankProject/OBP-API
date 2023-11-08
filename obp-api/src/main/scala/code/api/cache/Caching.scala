@@ -1,6 +1,7 @@
 package code.api.cache
 
-import code.api.util.RateLimitingUtil
+import code.api.Constant._
+import code.api.cache.Redis.jedis
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
 
@@ -84,4 +85,74 @@ object Caching extends MdcLoggable {
     }
   }
 
+  def getLocalisedResourceDocCache(key: String) = {
+    if(Redis.isRedisAvailable())
+      jedis.get(LOCALISED_RESOURCE_DOC_PREFIX + key)
+    else 
+      null
+  }
+  
+  def setLocalisedResourceDocCache(key:String, value: String)={
+    if (Redis.isRedisAvailable())
+      jedis.set(LOCALISED_RESOURCE_DOC_PREFIX+key,value)
+    else
+      null
+  }
+
+  def getDynamicResourceDocCache(key: String) = {
+    if (Redis.isRedisAvailable())
+      jedis.get(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
+    else
+      null
+  }
+  
+  def setDynamicResourceDocCache(key:String, value: String)={
+    if (Redis.isRedisAvailable())
+      jedis.set(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
+    else
+      null
+  }
+
+  def getStaticResourceDocCache(key: String) = {
+    if (Redis.isRedisAvailable())
+      jedis.get(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
+    else
+      null
+  }
+  
+  def setStaticResourceDocCache(key:String, value: String)={
+    if (Redis.isRedisAvailable())
+      jedis.set(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
+    else
+      null
+  }
+
+  def getAllResourceDocCache(key: String) = {
+    if (Redis.isRedisAvailable())
+      jedis.get(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
+    else
+      null
+  }
+  
+  def setAllResourceDocCache(key:String, value: String)={
+    if (Redis.isRedisAvailable())
+      jedis.set(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,value)
+    else
+      null
+  }
+
+  def getStaticSwaggerDocCache(key: String) = {
+    if (Redis.isRedisAvailable())
+      jedis.get(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key)
+    else
+      null
+  }
+  
+  def setStaticSwaggerDocCache(key:String, value: String)={
+    if (Redis.isRedisAvailable())
+      jedis.set(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,value)
+    else
+      null
+  }
+  
 }
