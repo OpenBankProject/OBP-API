@@ -22,14 +22,15 @@ object Redis extends MdcLoggable {
 
   def isRedisAvailable() = {
     try {
-      val key = "OBP_Check_isRedisAvailable"
-      jedis.connect()
-      jedis.set(key, "10")
-      jedis.exists(key) == true
+      val status = jedis.isConnected
+      if (!status) {
+        logger.warn("------------| Redis is not connected|------------")
+      }
+      status
     } catch {
       case e: Throwable =>
-        logger.warn("------------| Redis.isRedisAvailable |------------")
-        logger.warn(e)
+        logger.error("------------| Redis throw exception|------------")
+        logger.error(e)
         false
     }
   }

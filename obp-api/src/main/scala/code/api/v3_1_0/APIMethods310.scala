@@ -2,12 +2,13 @@ package code.api.v3_1_0
 
 import code.api.Constant
 import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
+import code.api.cache.Redis
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -1242,7 +1243,7 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             rateLimiting <- NewStyle.function.tryons("", 400, callContext) {
-              val isRedisAvailable = RateLimitingUtil.isRedisAvailable()
+              val isRedisAvailable = Redis.isRedisAvailable()
               val isActive = if (RateLimitingUtil.useConsumerLimits && isRedisAvailable) true else false
               RateLimiting(RateLimitingUtil.useConsumerLimits, "REDIS", isRedisAvailable, isActive)
             }
