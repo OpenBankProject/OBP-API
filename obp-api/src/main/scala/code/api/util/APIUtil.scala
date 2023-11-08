@@ -4872,6 +4872,4 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
   }
 
-    val createLocalisedResourceDocJsonTTL : Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
-  
 }
