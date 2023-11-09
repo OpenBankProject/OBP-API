@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.Constant.PARAM_LOCALE
+import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, PARAM_LOCALE}
 import java.util.UUID.randomUUID
 
 import code.api.OBPRestHelper
@@ -402,6 +402,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          |See the Resource Doc endpoint for more information.
          |
+         |Note: Dynamic Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |      Static Resource Docs are cached, TTL is ${GET_STATIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |
          |Following are more examples:
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
@@ -674,6 +678,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          |See the Resource Doc endpoint for more information.
          |
+         | Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         | 
          |Following are more examples:
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank

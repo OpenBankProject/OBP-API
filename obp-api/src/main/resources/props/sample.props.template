@@ -91,6 +91,12 @@ authTypeValidation.cache.ttl.seconds=36
 ## no 0 value will cause new ConnectorMethod will works after that seconds
 connectorMethod.cache.ttl.seconds=40
 
+## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
+## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
+## So if you want the new endpoints shown timely, set this value to a small number.
+dynamicResourceDocsObp.cache.ttl.seconds=3600
+staticResourceDocsObp.cache.ttl.seconds=3600
+createLocalisedResourceDocJson.cache.ttl.seconds=3600
 
 ## This can change the behavior of  `Get Resource Docs`/`Get API Glossary`. If we set it to `true`, OBP will check the authentication and CanReadResourceDoc/CanReadGlossary Role
 # the default value is false, so the `Get Resource Docs`/`Get API Glossary` is anonymous as default. 

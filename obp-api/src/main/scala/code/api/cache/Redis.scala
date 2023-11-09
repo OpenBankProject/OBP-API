@@ -3,7 +3,7 @@ package code.api.cache
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import redis.clients.jedis.Jedis
+import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
 import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
 import scalacache.{Flags, ScalaCache}
 import scalacache.redis.RedisCache
@@ -18,7 +18,21 @@ object Redis extends MdcLoggable {
   val url = APIUtil.getPropsValue("cache.redis.url", "127.0.0.1")
   val port = APIUtil.getPropsAsIntValue("cache.redis.port", 6379)
 
-  lazy val jedis = new Jedis(url, port)
+  final val poolConfig = new JedisPoolConfig()
+  poolConfig.setMaxTotal(128)
+  poolConfig.setMaxIdle(128)
+  poolConfig.setMinIdle(16)
+  poolConfig.setTestOnBorrow(true)
+  poolConfig.setTestOnReturn(true)
+  poolConfig.setTestWhileIdle(true)
+  poolConfig.setMinEvictableIdleTimeMillis(30*60*1000)
+  poolConfig.setTimeBetweenEvictionRunsMillis(30*60*1000)
+  poolConfig.setNumTestsPerEvictionRun(3)
+  poolConfig.setBlockWhenExhausted(true)
+
+  val jedisPool = new JedisPool(poolConfig,url, port, 4000)
+  
+  lazy val jedis = jedisPool.getResource()
 
   def isRedisAvailable() = {
     try {
