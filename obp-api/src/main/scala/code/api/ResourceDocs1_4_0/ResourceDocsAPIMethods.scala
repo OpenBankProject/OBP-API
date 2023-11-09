@@ -553,8 +553,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 case Some(DYNAMIC) =>{
                   val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
                   val dynamicDocs: Box[JValue] =
-                    if (cacheValueFromRedis != null) {
-                      Full(json.parse(cacheValueFromRedis))
+                    if (cacheValueFromRedis.isDefined) {
+                      Full(json.parse(cacheValueFromRedis.get))
                     } else {
                       val resourceDocJsonJValue = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
@@ -569,8 +569,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   val cacheValueFromRedis = Caching.getStaticResourceDocCache(cacheKey)
 
                   val dynamicDocs: Box[JValue] =
-                    if (cacheValueFromRedis != null) {
-                      Full(json.parse(cacheValueFromRedis))
+                    if (cacheValueFromRedis.isDefined) {
+                      Full(json.parse(cacheValueFromRedis.get))
                     } else {
                       val resourceDocJsonJValue = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
@@ -584,8 +584,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   val cacheValueFromRedis = Caching.getAllResourceDocCache(cacheKey)
 
                   val dynamicDocs: Box[JValue] =
-                    if (cacheValueFromRedis != null) {
-                      Full(json.parse(cacheValueFromRedis))
+                    if (cacheValueFromRedis.isDefined) {
+                      Full(json.parse(cacheValueFromRedis.get))
                     } else {
                       val resourceDocJsonJValue = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
                       val jsonString = json.compactRender(resourceDocJsonJValue)
@@ -641,8 +641,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
               val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
-              if (cacheValueFromRedis != null) {
-                json.parse(cacheValueFromRedis)
+              if (cacheValueFromRedis.isDefined) {
+                json.parse(cacheValueFromRedis.get)
               } else {
                 val resourceDocJsonJValue = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, false)
                 val jsonString = json.compactRender(resourceDocJsonJValue)
@@ -711,8 +711,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               val cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
   
               val dynamicDocs: JValue =
-                if (cacheValueFromRedis != null) {
-                  json.parse(cacheValueFromRedis)
+                if (cacheValueFromRedis.isDefined) {
+                  json.parse(cacheValueFromRedis.get)
                 } else {
                   val resourceDocJsonJValue = getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
                   val jsonString = json.compactRender(resourceDocJsonJValue)
