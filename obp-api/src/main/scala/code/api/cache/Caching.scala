@@ -5,7 +5,6 @@ import code.api.cache.Redis.jedis
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -87,7 +86,7 @@ object Caching extends MdcLoggable {
     APIUtil.stringOrNone(value)
   }
   
-  def setLocalisedResourceDocCache(key:String, value: String)= Future {
+  def setLocalisedResourceDocCache(key:String, value: String)=  {
     if (CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL!=0 && Redis.isRedisAvailable())
       jedis.setex(LOCALISED_RESOURCE_DOC_PREFIX+key, CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, value)
   }
@@ -100,7 +99,7 @@ object Caching extends MdcLoggable {
     APIUtil.stringOrNone(value)
   }
   
-  def setDynamicResourceDocCache(key:String, value: String)=Future {
+  def setDynamicResourceDocCache(key:String, value: String)= {
     if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
       jedis.setex(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
   }
@@ -113,7 +112,7 @@ object Caching extends MdcLoggable {
     APIUtil.stringOrNone(value)
   }
   
-  def setStaticResourceDocCache(key:String, value: String)=Future {
+  def setStaticResourceDocCache(key:String, value: String)= {
     if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
       jedis.setex(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
   }
@@ -126,7 +125,7 @@ object Caching extends MdcLoggable {
     APIUtil.stringOrNone(value)
   }
   
-  def setAllResourceDocCache(key:String, value: String)=Future {
+  def setAllResourceDocCache(key:String, value: String)= {
     if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
       jedis.setex(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
   }
@@ -139,7 +138,7 @@ object Caching extends MdcLoggable {
     APIUtil.stringOrNone(value)
   }
   
-  def setStaticSwaggerDocCache(key:String, value: String)=Future {
+  def setStaticSwaggerDocCache(key:String, value: String)= {
     if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
       jedis.setex(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
   }
