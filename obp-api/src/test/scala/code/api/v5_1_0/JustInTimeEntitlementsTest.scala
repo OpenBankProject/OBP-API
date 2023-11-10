@@ -96,7 +96,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       val response = getMetrics(user1, bankId)
       Then("We should get a 200")
       response.code should equal(200)
-      response.body.extract[MetricsJson]
+      response.body.extract[MetricsJsonV510]
     }
   }
 

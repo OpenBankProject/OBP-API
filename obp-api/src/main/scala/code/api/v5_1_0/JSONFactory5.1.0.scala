@@ -39,9 +39,10 @@ import code.users.UserAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import java.util.Date
 
+import java.util.Date
 import code.consent.MappedConsent
+import code.metrics.APIMetric
 import net.liftweb.common.Box
 import net.liftweb.json.parse
 
@@ -229,11 +230,29 @@ case class UserAttributesResponseJsonV510(
 case class CustomerIdJson(id: String)
 case class CustomersIdsJsonV510(customers: List[CustomerIdJson])
 
+case class MetricJsonV510(
+                       user_id: String,
+                       url: String,
+                       date: Date,
+                       user_name: String,
+                       app_name: String,
+                       developer_email: String,
+                       implemented_by_partial_function: String,
+                       implemented_in_version: String,
+                       consumer_id: String,
+                       verb: String,
+                       correlation_id: String,
+                       duration: Long,
+                       target_ip: String,
+                       source_ip: String
+                     )
+case class MetricsJsonV510(metrics: List[MetricJsonV510])
+
 object JSONFactory510 extends CustomJsonFormats {
 
   def createCustomersIds(customers :  List[Customer]): CustomersIdsJsonV510 =
     CustomersIdsJsonV510(customers.map(x => CustomerIdJson(x.customerId)))
-  
+
   def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 
   def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] ): AtmsJsonV510 = {
@@ -242,7 +261,7 @@ object JSONFactory510 extends CustomJsonFormats {
         createAtmJsonV510(atmAndAttributesTuple._1,atmAndAttributesTuple._2)
     ))
   }
-  
+
   def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttribute]): AtmJsonV510 = {
     AtmJsonV510(
       id = Some(atm.atmId.value),
@@ -397,7 +416,7 @@ object JSONFactory510 extends CustomJsonFormats {
       phone = Some(atmJsonV510.phone)
     )
   }
-  
+
   def getCustomViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
     val success = views.size == 0
     val debugInfo = if(success) None else Some(s"Incorrect custom views: ${views.map(_.viewId.value).mkString(",")}")
@@ -405,7 +424,7 @@ object JSONFactory510 extends CustomJsonFormats {
       success = success,
       debug_info = debugInfo
     )
-  }  
+  }
   def getSystemViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
     val success = views.size == 0
     val debugInfo = if(success) None else Some(s"Incorrect system views: ${views.map(_.viewId.value).mkString(",")}")
@@ -413,7 +432,7 @@ object JSONFactory510 extends CustomJsonFormats {
       success = success,
       debug_info = debugInfo
     )
-  }  
+  }
   def getAccountAccessUniqueIndexCheck(groupedRows: Map[String, List[AccountAccess]]): CheckSystemIntegrityJsonV510 = {
     val success = groupedRows.size == 0
     val debugInfo = if(success) None else Some(s"Incorrect system views: ${groupedRows.map(_._1).mkString(",")}")
@@ -421,7 +440,7 @@ object JSONFactory510 extends CustomJsonFormats {
       success = success,
       debug_info = debugInfo
     )
-  }  
+  }
   def getSensibleCurrenciesCheck(bankCurrencies: List[String], accountCurrencies: List[String]): CheckSystemIntegrityJsonV510 = {
     val incorrectCurrencies: List[String] = bankCurrencies.filterNot(c => accountCurrencies.contains(c))
     val success = incorrectCurrencies.size == 0
@@ -430,7 +449,7 @@ object JSONFactory510 extends CustomJsonFormats {
       success = success,
       debug_info = debugInfo
     )
-  }  
+  }
   def getOrphanedAccountsCheck(orphanedAccounts: List[String]): CheckSystemIntegrityJsonV510 = {
     val success = orphanedAccounts.size == 0
     val debugInfo = if(success) None else Some(s"Orphaned account's ids: ${orphanedAccounts.mkString(",")}")
@@ -439,7 +458,7 @@ object JSONFactory510 extends CustomJsonFormats {
       debug_info = debugInfo
     )
   }
-  
+
   def getConsentInfoJson(consent: MappedConsent): ConsentJsonV510 = {
     val jsonWebTokenAsJValue: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(parse(_).extract[ConsentJWT])
     ConsentJsonV510(
@@ -450,7 +469,7 @@ object JSONFactory510 extends CustomJsonFormats {
       jsonWebTokenAsJValue.map(_.entitlements).toOption
     )
   }
-  
+
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
     val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
     val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
@@ -494,7 +513,7 @@ object JSONFactory510 extends CustomJsonFormats {
       value = atmAttribute.value,
       is_active = atmAttribute.isActive
     )
-  
+
   def createAtmAttributesJson(atmAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
     AtmAttributesResponseJsonV510(atmAttributes.map(createAtmAttributeJson))
 
@@ -512,5 +531,30 @@ object JSONFactory510 extends CustomJsonFormats {
   def createUserAttributesJson(userAttribute: List[UserAttribute]): UserAttributesResponseJsonV510 = {
     UserAttributesResponseJsonV510(userAttribute.map(createUserAttributeJson))
   }
+
+  def createMetricJson(metric: APIMetric): MetricJsonV510 = {
+    MetricJsonV510(
+      user_id = metric.getUserId(),
+      user_name = metric.getUserName(),
+      developer_email = metric.getDeveloperEmail(),
+      app_name = metric.getAppName(),
+      url = metric.getUrl(),
+      date = metric.getDate(),
+      consumer_id = metric.getConsumerId(),
+      verb = metric.getVerb(),
+      implemented_in_version = metric.getImplementedInVersion(),
+      implemented_by_partial_function = metric.getImplementedByPartialFunction(),
+      correlation_id = metric.getCorrelationId(),
+      duration = metric.getDuration(),
+      target_ip = metric.getSourceIp(),
+      source_ip = metric.getTargetIp()
+    )
+  }
+
+  def createMetricsJson(metrics: List[APIMetric]): MetricsJsonV510 = {
+    MetricsJsonV510(metrics.map(createMetricJson))
+  }
+
+
 }
 
