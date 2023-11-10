@@ -181,8 +181,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     // Flush all data from Redis
     try {
-      Redis.jedis.connect()
-      Redis.jedis.flushDB()
+      Redis.jedisConnection.connect()
+      Redis.jedisConnection.flushDB()
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis issue during flushing data |------------")

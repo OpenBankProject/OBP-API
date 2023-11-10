@@ -1,7 +1,7 @@
 package code.api.cache
 
 import code.api.Constant._
-import code.api.cache.Redis.jedis
+import code.api.cache.Redis.jedisConnection
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
@@ -80,7 +80,7 @@ object Caching extends MdcLoggable {
 
   def getLocalisedResourceDocCache(key: String) = {
     val value = if(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL!=0 && Redis.isRedisAvailable())
-      jedis.get(LOCALISED_RESOURCE_DOC_PREFIX + key) // if the key is not existing, jedis will return null
+      jedisConnection.get(LOCALISED_RESOURCE_DOC_PREFIX + key) // if the key is not existing, jedis will return null
     else 
       null
     APIUtil.stringOrNone(value)
@@ -88,12 +88,12 @@ object Caching extends MdcLoggable {
   
   def setLocalisedResourceDocCache(key:String, value: String)=  {
     if (CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL!=0 && Redis.isRedisAvailable())
-      jedis.setex(LOCALISED_RESOURCE_DOC_PREFIX+key, CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, value)
+      jedisConnection.setex(LOCALISED_RESOURCE_DOC_PREFIX+key, CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, value)
   }
 
   def getDynamicResourceDocCache(key: String) = {
     val value = if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.get(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
+      jedisConnection.get(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
     else
       null
     APIUtil.stringOrNone(value)
@@ -101,12 +101,12 @@ object Caching extends MdcLoggable {
   
   def setDynamicResourceDocCache(key:String, value: String)= {
     if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.setex(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
+      jedisConnection.setex(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
   }
 
   def getStaticResourceDocCache(key: String) = {
     val value = if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.get(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
+      jedisConnection.get(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
     else
       null
     APIUtil.stringOrNone(value)
@@ -114,12 +114,12 @@ object Caching extends MdcLoggable {
   
   def setStaticResourceDocCache(key:String, value: String)= {
     if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.setex(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
+      jedisConnection.setex(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
   }
 
   def getAllResourceDocCache(key: String) = {
     val value = if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.get(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key) // null
+      jedisConnection.get(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key) // null
     else
       null
     APIUtil.stringOrNone(value)
@@ -127,12 +127,12 @@ object Caching extends MdcLoggable {
   
   def setAllResourceDocCache(key:String, value: String)= {
     if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.setex(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
+      jedisConnection.setex(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
   }
 
   def getStaticSwaggerDocCache(key: String) = {
     val value = if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.get(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key)
+      jedisConnection.get(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key)
     else
       null
     APIUtil.stringOrNone(value)
@@ -140,7 +140,7 @@ object Caching extends MdcLoggable {
   
   def setStaticSwaggerDocCache(key:String, value: String)= {
     if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedis.setex(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
+      jedisConnection.setex(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
   }
   
 }

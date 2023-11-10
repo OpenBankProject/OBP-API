@@ -32,12 +32,29 @@ object Redis extends MdcLoggable {
 
   def jedisPoolDestroy: Unit = jedisPool.destroy()
   val jedisPool = new JedisPool(poolConfig,url, port, 4000)
-  
-  lazy val jedis = jedisPool.getResource()
+  def jedisConnection = jedisPool.getResource()
+
+  def use(method:String, key:String, ttl:Int, value:String) : String = {
+      var jedisConnection1 = None:Option[Jedis]
+      try {
+        jedisConnection1 = Some(jedisPool.getResource())
+        if (method=="Get")
+          jedisConnection1.head.get(key)
+        else
+          jedisConnection1.head.setex(key, ttl, value)
+      } catch {
+        case e: Throwable => 
+          throw new RuntimeException(e)
+      } finally {
+        if(jedisConnection1.isDefined) 
+          jedisConnection1.map(_.close())
+      }
+    }
+
 
   def isRedisAvailable() = {
     try {
-      val status = jedis.isConnected
+      val status = jedisConnection.isConnected
       if (!status) {
         logger.warn("------------| Redis is not connected|------------")
       }
@@ -47,6 +64,8 @@ object Redis extends MdcLoggable {
         logger.error("------------| Redis throw exception|------------")
         logger.error(e)
         false
+    }finally {
+      jedisConnection.close()
     }
   }
 
