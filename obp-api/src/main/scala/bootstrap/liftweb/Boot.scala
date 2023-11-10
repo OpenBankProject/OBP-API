@@ -44,6 +44,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
+import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue, gitCommit}
 import code.api.util._
 import code.api.util.migration.Migration
@@ -364,7 +365,7 @@ class Boot extends MdcLoggable {
 //    }
 
     LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
-    
+    LiftRules.unloadHooks.append(Redis.jedisPoolDestroy _)
 //    LiftRules.statelessDispatch.prepend {
 //      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
 //        Props.mode match {

@@ -93,7 +93,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
   feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
 
     scenario("We will try to set Rate Limiting per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0")
       val response400 = setRateLimitingAnonymousAccess(callLimitJsonInitial)
       Then("We should get a 401")
@@ -102,7 +102,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will try to set Rate Limiting per minute without a proper Role " + ApiRole.canSetCallLimits, ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 without a Role " + ApiRole.canSetCallLimits)
       val response400 = setRateLimitingWithoutRole(user1, callLimitJsonInitial)
       Then("We should get a 403")
@@ -111,7 +111,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
       response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanSetCallLimits)
     }
     scenario("We will try to set Rate Limiting per minute with a proper Role " + ApiRole.canSetCallLimits, ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
       val response400 = setRateLimiting(user1, callLimitJsonInitial)
       Then("We should get a 200")
@@ -119,7 +119,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
       response400.body.extract[CallLimitJsonV400]
     }
     scenario("We will set Rate Limiting per second for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonSecond)
         Then("We should get a 200")
@@ -142,7 +142,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         response04.code should equal(200)
     }
     scenario("We will set Rate Limiting per minute for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMinute)
         Then("We should get a 200")
@@ -164,7 +164,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         response04.code should equal(200)
     }
     scenario("We will set Rate Limiting per hour for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonHour)
         Then("We should get a 200")
@@ -186,7 +186,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         response04.code should equal(200)
     }
     scenario("We will set Rate Limiting per week for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonWeek)
         Then("We should get a 200")
@@ -208,7 +208,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         response04.code should equal(200)
     }
     scenario("We will set Rate Limiting per month for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMonth)
         Then("We should get a 200")
@@ -233,7 +233,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
   feature(s"Dynamic Endpoint: test $ApiCreateDynamicEndpoint version $ApiVersion400 - authorized access - with role - should be success!") {
     scenario("We will call the endpoint with user credentials", ApiCreateDynamicEndpoint, ApiVersion400) {
-      assume(Redis.isRedisAvailable())
+     
       When("We make a request v4.0.0")
         val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
         When("We make a request v4.0.0")

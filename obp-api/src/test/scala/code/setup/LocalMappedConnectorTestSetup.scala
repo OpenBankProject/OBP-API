@@ -1,6 +1,7 @@
 package code.setup
 
 import bootstrap.liftweb.ToSchemify
+import code.api.JedisMethod
 import code.api.cache.Redis
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
@@ -181,8 +182,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     // Flush all data from Redis
     try {
-      Redis.jedis.connect()
-      Redis.jedis.flushDB()
+      Redis.use(JedisMethod.FLUSHDB, "")
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis issue during flushing data |------------")

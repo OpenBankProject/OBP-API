@@ -94,9 +94,19 @@ object Constant extends MdcLoggable {
   final val STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_static_"
   final val ALL_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_all_"
   final val STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX = "swagger_static_"
+  val CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL: Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
+  val GET_DYNAMIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
+  val GET_STATIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "3600").toInt
+  
 }
 
 
+
+
+object JedisMethod extends Enumeration {
+  type JedisMethod = Value
+  val GET, SET, EXISTS, DELETE, TTL, INCR, FLUSHDB= Value
+}
 
 
 object ChargePolicy extends Enumeration {

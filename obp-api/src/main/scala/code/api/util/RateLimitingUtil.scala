@@ -1,7 +1,7 @@
 package code.api.util
 
-import code.api.APIFailureNewStyle
-import code.api.cache.Redis.{isRedisAvailable, jedis}
+import code.api.{APIFailureNewStyle, JedisMethod}
+import code.api.cache.Redis
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.TooManyRequests
 import code.api.util.RateLimitingJson.CallLimit
@@ -79,19 +79,15 @@ object RateLimitingUtil extends MdcLoggable {
   private def underConsumerLimits(consumerKey: String, period: LimitCallPeriod, limit: Long): Boolean = {
     if (useConsumerLimits) {
       try {
-        if (jedis.isConnected() == false) jedis.connect()
-        (limit, jedis.isConnected()) match {
-          case (_, false)  => // Redis is NOT available
-            logger.warn("Redis is NOT available")
-            true
-          case (l, true) if l > 0 => // Redis is available and limit is set
+        (limit) match {
+          case l if l > 0 => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
-            val exists = jedis.exists(key)
+            val exists = Redis.use(JedisMethod.EXISTS,key).map(_.toBoolean).get
             exists match {
-              case java.lang.Boolean.TRUE =>
-                val underLimit = jedis.get(key).toLong + 1 <= limit // +1 means we count the current call as well. We increment later i.e after successful call.
+              case true =>
+                val underLimit = Redis.use(JedisMethod.GET,key).get.toLong + 1 <= limit // +1 means we count the current call as well. We increment later i.e after successful call.
                 underLimit
-              case java.lang.Boolean.FALSE => // In case that key does not exist we return successful result
+              case false => // In case that key does not exist we return successful result
                 true
             }
           case _ =>
@@ -112,25 +108,21 @@ object RateLimitingUtil extends MdcLoggable {
   private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
     if (useConsumerLimits) {
       try {
-        if (jedis.isConnected() == false) jedis.connect()
-        (jedis.isConnected(), limit) match {
-          case (false, _)  => // Redis is NOT available
-            logger.warn("Redis is NOT available")
-            (-1, -1)
-          case (true, -1)  => // Limit is not set for the period
+        (limit) match {
+          case -1 => // Limit is not set for the period
             val key = createUniqueKey(consumerKey, period)
-            jedis.del(key) // Delete the key in accordance to SQL database state. I.e. limit = -1 => delete the key from Redis.
+            Redis.use(JedisMethod.DELETE, key)
             (-1, -1)
           case _ => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
-            val ttl =  jedis.ttl(key).toInt
+            val ttl =  Redis.use(JedisMethod.TTL, key).get.toInt
             ttl match {
               case -2 => // if the Key does not exists, -2 is returned
                 val seconds =  RateLimitingPeriod.toSeconds(period).toInt
-                jedis.setex(key, seconds, "1")
+                Redis.use(JedisMethod.SET,key, Some(seconds), Some("1"))
                 (seconds, 1)
               case _ => // otherwise increment the counter
-                val cnt = jedis.incr(key)
+                val cnt = Redis.use(JedisMethod.INCR,key).get.toInt
                 (ttl, cnt)
             }
         }
@@ -146,7 +138,7 @@ object RateLimitingUtil extends MdcLoggable {
 
   private def ttl(consumerKey: String, period: LimitCallPeriod): Long = {
     val key = createUniqueKey(consumerKey, period)
-    val ttl =  jedis.ttl(key).toInt
+    val ttl = Redis.use(JedisMethod.TTL, key).get.toInt
     ttl match {
       case -2 => // if the Key does not exists, -2 is returned
         0
@@ -161,26 +153,22 @@ object RateLimitingUtil extends MdcLoggable {
 
     def getInfo(consumerKey: String, period: LimitCallPeriod): ((Option[Long], Option[Long]), LimitCallPeriod) = {
       val key = createUniqueKey(consumerKey, period)
-      val ttl =  jedis.ttl(key).toLong
+      val ttl =  Redis.use(JedisMethod.TTL, key).get.toLong
       ttl match {
         case -2 =>
           ((None, None), period)
         case _ =>
-          ((Some(jedis.get(key).toLong), Some(ttl)), period)
+          ((Redis.use(JedisMethod.TTL, key).map(_.toLong), Some(ttl)), period)
       }
     }
 
-    if(isRedisAvailable()) {
-      getInfo(consumerKey, RateLimitingPeriod.PER_SECOND) ::
-      getInfo(consumerKey, RateLimitingPeriod.PER_MINUTE) ::
-      getInfo(consumerKey, RateLimitingPeriod.PER_HOUR) ::
-      getInfo(consumerKey, RateLimitingPeriod.PER_DAY) ::
-      getInfo(consumerKey, RateLimitingPeriod.PER_WEEK) ::
-      getInfo(consumerKey, RateLimitingPeriod.PER_MONTH) ::
-        Nil
-    } else {
+    getInfo(consumerKey, RateLimitingPeriod.PER_SECOND) ::
+    getInfo(consumerKey, RateLimitingPeriod.PER_MINUTE) ::
+    getInfo(consumerKey, RateLimitingPeriod.PER_HOUR) ::
+    getInfo(consumerKey, RateLimitingPeriod.PER_DAY) ::
+    getInfo(consumerKey, RateLimitingPeriod.PER_WEEK) ::
+    getInfo(consumerKey, RateLimitingPeriod.PER_MONTH) :: 
       Nil
-    }
   }
 
   /**

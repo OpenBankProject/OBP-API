@@ -593,15 +593,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
   
   
   def createLocalisedResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
-    // We MUST recompute all resource doc values due to translation via Web UI props --> now need to wait $createLocalisedResourceDocJsonTTL seconds
+    // We MUST recompute all resource doc values due to translation via Web UI props --> now need to wait $CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL seconds
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
     
     val cacheKey = (resourceDocWithUserDefinedEndpointTags.operationId + locale).intern()
     val cacheValueFromRedis = Caching.getLocalisedResourceDocCache(cacheKey)
     
-    if(cacheValueFromRedis != null){
-      json.parse(cacheValueFromRedis).extract[ResourceDocJson] 
+    if(cacheValueFromRedis.isDefined){
+      json.parse(cacheValueFromRedis.get).extract[ResourceDocJson] 
     }else{
       val resourceDocJson = createLocalisedResourceDocJsonCached(
         resourceDocWithUserDefinedEndpointTags.operationId,
