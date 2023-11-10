@@ -1,7 +1,6 @@
 package code.api.cache
 
 import code.api.JedisMethod
-import code.api.JedisMethod.JedisMethod
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -80,12 +79,13 @@ object Redis extends MdcLoggable {
         } else {// the use()method parameters need to be set properly, it missing value in set, then will throw the exception. 
           throw new RuntimeException("Please check the Redis.use parameters, if the method == set, the value can not be None !!!")
         }
+        //change the null to Option 
         APIUtil.stringOrNone(redisResult)
       } catch {
         case e: Throwable =>
           throw new RuntimeException(e)
       } finally {
-        if (jedisConnection.isDefined)
+        if (jedisConnection.isDefined && jedisConnection.get != null)
           jedisConnection.map(_.close())
       }
     } 
