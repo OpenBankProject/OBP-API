@@ -30,6 +30,7 @@ object Redis extends MdcLoggable {
   poolConfig.setNumTestsPerEvictionRun(3)
   poolConfig.setBlockWhenExhausted(true)
 
+  def jedisPoolDestroy: Unit = jedisPool.destroy()
   val jedisPool = new JedisPool(poolConfig,url, port, 4000)
   
   lazy val jedis = jedisPool.getResource()
