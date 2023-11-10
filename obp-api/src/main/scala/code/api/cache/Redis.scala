@@ -1,5 +1,7 @@
 package code.api.cache
 
+import code.api.JedisMethod
+import code.api.JedisMethod.JedisMethod
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -32,41 +34,61 @@ object Redis extends MdcLoggable {
 
   def jedisPoolDestroy: Unit = jedisPool.destroy()
   val jedisPool = new JedisPool(poolConfig,url, port, 4000)
-  def jedisConnection = jedisPool.getResource()
 
-  def use(method:String, key:String, ttl:Int, value:String) : String = {
-      var jedisConnection1 = None:Option[Jedis]
+  /**
+   * this is the help method, which can be used to auto close all the jedisConnection
+   * 
+   * @param method can only be "get" or "set" 
+   * @param key the cache key
+   * @param ttlSeconds the ttl is option. 
+   *            if ttl == None, this means value will be cached forver 
+   *            if ttl == Some(0), this means turn off the cache, do not use cache at all
+   *            if ttl == Some(Int), this mean the cache will be only cached for ttl seconds
+   * @param value the cache value.
+   *              
+   * @return
+   */
+  def use(method:JedisMethod.Value, key:String, ttlSeconds: Option[Int] = None, value:Option[String] = None) : Option[String] = {
+    
+    //we will get the connection from jedisPool later, and will always close it in the finally clause.
+    var jedisConnection = None:Option[Jedis]
+    
+    if(ttlSeconds.equals(Some(0))){ // set ttl = 0, we will totally turn off the cache
+      None
+    }else{
       try {
-        jedisConnection1 = Some(jedisPool.getResource())
-        if (method=="Get")
-          jedisConnection1.head.get(key)
-        else
-          jedisConnection1.head.setex(key, ttl, value)
+        jedisConnection = Some(jedisPool.getResource())
+        
+        val redisResult = if (method ==JedisMethod.EXISTS) {
+          jedisConnection.head.exists(key).toString
+        }else if (method == JedisMethod.FLUSHDB) {
+          jedisConnection.head.flushDB.toString
+        }else if (method == JedisMethod.INCR) {
+          jedisConnection.head.incr(key).toString
+        }else if (method == JedisMethod.TTL) {
+          jedisConnection.head.ttl(key).toString
+        }else if (method == JedisMethod.DELETE) {
+          jedisConnection.head.del(key).toString
+        }else if (method ==JedisMethod.GET) {
+          jedisConnection.head.get(key)
+        } else if(method ==JedisMethod.SET && value.isDefined){
+          if (ttlSeconds.isDefined) {//if set ttl, call `setex` method to set the expired seconds.
+            jedisConnection.head.setex(key, ttlSeconds.get, value.get).toString
+          } else {//if do not set ttl, call `set` method, the cache will be forever. 
+            jedisConnection.head.set(key, value.get).toString
+          }
+        } else {// the use()method parameters need to be set properly, it missing value in set, then will throw the exception. 
+          throw new RuntimeException("Please check the Redis.use parameters, if the method == set, the value can not be None !!!")
+        }
+        APIUtil.stringOrNone(redisResult)
       } catch {
-        case e: Throwable => 
+        case e: Throwable =>
           throw new RuntimeException(e)
       } finally {
-        if(jedisConnection1.isDefined) 
-          jedisConnection1.map(_.close())
+        if (jedisConnection.isDefined)
+          jedisConnection.map(_.close())
       }
-    }
-
-
-  def isRedisAvailable() = {
-    try {
-      val status = jedisConnection.isConnected
-      if (!status) {
-        logger.warn("------------| Redis is not connected|------------")
-      }
-      status
-    } catch {
-      case e: Throwable =>
-        logger.error("------------| Redis throw exception|------------")
-        logger.error(e)
-        false
-    }finally {
-      jedisConnection.close()
-    }
+    } 
   }
 
   implicit val scalaCache = ScalaCache(RedisCache(url, port))

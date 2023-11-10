@@ -103,6 +103,12 @@ object Constant extends MdcLoggable {
 
 
 
+object JedisMethod extends Enumeration {
+  type JedisMethod = Value
+  val GET, SET, EXISTS, DELETE, TTL, INCR, FLUSHDB= Value
+}
+
+
 object ChargePolicy extends Enumeration {
   type ChargePolicy = Value
   val SHARED, SENDER, RECEIVER = Value

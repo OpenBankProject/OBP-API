@@ -1,7 +1,8 @@
 package code.api.cache
 
 import code.api.Constant._
-import code.api.cache.Redis.jedisConnection
+import code.api.JedisMethod
+import code.api.cache.Redis.use
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import com.softwaremill.macmemo.{Cache, MemoCacheBuilder, MemoizeParams}
@@ -16,8 +17,6 @@ object Caching extends MdcLoggable {
     (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
-      case (Some(_), _) if !Redis.isRedisAvailable() => // Redis is NOT available. Warn via log file and forward the call
-        f
       case (Some(_), _) => // Caching a call
         Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
       case _  => // Just forwarding a call
@@ -29,8 +28,6 @@ object Caching extends MdcLoggable {
   def memoizeWithProvider[A](cacheKey: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
     (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
-        f
-      case (Some(_), _) if !Redis.isRedisAvailable() => // Redis is NOT available. Warn via log file and forward the call
         f
       case (Some(_), _) => // Caching a call
         Redis.memoizeWithRedis(cacheKey)(ttl)(f)
@@ -79,68 +76,43 @@ object Caching extends MdcLoggable {
   }
 
   def getLocalisedResourceDocCache(key: String) = {
-    val value = if(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.get(LOCALISED_RESOURCE_DOC_PREFIX + key) // if the key is not existing, jedis will return null
-    else 
-      null
-    APIUtil.stringOrNone(value)
+    use(JedisMethod.GET, (LOCALISED_RESOURCE_DOC_PREFIX + key).intern(), Some(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL)) 
   }
-  
+    
   def setLocalisedResourceDocCache(key:String, value: String)=  {
-    if (CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.setex(LOCALISED_RESOURCE_DOC_PREFIX+key, CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, value)
+    use(JedisMethod.SET, (LOCALISED_RESOURCE_DOC_PREFIX+key).intern(), Some(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL), Some(value))
   }
 
   def getDynamicResourceDocCache(key: String) = {
-    val value = if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.get(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
-    else
-      null
-    APIUtil.stringOrNone(value)
+    use(JedisMethod.GET, (DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL))
   }
   
   def setDynamicResourceDocCache(key:String, value: String)= {
-    if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.setex(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
+    use(JedisMethod.SET, (DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL), Some(value))
   }
 
   def getStaticResourceDocCache(key: String) = {
-    val value = if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.get(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key)
-    else
-      null
-    APIUtil.stringOrNone(value)
+    use(JedisMethod.GET, (STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL))
   }
   
   def setStaticResourceDocCache(key:String, value: String)= {
-    if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.setex(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
+    use(JedisMethod.SET, (STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
   }
 
   def getAllResourceDocCache(key: String) = {
-    val value = if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.get(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key) // null
-    else
-      null
-    APIUtil.stringOrNone(value)
+    use(JedisMethod.GET, (ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL))
   }
   
   def setAllResourceDocCache(key:String, value: String)= {
-    if (GET_DYNAMIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.setex(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key,GET_DYNAMIC_RESOURCE_DOCS_TTL,value)
+    use(JedisMethod.SET, (ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL), Some(value))
   }
 
   def getStaticSwaggerDocCache(key: String) = {
-    val value = if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.get(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key)
-    else
-      null
-    APIUtil.stringOrNone(value)
+    use(JedisMethod.GET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL))
   }
   
   def setStaticSwaggerDocCache(key:String, value: String)= {
-    if (GET_STATIC_RESOURCE_DOCS_TTL!=0 && Redis.isRedisAvailable())
-      jedisConnection.setex(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key,GET_STATIC_RESOURCE_DOCS_TTL,value)
+    use(JedisMethod.SET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
   }
   
 }
