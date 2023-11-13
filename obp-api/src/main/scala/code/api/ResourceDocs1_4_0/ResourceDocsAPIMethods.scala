@@ -22,7 +22,7 @@ import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
-import code.util.Helper.{MdcLoggable, ObpS}
+import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
@@ -396,7 +396,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
          | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
          |
-         | You may need some other language resource docs, now we support i18n language tag , e.g. ?locale=zh_CN
+         | You may need some other language resource docs, now we support en_GB and es_ES at the moment.
          | 
          | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
          |
@@ -410,7 +410,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=zh_CN
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=es_ES
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
          |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
          |
@@ -540,6 +540,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
+          _ <- if (locale.isDefined) {
+            Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+              APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+            }
+          } else {
+            Future.successful(true)
+          }
           cacheKey = APIUtil.createResourceDocCacheKey(
             None,
             requestedApiVersionString,
@@ -636,6 +643,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
               case false => anonymousAccess(cc)
               case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+            }
+            _ <- if (locale.isDefined) {
+              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+              }
+            } else {
+              Future.successful(true)
             }
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Option(cc))
             _ <- resourceDocsRequireRole match {

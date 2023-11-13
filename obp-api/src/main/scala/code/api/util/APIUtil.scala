@@ -969,6 +969,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /** only support en_GB, es_ES at the moment, will support more later*/
+  def obpLocaleValidation(value:String): String ={
+    if(value.equalsIgnoreCase("es_Es")|| value.equalsIgnoreCase("en_GB")) 
+      SILENCE_IS_GOLDEN
+    else
+      ErrorMessages.ConsumerKeyIsInvalid
+  }
+
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
   /** also support space now  */
   def basicPasswordValidation(value:String): String ={
