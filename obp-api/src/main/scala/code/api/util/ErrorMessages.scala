@@ -116,6 +116,7 @@ object ErrorMessages {
   val InvalidHttpMethod = "OBP-10037: Incorrect http_method."
   val InvalidHttpProtocol = "OBP-10038: Incorrect http_protocol."
   val ServiceIsTooBusy = "OBP-10040: The Service is too busy, please try it later."
+  val InvalidLocale = "OBP-10041: This locale is not supported. Only the following can be used: en_GB , es_ES." 
   
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
