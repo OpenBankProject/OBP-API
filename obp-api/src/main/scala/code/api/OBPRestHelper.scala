@@ -355,7 +355,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       correlationId = correlationId,
       url = url,
       ipAddress = remoteIpAddress,
-      requestHeaders = reqHeaders
+      requestHeaders = reqHeaders,
+      operationId = rd.map(_.operationId)
     )
 
     // before authentication interceptor build response
