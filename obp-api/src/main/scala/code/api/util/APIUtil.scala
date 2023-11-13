@@ -80,7 +80,7 @@ import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
+import com.openbankproject.commons.model.enums.{ContentParam, PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, UserAuthContext, _}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
@@ -4871,5 +4871,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         jField => (jField.name, jField.value.asInstanceOf[JString].s)
       )
   }
+
+  def createResourceDocCacheKey(
+    bankId : Option[String],
+    requestedApiVersionString: String,
+    tags: Option[List[ResourceDocTag]],
+    partialFunctions: Option[List[String]],
+    locale: Option[String],
+    contentParam: Option[ContentParam],
+    apiCollectionIdParam: Option[String],
+    isVersion4OrHigher: Option[Boolean],
+    isStaticResource: Option[Boolean],
+  ) = (requestedApiVersionString 
+    + bankId
+    + tags 
+    + partialFunctions 
+    + locale.toString 
+    + contentParam 
+    + apiCollectionIdParam 
+    + isVersion4OrHigher 
+    + isStaticResource
+    ).intern()
+
 
 }
