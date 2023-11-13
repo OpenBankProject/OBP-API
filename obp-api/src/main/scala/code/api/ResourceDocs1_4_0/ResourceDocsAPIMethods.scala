@@ -540,7 +540,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
-          cacheKey = (locale.toString + tags + partialFunctions+ contentParam+ isVersion4OrHigher).intern()
+          cacheKey = APIUtil.createResourceDocCacheKey(
+            None,
+            requestedApiVersionString,
+            tags,
+            partialFunctions,
+            locale,
+            contentParam,
+            apiCollectionIdParam,
+            Some(isVersion4OrHigher),
+            Some(isStaticResource))
           json <- locale match {
             case _ if (apiCollectionIdParam.isDefined) =>
               val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
@@ -637,8 +646,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 )
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-            cacheKey = (locale.toString + tags + partialFunctions+ contentParam+ false).intern()
-            
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              Some(bankId),
+              requestedApiVersionString,
+              tags,
+              partialFunctions,
+              locale,
+              contentParam,
+              apiCollectionIdParam,
+              None,
+              None)
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
               val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
               if (cacheValueFromRedis.isDefined) {
@@ -706,7 +723,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
               versionIsAllowed(requestedApiVersion)
             }
-            cacheKey = requestedApiVersionString + resourceDocTags+ partialFunctions
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              None,
+              requestedApiVersionString,
+              resourceDocTags,
+              partialFunctions,
+              None,
+              None,
+              None,
+              None,
+              None)
             staticJson <- NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
               val cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
   
