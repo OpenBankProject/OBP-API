@@ -312,147 +312,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def writeEndpointMetric(callContext: Option[CallContextLight]) = {
-    callContext match {
-      case Some(cc) =>
-        if(getPropsAsBoolValue("write_metrics", false)) {
-          val userId = cc.userId.orNull
-          val userName = cc.userName.orNull
 
-          val implementedByPartialFunction = cc.partialFunctionName
 
-          val duration =
-            (cc.startTime, cc.endTime)  match {
-              case (Some(s), Some(e)) => (e.getTime - s.getTime)
-              case _       => -1
-            }
-
-          //execute saveMetric in future, as we do not need to know result of the operation
-          Future {
-            val consumerId = cc.consumerId.getOrElse(-1)
-            val appName = cc.appName.orNull
-            val developerEmail = cc.developerEmail.orNull
-
-            APIMetrics.apiMetrics.vend.saveMetric(
-              userId,
-              cc.url,
-              cc.startTime.getOrElse(null),
-              duration,
-              userName,
-              appName,
-              developerEmail,
-              consumerId.toString,
-              implementedByPartialFunction,
-              cc.implementedInVersion,
-              cc.verb,
-              cc.httpCode,
-              cc.correlationId,
-              cc.httpBody.getOrElse(""),
-              cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse(""),
-              cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
-            )
-          }
-        }
-      case _ =>
-        logger.error("CallContextLight is not defined. Metrics cannot be saved.")
-    }
-  }
-
-  def writeEndpointMetric(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
-    val authorization = S.request.map(_.header("Authorization")).flatten
-    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
-    if(getPropsAsBoolValue("write_metrics", false)) {
-      val user =
-        if (hasAnOAuthHeader(authorization)) {
-          getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } // Direct Login
-        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
-          DirectLogin.getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } // Direct Login Deprecated
-        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
-          DirectLogin.getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } else {
-          Empty
-        }
-
-      val consumer =
-        if (hasAnOAuthHeader(authorization)) {
-          getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } // Direct Login 
-        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
-          DirectLogin.getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } // Direct Login Deprecated
-        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
-          DirectLogin.getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } else {
-          Empty
-        }
-
-      // TODO This should use Elastic Search or Kafka not an RDBMS
-      val u: User = user.orNull
-      val userId = if (u != null) u.userId else "null"
-      val userName = if (u != null) u.name else "null"
-
-      val c: Consumer = consumer.orNull
-      //The consumerId, not key
-      val consumerId = if (u != null) c.id.toString() else "null"
-      var appName = if (u != null) c.name.toString() else "null"
-      var developerEmail = if (u != null) c.developerEmail.toString() else "null"
-      val implementedByPartialFunction = rd match {
-        case Some(r) => r.partialFunctionName
-        case _       => ""
-      }
-      //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-      //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-      val url = ObpS.uriAndQueryString.getOrElse("")
-      val correlationId = getCorrelationId()
-      val body: Box[String] = getRequestBody(S.request)
-      val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
-
-      //execute saveMetric in future, as we do not need to know result of operation
-      Future {
-        APIMetrics.apiMetrics.vend.saveMetric(
-          userId,
-          url,
-          date,
-          duration: Long,
-          userName,
-          appName,
-          developerEmail,
-          consumerId,
-          implementedByPartialFunction,
-          implementedInVersion,
-          verb,
-          None,
-          correlationId,
-          body.getOrElse(""),
-          reqHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse(""),
-          reqHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
-        )
-      }
-
-    }
-  }
 
 
   /*
@@ -2596,7 +2457,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     result
   }
 
-  def writeMetricEndpointTiming[R](callContext: Option[CallContextLight])(blockOfCode: => R): R = {
+  def writeMetricEndpointTiming[R](responseBody: Any, callContext: Option[CallContextLight])(blockOfCode: => R): R = {
     val result = blockOfCode
     // call-by-name
     val endTime = Helpers.now
@@ -2607,7 +2468,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
       // There are no enough information for logging
     }
-    writeEndpointMetric(callContext.map(_.copy(endTime = Some(endTime))))
+    WriteMetricUtil.writeEndpointMetric(responseBody, callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
 
@@ -2950,7 +2811,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => writeMetricEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
+        t => writeMetricEndpointTiming(t._1, t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
         case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
@@ -2963,7 +2824,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              writeMetricEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
+              writeMetricEndpointTiming(af.failMsg, callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               reply.apply(errorResponse)
@@ -3000,7 +2861,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
           reply(jsonResponse)
         case t => Full(
-          writeMetricEndpointTiming(t._2.map(_.toLight))(
+          writeMetricEndpointTiming(t._1, t._2.map(_.toLight))(
             reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))
           )
         )
@@ -3024,7 +2885,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              Full(writeMetricEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
+              Full(writeMetricEndpointTiming(af.failMsg, callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               Full((reply.apply(errorResponse)))

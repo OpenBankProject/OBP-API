@@ -1259,6 +1259,10 @@ retain_metrics_move_limit = 50000
 # Defines the interval of the scheduler
 retain_metrics_scheduler_interval_in_seconds = 3600
 
+
+# Defines endpoints we want to store responses at Metric table
+metrics_store_response_body_for_operation_ids=
+
 #if same session used for different ip address, we can show this warning, default is false.
 show_ip_address_change_warning=false
 
