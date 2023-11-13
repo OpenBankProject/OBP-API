@@ -243,8 +243,9 @@ case class MetricJsonV510(
                        verb: String,
                        correlation_id: String,
                        duration: Long,
+                       source_ip: String,
                        target_ip: String,
-                       source_ip: String
+                       response_body: String
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
@@ -546,8 +547,9 @@ object JSONFactory510 extends CustomJsonFormats {
       implemented_by_partial_function = metric.getImplementedByPartialFunction(),
       correlation_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
+      source_ip = metric.getTargetIp(),
       target_ip = metric.getSourceIp(),
-      source_ip = metric.getTargetIp()
+      response_body = metric.getResponseBody()
     )
   }
 
