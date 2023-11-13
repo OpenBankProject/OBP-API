@@ -4882,16 +4882,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean],
     isStaticResource: Option[Boolean],
-  ) = (requestedApiVersionString 
-    + bankId
-    + tags 
-    + partialFunctions 
-    + locale.toString 
-    + contentParam 
-    + apiCollectionIdParam 
-    + isVersion4OrHigher 
-    + isStaticResource
-    ).intern()
+  ) = s"$requestedApiVersionString-$bankId-$tags-$partialFunctions-${locale.toString}" +
+    s"-$contentParam-$apiCollectionIdParam-$isVersion4OrHigher-$isStaticResource".intern()
 
 
 }
