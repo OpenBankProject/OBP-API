@@ -1,5 +1,5 @@
-// holds the idle duration in ms (current value = 2 minutes)
-var timeoutInterval = 120000;
+// holds the idle duration in ms (current value = 5 minutes)
+var timeoutInterval = 5 * 60 * 1000;
 // holds the timeout variables for easy destruction and reconstruction of the setTimeout hooks
 var timeHook = null;
 
@@ -44,20 +44,20 @@ function destroyListeners() {
 }
 
 function logout() {
-    const elem = document.getElementById("loggedIn-username");
-    if(elem) {
-        location.href = '/user_mgt/logout';
-        destroyListeners();
-        console.log("Logging you out due to inactivity..");
-    }
+    destroyListeners();
+    location.href = '/user_mgt/logout';
+    console.log("Logging you out due to inactivity..");
 }
 
 // self executing function to trigger the operation on page load
 (function () {
-    // to prevent any lingering timeout handlers preventing memory leaks
-    destroyTimeHook();
-    // setup a fresh time hook
-    initializeTimeHook();
-    // setup initial event listeners
-    setupListeners();
+    const elem = document.getElementById("loggedIn-username");
+    if(elem) {
+        // to prevent any lingering timeout handlers preventing memory leaks
+        destroyTimeHook();
+        // setup a fresh time hook
+        initializeTimeHook();
+        // setup initial event listeners
+        setupListeners();
+    }
 })();
