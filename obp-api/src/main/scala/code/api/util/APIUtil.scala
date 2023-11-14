@@ -835,7 +835,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(value.equalsIgnoreCase("es_Es")|| value.equalsIgnoreCase("en_GB")) 
       SILENCE_IS_GOLDEN
     else
-      ErrorMessages.ConsumerKeyIsInvalid
+      ErrorMessages.InvalidLocale
   }
 
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
