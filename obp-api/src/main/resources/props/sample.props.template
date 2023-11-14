@@ -1272,3 +1272,5 @@ expectedOpenFuturesPerService=100
 
 # Enable /Disable IBAN validation
 validate_iban=false
+
+set_response_header_Set-Cookie = "Path=/; HttpOnly; Secure"
