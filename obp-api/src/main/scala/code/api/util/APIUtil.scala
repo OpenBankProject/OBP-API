@@ -830,6 +830,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /** only support en_GB, es_ES at the moment, will support more later*/
+  def obpLocaleValidation(value:String): String ={
+    if(value.equalsIgnoreCase("es_Es")|| value.equalsIgnoreCase("en_GB")) 
+      SILENCE_IS_GOLDEN
+    else
+      ErrorMessages.InvalidLocale
+  }
+
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
   /** also support space now  */
   def basicPasswordValidation(value:String): String ={
@@ -4743,16 +4751,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean],
     isStaticResource: Option[Boolean],
-  ) = (requestedApiVersionString 
-    + bankId
-    + tags 
-    + partialFunctions 
-    + locale.toString 
-    + contentParam 
-    + apiCollectionIdParam 
-    + isVersion4OrHigher 
-    + isStaticResource
-    ).intern()
+  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
+    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
 
 
 }
