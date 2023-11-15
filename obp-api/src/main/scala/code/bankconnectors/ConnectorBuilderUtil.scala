@@ -27,6 +27,8 @@ object ConnectorBuilderUtil {
     val m = ct.getDeclaredMethod("getWebUiPropsValue")
     m.insertBefore("""return ""; """)
     ct.toClass
+    // This only used for for connector creation, not during OBP runtime, so it is a bit safe for memory, do not need to clean ct here. 
+    // if(ct != null) ct.detach()
   }
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
