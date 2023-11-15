@@ -49,8 +49,8 @@ function destroyListeners() {
 function logout() {
     destroyListeners();
     countdownTimer.destroyCountdownTimer();
-    location.href = '/user_mgt/logout';
     console.log("Logging you out due to inactivity..");
+    location.href = '/user_mgt/logout';
 }
 
 // self executing function to trigger the operation on page load
