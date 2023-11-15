@@ -4330,11 +4330,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
    * according class name, method name and method's signature to get all dependent methods
    */
   def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
     val methods = ListBuffer[(String, String, String)]()
-    val method = cp.get(className).getMethod(methodName, signature)
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    val ctClass = cp.get(className)
+    val method = ctClass.getMethod(methodName, signature)
     method.instrument(new ExprEditor() {
       @throws[CannotCompileException]
       override def edit(m: MethodCall): Unit = {
@@ -4346,6 +4349,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
    * get all dependent connector method names for an object
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
@@ -4372,10 +4376,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }.flatten.distinct
       }
 
-
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    val ctClass = classPool.get(endpointClassName)
+    
     // list of connector method name
     val connectorMethods: Array[String] = for {
-      method <- classPool.get(endpointClassName).getDeclaredMethods
+      method <- ctClass.getDeclaredMethods
       (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
       if clazzName == connectorTypeName && !methodName.contains("$default$")
     } yield methodName

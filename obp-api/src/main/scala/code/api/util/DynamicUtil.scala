@@ -145,11 +145,20 @@ object DynamicUtil extends MdcLoggable{
     }
   }
 
+  /**
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+   * @param clazz
+   * @param predicate
+   * @return
+   */
   def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
+    val classPool = getClassPool(clazz.getClassLoader)
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    val ctClass = classPool.get(className)
     for {
-      method <- getClassPool(clazz.getClassLoader).get(className).getDeclaredMethods.toList
+      method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
       ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
     } yield {
