@@ -1,5 +1,7 @@
-// holds the idle duration in ms (current value = 2 minutes)
-var timeoutInterval = 120000;
+import * as countdownTimer from './inactivity-timer.js'
+
+// holds the idle duration in ms (current value = 5 minutes)
+var timeoutInterval = 5 * 60 * 1000;
 // holds the timeout variables for easy destruction and reconstruction of the setTimeout hooks
 var timeHook = null;
 
@@ -20,6 +22,7 @@ function resetTimeHook() {
     // this method replaces the current time hook with a new time hook
     destroyTimeHook();
     initializeTimeHook();
+    countdownTimer.resetCountdownTimer(timeoutInterval / 1000);
     console.log("Reset inactivity of a user");
 }
 
@@ -44,20 +47,23 @@ function destroyListeners() {
 }
 
 function logout() {
-    const elem = document.getElementById("loggedIn-username");
-    if(elem) {
-        location.href = '/user_mgt/logout';
-        destroyListeners();
-        console.log("Logging you out due to inactivity..");
-    }
+    destroyListeners();
+    countdownTimer.destroyCountdownTimer();
+    location.href = '/user_mgt/logout';
+    console.log("Logging you out due to inactivity..");
 }
 
 // self executing function to trigger the operation on page load
 (function () {
-    // to prevent any lingering timeout handlers preventing memory leaks
-    destroyTimeHook();
-    // setup a fresh time hook
-    initializeTimeHook();
-    // setup initial event listeners
-    setupListeners();
+    const elem = document.getElementById("loggedIn-username");
+    if(elem) {
+        // to prevent any lingering timeout handlers preventing memory leaks
+        destroyTimeHook();
+        // setup a fresh time hook
+        initializeTimeHook();
+        // setup initial event listeners
+        setupListeners();
+        // Reset countdown timer
+        countdownTimer.resetCountdownTimer(timeoutInterval / 1000);
+    }
 })();

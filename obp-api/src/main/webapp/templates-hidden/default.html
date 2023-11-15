@@ -55,7 +55,7 @@ Berlin 13359, Germany
 	<script src="/media/js/moment-with-locales.min.js"></script>
 	<script src="/media/js/bootstrap-datetimepicker.min.js"></script>
 	<script src="/media/js/popper.min.js"></script>
-	<script defer src="/media/js/inactivity.js"></script> <!-- The script loads “in the background”, and then runs when the DOM is fully built. -->
+	<script type="module" defer src="/media/js/inactivity.js"></script> <!-- The script loads “in the background”, and then runs when the DOM is fully built. -->
 </head>
 <body id="page_init">
 	<div id="cookies-consent" data-lift="WebUI.cookieConsent">
@@ -144,7 +144,7 @@ Berlin 13359, Germany
 
 						<li class="navitem" data-lift="Login.loggedIn" >
 							<!-- LOGGED IN -->
-							<p class="navbar-btn"><a href="/user-information"><span id="loggedIn-username">username</span></a><a href="#" class="btn btn-default logout">Log off</a></p>
+							<p class="navbar-btn"><a href="/user-information"><span id="loggedIn-username">username</span></a><a href="#" class="btn btn-default logout">Log off <span id="countdown-timer-span" class="badge text-bg-primary"></span></a></p>
 						</li>
 					</ul>
 				</div><!--/.nav-collapse -->
