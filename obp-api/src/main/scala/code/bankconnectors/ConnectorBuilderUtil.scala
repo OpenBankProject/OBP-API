@@ -23,10 +23,12 @@ object ConnectorBuilderUtil {
   {
     import javassist.ClassPool
     val pool = ClassPool.getDefault
-    val ct = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
-    val m = ct.getDeclaredMethod("getWebUiPropsValue")
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    val ctClass = pool.getCtClass("code.webuiprops.MappedWebUiPropsProvider$")
+    val m = ctClass.getDeclaredMethod("getWebUiPropsValue")
     m.insertBefore("""return ""; """)
-    ct.toClass
+    ctClass.toClass
+    // if(ctClass != null) ctClass.detach()
   }
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
