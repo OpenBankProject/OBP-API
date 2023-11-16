@@ -1925,7 +1925,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckView) {
           checkerFunctions += checkViewFun
         }
-        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
+        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_))
+          .map(value =>("obp." +value).intern())
 
         // add connector method to endpoint info
         addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
@@ -4907,4 +4908,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
 
 
+}
+
+
+object createDependentConnectorMethod extends App{
+  
 }
