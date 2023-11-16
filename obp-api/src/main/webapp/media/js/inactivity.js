@@ -59,16 +59,16 @@ function logout() {
 async function makeObpApiCall() {
   let response = await fetch('/obp/v5.1.0/ui/suggested-session-timeout');
   let json = await response.json();
+  console.log(json.timeout_in_seconds);
+  localStorage.setItem("suggested-session-timeout-in-seconds", json.timeout_in_seconds);
   return json.timeout_in_seconds;
 }
 
 function getSuggestedSessionTimeout() {
-  let timeoutInSeconds = localStorage.getItem("suggested-session-timeout-in-seconds");
-  if(!timeoutInSeconds) {
-    timeoutInSeconds = makeObpApiCall;
-    localStorage.setItem("suggested-session-timeout-in-seconds", timeoutInSeconds);
+  if(!localStorage.getItem("suggested-session-timeout-in-seconds")) {
+    makeObpApiCall();
   }
-  return timeoutInSeconds * 1000 + 1000; // We need timeout in millis
+  return localStorage.getItem("suggested-session-timeout-in-seconds") * 1000 + 1000; // We need timeout in millis
 }
 
 // self executing function to trigger the operation on page load

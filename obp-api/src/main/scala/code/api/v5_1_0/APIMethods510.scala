@@ -115,10 +115,9 @@ trait APIMethods510 {
       case "ui" :: "suggested-session-timeout" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            timeout: Int <- Future(APIUtil.getPropsAsIntValue("session_inactivity_timeout_in_minutes", 5))
-            timeoutInSeconds = (timeout * 60).toString
+            timeoutInSeconds: Int <- Future(APIUtil.getPropsAsIntValue("session_inactivity_timeout_in_seconds", 300))
           } yield {
-            (SuggestedSessionTimeoutV510(timeoutInSeconds), HttpCode.`200`(cc.callContext))
+            (SuggestedSessionTimeoutV510(timeoutInSeconds.toString), HttpCode.`200`(cc.callContext))
           }
     }
     
