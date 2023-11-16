@@ -1268,3 +1268,7 @@ expectedOpenFuturesPerService=100
 
 # Enable /Disable IBAN validation
 validate_iban=false
+
+#show all the dependent connector methods for each endpoint, the default value is false. 
+#If set it to true, it may cost lots of Heap memory.
+#show.dependent.connectors=false

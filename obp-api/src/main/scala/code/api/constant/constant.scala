@@ -97,6 +97,7 @@ object Constant extends MdcLoggable {
   final val CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL: Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
   final val GET_DYNAMIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
   final val GET_STATIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "3600").toInt
+  final val SHOW_DEPENDENT_CONNECTORS: Boolean = APIUtil.getPropsAsBoolValue(s"show.dependent.connectors", false)
   
 }
 
