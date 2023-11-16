@@ -94,6 +94,33 @@ trait APIMethods510 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      suggestedSessionTimeout,
+      implementedInApiVersion,
+      nameOf(suggestedSessionTimeout),
+      "GET",
+      "/ui/suggested-session-timeout",
+      "Get Suggested Session Timeout",
+      """Returns information about:
+        |
+        |* Suggested session timeout in case of a user inactivity
+        """,
+      EmptyBody,
+      SuggestedSessionTimeoutV510("300"),
+      List(UnknownError),
+      apiTagApi  :: Nil)
+
+    lazy val suggestedSessionTimeout: OBPEndpoint = {
+      case "ui" :: "suggested-session-timeout" :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            timeout: Int <- Future(APIUtil.getPropsAsIntValue("session_inactivity_timeout_in_minutes", 5))
+            timeoutInSeconds = (timeout * 60).toString
+          } yield {
+            (SuggestedSessionTimeoutV510(timeoutInSeconds), HttpCode.`200`(cc.callContext))
+          }
+    }
     
     staticResourceDocs += ResourceDoc(
       waitingForGodot,
