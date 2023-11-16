@@ -679,8 +679,17 @@ class Boot extends MdcLoggable {
       case _ => locale
     }
 
+
+    val setCookieHeader: (String, String) = getPropsValue("set_response_header_Set-Cookie") match {
+      case Full(value) => ("Set-Cookie", value)
+      case _ => ("Set-Cookie", "Path=/; HttpOnly; Secure")
+    }
     //for XSS vulnerability, set X-Frame-Options header as DENY
-    LiftRules.supplementalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    LiftRules.supplementalHeaders.default.set(
+      ("X-Frame-Options", "DENY") ::
+        setCookieHeader ::
+        Nil
+    )
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
@@ -748,7 +757,19 @@ class Boot extends MdcLoggable {
     }
 
     object UsernameLockedChecker  {
-      def beginServicing(session: LiftSession, req: Req){
+      def onBeginServicing(session: LiftSession, req: Req): Unit = {
+        logger.debug(s"Hello from UsernameLockedChecker.onBeginServicing")
+        checkIsLocked()
+      }
+      def onSessionActivate(session: LiftSession): Unit = {
+        logger.debug(s"Hello from UsernameLockedChecker.onSessionActivate")
+        checkIsLocked()
+      }
+      def onSessionPassivate(session: LiftSession): Unit = {
+        logger.debug(s"Hello from UsernameLockedChecker.onSessionPassivate")
+        checkIsLocked()
+      }
+      private def checkIsLocked(): Unit = {
         AuthUser.currentUser match {
           case Full(user) =>
             LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
@@ -761,8 +782,9 @@ class Boot extends MdcLoggable {
         }
       }
     }
-    LiftSession.onBeginServicing = UsernameLockedChecker.beginServicing _ ::
-      LiftSession.onBeginServicing
+    LiftSession.onBeginServicing = UsernameLockedChecker.onBeginServicing _ :: LiftSession.onBeginServicing
+    LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
+    LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
 
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
