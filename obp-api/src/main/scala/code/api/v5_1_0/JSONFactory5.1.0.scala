@@ -50,6 +50,7 @@ import scala.collection.immutable.List
 import scala.util.Try
 
 
+case class SuggestedSessionTimeoutV510(timeout_in_seconds: String)
 case class APIInfoJsonV510(
                            version : String,
                            version_status: String,
