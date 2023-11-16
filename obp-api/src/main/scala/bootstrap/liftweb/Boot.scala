@@ -825,7 +825,7 @@ class Boot extends MdcLoggable {
       createHydraClients()
     }
     
-    Props.get("session_inactivity_timeout_in_minutes") match {
+    Props.get("session_inactivity_timeout_in_seconds") match {
       case Full(x) if tryo(x.toLong).isDefined =>
         LiftRules.sessionInactivityTimeout.default.set(Full((x.toLong.minutes): Long))
       case _ =>
