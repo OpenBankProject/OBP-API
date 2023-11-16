@@ -1786,7 +1786,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckView) {
           checkerFunctions += checkViewFun
         }
-        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_)).map("obp." +)
+        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_))
+          .map(value =>("obp." +value).intern())
 
         // add connector method to endpoint info
         addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
@@ -4194,7 +4195,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
    * according class name, method name and method's signature to get all dependent methods
    */
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = 
+  if(SHOW_USED_CONNECTOR_METHODS){
     val methods = ListBuffer[(String, String, String)]()
     //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
     val ctClass = cp.get(className)
@@ -4207,6 +4209,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     })
     methods.toList
+  } else {
+    Nil
   }
 
   /**
@@ -4215,7 +4219,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
    */
-  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = {
+  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
+  if (SHOW_USED_CONNECTOR_METHODS){
     val connectorTypeName = classOf[Connector].getName
     val endpointClassName = endpoint.getClass.getName
     // not analyze dynamic code
@@ -4248,6 +4253,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     } yield methodName
 
     connectorMethods.toList.distinct
+  }
+  else{
+    Nil
   }
 
   case class EndpointInfo(name: String, version: String)
@@ -4761,4 +4769,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
 
 
+}
+
+
+object createDependentConnectorMethod extends App{
+  
 }

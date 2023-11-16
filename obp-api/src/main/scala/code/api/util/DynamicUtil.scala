@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 import code.util.Helper.MdcLoggable
@@ -9,10 +10,10 @@ import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.JsonResponse
-
 import net.liftweb.json.{Extraction, JValue, prettyRender}
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
+
 import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -151,7 +152,8 @@ object DynamicUtil extends MdcLoggable{
    * @param predicate
    * @return
    */
-  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = {
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = 
+  if (SHOW_USED_CONNECTOR_METHODS) {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
@@ -171,6 +173,8 @@ object DynamicUtil extends MdcLoggable{
     }
 
     listBuffer.distinct.toList
+  } else {
+    Nil
   }
 
   trait Sandbox {
