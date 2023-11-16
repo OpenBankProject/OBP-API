@@ -4335,7 +4335,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * according class name, method name and method's signature to get all dependent methods
    */
   def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = 
-  if(SHOW_DEPENDENT_CONNECTORS){
+  if(SHOW_USED_CONNECTOR_METHODS){
     val methods = ListBuffer[(String, String, String)]()
     //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
     val ctClass = cp.get(className)
@@ -4359,7 +4359,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return a list of connector method name
    */
   def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
-  if (SHOW_DEPENDENT_CONNECTORS){
+  if (SHOW_USED_CONNECTOR_METHODS){
     val connectorTypeName = classOf[Connector].getName
     val endpointClassName = endpoint.getClass.getName
     // not analyze dynamic code

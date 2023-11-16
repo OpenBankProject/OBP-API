@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.Constant.SHOW_DEPENDENT_CONNECTORS
+import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 import code.util.Helper.MdcLoggable
@@ -153,7 +153,7 @@ object DynamicUtil extends MdcLoggable{
    * @return
    */
   def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = 
-  if (SHOW_DEPENDENT_CONNECTORS) {
+  if (SHOW_USED_CONNECTOR_METHODS) {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
