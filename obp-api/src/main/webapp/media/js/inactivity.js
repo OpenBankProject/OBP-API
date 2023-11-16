@@ -1,7 +1,7 @@
 import * as countdownTimer from './inactivity-timer.js'
 
-// holds the idle duration in ms (current value = 5 minutes)
-var timeoutInterval = 5 * 60 * 1000;
+// holds the idle duration in ms (current value = 301 seconds)
+var timeoutInterval = 5 * 60 * 1000 + 1000;
 // holds the timeout variables for easy destruction and reconstruction of the setTimeout hooks
 var timeHook = null;
 
@@ -18,31 +18,34 @@ function destroyTimeHook() {
     timeHook = null;
 }
 
-function resetTimeHook() {
+function resetTimeHook(event) {
     // this method replaces the current time hook with a new time hook
     destroyTimeHook();
     initializeTimeHook();
     countdownTimer.resetCountdownTimer(timeoutInterval / 1000);
+    // show event type, element and coordinates of the click
+    // console.log(event.type + " at " + event.currentTarget);
+    // console.log("Coordinates: " + event.clientX + ":" + event.clientY);
     console.log("Reset inactivity of a user");
 }
 
 function setupListeners() {
     // here we setup the event listener for the mouse click operation
-    document.addEventListener("click", function () { resetTimeHook(); }.bind(this));
-    document.addEventListener("mousemove", function () { resetTimeHook(); }.bind(this));
-    document.addEventListener("mousedown", function () { resetTimeHook(); }.bind(this));
-    document.addEventListener("keypress", function () { resetTimeHook(); }.bind(this));
-    document.addEventListener("touchmove", function () { resetTimeHook(); }.bind(this));
+    document.addEventListener("click", resetTimeHook);
+    document.addEventListener("mousemove", resetTimeHook);
+    document.addEventListener("mousedown", resetTimeHook);
+    document.addEventListener("keypress", resetTimeHook);
+    document.addEventListener("touchmove", resetTimeHook);
     console.log("Listeners for user inactivity activated");
 }
 
 function destroyListeners() {
     // here we destroy event listeners for the mouse click operation
-    document.removeEventListener("click", function () { resetTimeHook(); }.bind(this));
-    document.removeEventListener("mousemove", function () { resetTimeHook(); }.bind(this));
-    document.removeEventListener("mousedown", function () { resetTimeHook(); }.bind(this));
-    document.removeEventListener("keypress", function () { resetTimeHook(); }.bind(this));
-    document.removeEventListener("touchmove", function () { resetTimeHook(); }.bind(this));
+    document.removeEventListener("click", resetTimeHook);
+    document.removeEventListener("mousemove", resetTimeHook);
+    document.removeEventListener("mousedown", resetTimeHook);
+    document.removeEventListener("keypress", resetTimeHook);
+    document.removeEventListener("touchmove", resetTimeHook);
     console.log("Listeners for user inactivity deactivated");
 }
 
