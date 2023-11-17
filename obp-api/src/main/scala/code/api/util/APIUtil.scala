@@ -81,7 +81,7 @@ import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{ContentParam, PemCertificateRole, StrongCustomerAuthentication}
-import com.openbankproject.commons.model.{Customer, UserAuthContext, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
@@ -4176,41 +4176,88 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // (className, methodName, signature) -> List[(className, methodName, signature)]
   private val memo = new Memo[(String, String, String), List[(String, String, String)]]
 
-  private val cp = {
+  private val classPool = {
     val pool = ClassPool.getDefault
     // avoid error when call with JDK 1.8:
     // javassist.NotFoundException: code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
     pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
     pool
   }
+  //NOTE: this will be also a issue, to set the big object classLoader as the cache key.
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
-    val cp = ClassPool.getDefault
-    cp.appendClassPath(new LoaderClassPath(classLoader))
-    cp
+    val classPool = ClassPool.getDefault
+    classPool.appendClassPath(new LoaderClassPath(classLoader))
+    classPool
   }
 
   /**
    * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
    * according class name, method name and method's signature to get all dependent methods
-   */
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = 
-  if(SHOW_USED_CONNECTOR_METHODS){
-    val methods = ListBuffer[(String, String, String)]()
-    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
-    val ctClass = cp.get(className)
-    val method = ctClass.getMethod(methodName, signature)
-    method.instrument(new ExprEditor() {
-      @throws[CannotCompileException]
-      override def edit(m: MethodCall): Unit = {
-        val tuple = (m.getClassName, m.getMethodName, m.getSignature)
-        methods += tuple
+   * 
+   * DependentMethods mean, the method used in the body, eg the following example, 
+   * method0's dependentMethods are method1 and method2. 
+   * please read `method.instrument(new ExprEditor()`, which will help us to get the dependent methods.
+   * 
+   * def method0 = {
+   *   method1
+   *   method2
+   * }
+   * 
+   * def method1 = {}
+   * def method2 = {}
+   *  eg: the partial function `lazy val createAccountAccessConsents : OBPEndpoint` first method `applicationAccess`, 
+   *  please check the applicationAccess method body, here is just first two lines of it:
+   * def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] =
+   * getUserAndSessionContextFuture(cc) map { result =>
+   *    val url = result._2.map(_.url).getOrElse("None")
+   *    .....
+   *    
+   * 
+   * the className is `APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1`
+   * methodName is `applicationAccess()`, here is just example, in real compile code it may be mapped to different method
+   * signature is `Ljava/lang/Object;)`
+   * 
+   * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
+   */ 
+  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+    if (SHOW_USED_CONNECTOR_METHODS) {
+      val methods = ListBuffer[(String, String, String)]()
+      //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+      //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
+      //     ctClass == javassist.CtClassType@77e1b84c[public final class code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$..........
+      val ctClass = classPool.get(className)
+      //eg:methodName = isDefinedAt, sinature =(Lnet/liftweb/http/Req;)Z
+      // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
+      val method = ctClass.getMethod(methodName, signature)
+
+      //this exprEditor will read the method body line by, if it is a methodCall, we will add it into ListBuffer
+      // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
+      //1 = {Tuple3@11566} (scala.Option,isEmpty,()Z)
+      //2 = {Tuple3@11567} (scala.Option,get,()Ljava/lang/Object;)
+      //3 = {Tuple3@11568} (scala.Tuple2,_1,()Ljava/lang/Object;)
+     // The ExprEditor allows you to define how the method's bytecode should be modified. 
+      // You can use methods like insertBefore, insertAfter, replace, etc., to add, modify, 
+      // or replace instructions within the method.
+      val exprEditor = new ExprEditor() {
+        @throws[CannotCompileException]
+        override def edit(m: MethodCall): Unit = { //it will be called whenever this method is used..
+          val tuple = (m.getClassName, m.getMethodName, m.getSignature)
+          methods += tuple
+        }
       }
-    })
-    methods.toList
-  } else {
-    Nil
+
+      // The instrument method in Javassist is used to instrument or modify the bytecode of a method. 
+      // This means you can dynamically insert, replace, or modify instructions in a method during runtime.
+      // just need to define your own expreEditor class
+      method.instrument(exprEditor)
+      
+      methods.toList.distinct
+      
+    } else {
+      Nil
+    }
   }
 
   /**
@@ -4218,23 +4265,33 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * get all dependent connector method names for an object
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
+   * eg: one endpoint:    
+   *         
    */
-  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
-  if (SHOW_USED_CONNECTOR_METHODS){
+  private def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
+  if (SHOW_USED_CONNECTOR_METHODS) {
     val connectorTypeName = classOf[Connector].getName
     val endpointClassName = endpoint.getClass.getName
     // not analyze dynamic code
-//    if(endpointClassName.startsWith("__wrapper$")) {
-//      return Nil
-//    }
+    //    if(endpointClassName.startsWith("__wrapper$")) {
+    //      return Nil
+    //    }
     val classPool = this.getClassPool(endpoint.getClass.getClassLoader)
 
-    def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
-      memo.memoize((className, methodName, signature)) {
-        // List:: className->methodName->signature
-        val methods = getDependentMethods(className, methodName, signature)
+    /**
+     * this is a recursive funtion, it will get sub levels obp dependent methods. Please also read @getOneLevelDependentMethods
+     * inside the method body, we filter by `ReflectUtils.isObpClass` to find only OBP methods.
+     * The comment will take "className = code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1" 
+     * as an example to explain the whole code.  
+     */
+    def getObpTrace(clazzName: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
+      memo.memoize((clazzName, methodName, signature)) {
+        // List:: className->methodName->signature, find all the dependent methods for one 
+        val methods = getDependentMethods(clazzName, methodName, signature)
 
+        //this is just filter all the OBP classes.
         val list = methods.distinct.filter(it => ReflectUtils.isObpClass(it._1)).filterNot(exclude.contains)
+
         list.collect {
           case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
           case (clazzName, mName, mSignature) if !clazzName.startsWith("__wrapper$") =>
@@ -4243,14 +4300,48 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
 
     //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
-    val ctClass = classPool.get(endpointClassName)
-    
+    //in scala the partialFunction is also treat as a class, we can get it from classPool
+    val endpointCtClass = classPool.get(endpointClassName)
+
     // list of connector method name
     val connectorMethods: Array[String] = for {
-      method <- ctClass.getDeclaredMethods
-      (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
-      if clazzName == connectorTypeName && !methodName.contains("$default$")
-    } yield methodName
+      
+      // we loop all the declared methods for this endpoint.
+      // in scala PartialFunction is also a class, not a method.  it will implicitly convert all method body code to class methods and fields.
+      // eg: the following methods are from "className = code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1" 
+      // you can check the `lazy val createAccountAccessConsents : OBPEndpoint ` PartialFunction method body, the following are the converted methods:
+      // then for each method, need to analyse the code line by line, to find the methods it used, this is done by `getObpTrace` 
+      //  0 = {CtMethod@11476} "javassist.CtMethod@13d04090[public final applyOrElse (Lnet/liftweb/http/Req;Lscala/Function1;)Ljava/lang/Object;]"
+      //  1 = {CtMethod@11477} "javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]"
+      //  2 = {CtMethod@11478} "javassist.CtMethod@481fb1f7[public final volatile isDefinedAt (Ljava/lang/Object;)Z]"
+      //  3 = {CtMethod@11479} "javassist.CtMethod@f1cb486c[public final volatile applyOrElse (Ljava/lang/Object;Lscala/Function1;)Ljava/lang/Object;]"
+      //  4 = {CtMethod@11480} "javassist.CtMethod@e38bb0a8[public static final $anonfun$applyOrElse$2 (Lscala/Tuple2;)Z]"
+      //  5 = {CtMethod@11481} "javassist.CtMethod@985bd81f[public static final $anonfun$applyOrElse$5 (Lcode/api/util/CallContext;)Lnet/liftweb/common/Box;]"
+      //  6 = {CtMethod@11482} "javassist.CtMethod@dbc18ec8[public static final $anonfun$applyOrElse$6 ()Lnet/liftweb/common/Empty$;]"
+      //  7 = {CtMethod@11483} "javassist.CtMethod@584acf1c[public static final $anonfun$applyOrElse$7 (Lcom/openbankproject/commons/model/User;)Lscala/Some;]"
+      //  8 = {CtMethod@11484} "javassist.CtMethod@dbc1964a[public static final $anonfun$applyOrElse$8 ()Lscala/None$;]"
+      //  9 = {CtMethod@11485} "javassist.CtMethod@efa42fa[public static final $anonfun$applyOrElse$9 (Lscala/Option;)Z]"
+      //  10 = {CtMethod@11486} "javassist.CtMethod@dcce4c5e[public static final $anonfun$applyOrElse$10 (Lscala/Option;)Lscala/Tuple2;]"
+      //  11 = {CtMethod@11487} "javassist.CtMethod@cec8127a[public static final $anonfun$applyOrElse$12 (Lnet/liftweb/json/JsonAST$JValue;)Lcode/api/UKOpenBanking/v3_1_0/JSONFactory_UKOpenBanking_310$ConsentPostBodyUKV310;]"
+      //  12 = {CtMethod@11488} "javassist.CtMethod@d072a654[public static final $anonfun$applyOrElse$16 (Lcode/model/Consumer;)Ljava/lang/String;]"
+      //  13 = {CtMethod@11489} "javassist.CtMethod@efd339d2[public static final $anonfun$applyOrElse$15 (Lcode/api/util/CallContext;)Lscala/Option;]"
+      //  14 = {CtMethod@11490} "javassist.CtMethod@4f13c6d1[public static final $anonfun$applyOrElse$14 (Lscala/Option;Lscala/Option;Lcode/api/UKOpenBanking/v3_1_0/JSONFactory_UKOpenBanking_310$ConsentPostBodyUKV310;)Lnet/liftweb/common/Box;]"
+      //  15 = {CtMethod@11491} "javassist.CtMethod@b9c14cb5[public static final $anonfun$applyOrElse$17 (Lscala/Option;Lnet/liftweb/common/Box;)Lcode/consent/ConsentTrait;]"
+      //  16 = {CtMethod@11492} "javassist.CtMethod@1f3dc9c[public static final $anonfun$applyOrElse$18 (Lcode/api/UKOpenBanking/v3_1_0/JSONFactory_UKOpenBanking_310$ConsentPostBodyUKV310;Lscala/Option;Lcode/consent/ConsentTrait;)Lscala/Tuple2;]"
+      //  17 = {CtMethod@11493} "javassist.CtMethod@936a98b2[public static final $anonfun$applyOrElse$13 (Lscala/Option;Lscala/Option;Lcode/api/UKOpenBanking/v3_1_0/JSONFactory_UKOpenBanking_310$ConsentPostBodyUKV310;)Lscala/concurrent/Future;]"
+      //  18 = {CtMethod@11494} "javassist.CtMethod@8f6fdab0[public static final $anonfun$applyOrElse$11 (Lscala/Option;Lnet/liftweb/json/JsonAST$JValue;Lscala/Tuple2;)Lscala/concurrent/Future;]"
+      //  19 = {CtMethod@11495} "javassist.CtMethod@46a5b15a[public static final $anonfun$applyOrElse$4 (Lscala/Option;Lnet/liftweb/json/JsonAST$JValue;Lscala/Tuple2;)Lscala/concurrent/Future;]"
+      //  20 = {CtMethod@11496} "javassist.CtMethod@506168ca[public static final $anonfun$applyOrElse$3 (Lnet/liftweb/json/JsonAST$JValue;Lscala/Tuple2;)Lscala/concurrent/Future;]"
+      //  21 = {CtMethod@11497} "javassist.CtMethod@ece0dbde[public static final $anonfun$applyOrElse$1 (Lnet/liftweb/json/JsonAST$JValue;Lcode/api/util/CallContext;)Lnet/liftweb/common/Box;]"
+      //  22 = {CtMethod@11498} "javassist.CtMethod@81d33197[public static final $anonfun$applyOrElse$9$adapted (Lscala/Option;)Ljava/lang/Object;]"
+      //  23 = {CtMethod@11499} "javassist.CtMethod@edb79645[public static final $anonfun$applyOrElse$2$adapted (Lscala/Tuple2;)Ljava/lang/Object;]"
+      //  24 = {CtMethod@11500} "javassist.CtMethod@d9d8e876[private static $deserializeLambda$ (Ljava/lang/invoke/SerializedLambda;)Ljava/lang/Object;]"
+      endpointDeclaredMethod <- endpointCtClass.getDeclaredMethods
+      //for each method, we will try to loop all the sub level methods it used. getObpTrace will return a list, 
+      (dependentClazzName, dependentMethodName, _) <- getObpTrace(endpointClassName, endpointDeclaredMethod.getName, endpointDeclaredMethod.getSignature)
+      //for the 2rd loop, we will check if it is the connector method,
+      if dependentClazzName == connectorTypeName && !dependentMethodName.contains("$default$")
+    } yield dependentMethodName
 
     connectorMethods.toList.distinct
   }
