@@ -57,9 +57,21 @@ function logout() {
 }
 
 async function makeObpApiCall() {
-  const response = await fetch('/obp/v5.1.0/ui/suggested-session-timeout');
-  const json = await response.json();
-  return json.timeout_in_seconds;
+  let timeoutInSeconds;
+  try {
+    const response = await fetch('/obp/v5.1.0/ui/suggested-session-timeout');
+    const json = await response.json();
+    if(json.timeout_in_seconds) {
+      timeoutInSeconds = json.timeout_in_seconds;
+      console.log(`Suggested value ${timeoutInSeconds} is used`);
+    } else {
+      timeoutInSeconds = 5 * 60 + 1; // Set default value to 301 seconds
+      console.log(`Default value ${timeoutInSeconds} is used`);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return timeoutInSeconds;
 }
 
 async function getSuggestedSessionTimeout() {
@@ -72,7 +84,7 @@ async function getSuggestedSessionTimeout() {
 
 // self executing function to trigger the operation on page load
 (async function () {
-    timeoutIntervalInMillis = await getSuggestedSessionTimeout();
+    timeoutIntervalInMillis = await getSuggestedSessionTimeout(); // Try to get suggested value
     const elem = document.getElementById("loggedIn-username");
     if(elem) {
         // to prevent any lingering timeout handlers preventing memory leaks
