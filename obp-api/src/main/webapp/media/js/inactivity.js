@@ -57,24 +57,22 @@ function logout() {
 }
 
 async function makeObpApiCall() {
-  let response = await fetch('/obp/v5.1.0/ui/suggested-session-timeout');
-  let json = await response.json();
-  console.log(json.timeout_in_seconds);
-  localStorage.setItem("suggested-session-timeout-in-seconds", json.timeout_in_seconds);
+  const response = await fetch('/obp/v5.1.0/ui/suggested-session-timeout');
+  const json = await response.json();
   return json.timeout_in_seconds;
 }
 
-function getSuggestedSessionTimeout() {
-  if(!localStorage.getItem("suggested-session-timeout-in-seconds")) {
-    makeObpApiCall();
+async function getSuggestedSessionTimeout() {
+  if(!sessionStorage.getItem("suggested-session-timeout-in-seconds")) {
+    let timeoutInSeconds = await makeObpApiCall();
+    sessionStorage.setItem("suggested-session-timeout-in-seconds", timeoutInSeconds);
   }
-  return localStorage.getItem("suggested-session-timeout-in-seconds") * 1000 + 1000; // We need timeout in millis
+  return sessionStorage.getItem("suggested-session-timeout-in-seconds") * 1000 + 1000; // We need timeout in millis
 }
 
 // self executing function to trigger the operation on page load
-(function () {
-    timeoutIntervalInMillis = getSuggestedSessionTimeout();
-    console.log(timeoutIntervalInMillis);
+(async function () {
+    timeoutIntervalInMillis = await getSuggestedSessionTimeout();
     const elem = document.getElementById("loggedIn-username");
     if(elem) {
         // to prevent any lingering timeout handlers preventing memory leaks
