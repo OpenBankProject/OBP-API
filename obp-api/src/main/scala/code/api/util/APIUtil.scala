@@ -4200,17 +4200,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * method0's dependentMethods are method1 and method2. 
    * please read `method.instrument(new ExprEditor()`, which will help us to get the dependent methods.
    * 
-   * def method0 = {}
-   * 
-   * def method1 = {
-   *  method0
-   *  }
-   * def method2 = {
-   *  method0
+   * def method0 = {
+   *   method1
+   *   method2
    * }
-   *
-   */
-  def getOneLevelDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+   * 
+   * def method1 = {}
+   * def method2 = {}
+   *  eg: the partial function `lazy val createAccountAccessConsents : OBPEndpoint` first method `applicationAccess`, 
+   *  please check the applicationAccess method body, here is just first two lines of it:
+   * def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] =
+   * getUserAndSessionContextFuture(cc) map { result =>
+   *    val url = result._2.map(_.url).getOrElse("None")
+   *    .....
+   *    
+   * 
+   * the className is `APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1`
+   * methodName is `applicationAccess()`, here is just example, in real compile code it may be mapped to different method
+   * signature is `Ljava/lang/Object;)`
+   * 
+   * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
+   */ 
+  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
     if (SHOW_USED_CONNECTOR_METHODS) {
       val methods = ListBuffer[(String, String, String)]()
       //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
@@ -4221,7 +4232,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
       val method = ctClass.getMethod(methodName, signature)
 
-      //this exprEditor will add all the methods to ListBuffer, whichever method call this method.
+      //this exprEditor will read the method body line by, if it is a methodCall, we will add it into ListBuffer
       // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
       //1 = {Tuple3@11566} (scala.Option,isEmpty,()Z)
       //2 = {Tuple3@11567} (scala.Option,get,()Ljava/lang/Object;)
@@ -4273,17 +4284,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * The comment will take "className = code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1" 
      * as an example to explain the whole code.  
      */
-    def getAllLevelObpDependentMethods(endpointClassName: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
-      memo.memoize((endpointClassName, methodName, signature)) {
-        // List:: className->methodName->signature
-        val methods = getOneLevelDependentMethods(endpointClassName, methodName, signature)
+    def getObpTrace(clazzName: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
+      memo.memoize((clazzName, methodName, signature)) {
+        // List:: className->methodName->signature, find all the dependent methods for one 
+        val methods = getDependentMethods(clazzName, methodName, signature)
 
+        //this is just filter all the OBP classes.
         val list = methods.distinct.filter(it => ReflectUtils.isObpClass(it._1)).filterNot(exclude.contains)
 
         list.collect {
           case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
           case (clazzName, mName, mSignature) if !clazzName.startsWith("__wrapper$") =>
-            getAllLevelObpDependentMethods(clazzName, mName, mSignature, list ::: exclude)
+            getObpTrace(clazzName, mName, mSignature, list ::: exclude)
         }.flatten.distinct
       }
 
@@ -4293,7 +4305,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // list of connector method name
     val connectorMethods: Array[String] = for {
+      
       // we loop all the declared methods for this endpoint.
+      // in scala PartialFunction is also a class, not a method.  it will implicitly convert all method body code to class methods and fields.
+      // eg: the following methods are from "className = code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1" 
+      // you can check the `lazy val createAccountAccessConsents : OBPEndpoint ` PartialFunction method body, the following are the converted methods:
+      // then for each method, need to analyse the code line by line, to find the methods it used, this is done by `getObpTrace` 
       //  0 = {CtMethod@11476} "javassist.CtMethod@13d04090[public final applyOrElse (Lnet/liftweb/http/Req;Lscala/Function1;)Ljava/lang/Object;]"
       //  1 = {CtMethod@11477} "javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]"
       //  2 = {CtMethod@11478} "javassist.CtMethod@481fb1f7[public final volatile isDefinedAt (Ljava/lang/Object;)Z]"
@@ -4320,8 +4337,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       //  23 = {CtMethod@11499} "javassist.CtMethod@edb79645[public static final $anonfun$applyOrElse$2$adapted (Lscala/Tuple2;)Ljava/lang/Object;]"
       //  24 = {CtMethod@11500} "javassist.CtMethod@d9d8e876[private static $deserializeLambda$ (Ljava/lang/invoke/SerializedLambda;)Ljava/lang/Object;]"
       endpointDeclaredMethod <- endpointCtClass.getDeclaredMethods
-      //for each method, we will try to loop all the sub level methods it used. getAllLevelObpDependentMethods will return a list, 
-      (dependentClazzName, dependentMethodName, _) <- getAllLevelObpDependentMethods(endpointClassName, endpointDeclaredMethod.getName, endpointDeclaredMethod.getSignature)
+      //for each method, we will try to loop all the sub level methods it used. getObpTrace will return a list, 
+      (dependentClazzName, dependentMethodName, _) <- getObpTrace(endpointClassName, endpointDeclaredMethod.getName, endpointDeclaredMethod.getSignature)
       //for the 2rd loop, we will check if it is the connector method,
       if dependentClazzName == connectorTypeName && !dependentMethodName.contains("$default$")
     } yield dependentMethodName

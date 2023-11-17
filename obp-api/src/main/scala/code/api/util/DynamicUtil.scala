@@ -162,11 +162,11 @@ object DynamicUtil extends MdcLoggable{
     for {
       method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      ternary @ (typeName, methodName, signature) <- APIUtil.getOneLevelDependentMethods(className, method.getName, method.getSignature)
+      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
     } yield {
       // if method is also dynamic compile code, extract it's dependent method
       if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
-        listBuffer.appendAll(APIUtil.getOneLevelDependentMethods(typeName, methodName, signature))
+        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
       } else {
         listBuffer.append(ternary)
       }
