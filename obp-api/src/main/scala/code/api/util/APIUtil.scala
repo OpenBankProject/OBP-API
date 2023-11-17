@@ -4221,19 +4221,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
       val method = ctClass.getMethod(methodName, signature)
 
-      //this instrument will add all the methods, whichever call this method.
+      //this exprEditor will add all the methods to ListBuffer, whichever method call this method.
       // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
       //1 = {Tuple3@11566} (scala.Option,isEmpty,()Z)
       //2 = {Tuple3@11567} (scala.Option,get,()Ljava/lang/Object;)
       //3 = {Tuple3@11568} (scala.Tuple2,_1,()Ljava/lang/Object;)
-      method.instrument(new ExprEditor() {
+     // The ExprEditor allows you to define how the method's bytecode should be modified. 
+      // You can use methods like insertBefore, insertAfter, replace, etc., to add, modify, 
+      // or replace instructions within the method.
+      val exprEditor = new ExprEditor() {
         @throws[CannotCompileException]
-        override def edit(m: MethodCall): Unit = { //it will loop all the used methods inside the method body.
+        override def edit(m: MethodCall): Unit = { //it will be called whenever this method is used..
           val tuple = (m.getClassName, m.getMethodName, m.getSignature)
           methods += tuple
         }
-      })
+      }
+
+      // The instrument method in Javassist is used to instrument or modify the bytecode of a method. 
+      // This means you can dynamically insert, replace, or modify instructions in a method during runtime.
+      // just need to define your own expreEditor class
+      method.instrument(exprEditor)
+      
       methods.toList.distinct
+      
     } else {
       Nil
     }
