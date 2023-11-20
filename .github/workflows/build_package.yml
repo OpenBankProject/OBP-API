@@ -15,6 +15,9 @@ jobs:
       redis:
         # Docker Hub image
         image: redis
+        ports:
+          # Opens tcp port 6379 on the host and service container
+          - 6379:6379
         # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
