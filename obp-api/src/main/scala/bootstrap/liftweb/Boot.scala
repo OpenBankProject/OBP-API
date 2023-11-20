@@ -680,14 +680,9 @@ class Boot extends MdcLoggable {
     }
 
 
-    val setCookieHeader: (String, String) = getPropsValue("set_response_header_Set-Cookie") match {
-      case Full(value) => ("Set-Cookie", value)
-      case _ => ("Set-Cookie", "Path=/; HttpOnly; Secure")
-    }
     //for XSS vulnerability, set X-Frame-Options header as DENY
     LiftRules.supplementalHeaders.default.set(
       ("X-Frame-Options", "DENY") ::
-        setCookieHeader ::
         Nil
     )
     
