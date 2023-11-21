@@ -1273,9 +1273,6 @@ expectedOpenFuturesPerService=100
 # Enable /Disable IBAN validation
 validate_iban=false
 
-set_response_header_Set-Cookie = "Path=/; HttpOnly; Secure"
-
-
 # Show all dependent connector methods for each endpoint. The default value is false.
 # If set to true, it may consume a significant amount of heap memory.
 #show_used_connector_methods=false
