@@ -697,6 +697,15 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     APIUtil.getObpFormatOperationId("OBPv3.0.0-getCoreAccountById") should be ("OBPv3.0.0-getCoreAccountById")
     APIUtil.getObpFormatOperationId("xxx") should be ("xxx")
   }
+  
+  feature("test APIUtil.basicUrlValidation method") {
+    val testString1 = "https%3A%2F%2Fapisandbox.openbankproject.com%2Foauth%2Fauthorize%3Fnext%3D%2Fen%2Fusers%2Fmyuser%26oauth_token%3DWTOBT2YRCTMI1BCCF4XAIKRXPLLZDZPFAIL5K03Z%26oauth_verifier%3D45381"
+    val testString2 = "http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    
+    APIUtil.basicUrlValidation(testString1) should be (true)
+    APIUtil.basicUrlValidation(testString2) should be (true)
+    
+  }
 
   feature("test APIUtil.getBankIdAccountIdPairsFromUserAuthContexts method") {
 
