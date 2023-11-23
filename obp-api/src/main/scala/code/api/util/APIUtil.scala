@@ -782,7 +782,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // redirectUrl = http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461
     // URLDecoder.decode(urlString,"UTF-8")-->http://localhost:8016?oauth_token=EBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK&oauth_verifier=63461
     val regex =
-      """((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)""".r
+      """((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_\/]*)#?(?:[\w]*))?)""".r
     val decodeUrlValue = URLDecoder.decode(urlString, "UTF-8").trim()
     decodeUrlValue match {
       case regex(_*) if (decodeUrlValue.length <= 2048) => true
