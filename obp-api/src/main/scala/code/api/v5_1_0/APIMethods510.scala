@@ -120,6 +120,33 @@ trait APIMethods510 {
             (SuggestedSessionTimeoutV510(timeoutInSeconds.toString), HttpCode.`200`(cc.callContext))
           }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      regulatedEntities,
+      implementedInApiVersion,
+      nameOf(regulatedEntities),
+      "GET",
+      "/regulated-entities",
+      "Get Regulated Entities",
+      """Returns information about:
+        |
+        |* Regulated Entities
+        """,
+      EmptyBody,
+      EmptyBody,
+      List(UnknownError),
+      apiTagApi  :: Nil)
+
+    lazy val regulatedEntities: OBPEndpoint = {
+      case "regulated-entities" :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          APIUtil.scalaFutureToBoxedJsonResponse(for {
+            regulatedEntities <- Future(APIUtil.getPropsValue("regulated_entities", "[]"))
+          } yield {
+            (parse(regulatedEntities), HttpCode.`200`(cc.callContext))
+          })
+    }
     
     staticResourceDocs += ResourceDoc(
       waitingForGodot,
