@@ -37,14 +37,15 @@ import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.UserAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta}
+import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta, RegulatedEntityTrait}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import java.util.Date
 import code.consent.MappedConsent
 import code.metrics.APIMetric
 import net.liftweb.common.Box
-import net.liftweb.json.parse
+import net.liftweb.json
+import net.liftweb.json.{JValue, parse}
 
 import scala.collection.immutable.List
 import scala.util.Try
@@ -64,6 +65,34 @@ case class APIInfoJsonV510(
                            energy_source : EnergySource400,
                            resource_docs_requires_role: Boolean
                          )
+
+case class RegulatedEntityJsonV510(
+                                    entity_id: String,
+                                    certificate_authority_ca_owner_id: String,
+                                    entity_certificate_public_key: String,
+                                    entity_code: String,
+                                    entity_type: String,
+                                    entity_address: String,
+                                    entity_town_city: String,
+                                    entity_post_code: String,
+                                    entity_country: String,
+                                    entity_web_site: String,
+                                    services: JValue
+                                  )
+case class RegulatedEntityPostJsonV510(
+                                      certificate_authority_ca_owner_id: String,
+                                      entity_certificate_public_key: String,
+                                      entity_code: String,
+                                      entity_type: String,
+                                      entity_address: String,
+                                      entity_town_city: String,
+                                      entity_post_code: String,
+                                      entity_country: String,
+                                      entity_web_site: String,
+                                      services: String
+                                    )
+case class RegulatedEntitiesJsonV510(entities: List[RegulatedEntityJsonV510])
+
 case class WaitingForGodotJsonV510(sleep_in_milliseconds: Long)
 
 case class CertificateInfoJsonV510(
@@ -532,6 +561,25 @@ object JSONFactory510 extends CustomJsonFormats {
 
   def createUserAttributesJson(userAttribute: List[UserAttribute]): UserAttributesResponseJsonV510 = {
     UserAttributesResponseJsonV510(userAttribute.map(createUserAttributeJson))
+  }
+
+  def createRegulatedEntityJson(entity: RegulatedEntityTrait): RegulatedEntityJsonV510 = {
+    RegulatedEntityJsonV510(
+      entity_id = entity.entityId,
+      certificate_authority_ca_owner_id = entity.certificateAuthorityCaOwnerId,
+      entity_certificate_public_key = entity.entityCertificatePublicKey,
+      entity_code = entity.entityCode,
+      entity_type = entity.entityType,
+      entity_address = entity.entityAddress,
+      entity_town_city = entity.entityTownCity,
+      entity_post_code = entity.entityPostCode,
+      entity_country = entity.entityCountry,
+      entity_web_site = entity.entityWebSite,
+      services = json.parse(entity.services)
+    )
+  }
+  def createRegulatedEntitiesJson(entities: List[RegulatedEntityTrait]): RegulatedEntitiesJsonV510 = {
+    RegulatedEntitiesJsonV510(entities.map(createRegulatedEntityJson))
   }
 
   def createMetricJson(metric: APIMetric): MetricJsonV510 = {

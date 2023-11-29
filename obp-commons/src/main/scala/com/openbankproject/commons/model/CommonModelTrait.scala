@@ -96,6 +96,21 @@ trait AccountApplication {
   def status: String
 }
 
+
+trait RegulatedEntityTrait {
+  def entityId: String
+  def certificateAuthorityCaOwnerId: String
+  def entityCode: String
+  def entityCertificatePublicKey: String
+  def entityType: String
+  def entityAddress: String
+  def entityTownCity: String
+  def entityPostCode: String
+  def entityCountry: String
+  def entityWebSite: String
+  def services: String
+}
+
 trait UserAttributeTrait {
   def userAttributeId: String
   def userId: String
