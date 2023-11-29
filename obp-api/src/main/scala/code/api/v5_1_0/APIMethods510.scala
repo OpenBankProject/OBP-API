@@ -136,7 +136,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(UnknownError),
-      apiTagApi  :: Nil)
+      apiTagDirectory :: apiTagApi  :: Nil)
 
     lazy val regulatedEntities: OBPEndpoint = {
       case "regulated-entities" :: Nil JsonGet _ =>

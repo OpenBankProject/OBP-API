@@ -100,6 +100,9 @@ object ApiTag {
   val apiTagPSD2PIIS=ResourceDocTag("Confirmation of Funds Service (PIIS)")
   val apiTagPSD2PIS=ResourceDocTag("Payment Initiation Service (PIS)")
 
+
+  val apiTagDirectory = ResourceDocTag("Directory")
+
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
   val apiTagUkAccountAccess = ResourceDocTag("UK-AccountAccess")
