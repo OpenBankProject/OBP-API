@@ -1,11 +1,13 @@
 package code.api.util.newstyle
 
-import code.api.util.APIUtil.{OBPReturnType, unboxFull}
+import code.api.util.APIUtil.{OBPReturnType, unboxFull, unboxFullOrFail}
+import code.api.util.ErrorMessages.{RegulatedEntityNotDeleted, RegulatedEntityNotFound}
 import code.api.util.{APIUtil, CallContext}
 import code.consumer.Consumers
 import code.model.{AppType, Consumer}
 import code.regulatedentities.MappedRegulatedEntityProvider
 import com.openbankproject.commons.model.RegulatedEntityTrait
+import net.liftweb.common.Box
 
 import scala.concurrent.Future
 
@@ -44,17 +46,33 @@ object RegulatedEntityNewStyle {
     }
   }
 
-  def deleteRegulatedEntityNewStyle(id: String,
-                                callContext: Option[CallContext]
-                               ): OBPReturnType[Boolean] = {
+  def getRegulatedEntitiesNewStyle(callContext: Option[CallContext]): OBPReturnType[List[RegulatedEntityTrait]] = {
     Future {
-      MappedRegulatedEntityProvider.deleteRegulatedEntity(
-        id
-      ) map {
-        (_, callContext)
-      }
+      MappedRegulatedEntityProvider.getRegulatedEntities()
     } map {
-      unboxFull(_)
+      (_, callContext)
+    }
+  }
+  def getRegulatedEntityByEntityIdNewStyle(id: String,
+                                           callContext: Option[CallContext]
+                                          ): OBPReturnType[RegulatedEntityTrait] = {
+    Future {
+      MappedRegulatedEntityProvider.getRegulatedEntityByEntityId(id)
+    }  map {
+      (_, callContext)
+    } map {
+      x => (unboxFullOrFail(x._1, callContext, RegulatedEntityNotFound, 404), x._2)
+    }
+  }
+  def deleteRegulatedEntityNewStyle(id: String,
+                                    callContext: Option[CallContext]
+                                   ): OBPReturnType[Boolean] = {
+    Future {
+      MappedRegulatedEntityProvider.deleteRegulatedEntity(id)
+    } map {
+      (_, callContext)
+    } map {
+      x => (unboxFullOrFail(x._1, callContext, RegulatedEntityNotDeleted, 400), x._2)
     }
   }
 

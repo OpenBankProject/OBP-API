@@ -10,7 +10,7 @@ import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFo
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle}
+import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -141,9 +141,33 @@ trait APIMethods510 {
       case "regulated-entities" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            entities: List[RegulatedEntityTrait] <- Future(MappedRegulatedEntityProvider.getRegulatedEntities())
+            (entities, callContext) <- getRegulatedEntitiesNewStyle(cc.callContext)
           } yield {
-            (createRegulatedEntitiesJson(entities), HttpCode.`200`(cc.callContext))
+            (createRegulatedEntitiesJson(entities), HttpCode.`200`(callContext))
+          }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getRegulatedEntityById,
+      implementedInApiVersion,
+      nameOf(getRegulatedEntityById),
+      "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Get Regulated Entity",
+      """Get Regulated Entity By REGULATED_ENTITY_ID
+        """,
+      EmptyBody,
+      regulatedEntitiesJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi  :: Nil)
+
+    lazy val getRegulatedEntityById: OBPEndpoint = {
+      case "regulated-entities" :: regulatedEntityId :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (entity, callContext)  <- getRegulatedEntityByEntityIdNewStyle(regulatedEntityId, cc.callContext)
+          } yield {
+            (createRegulatedEntityJson(entity), HttpCode.`200`(callContext))
           }
     }
 
@@ -155,12 +179,12 @@ trait APIMethods510 {
       "POST",
       "/regulated-entities",
       "Create Regulated Entity",
-      s""" Create Regulated Entity
+      s"""Create Regulated Entity
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      List(regulatedEntityPostJsonV510),
+      regulatedEntityPostJsonV510,
       regulatedEntitiesJsonV510,
       List(
         $UserNotLoggedIn,
@@ -237,7 +261,7 @@ trait APIMethods510 {
             )
           } yield {
             org.scalameta.logger.elem(deleted)
-            (Full(deleted), HttpCode.`204`(callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
           }
       }
     }

@@ -13,6 +13,10 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
     MappedRegulatedEntity.findAll()
   }
 
+  override def getRegulatedEntityByEntityId(entityId: String): Box[RegulatedEntityTrait] = {
+    MappedRegulatedEntity.find(By(MappedRegulatedEntity.EntityId, entityId))
+  }
+
   override def createRegulatedEntity(certificateAuthorityCaOwnerId: Option[String],
                                      entityCertificatePublicKey: Option[String],
                                      entityCode: Option[String],

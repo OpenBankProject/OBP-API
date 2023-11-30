@@ -516,7 +516,10 @@ object ErrorMessages {
   // Bank related messages
   val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."
   val updateBankError = "OBP-34001: Could not update the Bank"
-  
+
+  val RegulatedEntityNotFound = "OBP-34100: Regulated Entity not found. Please specify a valid value for REGULATED_ENTITY_ID."
+  val RegulatedEntityNotDeleted = "OBP-34101: Regulated Entity cannot be deleted. Please specify a valid value for REGULATED_ENTITY_ID."
+
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "
   val ConsentNotBeforeIssue = "OBP-35002: The time Consent-ID token was issued is set in the future. "

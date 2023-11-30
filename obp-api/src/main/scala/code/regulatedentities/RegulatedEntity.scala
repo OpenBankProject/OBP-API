@@ -16,6 +16,8 @@ trait RegulatedEntityProvider {
 
   def getRegulatedEntities(): List[RegulatedEntityTrait]
 
+  def getRegulatedEntityByEntityId(entityId: String): Box[RegulatedEntityTrait]
+
   def createRegulatedEntity(certificateAuthorityCaOwnerId: Option[String],
                             entityCertificatePublicKey: Option[String],
                             entityCode: Option[String],
