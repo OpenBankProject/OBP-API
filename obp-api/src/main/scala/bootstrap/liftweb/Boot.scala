@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -107,6 +106,7 @@ import code.productcollectionitem.MappedProductCollectionItem
 import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
+import code.regulatedentities.MappedRegulatedEntity
 import code.remotedata.RemotedataActors
 import code.scheduler.{DataBaseCleanerScheduler, DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
@@ -135,6 +135,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
@@ -1034,6 +1035,7 @@ object ToSchemify {
     AuthUser,
     JobScheduler,
     MappedETag,
+    MappedRegulatedEntity,
     AtmAttribute,
     Admin,
     MappedBank,

@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 
 import code.api.Constant
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -10,19 +10,20 @@ import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFo
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
-import code.api.v5_0_0.ConsentJsonV500
+import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model.dataAccess.MappedBankAccount
+import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -32,12 +33,10 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
-import com.openbankproject.commons.model.{AtmId, AtmT, BankId, Permission}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.S
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.parse
 import net.liftweb.mapper.By
@@ -134,19 +133,139 @@ trait APIMethods510 {
         |* Regulated Entities
         """,
       EmptyBody,
-      EmptyBody,
+      regulatedEntitiesJsonV510,
       List(UnknownError),
-      apiTagApi  :: Nil)
+      apiTagDirectory :: apiTagApi  :: Nil)
 
     lazy val regulatedEntities: OBPEndpoint = {
       case "regulated-entities" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
-          APIUtil.scalaFutureToBoxedJsonResponse(for {
-            regulatedEntities <- Future(APIUtil.getPropsValue("regulated_entities", "[]"))
+          for {
+            (entities, callContext) <- getRegulatedEntitiesNewStyle(cc.callContext)
           } yield {
-            (parse(regulatedEntities), HttpCode.`200`(cc.callContext))
-          })
+            (createRegulatedEntitiesJson(entities), HttpCode.`200`(callContext))
+          }
     }
+
+    staticResourceDocs += ResourceDoc(
+      getRegulatedEntityById,
+      implementedInApiVersion,
+      nameOf(getRegulatedEntityById),
+      "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Get Regulated Entity",
+      """Get Regulated Entity By REGULATED_ENTITY_ID
+        """,
+      EmptyBody,
+      regulatedEntitiesJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi  :: Nil)
+
+    lazy val getRegulatedEntityById: OBPEndpoint = {
+      case "regulated-entities" :: regulatedEntityId :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (entity, callContext)  <- getRegulatedEntityByEntityIdNewStyle(regulatedEntityId, cc.callContext)
+          } yield {
+            (createRegulatedEntityJson(entity), HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createRegulatedEntity,
+      implementedInApiVersion,
+      nameOf(createRegulatedEntity),
+      "POST",
+      "/regulated-entities",
+      "Create Regulated Entity",
+      s"""Create Regulated Entity
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      regulatedEntityPostJsonV510,
+      regulatedEntitiesJsonV510,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canCreateRegulatedEntity))
+    )
+
+    lazy val createRegulatedEntity: OBPEndpoint = {
+      case "regulated-entities" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $RegulatedEntityPostJsonV510 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[RegulatedEntityPostJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `services` field is not valid JSON"
+            _ <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              parse(postedData.services)
+            }
+            (entity, callContext) <- createRegulatedEntityNewStyle(
+              certificateAuthorityCaOwnerId = Some(postedData.certificate_authority_ca_owner_id),
+              entityCertificatePublicKey = Some(postedData.entity_certificate_public_key),
+              entityCode = Some(postedData.entity_code),
+              entityType = Some(postedData.entity_type),
+              entityAddress = Some(postedData.entity_address),
+              entityTownCity = Some(postedData.entity_town_city),
+              entityPostCode = Some(postedData.entity_post_code),
+              entityCountry = Some(postedData.entity_country),
+              entityWebSite = Some(postedData.entity_web_site),
+              services = Some(postedData.services),
+              cc.callContext
+            )
+          } yield {
+            (createRegulatedEntityJson(entity), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteRegulatedEntity,
+      implementedInApiVersion,
+      nameOf(deleteRegulatedEntity),
+      "DELETE",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Delete Regulated Entity",
+      s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canDeleteRegulatedEntity)))
+
+    lazy val deleteRegulatedEntity: OBPEndpoint = {
+      case "regulated-entities" :: regulatedEntityId :: Nil JsonDelete _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- deleteRegulatedEntityNewStyle(
+              regulatedEntityId: String,
+              cc.callContext: Option[CallContext]
+            )
+          } yield {
+            org.scalameta.logger.elem(deleted)
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
     staticResourceDocs += ResourceDoc(
       waitingForGodot,
