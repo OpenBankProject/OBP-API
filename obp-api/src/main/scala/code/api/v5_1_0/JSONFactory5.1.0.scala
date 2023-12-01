@@ -30,12 +30,13 @@ import code.api.Constant
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
 import code.api.util.APIUtil.gitCommit
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
+import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
-import code.users.UserAttribute
+import code.users.{UserAttribute, Users}
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta, RegulatedEntityTrait}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
@@ -43,7 +44,8 @@ import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import java.util.Date
 import code.consent.MappedConsent
 import code.metrics.APIMetric
-import net.liftweb.common.Box
+import code.model.Consumer
+import net.liftweb.common.{Box, Full}
 import net.liftweb.json
 import net.liftweb.json.{JValue, parse}
 
@@ -278,6 +280,18 @@ case class MetricJsonV510(
                        response_body: String
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
+
+case class ConsumerJsonV510(consumer_id: String,
+                            app_name: String,
+                            app_type: String,
+                            description: String,
+                            developer_email: String,
+                            redirect_url: String,
+                            created_by_user_id: String,
+                            created_by_user: ResourceUserJSON,
+                            enabled: Boolean,
+                            created: Date
+                           )
 
 object JSONFactory510 extends CustomJsonFormats {
 
@@ -604,6 +618,32 @@ object JSONFactory510 extends CustomJsonFormats {
 
   def createMetricsJson(metrics: List[APIMetric]): MetricsJsonV510 = {
     MetricsJsonV510(metrics.map(createMetricJson))
+  }
+
+  def createConsumerJSON(c: Consumer): ConsumerJsonV510 = {
+
+    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJsonV510(consumer_id = c.consumerId.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      redirect_url = c.redirectURL.get,
+      created_by_user_id = c.createdByUserId.get,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get
+    )
   }
 
 
