@@ -1769,6 +1769,14 @@ trait APIMethods510 {
     }
 
 
+    private def consumerDisabledText() = {
+      if(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
+        "Please note: Your consumer may be disabled as a result of this action."
+      } else {
+        ""
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       updateConsumerRedirectUrl,
       implementedInApiVersion,
@@ -1777,6 +1785,8 @@ trait APIMethods510 {
       "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectUrl",
       s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+         |
+         | ${consumerDisabledText()}
          |
          | CONSUMER_ID can be obtained after you register the application.
          |
