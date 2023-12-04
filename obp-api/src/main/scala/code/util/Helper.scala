@@ -168,7 +168,7 @@ object Helper extends Loggable {
   }
 
   def extractCleanRedirectURL(input: String): Box[String] = {
-    Full(input.split("\\?oauth_token=")(0))
+    Full(input.split("\\?")(0))
   }
   
   /**

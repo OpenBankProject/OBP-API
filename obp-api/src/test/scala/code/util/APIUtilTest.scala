@@ -703,11 +703,13 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     val testString2 = "http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
     val testString3 = "myapp://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
     val testString4 = "fb00000000:://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    val testString5 = "http://127.0.0.1:8000/oauth/authorize?next=/en/metrics/api/&oauth_token=TN0124OCPRCL4KUJRF5LNLVMRNHTVZPJDBS2PNWU&oauth_verifier=10470"
     
     APIUtil.basicUriAndQueryStringValidation(testString1) should be (true)
     APIUtil.basicUriAndQueryStringValidation(testString2) should be (true)
     APIUtil.basicUriAndQueryStringValidation(testString3) should be (true)
     APIUtil.basicUriAndQueryStringValidation(testString4) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString5) should be (true)
     
   }
 
