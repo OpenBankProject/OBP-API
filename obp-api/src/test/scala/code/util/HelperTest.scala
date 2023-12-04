@@ -38,9 +38,13 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
   feature("test APIUtil.basicUrlValidation method") {
     val testString1 = "http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
     val testString2 = "http://localhost:8082?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
+    val testString3 = "myapp://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    val testString4 = "fb00000000:://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
 
     Helper.extractCleanRedirectURL(testString1).head should be("http://localhost:8082/oauthcallback")
     Helper.extractCleanRedirectURL(testString2).head should be("http://localhost:8082")
+    Helper.extractCleanRedirectURL(testString3).head should be("myapp://callback")
+    Helper.extractCleanRedirectURL(testString4).head should be("fb00000000:://callback")
 
   }
 
