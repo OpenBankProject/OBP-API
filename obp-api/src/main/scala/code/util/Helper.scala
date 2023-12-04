@@ -167,8 +167,14 @@ object Helper extends Loggable {
     prettyRender(decompose(input))
   }
 
-  def extractCleanRedirectURL(input: String): Box[String] = {
-    Full(input.split("\\?")(0))
+
+  /**
+   * 
+   * @param redirectUrl eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+   * @return http://localhost:8082/oauthcallback
+   */
+  def getStaticPortionOfRedirectURL(redirectUrl: String): Box[String] = {
+    Full(redirectUrl.split("\\?")(0)) //return everything before the "?"
   }
   
   /**

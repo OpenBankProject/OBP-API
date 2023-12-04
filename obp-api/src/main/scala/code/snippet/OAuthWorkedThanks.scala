@@ -48,7 +48,7 @@ class OAuthWorkedThanks extends MdcLoggable {
     val redirectUrl = ObpS.param("redirectUrl").map(urlDecode(_))
     logger.debug(s"OAuthWorkedThanks.thanks.redirectUrl $redirectUrl")
     //extract the clean(omit the parameters) redirect url from request url
-    val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
+    val requestedRedirectURL = Helper.getStaticPortionOfRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
     logger.debug(s"OAuthWorkedThanks.thanks.requestedRedirectURL $requestedRedirectURL")
     
     val requestedOauthToken = Helper.extractOauthToken(redirectUrl.openOr("No Oauth Token here")) openOr("No Oauth Token here")
