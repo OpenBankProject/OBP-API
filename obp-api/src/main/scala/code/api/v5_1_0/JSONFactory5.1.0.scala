@@ -281,13 +281,23 @@ case class MetricJsonV510(
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
+case class ConsumerPostJsonV510(entity_name: String,
+                                app_name: String,
+                                app_type: String,
+                                description: String,
+                                developer_email: String,
+                                redirect_url: String,
+                               )
 case class ConsumerJsonV510(consumer_id: String,
+                            consumer_key: String,
+                            consumer_secret: String,
                             app_name: String,
                             app_type: String,
                             description: String,
                             developer_email: String,
                             redirect_url: String,
-                            created_by_user_id: String,
+                            certificate_pem: String,
+                            certificate_info: Option[CertificateInfoJsonV510],
                             created_by_user: ResourceUserJSON,
                             enabled: Boolean,
                             created: Date
@@ -620,7 +630,7 @@ object JSONFactory510 extends CustomJsonFormats {
     MetricsJsonV510(metrics.map(createMetricJson))
   }
 
-  def createConsumerJSON(c: Consumer): ConsumerJsonV510 = {
+  def createConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonV510 = {
 
     val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
       case Full(resourceUser) => ResourceUserJSON(
@@ -633,13 +643,17 @@ object JSONFactory510 extends CustomJsonFormats {
       case _ => null
     }
 
-    ConsumerJsonV510(consumer_id = c.consumerId.get,
+    ConsumerJsonV510(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      consumer_secret = c.secret.get,
       app_name = c.name.get,
       app_type = c.appType.toString(),
       description = c.description.get,
       developer_email = c.developerEmail.get,
       redirect_url = c.redirectURL.get,
-      created_by_user_id = c.createdByUserId.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
       enabled = c.isActive.get,
       created = c.createdAt.get

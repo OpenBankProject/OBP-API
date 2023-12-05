@@ -10,6 +10,7 @@ import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFo
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
@@ -23,6 +24,7 @@ import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
+import code.model.AppType
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
@@ -41,6 +43,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.parse
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -1764,6 +1767,72 @@ trait APIMethods510 {
             (atmAttributes, callContext) <- NewStyle.function.deleteAtmAttributesByAtmId(atmId, callContext) 
           } yield {
             (Full(deleted && atmAttributes), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/dynamic-registration/consumers",
+      "Create a Consumer",
+      s"""Create a Consumer (mTLS access).
+         |
+         |""",
+      ConsumerPostJsonV510(
+        "TESOBE GmbH",
+        "Test",
+        "Web",
+        "Description",
+        "some@email.com",
+        "redirecturl",
+      ),
+      consumerJsonV510,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagConsumer),
+      Some(Nil))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "dynamic-registration" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              json.extract[ConsumerPostJsonV510]
+            }
+            pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+            certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem)) map {
+              unboxFullOrFail(_, cc.callContext, X509GeneralError)
+            }
+            _ <- Helper.booleanToFuture(RegulatedEntityNotFoundByCertificate, 400, cc.callContext) {
+              MappedRegulatedEntityProvider.getRegulatedEntities()
+                .exists(_.entityCertificatePublicKey.replace("""\n""", "") == pem.getOrElse("").replace("""\n""", ""))
+            }
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(true),
+              name = Some(postedJson.app_name),
+              appType = Some(AppType.valueOf(postedJson.app_type)),
+              description = Some(postedJson.description),
+              developerEmail = Some(postedJson.developer_email),
+              redirectURL = Some(postedJson.redirect_url),
+              createdByUserId = None,
+              clientCertificate = pem,
+              cc.callContext
+            )
+          } yield {
+            // Format the data as json
+            val json = JSONFactory510.createConsumerJSON(consumer, Some(certificateInfo))
+            // Return
+            (json, HttpCode.`201`(callContext))
           }
       }
     }
