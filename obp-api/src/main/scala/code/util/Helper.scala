@@ -1,6 +1,6 @@
 package code.util
 
-import java.net.{Socket, SocketException}
+import java.net.{Socket, SocketException, URL}
 import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
@@ -21,6 +21,7 @@ import net.liftweb.http.S
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
+
 import java.lang.reflect.Method
 import scala.concurrent.Future
 import scala.util.Random
@@ -187,18 +188,10 @@ object Helper extends Loggable {
    */
   @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")  
   def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
-    val staticPortionOfRedirectURL = getStaticPortionOfRedirectURL(redirectUrl).getOrElse(redirectUrl)
-    /**
-     * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
-     * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
-     */
-    //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
-    val pattern = "([A-Za-z][A-Za-z0-9+.-]*):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
-    val validRedirectURL = pattern findFirstIn staticPortionOfRedirectURL
-    // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
-    // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
-    // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
-    tryo(validRedirectURL.getOrElse("").split("/oauth")(0))
+    val url = new URL(redirectUrl) //eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    val protocol = url.getProtocol() // http
+    val authority = url.getAuthority()// localhost:8082, this will contain the port.
+    tryo(s"$protocol://$authority") // http://localhost:8082 
   }
   
   /**
