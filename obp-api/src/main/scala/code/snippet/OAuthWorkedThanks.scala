@@ -48,8 +48,10 @@ class OAuthWorkedThanks extends MdcLoggable {
     val redirectUrl = ObpS.param("redirectUrl").map(urlDecode(_))
     logger.debug(s"OAuthWorkedThanks.thanks.redirectUrl $redirectUrl")
     //extract the clean(omit the parameters) redirect url from request url
-    val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
-    logger.debug(s"OAuthWorkedThanks.thanks.requestedRedirectURL $requestedRedirectURL")
+    val staticPortionOfRedirectUrl = Helper.getStaticPortionOfRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
+    val hostOnlyOfRedirectUrlLegacy = Helper.getHostOnlyOfRedirectURL(staticPortionOfRedirectUrl) openOr("invalidRequestedRedirectURL")
+    logger.debug(s"OAuthWorkedThanks.thanks.staticPortionOfRedirectUrl $staticPortionOfRedirectUrl")
+    logger.debug(s"OAuthWorkedThanks.thanks.hostOnlyOfRedirectUrlLegacy $hostOnlyOfRedirectUrlLegacy")
     
     val requestedOauthToken = Helper.extractOauthToken(redirectUrl.openOr("No Oauth Token here")) openOr("No Oauth Token here")
     logger.debug(s"OAuthWorkedThanks.thanks.requestedOauthToken $requestedOauthToken")
@@ -62,13 +64,10 @@ class OAuthWorkedThanks extends MdcLoggable {
     
     redirectUrl match {
       case Full(url) =>
-        //this redirect url is checked by following, no open redirect issue.
-        // TODO maybe handle case of extra trailing / on the url ?
+        val incorrectRedirectUrlMessage =  s"The validRedirectURL is $validRedirectURL but the staticPortionOfRedirectUrl was $staticPortionOfRedirectUrl" 
 
-        val incorrectRedirectUrlMessage =  s"The validRedirectURL is $validRedirectURL but the requestedRedirectURL was $requestedRedirectURL"
-
-
-        if(validRedirectURL.equals(requestedRedirectURL)) {
+        //hostOnlyOfRedirectUrlLegacy is deprecated now, we use the staticPortionOfRedirectUrl stead,
+        if(validRedirectURL.equals(staticPortionOfRedirectUrl)|| validRedirectURL.equals(hostOnlyOfRedirectUrlLegacy)) {
           "#redirect-link [href]" #> url &
           ".app-name"#> appName //there may be several places to be modified in html, so here use the class, not the id.
         }else{
