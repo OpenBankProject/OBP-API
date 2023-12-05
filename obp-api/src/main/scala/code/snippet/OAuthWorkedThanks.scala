@@ -49,7 +49,7 @@ class OAuthWorkedThanks extends MdcLoggable {
     logger.debug(s"OAuthWorkedThanks.thanks.redirectUrl $redirectUrl")
     //extract the clean(omit the parameters) redirect url from request url
     val staticPortionOfRedirectUrl = Helper.getStaticPortionOfRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
-    val hostOnlyOfRedirectUrlLegacy = Helper.getHostOnlyOfRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
+    val hostOnlyOfRedirectUrlLegacy = Helper.getHostOnlyOfRedirectURL(staticPortionOfRedirectUrl) openOr("invalidRequestedRedirectURL")
     logger.debug(s"OAuthWorkedThanks.thanks.staticPortionOfRedirectUrl $staticPortionOfRedirectUrl")
     logger.debug(s"OAuthWorkedThanks.thanks.hostOnlyOfRedirectUrlLegacy $hostOnlyOfRedirectUrlLegacy")
     

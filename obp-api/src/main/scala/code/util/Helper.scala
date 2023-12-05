@@ -3,7 +3,6 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
-
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
 import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
@@ -20,6 +19,7 @@ import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, 
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.http.S
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import java.lang.reflect.Method
 import scala.concurrent.Future
@@ -174,7 +174,7 @@ object Helper extends Loggable {
    * @return http://localhost:8082/oauthcallback
    */
   def getStaticPortionOfRedirectURL(redirectUrl: String): Box[String] = {
-    Full(redirectUrl.split("\\?")(0)) //return everything before the "?"
+    tryo(redirectUrl.split("\\?")(0)) //return everything before the "?"
   }
   
   /**
@@ -182,23 +182,23 @@ object Helper extends Loggable {
    * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/> 
    * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
    *
-   * @param input a long url with parameters 
-   * @return clean redirect url
+   * @param redirectUrl -> http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+   * @return hostOnlyOfRedirectURL-> http://localhost:8082
    */
   @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")  
   def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
+    val staticPortionOfRedirectURL = getStaticPortionOfRedirectURL(redirectUrl).getOrElse(redirectUrl)
     /**
      * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
      * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
      */
     //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
     val pattern = "([A-Za-z][A-Za-z0-9+.-]*):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
-    val validRedirectURL = pattern findFirstIn redirectUrl
+    val validRedirectURL = pattern findFirstIn staticPortionOfRedirectURL
     // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
     // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
     // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
-    val extractCleanURL = validRedirectURL.getOrElse("").split("/oauth")(0)
-    Full(extractCleanURL)
+    tryo(validRedirectURL.getOrElse("").split("/oauth")(0))
   }
   
   /**
