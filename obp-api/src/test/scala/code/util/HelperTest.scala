@@ -49,5 +49,14 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
     Helper.getStaticPortionOfRedirectURL(testString4).head should be("fb00000000:://callback")
     Helper.getStaticPortionOfRedirectURL(testString5).head should be("http://127.0.0.1:8000/oauth/authorize")
   }
+  
+  feature("test APIUtil.getHostOnlyOfRedirectURL method") {
+    // The redirectURl is `http://localhost:8082/oauthcallback`
+    val testString1 = "http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
+    val testString2 = "http://localhost:8082?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
+
+    Helper.getHostOnlyOfRedirectURL(testString1).head should be("http://localhost:8082")
+    Helper.getHostOnlyOfRedirectURL(testString2).head should be("http://localhost:8082")
+  }
 
 }

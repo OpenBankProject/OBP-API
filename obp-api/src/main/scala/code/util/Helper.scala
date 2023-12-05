@@ -178,6 +178,30 @@ object Helper extends Loggable {
   }
   
   /**
+   * extract clean redirect url from input value, because input may have some parameters, such as the following examples  <br/> 
+   * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/> 
+   * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
+   *
+   * @param input a long url with parameters 
+   * @return clean redirect url
+   */
+  @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")  
+  def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
+    /**
+     * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
+     * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
+     */
+    //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
+    val pattern = "([A-Za-z][A-Za-z0-9+.-]*):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
+    val validRedirectURL = pattern findFirstIn redirectUrl
+    // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
+    // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
+    val extractCleanURL = validRedirectURL.getOrElse("").split("/oauth")(0)
+    Full(extractCleanURL)
+  }
+  
+  /**
     * extract Oauth Token String from input value, because input may have some parameters, such as the following examples  <br/> 
     * http://localhost:8082/oauthcallback?oauth_token=DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O&oauth_verifier=64465 
     *   -->  DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O
