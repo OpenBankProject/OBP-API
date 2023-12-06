@@ -9,6 +9,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.X509.{getCommonName, getEmailAddress}
 import code.api.util._
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
@@ -1784,11 +1785,11 @@ trait APIMethods510 {
          |""",
       ConsumerPostJsonV510(
         "TESOBE GmbH",
-        "Test",
-        "Web",
+        Some("Test"),
+        Some("Web"),
         "Description",
-        "some@email.com",
-        "redirecturl",
+        Some("some@email.com"),
+        Some("redirecturl"),
       ),
       consumerJsonV510,
       List(
@@ -1819,11 +1820,11 @@ trait APIMethods510 {
               key = Some(Helpers.randomString(40).toLowerCase),
               secret = Some(Helpers.randomString(40).toLowerCase),
               isActive = Some(true),
-              name = Some(postedJson.app_name),
-              appType = Some(AppType.valueOf(postedJson.app_type)),
+              name = getCommonName(pem).or(postedJson.app_name) ,
+              appType = postedJson.app_type.map(AppType.valueOf).orElse(Some(AppType.valueOf("Confidential"))),
               description = Some(postedJson.description),
-              developerEmail = Some(postedJson.developer_email),
-              redirectURL = Some(postedJson.redirect_url),
+              developerEmail = getEmailAddress(pem).or(postedJson.developer_email),
+              redirectURL = postedJson.redirect_url,
               createdByUserId = None,
               clientCertificate = pem,
               cc.callContext

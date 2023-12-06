@@ -282,11 +282,11 @@ case class MetricJsonV510(
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
 case class ConsumerPostJsonV510(entity_name: String,
-                                app_name: String,
-                                app_type: String,
+                                app_name: Option[String],
+                                app_type: Option[String],
                                 description: String,
-                                developer_email: String,
-                                redirect_url: String,
+                                developer_email: Option[String],
+                                redirect_url: Option[String],
                                )
 case class ConsumerJsonV510(consumer_id: String,
                             consumer_key: String,
