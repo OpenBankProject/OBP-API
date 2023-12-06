@@ -850,7 +850,7 @@ class Boot extends MdcLoggable {
         .map[String](_.getClientId)
         .collect(Collectors.toSet())
 
-      Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
+      Consumers.consumers.vend.getConsumersFuture(Nil, None).foreach{ consumers =>
         consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
           .foreach(HydraUtil.createHydraClient(_))
       }

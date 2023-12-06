@@ -1,6 +1,6 @@
 package code.consumer
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.model.{AppType, Consumer, MappedConsumersProvider}
 import code.remotedata.RemotedataConsumers
 import com.openbankproject.commons.model.{BankIdAccountId, User, View}
@@ -31,7 +31,7 @@ trait ConsumersProvider {
   def getConsumerByConsumerId(consumerId: String): Box[Consumer]
   def getConsumerByConsumerIdFuture(consumerId: String): Future[Box[Consumer]]
   def getConsumersByUserIdFuture(userId: String): Future[List[Consumer]]
-  def getConsumersFuture(): Future[List[Consumer]]
+  def getConsumersFuture(httpParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[Consumer]]
   def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String] = None, company: Option[String] = None): Box[Consumer]
   def deleteConsumer(consumer: Consumer): Boolean
   def updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer]
@@ -64,7 +64,7 @@ class RemotedataConsumersCaseClasses {
   case class getConsumerByConsumerId(consumerId: String)
   case class getConsumerByConsumerIdFuture(consumerId: String)
   case class getConsumersByUserIdFuture(userId: String)
-  case class getConsumersFuture()
+  case class getConsumersFuture(httpParams: List[OBPQueryParam], callContext: Option[CallContext])
   case class createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String], company: Option[String])
   case class updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String])
   case class deleteConsumer(consumer: Consumer)
