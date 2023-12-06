@@ -2086,7 +2086,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |
          |Possible custom url parameters for pagination:
          |
-         |* limit=NUMBER ==> default value: 50
+         |* limit=NUMBER ==> default value: ${Constant.Pagination.limit}
          |* offset=NUMBER ==> default value: 0
          |
          |eg1:?limit=100&offset=0
