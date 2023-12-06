@@ -8,8 +8,11 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
+import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
+import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
@@ -23,6 +26,7 @@ import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
+import code.model.AppType
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
@@ -39,8 +43,9 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.parse
+import net.liftweb.json.{compactRender, parse}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -1773,6 +1778,93 @@ trait APIMethods510 {
 
 
     staticResourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/dynamic-registration/consumers",
+      "Create a Consumer",
+      s"""Create a Consumer (mTLS access).
+         |
+         | JWT payload:
+         |  - minimal
+         |    { "description":"Description" }
+         |  - full
+         |    {
+         |     "description": "Description",
+         |     "app_name": "Tesobe GmbH",
+         |     "app_type": "Sofit",
+         |     "developer_email": "marko@tesobe.com",
+         |     "redirect_url": "http://localhost:8082"
+         |    }
+         | Please note that JWT must be signed with the counterpart private kew of the public key used to establish mTLS
+         |
+         |""",
+      ConsumerJwtPostJsonV510("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IkRlc2NyaXB0aW9uIn0.qDnzk1dGK8akdLFRl8fmJV_SeoDjRTDG_eMogCIzZ7M"),
+      consumerJsonV510,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagConsumer),
+      Some(Nil))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "dynamic-registration" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedJwt <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              json.extract[ConsumerJwtPostJsonV510]
+            }
+            pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, cc.callContext) {
+              verifyJwt(postedJwt.jwt, pem.getOrElse(""))
+            }
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              parse(getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
+            }
+            certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem)) map {
+              unboxFullOrFail(_, cc.callContext, X509GeneralError)
+            }
+            _ <- Helper.booleanToFuture(RegulatedEntityNotFoundByCertificate, 400, cc.callContext) {
+              MappedRegulatedEntityProvider.getRegulatedEntities()
+                .exists(_.entityCertificatePublicKey.replace("""\n""", "") == pem.getOrElse("").replace("""\n""", ""))
+            }
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(true),
+              name = getCommonName(pem).or(postedJson.app_name) ,
+              appType = postedJson.app_type.map(AppType.valueOf).orElse(Some(AppType.valueOf("Confidential"))),
+              description = Some(postedJson.description),
+              developerEmail = getEmailAddress(pem).or(postedJson.developer_email),
+              company = getOrganization(pem),
+              redirectURL = postedJson.redirect_url,
+              createdByUserId = None,
+              clientCertificate = pem,
+              cc.callContext
+            )
+          } yield {
+            // Format the data as json
+            val json = JSONFactory510.createConsumerJSON(consumer, Some(certificateInfo))
+            // Return
+            (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    private def consumerDisabledText() = {
+      if(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
+        "Please note: Your consumer may be disabled as a result of this action."
+      } else {
+        ""
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       updateConsumerRedirectUrl,
       implementedInApiVersion,
       "updateConsumerRedirectUrl",
@@ -1780,6 +1872,8 @@ trait APIMethods510 {
       "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectUrl",
       s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+         |
+         | ${consumerDisabledText()}
          |
          | CONSUMER_ID can be obtained after you register the application.
          |

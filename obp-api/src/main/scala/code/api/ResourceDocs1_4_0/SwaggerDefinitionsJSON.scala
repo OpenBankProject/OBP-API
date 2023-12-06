@@ -2667,6 +2667,31 @@ object SwaggerDefinitionsJSON {
     enabled = true,
     created = DateWithDayExampleObject
   )
+  lazy val pem = "-----BEGIN CERTIFICATE-----\nMIIFIjCCBAqgAwIBAgIIX3qsz7QQxngwDQYJKoZIhvcNAQELBQAwgZ8xCzAJBgNV\r\nBAYTAkRFMQ8wDQYDVQQIEwZCZXJsaW4xDzANBgNVBAcTBkJlcmxpbjEPMA0GA1UE\r\nChMGVEVTT0JFMRowGAYDVQQLExFURVNPQkUgT3BlcmF0aW9uczESMBAGA1UEAxMJ\r\nVEVTT0JFIENBMR8wHQYJKoZIhvcNAQkBFhBhZG1pbkB0ZXNvYmUuY29tMQwwCgYD\r\nVQQpEwNWUE4wHhcNMjMwNzE3MDg0MDAwWhcNMjQwNzE3MDg0MDAwWjCBizELMAkG\r\nA1UEBhMCREUxDzANBgNVBAgTBkJlcmxpbjEPMA0GA1UEBxMGQmVybGluMRQwEgYD\r\nVQQKEwtUZXNvYmUgR21iSDEPMA0GA1UECxMGc3lzb3BzMRIwEAYDVQQDEwlsb2Nh\r\nbGhvc3QxHzAdBgkqhkiG9w0BCQEWEGFkbWluQHRlc29iZS5jb20wggEiMA0GCSqG\r\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCwxGuWUN1H0d0IeYPYWdLA0I/5BXx4DLO6\r\nzfi1GGJlF8BIXRN0VTJckIY9C3J1RnXDs6p6ufA01iHe1PQdL6VzfcaC3j+jUSgV\r\n1z9ybEUPyUwq3PCCxqoVI9n8yh+O6FDn3dvu/9Q2NtBpJHUBDCLf7OO9TgsFU2sE\r\nMys+Hw5DuuX5n5OQ2VIwH+qlMTQnd+yw5y8FKHqAZT5hE60lF/x6sQnwi58hLGRW\r\nSqo/548c2ZpoeWtnyY1I6PyR7zUYGuhruLY8gVFfLE+610u/lj2wYTXMxntpV+tV\r\nralLFRMhvbqZXW/EpuDb/pEbCnLDNDxq5NarLVDzcHs7VhT9MPChAgMBAAGjggFy\r\nMIIBbjATBgNVHSUEDDAKBggrBgEFBQcDAjAaBgNVHREEEzARgglsb2NhbGhvc3SH\r\nBH8AAAEwggEGBggrBgEFBQcBAwSB+TCB9jAIBgYEAI5GAQEwOAYGBACORgEFMC4w\r\nLBYhaHR0cHM6Ly9leGFtcGxlLm9yZy9wa2lkaXNjbG9zdXJlEwdleGFtcGxlMIGI\r\nBgYEAIGYJwIwfjBMMBEGBwQAgZgnAQMMBlBTUF9BSTARBgcEAIGYJwEBDAZQU1Bf\r\nQVMwEQYHBACBmCcBAgwGUFNQX1BJMBEGBwQAgZgnAQQMBlBTUF9JQwwlRHVtbXkg\r\nRmluYW5jaWFsIFN1cGVydmlzaW9uIEF1dGhvcml0eQwHWFgtREZTQTAlBgYEAI5G\r\nAQYwGwYHBACORgEGAQYHBACORgEGAgYHBACORgEGAzARBglghkgBhvhCAQEEBAMC\r\nB4AwHgYJYIZIAYb4QgENBBEWD3hjYSBjZXJ0aWZpY2F0ZTANBgkqhkiG9w0BAQsF\r\nAAOCAQEAKTS7exS9A7rWJLRzWrlHoTu68Avm5g9Dz1GKjgt8rnvj3D21SE14Rf5p\r\n0JWHYH4SiCdnh8Tx+IA7o0TmPJ1JRfAXR3i/5R7TJi/HrnqL+V7SIx2Cuq/hkZEU\r\nAhVs07nnvHURcrlQGwcfn4TbgpCURpCPpYZlNsYySb6BS6I4qFaadHGqMTyEkphV\r\nwfXyB3brmzxj9V4Qgp0t+s/uFuFirWyIayRc9nSSC7vuNVYvib2Kim4y8kvuWpA4\r\nZ51+fFOmBqCqpmwfAADNgDsLJiA/741eBflVd/ZUeAzgOjMCMIaDGlwiwZlePKT7\r\n553GtfsGxZMf05oqfUrQEQfJaU+/+Q==\n-----END CERTIFICATE-----\n"
+  lazy val certificateInfoJsonV510 = CertificateInfoJsonV510(
+    subject_domain_name = "OID.2.5.4.41=VPN, EMAILADDRESS=admin@tesobe.com, CN=TESOBE CA, OU=TESOBE Operations, O=TESOBE, L=Berlin, ST=Berlin, C=DE",
+    issuer_domain_name = "CN=localhost, O=TESOBE GmbH, ST=Berlin, C=DE",
+    not_before = "2022-04-01T10:13:00.000Z",
+    not_after = "2032-04-01T10:13:00.000Z",
+    roles = None,
+    roles_info = Some("PEM Encoded Certificate does not contain PSD2 roles.")
+  )
+  lazy val consumerJsonV510: ConsumerJsonV510 = ConsumerJsonV510(
+    consumer_id = "d0d7b08c-f0ec-4e57-ac99-7d9eafe99225",
+    consumer_key = "d0d7b08c-f0ec-4e57-ac99-7d9eafe99225",
+    consumer_secret = "d0d7b08c-f0ec-4e57-ac99-7d9eafe99225",
+    app_name = "SOFI",
+    app_type = "Web",
+    description = "Account Management",
+    developer_email = ExampleValue.emailExample.value,
+    company = ExampleValue.companyExample.value,
+    redirect_url = "www.openbankproject.com",
+    certificate_pem = pem,
+    certificate_info = Some(certificateInfoJsonV510),
+    created_by_user = resourceUserJSON,
+    enabled = true,
+    created = DateWithDayExampleObject
+  )
 
   val consumersJson = ConsumersJson(
     list = List(consumerJSON)
@@ -4200,15 +4225,6 @@ object SwaggerDefinitionsJSON {
   val oAuth2ServerJWKURIJson = OAuth2ServerJWKURIJson("https://www.googleapis.com/oauth2/v3/certs")
   
   val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(oAuth2ServerJWKURIJson))
-
-  val certificateInfoJsonV510 = CertificateInfoJsonV510(
-    subject_domain_name = "OID.2.5.4.41=VPN, EMAILADDRESS=admin@tesobe.com, CN=TESOBE CA, OU=TESOBE Operations, O=TESOBE, L=Berlin, ST=Berlin, C=DE",
-    issuer_domain_name = "CN=localhost, O=TESOBE GmbH, ST=Berlin, C=DE",
-    not_before = "2022-04-01T10:13:00.000Z",
-    not_after = "2032-04-01T10:13:00.000Z",
-    roles = None,
-    roles_info = Some("PEM Encoded Certificate does not contain PSD2 roles.")
-  )
   
   val updateAccountRequestJsonV310 = UpdateAccountRequestJsonV310(
     label = "Label",

@@ -1,7 +1,8 @@
 package code.api.util.newstyle
 
-import code.api.util.APIUtil.{OBPReturnType, unboxFull}
+import code.api.util.APIUtil.{OBPReturnType, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
+import code.api.util.ErrorMessages.CreateConsumerError
 import code.consumer.Consumers
 import code.model.{AppType, Consumer}
 
@@ -18,6 +19,7 @@ object Consumer {
                              appType: Option[AppType],
                              description: Option[String],
                              developerEmail: Option[String],
+                             company: Option[String],
                              redirectURL: Option[String],
                              createdByUserId: Option[String],
                              clientCertificate: Option[String],
@@ -33,12 +35,13 @@ object Consumer {
         developerEmail,
         redirectURL,
         createdByUserId,
-        clientCertificate
-      ) map {
-        (_, callContext)
-      }
+        clientCertificate,
+        company
+      )
     } map {
-      unboxFull(_)
+      (_, callContext)
+    } map {
+      x => (unboxFullOrFail(x._1, callContext, CreateConsumerError, 400), x._2)
     }
   }
 
