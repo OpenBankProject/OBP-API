@@ -19,6 +19,7 @@ object Consumer {
                              appType: Option[AppType],
                              description: Option[String],
                              developerEmail: Option[String],
+                             company: Option[String],
                              redirectURL: Option[String],
                              createdByUserId: Option[String],
                              clientCertificate: Option[String],
@@ -34,7 +35,8 @@ object Consumer {
         developerEmail,
         redirectURL,
         createdByUserId,
-        clientCertificate
+        clientCertificate,
+        company
       )
     } map {
       (_, callContext)

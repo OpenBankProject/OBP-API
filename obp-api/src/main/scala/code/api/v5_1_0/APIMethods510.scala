@@ -9,7 +9,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.NewStyle.HttpCode
-import code.api.util.X509.{getCommonName, getEmailAddress}
+import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
@@ -1784,12 +1784,11 @@ trait APIMethods510 {
          |
          |""",
       ConsumerPostJsonV510(
-        "TESOBE GmbH",
-        Some("Test"),
-        Some("Web"),
+        None,
+        None,
         "Description",
-        Some("some@email.com"),
-        Some("redirecturl"),
+        None,
+        None,
       ),
       consumerJsonV510,
       List(
@@ -1824,6 +1823,7 @@ trait APIMethods510 {
               appType = postedJson.app_type.map(AppType.valueOf).orElse(Some(AppType.valueOf("Confidential"))),
               description = Some(postedJson.description),
               developerEmail = getEmailAddress(pem).or(postedJson.developer_email),
+              company = getOrganization(pem),
               redirectURL = postedJson.redirect_url,
               createdByUserId = None,
               clientCertificate = pem,

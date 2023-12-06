@@ -281,8 +281,7 @@ case class MetricJsonV510(
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
-case class ConsumerPostJsonV510(entity_name: String,
-                                app_name: Option[String],
+case class ConsumerPostJsonV510(app_name: Option[String],
                                 app_type: Option[String],
                                 description: String,
                                 developer_email: Option[String],
@@ -295,6 +294,7 @@ case class ConsumerJsonV510(consumer_id: String,
                             app_type: String,
                             description: String,
                             developer_email: String,
+                            company: String,
                             redirect_url: String,
                             certificate_pem: String,
                             certificate_info: Option[CertificateInfoJsonV510],
@@ -651,6 +651,7 @@ object JSONFactory510 extends CustomJsonFormats {
       app_type = c.appType.toString(),
       description = c.description.get,
       developer_email = c.developerEmail.get,
+      company = c.company.get,
       redirect_url = c.redirectURL.get,
       certificate_pem = c.clientCertificate.get,
       certificate_info = certificateInfo,

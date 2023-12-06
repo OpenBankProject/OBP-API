@@ -2684,6 +2684,7 @@ object SwaggerDefinitionsJSON {
     app_type = "Web",
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
+    company = ExampleValue.companyExample.value,
     redirect_url = "www.openbankproject.com",
     certificate_pem = pem,
     certificate_info = Some(certificateInfoJsonV510),
