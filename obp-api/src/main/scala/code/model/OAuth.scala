@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 import java.util.{Collections, Date}
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext, OBPAscending, OBPDescending, OBPFromDate, OBPLimit, OBPOffset, OBPOrdering, OBPQueryParam, OBPToDate}
 import code.api.util.CommonFunctions.validUri
 import code.api.util.migration.Migration.DbFunction
 import code.consumer.{Consumers, ConsumersProvider}
@@ -119,11 +119,26 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     Future(getConsumersByUserId(userId))
   }
 
-  def getConsumers(): List[Consumer] = {
-    Consumer.findAll()
+  def getConsumers(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): List[Consumer] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[Consumer](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[Consumer](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(Consumer.createdAt, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(Consumer.createdAt, date) }.headOption
+    val ordering = queryParams.collect {
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(Consumer.createdAt, Ascending)
+          case OBPDescending => OrderBy(Consumer.createdAt, Descending)
+        }
+    }
+
+    val mapperParams: Seq[QueryParam[Consumer]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    
+    Consumer.findAll(mapperParams: _*)
   }
-  override def getConsumersFuture(): Future[List[Consumer]] = {
-    Future(getConsumers())
+  
+  override def getConsumersFuture(httpParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[Consumer]] = {
+    Future(getConsumers(httpParams: List[OBPQueryParam], callContext: Option[CallContext]))
   }
 
   override def createConsumer(key: Option[String],

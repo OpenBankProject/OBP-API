@@ -2,6 +2,7 @@ package code.remotedata
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
+import code.api.util.{CallContext, OBPQueryParam}
 import code.consumer.RemotedataConsumersCaseClasses
 import code.model.{MappedConsumersProvider, _}
 import code.util.Helper.MdcLoggable
@@ -41,9 +42,9 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug(s"getConsumersByUserIdFuture($id)")
       sender ! (mapper.getConsumersByUserId(id))
 
-    case cc.getConsumersFuture() =>
+    case cc.getConsumersFuture(httpParams: List[OBPQueryParam], callContext: Option[CallContext]) =>
       logger.debug(s"getConsumersFuture()")
-      sender ! (mapper.getConsumers())
+      sender ! (mapper.getConsumers(httpParams: List[OBPQueryParam], callContext: Option[CallContext]))
 
     case cc.createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String], company: Option[String]) =>
       logger.debug(s"createConsumer(*****, *****, ${isActive.getOrElse("None")}, ${name.getOrElse("None")}, ${appType.getOrElse("None")}, ${description.getOrElse("None")}, ${developerEmail.getOrElse("None")}, ${redirectURL.getOrElse("None")}, ${createdByUserId.getOrElse("None")}, ${clientCertificate.getOrElse("None")}, ${company.getOrElse("None")})")
