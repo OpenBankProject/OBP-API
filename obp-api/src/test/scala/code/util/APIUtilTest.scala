@@ -698,12 +698,18 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     APIUtil.getObpFormatOperationId("xxx") should be ("xxx")
   }
   
-  feature("test APIUtil.basicUrlValidation method") {
+  feature("test APIUtil.basicUriAndQueryStringValidation method") {
     val testString1 = "https%3A%2F%2Fapisandbox.openbankproject.com%2Foauth%2Fauthorize%3Fnext%3D%2Fen%2Fusers%2Fmyuser%26oauth_token%3DWTOBT2YRCTMI1BCCF4XAIKRXPLLZDZPFAIL5K03Z%26oauth_verifier%3D45381"
     val testString2 = "http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    val testString3 = "myapp://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    val testString4 = "fb00000000:://callback?oauth_token=%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461"
+    val testString5 = "http://127.0.0.1:8000/oauth/authorize?next=/en/metrics/api/&oauth_token=TN0124OCPRCL4KUJRF5LNLVMRNHTVZPJDBS2PNWU&oauth_verifier=10470"
     
-    APIUtil.basicUrlValidation(testString1) should be (true)
-    APIUtil.basicUrlValidation(testString2) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString1) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString2) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString3) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString4) should be (true)
+    APIUtil.basicUriAndQueryStringValidation(testString5) should be (true)
     
   }
 

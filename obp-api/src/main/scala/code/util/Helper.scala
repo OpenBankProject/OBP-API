@@ -1,9 +1,8 @@
 package code.util
 
-import java.net.{Socket, SocketException}
+import java.net.{Socket, SocketException, URL}
 import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
-
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
 import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
@@ -20,7 +19,9 @@ import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, 
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.http.S
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
+
 import java.lang.reflect.Method
 import scala.concurrent.Future
 import scala.util.Random
@@ -167,8 +168,30 @@ object Helper extends Loggable {
     prettyRender(decompose(input))
   }
 
-  def extractCleanRedirectURL(input: String): Box[String] = {
-    Full(input.split("\\?oauth_token=")(0))
+
+  /**
+   * 
+   * @param redirectUrl eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+   * @return http://localhost:8082/oauthcallback
+   */
+  def getStaticPortionOfRedirectURL(redirectUrl: String): Box[String] = {
+    tryo(redirectUrl.split("\\?")(0)) //return everything before the "?"
+  }
+  
+  /**
+   * extract clean redirect url from input value, because input may have some parameters, such as the following examples  <br/> 
+   * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/> 
+   * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
+   *
+   * @param redirectUrl -> http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+   * @return hostOnlyOfRedirectURL-> http://localhost:8082
+   */
+  @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")  
+  def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
+    val url = new URL(redirectUrl) //eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    val protocol = url.getProtocol() // http
+    val authority = url.getAuthority()// localhost:8082, this will contain the port.
+    tryo(s"$protocol://$authority") // http://localhost:8082 
   }
   
   /**
@@ -461,7 +484,7 @@ object Helper extends Loggable {
           }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("consumer_key")){
             result.asInstanceOf[Box[String]].filter(APIUtil.basicConsumerKeyValidation(_)==SILENCE_IS_GOLDEN)
           }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("redirectUrl")){
-            result.asInstanceOf[Box[String]].filter(APIUtil.basicUrlValidation(_))
+            result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
           } else{
             result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
           }

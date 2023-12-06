@@ -1427,19 +1427,22 @@ trait APIMethods510 {
       "GET",
       "/management/metrics",
       "Get Metrics",
-      s"""Get the all metrics
+      s"""Get API metrics rows. These are records of each REST API call.
          |
          |require CanReadMetrics role
          |
          |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
          |
-         |Should be able to filter on the following metrics fields
+         |You can filter by the following fields by applying url parameters
          |
          |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
          |
-         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |1 from_date e.g.:from_date=$DateWithMsExampleString Defaults to the Unix Epoch i.e. ${theEpochTime}
          |
-         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+         |
+         |Note: it is recommended you send a valid from_date (e.g. 5 seconds ago) and to_date (now + 1 second) if you want to get the latest records
+         | Otherwise you may receive stale cached results.
          |
          |3 limit (for pagination: defaults to 50)  eg:limit=200
          |
