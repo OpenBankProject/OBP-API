@@ -281,6 +281,8 @@ case class MetricJsonV510(
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
+
+case class ConsumerJwtPostJsonV510(jwt: String)
 case class ConsumerPostJsonV510(app_name: Option[String],
                                 app_type: Option[String],
                                 description: String,

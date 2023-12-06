@@ -8,6 +8,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
+import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
@@ -42,7 +43,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.parse
+import net.liftweb.json.{compactRender, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -1782,20 +1783,27 @@ trait APIMethods510 {
       "Create a Consumer",
       s"""Create a Consumer (mTLS access).
          |
+         | JWT payload:
+         |  - minimal
+         |    { "description":"Description" }
+         |  - full
+         |    {
+         |     "description": "Description",
+         |     "app_name": "Tesobe GmbH",
+         |     "app_type": "Sofit",
+         |     "developer_email": "marko@tesobe.com",
+         |     "redirect_url": "http://localhost:8082"
+         |    }
+         | Please note that JWT must be signed with the counterpart private kew of the public key used to establish mTLS
+         |
          |""",
-      ConsumerPostJsonV510(
-        None,
-        None,
-        "Description",
-        None,
-        None,
-      ),
+      ConsumerJwtPostJsonV510("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IkRlc2NyaXB0aW9uIn0.qDnzk1dGK8akdLFRl8fmJV_SeoDjRTDG_eMogCIzZ7M"),
       consumerJsonV510,
       List(
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagConsumer),
+      List(apiTagDirectory, apiTagConsumer),
       Some(Nil))
 
 
@@ -1804,10 +1812,16 @@ trait APIMethods510 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
-              json.extract[ConsumerPostJsonV510]
+            postedJwt <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              json.extract[ConsumerJwtPostJsonV510]
             }
             pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, cc.callContext) {
+              verifyJwt(postedJwt.jwt, pem.getOrElse(""))
+            }
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              parse(getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
+            }
             certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem)) map {
               unboxFullOrFail(_, cc.callContext, X509GeneralError)
             }
