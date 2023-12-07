@@ -218,6 +218,7 @@ trait APIMethods510 {
             (entity, callContext) <- createRegulatedEntityNewStyle(
               certificateAuthorityCaOwnerId = Some(postedData.certificate_authority_ca_owner_id),
               entityCertificatePublicKey = Some(postedData.entity_certificate_public_key),
+              entityName = Some(postedData.entity_name),
               entityCode = Some(postedData.entity_code),
               entityType = Some(postedData.entity_type),
               entityAddress = Some(postedData.entity_address),

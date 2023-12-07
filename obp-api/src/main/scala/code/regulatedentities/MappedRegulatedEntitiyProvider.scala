@@ -19,6 +19,7 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
 
   override def createRegulatedEntity(certificateAuthorityCaOwnerId: Option[String],
                                      entityCertificatePublicKey: Option[String],
+                                     entityName: Option[String],
                                      entityCode: Option[String],
                                      entityType: Option[String],
                                      entityAddress: Option[String],
@@ -36,6 +37,10 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
       }
       entityCertificatePublicKey match {
         case Some(v) => entity.EntityCertificatePublicKey(v)
+        case None =>
+      }
+      entityName match {
+        case Some(v) => entity.EntityName(v)
         case None =>
       }
       entityCode match {
@@ -90,20 +95,22 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
 class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[MappedRegulatedEntity] with IdPK {
   override def getSingleton = MappedRegulatedEntity
   object EntityId extends MappedUUID(this)
-  object CertificateAuthorityCaOwnerId extends MappedString(this, 50)
+  object CertificateAuthorityCaOwnerId extends MappedString(this, 256)
+  object EntityName extends MappedString(this, 256)
   object EntityCode extends MappedString(this, 50)
   object EntityCertificatePublicKey extends MappedText(this)
   object EntityType extends MappedString(this, 50)
-  object EntityAddress extends MappedString(this, 50)
+  object EntityAddress extends MappedString(this, 256)
   object EntityTownCity extends MappedString(this, 50)
   object EntityPostCode extends MappedString(this, 50)
   object EntityCountry extends MappedString(this, 50)
-  object EntityWebSite extends MappedString(this, 50)
+  object EntityWebSite extends MappedString(this, 256)
   object Services extends MappedText(this)
 
 
   override def entityId: String = EntityId.get
   override def certificateAuthorityCaOwnerId: String = CertificateAuthorityCaOwnerId.get
+  override def entityName: String = EntityName.get
   override def entityCode: String = EntityCode.get
   override def entityCertificatePublicKey: String = EntityCertificatePublicKey.get
   override def entityType: String = EntityType.get

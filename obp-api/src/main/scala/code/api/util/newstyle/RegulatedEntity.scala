@@ -17,6 +17,7 @@ object RegulatedEntityNewStyle {
 
   def createRegulatedEntityNewStyle(certificateAuthorityCaOwnerId: Option[String],
                                     entityCertificatePublicKey: Option[String],
+                                    entityName: Option[String],
                                     entityCode: Option[String],
                                     entityType: Option[String],
                                     entityAddress: Option[String],
@@ -30,6 +31,7 @@ object RegulatedEntityNewStyle {
       MappedRegulatedEntityProvider.createRegulatedEntity(
         certificateAuthorityCaOwnerId: Option[String],
         entityCertificatePublicKey: Option[String],
+        entityName: Option[String],
         entityCode: Option[String],
         entityType: Option[String],
         entityAddress: Option[String],
