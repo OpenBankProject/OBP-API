@@ -72,6 +72,7 @@ case class RegulatedEntityJsonV510(
                                     entity_id: String,
                                     certificate_authority_ca_owner_id: String,
                                     entity_certificate_public_key: String,
+                                    entity_name: String,
                                     entity_code: String,
                                     entity_type: String,
                                     entity_address: String,
@@ -84,6 +85,7 @@ case class RegulatedEntityJsonV510(
 case class RegulatedEntityPostJsonV510(
                                       certificate_authority_ca_owner_id: String,
                                       entity_certificate_public_key: String,
+                                      entity_name: String,
                                       entity_code: String,
                                       entity_type: String,
                                       entity_address: String,
@@ -594,6 +596,7 @@ object JSONFactory510 extends CustomJsonFormats {
       entity_id = entity.entityId,
       certificate_authority_ca_owner_id = entity.certificateAuthorityCaOwnerId,
       entity_certificate_public_key = entity.entityCertificatePublicKey,
+      entity_name = entity.entityName,
       entity_code = entity.entityCode,
       entity_type = entity.entityType,
       entity_address = entity.entityAddress,

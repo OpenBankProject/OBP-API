@@ -100,6 +100,7 @@ trait AccountApplication {
 trait RegulatedEntityTrait {
   def entityId: String
   def certificateAuthorityCaOwnerId: String
+  def entityName: String
   def entityCode: String
   def entityCertificatePublicKey: String
   def entityType: String
