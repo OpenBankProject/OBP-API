@@ -18,7 +18,6 @@
     <avro.version>1.8.2</avro.version>
     <lift.version>3.5.0</lift.version>
     <jetty.version>9.4.50.v20221201</jetty.version>
-    <log4j.version>2.17.1</log4j.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
