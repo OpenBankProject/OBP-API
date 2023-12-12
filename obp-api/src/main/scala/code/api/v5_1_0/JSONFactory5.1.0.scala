@@ -625,8 +625,8 @@ object JSONFactory510 extends CustomJsonFormats {
       implemented_by_partial_function = metric.getImplementedByPartialFunction(),
       correlation_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
-      source_ip = metric.getTargetIp(),
-      target_ip = metric.getSourceIp(),
+      source_ip = metric.getSourceIp(),
+      target_ip = metric.getTargetIp(),
       response_body = metric.getResponseBody()
     )
   }
