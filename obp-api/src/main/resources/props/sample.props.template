@@ -1049,6 +1049,8 @@ outboundAdapterCallContext.generalContext
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
 
 ## Echo all request headers to response
+# Rename all request headers by prepending the word "echo_" and sends them back as response headers
+# This feature helps to reveal information does every request header sent at a client side really reach a server side
 echo_request_headers=false
 
 ### enable or disable the feature of send "Force-Error" header, default value is false
