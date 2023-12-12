@@ -1039,9 +1039,18 @@ outboundAdapterCallContext.generalContext
 # ------------------------------ default entitlements end ------------------------------
 
 ## Mirror request headers to response
+# This feature is driven by FAPI requirements. For instance:
+# The resource server with the FAPI endpoints
+# - shall set the response header x-fapi-interaction-id to the value
+#   received from the corresponding fapi client request header or to a RFC4122 UUID value
+#   if the request header was not provided to track the interaction, e.g.,
+#   x-fapi-interaction-id: c770aef3-6784-41f7-8e0e-ff5f97bddb3a; and
+# - shall log the value of x-fapi-interaction-id in the log entry.
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
 
 ## Echo all request headers to response
+# Rename all request headers by prepending the word "echo_" and sends them back as response headers
+# This feature helps to reveal information does every request header sent at a client side really reach a server side
 echo_request_headers=false
 
 ### enable or disable the feature of send "Force-Error" header, default value is false
