@@ -643,7 +643,9 @@ object Glossary extends MdcLoggable  {
 				 |If Just in Time Entitlements are enabled then OBP does the following:
 				 |If a user is trying to use a Role (via an endpoint) and the user could grant them selves the required Role(s), then OBP automatically grants the Role.
 				 |i.e. if the User already has canCreateEntitlementAtOneBank or canCreateEntitlementAtAnyBank then OBP will automatically grant a role that would be granted by a manual process anyway.
-				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation.
+				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation:
+				 |  - CanCreateEntitlementAtOneBank
+				 |  - CanCreateEntitlementAtAnyBank
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |
