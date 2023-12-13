@@ -15,7 +15,27 @@
 
     <filter-mapping>
         <filter-name>LiftFilter</filter-name>
-        <url-pattern>/*</url-pattern>
+        <url-pattern>/</url-pattern>
+    </filter-mapping>
+    
+    <filter-mapping>
+        <filter-name>LiftFilter</filter-name>
+        <url-pattern>/obp/*</url-pattern>
+    </filter-mapping>
+    
+    <filter-mapping>
+        <filter-name>LiftFilter</filter-name>
+        <url-pattern>/lift/*</url-pattern>
+    </filter-mapping>
+    
+    <filter-mapping>
+        <filter-name>LiftFilter</filter-name>
+        <url-pattern>/my/*</url-pattern>
+    </filter-mapping>
+    
+    <filter-mapping>
+        <filter-name>LiftFilter</filter-name>
+        <url-pattern>/oauth/*</url-pattern>
     </filter-mapping>
 
     <!--set  the status of HttpOnly and Secure cookie flags-->
