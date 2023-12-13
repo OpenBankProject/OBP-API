@@ -15,6 +15,13 @@
 
     <filter-mapping>
         <filter-name>LiftFilter</filter-name>
+<!--TODO can prepare the white list later    -->
+<!--        We can specify folders or files that we want Liftweb to process.-->
+<!--        For example, we generally want Liftweb to process all HTML files because they are dynamic, and all the RESTful endpoints.-->
+<!--        On the other hand, we generally do not want Liftweb to process JS, JPG, and CSS files because they are static.-->
+<!--        Any processing we can offload from Liftweb is good for performance.-->
+<!--        Note: Jetty will serve the static files, so they will still appear in the Jetty logs.-->
+<!--        Ideally, NGINX is used to serve the static files, preventing them from cluttering the Jetty logs.-->
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
