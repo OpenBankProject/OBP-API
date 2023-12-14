@@ -2,27 +2,33 @@ package code.api.v5_1_0
 
 
 import code.api.Constant
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
+import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.util.newstyle.Consumer.createConsumerNewStyle
+import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
+import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
-import code.api.v5_0_0.ConsentJsonV500
+import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
+import code.model.AppType
 import code.model.dataAccess.MappedBankAccount
+import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -32,15 +38,14 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
-import com.openbankproject.commons.model.{AtmId, AtmT, BankId, Permission}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.S
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.parse
+import net.liftweb.json.{compactRender, parse}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -120,6 +125,154 @@ trait APIMethods510 {
             (SuggestedSessionTimeoutV510(timeoutInSeconds.toString), HttpCode.`200`(cc.callContext))
           }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      regulatedEntities,
+      implementedInApiVersion,
+      nameOf(regulatedEntities),
+      "GET",
+      "/regulated-entities",
+      "Get Regulated Entities",
+      """Returns information about:
+        |
+        |* Regulated Entities
+        """,
+      EmptyBody,
+      regulatedEntitiesJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi  :: Nil)
+
+    lazy val regulatedEntities: OBPEndpoint = {
+      case "regulated-entities" :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (entities, callContext) <- getRegulatedEntitiesNewStyle(cc.callContext)
+          } yield {
+            (createRegulatedEntitiesJson(entities), HttpCode.`200`(callContext))
+          }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getRegulatedEntityById,
+      implementedInApiVersion,
+      nameOf(getRegulatedEntityById),
+      "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Get Regulated Entity",
+      """Get Regulated Entity By REGULATED_ENTITY_ID
+        """,
+      EmptyBody,
+      regulatedEntitiesJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi  :: Nil)
+
+    lazy val getRegulatedEntityById: OBPEndpoint = {
+      case "regulated-entities" :: regulatedEntityId :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (entity, callContext)  <- getRegulatedEntityByEntityIdNewStyle(regulatedEntityId, cc.callContext)
+          } yield {
+            (createRegulatedEntityJson(entity), HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createRegulatedEntity,
+      implementedInApiVersion,
+      nameOf(createRegulatedEntity),
+      "POST",
+      "/regulated-entities",
+      "Create Regulated Entity",
+      s"""Create Regulated Entity
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      regulatedEntityPostJsonV510,
+      regulatedEntitiesJsonV510,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canCreateRegulatedEntity))
+    )
+
+    lazy val createRegulatedEntity: OBPEndpoint = {
+      case "regulated-entities" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $RegulatedEntityPostJsonV510 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[RegulatedEntityPostJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `services` field is not valid JSON"
+            _ <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              parse(postedData.services)
+            }
+            (entity, callContext) <- createRegulatedEntityNewStyle(
+              certificateAuthorityCaOwnerId = Some(postedData.certificate_authority_ca_owner_id),
+              entityCertificatePublicKey = Some(postedData.entity_certificate_public_key),
+              entityName = Some(postedData.entity_name),
+              entityCode = Some(postedData.entity_code),
+              entityType = Some(postedData.entity_type),
+              entityAddress = Some(postedData.entity_address),
+              entityTownCity = Some(postedData.entity_town_city),
+              entityPostCode = Some(postedData.entity_post_code),
+              entityCountry = Some(postedData.entity_country),
+              entityWebSite = Some(postedData.entity_web_site),
+              services = Some(postedData.services),
+              cc.callContext
+            )
+          } yield {
+            (createRegulatedEntityJson(entity), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteRegulatedEntity,
+      implementedInApiVersion,
+      nameOf(deleteRegulatedEntity),
+      "DELETE",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Delete Regulated Entity",
+      s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canDeleteRegulatedEntity)))
+
+    lazy val deleteRegulatedEntity: OBPEndpoint = {
+      case "regulated-entities" :: regulatedEntityId :: Nil JsonDelete _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- deleteRegulatedEntityNewStyle(
+              regulatedEntityId: String,
+              cc.callContext: Option[CallContext]
+            )
+          } yield {
+            org.scalameta.logger.elem(deleted)
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
     staticResourceDocs += ResourceDoc(
       waitingForGodot,
@@ -1275,19 +1428,22 @@ trait APIMethods510 {
       "GET",
       "/management/metrics",
       "Get Metrics",
-      s"""Get the all metrics
+      s"""Get API metrics rows. These are records of each REST API call.
          |
          |require CanReadMetrics role
          |
          |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
          |
-         |Should be able to filter on the following metrics fields
+         |You can filter by the following fields by applying url parameters
          |
          |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
          |
-         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |1 from_date e.g.:from_date=$DateWithMsExampleString Defaults to the Unix Epoch i.e. ${theEpochTime}
          |
-         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+         |
+         |Note: it is recommended you send a valid from_date (e.g. 5 seconds ago) and to_date (now + 1 second) if you want to get the latest records
+         | Otherwise you may receive stale cached results.
          |
          |3 limit (for pagination: defaults to 50)  eg:limit=200
          |
@@ -1620,6 +1776,149 @@ trait APIMethods510 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createConsumer,
+      implementedInApiVersion,
+      "createConsumer",
+      "POST",
+      "/dynamic-registration/consumers",
+      "Create a Consumer",
+      s"""Create a Consumer (mTLS access).
+         |
+         | JWT payload:
+         |  - minimal
+         |    { "description":"Description" }
+         |  - full
+         |    {
+         |     "description": "Description",
+         |     "app_name": "Tesobe GmbH",
+         |     "app_type": "Sofit",
+         |     "developer_email": "marko@tesobe.com",
+         |     "redirect_url": "http://localhost:8082"
+         |    }
+         | Please note that JWT must be signed with the counterpart private kew of the public key used to establish mTLS
+         |
+         |""",
+      ConsumerJwtPostJsonV510("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IkRlc2NyaXB0aW9uIn0.qDnzk1dGK8akdLFRl8fmJV_SeoDjRTDG_eMogCIzZ7M"),
+      consumerJsonV510,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDirectory, apiTagConsumer),
+      Some(Nil))
+
+
+    lazy val createConsumer: OBPEndpoint = {
+      case "dynamic-registration" :: "consumers" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedJwt <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              json.extract[ConsumerJwtPostJsonV510]
+            }
+            pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, cc.callContext) {
+              verifyJwt(postedJwt.jwt, pem.getOrElse(""))
+            }
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+              parse(getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
+            }
+            certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem)) map {
+              unboxFullOrFail(_, cc.callContext, X509GeneralError)
+            }
+            _ <- Helper.booleanToFuture(RegulatedEntityNotFoundByCertificate, 400, cc.callContext) {
+              MappedRegulatedEntityProvider.getRegulatedEntities()
+                .exists(_.entityCertificatePublicKey.replace("""\n""", "") == pem.getOrElse("").replace("""\n""", ""))
+            }
+            (consumer, callContext) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(true),
+              name = getCommonName(pem).or(postedJson.app_name) ,
+              appType = postedJson.app_type.map(AppType.valueOf).orElse(Some(AppType.valueOf("Confidential"))),
+              description = Some(postedJson.description),
+              developerEmail = getEmailAddress(pem).or(postedJson.developer_email),
+              company = getOrganization(pem),
+              redirectURL = postedJson.redirect_url,
+              createdByUserId = None,
+              clientCertificate = pem,
+              cc.callContext
+            )
+          } yield {
+            // Format the data as json
+            val json = JSONFactory510.createConsumerJSON(consumer, Some(certificateInfo))
+            // Return
+            (json, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    private def consumerDisabledText() = {
+      if(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
+        "Please note: Your consumer may be disabled as a result of this action."
+      } else {
+        ""
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateConsumerRedirectUrl,
+      implementedInApiVersion,
+      "updateConsumerRedirectUrl",
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
+      "Update Consumer RedirectUrl",
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+         |
+         | ${consumerDisabledText()}
+         |
+         | CONSUMER_ID can be obtained after you register the application.
+         |
+         | Or use the endpoint 'Get Consumers' to get it
+         |
+       """.stripMargin,
+      consumerRedirectUrlJSON,
+      consumerJSON,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConsumer),
+      Some(List(canUpdateConsumerRedirectUrl))
+    )
+
+    lazy val updateConsumerRedirectUrl: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "redirect_url" :: Nil JsonPut json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) match {
+              case true => Future(Full(Unit))
+              case false => NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl, callContext)
+            }
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) {
+              json.extract[ConsumerRedirectUrlJSON]
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            //only the developer that created the Consumer should be able to edit it
+            _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, callContext) {
+              consumer.createdByUserId.equals(u.userId)
+            }
+            //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table
+            updatedConsumer <- NewStyle.function.updateConsumer(consumer.id.get, None, None, Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)), None, None, None, None, Some(postJson.redirect_url), None, callContext)
+          } yield {
+            val json = JSONFactory510.createConsumerJSON(updatedConsumer)
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
   }
 }

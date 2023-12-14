@@ -10,7 +10,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.util.X509CertUtils
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Failure, Full, Empty}
 import org.bouncycastle.asn1._
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.qualified.QCStatement
@@ -246,5 +246,37 @@ object X509 extends MdcLoggable {
       case None => Failure(ErrorMessages.X509CannotGetCertificate)
     }
   }
-  
+
+  def getCommonName(pem: Option[String]): Box[String] = {
+    getFieldCommon(pem, "CN")
+  }
+  def getOrganization(pem: Option[String]): Box[String] = {
+    getFieldCommon(pem, "O")
+  }
+  def getOrganizationUnit(pem: Option[String]): Box[String] = {
+    getFieldCommon(pem, "OU")
+  }
+  def getEmailAddress(pem: Option[String]): Box[String] = {
+    getFieldCommon(pem, "EMAILADDRESS")
+      .or(getFieldCommon(pem, "EMAILADDRESS".toLowerCase()))
+  }
+
+  private def getFieldCommon(pem: Option[String], field: String) = {
+    pem match {
+      case Some(unboxedPem) =>
+        extractCertificateInfo(unboxedPem).map { item =>
+          val splitByComma: Array[String] = item.subject_domain_name.split(",")
+          val splitByKeyValuePair: Array[(String, String)] = splitByComma.map(i => i.split("=")(0).trim -> i.split("=")(1).trim)
+          val valuesAsMap: Map[String, List[String]] = splitByKeyValuePair.toList.groupBy(_._1).map { case (k, v) => (k, v.map(_._2)) }
+          val result: String = valuesAsMap.get(field).map(_.mkString).getOrElse("")
+          result
+        } match {
+          case Full(value) if value.isEmpty => Empty
+          case everythingElse => everythingElse
+        }
+      case _ =>
+        Empty
+    }
+  }
+
 }

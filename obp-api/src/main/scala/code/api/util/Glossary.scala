@@ -643,7 +643,9 @@ object Glossary extends MdcLoggable  {
 				 |If Just in Time Entitlements are enabled then OBP does the following:
 				 |If a user is trying to use a Role (via an endpoint) and the user could grant them selves the required Role(s), then OBP automatically grants the Role.
 				 |i.e. if the User already has canCreateEntitlementAtOneBank or canCreateEntitlementAtAnyBank then OBP will automatically grant a role that would be granted by a manual process anyway.
-				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation.
+				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation:
+				 |  - CanCreateEntitlementAtOneBank
+				 |  - CanCreateEntitlementAtAnyBank
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |
@@ -2115,11 +2117,10 @@ object Glossary extends MdcLoggable  {
         |
         |Register your App key [HERE]($getServerUrl/consumer-registration)
         |
-        |Copy and paste the CONSUMER_KEY, CONSUMER_SECRET and REDIRECT_URL for the subsequent steps below.
+        |Copy and paste the CLIENT ID (AKA CONSUMER KEY), CLIENT SECRET (AKA CONSUMER SECRET) and REDIRECT_URL for the subsequent steps below.
         |
         |
         |### Step 2: Initiate the OAuth 2.0 / OpenID Connect Flow
-        |
         |
         |Once you have registered your App you should initiate the OAuth2 / OIDC flow using the following URL
         |
@@ -2128,6 +2129,12 @@ object Glossary extends MdcLoggable  {
         |WITH THE following parameters:
         |
         |${APIUtil.getHydraPublicServerUrl}/oauth2/auth?client_id=YOUR-CLIENT-ID&response_type=code&state=GENERATED_BY_YOUR_APP&scope=openid+offline+ReadAccountsBasic+ReadAccountsDetail+ReadBalances+ReadTransactionsBasic+ReadTransactionsDebits+ReadTransactionsDetail&redirect_uri=https%3A%2F%2FYOUR-APP.com%2Fmain.html
+        |
+        |### Step 3: Exchange the authorisation code for an access token
+        |
+        |The token endpoint is:
+        |
+        |${APIUtil.getHydraPublicServerUrl}/oauth2/token
         |
         |
         |For further information please see [here](https://www.ory.sh/hydra/docs/concepts/login#initiating-the-oauth-20--openid-connect-flow)

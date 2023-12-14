@@ -80,16 +80,6 @@
       <version>1.7.26</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <version>${kafka.version}</version>
@@ -360,16 +350,6 @@
       <artifactId>geocalc</artifactId>
       <version>0.5.7</version>
     </dependency>
-    <!-- embeded kafka for unit test start -->
-    <!-- https://mvnrepository.com/artifact/io.github.embeddedkafka/embedded-kafka -->
-    <dependency>
-      <groupId>io.github.embeddedkafka</groupId>
-      <artifactId>embedded-kafka_2.12</artifactId>
-      <version>2.4.1.1</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- embeded kafka for unit test end -->
-    <!-- https://mvnrepository.com/artifact/com.twilio.sdk/twilio -->
     <dependency>
       <groupId>com.twilio.sdk</groupId>
       <artifactId>twilio</artifactId>

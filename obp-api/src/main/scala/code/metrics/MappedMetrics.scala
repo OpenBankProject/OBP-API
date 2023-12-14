@@ -360,7 +360,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
-  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = {
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{
   /**                                                                                        
   * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
   * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -369,7 +369,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
   CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopApis seconds){   
-    Future{
+    {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
       val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToPrimaryKey)
@@ -440,7 +440,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }}
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
-  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = {
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future {
   /**                                                                                        
   * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
   * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -449,7 +449,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)       
   CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedTopConsumers seconds){   
-    Future {
+  
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
       val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption.flatMap(consumerIdToPrimaryKey)
@@ -519,7 +519,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       }
       tryo(result)
     }
-  }}}
+  }}
 
 }
 

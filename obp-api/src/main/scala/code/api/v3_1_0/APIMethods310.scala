@@ -771,6 +771,10 @@ trait APIMethods310 {
       "Get Consumers",
       s"""Get the all Consumers.
          |
+         |${authenticationRequiredMessage(true)}
+         |
+         |${urlParametersDocument(true, true)}
+         |
         |""",
       EmptyBody,
       consumersJson310,
@@ -790,7 +794,9 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConsumers, callContext)
-            consumers <- Consumers.consumers.vend.getConsumersFuture()
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, callContext)
             users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
           } yield {
             (createConsumersJson(consumers, users), HttpCode.`200`(callContext))

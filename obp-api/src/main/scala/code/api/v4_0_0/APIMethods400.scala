@@ -5295,6 +5295,7 @@ trait APIMethods400 extends MdcLoggable {
               appType = None,
               description = Some(postedJson.description),
               developerEmail = Some(postedJson.developer_email),
+              company = None,
               redirectURL = Some(postedJson.redirect_url),
               createdByUserId = Some(u.userId),
               clientCertificate = Some(postedJson.clientCertificate),

@@ -118,6 +118,8 @@ import java.security.AccessControlException
 import java.util.regex.Pattern
 
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
+import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
+import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.etag.MappedETag
 import code.users.Users
 import net.liftweb.mapper.By
@@ -643,7 +645,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val excludedFieldValues = APIUtil.getPropsValue("excluded.response.field.values").map[JArray](it => json.parse(it).asInstanceOf[JArray])
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val jsonAst: JValue = ApiSession.processJson((Extraction.decompose(cc)), callContext)
+    val jsonAst: JValue = {
+      val partialFunctionName = callContext.map(_.resourceDocument.map(_.partialFunctionName)).flatten.getOrElse("")
+      if (
+        nameOf(code.api.v5_1_0.APIMethods510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
+        nameOf(code.api.v5_0_0.APIMethods500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
+        nameOf(Implementations2_2_0.getConnectorMetrics).equals(partialFunctionName)
+      ) {
+        ApiSession.processJson(Extraction.decompose(cc)(CustomJsonFormats.losslessFormats), callContext)
+      } else {
+        ApiSession.processJson((Extraction.decompose(cc)), callContext)
+      }
+    }
     val excludeOptionalFieldsParam = getHttpRequestUrlParam(callContext.map(_.url).getOrElse(""),"exclude-optional-fields")
     val excludedResponseBehaviour = APIUtil.getPropsAsBoolValue("excluded.response.behaviour", false)
     //excludeOptionalFieldsParamValue has top priority, then the excludedResponseBehaviour props.
@@ -776,20 +789,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => false
     }
   }
-  
-  def basicUrlValidation(urlString: String): Boolean = {
-    //in scala test - org.scalatest.FeatureSpecLike.scenario: 
-    // redirectUrl = http%3A%2F%2Flocalhost%3A8016%3Foauth_token%3DEBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK%26oauth_verifier%3D63461
-    // URLDecoder.decode(urlString,"UTF-8")-->http://localhost:8016?oauth_token=EBRZBMOPDXEUGGJP421FPFGK01IY2DGM5O3TLVSK&oauth_verifier=63461
-    val regex =
-      """((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_\/]*)#?(?:[\w]*))?)""".r
-    val decodeUrlValue = URLDecoder.decode(urlString, "UTF-8").trim()
-    decodeUrlValue match {
-      case regex(_*) if (decodeUrlValue.length <= 2048) => true
-      case _ => false
-    }
-  }
-  
   
   /** only  A-Z, a-z, 0-9,-,_,. =, & and max length <= 2048  */
   def basicUriAndQueryStringValidation(urlString: String): Boolean = {
@@ -2100,7 +2099,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |
          |Possible custom url parameters for pagination:
          |
-         |* limit=NUMBER ==> default value: 50
+         |* limit=NUMBER ==> default value: ${Constant.Pagination.limit}
          |* offset=NUMBER ==> default value: 0
          |
          |eg1:?limit=100&offset=0

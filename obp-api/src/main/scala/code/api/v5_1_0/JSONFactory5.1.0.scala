@@ -30,21 +30,24 @@ import code.api.Constant
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
 import code.api.util.APIUtil.gitCommit
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
+import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
-import code.users.UserAttribute
+import code.users.{UserAttribute, Users}
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta}
+import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta, RegulatedEntityTrait}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import java.util.Date
 import code.consent.MappedConsent
 import code.metrics.APIMetric
-import net.liftweb.common.Box
-import net.liftweb.json.parse
+import code.model.Consumer
+import net.liftweb.common.{Box, Full}
+import net.liftweb.json
+import net.liftweb.json.{JValue, parse}
 
 import scala.collection.immutable.List
 import scala.util.Try
@@ -64,6 +67,36 @@ case class APIInfoJsonV510(
                            energy_source : EnergySource400,
                            resource_docs_requires_role: Boolean
                          )
+
+case class RegulatedEntityJsonV510(
+                                    entity_id: String,
+                                    certificate_authority_ca_owner_id: String,
+                                    entity_certificate_public_key: String,
+                                    entity_name: String,
+                                    entity_code: String,
+                                    entity_type: String,
+                                    entity_address: String,
+                                    entity_town_city: String,
+                                    entity_post_code: String,
+                                    entity_country: String,
+                                    entity_web_site: String,
+                                    services: JValue
+                                  )
+case class RegulatedEntityPostJsonV510(
+                                      certificate_authority_ca_owner_id: String,
+                                      entity_certificate_public_key: String,
+                                      entity_name: String,
+                                      entity_code: String,
+                                      entity_type: String,
+                                      entity_address: String,
+                                      entity_town_city: String,
+                                      entity_post_code: String,
+                                      entity_country: String,
+                                      entity_web_site: String,
+                                      services: String
+                                    )
+case class RegulatedEntitiesJsonV510(entities: List[RegulatedEntityJsonV510])
+
 case class WaitingForGodotJsonV510(sleep_in_milliseconds: Long)
 
 case class CertificateInfoJsonV510(
@@ -249,6 +282,30 @@ case class MetricJsonV510(
                        response_body: String
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
+
+
+case class ConsumerJwtPostJsonV510(jwt: String)
+case class ConsumerPostJsonV510(app_name: Option[String],
+                                app_type: Option[String],
+                                description: String,
+                                developer_email: Option[String],
+                                redirect_url: Option[String],
+                               )
+case class ConsumerJsonV510(consumer_id: String,
+                            consumer_key: String,
+                            consumer_secret: String,
+                            app_name: String,
+                            app_type: String,
+                            description: String,
+                            developer_email: String,
+                            company: String,
+                            redirect_url: String,
+                            certificate_pem: String,
+                            certificate_info: Option[CertificateInfoJsonV510],
+                            created_by_user: ResourceUserJSON,
+                            enabled: Boolean,
+                            created: Date
+                           )
 
 object JSONFactory510 extends CustomJsonFormats {
 
@@ -534,6 +591,26 @@ object JSONFactory510 extends CustomJsonFormats {
     UserAttributesResponseJsonV510(userAttribute.map(createUserAttributeJson))
   }
 
+  def createRegulatedEntityJson(entity: RegulatedEntityTrait): RegulatedEntityJsonV510 = {
+    RegulatedEntityJsonV510(
+      entity_id = entity.entityId,
+      certificate_authority_ca_owner_id = entity.certificateAuthorityCaOwnerId,
+      entity_certificate_public_key = entity.entityCertificatePublicKey,
+      entity_name = entity.entityName,
+      entity_code = entity.entityCode,
+      entity_type = entity.entityType,
+      entity_address = entity.entityAddress,
+      entity_town_city = entity.entityTownCity,
+      entity_post_code = entity.entityPostCode,
+      entity_country = entity.entityCountry,
+      entity_web_site = entity.entityWebSite,
+      services = json.parse(entity.services)
+    )
+  }
+  def createRegulatedEntitiesJson(entities: List[RegulatedEntityTrait]): RegulatedEntitiesJsonV510 = {
+    RegulatedEntitiesJsonV510(entities.map(createRegulatedEntityJson))
+  }
+
   def createMetricJson(metric: APIMetric): MetricJsonV510 = {
     MetricJsonV510(
       user_id = metric.getUserId(),
@@ -548,14 +625,45 @@ object JSONFactory510 extends CustomJsonFormats {
       implemented_by_partial_function = metric.getImplementedByPartialFunction(),
       correlation_id = metric.getCorrelationId(),
       duration = metric.getDuration(),
-      source_ip = metric.getTargetIp(),
-      target_ip = metric.getSourceIp(),
+      source_ip = metric.getSourceIp(),
+      target_ip = metric.getTargetIp(),
       response_body = metric.getResponseBody()
     )
   }
 
   def createMetricsJson(metrics: List[APIMetric]): MetricsJsonV510 = {
     MetricsJsonV510(metrics.map(createMetricJson))
+  }
+
+  def createConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonV510 = {
+
+    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJsonV510(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      consumer_secret = c.secret.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      company = c.company.get,
+      redirect_url = c.redirectURL.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get
+    )
   }
 
 

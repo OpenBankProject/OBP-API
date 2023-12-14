@@ -115,6 +115,7 @@ class MappedClassNameTest extends FeatureSpec {
       "code.model.dataAccess.MappedBank",
       "code.UserRefreshes.MappedUserRefreshes",
       "code.DynamicEndpoint.DynamicEndpoint",
+      "code.regulatedentities.MappedRegulatedEntity",
       "code.CustomerDependants.MappedCustomerDependant")
 
   val newMappedTypes = ClassScanUtils.findTypes{ info =>
