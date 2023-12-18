@@ -190,7 +190,7 @@ Note: Your Java environment may need to be setup correctly to use SSL
 
 Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
 
-Note you can copy the following example files to prepare your own configurations:
+Note: You can copy the following example files to prepare your own configurations
  - /obp-api/src/main/resources/logback.xml.example -> /obp-api/src/main/resources/logback.xml (try TRACE or DEBUG)
  - /obp-api/src/main/resources/logback-test.xml.example -> /obp-api/src/main/resources/logback-test.xml (try TRACE or DEBUG)
 
