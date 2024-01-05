@@ -756,14 +756,17 @@ class Boot extends MdcLoggable {
       def onBeginServicing(session: LiftSession, req: Req): Unit = {
         logger.debug(s"Hello from UsernameLockedChecker.onBeginServicing")
         checkIsLocked()
+        logger.debug(s"Bye from UsernameLockedChecker.onBeginServicing")
       }
       def onSessionActivate(session: LiftSession): Unit = {
         logger.debug(s"Hello from UsernameLockedChecker.onSessionActivate")
         checkIsLocked()
+        logger.debug(s"Bye from UsernameLockedChecker.onSessionActivate")
       }
       def onSessionPassivate(session: LiftSession): Unit = {
         logger.debug(s"Hello from UsernameLockedChecker.onSessionPassivate")
         checkIsLocked()
+        logger.debug(s"Bye from UsernameLockedChecker.onSessionPassivate")
       }
       private def checkIsLocked(): Unit = {
         AuthUser.currentUser match {
@@ -771,10 +774,12 @@ class Boot extends MdcLoggable {
             LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
               case true => 
                 AuthUser.logoutCurrentUser
-                logger.warn(s"User ${user.username.get} has been logged out due to it has been locked.")
+                logger.warn(s"checkIsLocked says: User ${user.username.get} has been logged out because it is locked.")
               case false => // Do nothing
+                logger.debug(s"checkIsLocked says: User ${user.username.get} is not locked.")
             }
-          case _ => // Do nothing
+          case _ => // No user found
+            logger.debug(s"checkIsLocked says: No User Found.")
         }
       }
     }
