@@ -19,12 +19,7 @@
     </filter-mapping>
 
     <!--set  the status of HttpOnly and Secure cookie flags-->
-    <session-config>
-        <cookie-config>
-            <secure>true</secure>
-            <http-only>true</http-only>
-        </cookie-config>
-    </session-config>
+
 
 
     <!-- H2 web console 
