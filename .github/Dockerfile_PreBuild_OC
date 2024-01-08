@@ -1,7 +1,8 @@
 FROM jetty:9.4-jdk11-alpine
 # Copy build artifact (.war file) into jetty from 'maven' stage.
 COPY /obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
-RUN cd ../../../.github && jar uvf root.war WEB-INF/classes/logback.xml
+RUN echo $(pwd)
+RUN cd ../../.github && jar uvf root.war WEB-INF/classes/logback.xml
 USER root
 RUN chgrp -R 0 /tmp/jetty && chmod -R g+rwX /tmp/jetty
 RUN chgrp -R 0 /var/lib/jetty && chmod -R g+rwX /var/lib/jetty
