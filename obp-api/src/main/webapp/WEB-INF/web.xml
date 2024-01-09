@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE web-app
+        PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+        "web-app_2_3.dtd">
+
+<web-app>
+    <filter>
+        <filter-name>LiftFilter</filter-name>
+        <display-name>Lift Filter</display-name>
+        <description>The Filter that intercepts lift calls</description>
+        <filter-class>net.liftweb.http.LiftFilter</filter-class>
+    </filter>
+
+
+    <filter-mapping>
+        <filter-name>LiftFilter</filter-name>
+<!--TODO can prepare the white list later    -->
+<!--        We can specify folders or files that we want Liftweb to process.-->
+<!--        For example, we generally want Liftweb to process all HTML files because they are dynamic, and all the RESTful endpoints.-->
+<!--        On the other hand, we generally do not want Liftweb to process JS, JPG, and CSS files because they are static.-->
+<!--        Any processing we can offload from Liftweb is good for performance.-->
+<!--        Note: Jetty will serve the static files, so they will still appear in the Jetty logs.-->
+<!--        Ideally, NGINX is used to serve the static files, preventing them from cluttering the Jetty logs.-->
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!--set  the status of HttpOnly and Secure cookie flags-->
+    <!--<session-config>-->
+    <!--  <cookie-config>-->
+    <!--    <secure>true</secure>-->
+    <!--    <http-only>true</http-only>-->
+    <!--  </cookie-config>-->
+    <!--</session-config>-->
+
+
+    <!-- H2 web console 
+    <servlet>
+      <servlet-name>H2Console</servlet-name>
+      <servlet-class>org.h2.server.web.WebServlet</servlet-class>
+      <load-on-startup>0</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+      <servlet-name>H2Console</servlet-name>
+      <url-pattern>/console/*</url-pattern>
+    </servlet-mapping>
+    -->
+
+</web-app>
