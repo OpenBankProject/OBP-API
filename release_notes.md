@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+12/01/2024                  Renamed table MappedExpectedChallengeAnswer => ExpectedChallengeAnswer and removed prefix 'm' from fields. 
 16/11/2023    2b8811dc      Added show_used_connector_methods, default is false. 
 30/10/2023    4e82c66c      Added createLocalisedResourceDocJson.cache.ttl.seconds, default is 3600 
 13/10/2023    d87c99d8      Added props hikari.connectionTimeout, default is from hikari. 

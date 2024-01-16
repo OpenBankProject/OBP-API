@@ -532,6 +532,7 @@ case class ChallengeCommons(
   
   override val challengeType: String,
   override val consentId: Option[String],
+  override val basketId: Option[String] = None,
   override val scaMethod: Option[SCA],
   override val scaStatus: Option[SCAStatus],
   override val authenticationMethodId: Option[String] ,

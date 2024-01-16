@@ -1334,8 +1334,19 @@ case class OutBoundCreateChallengesC2(
   scaStatus: Option[SCAStatus],
   consentId: Option[String],
   authenticationMethodId: Option[String]) extends TopicTrait
+case class OutBoundCreateChallengesC3(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  userIds: List[String],
+  challengeType: ChallengeType.Value,
+  transactionRequestId: Option[String],
+  scaMethod: Option[SCA],
+  scaStatus: Option[SCAStatus],
+  consentId: Option[String],
+  basketId: Option[String],
+  authenticationMethodId: Option[String]) extends TopicTrait
 
 case class InBoundCreateChallengesC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+case class InBoundCreateChallengesC3(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
 
 case class OutBoundValidateChallengeAnswerC2(
   outboundAdapterCallContext: OutboundAdapterCallContext,

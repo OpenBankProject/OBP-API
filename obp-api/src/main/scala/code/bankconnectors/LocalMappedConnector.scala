@@ -266,6 +266,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       None, //there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
+      None,//there are only for new version, set the empty here.
       challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
       callContext: Option[CallContext])
     (challenge._1.map(_.challengeId),challenge._2)
@@ -296,6 +297,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         None, //there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
+        None,//there are only for new version, set the empty here.
         challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
@@ -323,24 +325,43 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaMethod,
         scaStatus,
         consentId,
+        None, // Signing Baskets are introduced in case of version createChallengesC3
         authenticationMethodId,
         challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
       challengeId.toList
     }
+    (Full(challenges.flatten), callContext)
+  }
 
-    //We use obp MappedExpectedChallengeAnswer instead of  Authorisations now.
-    // please also check Challenges.ChallengeProvider.vend.saveChallenge
-//    Authorisations.authorisationProvider.vend.createAuthorization(
-//      transactionRequestId.getOrElse(""),
-//      consentId.getOrElse(""),
-//      AuthenticationType.SMS_OTP.toString,
-//      "",
-//      ScaStatus.received.toString,
-//      "12345" // TODO Implement SMS sending
-//    )
-    
+  override def createChallengesC3(
+    userIds: List[String],
+    challengeType: ChallengeType.Value,
+    transactionRequestId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    authenticationMethodId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ChallengeTrait]]] = Future {
+    val challenges = for {
+      userId <- userIds
+    } yield {
+      val (challengeId, _) = createChallengeInternal(
+        userId,
+        transactionRequestId.getOrElse(""),
+        scaMethod,
+        scaStatus,
+        consentId,
+        basketId,
+        authenticationMethodId,
+        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
+        callContext
+      )
+      challengeId.toList
+    }
     (Full(challenges.flatten), callContext)
   }
 
@@ -349,7 +370,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     transactionRequestId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus], //Only use for BerlinGroup Now
-    consentId: Option[String],    // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String],    // Note: consentId and transactionRequestId and BasketId are exclusive here.
+    basketId: Option[String],    // Note: consentId and transactionRequestId and BasketId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
     callContext: Option[CallContext]
@@ -367,6 +389,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaMethod,
         scaStatus,
         consentId,
+        basketId,
         authenticationMethodId,
         challengeType), callContext)
     }

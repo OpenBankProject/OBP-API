@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2023-06-01T16:47:09Z
+// ---------- created on 2024-01-15T10:32:00Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -346,6 +346,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -358,6 +359,51 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundCreateChallengesC2 => InBound, OutBoundCreateChallengesC2 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, authenticationMethodId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_challenges_c2", req, callContext)
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
+  messageDocs += createChallengesC3Doc
+  def createChallengesC3Doc = MessageDoc(
+    process = "obp.createChallengesC3",
+    messageFormat = messageFormat,
+    description = "Create Challenges C3",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateChallengesC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      userIds=listExample.value.split("[,;]").toList,
+      challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
+      authenticationMethodId=Some("string"))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateChallengesC3(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createChallengesC3(userIds: List[String], challengeType: ChallengeType.Value, transactionRequestId: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], scaStatus: Option[SCAStatus], consentId: Option[String], basketId: Option[String], authenticationMethodId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateChallengesC3 => InBound, OutBoundCreateChallengesC3 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, basketId, authenticationMethodId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_challenges_c3", req, callContext)
         response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
           
@@ -413,6 +459,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -450,6 +497,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -487,6 +535,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -524,6 +573,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some("string"),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -6495,8 +6545,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2023-06-01T16:47:09Z
-//---------------- dynamic end ---------------------please don't modify this line                           
+// ---------- created on 2024-01-15T10:32:00Z
+//---------------- dynamic end ---------------------please don't modify this line                             
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

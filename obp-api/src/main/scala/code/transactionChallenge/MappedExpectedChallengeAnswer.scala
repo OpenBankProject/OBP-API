@@ -2,9 +2,9 @@ package code.transactionChallenge
 
 import code.util.MappedUUID
 import com.openbankproject.commons.model.ChallengeTrait
-import com.openbankproject.commons.model.enums.{StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.{StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.mapper._
 
 class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[MappedExpectedChallengeAnswer] with IdPK with CreatedUpdated {
@@ -12,36 +12,39 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
   def getSingleton = MappedExpectedChallengeAnswer
 
   // Unique
-  object mChallengeId extends MappedUUID(this)
-  object mChallengeType extends MappedString(this, 100)
-  object mTransactionRequestId extends MappedUUID(this)
-  object mExpectedAnswer extends MappedString(this,50)
-  object mExpectedUserId extends MappedUUID(this)
-  object mSalt extends MappedString(this, 50)
-  object mSuccessful extends MappedBoolean(this)
-  
-  object mScaMethod extends MappedString(this,100)
-  object mScaStatus extends MappedString(this,100)
-  object mConsentId extends MappedString(this,100)
-  object mAuthenticationMethodId extends MappedString(this,100)
-  object mAttemptCounter extends MappedInt(this){
+  object ChallengeId extends MappedUUID(this)
+  object ChallengeType extends MappedString(this, 100)
+  object TransactionRequestId extends MappedUUID(this)
+  object ExpectedAnswer extends MappedString(this,50)
+  object ExpectedUserId extends MappedUUID(this)
+  object Salt extends MappedString(this, 50)
+  object Successful extends MappedBoolean(this)
+
+  object ScaMethod extends MappedString(this,100)
+  object ScaStatus extends MappedString(this,100)
+  object ConsentId extends MappedString(this,100)
+  object BasketId extends MappedString(this,100)
+  object AuthenticationMethodId extends MappedString(this,100)
+  object AttemptCounter extends MappedInt(this){
     override def defaultValue = 0
   }
-  
-  override def challengeId: String = mChallengeId.get
-  override def challengeType: String = mChallengeType.get
-  override def transactionRequestId: String = mTransactionRequestId.get
-  override def expectedAnswer: String = mExpectedAnswer.get
-  override def expectedUserId: String = mExpectedUserId.get
-  override def salt: String = mSalt.get
-  override def successful: Boolean = mSuccessful.get
-  override def consentId: Option[String] = Option(mConsentId.get)
-  override def scaMethod: Option[SCA] = Option(StrongCustomerAuthentication.withName(mScaMethod.get))
-  override def scaStatus: Option[SCAStatus] = Option(StrongCustomerAuthenticationStatus.withName(mScaStatus.get))
-  override def authenticationMethodId: Option[String] = Option(mAuthenticationMethodId.get)
-  override def attemptCounter: Int = mAttemptCounter.get
+
+  override def challengeId: String = ChallengeId.get
+  override def challengeType: String = ChallengeType.get
+  override def transactionRequestId: String = TransactionRequestId.get
+  override def expectedAnswer: String = ExpectedAnswer.get
+  override def expectedUserId: String = ExpectedUserId.get
+  override def salt: String = Salt.get
+  override def successful: Boolean = Successful.get
+  override def consentId: Option[String] = Option(ConsentId.get)
+  override def basketId: Option[String] = Option(BasketId.get)
+  override def scaMethod: Option[SCA] = Option(StrongCustomerAuthentication.withName(ScaMethod.get))
+  override def scaStatus: Option[SCAStatus] = Option(StrongCustomerAuthenticationStatus.withName(ScaStatus.get))
+  override def authenticationMethodId: Option[String] = Option(AuthenticationMethodId.get)
+  override def attemptCounter: Int = AttemptCounter.get
 }
 
 object MappedExpectedChallengeAnswer extends MappedExpectedChallengeAnswer with LongKeyedMetaMapper[MappedExpectedChallengeAnswer] {
-  override def dbIndexes = UniqueIndex(mChallengeId):: super.dbIndexes
+  override def dbTableName = "ExpectedChallengeAnswer" // define the DB table name
+  override def dbIndexes = UniqueIndex(ChallengeId):: super.dbIndexes
 }

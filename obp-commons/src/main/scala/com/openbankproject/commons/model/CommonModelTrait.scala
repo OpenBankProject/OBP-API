@@ -96,6 +96,19 @@ trait AccountApplication {
   def status: String
 }
 
+trait SigningBasketTrait {
+  def basketId: String
+  def status: String
+  def description: String
+}
+trait SigningBasketPaymentTrait {
+  def basketId: String
+  def paymentId: String
+}
+trait SigningBasketConsentTrait {
+  def basketId: String
+  def consentId: String
+}
 
 trait RegulatedEntityTrait {
   def entityId: String
@@ -590,6 +603,7 @@ trait ChallengeTrait {
   //NOTE: following are from BerlinGroup, we try to share the same challenges for different standard.
   //for OBP standard, all the following can be Optional: 
   def consentId: Option[String] // Note: consentId and transactionRequestId are exclusive here.
+  def basketId: Option[String] // Note: consentId and transactionRequestId are exclusive here.
   def scaMethod: Option[SCA]
   def scaStatus: Option[SCAStatus]
   def authenticationMethodId: Option[String]

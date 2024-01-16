@@ -421,7 +421,19 @@ trait Connector extends MdcLoggable {
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String],
     callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
-  
+
+  // now, we try to share the same challenges for obp payments, berlin group payments, berlin group consents and signing baskets
+  def createChallengesC3(
+    userIds: List[String],
+    challengeType: ChallengeType.Value,
+    transactionRequestId: Option[String],
+    scaMethod: Option[SCA],
+    scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    authenticationMethodId: Option[String],
+    callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
+
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   

@@ -365,6 +365,7 @@ object ConnectorBuilderUtil {
     "checkExternalUserCredentials",
     "checkExternalUserExists",
     "createChallengesC2",
+    "createChallengesC3",
     "getChallenge",
     "getChallengesByTransactionRequestId",
     "getChallengesByConsentId",

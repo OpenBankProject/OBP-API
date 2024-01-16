@@ -1402,6 +1402,51 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
+
+    /**
+     *
+     * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
+     * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
+     * @param scaMethod @see the Enum StrongCustomerAuthentication
+     * @param scaStatus @see the Enum StrongCustomerAuthenticationStatus
+     * @param transactionRequestId it is also the BelinGroup PaymentId
+     * @param consentId
+     * @param basketId
+     * @param authenticationMethodId this is used for BelinGroup Consent
+     * @param callContext
+     * @return
+     */
+    def createChallengesC3(
+      userIds: List[String],
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      scaMethod: Option[SCA],
+      scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+      consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+      basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+      authenticationMethodId: Option[String],
+      callContext: Option[CallContext]
+    ) : OBPReturnType[List[ChallengeTrait]] = {
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      }else{
+        Connector.connector.vend.createChallengesC3(
+          userIds: List[String],
+          challengeType: ChallengeType.Value,
+          transactionRequestId: Option[String],
+          scaMethod: Option[SCA],
+          scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+          consentId: Option[String], // Note: consentId and transactionRequestId and consentId  are exclusive here.
+          basketId: Option[String], // Note: consentId and transactionRequestId and consentId are exclusive here.
+          authenticationMethodId: Option[String],
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+        }
+      }
+    }
     
     def getChallengesByTransactionRequestId(
       transactionRequestId: String, 
