@@ -308,7 +308,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-15T10:29:27Z
+// ---------- created on 2024-01-17T09:43:18Z
 
   messageDocs += validateAndCheckIbanNumberDoc
   def validateAndCheckIbanNumberDoc = MessageDoc(
@@ -545,7 +545,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -576,7 +576,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       authenticationMethodId=Some("string"))
     ),
     exampleInboundMessage = (
@@ -590,7 +590,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -658,7 +658,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -696,7 +696,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -734,7 +734,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -772,7 +772,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -6377,6 +6377,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-15T10:29:27Z
-//---------------- dynamic end ---------------------please don't modify this line         
+// ---------- created on 2024-01-17T09:43:18Z
+//---------------- dynamic end ---------------------please don't modify this line          
 }

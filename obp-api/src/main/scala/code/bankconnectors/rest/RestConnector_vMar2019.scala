@@ -96,7 +96,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-15T10:31:47Z
+// ---------- created on 2024-01-17T09:40:00Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -367,7 +367,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -398,7 +398,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       authenticationMethodId=Some("string"))
     ),
     exampleInboundMessage = (
@@ -412,7 +412,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -480,7 +480,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -518,7 +518,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -556,7 +556,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -594,7 +594,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -6566,8 +6566,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-15T10:31:47Z
-//---------------- dynamic end ---------------------please don't modify this line          
+// ---------- created on 2024-01-17T09:40:00Z
+//---------------- dynamic end ---------------------please don't modify this line           
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

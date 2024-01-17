@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-15T10:32:00Z
+// ---------- created on 2024-01-17T09:44:33Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -346,7 +346,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -377,7 +377,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       authenticationMethodId=Some("string"))
     ),
     exampleInboundMessage = (
@@ -391,7 +391,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -459,7 +459,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -497,7 +497,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -535,7 +535,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -573,7 +573,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
-      basketId=Some("string"),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
@@ -6545,8 +6545,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-15T10:32:00Z
-//---------------- dynamic end ---------------------please don't modify this line                             
+// ---------- created on 2024-01-17T09:44:33Z
+//---------------- dynamic end ---------------------please don't modify this line                              
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
