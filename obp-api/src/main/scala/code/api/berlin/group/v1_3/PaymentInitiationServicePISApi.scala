@@ -22,6 +22,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.BERLINGROUP_PAYMENT
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Box.tryo
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -39,9 +40,15 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-  def checkPaymentServerError(paymentService: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+  def checkPaymentServerError(paymentService: String) = {
+    val ccc = ""
+    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+  }
   def checkPaymentProductError(paymentProduct: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be `sepa-credit-transfers`for now, will support (instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers) soon."
 
+  def checkPaymentServiceType(paymentService: String) = tryo {
+    PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+  }.isDefined
 
   val endpoints = 
       cancelPayment ::
@@ -213,7 +220,7 @@ Returns the content of a payment object""",
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ if checkPaymentServiceType(paymentService) => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -669,7 +676,7 @@ This applies in the following scenarios:
      )
 
   lazy val startPaymentAuthorisation : OBPEndpoint = {
-    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _  => {
+    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkPaymentServiceType(paymentService) => {
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
