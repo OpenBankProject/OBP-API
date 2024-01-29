@@ -218,6 +218,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ConsentLinksV13
   )
 
+  case class PutConsentResponseJson(
+    scaStatus: String,
+    _links: ConsentLinksV13
+  )
+
 
   case class GetConsentResponseJson(
     access: ConsentAccessJson,
@@ -231,6 +236,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   
   case class StartConsentAuthorisationJson(
     scaStatus: String,
+    authorisationId: String,
     pushMessage: String,
     _links: ScaStatusJsonV13
   )
@@ -502,6 +508,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
     )
   }
+  def createPutConsentResponseJson(consent: ConsentTrait) : PutConsentResponseJson = {
+    PutConsentResponseJson(
+      scaStatus = consent.status.toLowerCase(),
+      _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
+    )
+  }
 
   def createGetConsentResponseJson(createdConsent: ConsentTrait) : GetConsentResponseJson = {
     val jsonWebTokenAsJValue: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(createdConsent.jsonWebToken)
@@ -522,6 +534,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   def createStartConsentAuthorisationJson(consent: ConsentTrait, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse("None"),
+      authorisationId = challenge.authenticationMethodId.getOrElse("None"),
       pushMessage = "started", //TODO Not implement how to fill this.
       _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${challenge.challengeId}")//TODO, Not sure, what is this for??
     )

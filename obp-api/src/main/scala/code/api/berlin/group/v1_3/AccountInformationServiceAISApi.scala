@@ -123,8 +123,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
          consentId = "1234-wertiq-983",
          consentStatus = "received",
          _links = ConsentLinksV13("/v1.3/consents/1234-wertiq-983/authorisations")
-       )
-         ,
+       ),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
@@ -1055,10 +1054,11 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
  * The signing basket needs to be authorised yet.
 
 """,
-       emptyObjectJson,
+       emptyObjectJson,//TODO in the `psd2-api v1.3.12-2022-07-06.yaml` it is a oneOf field, if OBP need it we can add it back.
        json.parse("""{
                        "scaStatus": "received",
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                       "authorisationId": "123auth456.",
                        "_links":
                          {
                            "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
@@ -1132,7 +1132,10 @@ Maybe in a later version the access path will change.
 
             """,
        json.parse("""{"scaAuthenticationData":"123"}"""),
-       emptyObjectJson,
+       PutConsentResponseJson(
+         scaStatus = "received",
+         _links = ConsentLinksV13("/v1.3/consents/1234-wertiq-983/authorisations")
+       ),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
@@ -1184,7 +1187,7 @@ Maybe in a later version the access path will change.
                unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
              }
            } yield {
-             (createPostConsentResponseJson(consent.toList.head), HttpCode.`200`(callContext))
+             (createPutConsentResponseJson(consent.toList.head), HttpCode.`200`(callContext))
            }
          }
        }
