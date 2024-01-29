@@ -99,8 +99,12 @@ trait AccountApplication {
 trait SigningBasketTrait {
   def basketId: String
   def status: String
-  def description: String
 }
+case class SigningBasketContent(
+                                basket: SigningBasketTrait,
+                                payments: Option[List[String]],
+                                consents: Option[List[String]]
+                              )
 trait SigningBasketPaymentTrait {
   def basketId: String
   def paymentId: String

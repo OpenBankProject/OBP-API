@@ -1,6 +1,6 @@
 package code.signingbaskets
 
-import com.openbankproject.commons.model.SigningBasketTrait
+import com.openbankproject.commons.model.{SigningBasketContent, SigningBasketTrait}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -15,11 +15,10 @@ trait SigningBasketProvider {
 
   def getSigningBaskets(): List[SigningBasketTrait]
 
-  def getSigningBasketByBasketId(entityId: String): Box[SigningBasketTrait]
+  def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent]
 
-  def createSigningBasket(basketId: Option[String],
-                          status: Option[String],
-                          description: Option[String],
+  def createSigningBasket(paymentIds: Option[List[String]],
+                          consentIds: Option[List[String]],
                          ): Box[SigningBasketTrait]
 
   def deleteSigningBasket(id: String): Box[Boolean]

@@ -371,6 +371,7 @@ object ConnectorBuilderUtil {
     "getChallengesByConsentId",
     "validateAndCheckIbanNumber",
     "validateChallengeAnswerC2",
+    "validateChallengeAnswerC3",
     "getCounterpartyByIbanAndBankAccountId",
   ).distinct
 

@@ -451,11 +451,20 @@ trait Connector extends MdcLoggable {
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  def validateChallengeAnswerC3(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    basketId: Option[String],
+    challengeId: String,
+    hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getChallengesByConsentId(consentId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
-  
+  def getChallengesByBasketId(basketId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+
   def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   
   //gets a particular bank handled by this connector
@@ -1440,7 +1449,7 @@ trait Connector extends MdcLoggable {
       didSaveTransId <- Future{saveTransactionRequestTransaction(transactionRequestId, transactionId).openOrThrowException(attemptedToOpenAnEmptyBox)}
       didSaveStatus <- Future{saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString).openOrThrowException(attemptedToOpenAnEmptyBox)}
       //After `makePaymentv200` and update data for request, we get the new requqest from database again.
-      (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+      (transactionRequest: TransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
 
     } yield {
       (Full(transactionRequest), callContext)

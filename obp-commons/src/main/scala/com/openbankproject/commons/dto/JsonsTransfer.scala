@@ -1356,7 +1356,17 @@ case class OutBoundValidateChallengeAnswerC2(
   hashOfSuppliedAnswer: String
 ) extends TopicTrait
 
+case class OutBoundValidateChallengeAnswerC3(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  transactionRequestId: Option[String],
+  consentId: Option[String],
+  basketId: Option[String],
+  challengeId: String,
+  hashOfSuppliedAnswer: String
+) extends TopicTrait
+
 case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+case class InBoundValidateChallengeAnswerC3(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 
 case class OutBoundValidateAndCheckIbanNumber(
   outboundAdapterCallContext: OutboundAdapterCallContext,

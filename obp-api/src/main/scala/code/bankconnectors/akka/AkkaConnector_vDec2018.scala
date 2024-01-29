@@ -308,7 +308,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-17T09:43:18Z
+// ---------- created on 2024-01-29T13:57:05Z
 
   messageDocs += validateAndCheckIbanNumberDoc
   def validateAndCheckIbanNumberDoc = MessageDoc(
@@ -670,6 +670,48 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def validateChallengeAnswerC2(transactionRequestId: Option[String], consentId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
         import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerC2 => InBound, OutBoundValidateChallengeAnswerC2 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, challengeId, hashOfSuppliedAnswer)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[ChallengeCommons](callContext))        
+  }
+          
+  messageDocs += validateChallengeAnswerC3Doc
+  def validateChallengeAnswerC3Doc = MessageDoc(
+    process = "obp.validateChallengeAnswerC3",
+    messageFormat = messageFormat,
+    description = "Validate Challenge Answer C3",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateChallengeAnswerC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      challengeId=challengeIdExample.value,
+      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateChallengeAnswerC3(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateChallengeAnswerC3(transactionRequestId: Option[String], consentId: Option[String], basketId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerC3 => InBound, OutBoundValidateChallengeAnswerC3 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, basketId, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[ChallengeCommons](callContext))        
   }
@@ -6377,6 +6419,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-17T09:43:18Z
-//---------------- dynamic end ---------------------please don't modify this line          
+// ---------- created on 2024-01-29T13:57:05Z
+//---------------- dynamic end ---------------------please don't modify this line           
 }

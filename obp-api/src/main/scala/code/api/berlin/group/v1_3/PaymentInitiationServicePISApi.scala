@@ -990,7 +990,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkPaymentServiceType(paymentService) => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)

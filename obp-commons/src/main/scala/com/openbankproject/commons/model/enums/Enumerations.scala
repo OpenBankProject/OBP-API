@@ -127,6 +127,7 @@ object ChallengeType extends OBPEnumeration[ChallengeType] {
   object OBP_CONSENT_CHALLENGE extends Value
   object BERLINGROUP_PAYMENT_CHALLENGE extends Value
   object BERLINGROUP_CONSENT_CHALLENGE extends Value
+  object BERLINGROUP_SIGNING_BASKETS_CHALLENGE extends Value
 }
 
 sealed trait PemCertificateRole extends EnumValue

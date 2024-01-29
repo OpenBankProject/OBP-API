@@ -357,7 +357,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         consentId,
         basketId,
         authenticationMethodId,
-        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
+        challengeType = challengeType.toString,
         callContext
       )
       challengeId.toList
@@ -459,12 +459,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
     }
   }
+  override def validateChallengeAnswerC3(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    basketId: Option[String],
+    challengeId: String,
+    hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ) = Future {
+    Future {
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
+    }
+  }
   
   override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
     Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}  
   
   override def getChallengesByConsentId(consentId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
     Future {(Challenges.ChallengeProvider.vend.getChallengesByConsentId(consentId), callContext)}
+  override def getChallengesByBasketId(basketId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByBasketId(basketId), callContext)}
 
 
   override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
