@@ -16,7 +16,7 @@ class MappedETag extends MappedCacheTrait with LongKeyedMapper[MappedETag] with 
 }
 
 object MappedETag extends MappedETag with LongKeyedMetaMapper[MappedETag] {
-  override def dbTableName = "ETag" // define the DB table name
+  override def dbTableName = "etag" // define the DB table name
   override def dbIndexes: List[BaseIndex[MappedETag]] = UniqueIndex(ETagResource) :: super.dbIndexes
 }
 

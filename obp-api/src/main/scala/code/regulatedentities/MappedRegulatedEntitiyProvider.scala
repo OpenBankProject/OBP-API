@@ -125,7 +125,7 @@ class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[Ma
 }
 
 object MappedRegulatedEntity extends MappedRegulatedEntity with LongKeyedMetaMapper[MappedRegulatedEntity]  {
-  override def dbTableName = "RegulatedEntity" // define the DB table name
+  override def dbTableName = "regulatedentity" // define the DB table name
   override def dbIndexes = Index(CertificateAuthorityCaOwnerId) :: super.dbIndexes
 }
 

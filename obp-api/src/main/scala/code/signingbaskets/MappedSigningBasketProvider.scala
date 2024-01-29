@@ -68,7 +68,7 @@ class MappedSigningBasket extends SigningBasketTrait with LongKeyedMapper[Mapped
 }
 
 object MappedSigningBasket extends MappedSigningBasket with LongKeyedMetaMapper[MappedSigningBasket]  {
-  override def dbTableName = "SigningBasket" // define the DB table name
+  override def dbTableName = "signingbasket" // define the DB table name
   override def dbIndexes = Index(BasketId) :: super.dbIndexes
 }
 
@@ -84,7 +84,7 @@ class MappedSigningBasketPayment extends SigningBasketPaymentTrait with LongKeye
 
 }
 object MappedSigningBasketPayment extends MappedSigningBasketPayment with LongKeyedMetaMapper[MappedSigningBasketPayment]  {
-  override def dbTableName = "SigningBasketPayment" // define the DB table name
+  override def dbTableName = "signingbasketpayment" // define the DB table name
   override def dbIndexes = Index(BasketId, PaymentId) :: super.dbIndexes
 }
 
@@ -99,7 +99,7 @@ class MappedSigningBasketConsent extends SigningBasketConsentTrait with LongKeye
 
 }
 object MappedSigningBasketConsent extends MappedSigningBasketConsent with LongKeyedMetaMapper[MappedSigningBasketConsent]  {
-  override def dbTableName = "SigningBasketConsent" // define the DB table name
+  override def dbTableName = "signingbasketconsent" // define the DB table name
   override def dbIndexes = Index(BasketId, ConsentId) :: super.dbIndexes
 }
 
