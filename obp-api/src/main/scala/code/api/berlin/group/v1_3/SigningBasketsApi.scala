@@ -1,33 +1,28 @@
 package code.api.builder.SigningBasketsApi
 
-import code.api.APIFailureNewStyle
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostSigningBasketJsonV13, UpdatePaymentPsuDataJson, createSigningBasketResponseJson, createStartSigningBasketAuthorisationJson, getSigningBasketResponseJson, getSigningBasketStatusResponseJson}
-import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, NewStyle}
-import code.api.util.ErrorMessages._
+import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
+import code.api.util.APIUtil._
 import code.api.util.ApiTag._
+import code.api.util.ErrorMessages._
+import code.api.util.NewStyle
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
-import code.model._
 import code.signingbaskets.SigningBasketX
-import code.util.Helper
-import code.views.Views
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
-
-import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketTrait, TransactionRequestId}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLETED, REJECTED}
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.{ChallengeTrait, TransactionRequestId}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
+import net.liftweb.json._
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 object APIMethods_SigningBasketsApi extends RestHelper {
@@ -472,7 +467,6 @@ There are the following request types on this access path:
              updateBasketPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[UpdatePaymentPsuDataJson]
              }
-             _ <- Future(org.scalameta.logger.elem(updateBasketPsuDataJson))
              // Validate a challenge answer and get an error if any
              (boxedChallenge: Box[ChallengeTrait], callContext) <- NewStyle.function.validateChallengeAnswerC3(
                ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE,
@@ -485,11 +479,29 @@ There are the following request types on this access path:
              )
              // Get the challenge after validation
              (challenge: ChallengeTrait, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
-             _ <- challenge.scaStatus.toString match {
-               case status if status == StrongCustomerAuthenticationStatus.finalised.toString => // finalised
-                 // TODO Implement successful case
-                 Future(unboxFullOrFail(boxedChallenge, callContext, s"$InvalidConnectorResponse() "))
-               case status if status == StrongCustomerAuthenticationStatus.failed.toString => // failed
+             _ <- challenge.scaStatus match {
+               case Some(status) if status.toString == StrongCustomerAuthenticationStatus.finalised.toString => // finalised
+                 Future {
+                   val basket = SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId)
+                   val existAll: Box[Boolean] =
+                     basket.flatMap(_.payments.map(_.forall(i => Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), callContext).isDefined)))
+                   if (existAll.getOrElse(false)) {
+                     basket.map { i =>
+                       i.payments.map(_.map { i =>
+                         Connector.connector.vend.saveTransactionRequestStatusImpl(TransactionRequestId(i), COMPLETED.toString)
+                         Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), callContext) map { t =>
+                           Connector.connector.vend.makePaymentV400(t._1, None, callContext)
+                         }
+                       })
+                     }
+                     SigningBasketX.signingBasketProvider.vend.saveSigningBasketStatus(basketId, ConstantsBG.SigningBasketsStatus.ACTC.toString)
+                     unboxFullOrFail(boxedChallenge, callContext, s"$InvalidConnectorResponse ")
+                   } else { // Fail due to unexisting payment
+                     val paymentIds = basket.flatMap(_.payments).getOrElse(Nil).mkString(",")
+                     unboxFullOrFail(Empty, callContext, s"$InvalidConnectorResponse Some of paymentIds [${paymentIds}] are invalid")
+                   }
+                 }
+               case Some(status) if status.toString == StrongCustomerAuthenticationStatus.failed.toString => // failed
                  Future {
                    // Reject all related transaction requests
                    val basket = SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId)
@@ -502,7 +514,7 @@ There are the following request types on this access path:
                    unboxFullOrFail(boxedChallenge, callContext, s"$InvalidConnectorResponse ")
                  }
                case _ => // Fail in case of an error message
-                 Future(unboxFullOrFail(boxedChallenge, callContext, s"$InvalidConnectorResponse ")                 )
+                 Future(unboxFullOrFail(Empty, callContext, s"$InvalidConnectorResponse "))
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)

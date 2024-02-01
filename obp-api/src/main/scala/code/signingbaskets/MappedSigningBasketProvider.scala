@@ -24,6 +24,18 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     }
     basket.map( i => SigningBasketContent(basket = i, payments = payments, consents = consents))
   }
+  override def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent] = {
+    val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId)).map(_.Status(status).saveMe)
+    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.basketId) match {
+      case Nil => None
+      case head :: tail => Some(head :: tail)
+    }
+    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.basketId) match {
+      case Nil => None
+      case head :: tail => Some(head :: tail)
+    }
+    basket.map( i => SigningBasketContent(basket = i, payments = payments, consents = consents))
+  }
 
   override def createSigningBasket(paymentIds: Option[List[String]],
                                    consentIds: Option[List[String]]

@@ -16,6 +16,7 @@ trait SigningBasketProvider {
   def getSigningBaskets(): List[SigningBasketTrait]
 
   def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent]
+  def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent]
 
   def createSigningBasket(paymentIds: Option[List[String]],
                           consentIds: Option[List[String]],
