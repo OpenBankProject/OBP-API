@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
 import code.api.util.APIUtil.OAuth._
@@ -33,8 +34,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
 
       Then("We should get a 404 ")
       response.code should equal(404)
-      response.body.extract[ErrorMessage]
-        .message should startWith(BankAccountNotFoundByIban)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BankAccountNotFoundByIban)
     }
 
     scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
@@ -43,8 +43,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
 
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[ErrorMessage]
-        .message should startWith(InvalidJsonFormat)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(InvalidJsonFormat)
     }
     
     scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {

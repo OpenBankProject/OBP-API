@@ -3,7 +3,7 @@ package code.api.berlin.group.v1_3
 import code.api.BerlinGroup.ScaStatus
 import code.api.Constant
 import code.api.Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
@@ -60,7 +60,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should startWith (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (error)
     }
     scenario("Failed Case - wrong amount", BerlinGroupV1_3, PIS, initiatePayment) {
       val wrongAmountInitiatePaymentJson =
@@ -84,7 +84,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"${NotPositiveAmount} Current input is: '-1234'"
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message contains extractErrorMessageCode(NotPositiveAmount) should be (true)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text contains extractErrorMessageCode(NotPositiveAmount) should be (true)
     }
     scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
@@ -296,7 +296,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
@@ -407,7 +407,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS) {
 
@@ -504,7 +504,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationAuthorisation") {
@@ -520,7 +520,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(NON_EXISTING_PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationCancellationAuthorisationInformation") {

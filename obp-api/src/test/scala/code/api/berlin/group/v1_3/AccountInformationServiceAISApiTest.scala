@@ -54,7 +54,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 401 ")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNotLoggedIn)
     }
 
     scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
@@ -63,7 +63,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 403 ")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(NoViewReadAccountsBerlinGroup)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(NoViewReadAccountsBerlinGroup)
     }
   }
   
@@ -74,7 +74,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 401 ")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNotLoggedIn)
     }
 
     scenario("Authentication User, test succeed", BerlinGroupV1_3, readAccountDetails) {
@@ -104,7 +104,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val requestGetFailed = (V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user1)
       val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
       responseGetFailed.code should equal(403)
-      responseGetFailed.body.extract[ErrorMessage].message should startWith(NoViewReadAccountsBerlinGroup)
+      responseGetFailed.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(NoViewReadAccountsBerlinGroup)
       
       grantUserAccessToViewViaEndpoint(
         bankId,
@@ -132,7 +132,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
       Then("We should get a 403 ")
       responseGetFailed.code should equal(403)
-      responseGetFailed.body.extract[ErrorMessage].message should startWith(UserNoPermissionAccessView)
+      responseGetFailed.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNoPermissionAccessView)
       
       val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
       grantUserAccessToViewViaEndpoint(
@@ -161,7 +161,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
       Then("We should get a 403 ")
       responseGetFailed.code should equal(403)
-      responseGetFailed.body.extract[ErrorMessage].message should startWith(UserNoPermissionAccessView)
+      responseGetFailed.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNoPermissionAccessView)
       
       val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
       grantUserAccessToViewViaEndpoint(
@@ -195,7 +195,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
       Then("We should get a 403 ")
       responseGetFailed.code should equal(403)
-      responseGetFailed.body.extract[ErrorMessage].message should startWith(UserNoPermissionAccessView)
+      responseGetFailed.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNoPermissionAccessView)
 
       val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
       grantUserAccessToViewViaEndpoint(

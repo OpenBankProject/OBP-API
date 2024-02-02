@@ -20,6 +20,9 @@ case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
+  case class ErrorMessageBG(category: String, code: Int, path: String, text: String)
+  case class ErrorMessagesBG(tppMessages: List[ErrorMessageBG])
+
   case class PostSigningBasketJsonV13(
     paymentIds: Option[List[String]],
     consentIds: Option[List[String]]
