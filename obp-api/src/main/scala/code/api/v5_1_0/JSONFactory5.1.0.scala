@@ -93,7 +93,7 @@ case class RegulatedEntityPostJsonV510(
                                       entity_post_code: String,
                                       entity_country: String,
                                       entity_web_site: String,
-                                      services: String
+                                      services: JValue
                                     )
 case class RegulatedEntitiesJsonV510(entities: List[RegulatedEntityJsonV510])
 
@@ -279,7 +279,7 @@ case class MetricJsonV510(
                        duration: Long,
                        source_ip: String,
                        target_ip: String,
-                       response_body: String
+                       response_body: JValue
                      )
 case class MetricsJsonV510(metrics: List[MetricJsonV510])
 
@@ -627,7 +627,7 @@ object JSONFactory510 extends CustomJsonFormats {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
-      response_body = metric.getResponseBody()
+      response_body = parse(metric.getResponseBody())
     )
   }
 
