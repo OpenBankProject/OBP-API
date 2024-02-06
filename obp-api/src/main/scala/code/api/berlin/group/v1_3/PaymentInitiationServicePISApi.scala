@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.api.util.{ApiRole, ApiTag, CallContext, NewStyle}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.api.Constant._
@@ -22,6 +22,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.BERLINGROUP_PAYMENT
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -51,7 +52,9 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       getPaymentInitiationCancellationAuthorisationInformation ::
       getPaymentInitiationScaStatus ::
       getPaymentInitiationStatus ::
-      initiatePayment ::
+      initiatePayments ::
+      initiateBulkPayments ::
+      initiatePeriodicPayments ::
       startPaymentAuthorisation ::
       startPaymentInitiationCancellationAuthorisation ::
       updatePaymentCancellationPsuData ::
@@ -453,164 +456,286 @@ Check the transaction status of a payment initiation.""",
     """.stripMargin
 
 
-     resourceDocs += ResourceDoc(
-       initiatePayment,
-       apiVersion,
-       nameOf(initiatePayment),
-       "POST",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
-       "Payment initiation request",
-       s"""${mockedDataText(false)}
-This method is used to initiate a payment at the ASPSP.
-
-## Variants of Payment Initiation Requests
-
-This method to initiate a payment initiation at the ASPSP can be sent with either a JSON body or an pain.001 body depending on the payment product in the path.
-
-There are the following **payment products**:
-
-  - Payment products with payment information in *JSON* format:
-    - ***sepa-credit-transfers***
-    - ***instant-sepa-credit-transfers***
-    - ***target-2-payments***
-    - ***cross-border-credit-transfers***
-  - Payment products with payment information in *pain.001* XML format:
-    - ***pain.001-sepa-credit-transfers***
-    - ***pain.001-instant-sepa-credit-transfers***
-    - ***pain.001-target-2-payments***
-    - ***pain.001-cross-border-credit-transfers***
-
-  - Furthermore the request body depends on the **payment-service**
-    - ***payments***: A single payment initiation request.
-    - ***bulk-payments***: A collection of several payment iniatiation requests.
-      In case of a *pain.001* message there are more than one payments contained in the *pain.001 message.
-      In case of a *JSON* there are several JSON payment blocks contained in a joining list.
-    - ***periodic-payments***: 
-     Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId} 
-     with all data relevant for the corresponding payment product and the execution of the standing order contained in a JSON body. 
-
-This is the first step in the API to initiate the related recurring/periodic payment.
+    private val generalPaymentSummary =
+      s"""${mockedDataText(false)}
+  This method is used to initiate a payment at the ASPSP.
   
-## Single and mulitilevel SCA Processes
+  ## Variants of Payment Initiation Requests
+  
+  This method to initiate a payment initiation at the ASPSP can be sent with either a JSON body or an pain.001 body depending on the payment product in the path.
+  
+  There are the following **payment products**:
+  
+    - Payment products with payment information in *JSON* format:
+      - ***sepa-credit-transfers***
+      - ***instant-sepa-credit-transfers***
+      - ***target-2-payments***
+      - ***cross-border-credit-transfers***
+    - Payment products with payment information in *pain.001* XML format:
+      - ***pain.001-sepa-credit-transfers***
+      - ***pain.001-instant-sepa-credit-transfers***
+      - ***pain.001-target-2-payments***
+      - ***pain.001-cross-border-credit-transfers***
+  
+    - Furthermore the request body depends on the **payment-service**
+      - ***payments***: A single payment initiation request.
+      - ***bulk-payments***: A collection of several payment iniatiation requests.
+        In case of a *pain.001* message there are more than one payments contained in the *pain.001 message.
+        In case of a *JSON* there are several JSON payment blocks contained in a joining list.
+      - ***periodic-payments***: 
+       Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId} 
+       with all data relevant for the corresponding payment product and the execution of the standing order contained in a JSON body. 
+  
+  This is the first step in the API to initiate the related recurring/periodic payment.
+    
+  ## Single and mulitilevel SCA Processes
+  
+  The Payment Initiation Requests are independent from the need of one ore multilevel 
+  SCA processing, i.e. independent from the number of authorisations needed for the execution of payments. 
+  
+  But the response messages are specific to either one SCA processing or multilevel SCA processing. 
+  
+  For payment initiation with multilevel SCA, this specification requires an explicit start of the authorisation, 
+  i.e. links directly associated with SCA processing like 'scaRedirect' or 'scaOAuth' cannot be contained in the 
+  response message of a Payment Initation Request for a payment, where multiple authorisations are needed. 
+  Also if any data is needed for the next action, like selecting an SCA method is not supported in the response, 
+  since all starts of the multiple authorisations are fully equal. 
+  In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
+  
+  
+  $additionalInstructions
+  
+  """
+    def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
+    for {
+      (Full(u), callContext) <- authenticatedAccess(cc)
+      _ <- passesPsd2Pisp(callContext)
+      _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService), 400, callContext) {
+        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
+      }
+      transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
+        TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
+      }
 
-The Payment Initiation Requests are independent from the need of one ore multilevel 
-SCA processing, i.e. independent from the number of authorisations needed for the execution of payments. 
+      transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+        json.extract[SepaCreditTransfersBerlinGroupV13]
+      }
 
-But the response messages are specific to either one SCA processing or multilevel SCA processing. 
+      transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
+        write(transDetailsJson)(Serialization.formats(NoTypeHints))
+      }
 
-For payment initiation with multilevel SCA, this specification requires an explicit start of the authorisation, 
-i.e. links directly associated with SCA processing like 'scaRedirect' or 'scaOAuth' cannot be contained in the 
-response message of a Payment Initation Request for a payment, where multiple authorisations are needed. 
-Also if any data is needed for the next action, like selecting an SCA method is not supported in the response, 
-since all starts of the multiple authorisations are fully equal. 
-In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
+      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
+        BigDecimal(transDetailsJson.instructedAmount.amount)
+      }
 
+      _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc = callContext) {
+        isValidAmountNumber > BigDecimal("0")
+      }
 
-$additionalInstructions
+      // Prevent default value for transaction request type (at least).
+      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'", cc = callContext) {
+        isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
+      }
 
-""",
-       sepaCreditTransfersBerlinGroupV13,
-       json.parse(s"""{
-                      "transactionStatus": "RCVD",
-                      "paymentId": "1234-wertiq-983",
-                      "_links":
-                        {
-                        "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
-                        "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
-                        "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
-                        "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
-                        }
-                    }"""),
-       List(UserNotLoggedIn, UnknownError),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
-     )
+      _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+      fromAccountIban = transDetailsJson.debtorAccount.iban
+      toAccountIban = transDetailsJson.creditorAccount.iban
 
-     lazy val initiatePayment : OBPEndpoint = {
-       case paymentService :: paymentProduct :: Nil JsonPost json -> _ => {
-         cc =>
-           for {
-             (Full(u), callContext) <- authenticatedAccess(cc)
-             _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
-               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
-             }
-             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
-             }
+      (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+      (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+      _ <- Helper.booleanToFuture(invalidIban, cc = callContext) {
+        ibanChecker.isValid == true
+      }
+      (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
-               json.extract[SepaCreditTransfersBerlinGroupV13]
-             }
+      viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
+      bankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
+      view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
 
-             transDetailsSerialized <- NewStyle.function.tryons (s"$UnknownError Can not serialize in request Json ", 400, callContext){write(transDetailsJson)(Serialization.formats(NoTypeHints))}
-             
-             isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
-               BigDecimal(transDetailsJson.instructedAmount.amount)
-             }
+      _ <- if (view.canAddTransactionRequestToAnyAccount)
+        Future.successful(Full(Unit))
+      else
+        NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
-             _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc=callContext) {
-               isValidAmountNumber > BigDecimal("0")
-             }
+      // Prevent default value for transaction request type (at least).
+      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc = callContext) {
+        transDetailsJson.instructedAmount.currency == fromAccount.currency
+      }
 
-             // Prevent default value for transaction request type (at least).
-             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'", cc=callContext) {
-               isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
-             }
+      amountOfMoneyJSON = transDetailsJson.instructedAmount
 
-             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-             fromAccountIban = transDetailsJson.debtorAccount.iban
-             toAccountIban = transDetailsJson.creditorAccount.iban
+      (createdTransactionRequest, callContext) <- transactionRequestTypes match {
+        case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
+          for {
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
+              u,
+              ViewId("Owner"), //This is the default 
+              fromAccount,
+              toAccount,
+              TransactionRequestType(transactionRequestTypes.toString),
+              TransactionRequestCommonBodyJSONCommons(
+                amountOfMoneyJSON,
+                ""
+              ),
+              transDetailsSerialized,
+              "",
+              Some(BERLINGROUP_PAYMENT_CHALLENGE),
+              None,
+              None,
+              Some(transDetailsJson),
+              callContext
+            ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+          } yield (createdTransactionRequest, callContext)
+        }
+      }
+    } yield {
+      (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest), HttpCode.`201`(callContext))
+    }
+  }
 
-             (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
-             _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
-             (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
-
-             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
-             bankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
-
-             _ <- if (view.canAddTransactionRequestToAnyAccount) 
-               Future.successful(Full(Unit))
-             else 
-               NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
-
-             // Prevent default value for transaction request type (at least).
-             _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc=callContext) {
-               transDetailsJson.instructedAmount.currency == fromAccount.currency
-             }
-
-             amountOfMoneyJSON = transDetailsJson.instructedAmount
-
-             (createdTransactionRequest,callContext) <- transactionRequestTypes match {
-               case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
-                 for {
-                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
-                     u,
-                     ViewId("Owner"),//This is the default 
-                     fromAccount,
-                     toAccount,
-                     TransactionRequestType(transactionRequestTypes.toString),
-                     TransactionRequestCommonBodyJSONCommons(
-                       amountOfMoneyJSON,
-                      ""
-                     ),
-                     transDetailsSerialized,
-                     "",
-                     Some(BERLINGROUP_PAYMENT_CHALLENGE),
-                     None,
-                     None,
-                     Some(transDetailsJson),
-                     callContext
-                   ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
-                 } yield (createdTransactionRequest, callContext)
-               }
-             }
-           } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest), HttpCode.`201`(callContext))
-           }
-       }
+  
+    resourceDocs += ResourceDoc(
+      initiatePayments,
+      apiVersion,
+      nameOf(initiatePayments),
+      "POST",
+      "/payments/PAYMENT_PRODUCT",
+      "Payment initiation request(payments)",
+      generalPaymentSummary,
+      sepaCreditTransfersBerlinGroupV13,
+      json.parse(s"""{
+                    "transactionStatus": "RCVD",
+                    "paymentId": "1234-wertiq-983",
+                    "_links":
+                      {
+                      "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
+                      "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
+                      "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
+                      "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
+                      }
+                  }"""),
+      List(UserNotLoggedIn, UnknownError),
+      ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+    )
+   
+    lazy val initiatePayments : OBPEndpoint = {
+     case "payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
+       cc =>
+         initiatePaymentImplementation("payments", paymentProduct, json, cc)
      }
+    }
+  
+  
+    resourceDocs += ResourceDoc(
+      initiatePeriodicPayments,
+      apiVersion,
+      nameOf(initiatePeriodicPayments),
+      "POST",
+      "/periodic-payments/PAYMENT_PRODUCT",
+      "Payment initiation request(periodic-payments)",
+      generalPaymentSummary,
+      json.parse(s"""{
+                    "instructedAmount": {
+                      "currency": "EUR",
+                      "amount": "123"
+                    },
+                    "debtorAccount": {
+                      "iban": "DE40100100103307118608"
+                    },
+                    "creditorName": "Merchant123",
+                    "creditorAccount": {
+                      "iban": "DE23100120020123456789"
+                    },
+                    "remittanceInformationUnstructured": "Ref Number Abonnement",
+                    "startDate": "2018-03-01",
+                    "executionRule": "preceding",
+                    "frequency": "Monthly",
+                    "dayOfExecution": "01"
+                  }"""),
+      json.parse(s"""{
+                    "transactionStatus": "RCVD",
+                    "paymentId": "1234-wertiq-983",
+                    "_links":
+                      {
+                      "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
+                      "self": {"href": "/v1.3/periodic-payments/instant-sepa-credit-transfer/1234-wertiq-983"},
+                      "status": {"href": "/v1.3/periodic-payments/1234-wertiq-983/status"},
+                      "scaStatus": {"href": "/v1.3/periodic-payments/1234-wertiq-983/authorisations/123auth456"}
+                      }
+                  }"""),
+      List(UserNotLoggedIn, UnknownError),
+      ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+    )
+   
+    lazy val initiatePeriodicPayments : OBPEndpoint = {
+     case "periodic-payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
+       cc =>
+         initiatePaymentImplementation("periodic-payments", paymentProduct, json, cc)
+     }
+    }
+  
+    resourceDocs += ResourceDoc(
+      initiateBulkPayments,
+      apiVersion,
+      nameOf(initiateBulkPayments),
+      "POST",
+      "/bulk-payments/PAYMENT_PRODUCT",
+      "Payment initiation request(bulk-payments)",
+      generalPaymentSummary,
+      json.parse(s"""{
+                    "batchBookingPreferred": "true",
+                    "debtorAccount": {
+                      "iban": "DE40100100103307118608"
+                    },
+                    "paymentInformationId": "my-bulk-identification-1234",
+                    "requestedExecutionDate": "2018-08-01",
+                    "payments": [
+                      {
+                        "instructedAmount": {
+                          "currency": "EUR",
+                          "amount": "123.50"
+                        },
+                        "creditorName": "Merchant123",
+                        "creditorAccount": {
+                          "iban": "DE02100100109307118603"
+                        },
+                        "remittanceInformationUnstructured": "Ref Number Merchant 1"
+                      },
+                      {
+                        "instructedAmount": {
+                          "currency": "EUR",
+                          "amount": "34.10"
+                        },
+                        "creditorName": "Merchant456",
+                        "creditorAccount": {
+                          "iban": "FR7612345987650123456789014"
+                        },
+                        "remittanceInformationUnstructured": "Ref Number Merchant 2"
+                      }
+                    ]
+                  }"""),
+      json.parse(s"""{
+                    "transactionStatus": "RCVD",
+                    "paymentId": "1234-wertiq-983",
+                    "_links":
+                      {
+                      "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
+                      "self": {"href": "/v1.3/bulk-payments/sepa-credit-transfers/1234-wertiq-983"},
+                      "status": {"href": "/v1.3/bulk-payments/1234-wertiq-983/status"},
+                      "scaStatus": {"href": "/v1.3/bulk-payments/1234-wertiq-983/authorisations/123auth456"}
+                      }
+                  }"""),
+      List(UserNotLoggedIn, UnknownError),
+      ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+    )
+   
+    lazy val initiateBulkPayments : OBPEndpoint = {
+     case "bulk-payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
+       cc =>
+         initiatePaymentImplementation("bulk-payments", paymentProduct, json, cc)
+     }
+    }
             
      resourceDocs += ResourceDoc(
        startPaymentAuthorisation,
