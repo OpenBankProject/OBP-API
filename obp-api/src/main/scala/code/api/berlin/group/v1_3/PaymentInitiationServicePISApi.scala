@@ -8,6 +8,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, CallContext, NewStyle}
+import code.api.berlin.group.v1_3.model._
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.api.Constant._
@@ -23,6 +24,7 @@ import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb
+import net.liftweb.common.Box.tryo
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -55,7 +57,9 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       initiatePayments ::
       initiateBulkPayments ::
       initiatePeriodicPayments ::
-      startPaymentAuthorisation ::
+      startPaymentAuthorisationUpdatePsuAuthentication ::
+      startPaymentAuthorisationTransactionAuthorisation ::
+      startPaymentAuthorisationSelectPsuAuthenticationMethod ::
       startPaymentInitiationCancellationAuthorisation ::
       updatePaymentCancellationPsuData ::
       updatePaymentPsuData ::
@@ -736,15 +740,8 @@ Check the transaction status of a payment initiation.""",
          initiatePaymentImplementation("bulk-payments", paymentProduct, json, cc)
      }
     }
-            
-     resourceDocs += ResourceDoc(
-       startPaymentAuthorisation,
-       apiVersion,
-       nameOf(startPaymentAuthorisation),
-       "POST",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
-       "Start the authorisation process for a payment initiation",
-       s"""${mockedDataText(false)}
+           
+    val generalStartPaymentAuthorisationSummary = s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
 
@@ -777,8 +774,17 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""",
-       emptyObjectJson,
+"""
+  
+    resourceDocs += ResourceDoc(
+       startPaymentAuthorisationUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(startPaymentAuthorisationUpdatePsuAuthentication),
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
+       "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
+       generalStartPaymentAuthorisationSummary,
+       UpdatePsuAuthentication(PsuData("password")),
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -793,8 +799,12 @@ This applies in the following scenarios:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-  lazy val startPaymentAuthorisation : OBPEndpoint = {
-    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _  => {
+    def checkUpdatePsuAuthentication(JsonPost: JValue) = tryo {
+      JsonPost.extract[UpdatePsuAuthentication]
+    }.isDefined
+    
+    lazy val startPaymentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
+    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)  => {
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
@@ -826,6 +836,128 @@ This applies in the following scenarios:
         }
     }
   }
+            
+    resourceDocs += ResourceDoc(
+      startPaymentAuthorisationSelectPsuAuthenticationMethod,
+      apiVersion,
+      nameOf(startPaymentAuthorisationSelectPsuAuthenticationMethod),
+      "POST",
+      "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
+      "Start the authorisation process for a payment initiation (selectPsuAuthenticationMethod)",
+      generalStartPaymentAuthorisationSummary,
+      SelectPsuAuthenticationMethod("authenticationMethodId"),
+      json.parse("""{
+                  "challengeData": {
+                    "scaStatus": "received",
+                    "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                    "psuMessage": "Please check your SMS at a mobile device.",
+                    "_links": {
+                      "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                    }
+                  }
+                }"""),
+      List(UserNotLoggedIn, UnknownError),
+      ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+    )
+
+    def checkSelectPsuAuthenticationMethod(JsonPost: JValue) = tryo {
+      JsonPost.extract[SelectPsuAuthenticationMethod]
+    }.isDefined
+    
+    lazy val startPaymentAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
+    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)  => {
+      cc =>
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- passesPsd2Pisp(callContext)
+          _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+            PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+          }
+          _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
+          }
+          (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+
+          (challenges, callContext) <- NewStyle.function.createChallengesC2(
+            List(u.userId),
+            ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+            Some(paymentId),
+            getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
+            Some(StrongCustomerAuthenticationStatus.received),
+            None,
+            None,
+            callContext
+          )
+          //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+          challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
+            challenges.head
+          }
+        } yield {
+          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+        }
+    }
+  }
+            
+    resourceDocs += ResourceDoc(
+      startPaymentAuthorisationTransactionAuthorisation,
+      apiVersion,
+      nameOf(startPaymentAuthorisationTransactionAuthorisation),
+      "POST",
+      "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
+      "Start the authorisation process for a payment initiation (transactionAuthorisation)",
+      generalStartPaymentAuthorisationSummary,
+      TransactionAuthorisation("scaAuthenticationData"),
+      json.parse("""{
+                  "challengeData": {
+                    "scaStatus": "received",
+                    "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                    "psuMessage": "Please check your SMS at a mobile device.",
+                    "_links": {
+                      "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                    }
+                  }
+                }"""),
+      List(UserNotLoggedIn, UnknownError),
+      ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+    )
+
+    def checkTransactionAuthorisation(JsonPost: JValue) = tryo {
+      JsonPost.extract[TransactionAuthorisation]
+    }.isDefined
+    
+    lazy val startPaymentAuthorisationTransactionAuthorisation : OBPEndpoint = {
+      case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkTransactionAuthorisation(json)  => {
+      cc =>
+        for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ <- passesPsd2Pisp(callContext)
+          _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+            PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+          }
+          _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
+          }
+          (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+
+          (challenges, callContext) <- NewStyle.function.createChallengesC2(
+            List(u.userId),
+            ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+            Some(paymentId),
+            getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
+            Some(StrongCustomerAuthenticationStatus.received),
+            None,
+            None,
+            callContext
+          )
+          //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+          challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
+            challenges.head
+          }
+        } yield {
+          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+        }
+    }
+    }
             
      resourceDocs += ResourceDoc(
        startPaymentInitiationCancellationAuthorisation,

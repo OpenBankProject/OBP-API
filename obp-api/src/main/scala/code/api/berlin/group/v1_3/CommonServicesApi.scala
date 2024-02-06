@@ -30,7 +30,9 @@ object APIMethods_CommonServicesApi extends RestHelper {
     APIMethods_PaymentInitiationServicePISApi.getPaymentCancellationScaStatus ::
     APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationAuthorisation ::
     APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationScaStatus ::
-    APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisation ::
+    APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationUpdatePsuAuthentication ::
+    APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationTransactionAuthorisation ::
+    APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationSelectPsuAuthenticationMethod ::
     APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisation ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData ::
@@ -49,7 +51,9 @@ object APIMethods_CommonServicesApi extends RestHelper {
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.getPaymentCancellationScaStatus).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationAuthorisation).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationScaStatus).head
-  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisation).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationUpdatePsuAuthentication).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationSelectPsuAuthenticationMethod).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationTransactionAuthorisation).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisation).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData).head
