@@ -11,35 +11,9 @@
  */
 package code.api.berlin.group.v1_3.model
 
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
-
-
-case class UpdatePsuAuthenticationResponse (
-  transactionFees: Option[Amount] = None,
-  currencyConversionFees: Option[Amount] = None,
-  estimatedTotalAmount: Option[Amount] = None,
-  estimatedInterbankSettlementAmount: Option[Amount] = None,
-  chosenScaMethod: Option[AuthenticationObject] = None,
-  challengeData: Option[ChallengeData] = None,
-  /* This data element might be contained, if SCA is required and if the PSU has a choice between different authentication methods.  Depending on the risk management of the ASPSP this choice might be offered before or after the PSU has been identified with the first relevant factor, or if an access token is transported.  If this data element is contained, then there is also an hyperlink of type 'startAuthorisationWithAuthenticationMethodSelection' contained in the response body.  These methods shall be presented towards the PSU for selection by the TPP.  */
-  scaMethods: Option[Seq[AuthenticationObject]] = None,
-  _links: Option[LinksUpdatePsuAuthentication] = None,
+case class AuthorisationConfirmationResponse (
+  _links: LinksAuthorisationConfirmation,
   scaStatus: String,
   /* Text to be displayed to the PSU */
-  psuMessage: Option[String] = None,
-  authorisationId: Option[String] = None
+  psuMessage: Option[String] = None
 ) extends ApiModel
-
-
-sealed trait AccountAttributeType extends EnumValue
-object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
-  object RECEIVED  extends Value
-  object PSUIDENTIFIED  extends Value
-  object PSUAUTHENTICATED  extends Value
-  object SCAMETHODSELECTED  extends Value
-  object STARTED  extends Value
-  object UNCONFIRMED  extends Value
-  object FINALISED  extends Value
-  object FAILED  extends Value
-  object EXEMPTED  extends Value
-}

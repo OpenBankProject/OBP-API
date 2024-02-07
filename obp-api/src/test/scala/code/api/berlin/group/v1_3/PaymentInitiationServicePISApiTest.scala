@@ -38,7 +38,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   object startPaymentInitiationCancellationAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisation))
   object getPaymentInitiationCancellationAuthorisationInformation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationCancellationAuthorisationInformation))
   object getPaymentCancellationScaStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentCancellationScaStatus))
-  object updatePaymentCancellationPsuData extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData))
+  object updatePaymentCancellationPsuData extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataUpdatePsuAuthentication))
 
   feature(s"test the BG v1.3 -${initiatePayment.name}") {
     scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, PIS, initiatePayment) {
@@ -476,7 +476,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       Then(s"We can test the ${updatePaymentCancellationPsuData.name}")
       val updatePaymentCancellationPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
         .resourceDocs
-        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData)
+        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataUpdatePsuAuthentication)
         .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
         .jvalueToCaseclass
 

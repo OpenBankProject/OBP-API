@@ -15,6 +15,13 @@ package code.api.berlin.group.v1_3.model
 
 case class PsuData (
   /* Password */
-  password: String
+  password: String,
+//  Encrypted password.
+  encryptedPassword: Option[String] = None,
+//  Additional password in plaintext.
+  additionalPassword: Option[String]= None,
+//  Additional encrypted password.
+  additionalEncryptedPassword: Option[String] = None,
+  
 ) extends ApiModel
 

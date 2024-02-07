@@ -15,6 +15,8 @@ package code.api.berlin.group.v1_3.model
 
 case class LinksUpdatePsuAuthentication (
   /* Link to a resource */
+  updateAdditionalPsuAuthentication: Option[String] = None,
+  updateAdditionalEncryptedPsuAuthentication: Option[String] = None,
   selectAuthenticationMethod: Option[String] = None,
   /* Link to a resource */
   authoriseTransaction: Option[String] = None,

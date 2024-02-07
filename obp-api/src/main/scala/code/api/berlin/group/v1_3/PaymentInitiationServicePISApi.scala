@@ -61,7 +61,10 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       startPaymentAuthorisationTransactionAuthorisation ::
       startPaymentAuthorisationSelectPsuAuthenticationMethod ::
       startPaymentInitiationCancellationAuthorisation ::
-      updatePaymentCancellationPsuData ::
+      updatePaymentCancellationPsuDataUpdatePsuAuthentication ::
+      updatePaymentCancellationPsuDataTransactionAuthorisation ::
+      updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
+      updatePaymentCancellationPsuDataAuthorisationConfirmation ::
       updatePaymentPsuData ::
       Nil
 
@@ -1044,7 +1047,7 @@ This applies in the following scenarios:
                challenges.head
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentInitiationCancellationAuthorisation(
                challenge,
                paymentService,
                paymentProduct,
@@ -1053,15 +1056,9 @@ This applies in the following scenarios:
            }
          }
        }
-            
-     resourceDocs += ResourceDoc(
-       updatePaymentCancellationPsuData,
-       apiVersion,
-       nameOf(updatePaymentCancellationPsuData),
-       "PUT",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/CANCELLATIONID",
-       "Update PSU Data for payment initiation cancellation",
-       s"""${mockedDataText(false)}
+  
+     def generalUpdatePaymentCancellationPsuDataSummary (isMockedData: Boolean)=
+       s"""${mockedDataText(isMockedData)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
 It may authorise a cancellation of the payment within the Embedded SCA Approach where needed.
 
@@ -1074,17 +1071,17 @@ There are several possible Update PSU Data requests in the context of a cancella
 which depends on the SCA approach:
 
 * Redirect SCA Approach:
-  A specific Update PSU Data Request is applicable for 
-    * the selection of authentication methods, before choosing the actual SCA approach.
+A specific Update PSU Data Request is applicable for 
+  * the selection of authentication methods, before choosing the actual SCA approach.
 * Decoupled SCA Approach:
-  A specific Update PSU Data Request is only applicable for
-  * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
-  * the selection of authentication methods.
+A specific Update PSU Data Request is only applicable for
+* adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
+* the selection of authentication methods.
 * Embedded SCA Approach: 
-  The Update PSU Data Request might be used 
-  * to add credentials as a first factor authentication data of the PSU and
-  * to select the authentication method and
-  * transaction authorisation.
+The Update PSU Data Request might be used 
+* to add credentials as a first factor authentication data of the PSU and
+* to select the authentication method and
+* transaction authorisation.
 
 The SCA Approach might depend on the chosen SCA method. 
 For that reason, the following possible Update PSU Data request can apply to all SCA approaches:
@@ -1092,17 +1089,26 @@ For that reason, the following possible Update PSU Data request can apply to all
 * Select an SCA method in case of several SCA methods are available for the customer.
 
 There are the following request types on this access path:
-  * Update PSU Identification
-  * Update PSU Authentication
-  * Select PSU Autorization Method 
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
-  * Transaction Authorisation
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
-""",
+* Update PSU Identification
+* Update PSU Authentication
+* Select PSU Autorization Method 
+  WARNING: This method need a reduced header, 
+  therefore many optional elements are not present. 
+  Maybe in a later version the access path will change.
+* Transaction Authorisation
+  WARNING: This method need a reduced header, 
+  therefore many optional elements are not present. 
+  Maybe in a later version the access path will change.
+"""
+
+     resourceDocs += ResourceDoc(
+       updatePaymentCancellationPsuDataTransactionAuthorisation,
+       apiVersion,
+       nameOf(updatePaymentCancellationPsuDataTransactionAuthorisation),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
+       "Update PSU Data for payment initiation cancellation (transactionAuthorisation)",
+       generalUpdatePaymentCancellationPsuDataSummary(false),
        json.parse("""{"scaAuthenticationData":"123"}"""),
        json.parse("""{
                       "scaStatus":"finalised",
@@ -1115,16 +1121,16 @@ There are the following request types on this access path:
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
-
-     lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonPut json -> _ => {
+   
+     lazy val updatePaymentCancellationPsuDataTransactionAuthorisation : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json) => {
          cc =>
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
-             updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-               json.extract[UpdatePaymentPsuDataJson]
+             transactionAuthorisation <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[TransactionAuthorisation]
              }
 
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
@@ -1146,8 +1152,8 @@ There are the following request types on this access path:
                ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
-               cancellationId,
-               updatePaymentPsuDataJson.scaAuthenticationData,
+               authorisationId,
+               transactionAuthorisation.scaAuthenticationData,
                callContext
              )
 
@@ -1173,7 +1179,131 @@ There are the following request types on this access path:
              ), callContext)
            }
          }
-       }
+     }
+
+     resourceDocs += ResourceDoc(
+       updatePaymentCancellationPsuDataUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(updatePaymentCancellationPsuDataUpdatePsuAuthentication),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
+       "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
+       generalUpdatePaymentCancellationPsuDataSummary(true),
+       UpdatePsuAuthentication(PsuData("password")),
+       json.parse("""{
+         "scaStatus": "psuAuthenticated",
+         _links: {
+           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+         }
+       }""").extract[UpdatePsuAuthenticationResponse],
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updatePaymentCancellationPsuDataUpdatePsuAuthentication : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkUpdatePsuAuthentication(json)=> {
+         cc =>
+           for {
+             (_, callContext) <- authenticatedAccess(cc)
+           } yield {
+             (net.liftweb.json.parse(
+               """{
+                 "scaStatus": "psuAuthenticated",
+                 _links: {
+                   "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                 }
+               }"""), callContext)
+           }
+         }
+     }
+  
+     resourceDocs += ResourceDoc(
+       updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod,
+       apiVersion,
+       nameOf(updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
+       "Update PSU Data for payment initiation cancellation (selectPsuAuthenticationMethod)",
+       generalUpdatePaymentCancellationPsuDataSummary(true),
+       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{
+         "scaStatus": "scaMethodSelected",
+         "chosenScaMethod": {
+           "authenticationType": "SMS_OTP",
+           "authenticationMethodId": "myAuthenticationID"},
+         "challengeData": {
+           "otpMaxLength": "6",
+           "otpFormat": "integer"},
+         "_links": {
+           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+         }
+       }""").extract[SelectPsuAuthenticationMethodResponse],
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkSelectPsuAuthenticationMethod(json)=> {
+         cc =>
+           for {
+             (_, callContext) <- authenticatedAccess(cc)
+           } yield {
+             (net.liftweb.json.parse(
+               """{
+                 "scaStatus": "scaMethodSelected",
+                 "chosenScaMethod": {
+                   "authenticationType": "SMS_OTP",
+                   "authenticationMethodId": "myAuthenticationID"},
+                 "challengeData": {
+                   "otpMaxLength": "6",
+                   "otpFormat": "integer"},
+                 "_links": {
+                   "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                 }
+               }"""), callContext)
+           }
+         }
+     }
+  
+     resourceDocs += ResourceDoc(
+       updatePaymentCancellationPsuDataAuthorisationConfirmation,
+       apiVersion,
+       nameOf(updatePaymentCancellationPsuDataAuthorisationConfirmation),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
+       "Update PSU Data for payment initiation cancellation (authorisationConfirmation)",
+       generalUpdatePaymentCancellationPsuDataSummary(true),
+       AuthorisationConfirmation("authenticationMethodId"),
+       json.parse("""{
+         "scaStatus": "finalised",
+         "_links":{
+           "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+         }
+       }""").extract[AuthorisationConfirmationResponse],
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     def checkAuthorisationConfirmation(JsonPost: JValue) = tryo {
+       JsonPost.extract[AuthorisationConfirmation]
+     }.isDefined
+  
+     lazy val updatePaymentCancellationPsuDataAuthorisationConfirmation : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkAuthorisationConfirmation(json)=> {
+         cc =>
+           for {
+             (_, callContext) <- authenticatedAccess(cc)
+           } yield {
+             (net.liftweb.json.parse(
+               """{
+                    "scaStatus": "finalised",
+                    "_links":{
+                      "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+                    }
+                  }"""), callContext)
+           }
+         }
+     }
             
      resourceDocs += ResourceDoc(
        updatePaymentPsuData,

@@ -3,6 +3,7 @@ package code.api.berlin.group.v1_3
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.berlin.group.v1_3.model._
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.bankconnectors.Connector
@@ -13,7 +14,6 @@ import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User,
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
 import net.liftweb.json.{JValue, parse}
-
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -632,6 +632,20 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         authorisationId = challenge.challengeId,
         psuMessage = "Please check your SMS at a mobile device.",
         _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")
+      )
+  }
+  
+  def createStartPaymentInitiationCancellationAuthorisation(
+    challenge: ChallengeTrait,
+    paymentService: String,
+    paymentProduct: String,
+    paymentId: String
+  ) = {
+    UpdatePsuAuthenticationResponse(
+        scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+        authorisationId = Some(challenge.challengeId),
+        psuMessage = Some("Please check your SMS at a mobile device."),
+        _links = Some(LinksUpdatePsuAuthentication(Some(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")))
       )
   }
 }
