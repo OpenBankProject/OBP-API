@@ -744,7 +744,7 @@ Check the transaction status of a payment initiation.""",
      }
     }
            
-    val generalStartPaymentAuthorisationSummary = s"""${mockedDataText(false)}
+    def generalStartPaymentAuthorisationSummary(isMockedDate: Boolean) = s"""${mockedDataText(isMockedDate)}
 Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
 
@@ -786,8 +786,8 @@ This applies in the following scenarios:
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
-       generalStartPaymentAuthorisationSummary,
-       UpdatePsuAuthentication(PsuData(password = Some("password"))),
+       generalStartPaymentAuthorisationSummary(false),
+       UpdatePsuAuthentication(PsuData(password = Some(""))),
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -847,7 +847,7 @@ This applies in the following scenarios:
       "POST",
       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (selectPsuAuthenticationMethod)",
-      generalStartPaymentAuthorisationSummary,
+      generalStartPaymentAuthorisationSummary(true),
       SelectPsuAuthenticationMethod("authenticationMethodId"),
       json.parse("""{
                   "challengeData": {
@@ -872,31 +872,18 @@ This applies in the following scenarios:
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- passesPsd2Pisp(callContext)
-          _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
-            PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
-          }
-          _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
-          }
-          (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-
-          (challenges, callContext) <- NewStyle.function.createChallengesC2(
-            List(u.userId),
-            ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
-            Some(paymentId),
-            getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
-            Some(StrongCustomerAuthenticationStatus.received),
-            None,
-            None,
-            callContext
-          )
-          //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
-          challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
-            challenges.head
-          }
         } yield {
-          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+          (liftweb.json.parse(
+            """{
+                      "challengeData": {
+                        "scaStatus": "received",
+                        "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                        "psuMessage": "Please check your SMS at a mobile device.",
+                        "_links": {
+                          "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                        }
+                      }
+                    }"""), callContext)
         }
     }
   }
@@ -908,7 +895,7 @@ This applies in the following scenarios:
       "POST",
       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (transactionAuthorisation)",
-      generalStartPaymentAuthorisationSummary,
+      generalStartPaymentAuthorisationSummary(true),
       TransactionAuthorisation("scaAuthenticationData"),
       json.parse("""{
                   "challengeData": {
@@ -933,31 +920,18 @@ This applies in the following scenarios:
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- passesPsd2Pisp(callContext)
-          _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
-            PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
-          }
-          _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
-            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
-          }
-          (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-
-          (challenges, callContext) <- NewStyle.function.createChallengesC2(
-            List(u.userId),
-            ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
-            Some(paymentId),
-            getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
-            Some(StrongCustomerAuthenticationStatus.received),
-            None,
-            None,
-            callContext
-          )
-          //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
-          challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
-            challenges.head
-          }
         } yield {
-          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+          (liftweb.json.parse(
+            """{
+                "challengeData": {
+                  "scaStatus": "received",
+                  "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                  "psuMessage": "Please check your SMS at a mobile device.",
+                  "_links": {
+                    "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                  }
+                }
+              }"""), callContext)
         }
     }
     }
