@@ -15,7 +15,7 @@ package code.api.berlin.group.v1_3.model
 
 case class PsuData (
   /* Password. */
-  password: Option[String] = None,
+  password: String,
   /* Encrypted password. */
   encryptedPassword: Option[String] = None,
   /* Additional password in plaintext. */

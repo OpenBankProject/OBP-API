@@ -792,7 +792,7 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
        generalStartPaymentAuthorisationSummary(false),
-       UpdatePsuAuthentication(PsuData(password = Some(""))),
+       UpdatePsuAuthentication(PsuData(password = (""))),
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -812,7 +812,7 @@ This applies in the following scenarios:
     }.isDefined
     
     lazy val startPaymentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
-    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)  => {
+      case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)  => {
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
@@ -843,7 +843,7 @@ This applies in the following scenarios:
           (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
         }
     }
-  }
+    }
             
     resourceDocs += ResourceDoc(
       startPaymentAuthorisationSelectPsuAuthenticationMethod,
@@ -873,7 +873,7 @@ This applies in the following scenarios:
     }.isDefined
     
     lazy val startPaymentAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
-    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)  => {
+      case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)  => {
       cc =>
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
@@ -891,7 +891,7 @@ This applies in the following scenarios:
                     }"""), callContext)
         }
     }
-  }
+    }
             
     resourceDocs += ResourceDoc(
       startPaymentAuthorisationTransactionAuthorisation,
@@ -1049,7 +1049,7 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment (updatePsuAuthentication)",
        generalStartPaymentInitiationCancellationAuthorisationSummary(true),
-       UpdatePsuAuthentication(PsuData(Some("password"))),
+       UpdatePsuAuthentication(PsuData("password")),
        json.parse("""{
          "scaStatus": "received",
          "authorisationId": "123auth456",
@@ -1260,7 +1260,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
        "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
        generalUpdatePaymentCancellationPsuDataSummary(true),
-       UpdatePsuAuthentication(PsuData(Some("password"))),
+       UpdatePsuAuthentication(PsuData("password")),
        json.parse("""{
          "scaStatus": "psuAuthenticated",
          "_links": {
