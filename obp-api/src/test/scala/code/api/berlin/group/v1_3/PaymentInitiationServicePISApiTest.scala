@@ -462,7 +462,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(200)
       val startPaymentAuthorisationResponse = response.body.extract[UpdatePsuAuthenticationResponse]
       startPaymentAuthorisationResponse.authorisationId should not be null
-      startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")
+      startPaymentAuthorisationResponse.psuMessage should be (Some("Please check your SMS at a mobile device."))
       startPaymentAuthorisationResponse.scaStatus should be (ScaStatus.received.toString)
 
       Then(s"We can test the ${getPaymentInitiationCancellationAuthorisationInformation.name}")
@@ -481,17 +481,11 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       cancellationScaStatus should be (ScaStatus.received.toString)
 
       Then(s"We can test the ${updatePaymentCancellationPsuData.name}")
-      val updatePaymentCancellationPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataUpdatePsuAuthentication)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-        .jvalueToCaseclass
 
       val requestUpdatePaymentCancellationPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
-      val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, write(updatePaymentCancellationPsuDataJsonBody))
+      val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, """{"scaAuthenticationData":"123"}""")
       responseUpdatePaymentCancellationPsuData.code should be (200)
-      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
-      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(cancelationId)
+      responseUpdatePaymentCancellationPsuData.body.extract[ScaStatusResponse].scaStatus should be("finalised")
 
     }
   }
