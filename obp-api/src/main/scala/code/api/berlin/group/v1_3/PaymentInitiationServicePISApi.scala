@@ -60,7 +60,9 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       startPaymentAuthorisationUpdatePsuAuthentication ::
       startPaymentAuthorisationTransactionAuthorisation ::
       startPaymentAuthorisationSelectPsuAuthenticationMethod ::
-      startPaymentInitiationCancellationAuthorisation ::
+      startPaymentInitiationCancellationAuthorisationTransactionAuthorisation ::
+      startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication ::
+      startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod ::
       updatePaymentCancellationPsuDataUpdatePsuAuthentication ::
       updatePaymentCancellationPsuDataTransactionAuthorisation ::
       updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
@@ -938,15 +940,9 @@ This applies in the following scenarios:
         }
     }
     }
-            
-     resourceDocs += ResourceDoc(
-       startPaymentInitiationCancellationAuthorisation,
-       apiVersion,
-       nameOf(startPaymentInitiationCancellationAuthorisation),
-       "POST",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
-       "Start the authorisation process for the cancellation of the addressed payment",
-       s"""${mockedDataText(false)}
+       
+     def generalStartPaymentInitiationCancellationAuthorisationSummary (isMockedDate:Boolean) =
+       s"""${mockedDataText(isMockedDate)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -964,37 +960,48 @@ or cancellation sub-resource.
 
 This applies in the following scenarios:
 
-  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment 
-    Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
-    The 'startAuthorisation' hyperlink can transport more information about data which needs to be 
-    uploaded by using the extended forms.
-    * 'startAuthorisationWithPsuIdentfication', 
-    * 'startAuthorisationWithPsuAuthentication' #TODO
-    * 'startAuthorisationWithAuthentciationMethodSelection' 
-  * The related payment initiation cannot yet be executed since a multilevel SCA is mandated.
-  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding 
-    Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP. 
-    The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded 
-    by using the extended forms as indicated above.
-  * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
-    executing the cancellation.
-  * The signing basket needs to be authorised yet.
-""",
-       emptyObjectJson,
+* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment 
+  Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
+  The 'startAuthorisation' hyperlink can transport more information about data which needs to be 
+  uploaded by using the extended forms.
+  * 'startAuthorisationWithPsuIdentfication', 
+  * 'startAuthorisationWithPsuAuthentication' #TODO
+  * 'startAuthorisationWithAuthentciationMethodSelection' 
+* The related payment initiation cannot yet be executed since a multilevel SCA is mandated.
+* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding 
+  Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP. 
+  The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded 
+  by using the extended forms as indicated above.
+* The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
+  executing the cancellation.
+* The signing basket needs to be authorised yet.
+"""
+
+     resourceDocs += ResourceDoc(
+       startPaymentInitiationCancellationAuthorisationTransactionAuthorisation,
+       apiVersion,
+       nameOf(startPaymentInitiationCancellationAuthorisationTransactionAuthorisation),
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
+       "Start the authorisation process for the cancellation of the addressed payment (transactionAuthorisation)",
+       generalStartPaymentInitiationCancellationAuthorisationSummary(false),
+       json.parse("""{"scaAuthenticationData":""}"""),
        json.parse("""{
-                      "scaStatus":"received",
-                      "authorisationId":"8a49b79b-b400-4e6b-b88d-637c3a71479d",
-                      "psuMessage":"Please check your SMS at a mobile device.",
-                      "_links":{
-                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/8a49b79b-b400-4e6b-b88d-637c3a71479d"
-                      }
-                    }"""),
+         "scaStatus": "received",
+         "authorisationId": "123auth456",
+         "psuMessage": "Please use your BankApp for transaction Authorisation.",
+         "_links": {
+           "scaStatus": {
+             "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
+           }
+         }
+       }"""),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-     lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost _ => {
+     lazy val startPaymentInitiationCancellationAuthorisationTransactionAuthorisation : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost json -> _ if checkTransactionAuthorisation(json)=> {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1030,6 +1037,94 @@ This applies in the following scenarios:
                paymentProduct,
                paymentId
              ), callContext)
+           }
+         }
+       }
+
+     resourceDocs += ResourceDoc(
+       startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication),
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
+       "Start the authorisation process for the cancellation of the addressed payment (updatePsuAuthentication)",
+       generalStartPaymentInitiationCancellationAuthorisationSummary(true),
+       UpdatePsuAuthentication(PsuData(Some("password"))),
+       json.parse("""{
+         "scaStatus": "received",
+         "authorisationId": "123auth456",
+         "psuMessage": "Please use your BankApp for transaction Authorisation.",
+         "_links": {
+           "scaStatus": {
+             "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
+           }
+         }
+       }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)=> {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+           } yield {
+             (liftweb.json.parse(
+               """{
+               "scaStatus": "received",
+               "authorisationId": "123auth456",
+               "psuMessage": "Please use your BankApp for transaction Authorisation.",
+               "_links": {
+                 "scaStatus": {
+                   "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
+                 }
+               }
+             }"""), callContext)
+           }
+         }
+       }
+
+     resourceDocs += ResourceDoc(
+       startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod,
+       apiVersion,
+       nameOf(startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod),
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
+       "Start the authorisation process for the cancellation of the addressed payment (selectPsuAuthenticationMethod)",
+       generalStartPaymentInitiationCancellationAuthorisationSummary(true),
+       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{
+         "scaStatus": "received",
+         "authorisationId": "123auth456",
+         "psuMessage": "Please use your BankApp for transaction Authorisation.",
+         "_links": {
+           "scaStatus": {
+             "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
+           }
+         }
+       }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)=> {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+           } yield {
+             (liftweb.json.parse(
+               """{
+               "scaStatus": "received",
+               "authorisationId": "123auth456",
+               "psuMessage": "Please use your BankApp for transaction Authorisation.",
+               "_links": {
+                 "scaStatus": {
+                   "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
+                 }
+               }
+             }"""), callContext)
            }
          }
        }
@@ -1169,7 +1264,7 @@ There are the following request types on this access path:
        json.parse("""{
          "scaStatus": "psuAuthenticated",
          "_links": {
-           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+           "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1186,7 +1281,7 @@ There are the following request types on this access path:
                """{
                  "scaStatus": "psuAuthenticated",
                  "_links": {
-                   "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                   "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                  }
                }"""), callContext)
            }
@@ -1211,7 +1306,7 @@ There are the following request types on this access path:
            "otpMaxLength": 6,
            "otpFormat": "integer"},
          "_links": {
-           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+           "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1234,7 +1329,7 @@ There are the following request types on this access path:
                    "otpMaxLength": 6,
                    "otpFormat": "integer"},
                  "_links": {
-                   "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                   "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                  }
                }"""), callContext)
            }
@@ -1253,7 +1348,7 @@ There are the following request types on this access path:
        json.parse("""{
          "scaStatus": "finalised",
          "_links":{
-           "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+           "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
          }
        }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1274,7 +1369,7 @@ There are the following request types on this access path:
                """{
                     "scaStatus": "finalised",
                     "_links":{
-                      "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+                      "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                     }
                   }"""), callContext)
            }
@@ -1458,7 +1553,7 @@ There are the following request types on this access path:
            "otpMaxLength": 6,
            "otpFormat": "integer"},
          "_links": {
-           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+           "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1482,7 +1577,7 @@ There are the following request types on this access path:
                  "otpMaxLength": 6,
                  "otpFormat": "integer"},
                "_links": {
-                 "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                 "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                }
              }"""), callContext)
            }
@@ -1502,7 +1597,7 @@ There are the following request types on this access path:
          """{
          "scaStatus": "finalised",
          "_links":{
-           "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+           "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
          }
        }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1520,7 +1615,7 @@ There are the following request types on this access path:
                """{
                "scaStatus": "finalised",
                "_links":{
-                 "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+                 "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                }
              }"""), callContext)
            }
