@@ -44,7 +44,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   
   object getConsentScaStatus extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentScaStatus))
   
-  object updateConsentsPsuData extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData))
+  object updateConsentsPsuData extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataTransactionAuthorisation))
 
   
   feature(s"BG v1.3 - $getAccountList") {

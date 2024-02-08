@@ -509,10 +509,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
     )
   }
-  def createPutConsentResponseJson(consent: ConsentTrait) : PutConsentResponseJson = {
-    PutConsentResponseJson(
+  def createPutConsentResponseJson(consent: ConsentTrait) : ScaStatusResponse = {
+    ScaStatusResponse(
       scaStatus = consent.status.toLowerCase(),
-      _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
+      _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/consents/${consent.consentId}/authorisations")))))
     )
   }
 

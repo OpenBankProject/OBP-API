@@ -47,7 +47,10 @@ object APIMethods_CommonServicesApi extends RestHelper {
     APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation ::
     APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationUpdatePsuAuthentication ::
     APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationSelectPsuAuthenticationMethod ::
-    APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData ::
+    APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataTransactionAuthorisation ::
+    APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdatePsuAuthentication ::
+    APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateAuthorisationConfirmation ::
+    APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod ::
     APIMethods_AccountInformationServiceAISApi.getConsentScaStatus :: Nil
 
 
@@ -79,7 +82,10 @@ object APIMethods_CommonServicesApi extends RestHelper {
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation).head
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationUpdatePsuAuthentication).head
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationSelectPsuAuthenticationMethod).head
-  resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData ).head
+  resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataTransactionAuthorisation).head
+  resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdatePsuAuthentication).head
+  resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateAuthorisationConfirmation).head
+  resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod).head
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.getConsentScaStatus).head
   
 }

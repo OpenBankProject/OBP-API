@@ -5,7 +5,9 @@ import java.text.SimpleDateFormat
 import code.api.APIFailureNewStyle
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
+import code.api.berlin.group.v1_3.model.{HrefType, LinksAll, ScaStatusResponse}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
+import code.api.berlin.group.v1_3.model._
 import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -59,7 +61,10 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       startConsentAuthorisationTransactionAuthorisation ::
       startConsentAuthorisationUpdatePsuAuthentication ::
       startConsentAuthorisationSelectPsuAuthenticationMethod ::
-      updateConsentsPsuData ::
+      updateConsentsPsuDataTransactionAuthorisation ::
+      updateConsentsPsuDataUpdatePsuAuthentication ::
+      updateConsentsPsuDataUpdateAuthorisationConfirmation ::
+      updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod ::
       Nil
     lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
       rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
@@ -1075,7 +1080,7 @@ using the extended forms as indicated above.
      )
 
      lazy val startConsentAuthorisationTransactionAuthorisation : OBPEndpoint = {
-       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json)=> {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPost json -> _ if checkTransactionAuthorisation(json)=> {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1130,7 +1135,7 @@ using the extended forms as indicated above.
      )
 
      lazy val startConsentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
-       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkUpdatePsuAuthentication(json)=> {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)=> {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1172,7 +1177,7 @@ using the extended forms as indicated above.
      )
 
      lazy val startConsentAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
-       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkSelectPsuAuthenticationMethod(json)=> {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)=> {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1190,14 +1195,8 @@ using the extended forms as indicated above.
            }
          }
        }
-            
-     resourceDocs += ResourceDoc(
-       updateConsentsPsuData,
-       apiVersion,
-       nameOf(updateConsentsPsuData),
-       "PUT",
-       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
-       "Update PSU Data for consents",
+  
+     def generalUpdateConsentsPsuDataSummary(isMockedData: Boolean) =
        s"""${mockedDataText(false)}
 This method update PSU data on the consents resource if needed. It may authorise a consent within the Embedded 
 SCA Approach where needed. Independently from the SCA Approach it supports 
@@ -1224,18 +1223,27 @@ Maybe in a later version the access path will change.
 * Transaction Authorisation WARNING: This method need a reduced header, therefore many optional elements are not present. 
 Maybe in a later version the access path will change.
 
-            """,
+          """
+          
+     resourceDocs += ResourceDoc(
+       updateConsentsPsuDataTransactionAuthorisation,
+       apiVersion,
+       nameOf(updateConsentsPsuDataTransactionAuthorisation),
+       "PUT",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "Update PSU Data for consents (transactionAuthorisation)",
+       generalUpdateConsentsPsuDataSummary(false),
        json.parse("""{"scaAuthenticationData":"123"}"""),
-       PutConsentResponseJson(
+       ScaStatusResponse(
          scaStatus = "received",
-         _links = ConsentLinksV13("/v1.3/consents/1234-wertiq-983/authorisations")
+         _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/consents/1234-wertiq-983/authorisations")))))
        ),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
-     lazy val updateConsentsPsuData : OBPEndpoint = {
-       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
+     lazy val updateConsentsPsuDataTransactionAuthorisation : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ if checkTransactionAuthorisation(jsonPut) => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1243,9 +1251,9 @@ Maybe in a later version the access path will change.
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
-             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+             failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAuthorisation "
              updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-               jsonPut.extract[UpdatePaymentPsuDataJson]
+               jsonPut.extract[TransactionAuthorisation]
              }
              (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
              _ <- NewStyle.function.tryons(s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)", 400, callContext) {
@@ -1282,6 +1290,133 @@ Maybe in a later version the access path will change.
              }
            } yield {
              (createPutConsentResponseJson(consent.toList.head), HttpCode.`200`(callContext))
+           }
+         }
+       }
+          
+     resourceDocs += ResourceDoc(
+       updateConsentsPsuDataUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(updateConsentsPsuDataUpdatePsuAuthentication),
+       "PUT",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "Update PSU Data for consents (updatePsuAuthentication)",
+       generalUpdateConsentsPsuDataSummary(true),
+       json.parse("""{"psuData": {"password": "start12"}}""".stripMargin),
+       json.parse("""{ 
+         |          "scaStatus": "psuAuthenticated",
+         |          "_links": {
+         |           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+         |          }
+         |        }""".stripMargin),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updateConsentsPsuDataUpdatePsuAuthentication : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ if checkUpdatePsuAuthentication(jsonPut) => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+             
+           } yield {
+             (liftweb.json.parse(
+               """{ 
+                 | "scaStatus": "psuAuthenticated",
+                 | "_links": {
+                 |  "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                 | }
+                 |""".stripMargin), HttpCode.`200`(callContext))
+           }
+         }
+       }
+          
+     resourceDocs += ResourceDoc(
+       updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod,
+       apiVersion,
+       nameOf(updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod),
+       "PUT",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "Update PSU Data for consents (selectPsuAuthenticationMethod)",
+       generalUpdateConsentsPsuDataSummary(true),
+       json.parse("""{
+                    |  "authenticationMethodId": "myAuthenticationID"
+                    |}""".stripMargin),
+       json.parse("""{ 
+                    |          "scaStatus": "scaMethodSelected",
+                    |          "chosenScaMethod": {
+                    |          "authenticationType": "SMS_OTP",
+                    |          "authenticationMethodId": "myAuthenticationID"},
+                    |          "challengeData": {
+                    |          "otpMaxLength": 6,
+                    |          "otpFormat": "integer"},
+                    |          "_links": {
+                    |             "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                    |          }
+                    |        }""".stripMargin),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ if checkSelectPsuAuthenticationMethod(jsonPut) => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+             
+           } yield {
+             (liftweb.json.parse(
+               """{ 
+                 | "scaStatus": "scaMethodSelected",
+                 | "chosenScaMethod": {
+                 | "authenticationType": "SMS_OTP",
+                 | "authenticationMethodId": "myAuthenticationID"},
+                 | "challengeData": {
+                 | "otpMaxLength": 6,
+                 | "otpFormat": "integer"},
+                 | "_links": {
+                 |    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                 | }
+                 |""".stripMargin), HttpCode.`200`(callContext))
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       updateConsentsPsuDataUpdateAuthorisationConfirmation,
+       apiVersion,
+       nameOf(updateConsentsPsuDataUpdateAuthorisationConfirmation),
+       "PUT",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "Update PSU Data for consents (authorisationConfirmation)",
+       generalUpdateConsentsPsuDataSummary(true),
+       json.parse("""{
+                    |  "authenticationMethodId": "myAuthenticationID"
+                    |}""".stripMargin),
+       json.parse("""{ 
+                    |          "scaStatus": "finalised",
+                    |          "_links":{
+                    |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+                    |          }
+                    |        }""".stripMargin),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updateConsentsPsuDataUpdateAuthorisationConfirmation : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ if checkAuthorisationConfirmation(jsonPut) => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+           } yield {
+             (json.parse(
+               """{ 
+                 |  "scaStatus": "finalised",
+                 |  "_links":{
+                 |    "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+                 |  }
+                 |}""".stripMargin),
+             HttpCode.`200`(callContext))
            }
          }
        }
