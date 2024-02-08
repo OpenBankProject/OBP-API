@@ -26,6 +26,7 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
+import net.liftweb
 import net.liftweb.json
 import net.liftweb.json._
 
@@ -55,7 +56,9 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       getTransactionList ::
       readAccountDetails ::
       readCardAccount ::
-      startConsentAuthorisation ::
+      startConsentAuthorisationTransactionAuthorisation ::
+      startConsentAuthorisationUpdatePsuAuthentication ::
+      startConsentAuthorisationSelectPsuAuthenticationMethod ::
       updateConsentsPsuData ::
       Nil
     lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
@@ -1019,42 +1022,45 @@ respectively the OAuth2 access token.
        }
      }
 
-     resourceDocs += ResourceDoc(
-       startConsentAuthorisation,
-       apiVersion,
-       nameOf(startConsentAuthorisation),
-       "POST",
-       "/consents/CONSENTID/authorisations",
-       "Start the authorisation process for a consent",
+     def generalStartConsentAuthorisationSumarry(isMockedData:Boolean) =
        s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data. 
 his method is iterated n times for a n times SCA authorisation in a corporate context, 
 each creating an own authorisation sub-endpoint for the corresponding PSU authorising the consent. 
 The ASPSP might make the usage of this access method unnecessary, since the related authorisation
- resource will be automatically created by the ASPSP after the submission of the consent data with the 
- first POST consents call. The start authorisation process is a process which is needed for creating 
- a new authorisation or cancellation sub-resource. 
- 
- This applies in the following scenarios: * The ASPSP has indicated with an 'startAuthorisation' hyperlink 
- in the preceding Payment Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
- The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by using 
- the extended forms. 
- * 'startAuthorisationWithPsuIdentfication', 
- * 'startAuthorisationWithPsuAuthentication' 
- * 'startAuthorisationWithEncryptedPsuAuthentication' 
- * 'startAuthorisationWithAuthentciationMethodSelection' 
- * The related payment initiation cannot yet be executed since a multilevel SCA is mandated. 
- * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceding Payment Cancellation 
- Response that an explicit start of the authorisation process is needed by the TPP. 
- 
- The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by 
- using the extended forms as indicated above. 
- * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for executing the cancellation. 
- * The signing basket needs to be authorised yet.
+resource will be automatically created by the ASPSP after the submission of the consent data with the 
+first POST consents call. The start authorisation process is a process which is needed for creating 
+a new authorisation or cancellation sub-resource. 
 
-""",
-       emptyObjectJson,//TODO in the `psd2-api v1.3.12-2022-07-06.yaml` it is a oneOf field, if OBP need it we can add it back.
+This applies in the following scenarios: * The ASPSP has indicated with an 'startAuthorisation' hyperlink 
+in the preceding Payment Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
+The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by using 
+the extended forms. 
+* 'startAuthorisationWithPsuIdentfication', 
+* 'startAuthorisationWithPsuAuthentication' 
+* 'startAuthorisationWithEncryptedPsuAuthentication' 
+* 'startAuthorisationWithAuthentciationMethodSelection' 
+* The related payment initiation cannot yet be executed since a multilevel SCA is mandated. 
+* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceding Payment Cancellation 
+Response that an explicit start of the authorisation process is needed by the TPP. 
+
+The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by 
+using the extended forms as indicated above. 
+* The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for executing the cancellation. 
+* The signing basket needs to be authorised yet.
+
+"""
+  
+     resourceDocs += ResourceDoc(
+       startConsentAuthorisationTransactionAuthorisation,
+       apiVersion,
+       nameOf(startConsentAuthorisationTransactionAuthorisation),
+       "POST",
+       "/consents/CONSENTID/authorisations",
+       "Start the authorisation process for a consent(transactionAuthorisation)",
+       generalStartConsentAuthorisationSumarry(false),
+       json.parse("""{"scaAuthenticationData":""}"""),
        json.parse("""{
                        "scaStatus": "received",
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
@@ -1068,8 +1074,8 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-     lazy val startConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentId :: "authorisations" :: Nil JsonPost _ => {
+     lazy val startConsentAuthorisationTransactionAuthorisation : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json)=> {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1093,6 +1099,94 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
              }
            } yield {
              (createStartConsentAuthorisationJson(consent, challenge), HttpCode.`201`(callContext))
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       startConsentAuthorisationUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(startConsentAuthorisationUpdatePsuAuthentication),
+       "POST",
+       "/consents/CONSENTID/authorisations",
+       "Start the authorisation process for a consent(updatePsuAuthentication)",
+       generalStartConsentAuthorisationSumarry(true),
+       json.parse("""{
+         "psuData": {
+           "password": "start12"
+         }
+       }"""),
+       json.parse("""{
+                       "scaStatus": "received",
+                       "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                       "authorisationId": "123auth456.",
+                       "_links":
+                         {
+                           "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
+                         }
+                     }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val startConsentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkUpdatePsuAuthentication(json)=> {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+           } yield {
+             (liftweb.json.parse(
+               """{
+                   "scaStatus": "received",
+                   "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                   "authorisationId": "123auth456.",
+                   "_links":
+                     {
+                       "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
+                     }
+               }"""),HttpCode.`201`(callContext))
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       startConsentAuthorisationSelectPsuAuthenticationMethod,
+       apiVersion,
+       nameOf(startConsentAuthorisationSelectPsuAuthenticationMethod),
+       "POST",
+       "/consents/CONSENTID/authorisations",
+       "Start the authorisation process for a consent(selectPsuAuthenticationMethod)",
+       generalStartConsentAuthorisationSumarry(true),
+       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{
+                       "scaStatus": "received",
+                       "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                       "authorisationId": "123auth456.",
+                       "_links":
+                         {
+                           "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
+                         }
+                     }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val startConsentAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPut json -> _ if checkSelectPsuAuthenticationMethod(json)=> {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+           } yield {
+             (liftweb.json.parse(
+               """{
+                   "scaStatus": "received",
+                   "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                   "authorisationId": "123auth456.",
+                   "_links":
+                     {
+                       "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
+                     }
+               }"""),HttpCode.`201`(callContext))
            }
          }
        }

@@ -793,7 +793,7 @@ This applies in the following scenarios:
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
-       generalStartPaymentAuthorisationSummary(false),
+       generalStartPaymentAuthorisationSummary(true),
        UpdatePsuAuthentication(PsuData(password = (""))),
        json.parse("""{
                       "challengeData": {
@@ -1041,7 +1041,11 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment (updatePsuAuthentication)",
        generalStartPaymentInitiationCancellationAuthorisationSummary(true),
-       UpdatePsuAuthentication(PsuData("password")),
+       json.parse("""{
+         "psuData": {
+           "password": "start12"
+         }
+       }"""),
        json.parse("""{
          "scaStatus": "received",
          "authorisationId": "123auth456",
