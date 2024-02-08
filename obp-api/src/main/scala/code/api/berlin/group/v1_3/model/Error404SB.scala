@@ -24,7 +24,7 @@ case class Error404SB (
   code: MessageCode404SB,
   /* Array of Error Information Blocks.  Might be used if more than one error is to be communicated  */
   additionalErrors: Option[Seq[Error404SBAdditionalErrorsInner]] = None,
-  links: Option[LinksAll] = None
+  _links: Option[LinksAll] = None
 ) extends ApiModel
 
 object Error404SBEnums {

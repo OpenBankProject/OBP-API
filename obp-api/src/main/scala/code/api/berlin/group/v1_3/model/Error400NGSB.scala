@@ -15,6 +15,6 @@ package code.api.berlin.group.v1_3.model
 
 case class Error400NGSB (
   tppMessages: Option[Seq[TppMessage400SB]] = None,
-  links: Option[LinksAll] = None
+  _links: Option[LinksAll] = None
 ) extends ApiModel
 

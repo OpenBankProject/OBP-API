@@ -52,7 +52,7 @@ case class TransactionDetails (
   bankTransactionCode: Option[String] = None,
   /* Proprietary bank transaction code as used within a community or within an ASPSP e.g.  for MT94x based transaction reports.  */
   proprietaryBankTransactionCode: Option[String] = None,
-  links: Option[LinksTransactionDetails] = None
+  _links: Option[LinksTransactionDetails] = None
 ) extends ApiModel
 
 object TransactionDetailsEnums {

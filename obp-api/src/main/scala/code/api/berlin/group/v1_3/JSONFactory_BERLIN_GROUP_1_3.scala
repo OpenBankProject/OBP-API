@@ -645,7 +645,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
         authorisationId = Some(challenge.challengeId),
         psuMessage = Some("Please check your SMS at a mobile device."),
-        _links = Some(LinksUpdatePsuAuthentication(Some(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")))
+        _links = Some(LinksUpdatePsuAuthentication(
+          scaStatus = Some(HrefType(Some(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}"))))
+        )
       )
   }
 }

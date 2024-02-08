@@ -19,7 +19,7 @@ case class PaymentInitiationCancelResponse204202 (
   scaMethods: Option[Seq[AuthenticationObject]] = None,
   chosenScaMethod: Option[AuthenticationObject] = None,
   challengeData: Option[ChallengeData] = None,
-  links: Option[LinksPaymentInitiationCancel] = None
+  _links: Option[LinksPaymentInitiationCancel] = None
 ) extends ApiModel
 
 object PaymentInitiationCancelResponse204202Enums {

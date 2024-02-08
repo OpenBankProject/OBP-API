@@ -787,7 +787,7 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
        generalStartPaymentAuthorisationSummary,
-       UpdatePsuAuthentication(PsuData("password")),
+       UpdatePsuAuthentication(PsuData(password = Some("password"))),
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -1189,13 +1189,13 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
        "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
        generalUpdatePaymentCancellationPsuDataSummary(true),
-       UpdatePsuAuthentication(PsuData("password")),
+       UpdatePsuAuthentication(PsuData(Some("password"))),
        json.parse("""{
          "scaStatus": "psuAuthenticated",
-         _links: {
+         "_links": {
            "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
          }
-       }""").extract[UpdatePsuAuthenticationResponse],
+       }"""),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
@@ -1209,7 +1209,7 @@ There are the following request types on this access path:
              (net.liftweb.json.parse(
                """{
                  "scaStatus": "psuAuthenticated",
-                 _links: {
+                 "_links": {
                    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                  }
                }"""), callContext)
@@ -1232,12 +1232,12 @@ There are the following request types on this access path:
            "authenticationType": "SMS_OTP",
            "authenticationMethodId": "myAuthenticationID"},
          "challengeData": {
-           "otpMaxLength": "6",
+           "otpMaxLength": 6,
            "otpFormat": "integer"},
          "_links": {
            "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
          }
-       }""").extract[SelectPsuAuthenticationMethodResponse],
+       }"""),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
@@ -1255,7 +1255,7 @@ There are the following request types on this access path:
                    "authenticationType": "SMS_OTP",
                    "authenticationMethodId": "myAuthenticationID"},
                  "challengeData": {
-                   "otpMaxLength": "6",
+                   "otpMaxLength": 6,
                    "otpFormat": "integer"},
                  "_links": {
                    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
@@ -1279,7 +1279,7 @@ There are the following request types on this access path:
          "_links":{
            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
          }
-       }""").extract[AuthorisationConfirmationResponse],
+       }"""),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
