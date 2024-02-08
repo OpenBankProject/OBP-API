@@ -294,11 +294,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     scenario(s"${startPaymentAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
      
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """{
-                                                                 |  "psuData": {
-                                                                 |    "password": "start12"
-                                                                 |  }
-                                                                 |}""".stripMargin)
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":"123"}""".stripMargin)
       Then("We should get a 400 ")
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
@@ -347,11 +343,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       Then(s"we test the ${startPaymentAuthorisation.name}")
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """{
-                                                                 |  "psuData": {
-                                                                 |    "password": "start12"
-                                                                 |  }
-                                                                 |}""".stripMargin)
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":"123"}""".stripMargin)
       Then("We should get a 200 ")
       response.code should equal(200)
       val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
