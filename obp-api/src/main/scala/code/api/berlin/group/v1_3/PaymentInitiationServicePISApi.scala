@@ -1,7 +1,9 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, createCancellationTransactionRequestJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, 
+  CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkUpdatePsuAuthentication,checkAuthorisationConfirmation,
+  checkTransactionAuthorisation, checkSelectPsuAuthenticationMethod, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -807,10 +809,7 @@ This applies in the following scenarios:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-    def checkUpdatePsuAuthentication(JsonPost: JValue) = tryo {
-      JsonPost.extract[UpdatePsuAuthentication]
-    }.isDefined
-    
+  
     lazy val startPaymentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)  => {
       cc =>
@@ -868,10 +867,6 @@ This applies in the following scenarios:
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
-    def checkSelectPsuAuthenticationMethod(JsonPost: JValue) = tryo {
-      JsonPost.extract[SelectPsuAuthenticationMethod]
-    }.isDefined
-    
     lazy val startPaymentAuthorisationSelectPsuAuthenticationMethod : OBPEndpoint = {
       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkSelectPsuAuthenticationMethod(json)  => {
       cc =>
@@ -916,10 +911,7 @@ This applies in the following scenarios:
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
-    def checkTransactionAuthorisation(JsonPost: JValue) = tryo {
-      JsonPost.extract[TransactionAuthorisation]
-    }.isDefined
-    
+  
     lazy val startPaymentAuthorisationTransactionAuthorisation : OBPEndpoint = {
       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkTransactionAuthorisation(json)  => {
       cc =>
@@ -1355,10 +1347,6 @@ There are the following request types on this access path:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-     def checkAuthorisationConfirmation(JsonPost: JValue) = tryo {
-       JsonPost.extract[AuthorisationConfirmation]
-     }.isDefined
-  
      lazy val updatePaymentCancellationPsuDataAuthorisationConfirmation : OBPEndpoint = {
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkAuthorisationConfirmation(json)=> {
          cc =>

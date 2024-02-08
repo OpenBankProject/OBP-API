@@ -11,6 +11,7 @@ import code.consent.ConsentTrait
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User, _}
+import net.liftweb.common.Box.tryo
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
 import net.liftweb.json.{JValue, parse}
@@ -652,4 +653,20 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         )
       )
   }
+
+  def checkTransactionAuthorisation(JsonPost: JValue) = tryo {
+    JsonPost.extract[TransactionAuthorisation]
+  }.isDefined
+
+  def checkUpdatePsuAuthentication(JsonPost: JValue) = tryo {
+    JsonPost.extract[UpdatePsuAuthentication]
+  }.isDefined
+
+  def checkSelectPsuAuthenticationMethod(JsonPost: JValue) = tryo {
+    JsonPost.extract[SelectPsuAuthenticationMethod]
+  }.isDefined
+
+  def checkAuthorisationConfirmation(JsonPost: JValue) = tryo {
+    JsonPost.extract[AuthorisationConfirmation]
+  }.isDefined
 }
