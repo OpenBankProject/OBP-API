@@ -39,6 +39,9 @@ object APIMethods_CommonServicesApi extends RestHelper {
     APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataAuthorisationConfirmation ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation ::
+    APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation ::
+    APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataSelectPsuAuthenticationMethod ::
+    APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation ::
     APIMethods_AccountInformationServiceAISApi.startConsentAuthorisation ::
     APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData ::
     APIMethods_AccountInformationServiceAISApi.getConsentScaStatus :: Nil
@@ -63,6 +66,9 @@ object APIMethods_CommonServicesApi extends RestHelper {
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataAuthorisationConfirmation).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod).head
   resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataSelectPsuAuthenticationMethod).head
+  resourceDocs += APIMethods_PaymentInitiationServicePISApi.resourceDocs.filter(_.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation).head
   
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.startConsentAuthorisation ).head
   resourceDocs += APIMethods_AccountInformationServiceAISApi.resourceDocs.filter(_.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData ).head

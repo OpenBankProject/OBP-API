@@ -66,6 +66,9 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
       updatePaymentCancellationPsuDataAuthorisationConfirmation ::
       updatePaymentPsuDataTransactionAuthorisation ::
+      updatePaymentPsuDataAuthorisationConfirmation ::
+      updatePaymentPsuDataSelectPsuAuthenticationMethod ::
+      updatePaymentPsuDataAuthorisationConfirmation ::
       Nil
 
             
@@ -1338,7 +1341,7 @@ There are the following request types on this access path:
                         "scaStatus": "finalised",
                         "psuMessage": "Please check your SMS at a mobile device.",
                         "_links": {
-                            "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                            "scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}
                         }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1395,6 +1398,131 @@ There are the following request types on this access path:
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createUpdatePaymentPsuDataTransactionAuthorisationJson(challenge), callContext)
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       updatePaymentPsuDataUpdatePsuAuthentication,
+       apiVersion,
+       nameOf(updatePaymentPsuDataUpdatePsuAuthentication),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
+       "Update PSU data for payment initiation (updatePsuAuthentication)",
+       generalUpdatePaymentPsuDataSumarry(true),
+       json.parse("""{"psuData": {"password": "start12"}}""".stripMargin),
+       json.parse("""{
+                        "scaStatus": "finalised",
+                        "_links": {
+                            "scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}
+                        }
+                    }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updatePaymentPsuDataUpdatePsuAuthentication : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkUpdatePsuAuthentication(json) =>  {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+            
+           } yield {
+             (liftweb.json.parse(
+               """{
+                      "scaStatus": "finalised",
+                      "_links": {
+                          "scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}
+                      }
+                  }"""), callContext)
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       updatePaymentPsuDataSelectPsuAuthenticationMethod,
+       apiVersion,
+       nameOf(updatePaymentPsuDataSelectPsuAuthenticationMethod),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
+       "Update PSU data for payment initiation (selectPsuAuthenticationMethod)",
+       generalUpdatePaymentPsuDataSumarry(true),
+       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse(
+         """{
+         "scaStatus": "scaMethodSelected",
+         "chosenScaMethod": {
+           "authenticationType": "SMS_OTP",
+           "authenticationMethodId": "myAuthenticationID"},
+         "challengeData": {
+           "otpMaxLength": 6,
+           "otpFormat": "integer"},
+         "_links": {
+           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+         }
+       }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updatePaymentPsuDataSelectPsuAuthenticationMethod : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkSelectPsuAuthenticationMethod(json) =>  {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+            
+           } yield {
+             (liftweb.json.parse(
+               """{
+               "scaStatus": "scaMethodSelected",
+               "chosenScaMethod": {
+                 "authenticationType": "SMS_OTP",
+                 "authenticationMethodId": "myAuthenticationID"},
+               "challengeData": {
+                 "otpMaxLength": 6,
+                 "otpFormat": "integer"},
+               "_links": {
+                 "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+               }
+             }"""), callContext)
+           }
+         }
+       }
+  
+     resourceDocs += ResourceDoc(
+       updatePaymentPsuDataAuthorisationConfirmation,
+       apiVersion,
+       nameOf(updatePaymentPsuDataAuthorisationConfirmation),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
+       "Update PSU data for payment initiation (authorisationConfirmation)",
+       generalUpdatePaymentPsuDataSumarry(true),
+       AuthorisationConfirmation("authenticationMethodId"),
+       json.parse(
+         """{
+         "scaStatus": "finalised",
+         "_links":{
+           "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+         }
+       }"""),
+       List(UserNotLoggedIn, UnknownError),
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
+     )
+
+     lazy val updatePaymentPsuDataAuthorisationConfirmation : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkAuthorisationConfirmation(json) =>  {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc)
+            
+           } yield {
+             (liftweb.json.parse(
+               """{
+               "scaStatus": "finalised",
+               "_links":{
+                 "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+               }
+             }"""), callContext)
            }
          }
        }
