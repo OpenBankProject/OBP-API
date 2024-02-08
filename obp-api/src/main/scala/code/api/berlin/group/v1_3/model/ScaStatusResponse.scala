@@ -14,7 +14,7 @@ package code.api.berlin.group.v1_3.model
 
 
 case class ScaStatusResponse (
-  scaStatus: ScaStatus,
+  scaStatus: String,
   /* Text to be displayed to the PSU. */
   psuMessage: Option[String] = None,
   /* Name of the PSU. In case of a corporate account, this might be the person acting on behalf of the corporate.  */

@@ -65,7 +65,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       updatePaymentCancellationPsuDataTransactionAuthorisation ::
       updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
       updatePaymentCancellationPsuDataAuthorisationConfirmation ::
-      updatePaymentPsuData ::
+      updatePaymentPsuDataTransactionAuthorisation ::
       Nil
 
             
@@ -1086,7 +1086,6 @@ There are the following request types on this access path:
        json.parse("""{"scaAuthenticationData":"123"}"""),
        json.parse("""{
                       "scaStatus":"finalised",
-                      "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
                       "psuMessage":"Please check your SMS at a mobile device.",
                       "_links":{
                         "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
@@ -1278,15 +1277,10 @@ There are the following request types on this access path:
            }
          }
      }
-            
-     resourceDocs += ResourceDoc(
-       updatePaymentPsuData,
-       apiVersion,
-       nameOf(updatePaymentPsuData),
-       "PUT",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
-       "Update PSU data for payment initiation",
-       s"""${mockedDataText(false)}
+        
+  
+     def generalUpdatePaymentPsuDataSumarry(isMockedData: Boolean) =
+       s"""${mockedDataText(isMockedData)}
 This methods updates PSU data on the authorisation resource if needed. 
 It may authorise a payment within the Embedded SCA Approach where needed.
 
@@ -1297,17 +1291,17 @@ There are several possible Update PSU Data requests in the context of payment in
 which depends on the SCA approach:
 
 * Redirect SCA Approach:
-  A specific Update PSU Data Request is applicable for 
-    * the selection of authentication methods, before choosing the actual SCA approach.
+A specific Update PSU Data Request is applicable for 
+  * the selection of authentication methods, before choosing the actual SCA approach.
 * Decoupled SCA Approach:
-  A specific Update PSU Data Request is only applicable for
-  * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
-  * the selection of authentication methods.
+A specific Update PSU Data Request is only applicable for
+* adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
+* the selection of authentication methods.
 * Embedded SCA Approach: 
-  The Update PSU Data Request might be used 
-  * to add credentials as a first factor authentication data of the PSU and
-  * to select the authentication method and
-  * transaction authorisation.
+The Update PSU Data Request might be used 
+* to add credentials as a first factor authentication data of the PSU and
+* to select the authentication method and
+* transaction authorisation.
 
 The SCA Approach might depend on the chosen SCA method. 
 For that reason, the following possible Update PSU Data request can apply to all SCA approaches:
@@ -1315,25 +1309,33 @@ For that reason, the following possible Update PSU Data request can apply to all
 * Select an SCA method in case of several SCA methods are available for the customer.
 
 There are the following request types on this access path:
-  * Update PSU Identification
-  * Update PSU Authentication
-  * Select PSU Autorization Method 
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
-  * Transaction Authorisation
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
+* Update PSU Identification
+* Update PSU Authentication
+* Select PSU Autorization Method 
+  WARNING: This method need a reduced header, 
+  therefore many optional elements are not present. 
+  Maybe in a later version the access path will change.
+* Transaction Authorisation
+  WARNING: This method need a reduced header, 
+  therefore many optional elements are not present. 
+  Maybe in a later version the access path will change.
+  
+  NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 123. To make the process work.
+        Normally the app use will get SMS/EMAIL to get the value for this process.
     
-    NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 123. To make the process work.
-          Normally the app use will get SMS/EMAIL to get the value for this process.
-      
-""",
+""" 
+
+     resourceDocs += ResourceDoc(
+       updatePaymentPsuDataTransactionAuthorisation,
+       apiVersion,
+       nameOf(updatePaymentPsuDataTransactionAuthorisation),
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
+       "Update PSU data for payment initiation (transactionAuthorisation)",
+       generalUpdatePaymentPsuDataSumarry(false),
        json.parse("""{"scaAuthenticationData":"123"}"""),
        json.parse("""{
                         "scaStatus": "finalised",
-                        "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
                         "psuMessage": "Please check your SMS at a mobile device.",
                         "_links": {
                             "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
@@ -1343,17 +1345,17 @@ There are the following request types on this access path:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-     lazy val updatePaymentPsuData : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
+     lazy val updatePaymentPsuDataTransactionAuthorisation : OBPEndpoint = {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json) =>  {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
-             updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-               json.extract[UpdatePaymentPsuDataJson]
+             failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAuthorisation "
+             transactionAuthorisationJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[TransactionAuthorisation]
              }
-             
+
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -1371,7 +1373,7 @@ There are the following request types on this access path:
                Some(paymentId),
                None,
                authorisationid,
-               updatePaymentPsuDataJson.scaAuthenticationData,
+               transactionAuthorisationJson.scaAuthenticationData,
                callContext
              )
              
@@ -1392,7 +1394,7 @@ There are the following request types on this access path:
                  Future(Full(true))
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createUpdatePaymentPsuDataTransactionAuthorisationJson(challenge), callContext)
            }
          }
        }

@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartPaymentAuthorisationJson
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisationUpdatePsuAuthentication, updatePaymentPsuData}
+import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisationUpdatePsuAuthentication, updatePaymentPsuDataTransactionAuthorisation}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.FutureTimeoutException
 import code.api.util.{CallContext, CustomJsonFormats}
@@ -154,7 +154,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
         val authorisationId = json.parse(v).extract[StartPaymentAuthorisationJson].authorisationId
         val requestBody = s"""{"scaAuthenticationData":"${otpVar.get}"}"""
 
-        callEndpoint(updatePaymentPsuData, pathOfEndpoint :+ authorisationId, PutRequest, requestBody)
+        callEndpoint(updatePaymentPsuDataTransactionAuthorisation, pathOfEndpoint :+ authorisationId, PutRequest, requestBody)
       }
     }
 

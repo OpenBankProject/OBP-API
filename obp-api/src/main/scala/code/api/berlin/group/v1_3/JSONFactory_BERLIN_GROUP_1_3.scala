@@ -616,23 +616,25 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
   }
 
-  def createStartPaymentCancellationAuthorisationsJson(challenges: List[ChallengeTrait],
-                                                       paymentService: String,
-                                                       paymentProduct: String,
-                                                       paymentId: String): List[StartPaymentAuthorisationJson] = {
-    challenges.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
+  def createUpdatePaymentPsuDataTransactionAuthorisationJson(challenge: ChallengeTrait) = {
+    ScaStatusResponse(
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+      psuMessage = Some("Please check your SMS at a mobile device."),
+      _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/payments/sepa-credit-transfers/${challenge.challengeId}"))))
+      )
+    )
   }
   def createStartPaymentCancellationAuthorisationJson(challenge: ChallengeTrait,
                                                       paymentService: String,
                                                       paymentProduct: String,
                                                       paymentId: String
                                                      ) = {
-      StartPaymentAuthorisationJson(
+    ScaStatusResponse(
         scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
-        authorisationId = challenge.challengeId,
-        psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}")
+        psuMessage = Some("Please check your SMS at a mobile device."),
+        _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}"))))
       )
+    )
   }
   
   def createStartPaymentInitiationCancellationAuthorisation(
