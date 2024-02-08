@@ -852,7 +852,7 @@ This applies in the following scenarios:
       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (selectPsuAuthenticationMethod)",
       generalStartPaymentAuthorisationSummary(true),
-      SelectPsuAuthenticationMethod("authenticationMethodId"),
+      json.parse("""{"authenticationMethodId":""}"""),
       json.parse("""{
                   "challengeData": {
                     "scaStatus": "received",
@@ -1089,7 +1089,7 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment (selectPsuAuthenticationMethod)",
        generalStartPaymentInitiationCancellationAuthorisationSummary(true),
-       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{"authenticationMethodId":""}"""),
        json.parse("""{
          "scaStatus": "received",
          "authorisationId": "123auth456",
@@ -1292,7 +1292,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
        "Update PSU Data for payment initiation cancellation (selectPsuAuthenticationMethod)",
        generalUpdatePaymentCancellationPsuDataSummary(true),
-       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{"authenticationMethodId":""}"""),
        json.parse("""{
          "scaStatus": "scaMethodSelected",
          "chosenScaMethod": {
@@ -1534,7 +1534,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Update PSU data for payment initiation (selectPsuAuthenticationMethod)",
        generalUpdatePaymentPsuDataSumarry(true),
-       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{"authenticationMethodId":""}"""),
        json.parse(
          """{
          "scaStatus": "scaMethodSelected",

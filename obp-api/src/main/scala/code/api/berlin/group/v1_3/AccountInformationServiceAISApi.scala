@@ -1157,7 +1157,7 @@ using the extended forms as indicated above.
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent(selectPsuAuthenticationMethod)",
        generalStartConsentAuthorisationSumarry(true),
-       SelectPsuAuthenticationMethod("authenticationMethodId"),
+       json.parse("""{"authenticationMethodId":""}"""),
        json.parse("""{
                        "scaStatus": "received",
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
