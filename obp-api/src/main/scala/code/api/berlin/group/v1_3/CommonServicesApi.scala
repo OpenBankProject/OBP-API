@@ -41,7 +41,7 @@ object APIMethods_CommonServicesApi extends RestHelper {
     APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataAuthorisationConfirmation ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation ::
-    APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation ::
+    APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataUpdatePsuAuthentication ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataSelectPsuAuthenticationMethod ::
     APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation ::
     APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation ::
