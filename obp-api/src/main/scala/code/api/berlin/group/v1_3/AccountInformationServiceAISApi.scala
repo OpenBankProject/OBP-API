@@ -1326,7 +1326,7 @@ Maybe in a later version the access path will change.
                  | "_links": {
                  |  "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                  | }
-                 |""".stripMargin), HttpCode.`200`(callContext))
+                 |}""".stripMargin), HttpCode.`200`(callContext))
            }
          }
        }
@@ -1366,18 +1366,18 @@ Maybe in a later version the access path will change.
              
            } yield {
              (liftweb.json.parse(
-               """{ 
-                 | "scaStatus": "scaMethodSelected",
-                 | "chosenScaMethod": {
-                 | "authenticationType": "SMS_OTP",
-                 | "authenticationMethodId": "myAuthenticationID"},
-                 | "challengeData": {
-                 | "otpMaxLength": 6,
-                 | "otpFormat": "integer"},
-                 | "_links": {
+               """{
+                 |  "scaStatus": "scaMethodSelected",
+                 |  "chosenScaMethod": {
+                 |    "authenticationType": "SMS_OTP",
+                 |    "authenticationMethodId": "myAuthenticationID"},
+                 |  "challengeData": {
+                 |    "otpMaxLength": 6,
+                 |    "otpFormat": "integer"},
+                 |  "_links": {
                  |    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
-                 | }
-                 |""".stripMargin), HttpCode.`200`(callContext))
+                 |  }
+                 |}""".stripMargin), HttpCode.`200`(callContext))
            }
          }
        }
