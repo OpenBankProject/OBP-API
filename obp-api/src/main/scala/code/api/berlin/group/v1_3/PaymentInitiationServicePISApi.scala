@@ -794,7 +794,13 @@ This applies in the following scenarios:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
        generalStartPaymentAuthorisationSummary(true),
-       UpdatePsuAuthentication(PsuData(password = (""))),
+      json.parse(
+        """{ 
+          |          "scaStatus": "finalised",
+          |          "_links":{
+          |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
+          |          }
+          |        }""".stripMargin),
        json.parse("""{
                       "challengeData": {
                         "scaStatus": "received",
@@ -825,7 +831,7 @@ This applies in the following scenarios:
                    "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
                  }
                }
-             }"""), callContext)
+             }"""), HttpCode.`201`(callContext))
         }
       }
     }
@@ -869,7 +875,7 @@ This applies in the following scenarios:
                           "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
                         }
                       }
-                    }"""), callContext)
+                    }"""), HttpCode.`201`(callContext))
         }
     }
     }
@@ -927,7 +933,7 @@ This applies in the following scenarios:
               challenges.head
             }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), callContext)
+            (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge), HttpCode.`201`(callContext))
           }
       }
     }
