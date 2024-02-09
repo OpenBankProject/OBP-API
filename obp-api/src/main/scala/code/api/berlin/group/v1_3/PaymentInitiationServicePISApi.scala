@@ -1261,7 +1261,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
        "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
        generalUpdatePaymentCancellationPsuDataSummary(true),
-       json.parse("""{"scaAuthenticationData":"123"}"""),
+       json.parse("""{  "psuData":{"password":"start12"  }}"""),
        json.parse("""{
          "scaStatus": "psuAuthenticated",
          "_links": {

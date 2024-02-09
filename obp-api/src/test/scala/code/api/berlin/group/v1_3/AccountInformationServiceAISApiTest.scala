@@ -470,17 +470,17 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       }
       
       
-      scenario("Authentication User, only mocked data, just test succeed", BerlinGroupV1_3, updateConsentsPsuDataUpdatePsuAuthentication) {
+      scenario("Authentication User, only mocked data, just test succeed -updateConsentsPsuDataUpdatePsuAuthentication", BerlinGroupV1_3, updateConsentsPsuDataUpdatePsuAuthentication) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{  "psuData":{"password":"start12"  }}""")
         responseStartConsentAuthorisation.code should be (200)
       }
-      scenario("Authentication User, only mocked data, just test succeed", BerlinGroupV1_3, updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod) {
+      scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod", BerlinGroupV1_3, updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{ "authenticationMethodId":""}""")
         responseStartConsentAuthorisation.code should be (200)
       }
-      scenario("Authentication User, only mocked data, just test succeed", BerlinGroupV1_3, updateConsentsPsuDataUpdateAuthorisationConfirmation) {
+      scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateAuthorisationConfirmation", BerlinGroupV1_3, updateConsentsPsuDataUpdateAuthorisationConfirmation) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{"confirmationCode":"confirmationCode"}""")
         responseStartConsentAuthorisation.code should be (200)
