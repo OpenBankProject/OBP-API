@@ -1033,7 +1033,7 @@ This applies in the following scenarios:
                paymentService,
                paymentProduct,
                paymentId
-             ), callContext)
+             ), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1081,7 +1081,7 @@ This applies in the following scenarios:
                    "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
                  }
                }
-             }"""), callContext)
+             }"""), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1125,7 +1125,7 @@ This applies in the following scenarios:
                    "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
                  }
                }
-             }"""), callContext)
+             }"""), HttpCode.`201`(callContext))
            }
          }
        }
