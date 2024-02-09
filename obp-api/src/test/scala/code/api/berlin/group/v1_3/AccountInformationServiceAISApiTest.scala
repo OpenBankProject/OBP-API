@@ -38,7 +38,9 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
   object getConsentStatus extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentStatus))
   
-  object startConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation))
+  object startConsentAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation))
+  object startConsentAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationUpdatePsuAuthentication))
+  object startConsentAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationSelectPsuAuthenticationMethod))
 
   object getConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentAuthorisation))
   
@@ -345,8 +347,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
     }
   }
 
-    feature(s"BG v1.3 - ${startConsentAuthorisation.name} ") {
-      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
+    feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} ") {
+      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
         val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
@@ -378,17 +380,33 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
         val consentId =response.body.extract[PostConsentResponseJson].consentId
 
-        Then(s"We test the $startConsentAuthorisation")
+        Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)
         responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
       }
     }
+  
+    feature(s"BG v1.3 - ${startConsentAuthorisationUpdatePsuAuthentication.name} ") {
+      scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationUpdatePsuAuthentication) {
+        val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations" ).POST <@ (user1)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{ "psuData": { "password": "start12"}}""")
+        responseStartConsentAuthorisation.code should be (201)
+      }
+    }
+  
+    feature(s"BG v1.3 - ${startConsentAuthorisationSelectPsuAuthenticationMethod.name} ") {
+      scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationSelectPsuAuthenticationMethod) {
+        val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations" ).POST <@ (user1)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"authenticationMethodId":"authenticationMethodId"}""")
+        responseStartConsentAuthorisation.code should be (201)
+      }
+    }
 
 
-    feature(s"BG v1.3 - ${startConsentAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuData.name}") {
-      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
+    feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuData.name}") {
+      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
         val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
@@ -420,7 +438,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   
         val consentId =response.body.extract[PostConsentResponseJson].consentId
   
-        Then(s"We test the $startConsentAuthorisation")
+        Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)
