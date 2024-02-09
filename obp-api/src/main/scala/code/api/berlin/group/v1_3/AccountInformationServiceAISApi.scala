@@ -1390,9 +1390,7 @@ Maybe in a later version the access path will change.
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents (authorisationConfirmation)",
        generalUpdateConsentsPsuDataSummary(true),
-       json.parse("""{
-                    |  "authenticationMethodId": "myAuthenticationID"
-                    |}""".stripMargin),
+       json.parse("""{"confirmationCode":"confirmationCode"}"""),
        json.parse("""{ 
                     |          "scaStatus": "finalised",
                     |          "_links":{

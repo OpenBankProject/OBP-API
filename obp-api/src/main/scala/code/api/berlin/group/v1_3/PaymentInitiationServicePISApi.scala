@@ -1339,7 +1339,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
        "Update PSU Data for payment initiation cancellation (authorisationConfirmation)",
        generalUpdatePaymentCancellationPsuDataSummary(true),
-       AuthorisationConfirmation("authenticationMethodId"),
+       json.parse("""{"confirmationCode":"confirmationCode"}"""),
        json.parse("""{
          "scaStatus": "finalised",
          "_links":{
@@ -1583,7 +1583,7 @@ There are the following request types on this access path:
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Update PSU data for payment initiation (authorisationConfirmation)",
        generalUpdatePaymentPsuDataSumarry(true),
-       AuthorisationConfirmation("authenticationMethodId"),
+       json.parse("""{"confirmationCode":"confirmationCode"}"""),
        json.parse(
          """{
          "scaStatus": "finalised",
