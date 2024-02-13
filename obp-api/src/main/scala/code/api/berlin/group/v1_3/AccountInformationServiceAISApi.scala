@@ -1027,7 +1027,7 @@ respectively the OAuth2 access token.
        }
      }
 
-     def generalStartConsentAuthorisationSumarry(isMockedData:Boolean) =
+     def generalStartConsentAuthorisationSummary(isMockedData:Boolean) =
        s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data. 
@@ -1064,7 +1064,7 @@ using the extended forms as indicated above.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent(transactionAuthorisation)",
-       generalStartConsentAuthorisationSumarry(false),
+       generalStartConsentAuthorisationSummary(false),
        json.parse("""{"scaAuthenticationData":""}"""),
        json.parse("""{
                        "scaStatus": "received",
@@ -1115,7 +1115,7 @@ using the extended forms as indicated above.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent(updatePsuAuthentication)",
-       generalStartConsentAuthorisationSumarry(true),
+       generalStartConsentAuthorisationSummary(true),
        json.parse("""{
          "psuData": {
            "password": "start12"
@@ -1161,7 +1161,7 @@ using the extended forms as indicated above.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent(selectPsuAuthenticationMethod)",
-       generalStartConsentAuthorisationSumarry(true),
+       generalStartConsentAuthorisationSummary(true),
        json.parse("""{"authenticationMethodId":""}"""),
        json.parse("""{
                        "scaStatus": "received",
