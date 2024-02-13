@@ -4,6 +4,7 @@ import code.api.BerlinGroup.ScaStatus
 import code.api.Constant
 import code.api.Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
+import code.api.berlin.group.v1_3.model.{PsuData, ScaStatusResponse, UpdatePsuAuthenticationResponse}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
@@ -24,21 +25,31 @@ import scala.collection.immutable.List
 class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
   object PIS extends Tag("Payment Initiation Service (PIS)")
-  object initiatePayment extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.initiatePayment))
+  object initiatePayment extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.initiatePayments))
   object getPaymentInformation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInformation))
   object getPaymentInitiationStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationStatus))
   
-  object startPaymentAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisation))
+  object startPaymentAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationTransactionAuthorisation ))
+  object startPaymentAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationUpdatePsuAuthentication))
+  object startPaymentAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationSelectPsuAuthenticationMethod))
   object getPaymentInitiationAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationAuthorisation))
   object getPaymentInitiationScaStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationScaStatus))
-  object updatePaymentPsuData extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData))
+  object updatePaymentPsuDataTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation))
+  object updatePaymentPsuDataUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataUpdatePsuAuthentication))
+  object updatePaymentPsuDataSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataSelectPsuAuthenticationMethod))
+  object updatePaymentPsuDataAuthorisationConfirmation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation))
 
   
   object cancelPayment extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.cancelPayment))
-  object startPaymentInitiationCancellationAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisation))
+  object startPaymentInitiationCancellationAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationTransactionAuthorisation))
+  object startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication))
+  object startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod))
   object getPaymentInitiationCancellationAuthorisationInformation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationCancellationAuthorisationInformation))
   object getPaymentCancellationScaStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentCancellationScaStatus))
-  object updatePaymentCancellationPsuData extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData))
+  object updatePaymentCancellationPsuDataTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataTransactionAuthorisation))
+  object updatePaymentCancellationPsuDataUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataUpdatePsuAuthentication))
+  object updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod))
+  object updatePaymentCancellationPsuDataAuthorisationConfirmation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataAuthorisationConfirmation))
 
   feature(s"test the BG v1.3 -${initiatePayment.name}") {
     scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, PIS, initiatePayment) {
@@ -289,16 +300,16 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       (responseGet.body \ "fundsAvailable").extract[Boolean] should be (true)
     }
   }
-  feature(s"test the BG v1.3 ${startPaymentAuthorisation.name} and ${getPaymentInitiationAuthorisation.name} and ${getPaymentInitiationScaStatus.name} and ${updatePaymentPsuData.name}") {
-    scenario(s"${startPaymentAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
+  feature(s"test the BG v1.3 ${startPaymentAuthorisationTransactionAuthorisation.name} and ${getPaymentInitiationAuthorisation.name} and ${getPaymentInitiationScaStatus.name} and ${updatePaymentPsuDataTransactionAuthorisation.name}") {
+    scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentAuthorisationTransactionAuthorisation) {
      
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """""")
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":"123"}""".stripMargin)
       Then("We should get a 400 ")
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
     }
-    scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
+    scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisationTransactionAuthorisation) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
       val acountRoutingIbanFrom = accountsRoutingIban.head
       val acountRoutingIbanTo = accountsRoutingIban.last
@@ -340,11 +351,11 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       val paymentId = paymentResponseInitiatePaymentJson.paymentId
 
-      Then(s"we test the ${startPaymentAuthorisation.name}")
+      Then(s"we test the ${startPaymentAuthorisationTransactionAuthorisation.name}")
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """""")
-      Then("We should get a 200 ")
-      response.code should equal(200)
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":"123"}""".stripMargin)
+      Then("We should get a 201 ")
+      response.code should equal(201)
       val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
       startPaymentAuthorisationResponse.authorisationId should not be null
       startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")
@@ -367,18 +378,17 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val paymentInitiationScaStatus = (responseGetPaymentInitiationScaStatus.body \ "scaStatus").extract[String]
       paymentInitiationScaStatus should be (ScaStatus.received.toString)
 
-      Then(s"We can test the ${updatePaymentPsuData.name}")
+      Then(s"We can test the ${updatePaymentPsuDataTransactionAuthorisation.name}")
       val updatePaymentPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
         .resourceDocs
-        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData)
+        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation)
         .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
         .jvalueToCaseclass
       
       val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations"/authorisationId).PUT <@ (user1)
       val responseUpdatePaymentPsuData: APIResponse = makePutRequest(requestUpdatePaymentPsuData, write(updatePaymentPsuDataJsonBody))
       responseUpdatePaymentPsuData.code should be (200)
-      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
-      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(authorisationId)
+      responseUpdatePaymentPsuData.body.extract[ScaStatusResponse].scaStatus should be("finalised")
 
       Thread.sleep(100) // wait for 100 milliseconds
       
@@ -397,14 +407,64 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
     
   }
-  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisation.name} " +
+  
+  feature(s"test the BG v1.3 ${updatePaymentPsuDataUpdatePsuAuthentication} and ${updatePaymentPsuDataUpdatePsuAuthentication.name}") {
+    scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataUpdatePsuAuthentication) {
+     
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations" / "AUTHORISATION_ID").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPost, """{"psuData": {"password": "start12"}}""".stripMargin)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+  
+  feature(s"test the BG v1.3 ${updatePaymentPsuDataSelectPsuAuthenticationMethod} and ${updatePaymentPsuDataSelectPsuAuthenticationMethod.name}") {
+    scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataSelectPsuAuthenticationMethod) {
+      val requestPut = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations" / "AUTHORISATION_ID").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPut, """{"authenticationMethodId":""}""".stripMargin)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+  
+  feature(s"test the BG v1.3 ${updatePaymentPsuDataAuthorisationConfirmation} and ${updatePaymentPsuDataAuthorisationConfirmation.name}") {
+    scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataAuthorisationConfirmation) {
+     
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations"/"AUTHORISATION_ID").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPost, """{"confirmationCode":"confirmationCode"}""".stripMargin)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+  
+  
+  feature(s"test the BG v1.3 ${startPaymentAuthorisationUpdatePsuAuthentication.name}") {
+    scenario(s"${startPaymentAuthorisationUpdatePsuAuthentication.name} ", BerlinGroupV1_3, PIS, startPaymentAuthorisationUpdatePsuAuthentication) {
+     
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """{  "psuData":{"password":"start12"  }}""".stripMargin)
+      Then("We should get a 201")
+      response.code should equal(201)
+    }
+  }
+  feature(s"test the BG v1.3 ${startPaymentAuthorisationSelectPsuAuthenticationMethod.name}") {
+    scenario(s"${startPaymentAuthorisationSelectPsuAuthenticationMethod.name} ", BerlinGroupV1_3, PIS, startPaymentAuthorisationSelectPsuAuthenticationMethod) {
+     
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """{"authenticationMethodId":""}""".stripMargin)
+      Then("We should get a 201")
+      response.code should equal(201)
+    }
+  }
+  
+  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisationTransactionAuthorisation.name} " +
     s"and ${getPaymentInitiationCancellationAuthorisationInformation.name} " +
     s"and ${getPaymentCancellationScaStatus.name}" +
-    s"and ${updatePaymentCancellationPsuData.name}") {
-    scenario(s"${startPaymentInitiationCancellationAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
+    s"and ${updatePaymentCancellationPsuDataTransactionAuthorisation.name}") {
+    scenario(s"${startPaymentInitiationCancellationAuthorisationTransactionAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisationTransactionAuthorisation) {
 
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """""")
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":""}""")
       Then("We should get a 400 ")
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
@@ -447,16 +507,15 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       Then("We should get a 202")
       responseDelete.code should equal(202)
       
-      Then(s"we test the ${startPaymentInitiationCancellationAuthorisation.name}")
+      Then(s"we test the ${startPaymentInitiationCancellationAuthorisationTransactionAuthorisation.name}")
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, "")
-      Then("We should get a 200 ")
-      response.code should equal(200)
-      val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
+      val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":""}""")
+      Then("We should get a 201 ")
+      response.code should equal(201)
+      val startPaymentAuthorisationResponse = response.body.extract[UpdatePsuAuthenticationResponse]
       startPaymentAuthorisationResponse.authorisationId should not be null
-      startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")
+      startPaymentAuthorisationResponse.psuMessage should be (Some("Please check your SMS at a mobile device."))
       startPaymentAuthorisationResponse.scaStatus should be (ScaStatus.received.toString)
-      startPaymentAuthorisationResponse._links.scaStatus should not be null
 
       Then(s"We can test the ${getPaymentInitiationCancellationAuthorisationInformation.name}")
       val requestGetPaymentInitiationCancellationAuthorisationInformation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
@@ -473,19 +532,59 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val cancellationScaStatus = (responseGetPaymentCancellationScaStatus.body \ "scaStatus").extract[String]
       cancellationScaStatus should be (ScaStatus.received.toString)
 
-      Then(s"We can test the ${updatePaymentCancellationPsuData.name}")
-      val updatePaymentCancellationPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-        .jvalueToCaseclass
+      Then(s"We can test the ${updatePaymentCancellationPsuDataTransactionAuthorisation.name}")
 
       val requestUpdatePaymentCancellationPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
-      val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, write(updatePaymentCancellationPsuDataJsonBody))
+      val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, """{"scaAuthenticationData":"123"}""")
       responseUpdatePaymentCancellationPsuData.code should be (200)
-      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
-      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(cancelationId)
+      responseUpdatePaymentCancellationPsuData.body.extract[ScaStatusResponse].scaStatus should be("finalised")
 
+    }
+  }
+
+  feature(s"test the BG v1.3 ${updatePaymentCancellationPsuDataUpdatePsuAuthentication.name}" ) {
+    scenario(s"${updatePaymentCancellationPsuDataUpdatePsuAuthentication.name}", BerlinGroupV1_3, PIS, updatePaymentCancellationPsuDataUpdatePsuAuthentication) {
+
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations" /"authorisationId").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPost, """{"psuData":{"password":"start12"}}""")
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+
+  feature(s"test the BG v1.3 ${updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod.name}" ) {
+    scenario(s"${updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod.name}", BerlinGroupV1_3, PIS, updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod) {
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations"/"authorisationId").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPost, """{"authenticationMethodId":""}""")
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+
+  feature(s"test the BG v1.3 ${updatePaymentCancellationPsuDataAuthorisationConfirmation.name}" ) {
+    scenario(s"${updatePaymentCancellationPsuDataAuthorisationConfirmation.name}", BerlinGroupV1_3, PIS, updatePaymentCancellationPsuDataAuthorisationConfirmation) {
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations"/"authorisationId").PUT <@ (user1)
+      val response: APIResponse = makePutRequest(requestPost, """{"confirmationCode":"confirmationCode"}""")
+      Then("We should get a 200 ")
+      response.code should equal(200)
+    }
+  }
+
+  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication.name}") {
+    scenario(s"${startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication.name}", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication) {
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """{"psuData":{"password":"start12"}}""")
+      Then("We should get a 201 ")
+      response.code should equal(201)
+    }
+  }
+
+  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod.name}") {
+    scenario(s"${startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod.name}", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod) {
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """{"authenticationMethodId":""}""")
+      Then("We should get a 201 ")
+      response.code should equal(201)
     }
   }
 

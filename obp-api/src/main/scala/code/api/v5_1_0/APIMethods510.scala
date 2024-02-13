@@ -43,7 +43,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{compactRender, parse}
+import net.liftweb.json.{compactRender, parse, prettyRender}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -212,8 +212,8 @@ trait APIMethods510 {
               json.extract[RegulatedEntityPostJsonV510]
             }
             failMsg = s"$InvalidJsonFormat The `services` field is not valid JSON"
-            _ <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              parse(postedData.services)
+            servicesString <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              prettyRender(postedData.services)
             }
             (entity, callContext) <- createRegulatedEntityNewStyle(
               certificateAuthorityCaOwnerId = Some(postedData.certificate_authority_ca_owner_id),
@@ -226,7 +226,7 @@ trait APIMethods510 {
               entityPostCode = Some(postedData.entity_post_code),
               entityCountry = Some(postedData.entity_country),
               entityWebSite = Some(postedData.entity_web_site),
-              services = Some(postedData.services),
+              services = Some(servicesString),
               cc.callContext
             )
           } yield {
