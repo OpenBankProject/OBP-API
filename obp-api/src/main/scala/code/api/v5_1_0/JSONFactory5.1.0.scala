@@ -47,7 +47,7 @@ import code.metrics.APIMetric
 import code.model.Consumer
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
-import net.liftweb.json.{JValue, parse}
+import net.liftweb.json.{JString, JValue, parse, parseOpt}
 
 import scala.collection.immutable.List
 import scala.util.Try
@@ -627,7 +627,7 @@ object JSONFactory510 extends CustomJsonFormats {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
-      response_body = parse(metric.getResponseBody())
+      response_body = parseOpt(metric.getResponseBody()).getOrElse(JString("Not enabled"))
     )
   }
 
