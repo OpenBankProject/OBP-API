@@ -38,6 +38,7 @@ import java.net.URLEncoder
 
 import code.api.v5_1_0.{AtmsJsonV510, _}
 import code.endpointMapping.EndpointMappingCommons
+import net.liftweb.json.Extraction
 
 import scala.collection.immutable.List
 
@@ -79,7 +80,7 @@ object SwaggerDefinitionsJSON {
     entity_post_code = "1060",
     entity_country = "CY",
     entity_web_site = "www.example.com",
-    services = """[{"CY":["PS_010","PS_020","PS_03C","PS_04C"]}]"""
+    services = json.parse("""[{"CY":["PS_010","PS_020","PS_03C","PS_04C"]}]""")
   )
 
   val license =  License(
@@ -2259,7 +2260,7 @@ object SwaggerDefinitionsJSON {
       duration = 39,
       source_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
       target_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
-      response_body = """{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}""".stripMargin
+      response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}""")
   )
 
   val resourceUserJSON = ResourceUserJSON(
