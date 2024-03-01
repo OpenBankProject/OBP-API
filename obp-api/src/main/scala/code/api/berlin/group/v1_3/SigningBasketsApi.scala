@@ -8,6 +8,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle
 import code.api.util.NewStyle.HttpCode
+import code.api.util.newstyle.SigningBasketNewStyle
 import code.bankconnectors.Connector
 import code.signingbaskets.SigningBasketX
 import com.github.dwickern.macros.NameOf.nameOf
@@ -467,6 +468,7 @@ There are the following request types on this access path:
              updateBasketPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[UpdatePaymentPsuDataJson]
              }
+             _ <- SigningBasketNewStyle.checkSigningBasketPayments(basketId, callContext)
              // Validate a challenge answer and get an error if any
              (boxedChallenge: Box[ChallengeTrait], callContext) <- NewStyle.function.validateChallengeAnswerC3(
                ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE,
