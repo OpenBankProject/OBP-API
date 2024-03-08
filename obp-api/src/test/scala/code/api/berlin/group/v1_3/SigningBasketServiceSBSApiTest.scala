@@ -14,6 +14,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   object createSigningBasket extends Tag(nameOf(APIMethods_SigningBasketsApi.createSigningBasket))
   object getSigningBasket extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasket))
   object getSigningBasketStatus extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketStatus))
+  object deleteSigningBasket extends Tag(nameOf(APIMethods_SigningBasketsApi.deleteSigningBasket))
 
   feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
     scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
@@ -98,9 +99,21 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
+  feature(s"test the BG v1.3 - ${deleteSigningBasket.name}") {
+    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, deleteSigningBasket) {
+      val request = (V1_3_BG / "signing-baskets" / "basketId").DELETE
+      val response = makeDeleteRequest(request)
+      Then("We should get a 401 ")
+      response.code should equal(401)
+      val error = s"$UserNotLoggedIn"
+      And("error should be " + error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
+    }
+  }
 
-  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket and $getSigningBasketStatus") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus) {
+
+  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket") {
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket) {
       val postJson =
         s"""{
            |  "paymentIds": [
@@ -120,13 +133,24 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val requestGet = (V1_3_BG / "signing-baskets" / basketId).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       responseGet.code should be(200)
-      responseGet.body.extract[SigningBasketGetResponseJson].transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      responseGet.body.extract[SigningBasketGetResponseJson].transactionStatus should
+        be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
 
       Then(s"We test the $getSigningBasketStatus")
       val requestGetStatus = (V1_3_BG / "signing-baskets" / basketId / "status").GET <@ (user1)
-      val responseGetStatus = makeGetRequest(requestGetStatus)
+      var responseGetStatus = makeGetRequest(requestGetStatus)
       responseGetStatus.code should be(200)
-      responseGetStatus.body.extract[SigningBasketGetResponseJson].transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      responseGetStatus.body.extract[SigningBasketGetResponseJson].transactionStatus should
+        be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+
+      val requestDelete = (V1_3_BG / "signing-baskets" / basketId).DELETE <@ (user1)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      responseDelete.code should be(204)
+
+      responseGetStatus = makeGetRequest(requestGetStatus)
+      responseGetStatus.code should be(200)
+      responseGetStatus.body.extract[SigningBasketGetResponseJson].transactionStatus should
+        be(ConstantsBG.SigningBasketsStatus.CANC.toString.toLowerCase())
     }
   }
 
