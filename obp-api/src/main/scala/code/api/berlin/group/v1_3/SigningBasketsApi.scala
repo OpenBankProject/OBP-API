@@ -11,6 +11,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.newstyle.SigningBasketNewStyle
 import code.bankconnectors.Connector
 import code.signingbaskets.SigningBasketX
+import code.util.Helper.booleanToFuture
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLETED, REJECTED}
@@ -108,6 +109,11 @@ The resource identifications of these transactions are contained in the  payload
              failMsg = s"$InvalidJsonFormat The Json body should be the $PostSigningBasketJsonV13 "
              postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                jsonPost.extract[PostSigningBasketJsonV13]
+             }
+             _ <- booleanToFuture(failMsg, cc = callContext) {
+               // One of them MUST be defined. Otherwise post json is treated as empty one.
+               !(jsonPost.extract[PostSigningBasketJsonV13].paymentIds.isEmpty &&
+                 jsonPost.extract[PostSigningBasketJsonV13].consentIds.isEmpty)
              }
              signingBasket <- Future {
                SigningBasketX.signingBasketProvider.vend.createSigningBasket(
