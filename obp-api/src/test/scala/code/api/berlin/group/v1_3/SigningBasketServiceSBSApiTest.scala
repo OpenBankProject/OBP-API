@@ -19,6 +19,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   object startSigningBasketAuthorisation extends Tag(nameOf(APIMethods_SigningBasketsApi.startSigningBasketAuthorisation))
   object getSigningBasketScaStatus extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketScaStatus))
   object getSigningBasketAuthorisation extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketAuthorisation))
+  object updateSigningBasketPsuData extends Tag(nameOf(APIMethods_SigningBasketsApi.updateSigningBasketPsuData))
 
   feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
     scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
@@ -152,9 +153,22 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
+  feature(s"test the BG v1.3 - ${updateSigningBasketPsuData.name}") {
+    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val putJson = s"""{"scaAuthenticationData":"123"}""".stripMargin
+      val request = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations" / "authorisationId").PUT
+      val response = makePutRequest(request, putJson)
+      Then("We should get a 401 ")
+      response.code should equal(401)
+      val error = s"$UserNotLoggedIn"
+      And("error should be " + error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
+    }
+  }
 
-  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, startSigningBasketAuthorisation, getSigningBasketAuthorisation) {
+
+  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $updateSigningBasketPsuData") {
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, startSigningBasketAuthorisation, getSigningBasketAuthorisation, updateSigningBasketPsuData) {
       // Create Signing Basket
       val postJson =
         s"""{
@@ -221,6 +235,14 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       Then("We should get a 200 ")
       responseGetAuths.code should equal(200)
       responseGetAuths.body.extract[AuthorisationJsonV13]
+
+      // Failed due to unexisting paymentIds
+      val putJson = s"""{"scaAuthenticationData":"123"}""".stripMargin
+      val requestPut = (V1_3_BG / "signing-baskets" / basketId / "authorisations" / authorisationId).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, putJson)
+      val error = s"$InvalidConnectorResponse"
+      And("error should be " + error)
+      responsePut.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
   }
 
