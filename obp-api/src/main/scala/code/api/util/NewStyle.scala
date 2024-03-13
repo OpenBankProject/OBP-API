@@ -1340,9 +1340,9 @@ object NewStyle extends MdcLoggable{
       hashOfSuppliedAnswer: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[ChallengeTrait] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+      }else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
       }else{
         Connector.connector.vend.validateChallengeAnswerC2(
@@ -1369,11 +1369,11 @@ object NewStyle extends MdcLoggable{
       hashOfSuppliedAnswer: String,
       callContext: Option[CallContext]
     ): OBPReturnType[Box[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
-      } else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
-      } else if(challengeType == ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE && basketId.isEmpty ){
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE && basketId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: basketId($basketId) ")}
       } else {
         Connector.connector.vend.validateChallengeAnswerC3(
@@ -1409,9 +1409,9 @@ object NewStyle extends MdcLoggable{
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
     ) : OBPReturnType[List[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      }else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       }else{
         Connector.connector.vend.createChallengesC2(
@@ -1453,11 +1453,11 @@ object NewStyle extends MdcLoggable{
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
     ) : OBPReturnType[List[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      } else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      } else if(challengeType == ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE && (basketId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE && (basketId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: basketId($basketId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       } else {
         Connector.connector.vend.createChallengesC3(

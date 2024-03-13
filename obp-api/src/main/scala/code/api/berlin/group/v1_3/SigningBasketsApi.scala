@@ -383,7 +383,7 @@ This applies in the following scenarios:
              _ <- passesPsd2Pisp(callContext)
              (challenges, callContext) <- NewStyle.function.createChallengesC3(
                List(u.userId),
-               ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
                None,
                getSuggestedDefaultScaMethod(),
                Some(StrongCustomerAuthenticationStatus.received),
@@ -477,7 +477,7 @@ There are the following request types on this access path:
              _ <- SigningBasketNewStyle.checkSigningBasketPayments(basketId, callContext)
              // Validate a challenge answer and get an error if any
              (boxedChallenge: Box[ChallengeTrait], callContext) <- NewStyle.function.validateChallengeAnswerC3(
-               ChallengeType.BERLINGROUP_SIGNING_BASKETS_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
                None,
                None,
                Some(basketId),

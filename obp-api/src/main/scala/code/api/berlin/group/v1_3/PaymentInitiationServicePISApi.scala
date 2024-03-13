@@ -21,7 +21,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE
+import com.openbankproject.commons.model.enums.ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
@@ -600,7 +600,7 @@ Check the transaction status of a payment initiation.""",
               ),
               transDetailsSerialized,
               "",
-              Some(BERLINGROUP_PAYMENT_CHALLENGE),
+              Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
               None,
               None,
               Some(transDetailsJson),
@@ -926,7 +926,7 @@ This applies in the following scenarios:
 
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
               List(u.userId),
-              ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+              ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
               Some(paymentId),
               getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
               Some(StrongCustomerAuthenticationStatus.received),
@@ -1021,7 +1021,7 @@ This applies in the following scenarios:
              }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
                List(u.userId),
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
                Some(StrongCustomerAuthenticationStatus.received),
@@ -1227,7 +1227,7 @@ There are the following request types on this access path:
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationId,
@@ -1470,7 +1470,7 @@ There are the following request types on this access path:
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
              }
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationid,
