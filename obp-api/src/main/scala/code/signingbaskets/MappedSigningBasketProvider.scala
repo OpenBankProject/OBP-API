@@ -80,7 +80,7 @@ class MappedSigningBasket extends SigningBasketTrait with LongKeyedMapper[Mapped
 }
 
 object MappedSigningBasket extends MappedSigningBasket with LongKeyedMetaMapper[MappedSigningBasket]  {
-  override def dbTableName = "SigningBasket" // define the DB table name
+  override def dbTableName = "signingbasket" // define the DB table name
   override def dbIndexes = Index(BasketId) :: super.dbIndexes
 }
 
