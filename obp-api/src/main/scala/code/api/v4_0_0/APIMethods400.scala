@@ -4399,7 +4399,8 @@ trait APIMethods400 extends MdcLoggable {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+            msg = UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewId(${postJson.view.view_id}) and current UserId(${u.userId})"
+            _ <- Helper.booleanToFuture(msg, cc = cc.callContext) {
               APIUtil.canGrantAccessToView(bankId, accountId, ViewId(postJson.view.view_id), u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
@@ -4461,7 +4462,8 @@ trait APIMethods400 extends MdcLoggable {
               postJson.provider.startsWith("dauth.")
             }
             viewIdList = postJson.views.map(view =>ViewId(view.view_id))
-            _ <- Helper.booleanToFuture(s"$UserLacksPermissionCanGrantAccessToViewForTargetAccount ", 403, cc = Some(cc)) {
+            msg = UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds(${viewIdList.mkString}) and current UserId(${u.userId})"
+            _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
               APIUtil.canGrantAccessToMultipleViews(bankId, accountId, viewIdList, u, callContext)
             }
             (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.provider, postJson.username, cc.callContext)
@@ -4512,7 +4514,8 @@ trait APIMethods400 extends MdcLoggable {
               json.extract[PostAccountAccessJsonV400]
             }
             viewId = ViewId(postJson.view.view_id)
-            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+            msg = UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewId(${viewId}) and current UserId(${u.userId})"
+            _ <- Helper.booleanToFuture(msg, cc = cc.callContext) {
               APIUtil.canRevokeAccessToView(bankId, accountId, viewId, u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
@@ -4566,7 +4569,8 @@ trait APIMethods400 extends MdcLoggable {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostRevokeGrantAccountAccessJsonV400]
             }
-            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+            msg = UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds(${postJson.views.mkString}) and current UserId(${u.userId})"
+            _ <- Helper.booleanToFuture(msg, cc = cc.callContext) {
               APIUtil.canRevokeAccessToAllViews(bankId, accountId, u, callContext)
             }
            _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, u, callContext)) map {

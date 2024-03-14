@@ -20,12 +20,13 @@ object RemotedataChallenges extends ObpActorInit with ChallengeProvider {
     expectedUserId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
   ): Box[ChallengeTrait] = 
     getValueFromFuture(
-      (actor ? cc.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, authenticationMethodId, challengeType))
+      (actor ? cc.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, basketId, authenticationMethodId, challengeType))
         .mapTo[Box[ChallengeTrait]]
     )
   
@@ -43,6 +44,9 @@ object RemotedataChallenges extends ObpActorInit with ChallengeProvider {
   
   override def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]] = getValueFromFuture(
     (actor ? cc.getChallengesByConsentId(consentId)).mapTo[Box[List[ChallengeTrait]]]
+  )
+  override def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]] = getValueFromFuture(
+    (actor ? cc.getChallengesByConsentId(basketId )).mapTo[Box[List[ChallengeTrait]]]
   )
   
 }

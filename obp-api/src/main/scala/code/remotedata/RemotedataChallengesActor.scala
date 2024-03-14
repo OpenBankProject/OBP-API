@@ -17,12 +17,13 @@ class RemotedataChallengesActor extends Actor with ObpActorHelper with MdcLoggab
     case cc.saveChallenge(challengeId: String, transactionRequestId: String, salt: String, expectedAnswer: String, expectedUserId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
     ) =>
       logger.debug(s"saveChallenge($challengeId, $transactionRequestId, $salt, $expectedAnswer, $expectedUserId)")
-      sender ! (mapper.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, authenticationMethodId, challengeType: String))
+      sender ! (mapper.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, basketId, authenticationMethodId, challengeType: String))
 
     case cc.getChallenge(challengeId: String) =>
       logger.debug(s"getChallenge($challengeId)")

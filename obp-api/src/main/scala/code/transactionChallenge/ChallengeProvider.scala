@@ -10,13 +10,14 @@ import net.liftweb.common.Box
 trait ChallengeProvider {
   def saveChallenge(
     challengeId: String,
-    transactionRequestId: String,
+    transactionRequestId: String, // Note: basketId, consentId and transactionRequestId are exclusive here.
     salt: String,
     expectedAnswer: String,
     expectedUserId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String], // Note: basketId, consentId and transactionRequestId are exclusive here.
+    basketId: Option[String], // Note: basketId, consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
   ): Box[ChallengeTrait]
@@ -26,7 +27,8 @@ trait ChallengeProvider {
   def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]]
   
   def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]]
-  
+  def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]]
+
   /**
     * There is another method:  Connector.validateChallengeAnswer, it validate the challenge over Kafka.
     * This method, will validate the answer in OBP side. 
@@ -45,7 +47,8 @@ class RemotedataChallengeProviderCaseClasses {
     expectedUserId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
   )

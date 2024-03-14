@@ -125,8 +125,9 @@ sealed trait ChallengeType extends EnumValue
 object ChallengeType extends OBPEnumeration[ChallengeType] {
   object OBP_TRANSACTION_REQUEST_CHALLENGE extends Value
   object OBP_CONSENT_CHALLENGE extends Value
-  object BERLINGROUP_PAYMENT_CHALLENGE extends Value
-  object BERLINGROUP_CONSENT_CHALLENGE extends Value
+  object BERLIN_GROUP_PAYMENT_CHALLENGE extends Value
+  object BERLIN_GROUP_CONSENT_CHALLENGE extends Value
+  object BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE extends Value
 }
 
 sealed trait PemCertificateRole extends EnumValue

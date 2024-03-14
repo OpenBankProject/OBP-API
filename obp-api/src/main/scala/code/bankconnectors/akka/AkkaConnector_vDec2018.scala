@@ -308,7 +308,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2022-03-11T18:42:02Z
+// ---------- created on 2024-01-29T13:57:05Z
 
   messageDocs += validateAndCheckIbanNumberDoc
   def validateAndCheckIbanNumberDoc = MessageDoc(
@@ -332,7 +332,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       city=cityExample.value,
       zip="string",
       phone=phoneExample.value,
-      country="string",
+      country=countryExample.value,
       countryIso="string",
       sepaCreditTransfer=sepaCreditTransferExample.value,
       sepaDirectDebit=sepaDirectDebitExample.value,
@@ -545,9 +545,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -555,6 +557,51 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def createChallengesC2(userIds: List[String], challengeType: ChallengeType.Value, transactionRequestId: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], scaStatus: Option[SCAStatus], consentId: Option[String], authenticationMethodId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
         import com.openbankproject.commons.dto.{InBoundCreateChallengesC2 => InBound, OutBoundCreateChallengesC2 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, authenticationMethodId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
+  messageDocs += createChallengesC3Doc
+  def createChallengesC3Doc = MessageDoc(
+    process = "obp.createChallengesC3",
+    messageFormat = messageFormat,
+    description = "Create Challenges C3",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateChallengesC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      userIds=listExample.value.split("[,;]").toList,
+      challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      authenticationMethodId=Some("string"))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateChallengesC3(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createChallengesC3(userIds: List[String], challengeType: ChallengeType.Value, transactionRequestId: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], scaStatus: Option[SCAStatus], consentId: Option[String], basketId: Option[String], authenticationMethodId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateChallengesC3 => InBound, OutBoundCreateChallengesC3 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, basketId, authenticationMethodId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
@@ -611,9 +658,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string")))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -621,6 +670,48 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def validateChallengeAnswerC2(transactionRequestId: Option[String], consentId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
         import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerC2 => InBound, OutBoundValidateChallengeAnswerC2 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, challengeId, hashOfSuppliedAnswer)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[ChallengeCommons](callContext))        
+  }
+          
+  messageDocs += validateChallengeAnswerC3Doc
+  def validateChallengeAnswerC3Doc = MessageDoc(
+    process = "obp.validateChallengeAnswerC3",
+    messageFormat = messageFormat,
+    description = "Validate Challenge Answer C3",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateChallengeAnswerC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      challengeId=challengeIdExample.value,
+      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateChallengeAnswerC3(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateChallengeAnswerC3(transactionRequestId: Option[String], consentId: Option[String], basketId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerC3 => InBound, OutBoundValidateChallengeAnswerC3 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, basketId, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[ChallengeCommons](callContext))        
   }
@@ -647,9 +738,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -683,9 +776,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -719,9 +814,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       successful=true,
       challengeType=challengeTypeExample.value,
       consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string")))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -958,7 +1055,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{InBoundGetBankAccountByRouting => InBound, OutBoundGetBankAccountByRouting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
@@ -1431,8 +1528,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value
-      )))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1498,8 +1596,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value
-      ))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1613,7 +1712,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value)))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1656,8 +1757,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value,
-      cvv = cvvExample.value,
-      brand = brandExample.value)
+      cvv=cvvExample.value,
+      brand=brandExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreatePhysicalCard(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1701,17 +1802,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, 
-    serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, 
-    technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, 
-    replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], 
-    posted: Option[CardPostedInfo], customerId: String, cvv: String, brand: String,
-    callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
+  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, cvv: String, brand: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
         import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId, cvv, brand)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
@@ -1793,7 +1891,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1950,6 +2050,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2127,6 +2235,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2245,6 +2361,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2336,6 +2460,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2440,6 +2572,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2510,6 +2650,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3016,7 +3164,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       siteName=Some("string"),
       cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
       cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
-      balanceInquiryFee=Some(balanceInquiryFeeExample.value)))
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value),
+      atmType=Some(atmTypeExample.value),
+      phone=Some(phoneExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3095,7 +3245,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       siteName=Some("string"),
       cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
       cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
-      balanceInquiryFee=Some(balanceInquiryFeeExample.value))))
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value),
+      atmType=Some(atmTypeExample.value),
+      phone=Some(phoneExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3190,6 +3342,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3447,6 +3607,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3533,6 +3701,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -4491,8 +4667,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       key=keyExample.value,
       value=valueExample.value,
       timeStamp=toDate(timeStampExample),
-      consumerId=consumerIdExample.value
-      ))
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4526,8 +4701,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       value=valueExample.value,
       challenge=challengeExample.value,
       status=statusExample.value,
-      consumerId=consumerIdExample.value
-      ))
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4609,7 +4783,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample), 
+      timeStamp=toDate(timeStampExample),
       consumerId=consumerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4771,7 +4945,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      productInstanceCode=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4829,7 +5004,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       productAttributeId=Some(productAttributeIdExample.value),
       name=nameExample.value,
       accountAttributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)
+      value=valueExample.value,
+      productInstanceCode=Some("string"))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateAccountAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4840,15 +5016,15 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      productInstanceCode=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String,
-    productInstanceCode: Option[String],callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
+  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateAccountAttribute => InBound, OutBoundCreateOrUpdateAccountAttribute => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value, productInstanceCode)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
   }
@@ -4943,7 +5119,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value,
-      isActive=Some(isActiveExample.value.toBoolean))))
+      isActive=Some(isActiveExample.value.toBoolean))),
+      productInstanceCode=Some("string"))
     ),
     exampleInboundMessage = (
      InBoundCreateAccountAttributes(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4954,15 +5131,15 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      productInstanceCode=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute],
-    productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
+  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
         import com.openbankproject.commons.dto.{InBoundCreateAccountAttributes => InBound, OutBoundCreateAccountAttributes => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes, productInstanceCode)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
   }
@@ -4988,7 +5165,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      productInstanceCode=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -6091,7 +6269,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       date=toDate(dateExample),
       message=messageExample.value,
       fromDepartment=fromDepartmentExample.value,
-      fromPerson=fromPersonExample.value))
+      fromPerson=fromPersonExample.value,
+      transport=Some(transportExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -6240,6 +6419,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2022-03-11T18:42:02Z
-//---------------- dynamic end ---------------------please don't modify this line       
+// ---------- created on 2024-01-29T13:57:05Z
+//---------------- dynamic end ---------------------please don't modify this line           
 }

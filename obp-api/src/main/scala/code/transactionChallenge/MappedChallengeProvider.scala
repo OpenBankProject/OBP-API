@@ -19,40 +19,44 @@ object MappedChallengeProvider extends ChallengeProvider {
   
   override def saveChallenge(
     challengeId: String,
-    transactionRequestId: String,
+    transactionRequestId: String, // Note: consentId and transactionRequestId and basketId are exclusive here.
     salt: String,
     expectedAnswer: String,
     expectedUserId: String,
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String, 
   ): Box[ChallengeTrait] = 
     tryo (
       MappedExpectedChallengeAnswer
         .create
-        .mChallengeId(challengeId)
-        .mChallengeType(challengeType)
-        .mTransactionRequestId(transactionRequestId)
-        .mSalt(salt)
-        .mExpectedAnswer(expectedAnswer)
-        .mExpectedUserId(expectedUserId)
-        .mScaMethod(scaMethod.map(_.toString).getOrElse(""))
-        .mScaStatus(scaStatus.map(_.toString).getOrElse(""))
-        .mConsentId(consentId.getOrElse(""))
-        .mAuthenticationMethodId(expectedUserId)
+        .ChallengeId(challengeId)
+        .ChallengeType(challengeType)
+        .TransactionRequestId(transactionRequestId)
+        .Salt(salt)
+        .ExpectedAnswer(expectedAnswer)
+        .ExpectedUserId(expectedUserId)
+        .ScaMethod(scaMethod.map(_.toString).getOrElse(""))
+        .ScaStatus(scaStatus.map(_.toString).getOrElse(""))
+        .ConsentId(consentId.getOrElse(""))
+        .BasketId(basketId.getOrElse(""))
+        .AuthenticationMethodId(expectedUserId)
         .saveMe()
     )
   
   override def getChallenge(challengeId: String): Box[MappedExpectedChallengeAnswer] =
-      MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.mChallengeId,challengeId))
+      MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.ChallengeId,challengeId))
 
   override def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]] =
-    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId,transactionRequestId)))
+    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.TransactionRequestId,transactionRequestId)))
   
   override def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]] =
-    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.mConsentId,consentId)))
+    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.ConsentId,consentId)))
+  override def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]] =
+    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.BasketId,basketId)))
   
   override def validateChallenge(
     challengeId: String,
@@ -63,7 +67,7 @@ object MappedChallengeProvider extends ChallengeProvider {
        challenge <-  getChallenge(challengeId) ?~! s"${ErrorMessages.InvalidTransactionRequestChallengeId}"
        currentAttemptCounterValue = challenge.attemptCounter
         //We update the counter anyway.
-       _ = challenge.mAttemptCounter(currentAttemptCounterValue+1).saveMe()
+       _ = challenge.AttemptCounter(currentAttemptCounterValue+1).saveMe()
        createDateTime = challenge.createdAt.get
        challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
 
@@ -76,7 +80,7 @@ object MappedChallengeProvider extends ChallengeProvider {
           userId match {
             case None =>
               if(currentHashedAnswer==expectedHashedAnswer) {
-                tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
               } else {
                 Failure(s"${
                   s"${
@@ -87,7 +91,7 @@ object MappedChallengeProvider extends ChallengeProvider {
               }
             case Some(id) =>
               if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-                tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
               } else {
                 Failure(s"${
                   s"${

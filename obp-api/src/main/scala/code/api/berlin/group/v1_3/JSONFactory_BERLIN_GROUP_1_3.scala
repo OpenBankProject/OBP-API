@@ -21,7 +21,28 @@ case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
+  case class ErrorMessageBG(category: String, code: Int, path: String, text: String)
+  case class ErrorMessagesBG(tppMessages: List[ErrorMessageBG])
 
+  case class PostSigningBasketJsonV13(
+    paymentIds: Option[List[String]],
+    consentIds: Option[List[String]]
+  )
+
+  case class SigningBasketLinksV13(
+                                   self: LinkHrefJson,
+                                   status: LinkHrefJson,
+                                   startAuthorisation: LinkHrefJson
+                                 )
+  case class SigningBasketResponseJson(
+                                        transactionStatus: String,
+                                        basketId: String,
+                                        _links: SigningBasketLinksV13)
+  case class SigningBasketGetResponseJson(
+                                        transactionStatus: String,
+                                        payments: Option[List[String]],
+                                        consents: Option[List[String]]
+                                         )
   case class LinkHrefJson(
     href: String
   )
@@ -637,7 +658,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
     )
   }
-  
+
   def createStartPaymentInitiationCancellationAuthorisation(
     challenge: ChallengeTrait,
     paymentService: String,
@@ -652,6 +673,44 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           scaStatus = Some(HrefType(Some(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${challenge.challengeId}"))))
         )
       )
+  }
+
+
+  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartPaymentAuthorisationJson = {
+    StartPaymentAuthorisationJson(
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+      authorisationId = challenge.challengeId,
+      psuMessage = "Please check your SMS at a mobile device.",
+      _links = ScaStatusJsonV13(s"/v1.3/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+    )
+  }
+
+  def createSigningBasketResponseJson(basket: SigningBasketTrait): SigningBasketResponseJson = {
+    SigningBasketResponseJson(
+      basketId = basket.basketId,
+      transactionStatus = basket.status.toLowerCase(),
+      _links = SigningBasketLinksV13(
+        self = LinkHrefJson(s"/v1.3/signing-baskets/${basket.basketId}"),
+        status = LinkHrefJson(s"/v1.3/signing-baskets/${basket.basketId}/status"),
+        startAuthorisation = LinkHrefJson(s"/v1.3/signing-baskets/${basket.basketId}/authorisations")
+      )
+    )
+  }
+
+  def getSigningBasketResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
+    SigningBasketGetResponseJson(
+      transactionStatus = basket.basket.status.toLowerCase(),
+      payments = basket.payments,
+      consents = basket.consents,
+    )
+  }
+
+  def getSigningBasketStatusResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
+    SigningBasketGetResponseJson(
+      transactionStatus = basket.basket.status.toLowerCase(),
+      payments = None,
+      consents = None,
+    )
   }
 
   def checkTransactionAuthorisation(JsonPost: JValue) = tryo {

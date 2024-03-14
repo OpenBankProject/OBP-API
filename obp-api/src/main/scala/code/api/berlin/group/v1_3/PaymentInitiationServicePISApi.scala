@@ -1,7 +1,7 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, 
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson,
   CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkUpdatePsuAuthentication,checkAuthorisationConfirmation,
   checkTransactionAuthorisation, checkSelectPsuAuthenticationMethod, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
@@ -21,7 +21,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE
+import com.openbankproject.commons.model.enums.ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
@@ -44,9 +44,15 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-  def checkPaymentServerError(paymentService: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+  def checkPaymentServerError(paymentService: String) = {
+    val ccc = ""
+    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+  }
   def checkPaymentProductError(paymentProduct: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be `sepa-credit-transfers`for now, will support (instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers) soon."
 
+  def checkPaymentServiceType(paymentService: String) = tryo {
+    PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+  }.isDefined
 
   val endpoints = 
       cancelPayment ::
@@ -230,7 +236,7 @@ Returns the content of a payment object""",
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ if checkPaymentServiceType(paymentService) => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -473,13 +479,13 @@ Check the transaction status of a payment initiation.""",
     private val generalPaymentSummary =
       s"""${mockedDataText(false)}
   This method is used to initiate a payment at the ASPSP.
-  
+
   ## Variants of Payment Initiation Requests
-  
+
   This method to initiate a payment initiation at the ASPSP can be sent with either a JSON body or an pain.001 body depending on the payment product in the path.
-  
+
   There are the following **payment products**:
-  
+
     - Payment products with payment information in *JSON* format:
       - ***sepa-credit-transfers***
       - ***instant-sepa-credit-transfers***
@@ -490,35 +496,35 @@ Check the transaction status of a payment initiation.""",
       - ***pain.001-instant-sepa-credit-transfers***
       - ***pain.001-target-2-payments***
       - ***pain.001-cross-border-credit-transfers***
-  
+
     - Furthermore the request body depends on the **payment-service**
       - ***payments***: A single payment initiation request.
       - ***bulk-payments***: A collection of several payment iniatiation requests.
         In case of a *pain.001* message there are more than one payments contained in the *pain.001 message.
         In case of a *JSON* there are several JSON payment blocks contained in a joining list.
-      - ***periodic-payments***: 
-       Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId} 
-       with all data relevant for the corresponding payment product and the execution of the standing order contained in a JSON body. 
-  
+      - ***periodic-payments***:
+       Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId}
+       with all data relevant for the corresponding payment product and the execution of the standing order contained in a JSON body.
+
   This is the first step in the API to initiate the related recurring/periodic payment.
-    
+
   ## Single and mulitilevel SCA Processes
-  
-  The Payment Initiation Requests are independent from the need of one ore multilevel 
-  SCA processing, i.e. independent from the number of authorisations needed for the execution of payments. 
-  
-  But the response messages are specific to either one SCA processing or multilevel SCA processing. 
-  
-  For payment initiation with multilevel SCA, this specification requires an explicit start of the authorisation, 
-  i.e. links directly associated with SCA processing like 'scaRedirect' or 'scaOAuth' cannot be contained in the 
-  response message of a Payment Initation Request for a payment, where multiple authorisations are needed. 
-  Also if any data is needed for the next action, like selecting an SCA method is not supported in the response, 
-  since all starts of the multiple authorisations are fully equal. 
+
+  The Payment Initiation Requests are independent from the need of one ore multilevel
+  SCA processing, i.e. independent from the number of authorisations needed for the execution of payments.
+
+  But the response messages are specific to either one SCA processing or multilevel SCA processing.
+
+  For payment initiation with multilevel SCA, this specification requires an explicit start of the authorisation,
+  i.e. links directly associated with SCA processing like 'scaRedirect' or 'scaOAuth' cannot be contained in the
+  response message of a Payment Initation Request for a payment, where multiple authorisations are needed.
+  Also if any data is needed for the next action, like selecting an SCA method is not supported in the response,
+  since all starts of the multiple authorisations are fully equal.
   In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
-  
-  
+
+
   $additionalInstructions
-  
+
   """
     def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
     for {
@@ -584,7 +590,7 @@ Check the transaction status of a payment initiation.""",
           for {
             (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
               u,
-              ViewId("Owner"), //This is the default 
+              ViewId("Owner"), //This is the default
               fromAccount,
               toAccount,
               TransactionRequestType(transactionRequestTypes.toString),
@@ -594,7 +600,7 @@ Check the transaction status of a payment initiation.""",
               ),
               transDetailsSerialized,
               "",
-              Some(BERLINGROUP_PAYMENT_CHALLENGE),
+              Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
               None,
               None,
               Some(transDetailsJson),
@@ -608,7 +614,7 @@ Check the transaction status of a payment initiation.""",
     }
   }
 
-  
+
     resourceDocs += ResourceDoc(
       initiatePayments,
       apiVersion,
@@ -632,15 +638,15 @@ Check the transaction status of a payment initiation.""",
       List(UserNotLoggedIn, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
-   
+
     lazy val initiatePayments : OBPEndpoint = {
      case "payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
        cc =>
          initiatePaymentImplementation("payments", paymentProduct, json, cc)
      }
     }
-  
-  
+
+
     resourceDocs += ResourceDoc(
       initiatePeriodicPayments,
       apiVersion,
@@ -681,14 +687,14 @@ Check the transaction status of a payment initiation.""",
       List(UserNotLoggedIn, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
-   
+
     lazy val initiatePeriodicPayments : OBPEndpoint = {
      case "periodic-payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
        cc =>
          initiatePaymentImplementation("periodic-payments", paymentProduct, json, cc)
      }
     }
-  
+
     resourceDocs += ResourceDoc(
       initiateBulkPayments,
       apiVersion,
@@ -743,14 +749,14 @@ Check the transaction status of a payment initiation.""",
       List(UserNotLoggedIn, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
-   
+
     lazy val initiateBulkPayments : OBPEndpoint = {
      case "bulk-payments" ::  paymentProduct :: Nil  JsonPost json -> _ => {
        cc =>
          initiatePaymentImplementation("bulk-payments", paymentProduct, json, cc)
      }
     }
-           
+
     def generalStartPaymentAuthorisationSummary(isMockedDate: Boolean) = s"""${mockedDataText(isMockedDate)}
 Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
@@ -785,7 +791,7 @@ This applies in the following scenarios:
     executing the cancellation.
   * The signing basket needs to be authorised yet.
 """
-  
+
     resourceDocs += ResourceDoc(
        startPaymentAuthorisationUpdatePsuAuthentication,
        apiVersion,
@@ -795,7 +801,7 @@ This applies in the following scenarios:
        "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
        generalStartPaymentAuthorisationSummary(true),
       json.parse(
-        """{ 
+        """{
           |          "scaStatus": "finalised",
           |          "_links":{
           |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
@@ -815,7 +821,7 @@ This applies in the following scenarios:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
-  
+
     lazy val startPaymentAuthorisationUpdatePsuAuthentication : OBPEndpoint = {
       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkUpdatePsuAuthentication(json)  => {
       cc =>
@@ -835,7 +841,7 @@ This applies in the following scenarios:
         }
       }
     }
-            
+
     resourceDocs += ResourceDoc(
       startPaymentAuthorisationSelectPsuAuthenticationMethod,
       apiVersion,
@@ -879,7 +885,7 @@ This applies in the following scenarios:
         }
     }
     }
-            
+
     resourceDocs += ResourceDoc(
       startPaymentAuthorisationTransactionAuthorisation,
       apiVersion,
@@ -903,7 +909,7 @@ This applies in the following scenarios:
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
-  
+
     lazy val startPaymentAuthorisationTransactionAuthorisation : OBPEndpoint = {
       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _ if checkTransactionAuthorisation(json)  => {
         cc =>
@@ -920,7 +926,7 @@ This applies in the following scenarios:
 
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
               List(u.userId),
-              ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+              ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
               Some(paymentId),
               getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
               Some(StrongCustomerAuthenticationStatus.received),
@@ -937,7 +943,7 @@ This applies in the following scenarios:
           }
       }
     }
-       
+
      def generalStartPaymentInitiationCancellationAuthorisationSummary (isMockedDate:Boolean) =
        s"""${mockedDataText(isMockedDate)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
@@ -957,19 +963,19 @@ or cancellation sub-resource.
 
 This applies in the following scenarios:
 
-* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment 
-  Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
-  The 'startAuthorisation' hyperlink can transport more information about data which needs to be 
+* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment
+  Initiation Response that an explicit start of the authorisation process is needed by the TPP.
+  The 'startAuthorisation' hyperlink can transport more information about data which needs to be
   uploaded by using the extended forms.
-  * 'startAuthorisationWithPsuIdentfication', 
+  * 'startAuthorisationWithPsuIdentfication',
   * 'startAuthorisationWithPsuAuthentication' #TODO
-  * 'startAuthorisationWithAuthentciationMethodSelection' 
+  * 'startAuthorisationWithAuthentciationMethodSelection'
 * The related payment initiation cannot yet be executed since a multilevel SCA is mandated.
-* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding 
-  Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP. 
-  The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded 
+* The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding
+  Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP.
+  The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded
   by using the extended forms as indicated above.
-* The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
+* The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for
   executing the cancellation.
 * The signing basket needs to be authorised yet.
 """
@@ -1015,7 +1021,7 @@ This applies in the following scenarios:
              }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
                List(u.userId),
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                getScaMethodAtInstance(SEPA_CREDIT_TRANSFERS.toString).toOption,
                Some(StrongCustomerAuthenticationStatus.received),
@@ -1129,7 +1135,7 @@ This applies in the following scenarios:
            }
          }
        }
-  
+
      def generalUpdatePaymentCancellationPsuDataSummary (isMockedData: Boolean)=
        s"""${mockedDataText(isMockedData)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
@@ -1144,14 +1150,14 @@ There are several possible Update PSU Data requests in the context of a cancella
 which depends on the SCA approach:
 
 * Redirect SCA Approach:
-A specific Update PSU Data Request is applicable for 
+A specific Update PSU Data Request is applicable for
   * the selection of authentication methods, before choosing the actual SCA approach.
 * Decoupled SCA Approach:
 A specific Update PSU Data Request is only applicable for
 * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
 * the selection of authentication methods.
 * Embedded SCA Approach: 
-The Update PSU Data Request might be used 
+The Update PSU Data Request might be used
 * to add credentials as a first factor authentication data of the PSU and
 * to select the authentication method and
 * transaction authorisation.
@@ -1164,13 +1170,13 @@ For that reason, the following possible Update PSU Data request can apply to all
 There are the following request types on this access path:
 * Update PSU Identification
 * Update PSU Authentication
-* Select PSU Autorization Method 
-  WARNING: This method need a reduced header, 
-  therefore many optional elements are not present. 
+* Select PSU Autorization Method
+  WARNING: This method need a reduced header,
+  therefore many optional elements are not present.
   Maybe in a later version the access path will change.
 * Transaction Authorisation
-  WARNING: This method need a reduced header, 
-  therefore many optional elements are not present. 
+  WARNING: This method need a reduced header,
+  therefore many optional elements are not present.
   Maybe in a later version the access path will change.
 """
 
@@ -1193,7 +1199,7 @@ There are the following request types on this access path:
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
-   
+
      lazy val updatePaymentCancellationPsuDataTransactionAuthorisation : OBPEndpoint = {
        case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json) => {
          cc =>
@@ -1221,7 +1227,7 @@ There are the following request types on this access path:
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationId,
@@ -1288,7 +1294,7 @@ There are the following request types on this access path:
            }
          }
      }
-  
+
      resourceDocs += ResourceDoc(
        updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod,
        apiVersion,
@@ -1336,7 +1342,7 @@ There are the following request types on this access path:
            }
          }
      }
-  
+
      resourceDocs += ResourceDoc(
        updatePaymentCancellationPsuDataAuthorisationConfirmation,
        apiVersion,
@@ -1372,8 +1378,8 @@ There are the following request types on this access path:
            }
          }
      }
-        
-  
+
+
      def generalUpdatePaymentPsuDataSumarry(isMockedData: Boolean) =
        s"""${mockedDataText(isMockedData)}
 This methods updates PSU data on the authorisation resource if needed. 
@@ -1386,14 +1392,14 @@ There are several possible Update PSU Data requests in the context of payment in
 which depends on the SCA approach:
 
 * Redirect SCA Approach:
-A specific Update PSU Data Request is applicable for 
+A specific Update PSU Data Request is applicable for
   * the selection of authentication methods, before choosing the actual SCA approach.
 * Decoupled SCA Approach:
 A specific Update PSU Data Request is only applicable for
 * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
 * the selection of authentication methods.
 * Embedded SCA Approach: 
-The Update PSU Data Request might be used 
+The Update PSU Data Request might be used
 * to add credentials as a first factor authentication data of the PSU and
 * to select the authentication method and
 * transaction authorisation.
@@ -1406,19 +1412,19 @@ For that reason, the following possible Update PSU Data request can apply to all
 There are the following request types on this access path:
 * Update PSU Identification
 * Update PSU Authentication
-* Select PSU Autorization Method 
-  WARNING: This method need a reduced header, 
-  therefore many optional elements are not present. 
+* Select PSU Autorization Method
+  WARNING: This method need a reduced header,
+  therefore many optional elements are not present.
   Maybe in a later version the access path will change.
 * Transaction Authorisation
-  WARNING: This method need a reduced header, 
-  therefore many optional elements are not present. 
+  WARNING: This method need a reduced header,
+  therefore many optional elements are not present.
   Maybe in a later version the access path will change.
-  
+
   NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 123. To make the process work.
         Normally the app use will get SMS/EMAIL to get the value for this process.
-    
-""" 
+
+"""
 
      resourceDocs += ResourceDoc(
        updatePaymentPsuDataTransactionAuthorisation,
@@ -1464,7 +1470,7 @@ There are the following request types on this access path:
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
              }
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
-               ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE,
+               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationid,
@@ -1493,7 +1499,7 @@ There are the following request types on this access path:
            }
          }
        }
-  
+
      resourceDocs += ResourceDoc(
        updatePaymentPsuDataUpdatePsuAuthentication,
        apiVersion,
@@ -1518,7 +1524,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-            
+
            } yield {
              (liftweb.json.parse(
                """{
@@ -1530,7 +1536,7 @@ There are the following request types on this access path:
            }
          }
        }
-  
+
      resourceDocs += ResourceDoc(
        updatePaymentPsuDataSelectPsuAuthenticationMethod,
        apiVersion,
@@ -1562,7 +1568,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-            
+
            } yield {
              (liftweb.json.parse(
                """{
@@ -1580,7 +1586,7 @@ There are the following request types on this access path:
            }
          }
        }
-  
+
      resourceDocs += ResourceDoc(
        updatePaymentPsuDataAuthorisationConfirmation,
        apiVersion,
@@ -1606,7 +1612,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-            
+
            } yield {
              (liftweb.json.parse(
                """{

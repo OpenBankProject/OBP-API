@@ -1340,9 +1340,9 @@ object NewStyle extends MdcLoggable{
       hashOfSuppliedAnswer: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[ChallengeTrait] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+      }else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
       }else{
         Connector.connector.vend.validateChallengeAnswerC2(
@@ -1358,6 +1358,32 @@ object NewStyle extends MdcLoggable{
               .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
           }"), i._2)
         }
+      }
+    }
+    def validateChallengeAnswerC3(
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      consentId: Option[String],
+      basketId: Option[String],
+      challengeId: String,
+      hashOfSuppliedAnswer: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[ChallengeTrait]] = {
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE && basketId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: basketId($basketId) ")}
+      } else {
+        Connector.connector.vend.validateChallengeAnswerC3(
+          transactionRequestId: Option[String],
+          consentId: Option[String],
+          basketId: Option[String],
+          challengeId: String,
+          hashOfSuppliedAnswer: String,
+          callContext: Option[CallContext]
+        )
       }
     }
 
@@ -1383,9 +1409,9 @@ object NewStyle extends MdcLoggable{
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
     ) : OBPReturnType[List[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      }else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       }else{
         Connector.connector.vend.createChallengesC2(
@@ -1395,6 +1421,53 @@ object NewStyle extends MdcLoggable{
           scaMethod: Option[SCA],
           scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
           consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
+          authenticationMethodId: Option[String],
+          callContext: Option[CallContext]
+        ) map { i =>
+          (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+        }
+      }
+    }
+
+    /**
+     *
+     * @param userIds OBP support multiple challenges, we can ask different users to answer different challenges
+     * @param challengeType OBP support different challenge types, @see the Enum ChallengeType
+     * @param scaMethod @see the Enum StrongCustomerAuthentication
+     * @param scaStatus @see the Enum StrongCustomerAuthenticationStatus
+     * @param transactionRequestId it is also the BelinGroup PaymentId
+     * @param consentId
+     * @param basketId
+     * @param authenticationMethodId this is used for BelinGroup Consent
+     * @param callContext
+     * @return
+     */
+    def createChallengesC3(
+      userIds: List[String],
+      challengeType: ChallengeType.Value,
+      transactionRequestId: Option[String],
+      scaMethod: Option[SCA],
+      scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+      consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+      basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
+      authenticationMethodId: Option[String],
+      callContext: Option[CallContext]
+    ) : OBPReturnType[List[ChallengeTrait]] = {
+      if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      } else if(challengeType == ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE && (basketId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: basketId($basketId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
+      } else {
+        Connector.connector.vend.createChallengesC3(
+          userIds: List[String],
+          challengeType: ChallengeType.Value,
+          transactionRequestId: Option[String],
+          scaMethod: Option[SCA],
+          scaStatus: Option[SCAStatus],//Only use for BerlinGroup Now
+          consentId: Option[String], // Note: consentId and transactionRequestId and consentId  are exclusive here.
+          basketId: Option[String], // Note: consentId and transactionRequestId and consentId are exclusive here.
           authenticationMethodId: Option[String],
           callContext: Option[CallContext]
         ) map { i =>
@@ -1423,6 +1496,17 @@ object NewStyle extends MdcLoggable{
         callContext:  Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($consentId) ", 400), i._2)
+      }
+    }
+    def getChallengesByBasketId(
+      basketId: String,
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByBasketId(
+        basketId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current basketId($basketId) ", 400), i._2)
       }
     }
 

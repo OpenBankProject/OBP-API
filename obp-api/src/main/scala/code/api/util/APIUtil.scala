@@ -28,13 +28,13 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import bootstrap.liftweb.CustomDBVendor
+
 import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, TimeZone, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -57,6 +57,7 @@ import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api._
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, ErrorMessagesBG}
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
@@ -114,9 +115,9 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+
 import java.security.AccessControlException
 import java.util.regex.Pattern
-
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
@@ -728,7 +729,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }
-    val errorMessageAst: json.JValue = Extraction.decompose(ErrorMessage(message = message, code = code))
+    def composeErrorMessage() = {
+      val path = callContextLight.map(_.url).getOrElse("")
+      if (path.contains("berlin-group")) {
+        val errorMessagesBG = ErrorMessagesBG(tppMessages = List(ErrorMessageBG(category = "ERROR", code = code, path = callContextLight.map(_.url).getOrElse(""), text = message)))
+        Extraction.decompose(errorMessagesBG)
+      } else {
+        Extraction.decompose(ErrorMessage(message = message, code = code))
+      }
+    }
+    val errorMessageAst: json.JValue = composeErrorMessage()
     val httpBody = JsonAST.compactRender(errorMessageAst)
     val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersError(callContextLight, httpBody)
     JsonResponse(errorMessageAst, responseHeaders ::: jwsHeaders.list, Nil, code)

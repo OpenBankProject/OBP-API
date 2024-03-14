@@ -110,6 +110,7 @@ import code.regulatedentities.MappedRegulatedEntity
 import code.remotedata.RemotedataActors
 import code.scheduler.{DataBaseCleanerScheduler, DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
+import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -1040,6 +1041,9 @@ object ToSchemify {
     AuthUser,
     JobScheduler,
     MappedETag,
+    MappedSigningBasket,
+    MappedSigningBasketPayment,
+    MappedSigningBasketConsent,
     MappedRegulatedEntity,
     AtmAttribute,
     Admin,

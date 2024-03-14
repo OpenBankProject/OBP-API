@@ -5,6 +5,7 @@ import code.api.Constant
 import code.api.Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.{PsuData, ScaStatusResponse, UpdatePsuAuthenticationResponse}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
@@ -71,7 +72,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should startWith (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (error)
     }
     scenario("Failed Case - wrong amount", BerlinGroupV1_3, PIS, initiatePayment) {
       val wrongAmountInitiatePaymentJson =
@@ -95,7 +96,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"${NotPositiveAmount} Current input is: '-1234'"
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message contains extractErrorMessageCode(NotPositiveAmount) should be (true)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text contains extractErrorMessageCode(NotPositiveAmount) should be (true)
     }
     scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
@@ -307,7 +308,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":"123"}""".stripMargin)
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisationTransactionAuthorisation) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
@@ -407,17 +408,17 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
     
   }
-  
+
   feature(s"test the BG v1.3 ${updatePaymentPsuDataUpdatePsuAuthentication} and ${updatePaymentPsuDataUpdatePsuAuthentication.name}") {
     scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataUpdatePsuAuthentication) {
-     
+
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations" / "AUTHORISATION_ID").PUT <@ (user1)
       val response: APIResponse = makePutRequest(requestPost, """{"psuData": {"password": "start12"}}""".stripMargin)
       Then("We should get a 200 ")
       response.code should equal(200)
     }
   }
-  
+
   feature(s"test the BG v1.3 ${updatePaymentPsuDataSelectPsuAuthenticationMethod} and ${updatePaymentPsuDataSelectPsuAuthenticationMethod.name}") {
     scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataSelectPsuAuthenticationMethod) {
       val requestPut = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations" / "AUTHORISATION_ID").PUT <@ (user1)
@@ -426,21 +427,21 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(200)
     }
   }
-  
+
   feature(s"test the BG v1.3 ${updatePaymentPsuDataAuthorisationConfirmation} and ${updatePaymentPsuDataAuthorisationConfirmation.name}") {
     scenario(s"${startPaymentAuthorisationTransactionAuthorisation.name}" , BerlinGroupV1_3, PIS, updatePaymentPsuDataAuthorisationConfirmation) {
-     
+
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations"/"AUTHORISATION_ID").PUT <@ (user1)
       val response: APIResponse = makePutRequest(requestPost, """{"confirmationCode":"confirmationCode"}""".stripMargin)
       Then("We should get a 200 ")
       response.code should equal(200)
     }
   }
-  
-  
+
+
   feature(s"test the BG v1.3 ${startPaymentAuthorisationUpdatePsuAuthentication.name}") {
     scenario(s"${startPaymentAuthorisationUpdatePsuAuthentication.name} ", BerlinGroupV1_3, PIS, startPaymentAuthorisationUpdatePsuAuthentication) {
-     
+
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """{  "psuData":{"password":"start12"  }}""".stripMargin)
       Then("We should get a 201")
@@ -449,14 +450,14 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
   feature(s"test the BG v1.3 ${startPaymentAuthorisationSelectPsuAuthenticationMethod.name}") {
     scenario(s"${startPaymentAuthorisationSelectPsuAuthenticationMethod.name} ", BerlinGroupV1_3, PIS, startPaymentAuthorisationSelectPsuAuthenticationMethod) {
-     
+
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """{"authenticationMethodId":""}""".stripMargin)
       Then("We should get a 201")
       response.code should equal(201)
     }
   }
-  
+
   feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisationTransactionAuthorisation.name} " +
     s"and ${getPaymentInitiationCancellationAuthorisationInformation.name} " +
     s"and ${getPaymentCancellationScaStatus.name}" +
@@ -467,7 +468,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, """{"scaAuthenticationData":""}""")
       Then("We should get a 400 ")
       response.code should equal(400)
-      response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS) {
 
@@ -603,7 +604,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationAuthorisation") {
@@ -619,7 +620,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"$InvalidTransactionRequestId Current TransactionRequestId(NON_EXISTING_PAYMENT_ID) "
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationCancellationAuthorisationInformation") {
