@@ -577,7 +577,7 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
   //   - at an existing sandbox the table "MappedMetric" still exists with rows until this change is deployed at it
   //     and new rows are stored in the table "Metric"      
   //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
-  override def dbTableName = "metric" // define the DB table name
+  override def dbTableName = "Metric" // define the DB table name
   override def dbIndexes = Index(date) :: Index(consumerId) :: super.dbIndexes
 }
 

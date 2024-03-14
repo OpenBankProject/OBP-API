@@ -45,6 +45,6 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
 }
 
 object MappedExpectedChallengeAnswer extends MappedExpectedChallengeAnswer with LongKeyedMetaMapper[MappedExpectedChallengeAnswer] {
-  override def dbTableName = "expectedchallengeanswer" // define the DB table name
+  override def dbTableName = "ExpectedChallengeAnswer" // define the DB table name
   override def dbIndexes = UniqueIndex(ChallengeId):: super.dbIndexes
 }

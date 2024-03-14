@@ -21,6 +21,6 @@ class MappedConsentAuthContext extends ConsentAuthContext with LongKeyedMapper[M
 }
 
 object MappedConsentAuthContext extends MappedConsentAuthContext with LongKeyedMetaMapper[MappedConsentAuthContext] {
-  override def dbTableName = "consentauthcontext" // define a custom DB table name
+  override def dbTableName = "ConsentAuthContext" // define a custom DB table name
   override def dbIndexes = UniqueIndex(ConsentId, Key, createdAt) :: super.dbIndexes
 }
