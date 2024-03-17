@@ -12678,25 +12678,12 @@ trait APIMethods400 extends MdcLoggable {
     Future.sequence(postJsonBody.roles.map(checkRoleName(callContext,_)))
   }
   
-  private def grantAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view: View, callContext: Option[CallContext]) = {
-    view.isSystem match {
-      case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
-      case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
-    }
-  }
   private def grantMultpleAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, views: List[View], callContext: Option[CallContext]) = {
     Future.sequence(views.map(view =>
       grantAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view, callContext: Option[CallContext])
     ))
   }
   
-  private def getView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
-    postView.is_system match {
-      case true => NewStyle.function.systemView(ViewId(postView.view_id), callContext)
-      case false => NewStyle.function.customView(ViewId(postView.view_id), BankIdAccountId(bankId, accountId), callContext)
-    }
-  }
-
   private def getViews(bankId: BankId, accountId: AccountId, postJson: PostCreateUserAccountAccessJsonV400, callContext: Option[CallContext]) = {
     Future.sequence(postJson.views.map(view => getView(bankId: BankId, accountId: AccountId, view: PostViewJsonV400, callContext: Option[CallContext])))
   }
