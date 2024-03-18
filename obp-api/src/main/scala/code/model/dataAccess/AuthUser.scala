@@ -1544,12 +1544,38 @@ def restoreSomeSessions(): Unit = {
         false
       }
   }
+
+  /*
+          ┌────────────┐
+          │FIND A USER │
+          │AT MAPPER DB│
+          └──────┬─────┘
+      ___________▽___________                        ┌────────────────────────┐
+     ╱        props:         ╲                       │FIND USER BY COMPOSITE  │
+    ╱ local_identity_provider ╲______________________│KEY (username,          │
+    ╲                         ╱yes                   │local_identity_provider)│
+     ╲_______________________╱                       └────────────┬───────────┘
+                 │no                                              │
+              ___▽____     ┌────────────────────────┐             │
+             ╱ props: ╲    │FIND USER BY COMPOSITE  │             │
+            ╱ hostname ╲___│KEY (username, hostname)│             │
+            ╲          ╱yes└────────────┬───────────┘             │
+             ╲________╱                 │                         │
+                 │no                    │                         │
+              ┌──▽──┐                   │                         │
+              │ERROR│                   │                         │
+              └─────┘                   │                         │
+                                        └──────┬──────────────────┘
+                                          ┌────▽────┐
+                                          │BOX[USER]│
+                                          └─────────┘
+  */
   /**
-    * Find the authUser by author user name(authUser and resourceUser are the same).
-    * Only search for the local database. 
-    */
+   * Find the authUser by author user name(authUser and resourceUser are the same).
+   * Only search for the local database
+   */
   def findUserByUsernameLocally(name: String): Box[TheUserType] = {
-    find(By(this.username, name))
+    find(By(this.username, name), By(this.provider, Constant.localIdentityProvider))
   }
 
   def passwordResetUrl(name: String, email: String, userId: String): String = {
