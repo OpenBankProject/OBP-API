@@ -1178,12 +1178,12 @@ webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
 # List of countries where consent is not required for the collection of personal data
 personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgaria, Croatia, Republic of Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden, England, Scotland, Wales, Northern Ireland
 
-# Sngle Sign On/Off
+# Single Sign On/Off
 # sso.enabled=false
 
 # Local identity provider url
 # it defaults to the hostname props value
-# local_identity_provider=strongly recomended to use top level domain name so that all nodes in the cluster share same provider name
+# local_identity_provider=strongly recommended to use top level domain name so that all nodes in the cluster share same provider name
 
 
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
