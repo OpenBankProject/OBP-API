@@ -28,7 +28,6 @@ package code.api
 
 import java.net.URI
 import java.util
-
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers
@@ -38,6 +37,7 @@ import code.model.Consumer
 import code.util.HydraUtil._
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.util.HydraUtil
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -274,13 +274,13 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * @return an existing or a new user
       */
     def getOrCreateResourceUserFuture(idToken: String): Future[Box[User]] = {
-      val subject = JwtUtil.getSubject(idToken).getOrElse("")
-      val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
+      val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken).getOrElse("")
+      val provider = resolveProvider(idToken)
       Users.users.vend.getOrCreateUserByProviderIdFuture(
-        provider = issuer, 
-        idGivenByProvider = subject,
+        provider = provider,
+        idGivenByProvider = uniqueIdGivenByProvider,
         consentId = None, 
-        name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
+        name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
         email = getClaim(name = "email", idToken = idToken)
       ).map(_._1)
     }
@@ -301,14 +301,14 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * @return an existing or a new user
       */
     def getOrCreateResourceUser(idToken: String): Box[User] = {
-      val subject = JwtUtil.getSubject(idToken).getOrElse("")
-      val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
-      Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject).or { // Find a user
+      val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken).getOrElse("")
+      val provider = resolveProvider(idToken)
+      Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = uniqueIdGivenByProvider).or { // Find a user
         Users.users.vend.createResourceUser( // Otherwise create a new one
-          provider = issuer,
-          providerId = Some(subject),
+          provider = provider,
+          providerId = Some(uniqueIdGivenByProvider),
           None,
-          name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
+          name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
           email = getClaim(name = "email", idToken = idToken),
           userId = None,
           createdByUserInvitationId = None,
@@ -317,7 +317,19 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         )
       }
     }
-    /** 
+
+    private def resolveProvider(idToken: String) = {
+      isIssuer(jwtToken = idToken, identityProvider = hydraPublicUrl) match {
+        case true if HydraUtil.useObpUserAtHydra => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
+          // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
+          // in order to avoid creation of a new user
+          Constant.localIdentityProvider
+        case false => // All other cases implies a new user creation
+          JwtUtil.getIssuer(idToken).getOrElse("")
+      }
+    }
+
+    /**
       * This function creates a consumer based on "azp", "sub", "iss", "name" and "email" fields
       * Please note that a user must be created before consumer.
       * Unique criteria to decide do we create or get a consumer is pair o values: < sub : azp > i.e.
