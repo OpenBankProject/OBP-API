@@ -56,7 +56,7 @@ object AkkaConnectorActorConfig {
         "code.model.dataAccess.ViewImpl" = kryo,
         "com.openbankproject.commons.model.User" = kryo,
         "com.openbankproject.commons.model.ViewId" = kryo,
-        "com.openbankproject.commons.model.ViewIdBankIdAccountId" = kryo,
+        "com.openbankproject.commons.model.BankIdAccountIdViewId" = kryo,
         "com.openbankproject.commons.model.Permission" = kryo,
         "scala.Unit" = kryo,
         "scala.Boolean" = kryo,

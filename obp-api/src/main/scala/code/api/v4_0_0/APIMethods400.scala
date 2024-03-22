@@ -4576,7 +4576,7 @@ trait APIMethods400 extends MdcLoggable {
            _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, u, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
-            grantViews = for (viewId <- postJson.views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
+            grantViews = for (viewId <- postJson.views) yield BankIdAccountIdViewId(bankId, accountId, ViewId(viewId))
             _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, u, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.views.mkString(",")}")
             }

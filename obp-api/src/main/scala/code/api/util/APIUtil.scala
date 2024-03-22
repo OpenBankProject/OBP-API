@@ -4087,9 +4087,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
   
-  def canGrantAccessToView(viewIdBankIdAccountId: ViewIdBankIdAccountId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+  def canGrantAccessToView(bankIdAccountIdViewId: BankIdAccountIdViewId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
     //3rd: check the permissions in the View
-    val permission: Box[Permission] = Views.views.vend.getViewBydBankIdAccountIdViewIdAndUser(viewIdBankIdAccountId, user)
+    val permission: Box[Permission] = Views.views.vend.getViewBydBankIdAccountIdViewIdAndUser(bankIdAccountIdViewId, user)
 
     //1. if viewIdTobeGranted is systemView. just compare all the permissions
     if(checkSystemViewIdOrName(viewIdTobeGranted.value)){

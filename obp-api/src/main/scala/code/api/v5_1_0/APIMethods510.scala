@@ -1957,7 +1957,7 @@ trait APIMethods510 {
               json.extract[PostAccountAccessJsonV400]
             }
             _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
-              APIUtil.canGrantAccessToView(ViewIdBankIdAccountId(viewId,bankId,accountId),ViewId(postJson.view.view_id), u, callContext)
+              APIUtil.canGrantAccessToView(BankIdAccountIdViewId(bankId,accountId,viewId),ViewId(postJson.view.view_id), u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- JSONFactory400.getView(bankId, accountId, postJson.view, callContext)

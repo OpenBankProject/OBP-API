@@ -40,7 +40,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, BankIdAccountIdViewId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
@@ -218,9 +218,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def grantAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[View] = {
+  final def grantAccessToView(user : User, viewUID : BankIdAccountIdViewId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[View] = {
     def grantAccessToCustomOrSystemView(user: User): Box[View] = {
-      val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
+      val BankIdAccountIdViewId(bankId, accountId, viewId) = viewUID
       Views.views.vend.systemView(viewId) match {
         case Full(systemView) => Views.views.vend.grantAccessToSystemView(bankId, accountId, systemView, user)
         case _ => Views.views.vend.grantAccessToCustomView(viewUID, user)
@@ -242,7 +242,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
     * @return a the list of the granted views if everything is okay, a Failure otherwise
     */
-  final def grantAccessToMultipleViews(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String, 
+  final def grantAccessToMultipleViews(user : User, viewUIDs : List[BankIdAccountIdViewId], otherUserProvider : String, otherUserIdGivenByProvider: String, 
     callContext: Option[CallContext]) : Box[List[View]] = {
     if(canGrantAccessToMultipleViews(bankId, accountId, viewUIDs.map(_.viewId), user, callContext))
       for{
@@ -260,9 +260,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def revokeAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Boolean] = {
+  final def revokeAccessToView(user : User, viewUID : BankIdAccountIdViewId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Boolean] = {
     def revokeAccessToCustomOrSystemView(user: User): Box[Boolean] = {
-      val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
+      val BankIdAccountIdViewId(bankId, accountId, viewId) = viewUID
       Views.views.vend.systemView(viewId) match {
         case Full(systemView) => Views.views.vend.revokeAccessToSystemView(bankId, accountId, systemView, user)
         case _ => Views.views.vend.revokeAccess(viewUID, user)
