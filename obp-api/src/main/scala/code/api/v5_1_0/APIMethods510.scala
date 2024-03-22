@@ -1956,7 +1956,7 @@ trait APIMethods510 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- Helper.booleanToFuture(UserLacksPermissionCanGrantAccessToViewForTargetAccount, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(s"$UserLacksPermissionCanGrantAccessToViewForTargetAccount Current ViewId(${viewId.value}), Target ViewId(${postJson.view.view_id}))", cc = cc.callContext) {
               APIUtil.canGrantAccessToView(BankIdAccountIdViewId(bankId,accountId,viewId),ViewId(postJson.view.view_id), u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)

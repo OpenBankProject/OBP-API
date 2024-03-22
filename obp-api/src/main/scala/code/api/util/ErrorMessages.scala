@@ -191,10 +191,13 @@ object ErrorMessages {
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
   val UserLacksPermissionCanGrantAccessToViewForTargetAccount = 
-    s"OBP-20047: The current user does not have access to a view which lists the target account in ${ViewDefinition.canGrantAccessToViews_.dbColumnName} permissions"
-  val UserLacksPermissionCanRevokeAccessToViewForTargetAccount = 
-    s"OBP-20048: The current user does not have access to a view which lists the target account in ${ViewDefinition.canRevokeAccessToViews_.dbColumnName} permissions"
-
+    s"OBP-20047: If target viewId is system view,  the current view.can_grant_access_to_views does not contains it. Or" +
+      s"if target viewId is custom view, the current view.can_grant_access_to_custom_views is false."
+      
+  val UserLacksPermissionCanRevokeAccessToViewForTargetAccount =
+    s"OBP-20047: If target viewId is system view,  the current view.can_revoke_access_to_views does not contains it. Or" +
+      s"if target viewId is custom view, the current view.can_revoke_access_to_custom_views is false."
+      
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
   val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."

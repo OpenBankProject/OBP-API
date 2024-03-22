@@ -46,16 +46,6 @@ object MapperViews extends Views with MdcLoggable {
     getViewsCommonPart(accountAccessList)
   }
   
-  private def getViewBydBankIdAccountIdViewIdUserPrimaryKey(user: User, bankId:BankId, accountId:AccountId, viewId:ViewId) = {
-    val accountAccessList = AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
-      bankId = bankId, 
-      accountId = accountId, 
-      viewId = viewId,
-      userPrimaryKey = user.userPrimaryKey
-    )
-    getViewsCommonPart(accountAccessList.toList)
-  }
-
   private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
     if (checkSystemViewIdOrName(accountAccess.view_id.get)) {
       ViewDefinition.findSystemView(accountAccess.view_id.get)
@@ -96,8 +86,14 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, getViewsForUserAndAccount(user, account)))
   }
   
-  def getViewBydBankIdAccountIdViewIdAndUser(bankIdAccountIdViewId: BankIdAccountIdViewId,  user: User): Box[Permission] = {
-    Full(Permission(user, getViewBydBankIdAccountIdViewIdUserPrimaryKey(user, bankIdAccountIdViewId.bankId, bankIdAccountIdViewId.accountId, bankIdAccountIdViewId.viewId)))
+  def getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId: BankIdAccountIdViewId,  userPrimaryKey: UserPrimaryKey): Box[View] = {
+    val accountAccessList = AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+      bankId = bankIdAccountIdViewId.bankId,
+      accountId = bankIdAccountIdViewId.accountId,
+      viewId = bankIdAccountIdViewId.viewId,
+      userPrimaryKey = userPrimaryKey
+    )
+    accountAccessList.map(getViewFromAccountAccess).flatten
   }
 
   def getPermissionForUser(user: User): Box[Permission] = {
