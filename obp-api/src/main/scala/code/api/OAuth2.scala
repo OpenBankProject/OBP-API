@@ -320,11 +320,12 @@ object OAuth2Login extends RestHelper with MdcLoggable {
 
     def resolveProvider(idToken: String) = {
       isIssuer(jwtToken = idToken, identityProvider = hydraPublicUrl) match {
-        case true if HydraUtil.useObpUserAtHydra => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
+        case true if HydraUtil.hydraUsesObpUserCredentials => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
           // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
           // in order to avoid creation of a new user
           Constant.localIdentityProvider
-        case false => // All other cases implies a new user creation
+        case _ => // All other cases implies a new user creation
+          // TODO raise exception in case of else case
           JwtUtil.getIssuer(idToken).getOrElse("")
       }
     }
