@@ -1,15 +1,19 @@
 package code.api.v5_1_0
 
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanCreateCustomer
+import code.api.v1_2_1.{AccountJSON, AccountsJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON
+import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CustomerJsonV310
 import code.api.v4_0_0.{AtmJsonV400, BanksJson400}
 import code.api.v5_0_0.PostCustomerJsonV500
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
+import com.openbankproject.commons.model.CreateViewJson
 import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
 import net.liftweb.json.Serialization.write
@@ -33,6 +37,26 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
+  }
+
+  def getPrivateAccountsViaEndpoint(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v5_1_0_Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
+    makeGetRequest(request)
+  }
+  
+  def randomPrivateAccountViaEndpoint(bankId : String): AccountJSON = {
+    val accountsJson = getPrivateAccountsViaEndpoint(bankId, user1).body.extract[AccountsJSON].accounts
+    val randomPosition = nextInt(accountsJson.size)
+    accountsJson(randomPosition)
+  }
+
+  def createViewViaEndpoint(bankId: String, accountId: String, createViewJson: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): ViewJsonV300 = {
+    def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
+      makePostRequest(request, write(view))
+    }
+    val reply = postView(bankId, accountId, createViewJson, consumerAndToken)
+    reply.body.extract[ViewJsonV300]
   }
   
   def createAtmAtBank(bankId: String): AtmJsonV400 = {

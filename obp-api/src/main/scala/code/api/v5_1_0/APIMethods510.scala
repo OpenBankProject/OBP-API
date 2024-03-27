@@ -19,7 +19,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
-import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
@@ -1915,6 +1915,57 @@ trait APIMethods510 {
           } yield {
             val json = JSONFactory510.createConsumerJSON(updatedConsumer)
             (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      grantUserAccessToViewById,
+      implementedInApiVersion,
+      nameOf(grantUserAccessToViewById),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account-access/grant",
+      "Grant User access to View By Id",
+      s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to be account holder.
+         |
+         |""",
+      postAccountAccessJsonV400,
+      viewJsonV300,
+      List(
+        $UserNotLoggedIn,
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
+        InvalidJsonFormat,
+        UserNotFoundById,
+        SystemViewNotFound,
+        ViewNotFound,
+        CannotGrantAccountAccess,
+        UnknownError
+      ),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired))
+
+    lazy val grantUserAccessToViewById: OBPEndpoint = {
+      //add access for specific user to a specific system view
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "account-access" :: "grant" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
+          for {
+            (Full(u), callContext) <- SS.user
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostAccountAccessJsonV400]
+            }
+            _ <- Helper.booleanToFuture(s"$UserLacksPermissionCanGrantAccessToViewForTargetAccount Current ViewId(${viewId.value}), Target ViewId(${postJson.view.view_id}))", cc = cc.callContext) {
+              APIUtil.canGrantAccessToView(BankIdAccountIdViewId(bankId,accountId,viewId),ViewId(postJson.view.view_id), u, callContext)
+            }
+            (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
+            view <- JSONFactory400.getView(bankId, accountId, postJson.view, callContext)
+            addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, user, view, callContext)
+            
+          } yield {
+            val viewJson = JSONFactory300.createViewJSON(addedView)
+            (viewJson, HttpCode.`201`(callContext))
           }
       }
     }

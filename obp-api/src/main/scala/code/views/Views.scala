@@ -34,16 +34,16 @@ trait Views {
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
   def getPermissionForUser(user: User) : Box[Permission]
-  /**
+ /**
     * This is for @ViewPrivileges. 
-    * It will first find the view object by `viewIdBankIdAccountId`
+    * It will first find the view object by `bankIdAccountIdViewId`
     * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
    */
-  def grantAccessToCustomView(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
+  def grantAccessToCustomView(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
-  def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User, callContext: Option[CallContext]) : Box[List[View]]
-  def revokeAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
-  def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
+  def grantAccessToMultipleViews(views : List[BankIdAccountIdViewId], user : User, callContext: Option[CallContext]) : Box[List[View]]
+  def revokeAccessToMultipleViews(views : List[BankIdAccountIdViewId], user : User) : Box[List[View]]
+  def revokeAccess(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User) : Box[Boolean]
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllAccountAccess(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
   def revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean]
@@ -56,6 +56,7 @@ trait Views {
   def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
   def systemViewFuture(viewId : ViewId) : Future[Box[View]]
   def getSystemViews(): Future[List[View]]
+  def getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId : BankIdAccountIdViewId, userPrimaryKey: UserPrimaryKey) : Box[View]
 
   //always return a view id String, not error here. 
   def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.customView(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
@@ -128,11 +129,12 @@ class RemotedataViewsCaseClasses {
   case class permissions(account: BankIdAccountId)
   case class getPermissionForUser(user: User)
   case class permission(account: BankIdAccountId, user: User)
-  case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class getViewBydBankIdAccountIdViewIdAndUser(bankIdAccountIdViewId: BankIdAccountIdViewId, userPrimaryKey: UserPrimaryKey)
+  case class addPermission(viewUID: BankIdAccountIdViewId, user: User)
   case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
-  case class revokeAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user : User)
-  case class grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User, callContext: Option[CallContext])
-  case class revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId],  user: User)
+  case class revokeAccess(bankIdAccountIdViewId: BankIdAccountIdViewId, user : User)
+  case class grantAccessToMultipleViews(views: List[BankIdAccountIdViewId], user: User, callContext: Option[CallContext])
+  case class revokeAccessToMultipleViews(views: List[BankIdAccountIdViewId],  user: User)
   case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class revokeAllAccountAccess(bankId: BankId, accountId: AccountId, user: User)
   case class revokeAccountAccessByUser(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext])

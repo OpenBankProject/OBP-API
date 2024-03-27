@@ -1511,8 +1511,8 @@ def restoreSomeSessions(): Unit = {
             cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
             _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
             _ = if(cbsRemovedViewsForAccount.nonEmpty){
-              val cbsRemovedViewIdBankIdAccountIds = cbsRemovedViewsForAccount.map(view => ViewIdBankIdAccountId(ViewId(view), bankAccountId.bankId, bankAccountId.accountId))
-              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedViewIdBankIdAccountIds, user)
+              val cbsRemovedBankIdAccountIdViewIds = cbsRemovedViewsForAccount.map(view => BankIdAccountIdViewId(bankAccountId.bankId, bankAccountId.accountId, ViewId(view)))
+              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user)
               cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))
               UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
             }

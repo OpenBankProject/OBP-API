@@ -252,20 +252,20 @@ object Consent {
     for {
       view <- consent.views
     } yield {
-      val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
-      Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
+      val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
+      Views.views.vend.revokeAccess(bankIdAccountIdViewId, user)
     }
     val result = 
       for {
         view <- consent.views
       } yield {
-        val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
+        val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
         Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
             Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
           case _ => 
             // It's not system view
-            Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
+            Views.views.vend.grantAccessToCustomView(bankIdAccountIdViewId, user)
         }
         "Added"
       }

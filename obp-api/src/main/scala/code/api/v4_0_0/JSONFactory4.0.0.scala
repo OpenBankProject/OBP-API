@@ -31,7 +31,7 @@ import java.util.Date
 
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, gitCommit, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
@@ -2049,6 +2049,19 @@ object JSONFactory400 {
       created_by_user_id = wh.createdByUserId
     )
   }
-  
+
+  def getView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
+    postView.is_system match {
+      case true => NewStyle.function.systemView(ViewId(postView.view_id), callContext)
+      case false => NewStyle.function.customView(ViewId(postView.view_id), BankIdAccountId(bankId, accountId), callContext)
+    }
+  }
+
+  def grantAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view: View, callContext: Option[CallContext]) = {
+    view.isSystem match {
+      case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
+      case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
+    }
+  }
 }
 

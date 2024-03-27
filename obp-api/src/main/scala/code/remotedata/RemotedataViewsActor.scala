@@ -18,9 +18,9 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
-      logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.grantAccessToCustomView(viewIdBankIdAccountId, user))
+    case cc.addPermission(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User) =>
+      logger.debug("addPermission(" + bankIdAccountIdViewId +"," + user +")")
+      sender ! (mapper.grantAccessToCustomView(bankIdAccountIdViewId, user))
       
     case cc.addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
       logger.debug("addSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
