@@ -591,7 +591,7 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
-    findUserByUsernameLocally(name).toList ::: findUsersByEmailLocally(name) map {
+    findAuthUserByUsernameLocally(name).toList ::: findUsersByEmailLocally(name) map {
       // reason of case parameter name is "u" instead of "user": trait AuthUser have constant mumber name is "user"
       // So if the follow case paramter name is "user" will cause compile warnings
       case u if u.validated_? =>
@@ -653,14 +653,14 @@ import net.liftweb.util.Helpers._
         generateValidationEmailBodies(user, resetLink) :::
         (bccEmail.toList.map(BCC(_))) :_* )
   }
-  
+
    def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
      tryo{getResourceUserByUsername(user.getProvider(), user.username.get).head.userId} match {
        case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
        case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
      }
    }
-  
+
   override def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
     case Full(user) if !user.validated_? =>
       user.setValidated(true).resetUniqueId().save
@@ -668,7 +668,7 @@ import net.liftweb.util.Helpers._
       logUserIn(user, () => {
         S.notice(S.?("account.validated"))
         APIUtil.getPropsValue("user_account_validated_redirect_url") match {
-          case Full(redirectUrl) => 
+          case Full(redirectUrl) =>
             logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
             S.redirectTo(redirectUrl)
           case _ =>
@@ -679,7 +679,7 @@ import net.liftweb.util.Helpers._
 
     case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
   }
-  
+
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
     theUser.setValidated(skipEmailValidation).resetUniqueId()
     theUser.save
@@ -737,7 +737,7 @@ import net.liftweb.util.Helpers._
       scala.xml.Unparsed(s"""$agreeTermsHtml""")
     }
   }
-  
+
   def agreePrivacyPolicy = {
     val webUi = new WebUI
     val privacyPolicyCheckboxText = Helper.i18n("privacy_policy_checkbox_text", Some("I agree to the above Privacy Policy"))
@@ -755,7 +755,7 @@ import net.liftweb.util.Helpers._
                            |                        <hr>""".stripMargin
 
     scala.xml.Unparsed(agreePrivacyPolicy)
-  }  
+  }
   def enableDisableSignUpButton = {
     val javaScriptCode = """<script>
                                |                function enableDisableButton() {
@@ -774,7 +774,7 @@ import net.liftweb.util.Helpers._
   }
 
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
-  
+
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup" tabindex="-1">
       <form method="post" action={ObpS.uriAndQueryString.getOrElse(ObpS.uri)}>
@@ -813,7 +813,7 @@ import net.liftweb.util.Helpers._
         </div>
       }
     }
-      
+
   }
 
   def userLoginFailed = {
@@ -840,7 +840,7 @@ import net.liftweb.util.Helpers._
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
-    findUserByUsernameLocally(username) match {
+    findAuthUserByUsernameLocally(username) match {
       // We have a user from the local provider.
       case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
         if (
@@ -909,8 +909,8 @@ import net.liftweb.util.Helpers._
   /**
     * This method is belong to AuthUser, it is used for authentication(Login stuff)
     * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side. 
-    * 3 if not existing, will create new AuthUser. 
+    * 2 check whether it is existing in AuthUser table in obp side.
+    * 3 if not existing, will create new AuthUser.
     * @return Return the authUser
     */
   @deprecated("we have @checkExternalUserViaConnector method ","01-07-2020")
@@ -918,7 +918,7 @@ import net.liftweb.util.Helpers._
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
         val extProvider = connector
-        val user = findUserByUsernameLocally(name) match {
+        val user = findAuthUserByUsernameLocally(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
             // && user.provider == extProvider
@@ -954,14 +954,14 @@ import net.liftweb.util.Helpers._
   /**
     * This method is belong to AuthUser, it is used for authentication(Login stuff)
     * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side. 
-    * 3 if not existing, will create new AuthUser. 
+    * 2 check whether it is existing in AuthUser table in obp side.
+    * 3 if not existing, will create new AuthUser.
     * @return Return the authUser
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
       case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContexts)) =>
-        val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
+        val user = findAuthUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
             userAuthContexts match {
@@ -990,7 +990,7 @@ import net.liftweb.util.Helpers._
               // get resourceUserId from AuthUser.
               val resourceUserId = user.user.foreign.map(_.userId).getOrElse("")
               // we try to catch this exception, the createOrUpdateUserAuthContexts can not break the login process.
-              tryo {UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(resourceUserId, authContexts)} 
+              tryo {UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(resourceUserId, authContexts)}
                 .openOr(logger.error(s"${resourceUserId} checkExternalUserViaConnector.createOrUpdateUserAuthContexts throw exception! "))
           }
           case None => // Do nothing
@@ -1023,11 +1023,11 @@ def restoreSomeSessions(): Unit = {
 
   //overridden to allow a redirection if login fails
   /**
-    * Success cases: 
+    * Success cases:
     *  case1: user validated && user not locked && user.provider from localhost && password correct --> Login in
     *  case2: user validated && user not locked && user.provider not localhost  && password correct --> Login in
     *  case3: user from remote && checked over connector --> Login in
-    *  
+    *
     * Error cases:
     *  case1: user is locked --> UsernameHasBeenLocked
     *  case2: user.validated_? --> account.validation.error
@@ -1103,7 +1103,7 @@ def restoreSomeSessions(): Unit = {
       user.validated_? && !LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) &&
         !isObpProvider(user)
     }
-    
+
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = ObpS.param("username").getOrElse("")
@@ -1113,15 +1113,15 @@ def restoreSomeSessions(): Unit = {
         val emptyField = usernameEmptyField || passwordEmptyField
         emptyField match {
           case true =>
-            if(usernameEmptyField) 
+            if(usernameEmptyField)
               S.error("login-form-username-error", Helper.i18n("please.enter.your.username"))
-            if(passwordEmptyField) 
+            if(passwordEmptyField)
               S.error("login-form-password-error", Helper.i18n("please.enter.your.password"))
           case false =>
-            findUserByUsernameLocally(usernameFromGui) match {
+            findAuthUserByUsernameLocally(usernameFromGui) match {
               case Full(user) if !user.validated_? =>
                 S.error(S.?("account.validation.error"))
-              
+
               // Check if user comes from localhost and
               case Full(user) if obpUserIsValidatedAndNotLocked(usernameFromGui, user) =>
                 if(user.testPassword(Full(passwordFromGui))) { // if User is NOT locked and password is good
@@ -1142,7 +1142,7 @@ def restoreSomeSessions(): Unit = {
               case Full(user) if LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) =>
                 LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-    
+
               // Check if user came from kafka/obpjvm/stored_procedure and
               // if User is NOT locked. Then check username and password
               // from connector in case they changed on the south-side
@@ -1159,21 +1159,21 @@ def restoreSomeSessions(): Unit = {
                   AfterApiAuth.innerLoginUserInitAction(Full(user))
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
 
-                
+
               // Error case:
               // the username exist but provider cannot be matched
               // It can happen via next scenario:
               //   - sign up user at some obp-api cluster
               //   - change a url of the cluster
-              //   - try to log on user at the cluster  
+              //   - try to log on user at the cluster
               case Full(user) if !isObpProvider(user) =>
                 S.error(S.?(s"${ErrorMessages.InvalidProviderUrl} Actual: ${Constant.localIdentityProvider}, Expected: ${user.provider}"))
-              
-                
+
+
               // If user cannot be found locally, try to authenticate user via connector
-              case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
+              case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) ||
                 APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ) =>
-                
+
                 val preLoginState = capturePreLoginState()
                 logger.info("login redirect: " + loginRedirect.get)
                 val redirect = redirectUri()
@@ -1188,9 +1188,9 @@ def restoreSomeSessions(): Unit = {
                       Empty
                       S.error(Helper.i18n("invalid.login.credentials"))
                 }
-                
-              //If there is NO the username, throw the error message.  
-              case Empty => 
+
+              //If there is NO the username, throw the error message.
+              case Empty =>
                 S.error(Helper.i18n("invalid.login.credentials"))
               case unhandledCase =>
                 logger.error("------------------------------------------------------")
@@ -1204,7 +1204,7 @@ def restoreSomeSessions(): Unit = {
         }
       }
     }
-    
+
     // In this function we bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
     // Implemented in order to prevent a CSRF attack
@@ -1227,8 +1227,8 @@ def restoreSomeSessions(): Unit = {
       case _ => S.redirectTo(homePage)
     }
   }
-  
-  
+
+
   /**
     * The user authentications is not exciting in obp side, it need get the user via connector
     */
@@ -1246,7 +1246,7 @@ def restoreSomeSessions(): Unit = {
      }
    }
   }
-  
+
   /**
     * This method will update the views and createAccountHolder ....
     */
@@ -1266,10 +1266,10 @@ def restoreSomeSessions(): Unit = {
       } yield {
         user
       }
-    } 
+    }
   }
-  
-  
+
+
   /**
     * This method will update the views and createAccountHolder ....
     */
@@ -1284,8 +1284,8 @@ def restoreSomeSessions(): Unit = {
   }
 
   /**
-   * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space, 
-   * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create 
+   * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
+   * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create
    * and modify Dynamic Endpoints and other objects in that Bank / Space.
    *
    * @return
@@ -1333,7 +1333,7 @@ def restoreSomeSessions(): Unit = {
       }
 
       // if user's auto granted entitlement invalid, delete it.
-      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid.
       for {
         grantedEntitlement <- entitlementsGrantedByThisProcess
         grantedEntitlementRoleName = grantedEntitlement.roleName
@@ -1350,7 +1350,7 @@ def restoreSomeSessions(): Unit = {
       }
     }
   }
-  
+
   def grantEmailDomainEntitlementsToUser(user: AuthUser) = {
     if(emailDomainToEntitlementMappings.nonEmpty){
       val createdByProcess = "grantEmailDomainEntitlementsToUser"
@@ -1378,7 +1378,7 @@ def restoreSomeSessions(): Unit = {
       }
 
       // if user's auto granted entitlement invalid, delete it.
-      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid.
       for {
         grantedEntitlement <- entitlementsGrantedByThisProcess
         grantedEntitlementRoleName = grantedEntitlement.roleName
@@ -1395,7 +1395,7 @@ def restoreSomeSessions(): Unit = {
       }
     }
   }
-  
+
   /**
    * This method is used for onboarding bank customer to OBP.
    *  1st: we will get all the accountsHeld from CBS side.
@@ -1407,23 +1407,23 @@ def restoreSomeSessions(): Unit = {
         connectorEmptyResponse(_, callContext)
       }
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUser.accountsHeld : ${accountsHeld}")
-      
+
       success = refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
-      
+
     }yield {
       success
     }
   }
-  
+
   @deprecated("This return Box, not a future, try to use @refreshUser instead. ","08-09-2023")
   def refreshUserLegacy(user: User, callContext: Option[CallContext]) = {
     for{
-      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUserLegacy(user.provider, user.name, callContext) 
-      
+      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUserLegacy(user.provider, user.name, callContext)
+
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUserLegacy.accountsHeld : ${accountsHeld}")
-      
+
       success = refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
-      
+
     }yield {
       success
     }
@@ -1433,26 +1433,26 @@ def restoreSomeSessions(): Unit = {
     * This is a helper method
     * create/update/delete the views, accountAccess, accountHolders for OBP get accounts from CBS side.
     * This method can only be used by the original user(account holder).
-   *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
+   *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far.
     */
     def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount], callContext: Option[CallContext])  = {
       if(user.isOriginalUser){
-        //first, we compare the accounts in obp  and the accounts in cbs,   
+        //first, we compare the accounts in obp  and the accounts in cbs,
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
         val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bank_id.get), AccountId(accountAccess.account_id.get))).toSet
-        
+
         // This will return all account held for the user, no mater what the source is.
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
 
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
         val obpBankAccountIds = obpAccountAccessBankAccountIds.filter(bankAccountId => userOwnBankAccountIds.contains(bankAccountId)).toSet
-        
+
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
         val cbsBankAccountIds = accountsHeld.map(account =>BankIdAccountId(BankId(account.bankId),AccountId(account.accountId))).toSet
-        
+
         //cbs removed this accounts, but OBP still contains the data for them, so we need to clean data in OBP side.
         val cbsRemovedBankAccountIds = obpBankAccountIds diff cbsBankAccountIds
-        
+
         //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
         val csbNewBankAccountIds = cbsBankAccountIds diff obpBankAccountIds
 
@@ -1475,7 +1475,7 @@ def restoreSomeSessions(): Unit = {
         } yield {
           success
         }
-        
+
         //2st: create views/accountAccess/accountHolders for the new coming accounts
         for {
           newBankAccountId <- csbNewBankAccountIds
@@ -1504,7 +1504,7 @@ def restoreSomeSessions(): Unit = {
             //obpViewsForAccount = MapperViews.availableViewsForAccount(bankAccountId).map(_.viewId.value)
             obpViewsForAccount = Views.views.vend.privateViewsUserCanAccessForAccount(user, bankAccountId).map(_.viewId.value)
             _ = logger.debug("refreshViewsAccountAccessAndHolders.obpViewsForAccount-------" + obpViewsForAccount)
-            
+
             cbsViewsForAccount = accountsHeld.find(account => account.bankId.equals(bankAccountId.bankId.value) && account.accountId.equals(bankAccountId.accountId.value)).map(_.viewsToGenerate).getOrElse(Nil)
             _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsViewsForAccount-------" + cbsViewsForAccount)
             //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
@@ -1512,10 +1512,10 @@ def restoreSomeSessions(): Unit = {
             _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
             _ = if(cbsRemovedViewsForAccount.nonEmpty){
               val cbsRemovedBankIdAccountIdViewIds = cbsRemovedViewsForAccount.map(view => BankIdAccountIdViewId(bankAccountId.bankId, bankAccountId.accountId, ViewId(view)))
-              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user) 
+              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user)
               cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))
               UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
-            } 
+            }
             //cbs has new views which are not in obp yet, we need to create new data for these accounts.
             csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
             _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount-------" + csbNewViewsForAccount)
@@ -1525,31 +1525,61 @@ def restoreSomeSessions(): Unit = {
                 _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount start:-------" + newViewForAccount)
                 view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
                 _ = UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
-                view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView` 
-                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user) 
+                view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView`
+                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
                 else //otherwise, we will call `grantAccessToCustomView`
                   Views.views.vend.grantAccessToCustomView(view.uid, user)
                 _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount finish:-------" + newViewForAccount)
               }yield{
                 view
               }
-            } 
+            }
           } yield {
             success
           }
         }
         true
-      }  
+      }
       else {
         false
       }
   }
+
+  /*
+          ┌────────────┐
+          │FIND A USER │
+          │AT MAPPER DB│
+          └──────┬─────┘
+      ___________▽___________                        ┌────────────────────────┐
+     ╱        props:         ╲                       │FIND USER BY COMPOSITE  │
+    ╱ local_identity_provider ╲______________________│KEY (username,          │
+    ╲                         ╱yes                   │local_identity_provider)│
+     ╲_______________________╱                       └────────────┬───────────┘
+                 │no                                              │
+              ___▽____     ┌────────────────────────┐             │
+             ╱ props: ╲    │FIND USER BY COMPOSITE  │             │
+            ╱ hostname ╲___│KEY (username, hostname)│             │
+            ╲          ╱yes└────────────┬───────────┘             │
+             ╲________╱                 │                         │
+                 │no                    │                         │
+              ┌──▽──┐                   │                         │
+              │ERROR│                   │                         │
+              └─────┘                   │                         │
+                                        └──────┬──────────────────┘
+                                          ┌────▽────┐
+                                          │BOX[USER]│
+                                          └─────────┘
+  */
   /**
-    * Find the authUser by author user name(authUser and resourceUser are the same).
-    * Only search for the local database. 
-    */
-  def findUserByUsernameLocally(name: String): Box[TheUserType] = {
-    find(By(this.username, name))
+   * Find the Auth User by the composite key (username, provider).
+   * Only search at the local database.
+   * Please note that provider is implicitly defined i.e. not provided via a parameter
+   */
+  def findAuthUserByUsernameLocally(name: String): Box[TheUserType] = {
+    find(By(this.username, name), By(this.provider, Constant.localIdentityProvider))
+  }
+  def findAuthUserByPrimaryKey(key: Long): Box[TheUserType] = {
+    find(By(this.user, key))
   }
 
   def passwordResetUrl(name: String, email: String, userId: String): String = {

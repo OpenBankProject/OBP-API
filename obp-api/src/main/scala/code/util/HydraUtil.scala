@@ -25,6 +25,8 @@ object HydraUtil extends MdcLoggable{
 
   val mirrorConsumerInHydra = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
 
+  val hydraUsesObpUserCredentials = APIUtil.getPropsAsBoolValue("hydra_uses_obp_user_credentials", true)
+
   val clientSecretPost = "client_secret_post"
   
   val hydraTokenEndpointAuthMethod =

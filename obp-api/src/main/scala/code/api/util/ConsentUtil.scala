@@ -415,7 +415,7 @@ object Consent {
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case (Full(user), newUser) =>
-          // 2. Assign entitlements to the User
+          // 2. Assign entitlements (Roles) to the User
           addEntitlements(user, consent) match {
             case Full(user) =>
               // 3. Copy Auth Context to the User

@@ -52,7 +52,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.metrics.MappedMetric
 import code.model._
-import code.model.dataAccess.AuthUser.findUserByUsernameLocally
+import code.model.dataAccess.AuthUser.findAuthUserByUsernameLocally
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
@@ -5793,7 +5793,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
   //    : we call that method only when we set external authentication and provider is not OBP-API
   override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
-    findUserByUsernameLocally(username).map( user =>
+    findAuthUserByUsernameLocally(username).map(user =>
       InboundExternalUser(aud = "",
         exp = "",
         iat = "",

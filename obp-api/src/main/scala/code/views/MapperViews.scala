@@ -45,7 +45,7 @@ object MapperViews extends Views with MdcLoggable {
     )
     getViewsCommonPart(accountAccessList)
   }
-  
+
   private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
     if (checkSystemViewIdOrName(accountAccess.view_id.get)) {
       ViewDefinition.findSystemView(accountAccess.view_id.get)
@@ -85,7 +85,7 @@ object MapperViews extends Views with MdcLoggable {
   def permission(account: BankIdAccountId, user: User): Box[Permission] = {
     Full(Permission(user, getViewsForUserAndAccount(user, account)))
   }
-  
+
   def getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId: BankIdAccountIdViewId,  userPrimaryKey: UserPrimaryKey): Box[View] = {
     val accountAccessList = AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
       bankId = bankIdAccountIdViewId.bankId,
@@ -100,14 +100,14 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, getViewsForUser(user)))
   }
   // This is an idempotent function
-  private def getOrGrantAccessToCustomView(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
+  private def getOrGrantAccessToViewCommon(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
     if (AccountAccess.findByUniqueIndex(
       BankId(bankId),
       AccountId(accountId), 
       viewDefinition.viewId,
       user.userPrimaryKey, 
       ALL_CONSUMERS).isEmpty) {
-      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create" +
+      logger.debug(s"getOrGrantAccessToViewCommon AccountAccess.create" +
         s"user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId), consumerId($ALL_CONSUMERS)")
       // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
@@ -125,13 +125,13 @@ object MapperViews extends Views with MdcLoggable {
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
     } else {
-      logger.debug(s"getOrGrantAccessToCustomView AccountAccess is already existing (UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId))")
+      logger.debug(s"getOrGrantAccessToViewCommon AccountAccess is already existing (UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId))")
       Full(viewDefinition)
     } //accountAccess already exists, no need to create one
   }
   // This is an idempotent function 
   private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
-    getOrGrantAccessToCustomView(user, view, bankId.value, accountId.value)
+    getOrGrantAccessToViewCommon(user, view, bankId.value, accountId.value)
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def grantAccessToCustomView(bankIdAccountIdViewId: BankIdAccountIdViewId, user: User): Box[View] = {
@@ -146,7 +146,7 @@ object MapperViews extends Views with MdcLoggable {
         if(v.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count AccountAccessList where
         // This is idempotent
-        getOrGrantAccessToCustomView(user, v, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value) //accountAccess already exists, no need to create one
+        getOrGrantAccessToViewCommon(user, v, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value) //accountAccess already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $bankIdAccountIdViewId. not found", 404) //TODO: move message + code logic to api level
@@ -178,7 +178,7 @@ object MapperViews extends Views with MdcLoggable {
         val viewDefinition = v._1
         val bankIdAccountIdViewId = v._2
         // This is idempotent 
-        getOrGrantAccessToCustomView(user, viewDefinition, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value)
+        getOrGrantAccessToViewCommon(user, viewDefinition, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value)
       })
       Full(viewDefinitions.map(_._1))
     }

@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.HttpURLConnection
+
+import code.api.OAuth2Login.Hydra
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, AfterApiAuth, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
@@ -38,7 +40,7 @@ import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
 import code.util.Helper.{MdcLoggable, ObpS}
 import com.openbankproject.commons.model.User
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import javax.net.ssl.HttpsURLConnection
 import net.liftweb.common._
 import net.liftweb.http._
@@ -195,14 +197,14 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   }
 
   private def getOrCreateResourceUser(idToken: String): Box[User] = {
-    val subject = JwtUtil.getSubject(idToken)
-    val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
-    Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject.getOrElse("")).or { // Find a user
+    val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken)
+    val provider = Hydra.resolveProvider(idToken)
+    Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = uniqueIdGivenByProvider.getOrElse("")).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
-        provider = issuer,
-        providerId = subject,
+        provider = provider,
+        providerId = uniqueIdGivenByProvider,
         createdByConsentId = None,
-        name = subject,
+        name = uniqueIdGivenByProvider,
         email = getClaim(name = "email", idToken = idToken),
         userId = None,
         createdByUserInvitationId = None,

@@ -743,6 +743,19 @@ object Glossary extends MdcLoggable  {
 		""")
 
 	  glossaryItems += GlossaryItem(
+		title = "Consumer.consumer_key (Consumer Key)",
+		description =
+		s"""
+			 |The client identifier issued to the client during the registration process. It is a unique string representing the registration information provided by the client.
+			 |At the time the consumer_key was introduced OAuth 1.0a was only available. The OAuth 2.0 counterpart for this value is client_id
+				|""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "client_id (Client ID)",
+		description =
+			s"""Please take a look at a Consumer.consumer_key""".stripMargin)
+
+	  glossaryItems += GlossaryItem(
 		title = "Customer",
 		description =
 		  """
