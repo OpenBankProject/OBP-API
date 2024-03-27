@@ -9,7 +9,7 @@ import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, ErrorMessage, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, ErrorMessage, ViewId, BankIdAccountIdViewId}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag

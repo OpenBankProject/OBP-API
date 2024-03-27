@@ -286,7 +286,7 @@
 //          account <- BankAccount(bankId, accountId)
 //          u <- user ?~ "user not found"
 //          viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-//          addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), authProvider, userId)
+//          addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => BankIdAccountIdViewId(bankId, accountId,ViewId(viewIdString))), authProvider, userId)
 //        } yield {
 //            val viewJson = JSONFactory.createViewsJSON(addedViews)
 //            successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -301,7 +301,7 @@
 //        for {
 //          account <- BankAccount(bankId, accountId)
 //          u <- user ?~ "user not found"
-//          addedView <- account addPermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), authProvider, userId)
+//          addedView <- account addPermission(u, BankIdAccountIdViewId(bankId, accountId, viewId), authProvider, userId)
 //        } yield {
 //            val viewJson = JSONFactory.createViewJSON(addedView)
 //            successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -316,7 +316,7 @@
 //        for {
 //          account <- BankAccount(bankId, accountId)
 //          u <- user ?~ "user not found"
-//          isRevoked <- account revokePermission(u, ViewIdBankIdAccountId(viewId, bankId, accountId), authProvider, userId)
+//          isRevoked <- account revokePermission(u, BankIdAccountIdViewId(bankId, accountId, viewId), authProvider, userId)
 //          if(isRevoked)
 //        } yield noContentJsonResponse
 //    }

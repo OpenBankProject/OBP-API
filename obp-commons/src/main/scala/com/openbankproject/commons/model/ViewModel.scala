@@ -218,7 +218,7 @@ trait View {
   def bankId: BankId
 
   //and here is the unique identifier
-  def uid: ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
+  def uid: BankIdAccountIdViewId = BankIdAccountIdViewId(bankId, accountId, viewId)
 
   //The name is the orignal value from developer, when they create the views.
   // It can be any string value, also see the viewId,

@@ -15,32 +15,36 @@ object RemotedataViews extends ObpActorInit with Views {
 
   val cc = RemotedataViewsCaseClasses
 
-  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User, callContext: Option[CallContext]): Box[List[View]] = getValueFromFuture(
+  def grantAccessToMultipleViews(views: List[BankIdAccountIdViewId], user: User, callContext: Option[CallContext]): Box[List[View]] = getValueFromFuture(
     (actor ? cc.grantAccessToMultipleViews(views, user, callContext)).mapTo[Box[List[View]]]
   )
   
-  def revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
+  def revokeAccessToMultipleViews(views: List[BankIdAccountIdViewId], user: User): Box[List[View]] = getValueFromFuture(
     (actor ? cc.revokeAccessToMultipleViews(views, user)).mapTo[Box[List[View]]]
   )
 
   def permission(account: BankIdAccountId, user: User): Box[Permission] = getValueFromFuture(
     (actor ? cc.permission(account, user)).mapTo[Box[Permission]]
   )
+
+  def getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId: BankIdAccountIdViewId, userPrimaryKey: UserPrimaryKey): Box[View] = getValueFromFuture(
+    (actor ? cc.getViewBydBankIdAccountIdViewIdAndUser(bankIdAccountIdViewId: BankIdAccountIdViewId, userPrimaryKey: UserPrimaryKey)).mapTo[Box[View]]
+  )
   
   def getPermissionForUser(user: User): Box[Permission] = getValueFromFuture(
     (actor ? cc.getPermissionForUser(user)).mapTo[Box[Permission]]
   )
 
-  def grantAccessToCustomView(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = getValueFromFuture(
-    (actor ? cc.addPermission(viewIdBankIdAccountId, user)).mapTo[Box[View]]
+  def grantAccessToCustomView(bankIdAccountIdViewId: BankIdAccountIdViewId, user: User): Box[View] = getValueFromFuture(
+    (actor ? cc.addPermission(bankIdAccountIdViewId, user)).mapTo[Box[View]]
   )
   
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = getValueFromFuture(
     (actor ? cc.addSystemViewPermission(bankId, accountId, view, user)).mapTo[Box[View]]
   )
   
-  def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =  getValueFromFuture(
-    (actor ? cc.revokeAccess(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
+  def revokeAccess(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User) : Box[Boolean] =  getValueFromFuture(
+    (actor ? cc.revokeAccess(bankIdAccountIdViewId, user)).mapTo[Box[Boolean]]
   ) 
   
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] =  getValueFromFuture(

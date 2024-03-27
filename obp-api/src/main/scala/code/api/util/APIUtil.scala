@@ -4069,21 +4069,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case _ => false
   }
 
-  def canGrantAccessToView(bankId: BankId, accountId: AccountId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+  def canGrantAccessToView(bankId: BankId, accountId: AccountId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if viewIdTobeGranted is systemView. just compare all the permissions
-    if(checkSystemViewIdOrName(viewIdTobeGranted.value)){
+    //1. if targetViewId is systemView. just compare all the permissions
+    if(checkSystemViewIdOrName(targetViewId.value)){
       val allCanGrantAccessToViewsPermissions: List[String] = permission
         .map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
-      allCanGrantAccessToViewsPermissions.contains(viewIdTobeGranted.value)
+      allCanGrantAccessToViewsPermissions.contains(targetViewId.value)
     } else{
-      //2. if viewIdTobeGranted is customView, we only need to check the `canGrantAccessToCustomViews`. 
+      //2. if targetViewId is customView, we only need to check the `canGrantAccessToCustomViews`. 
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
 
       allCanGrantAccessToCustomViewsPermissions.contains(true)
+    }
+  }
+  
+  def canGrantAccessToView(bankIdAccountIdViewId: BankIdAccountIdViewId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+    
+    //1st: get the view 
+    val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
+
+    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
+    if(checkSystemViewIdOrName(targetViewId.value)){
+      val canGrantAccessToView: Box[List[String]] = view.map(_.canGrantAccessToViews.getOrElse(Nil))
+      canGrantAccessToView.getOrElse(Nil).contains(targetViewId.value)
+    } else{ 
+      //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
+      view.map(_.canGrantAccessToCustomViews).getOrElse(false)
     }
   }
   

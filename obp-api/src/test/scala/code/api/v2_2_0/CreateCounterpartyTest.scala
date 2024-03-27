@@ -7,7 +7,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.setup.DefaultUsers
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankId, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, BankId, ViewId, BankIdAccountIdViewId}
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 
@@ -90,7 +90,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("notExistingAccountId")
       val viewId =ViewId(SYSTEM_OWNER_VIEW_ID)
-      Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(viewId, bankId, accountId), resourceUser1)
+      Views.views.vend.grantAccessToCustomView(BankIdAccountIdViewId(bankId, accountId, viewId), resourceUser1)
 
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId.value,other_account_routing_address=accountId.value)
   

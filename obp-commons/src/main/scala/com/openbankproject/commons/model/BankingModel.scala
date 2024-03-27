@@ -65,8 +65,8 @@ trait Bank {
 /**
  * Uniquely identifies a view
  */
-case class ViewIdBankIdAccountId(viewId : ViewId, bankId : BankId, accountId : AccountId) {
-  override def toString = s"view $viewId, for account: $accountId at bank $bankId"
+case class BankIdAccountIdViewId(bankId : BankId, accountId : AccountId, viewId : ViewId) {
+  override def toString = s"BankIdAccountIdViewId($bankId,$accountId,$viewId)"
 }
 
 /*

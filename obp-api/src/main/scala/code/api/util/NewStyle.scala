@@ -464,38 +464,38 @@ object NewStyle extends MdcLoggable{
     } map { fullBoxOrException(_)
     } map { unboxFull(_) } 
     
-    def grantAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String, callContext: Option[CallContext]) = Future {
-      account.grantAccessToView(u, viewIdBankIdAccountId, provider, providerId, callContext: Option[CallContext])
+    def grantAccessToView(account: BankAccount, u: User, bankIdAccountIdViewId : BankIdAccountIdViewId, provider : String, providerId: String, callContext: Option[CallContext]) = Future {
+      account.grantAccessToView(u, bankIdAccountIdViewId, provider, providerId, callContext: Option[CallContext])
     } map {
       x => (unboxFullOrFail(
         x, 
         callContext, 
-        UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewId(${viewIdBankIdAccountId.viewId.value}) and current UserId(${u.userId})", 
+        UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewId(${bankIdAccountIdViewId.viewId.value}) and current UserId(${u.userId})", 
         403), 
         callContext
       )
     }
     
-    def grantAccessToMultipleViews(account: BankAccount, u: User, viewIdBankIdAccountIds : List[ViewIdBankIdAccountId], provider : String, providerId: String, callContext: Option[CallContext]) = Future {
-      account.grantAccessToMultipleViews(u, viewIdBankIdAccountIds, provider, providerId, callContext: Option[CallContext])
+    def grantAccessToMultipleViews(account: BankAccount, u: User, bankIdAccountIdViewIds : List[BankIdAccountIdViewId], provider : String, providerId: String, callContext: Option[CallContext]) = Future {
+      account.grantAccessToMultipleViews(u, bankIdAccountIdViewIds, provider, providerId, callContext: Option[CallContext])
     } map {
       x =>
         (unboxFullOrFail(
           x,
           callContext,
-          UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds(${viewIdBankIdAccountIds}) and current UserId(${u.userId})",
+          UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds(${bankIdAccountIdViewIds}) and current UserId(${u.userId})",
           403),
           callContext
         )
     }
-    def revokeAccessToView(account: BankAccount, u: User, viewIdBankIdAccountId : ViewIdBankIdAccountId, provider : String, providerId: String, callContext: Option[CallContext]) = Future {
-      account.revokeAccessToView(u, viewIdBankIdAccountId, provider, providerId, callContext: Option[CallContext])
+    def revokeAccessToView(account: BankAccount, u: User, bankIdAccountIdViewId : BankIdAccountIdViewId, provider : String, providerId: String, callContext: Option[CallContext]) = Future {
+      account.revokeAccessToView(u, bankIdAccountIdViewId, provider, providerId, callContext: Option[CallContext])
     } map {
       x =>
         (unboxFullOrFail(
           x,
           callContext,
-          UserLacksPermissionCanRevokeAccessToViewForTargetAccount + s"Current ViewId(${viewIdBankIdAccountId.viewId.value}) and current UserId(${u.userId})",
+          UserLacksPermissionCanRevokeAccessToViewForTargetAccount + s"Current ViewId(${bankIdAccountIdViewId.viewId.value}) and current UserId(${u.userId})",
           403),
           callContext
         )
@@ -611,7 +611,7 @@ object NewStyle extends MdcLoggable{
     def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       view.isSystem match {
         case false =>
-          Future(Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+          Future(Views.views.vend.grantAccessToCustomView(BankIdAccountIdViewId(view.bankId, view.accountId, view.viewId), user)) map {
             unboxFullOrFail(_, callContext, s"$CannotGrantAccountAccess Current ViewId is ${view.viewId.value}")
           }
         case true =>
@@ -623,7 +623,7 @@ object NewStyle extends MdcLoggable{
     def revokeAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       view.isSystem match {
         case false =>
-          Future(Views.views.vend.revokeAccess(ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId), user)) map {
+          Future(Views.views.vend.revokeAccess(BankIdAccountIdViewId(view.bankId, view.accountId, view.viewId), user)) map {
             unboxFullOrFail(_, callContext, s"$CannotRevokeAccountAccess Current ViewId is ${view.viewId.value}")
           }
         case true =>
