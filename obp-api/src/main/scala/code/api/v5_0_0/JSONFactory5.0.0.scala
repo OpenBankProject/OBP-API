@@ -888,8 +888,8 @@ object JSONFactory500 {
       can_create_direct_debit = view.canCreateDirectDebit,
       can_create_standing_order = view.canCreateStandingOrder,
       // Version 5.0.0
-      can_grant_access_to_views = view.canGrantAccessToViews.getOrElse(Nil),
-      can_revoke_access_to_views = view.canRevokeAccessToViews.getOrElse(Nil),
+      can_grant_access_to_views = view.canGrantAccessToSystemViews.getOrElse(Nil),
+      can_revoke_access_to_views = view.canRevokeAccessToSystemViews.getOrElse(Nil),
     )
   }
   def createViewsJsonV500(views : List[View]) : ViewsJsonV500 = {

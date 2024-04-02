@@ -1889,7 +1889,7 @@ trait APIMethods500 {
             }
             // custom views are started with `_`,eg _ life, _ work, and System views can not, eg: owner.
             _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat +s"Current view_name (${createViewJson.name})", cc = cc.callContext) {
-              checkSystemViewIdOrName(createViewJson.name)
+              isValidatedSystemViewName(createViewJson.name)
             }
             view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
           } yield {

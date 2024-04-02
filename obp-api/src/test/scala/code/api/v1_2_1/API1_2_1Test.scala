@@ -31,7 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
-import code.api.util.APIUtil.checkSystemViewIdOrName
+import code.api.util.APIUtil.isValidatedSystemViewId
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
@@ -165,7 +165,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(view=> checkSystemViewIdOrName(view.id))
+      .filterNot(view=> isValidatedSystemViewId(view.id))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }

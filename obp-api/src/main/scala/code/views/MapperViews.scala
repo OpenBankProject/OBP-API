@@ -47,7 +47,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
-    if (checkSystemViewIdOrName(accountAccess.view_id.get)) {
+    if (isValidatedSystemViewId(accountAccess.view_id.get)) {
       ViewDefinition.findSystemView(accountAccess.view_id.get)
         .map(v => v.bank_id(accountAccess.bank_id.get).account_id(accountAccess.account_id.get)) // in case system view do not contains the bankId, and accountId.
     } else {
@@ -381,7 +381,7 @@ object MapperViews extends Views with MdcLoggable {
   def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
     if(view.is_public) {
       Failure(SystemViewCannotBePublicError)
-    }else if (!checkSystemViewIdOrName(view.name)) {
+    }else if (!isValidatedSystemViewName(view.name)) {
       Failure(InvalidSystemViewFormat+s"Current view_name (${view.name})")
     } else {
       view.name.contentEquals("") match {
@@ -415,7 +415,7 @@ object MapperViews extends Views with MdcLoggable {
   * */
   def createCustomView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = {
 
-    if(!checkCustomViewIdOrName(view.name)) {
+    if(!isValidatedCustomViewName(view.name)) {
       return Failure(InvalidCustomViewFormat)
     }
     

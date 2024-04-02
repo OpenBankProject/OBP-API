@@ -3985,7 +3985,7 @@ trait APIMethods310 {
             }
             //System views can not startwith '_'
             _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat+s"Current view_name (${createViewJson.name})", cc = callContext) {
-              checkSystemViewIdOrName(createViewJson.name)
+              isValidatedSystemViewName(createViewJson.name)
             }
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
               createViewJson.is_public == false

@@ -4059,28 +4059,34 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   //we need set guard to easily distinguish the system view and custom view,
   // customer view must start with '_', system can not 
-  // viewName and viewId are the same value, just with different format, eg: createViewIdByName(view.name)
-  def checkSystemViewIdOrName(viewId: String): Boolean = !checkCustomViewIdOrName(viewId: String)
+  // viewId is created by viewName, please check method : createViewIdByName(view.name)
+  // so here we can use isSystemViewName method to check viewId
+  def isValidatedSystemViewId(viewId: String): Boolean = isValidatedSystemViewName(viewId: String)
+
+  def isValidatedSystemViewName(viewName: String): Boolean = !isValidatedCustomViewName(viewName: String)
+
+  // viewId is created by viewName, please check method : createViewIdByName(view.name)
+  // so here we can use isCustomViewName method to check viewId
+  def isValidatedCustomViewId(viewId: String): Boolean = isValidatedCustomViewName(viewId)
   
   //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-  // viewName and viewId are the same value, just with different format, eg: createViewIdByName(view.name)
-  def checkCustomViewIdOrName(name: String): Boolean = name match {
+  def isValidatedCustomViewName(name: String): Boolean = name match {
     case x if x.startsWith("_") => true // Allowed case
     case _ => false
   }
 
-  def canGrantAccessToView(bankId: BankId, accountId: AccountId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+  def canGrantAccessToView(bankId: BankId, accountId: AccountId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if targetViewId is systemView. just compare all the permissions
-    if(checkSystemViewIdOrName(targetViewId.value)){
+    //1. if viewIdTobeGranted is systemView. just compare all the permissions
+    if(isValidatedSystemViewId(viewIdTobeGranted.value)){
       val allCanGrantAccessToViewsPermissions: List[String] = permission
-        .map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+        .map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
-      allCanGrantAccessToViewsPermissions.contains(targetViewId.value)
+      allCanGrantAccessToViewsPermissions.contains(viewIdTobeGranted.value)
     } else{
-      //2. if targetViewId is customView, we only need to check the `canGrantAccessToCustomViews`. 
+      //2. if viewIdTobeGranted is customView, we only need to check the `canGrantAccessToCustomViews`. 
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
 
       allCanGrantAccessToCustomViewsPermissions.contains(true)
@@ -4092,10 +4098,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1st: get the view 
     val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
 
-    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
-    if(checkSystemViewIdOrName(targetViewId.value)){
-      val canGrantAccessToView: Box[List[String]] = view.map(_.canGrantAccessToViews.getOrElse(Nil))
-      canGrantAccessToView.getOrElse(Nil).contains(targetViewId.value)
+    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
+    if(isValidatedSystemViewId(targetViewId.value)){
+      val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToSystemViews.getOrElse(Nil))
+      canGrantAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else{ 
       //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
       view.map(_.canGrantAccessToCustomViews).getOrElse(false)
@@ -4106,19 +4112,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //all the permission this user have for the bankAccount 
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //check if we can grant all systemViews Access
-    val allCanGrantAccessToViewsPermissions: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
-    val allSystemViewsAccessTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(checkSystemViewIdOrName)
-    val canGrantAccessToAllSystemViews = allSystemViewsAccessTobeGranted.forall(allCanGrantAccessToViewsPermissions.contains)
+    //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
+    val allCanGrantAccessToSystemViews: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    
+    val allSystemViewsIdsTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(isValidatedSystemViewId)
+    
+    val canGrantAllSystemViewsIdsTobeGranted = allSystemViewsIdsTobeGranted.forall(allCanGrantAccessToSystemViews.contains)
 
-    if (viewIdsTobeGranted.map(_.value).distinct.find(checkCustomViewIdOrName).isDefined){
-      //check if we can grant all customViews Access
+    //if the viewIdsTobeGranted contains custom view ids, we need to check the both canGrantAccessToCustomViews and canGrantAccessToSystemViews
+    if (viewIdsTobeGranted.map(_.value).distinct.find(isValidatedCustomViewId).isDefined){
+      //check if we can grant all customViews Access.
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
       val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
-      canGrantAccessToAllSystemViews && canGrantAccessToAllCustomViews
-    } else {
-      canGrantAccessToAllSystemViews
+      canGrantAllSystemViewsIdsTobeGranted && canGrantAccessToAllCustomViews
+    } else {// if viewIdsTobeGranted only contains system view ids, we only need to check `canGrantAccessToSystemViews`
+      canGrantAllSystemViewsIdsTobeGranted
     }
   }
   
@@ -4127,11 +4136,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
     //1. if viewIdTobeRevoked is systemView. just compare all the permissions
-    if (checkSystemViewIdOrName(viewIdToBeRevoked.value)) {
-      val allCanRevokeAccessToViewsPermissions: List[String] = permission
-        .map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    if (isValidatedSystemViewId(viewIdToBeRevoked.value)) {
+      val allCanRevokeAccessToSystemViews: List[String] = permission
+        .map(_.views.map(_.canRevokeAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
-      allCanRevokeAccessToViewsPermissions.contains(viewIdToBeRevoked.value)
+      allCanRevokeAccessToSystemViews.contains(viewIdToBeRevoked.value)
     } else {
       //2. if viewIdTobeRevoked is customView, we only need to check the `canRevokeAccessToCustomViews`. 
       val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
@@ -4144,24 +4153,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
     
-    //check if we can revoke all systemViews Access
-    val allCanRevokeAccessToViewsPermissions: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
-    val allAccountAccessSystemViews: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct.filter(checkSystemViewIdOrName)
-    val canRevokeAccessToAllSystemViews = allAccountAccessSystemViews.forall(allCanRevokeAccessToViewsPermissions.contains)
+    //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
+    val allCanRevokeAccessToViews: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    
+    //All targetViewIds:
+    val allTargetViewIds: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct
+    
+    val allSystemTargetViewIs: List[String] = allTargetViewIds.filter(isValidatedSystemViewId)
+    
+    val canRevokeAccessToAllSystemTargetViews = allSystemTargetViewIs.forall(allCanRevokeAccessToViews.contains)
 
-    if (allAccountAccessSystemViews.find(checkCustomViewIdOrName).isDefined){
+    //if allTargetViewIds contains customViewId,we need to check both `canRevokeAccessToCustomViews` and `canRevokeAccessToSystemViews` fields
+    if (allTargetViewIds.find(isValidatedCustomViewId).isDefined){
       //check if we can revoke all customViews Access
       val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
       val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
-      canRevokeAccessToAllSystemViews && canRevokeAccessToAllCustomViews
-    }else if(allAccountAccessSystemViews.find(checkSystemViewIdOrName).isDefined){
-      canRevokeAccessToAllSystemViews
-    }else{
-      false
+      canRevokeAccessToAllSystemTargetViews && canRevokeAccessToAllCustomViews
+    }else
+      canRevokeAccessToAllSystemTargetViews
     }
-
-  }
 
   def getJValueFromJsonFile(path: String) = {
     val stream = getClass().getClassLoader().getResourceAsStream(path)
