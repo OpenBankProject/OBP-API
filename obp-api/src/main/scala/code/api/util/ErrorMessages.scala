@@ -195,7 +195,7 @@ object ErrorMessages {
       s"if target viewId is custom view, the current view.can_grant_access_to_custom_views is false."
       
   val UserLacksPermissionCanRevokeAccessToViewForTargetAccount =
-    s"OBP-20047: If target viewId is system view,  the current view.can_revoke_access_to_views does not contains it. Or" +
+    s"OBP-20048: If target viewId is system view,  the current view.can_revoke_access_to_views does not contains it. Or" +
       s"if target viewId is custom view, the current view.can_revoke_access_to_custom_views is false."
       
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
