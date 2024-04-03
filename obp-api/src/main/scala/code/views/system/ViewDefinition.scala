@@ -1,6 +1,6 @@
 package code.views.system
 
-import code.api.util.APIUtil.{isValidatedCustomViewId, isValidatedCustomViewName, isValidatedSystemViewId}
+import code.api.util.APIUtil.{isValidCustomViewId, isValidCustomViewName, isValidSystemViewId}
 import code.api.util.ErrorMessages.{CreateSystemViewError, InvalidCustomViewFormat, InvalidSystemViewFormat}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
@@ -604,10 +604,10 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
         t.composite_unique_key(compositeUniqueKey)
       }
 
-      if (t.isSystem && !isValidatedSystemViewId(t.view_id.get)) {
+      if (t.isSystem && !isValidSystemViewId(t.view_id.get)) {
         throw new RuntimeException(InvalidSystemViewFormat+s"Current view_id (${t.view_id.get})")
       }
-      if (!t.isSystem && !isValidatedCustomViewId(t.view_id.get)) {
+      if (!t.isSystem && !isValidCustomViewId(t.view_id.get)) {
         throw new RuntimeException(InvalidCustomViewFormat+s"Current view_id (${t.view_id.get})")
       }
       

@@ -4061,32 +4061,33 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // customer view must start with '_', system can not 
   // viewId is created by viewName, please check method : createViewIdByName(view.name)
   // so here we can use isSystemViewName method to check viewId
-  def isValidatedSystemViewId(viewId: String): Boolean = isValidatedSystemViewName(viewId: String)
+  def isValidSystemViewId(viewId: String): Boolean = isValidSystemViewName(viewId: String)
 
-  def isValidatedSystemViewName(viewName: String): Boolean = !isValidatedCustomViewName(viewName: String)
+  def isValidSystemViewName(viewName: String): Boolean = !isValidCustomViewName(viewName: String)
 
   // viewId is created by viewName, please check method : createViewIdByName(view.name)
   // so here we can use isCustomViewName method to check viewId
-  def isValidatedCustomViewId(viewId: String): Boolean = isValidatedCustomViewName(viewId)
+  def isValidCustomViewId(viewId: String): Boolean = isValidCustomViewName(viewId)
   
   //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-  def isValidatedCustomViewName(name: String): Boolean = name match {
+  def isValidCustomViewName(name: String): Boolean = name match {
     case x if x.startsWith("_") => true // Allowed case
     case _ => false
   }
 
-  def canGrantAccessToView(bankId: BankId, accountId: AccountId, viewIdTobeGranted : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+  @deprecated("now need bankIdAccountIdViewId and targetViewId explicitly, please check the other `canGrantAccessToView` method","02-04-2024")
+  def canGrantAccessToView(bankId: BankId, accountId: AccountId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if viewIdTobeGranted is systemView. just compare all the permissions
-    if(isValidatedSystemViewId(viewIdTobeGranted.value)){
+    //1. if targetViewId is systemView. just compare all the permissions
+    if(isValidSystemViewId(targetViewId.value)){
       val allCanGrantAccessToViewsPermissions: List[String] = permission
         .map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
-      allCanGrantAccessToViewsPermissions.contains(viewIdTobeGranted.value)
+      allCanGrantAccessToViewsPermissions.contains(targetViewId.value)
     } else{
-      //2. if viewIdTobeGranted is customView, we only need to check the `canGrantAccessToCustomViews`. 
+      //2. if targetViewId is customView, we only need to check the `canGrantAccessToCustomViews`. 
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
 
       allCanGrantAccessToCustomViewsPermissions.contains(true)
@@ -4099,7 +4100,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
 
     //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
-    if(isValidatedSystemViewId(targetViewId.value)){
+    if(isValidSystemViewId(targetViewId.value)){
       val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToSystemViews.getOrElse(Nil))
       canGrantAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else{ 
@@ -4107,48 +4108,65 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       view.map(_.canGrantAccessToCustomViews).getOrElse(false)
     }
   }
-  
-  def canGrantAccessToMultipleViews(bankId: BankId, accountId: AccountId, viewIdsTobeGranted : List[ViewId], user: User, callContext: Option[CallContext]): Boolean = {
+
+  @deprecated("now need bankIdAccountIdViewId and targetViewId explicitly","02-04-2024")
+  def canGrantAccessToMultipleViews(bankId: BankId, accountId: AccountId, targetViewIds : List[ViewId], user: User, callContext: Option[CallContext]): Boolean = {
     //all the permission this user have for the bankAccount 
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
     //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
     val allCanGrantAccessToSystemViews: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
     
-    val allSystemViewsIdsTobeGranted: List[String] = viewIdsTobeGranted.map(_.value).distinct.filter(isValidatedSystemViewId)
+    val allSystemViewsIdsTobeGranted: List[String] = targetViewIds.map(_.value).distinct.filter(isValidSystemViewId)
     
     val canGrantAllSystemViewsIdsTobeGranted = allSystemViewsIdsTobeGranted.forall(allCanGrantAccessToSystemViews.contains)
 
-    //if the viewIdsTobeGranted contains custom view ids, we need to check the both canGrantAccessToCustomViews and canGrantAccessToSystemViews
-    if (viewIdsTobeGranted.map(_.value).distinct.find(isValidatedCustomViewId).isDefined){
+    //if the targetViewIds contains custom view ids, we need to check the both canGrantAccessToCustomViews and canGrantAccessToSystemViews
+    if (targetViewIds.map(_.value).distinct.find(isValidCustomViewId).isDefined){
       //check if we can grant all customViews Access.
       val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
       val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
       canGrantAllSystemViewsIdsTobeGranted && canGrantAccessToAllCustomViews
-    } else {// if viewIdsTobeGranted only contains system view ids, we only need to check `canGrantAccessToSystemViews`
+    } else {// if targetViewIds only contains system view ids, we only need to check `canGrantAccessToSystemViews`
       canGrantAllSystemViewsIdsTobeGranted
     }
   }
+
+  def canRevokeAccessToView(bankIdAccountIdViewId: BankIdAccountIdViewId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+    //1st: get the view 
+    val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
+
+    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
+    if (isValidSystemViewId(targetViewId.value)) {
+      val canRevokeAccessToSystemViews: Box[List[String]] = view.map(_.canRevokeAccessToSystemViews.getOrElse(Nil))
+      canRevokeAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
+    } else {
+      //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
+      view.map(_.canRevokeAccessToCustomViews).getOrElse(false)
+    }
+  }
   
-  def canRevokeAccessToView(bankId: BankId, accountId: AccountId, viewIdToBeRevoked : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
+  @deprecated("now need bankIdAccountIdViewId and targetViewId explicitly","02-04-2024")
+  def canRevokeAccessToView(bankId: BankId, accountId: AccountId, targetViewId : ViewId, user: User, callContext: Option[CallContext]): Boolean = {
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if viewIdTobeRevoked is systemView. just compare all the permissions
-    if (isValidatedSystemViewId(viewIdToBeRevoked.value)) {
+    //1. if targetViewId is systemView. just compare all the permissions
+    if (isValidSystemViewId(targetViewId.value)) {
       val allCanRevokeAccessToSystemViews: List[String] = permission
         .map(_.views.map(_.canRevokeAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
-      allCanRevokeAccessToSystemViews.contains(viewIdToBeRevoked.value)
+      allCanRevokeAccessToSystemViews.contains(targetViewId.value)
     } else {
-      //2. if viewIdTobeRevoked is customView, we only need to check the `canRevokeAccessToCustomViews`. 
+      //2. if targetViewId is customView, we only need to check the `canRevokeAccessToCustomViews`. 
       val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
 
       allCanRevokeAccessToCustomViewsPermissions.contains(true)
     }
   }
-  
+
+  @deprecated("now need bankIdAccountIdViewId and targetViewId explicitly","02-04-2024")
   def canRevokeAccessToAllViews(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
     
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
@@ -4159,12 +4177,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //All targetViewIds:
     val allTargetViewIds: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct
     
-    val allSystemTargetViewIs: List[String] = allTargetViewIds.filter(isValidatedSystemViewId)
+    val allSystemTargetViewIs: List[String] = allTargetViewIds.filter(isValidSystemViewId)
     
     val canRevokeAccessToAllSystemTargetViews = allSystemTargetViewIs.forall(allCanRevokeAccessToViews.contains)
 
     //if allTargetViewIds contains customViewId,we need to check both `canRevokeAccessToCustomViews` and `canRevokeAccessToSystemViews` fields
-    if (allTargetViewIds.find(isValidatedCustomViewId).isDefined){
+    if (allTargetViewIds.find(isValidCustomViewId).isDefined){
       //check if we can revoke all customViews Access
       val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
       val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
@@ -4894,6 +4912,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
 
+  def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
+    if (isValidSystemViewId(targetViewId.value))
+      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value} ) and target viewId (${targetViewId.value})"
+    else
+      UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
+
+  def getUserLacksGrantPermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
+    if (isValidSystemViewId(targetViewId.value))
+      UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value} ) and target viewId (${targetViewId.value})"
+    else
+      UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
 }
 

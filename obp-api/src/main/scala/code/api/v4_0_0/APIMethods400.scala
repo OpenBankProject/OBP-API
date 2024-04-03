@@ -4492,7 +4492,7 @@ trait APIMethods400 extends MdcLoggable {
       revokedJsonV400,
       List(
         $UserNotLoggedIn,
-        UserLacksPermissionCanGrantAccessToViewForTargetAccount,
+        UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
         SystemViewNotFound,
