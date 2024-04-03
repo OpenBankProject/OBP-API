@@ -4925,8 +4925,3 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
 }
-
-
-object createDependentConnectorMethod extends App{
-  
-}
