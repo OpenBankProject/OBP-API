@@ -232,6 +232,19 @@ object ErrorMessages {
   val MissingDirectLoginHeader = "OBP-20082: Missing DirectLogin or Authorization header."
   val InvalidDirectLoginHeader = "OBP-20083: Missing DirectLogin word at the value of Authorization header."
 
+
+  val UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount =
+    s"OBP-20084: The current source view.can_grant_access_to_views does not contains target view."
+
+  val UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount =
+    s"OBP-20085: The current source view.can_grant_access_to_custom_views is false."
+
+  val UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount =
+    s"OBP-20086: The current source view.can_revoke_access_to_views does not contains target view." 
+  
+  val UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount =
+    s"OBP-20087: The current source view.can_revoke_access_to_custom_views is false."
+  
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
   val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
