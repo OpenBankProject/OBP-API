@@ -4914,13 +4914,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))
-      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value} ) and target viewId (${targetViewId.value})"
+      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
     else
       UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
   def getUserLacksGrantPermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))
-      UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value} ) and target viewId (${targetViewId.value})"
+      UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
     else
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 

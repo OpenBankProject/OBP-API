@@ -72,11 +72,15 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   lazy val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
 
-  lazy val bugEndpoints = // these endpoints miss Provider parameter in the URL, we introduce new ones in V510.
-    nameOf(Implementations3_0_0.getUserByUsername) :: 
+  lazy val bugEndpoints = 
+    nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
       nameOf(Implementations4_0_0.lockUser) ::
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 4 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::
       Nil
       
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
