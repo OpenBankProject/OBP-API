@@ -307,7 +307,9 @@ case class ConsumerJsonV510(consumer_id: String,
                             created: Date
                            )
 
-case class PostCreateUserAccountAccessJsonV510(username: String, provider:String, view: PostViewJsonV400)
+case class PostCreateUserAccountAccessJsonV510(username: String, provider:String, view_id:String)
+
+case class PostAccountAccessJsonV510(user_id: String, view_id: String)
 
 object JSONFactory510 extends CustomJsonFormats {
 

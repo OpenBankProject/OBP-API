@@ -5399,6 +5399,9 @@ object SwaggerDefinitionsJSON {
   val atmsJsonV510 = AtmsJsonV510(
     atms = List(atmJsonV510)
   )
+  
+  val postAccountAccessJsonV510 = PostAccountAccessJsonV510(userIdExample.value,viewIdExample.value)
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

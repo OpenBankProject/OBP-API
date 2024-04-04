@@ -472,7 +472,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
   //This current view can grant access to other views.
-  override def canGrantAccessToSystemViews : Option[List[String]] = {
+  override def canGrantAccessToViews : Option[List[String]] = {
     canGrantAccessToViews_.get == null || canGrantAccessToViews_.get.isEmpty() match {
       case true => None
       case _ => Some(canGrantAccessToViews_.get.split(",").toList.map(_.trim))
@@ -482,7 +482,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canGrantAccessToCustomViews : Boolean = canGrantAccessToCustomViews_.get
   
   //the current view can revoke access to other views.
-  override def canRevokeAccessToSystemViews : Option[List[String]] = {
+  override def canRevokeAccessToViews : Option[List[String]] = {
     canRevokeAccessToViews_.get == null || canRevokeAccessToViews_.get.isEmpty()  match {
       case true => None
       case _ => Some(canRevokeAccessToViews_.get.split(",").toList.map(_.trim))

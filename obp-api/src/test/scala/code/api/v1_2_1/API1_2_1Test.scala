@@ -6505,7 +6505,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Then("we should get a 403 code")
       reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
+      reply.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){

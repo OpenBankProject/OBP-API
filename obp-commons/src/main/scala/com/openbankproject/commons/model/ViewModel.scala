@@ -251,9 +251,10 @@ trait View {
 
   def hideOtherAccountMetadataIfAlias: Boolean
 
-  def canGrantAccessToSystemViews : Option[List[String]] = None
+  def canGrantAccessToViews : Option[List[String]] = None
+  def canRevokeAccessToViews : Option[List[String]] = None
+  
   def canGrantAccessToCustomViews : Boolean // if this true, we can grant custom views, if it is false, no one can grant custom views.
-  def canRevokeAccessToSystemViews : Option[List[String]] = None
   def canRevokeAccessToCustomViews : Boolean // if this true, we can revoke custom views,if it is false, no one can revoke custom views.
 
   //reading access

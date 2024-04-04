@@ -209,7 +209,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     customerList.toSet
   }
 
-  private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
+  private def viewNotAllowed(view : View) = Failure(s"${UserNoPermissionAccessView} Current ViewId is ${view.viewId.value}")
 
   /**
     * @param user the user that wants to grant another user access to a view on this account

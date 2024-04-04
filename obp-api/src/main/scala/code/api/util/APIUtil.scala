@@ -4083,7 +4083,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1. if targetViewId is systemView. just compare all the permissions
     if(isValidSystemViewId(targetViewId.value)){
       val allCanGrantAccessToViewsPermissions: List[String] = permission
-        .map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+        .map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
       allCanGrantAccessToViewsPermissions.contains(targetViewId.value)
     } else{
@@ -4101,7 +4101,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
     if(isValidSystemViewId(targetViewId.value)){
-      val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToSystemViews.getOrElse(Nil))
+      val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToViews.getOrElse(Nil))
       canGrantAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else{ 
       //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
@@ -4115,7 +4115,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
     //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
-    val allCanGrantAccessToSystemViews: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    val allCanGrantAccessToSystemViews: List[String] = permissionBox.map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
     
     val allSystemViewsIdsTobeGranted: List[String] = targetViewIds.map(_.value).distinct.filter(isValidSystemViewId)
     
@@ -4139,7 +4139,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
     if (isValidSystemViewId(targetViewId.value)) {
-      val canRevokeAccessToSystemViews: Box[List[String]] = view.map(_.canRevokeAccessToSystemViews.getOrElse(Nil))
+      val canRevokeAccessToSystemViews: Box[List[String]] = view.map(_.canRevokeAccessToViews.getOrElse(Nil))
       canRevokeAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else {
       //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
@@ -4155,7 +4155,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1. if targetViewId is systemView. just compare all the permissions
     if (isValidSystemViewId(targetViewId.value)) {
       val allCanRevokeAccessToSystemViews: List[String] = permission
-        .map(_.views.map(_.canRevokeAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+        .map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
 
       allCanRevokeAccessToSystemViews.contains(targetViewId.value)
     } else {
@@ -4172,7 +4172,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
     
     //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
-    val allCanRevokeAccessToViews: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToSystemViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
+    val allCanRevokeAccessToViews: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
     
     //All targetViewIds:
     val allTargetViewIds: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct

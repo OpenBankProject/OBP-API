@@ -1924,17 +1924,20 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(grantUserAccessToViewById),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account-access/grant",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant",
       "Grant User access to View",
-      s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
+      s"""Grants the User identified by USER_ID access to the view identified.
          |
          |${authenticationRequiredMessage(true)} and the user needs to be account holder.
          |
          |""",
-      postAccountAccessJsonV400,
+      postAccountAccessJsonV510,
       viewJsonV300,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
         UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
         InvalidJsonFormat,
@@ -1948,22 +1951,25 @@ trait APIMethods510 {
 
     lazy val grantUserAccessToViewById: OBPEndpoint = {
       //add access for specific user to a specific system view
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "account-access" :: "grant" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) ::"views":: ViewId(viewId):: "account-access" :: "grant" :: Nil JsonPost json -> _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV510 "
           for {
             (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              json.extract[PostAccountAccessJsonV400]
+              json.extract[PostAccountAccessJsonV510]
             }
-            targetViewId = ViewId(postJson.view.view_id)
+            targetViewId = ViewId(postJson.view_id)
             msg = getUserLacksGrantPermissionErrorMessage(viewId, targetViewId)
-            _ <- Helper.booleanToFuture(msg, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(msg, 403, cc = cc.callContext) {
               APIUtil.canGrantAccessToView(BankIdAccountIdViewId(bankId,accountId,viewId),targetViewId, u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
-            view <- JSONFactory400.getView(bankId, accountId, postJson.view, callContext)
+            view <- isValidSystemViewId(targetViewId.value) match {
+              case true => NewStyle.function.systemView(targetViewId, callContext)
+              case false => NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+            }
             addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, user, view, callContext)
             
           } yield {
@@ -1979,17 +1985,20 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(revokeUserAccessToViewById),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account-access/revoke",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke",
       "Revoke User access to View",
-      s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
+      s"""Revoke the User identified by USER_ID access to the view identified.
          |
          |${authenticationRequiredMessage(true)}.
          |
          |""",
-      postAccountAccessJsonV400,
+      postAccountAccessJsonV510,
       revokedJsonV400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
         UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
         InvalidJsonFormat,
@@ -2004,28 +2013,28 @@ trait APIMethods510 {
 
     lazy val revokeUserAccessToViewById: OBPEndpoint = {
       //add access for specific user to a specific system view
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account-access" :: "revoke" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" ::ViewId(viewId) :: "account-access" :: "revoke" :: Nil JsonPost json -> _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
             (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
-              json.extract[PostAccountAccessJsonV400]
+              json.extract[PostAccountAccessJsonV510]
             }
-            targetViewId = ViewId(postJson.view.view_id)
+            targetViewId = ViewId(postJson.view_id)
           
             msg = getUserLacksRevokePermissionErrorMessage(viewId, targetViewId)
             
-            _ <- Helper.booleanToFuture(msg, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(msg, 403, cc = cc.callContext) {
               APIUtil.canRevokeAccessToView(BankIdAccountIdViewId(bankId, accountId, viewId),targetViewId, u, callContext)
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
-            view <- postJson.view.is_system match {
+            view <- isValidSystemViewId(targetViewId.value) match {
               case true => NewStyle.function.systemView(targetViewId, callContext)
               case false => NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
             }
-            revoked <- postJson.view.is_system match {
+            revoked <- isValidSystemViewId(targetViewId.value) match {
               case true => NewStyle.function.revokeAccessToSystemView(bankId, accountId, view, user, callContext)
               case false => NewStyle.function.revokeAccessToCustomView(view, user, callContext)
             }
@@ -2040,7 +2049,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(createUserWithAccountAccessById),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/user-account-access",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/user-account-access",
       "Create (DAuth) User with Account Access",
       s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
          |
@@ -2061,6 +2070,9 @@ trait APIMethods510 {
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
         UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
         InvalidJsonFormat,
@@ -2072,7 +2084,7 @@ trait APIMethods510 {
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth))
 
     lazy val createUserWithAccountAccessById: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "user-account-access" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" ::ViewId(viewId) :: "user-account-access" :: Nil JsonPost json -> _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV510 "
@@ -2085,18 +2097,18 @@ trait APIMethods510 {
             _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc = Some(cc)) {
               postJson.provider.startsWith("dauth.")
             }
-            targetViewId = ViewId(postJson.view.view_id)
+            targetViewId = ViewId(postJson.view_id)
             msg = getUserLacksGrantPermissionErrorMessage(viewId, targetViewId)
             
             _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
               APIUtil.canGrantAccessToView(BankIdAccountIdViewId(bankId, accountId, viewId) ,targetViewId, u, callContext)
             }
             (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.provider, postJson.username, cc.callContext)
-            view <- postJson.view.is_system match {
+            view <- isValidSystemViewId(targetViewId.value) match {
               case true => NewStyle.function.systemView(targetViewId, callContext)
               case false => NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
             }
-            addedView <- postJson.view.is_system match {
+            addedView <- isValidSystemViewId(targetViewId.value) match {
               case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, targetUser, callContext)
               case false => NewStyle.function.grantAccessToCustomView(view, targetUser, callContext)
             }
