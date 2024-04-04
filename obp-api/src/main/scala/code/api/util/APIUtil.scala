@@ -4080,7 +4080,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if targetViewId is systemView. just compare all the permissions
+    //1. If targetViewId is systemView. just compare all the permissions
     if(isValidSystemViewId(targetViewId.value)){
       val allCanGrantAccessToViewsPermissions: List[String] = permission
         .map(_.views.map(_.canGrantAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
@@ -4099,7 +4099,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1st: get the view 
     val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
 
-    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
+    //2rd: If targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
     if(isValidSystemViewId(targetViewId.value)){
       val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToViews.getOrElse(Nil))
       canGrantAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
@@ -4137,7 +4137,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1st: get the view 
     val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
 
-    //2rd: f targetViewId is systemView. we need to check `view.canGrantAccessToSystemViews` field.
+    //2rd: If targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
     if (isValidSystemViewId(targetViewId.value)) {
       val canRevokeAccessToSystemViews: Box[List[String]] = view.map(_.canRevokeAccessToViews.getOrElse(Nil))
       canRevokeAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
@@ -4152,7 +4152,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //all the permission this user have for the bankAccount 
     val permission: Box[Permission] = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
 
-    //1. if targetViewId is systemView. just compare all the permissions
+    //1. If targetViewId is systemView. just compare all the permissions
     if (isValidSystemViewId(targetViewId.value)) {
       val allCanRevokeAccessToSystemViews: List[String] = permission
         .map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
