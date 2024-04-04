@@ -544,14 +544,14 @@ object NewStyle extends MdcLoggable{
       Future{
         APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user, callContext)
       } map {
-        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView Current ViewId is ${viewId.value}")
       }
     }
     def checkAccountAccessAndGetView(viewId : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
       Future{
         APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user, callContext)
       } map {
-        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView ${viewId.value}", 403)
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView Current ViewId is ${viewId.value}", 403)
       }
     }
     def checkViewsAccessAndReturnView(firstView : ViewId, secondView : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
@@ -560,7 +560,7 @@ object NewStyle extends MdcLoggable{
           APIUtil.checkViewAccessAndReturnView(secondView, bankAccountId, user, callContext)
         )
       } map {
-        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView Current ViewId is  ${firstView.value} or ${secondView.value}")
       }
     }
     def checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction: DoubleEntryTransaction, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
@@ -578,7 +578,7 @@ object NewStyle extends MdcLoggable{
           APIUtil.checkViewAccessAndReturnView(ownerViewId, creditBankAccountId, user, callContext)
         )
       } map {
-        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView Current ViewId is ${ownerViewId.value}")
       }
     }
     

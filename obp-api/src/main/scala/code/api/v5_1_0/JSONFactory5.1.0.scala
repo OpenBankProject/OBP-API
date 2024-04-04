@@ -33,7 +33,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transfo
 import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
-import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostViewJsonV400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.{UserAttribute, Users}
@@ -306,6 +306,10 @@ case class ConsumerJsonV510(consumer_id: String,
                             enabled: Boolean,
                             created: Date
                            )
+
+case class PostCreateUserAccountAccessJsonV510(username: String, provider:String, view_id:String)
+
+case class PostAccountAccessJsonV510(user_id: String, view_id: String)
 
 object JSONFactory510 extends CustomJsonFormats {
 

@@ -72,18 +72,22 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   lazy val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
 
-  lazy val bugEndpoints = // these endpoints miss Provider parameter in the URL, we introduce new ones in V510.
-    nameOf(Implementations3_0_0.getUserByUsername) :: 
+  lazy val excludeEndpoints = 
+    nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
       nameOf(Implementations4_0_0.lockUser) ::
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
       Nil
       
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(
     OBPAPI5_0_0.allResourceDocs,
     Implementations5_1_0.resourceDocs
-  ).filterNot(it => it.partialFunctionName.matches(bugEndpoints.mkString("|")))
+  ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
   // all endpoints
   private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0

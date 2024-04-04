@@ -647,7 +647,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                apiPrefix:OBPEndpoint => OBPEndpoint,
                                autoValidateAll: Boolean = false): Unit = {
 
-    def isAutoValidate(doc: ResourceDoc): Boolean = {                         //note: only support v5.0.0 and v4.0.0 at the moment.
+    def isAutoValidate(doc: ResourceDoc): Boolean = {                         //note: only support v5.1.0,  v5.0.0 and v4.0.0 at the moment.
       doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && List(OBPAPI5_1_0.version,OBPAPI5_0_0.version,OBPAPI4_0_0.version).contains(doc.implementedInApiVersion))
     }
 
