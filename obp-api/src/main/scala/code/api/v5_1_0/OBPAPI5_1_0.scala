@@ -77,10 +77,10 @@ object OBPAPI5_1_0 extends OBPRestHelper
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
       nameOf(Implementations4_0_0.lockUser) ::
-      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 4 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations4_0_0.grantUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
       Nil
       
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
