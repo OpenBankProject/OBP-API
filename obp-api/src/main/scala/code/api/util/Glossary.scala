@@ -3178,6 +3178,18 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |""".stripMargin)
 
+		glossaryItems += GlossaryItem(
+			title = "Cross-Device Authorization",
+			description =
+				s"""
+					 |Cross-device authorization flows enable a user to initiate an authorization flow on one device
+					 |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
+					 |authorize the Consumption Device to access a resource (e.g., access to a service).
+					 |Two examples of popular cross-device authorization flows are:
+					 | - The Device Authorization Grant [RFC8628]
+					 | - Client-Initiated Backchannel Authentication [CIBA]
+					 |""".stripMargin)
+
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
