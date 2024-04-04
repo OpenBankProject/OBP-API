@@ -72,7 +72,7 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   lazy val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
 
-  lazy val bugEndpoints = 
+  lazy val excludeEndpoints = 
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
@@ -87,7 +87,7 @@ object OBPAPI5_1_0 extends OBPRestHelper
   def allResourceDocs = collectResourceDocs(
     OBPAPI5_0_0.allResourceDocs,
     Implementations5_1_0.resourceDocs
-  ).filterNot(it => it.partialFunctionName.matches(bugEndpoints.mkString("|")))
+  ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
   // all endpoints
   private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0
