@@ -3190,6 +3190,16 @@ object Glossary extends MdcLoggable  {
 					 | - Client-Initiated Backchannel Authentication [CIBA]
 					 |""".stripMargin)
 
+		glossaryItems += GlossaryItem(
+			title = "Consumption Device (CD)",
+			description =
+				s"""The Consumption Device is the device that helps the user consume the service. In the CIBA use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Authentication Device (AD)",
+			description =
+				s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
+
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
