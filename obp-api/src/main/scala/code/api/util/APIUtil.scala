@@ -4168,29 +4168,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   @deprecated("now need bankIdAccountIdViewId and targetViewId explicitly","02-04-2024")
   def canRevokeAccessToAllViews(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
-    
+
     val permissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
-    
+
     //Retrieve all views from the 'canRevokeAccessToViews' list within each view from the permission views.
     val allCanRevokeAccessToViews: List[String] = permissionBox.map(_.views.map(_.canRevokeAccessToViews.getOrElse(Nil)).flatten).getOrElse(Nil).distinct
-    
+
     //All targetViewIds:
     val allTargetViewIds: List[String] = permissionBox.map(_.views.map(_.viewId.value)).getOrElse(Nil).distinct
-    
+
     val allSystemTargetViewIs: List[String] = allTargetViewIds.filter(isValidSystemViewId)
-    
+
     val canRevokeAccessToAllSystemTargetViews = allSystemTargetViewIs.forall(allCanRevokeAccessToViews.contains)
 
     //if allTargetViewIds contains customViewId,we need to check both `canRevokeAccessToCustomViews` and `canRevokeAccessToSystemViews` fields
-    if (allTargetViewIds.find(isValidCustomViewId).isDefined){
+    if (allTargetViewIds.find(isValidCustomViewId).isDefined) {
       //check if we can revoke all customViews Access
       val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
       val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
       canRevokeAccessToAllSystemTargetViews && canRevokeAccessToAllCustomViews
-    }else
+    } else if (allTargetViewIds.find(isValidSystemViewId).isDefined) {
       canRevokeAccessToAllSystemTargetViews
+    } else {//if both allCanRevokeAccessToViews and allSystemTargetViewIs are empty,
+      false
     }
+  }
 
   def getJValueFromJsonFile(path: String) = {
     val stream = getClass().getClassLoader().getResourceAsStream(path)
