@@ -250,10 +250,11 @@ trait View {
   def usePrivateAliasIfOneExists: Boolean
 
   def hideOtherAccountMetadataIfAlias: Boolean
-  //TODO, in progress, we only make the system view work, the custom views are VIP.
+
   def canGrantAccessToViews : Option[List[String]] = None
-  def canGrantAccessToCustomViews : Boolean // if this true, we can grant custom views, if it is false, no one can grant custom views.
   def canRevokeAccessToViews : Option[List[String]] = None
+  
+  def canGrantAccessToCustomViews : Boolean // if this true, we can grant custom views, if it is false, no one can grant custom views.
   def canRevokeAccessToCustomViews : Boolean // if this true, we can revoke custom views,if it is false, no one can revoke custom views.
 
   //reading access

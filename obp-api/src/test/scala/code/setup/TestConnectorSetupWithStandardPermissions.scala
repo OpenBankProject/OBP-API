@@ -3,7 +3,7 @@ package code.setup
 import bootstrap.liftweb.ToSchemify
 import code.accountholders.AccountHolders
 import code.api.Constant.{CUSTOM_PUBLIC_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
-import code.api.util.APIUtil.checkCustomViewIdOrName
+import code.api.util.APIUtil.isValidCustomViewName
 import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._
@@ -40,7 +40,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
       val viewId = MapperViews.createViewIdByName(viewName)
       val description = randomString(40)
 
-      if (!checkCustomViewIdOrName(viewName)) {
+      if (!isValidCustomViewName(viewName)) {
         throw new RuntimeException(InvalidCustomViewFormat)
       }
       

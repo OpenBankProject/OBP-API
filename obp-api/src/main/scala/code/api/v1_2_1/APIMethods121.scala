@@ -595,7 +595,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(checkCustomViewIdOrName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
+            _<- booleanToBox(isValidCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
               createViewJsonV121.name,

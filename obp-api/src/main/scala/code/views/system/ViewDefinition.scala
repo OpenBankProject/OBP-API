@@ -1,12 +1,12 @@
 package code.views.system
 
-import code.api.util.APIUtil.{checkCustomViewIdOrName, checkSystemViewIdOrName}
+import code.api.util.APIUtil.{isValidCustomViewId, isValidCustomViewName, isValidSystemViewId}
 import code.api.util.ErrorMessages.{CreateSystemViewError, InvalidCustomViewFormat, InvalidSystemViewFormat}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
-import net.liftweb.mapper.{MappedBoolean, _}
+import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 
@@ -51,12 +51,17 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object hideOtherAccountMetadataIfAlias_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  
+  //This is the system views list, custom views please check `canGrantAccessToCustomViews_` field
   object canGrantAccessToViews_ extends MappedText(this){
     override def defaultValue = ""
   }
+
+  //This is the system views list.custom views please check `canRevokeAccessToCustomViews_` field
   object canRevokeAccessToViews_ extends MappedText(this){
     override def defaultValue = ""
   }
+  
   object canRevokeAccessToCustomViews_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -599,10 +604,10 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
         t.composite_unique_key(compositeUniqueKey)
       }
 
-      if (t.isSystem && !checkSystemViewIdOrName(t.view_id.get)) {
+      if (t.isSystem && !isValidSystemViewId(t.view_id.get)) {
         throw new RuntimeException(InvalidSystemViewFormat+s"Current view_id (${t.view_id.get})")
       }
-      if (!t.isSystem && !checkCustomViewIdOrName(t.view_id.get)) {
+      if (!t.isSystem && !isValidCustomViewId(t.view_id.get)) {
         throw new RuntimeException(InvalidCustomViewFormat+s"Current view_id (${t.view_id.get})")
       }
       

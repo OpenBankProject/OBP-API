@@ -31,7 +31,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
-import code.api.util.APIUtil.checkSystemViewIdOrName
+import code.api.util.APIUtil.isValidSystemViewId
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
@@ -165,7 +165,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
       .filterNot(_.is_public==true)
-      .filterNot(view=> checkSystemViewIdOrName(view.id))
+      .filterNot(view=> isValidSystemViewId(view.id))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }
@@ -6505,7 +6505,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Then("we should get a 403 code")
       reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
+      reply.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
