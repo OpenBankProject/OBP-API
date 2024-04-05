@@ -3200,6 +3200,24 @@ object Glossary extends MdcLoggable  {
 			description =
 				s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
 
+		glossaryItems += GlossaryItem(
+			title = "Risk-based authentication",
+			description =
+				s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Adaptive authentication",
+			description =
+				s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
+					 |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
+					 | -
+					 |""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Multi-factor authentication (MFA)",
+			description =
+				s"""Multi-factor authentication (MFA) is a multi-step account login process that requires users to enter more information than just a password. For example, along with the password, users might be asked to enter a code sent to their email, answer a secret question, or scan a fingerprint.""".stripMargin)
+
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
