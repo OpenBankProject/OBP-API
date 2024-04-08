@@ -3186,14 +3186,14 @@ object Glossary extends MdcLoggable  {
 					 |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
 					 |authorize the Consumption Device to access a resource (e.g., access to a service).
 					 |Two examples of popular cross-device authorization flows are:
-					 | - The Device Authorization Grant [RFC8628]
-					 | - Client-Initiated Backchannel Authentication [CIBA]
+					 | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
+					 | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
 					 |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "Consumption Device (CD)",
 			description =
-				s"""The Consumption Device is the device that helps the user consume the service. In the CIBA use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
+				s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "Authentication Device (AD)",
@@ -3223,6 +3223,12 @@ object Glossary extends MdcLoggable  {
 			title = "Multi-factor authentication (MFA)",
 			description =
 				s"""Multi-factor authentication (MFA) is a multi-step account login process that requires users to enter more information than just a password. For example, along with the password, users might be asked to enter a code sent to their email, answer a secret question, or scan a fingerprint.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "CIBA",
+			description =
+				s"""An acronym for Client-Initiated Backchannel Authentication.
+   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)""".stripMargin)
 
 
 	private def getContentFromMarkdownFile(path: String): String = {
