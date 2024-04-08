@@ -1,5 +1,7 @@
 ## To run via IntelliJ IDEA
 
+* Make sure that Redis is running and properly configured if redis is not running without password protection on default port at localhost
+
 * Make sure you have the IntelliJ Scala plugin installed.
 
 * Create a new folder e.g. OpenBankProject and cd there
