@@ -8,18 +8,17 @@ The Open Bank Project is an open source API for banks that enables account holde
 
 The OBP API supports transparency options (enabling account holders to share configurable views of their transaction data with trusted individuals and even the public), data blurring (to preserve sensitive information) and data enrichment (enabling users to add tags, comments and images to transactions).
 
-Thus, the OBP API abstracts away the peculiarities of each core banking system so that a wide range of apps can interact with  multiple banks on behalf of the account holder. We want to raise the bar of financial transparency and enable a rich ecosystem of innovative financial applications and services.
+The OBP API abstracts away the peculiarities of each core banking system so that a wide range of apps can interact with  multiple banks on behalf of the account holder. We want to raise the bar of financial transparency and enable a rich ecosystem of innovative financial applications and services.
 
 Our tag line is: Bank as a Platform. Transparency as an Asset.
 
-The API supports OAuth 1.0a, OAuth 2, OpenID Connect (OIDC) and other authentication methods. See [here](https://github.com/OpenBankProject/OBP-API/wiki/Authentication) for more information.
-
-The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-API/blob/develop/roadmap.md)
+The API supports [OAuth 1.0a](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%201.0a), [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google) and other authentication methods including [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login).
 
 ## DOCUMENTATION 
 
-The API documentation is best viewed using the OBP API Explorer or a third party tool that has imported the OBP Swagger definitions.
-Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) for links. 
+The API documentation is best viewed using the [OBP API Explorer](https://apiexplorer-ii-sandbox.openbankproject.com) or a third party tool that has imported the OBP Swagger definitions.
+
+If you want to run your own copy of API Explorer II, see [here](https://github.com/OpenBankProject/API-Explorer-II)
 
 ## STATUS of API Versions
 
@@ -36,14 +35,6 @@ To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at th
 16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable. 
 16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable. 
 ```
-
-
-
-
-
-
-
-
 
 
 ## LICENSE
