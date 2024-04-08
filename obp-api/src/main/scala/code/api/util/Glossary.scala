@@ -3230,6 +3230,16 @@ object Glossary extends MdcLoggable  {
 				s"""An acronym for Client-Initiated Backchannel Authentication.
    |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)""".stripMargin)
 
+		glossaryItems += GlossaryItem(
+			title = "OIDC",
+			description =
+				s"""An acronym for OpenID Connect (OIDC) is an identity authentication protocol that is an extension of open authorization (OAuth) 2.0 to standardize the process for authenticating and authorizing users when they sign in to access digital services.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "OAuth 2.0",
+			description =
+				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
+
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
