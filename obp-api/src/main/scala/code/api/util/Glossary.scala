@@ -3178,6 +3178,68 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |""".stripMargin)
 
+		glossaryItems += GlossaryItem(
+			title = "Cross-Device Authorization",
+			description =
+				s"""
+					 |Cross-device authorization flows enable a user to initiate an authorization flow on one device
+					 |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
+					 |authorize the Consumption Device to access a resource (e.g., access to a service).
+					 |Two examples of popular cross-device authorization flows are:
+					 | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
+					 | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
+					 |""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Consumption Device (CD)",
+			description =
+				s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Authentication Device (AD)",
+			description =
+				s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Risk-based authentication",
+			description =
+				s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Adaptive authentication",
+			description =
+				s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
+					 |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
+					 | -
+					 |""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Transaction request challenge threshold",
+			description =
+				s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
+   |It implies that in a case of risky transaction request, over a certain amount, a user is prompted to answer the challenge.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Multi-factor authentication (MFA)",
+			description =
+				s"""Multi-factor authentication (MFA) is a multi-step account login process that requires users to enter more information than just a password. For example, along with the password, users might be asked to enter a code sent to their email, answer a secret question, or scan a fingerprint.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "CIBA",
+			description =
+				s"""An acronym for Client-Initiated Backchannel Authentication.
+   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "OIDC",
+			description =
+				s"""An acronym for OpenID Connect (OIDC) is an identity authentication protocol that is an extension of open authorization (OAuth) 2.0 to standardize the process for authenticating and authorizing users when they sign in to access digital services.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "OAuth 2.0",
+			description =
+				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
+
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
