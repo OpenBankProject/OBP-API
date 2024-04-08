@@ -3214,6 +3214,12 @@ object Glossary extends MdcLoggable  {
 					 |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "Transaction request challenge threshold",
+			description =
+				s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
+   |It implies that in a case of risky transaction request, over a certain amount, a user is prompted to answer the challenge.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "Multi-factor authentication (MFA)",
 			description =
 				s"""Multi-factor authentication (MFA) is a multi-step account login process that requires users to enter more information than just a password. For example, along with the password, users might be asked to enter a code sent to their email, answer a secret question, or scan a fingerprint.""".stripMargin)
