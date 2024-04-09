@@ -2177,7 +2177,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "OAuth 2 with Google",
+		title = "OpenID Connect with Google",
 		description =
 			s"""
 |
