@@ -3236,6 +3236,38 @@ object Glossary extends MdcLoggable  {
 				s"""An acronym for OpenID Connect (OIDC) is an identity authentication protocol that is an extension of open authorization (OAuth) 2.0 to standardize the process for authenticating and authorizing users when they sign in to access digital services.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "How OpenID Connect Works",
+			description =
+				s"""The OpenID Connect protocol, in abstract, follows these steps:
+				|
+				   |* End user navigates to a website or web application via a browser.
+					 |* End user clicks sign-in and types their username and password.
+					 |* The RP (Client) sends a request to the OpenID Provider (OP).
+					 |* The OP authenticates the User and obtains authorization.
+					 |* The OP responds with an Identity Token and usually an Access Token.
+					 |* The RP can send a request with the Access Token to the User device.
+					 |* The UserInfo Endpoint returns Claims about the End-User.
+					 |#### Authentication
+					 |The secure process of establishing and communicating that the person operating an application or browser is who they claim to be.
+					 |#### Client
+					 |A client is a piece of software that requests tokens either for authenticating a user or for accessing a resource (also often called a relying party or RP).
+					 |A client must be registered with the OP. Clients can be web applications, native mobile and desktop applications, etc.
+					 |#### Relying Party (RP)
+					 |RP stands for Relying Party, an application or website that outsources its
+					 |user authentication function to an IDP.
+					 |#### OpenID Provider (OP) or Identity Provider (IDP)
+					 |An OpenID Provider (OP) is an entity that has implemented the OpenID Connect and OAuth 2.0 protocols,
+					 |OP’s can sometimes be referred to by the role it plays, such as: a security token service,
+					 |an identity provider (IDP), or an authorization server.
+					 |#### Identity Token
+					 |An identity token represents the outcome of an authentication process.
+					 |It contains at a bare minimum an identifier for the user (called the sub aka subject claim)
+					 |and information about how and when the user authenticated. It can contain additional identity data.
+					 |#### User
+					 |A user is a person that is using a registered client to access resources.
+					 |    """.stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "OAuth 2.0",
 			description =
 				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
