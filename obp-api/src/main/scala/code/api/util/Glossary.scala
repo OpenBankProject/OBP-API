@@ -2177,7 +2177,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "OAuth 2 with Google",
+		title = "OpenID Connect with Google",
 		description =
 			s"""
 |
@@ -3228,7 +3228,9 @@ object Glossary extends MdcLoggable  {
 			title = "CIBA",
 			description =
 				s"""An acronym for Client-Initiated Backchannel Authentication.
-   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)""".stripMargin)
+   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
+   |Please note it is a cross-device protocol and SHOULD not be used for same-device scenarios.
+   |If the Consumption Device and Authorization Device are the same device, protocols like OpenID Connect Core [OpenID.Core](https://openid.net/specs/openid-connect-core-1_0.html) and OAuth 2.0 Authorization Code Grant as defined in [RFC6749](https://www.rfc-editor.org/info/rfc6749) are more appropriate.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "OIDC",
@@ -3236,9 +3238,82 @@ object Glossary extends MdcLoggable  {
 				s"""An acronym for OpenID Connect (OIDC) is an identity authentication protocol that is an extension of open authorization (OAuth) 2.0 to standardize the process for authenticating and authorizing users when they sign in to access digital services.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "How OpenID Connect Works",
+			description =
+				s"""The OpenID Connect protocol, in abstract, follows these steps:
+				|
+				   |* End user navigates to a website or web application via a browser.
+					 |* End user clicks sign-in and types their username and password.
+					 |* The RP (Client) sends a request to the OpenID Provider (OP).
+					 |* The OP authenticates the User and obtains authorization.
+					 |* The OP responds with an Identity Token and usually an Access Token.
+					 |* The RP can send a request with the Access Token to the User device.
+					 |* The UserInfo Endpoint returns Claims about the End-User.
+           |### Terminology
+					 |#### Authentication
+					 |The secure process of establishing and communicating that the person operating an application or browser is who they claim to be.
+					 |#### Client
+					 |A client is a piece of software that requests tokens either for authenticating a user or for accessing a resource (also often called a relying party or RP).
+					 |A client must be registered with the OP. Clients can be web applications, native mobile and desktop applications, etc.
+					 |#### Relying Party (RP)
+					 |RP stands for Relying Party, an application or website that outsources its
+					 |user authentication function to an IDP.
+					 |#### OpenID Provider (OP) or Identity Provider (IDP)
+					 |An OpenID Provider (OP) is an entity that has implemented the OpenID Connect and OAuth 2.0 protocols,
+					 |OP’s can sometimes be referred to by the role it plays, such as: a security token service,
+					 |an identity provider (IDP), or an authorization server.
+					 |#### Identity Token
+					 |An identity token represents the outcome of an authentication process.
+					 |It contains at a bare minimum an identifier for the user (called the sub aka subject claim)
+					 |and information about how and when the user authenticated. It can contain additional identity data.
+					 |#### User
+					 |A user is a person that is using a registered client to access resources.
+					 |    """.stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "OAuth 2.0",
 			description =
 				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "FAPI",
+			description =
+				s"""An acronym for Financial-grade API.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "FAPI 1.0",
+			description =
+				s"""The Financial-grade API is a highly secured OAuth profile that aims to provide specific implementation guidelines for security and interoperability.
+   |The Financial-grade API security profile can be applied to APIs in any market area that requires a higher level of security than provided by standard [OAuth](https://datatracker.ietf.org/doc/html/rfc6749) or [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html).
+   |Financial-grade API Security Profile 1.0 consists of the following parts:
+	 |
+	 |* <a href="https://openid.net/specs/openid-financial-api-part-1-1_0.html" target="_blank">Financial-grade API Security Profile 1.0 - Part 1: Baseline</a>
+	 |* <a href="https://openid.net/specs/openid-financial-api-part-2-1_0.html" target="_blank">Financial-grade API Security Profile 1.0 - Part 2: Advanced</a>
+   |
+   |These parts are intended to be used with <a href="https://tools.ietf.org/html/rfc6749" target="_blank">RFC6749</a>, <a href="https://tools.ietf.org/html/rfc6750" target="_blank">RFC6750</a>, <a href="https://tools.ietf.org/html/rfc7636" target="_blank">RFC7636</a>, and <a href="https://openid.net/specs/openid-connect-core-1_0.html" target="_blank">OIDC</a>.
+	 |""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "FAPI 2.0",
+			description =
+				s"""FAPI 2.0 has a broader scope than FAPI 1.0.
+					 |It aims for complete interoperability at the interface between client and authorization server as well as interoperable security mechanisms at the interface between client and resource server.
+					 |It also has a more clearly defined attacker model to aid formal analysis.
+					 |Please note that <a href="https://openid.net/specs/fapi-2_0-baseline-01.html" target="_blank">FAPI 2.0</a> is still in draft.""".stripMargin)
+
+
+		glossaryItems += GlossaryItem(
+			title = "Available FAPI profiles",
+			description =
+				s"""The following are the FAPI profiles which are either in use by multiple implementers or which are being actively developed by the OpenID Foundation’s FAPI working group:
+					 |
+					 |* <a href="https://openid.net/specs/openid-financial-api-part-2-wd-06.html">FAPI 1 Implementers Draft 6 (OBIE Profile)</a>
+					 |* <a href="https://openid.net/specs/openid-financial-api-part-1-1_0.html">FAPI 1 Baseline</a>
+					 |* <a href="https://openid.net/specs/openid-financial-api-part-2-1_0.html">FAPI 1 Advanced</a>
+					 |* <a href="https://openbanking-brasil.github.io/specs-seguranca/open-banking-brasil-financial-api-1_ID3-ptbr.html">Brazil Security Standard</a>
+					 |* <a href="https://openid.net/specs/fapi-2_0-baseline-01.html">FAPI 2</a>
+					 |* <a href="https://bitbucket.org/openid/fapi/src/master/FAPI_2_0_Advanced_Profile.md">FAPI 2 Message Signing:</a>
+					 |""".stripMargin)
 
 
 	private def getContentFromMarkdownFile(path: String): String = {
