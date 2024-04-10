@@ -108,6 +108,13 @@ If you use Ubuntu (or a derivate) and encrypted home directories (e.g. you have 
 
 The current workaround is to move the project directory onto a different partition, e.g. under /opt/ .
 
+## Running the docker image
+
+Docker images of OBP API can be found on Dockerhub: https://hub.docker.com/r/openbankproject/obp-api - pull with `docker pull openbankproject/obp-api`
+
+Props values can be set as environment variables. Props need to be prefixed with `OBP_`, `.` replaced with `_`, and all upper-case, e.g.:
+
+`openid_connect.enabled=true` becomes `OBP_OPENID_CONNECT_ENABLED=true`
 
 ## Databases:
 
