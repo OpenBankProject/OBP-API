@@ -3228,7 +3228,9 @@ object Glossary extends MdcLoggable  {
 			title = "CIBA",
 			description =
 				s"""An acronym for Client-Initiated Backchannel Authentication.
-   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)""".stripMargin)
+   |For more details about it please take a look at the official specification: [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
+   |Please note it is a cross-device protocol and SHOULD not be used for same-device scenarios.
+   |If the Consumption Device and Authorization Device are the same device, protocols like OpenID Connect Core [OpenID.Core](https://openid.net/specs/openid-connect-core-1_0.html) and OAuth 2.0 Authorization Code Grant as defined in [RFC6749](https://www.rfc-editor.org/info/rfc6749) are more appropriate.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "OIDC",
