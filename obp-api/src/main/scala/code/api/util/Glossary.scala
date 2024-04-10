@@ -3249,6 +3249,7 @@ object Glossary extends MdcLoggable  {
 					 |* The OP responds with an Identity Token and usually an Access Token.
 					 |* The RP can send a request with the Access Token to the User device.
 					 |* The UserInfo Endpoint returns Claims about the End-User.
+           |### Terminology
 					 |#### Authentication
 					 |The secure process of establishing and communicating that the person operating an application or browser is who they claim to be.
 					 |#### Client
