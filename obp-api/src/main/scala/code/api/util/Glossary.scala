@@ -3179,6 +3179,16 @@ object Glossary extends MdcLoggable  {
 		  |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "QWAC",
+			description =
+				s"""A qualified website authentication certificate (QWAC certificate) is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "QSeal",
+			description =
+				s"""Qualified Certificate for Electronic Seals. It identifies where the data came from and protects it from tampering.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "Cross-Device Authorization",
 			description =
 				s"""
