@@ -1576,7 +1576,12 @@ def restoreSomeSessions(): Unit = {
    * Please note that provider is implicitly defined i.e. not provided via a parameter
    */
   def findAuthUserByUsernameLocally(name: String): Box[TheUserType] = {
+    // 1st try is provider with local_identity_provider or hostname value
     find(By(this.username, name), By(this.provider, Constant.localIdentityProvider))
+      // 2nd try is provider with null value
+      .or(find(By(this.username, name), NullRef(this.provider)))
+      // 3rd try is provider with empty string value
+      .or(find(By(this.username, name), By(this.provider, "")))
   }
   def findAuthUserByPrimaryKey(key: Long): Box[TheUserType] = {
     find(By(this.user, key))
