@@ -3193,6 +3193,14 @@ object Glossary extends MdcLoggable  {
 					 |The electronic seal provides strong evidence, capable of having legal effect, that given data is originated by the legal entity identified in the certificate.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "CRL",
+			description =
+				s"""Certificate Revocation List.
+					 |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
+					 |CAs publish CRLs to provide status information about the certificates they issued.
+					 |However, a CA may delegate this responsibility to another trusted authority.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "Cross-Device Authorization",
 			description =
 				s"""
