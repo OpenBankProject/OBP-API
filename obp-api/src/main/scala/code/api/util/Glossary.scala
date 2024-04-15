@@ -3198,7 +3198,14 @@ object Glossary extends MdcLoggable  {
 				s"""Certificate Revocation List.
 					 |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
 					 |CAs publish CRLs to provide status information about the certificates they issued.
-					 |However, a CA may delegate this responsibility to another trusted authority.""".stripMargin)
+					 |However, a CA may delegate this responsibility to another trusted authority.
+					 |It is described in RFC 5280.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "OCSP",
+			description =
+				s"""The Online Certificate Status Protocol (OCSP) is an Internet protocol used for obtaining the revocation status of an X.509 digital certificate.
+					 |It is described in RFC 6960 and is on the Internet standards track. It was created as an alternative to certificate revocation lists (CRL),""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "Cross-Device Authorization",
