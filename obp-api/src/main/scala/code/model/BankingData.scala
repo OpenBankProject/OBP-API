@@ -250,7 +250,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
         grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser, callContext) ?~ "could not save the privilege"
       } yield grantedViews
     else
-      Failure(UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds${viewUIDs.map(_.viewId.value)} and current UserId${user.userId}")
+      Failure(UserLacksPermissionCanGrantAccessToViewForTargetAccount + s"Current ViewIds${viewUIDs.map(_.viewId.value).mkString(", ")} and current UserId${user.userId}")
   }
 
   /**
