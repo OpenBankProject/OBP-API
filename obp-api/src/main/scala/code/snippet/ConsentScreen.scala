@@ -77,10 +77,7 @@ class ConsentScreen extends MdcLoggable {
     val username = AuthUser.getCurrentUser.map(_.name).getOrElse("")
     val oidcProviderDescription = getWebUiPropsValue("webui_hydra_oidc_client", "OpenID Connect Provider")
     "#username *" #> username &
-    "#username_2 *" #> username &
       "#consumer_description_1 *" #> oidcProviderDescription &
-      "#consumer_description_2 *" #> oidcProviderDescription &
-      "#consumer_description_3 *" #> oidcProviderDescription &
     "form" #> {
       "#skip_consent_screen_checkbox" #> SHtml.checkbox(skipConsentScreenVar, skipConsentScreenVar(_)) &
         "#allow_access_to_consent" #> SHtml.submit(s"Allow access", () => submitAllowAction) &
