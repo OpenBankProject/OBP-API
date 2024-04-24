@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 
-import code.api.Constant
+import code.api.{Constant, UserNotFound}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -2118,6 +2118,43 @@ trait APIMethods510 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getAccountsMinimalByUserId,
+      implementedInApiVersion,
+      nameOf(getAccountsMinimalByUserId),
+      "GET",
+      "/users/USER_ID/account-access",
+      "Get Accounts Minimal by USER_ID",
+      s"""Get Accounts Minimal by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      accountsMinimalJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagAccount),
+      Some(List(canSeeAccountAccessForOneUser)))
+
+    lazy val getAccountsMinimalByUserId : OBPEndpoint = {
+      case "users" :: userId :: "account-access" :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
+            (_, accountAccess) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+          } yield {
+            (JSONFactory400.createAccountsMinimalJson400(accountAccess), HttpCode.`200`(callContext))
+          }
+    }
+
+
+
 
 
   }
