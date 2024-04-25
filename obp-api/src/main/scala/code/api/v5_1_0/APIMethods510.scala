@@ -2121,13 +2121,13 @@ trait APIMethods510 {
 
 
     staticResourceDocs += ResourceDoc(
-      getAccountsMinimalByUserId,
+      getAccountAccessByUserId,
       implementedInApiVersion,
-      nameOf(getAccountsMinimalByUserId),
+      nameOf(getAccountAccessByUserId),
       "GET",
       "/users/USER_ID/account-access",
-      "Get Accounts Minimal by USER_ID",
-      s"""Get Accounts Minimal by USER_ID
+      "Get Account Access by USER_ID",
+      s"""Get Account Access by USER_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -2140,9 +2140,9 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagAccount),
-      Some(List(canSeeAccountAccessForOneUser)))
+      Some(List(canSeeAccountAccessForAnyUser)))
 
-    lazy val getAccountsMinimalByUserId : OBPEndpoint = {
+    lazy val getAccountAccessByUserId : OBPEndpoint = {
       case "users" :: userId :: "account-access" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {

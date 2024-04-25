@@ -974,8 +974,8 @@ object ApiRole extends MdcLoggable{
   case class CanRevokeConsentAtBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canRevokeConsentAtBank = CanRevokeConsentAtBank()
 
-  case class CanSeeAccountAccessForOneUser(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSeeAccountAccessForOneUser = CanSeeAccountAccessForOneUser()
+  case class CanSeeAccountAccessForAnyUser(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSeeAccountAccessForAnyUser = CanSeeAccountAccessForAnyUser()
 
   case class CanGetSystemIntegrity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemIntegrity = CanGetSystemIntegrity()
