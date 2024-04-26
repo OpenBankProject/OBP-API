@@ -167,7 +167,7 @@ object MapperViews extends Views with MdcLoggable {
     }.collect { case Full(v) => v}
 
     if (viewDefinitions.size != views.size) {
-      val failMsg = s"not all viewimpls could be found for views ${viewDefinitions} (${viewDefinitions.size} != ${views.size}"
+      val failMsg = s"View definitions could be found only for views ${viewDefinitions.map(_._1.viewIdInternal)} Missing views: ${viewDefinitions.map(_._2).diff(views)}"
       //logger.debug(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
@@ -190,7 +190,7 @@ object MapperViews extends Views with MdcLoggable {
     }.collect { case Full(v) => v}
 
     if (viewDefinitions.size != views.size) {
-      val failMsg = s"not all viewimpls could be found for views ${viewDefinitions} (${viewDefinitions.size} != ${views.size}"
+      val failMsg = s"View definitions could be found only for views ${viewDefinitions.map(_._1.viewIdInternal)} Missing views: ${viewDefinitions.map(_._2).diff(views)}"
       //logger.debug(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour

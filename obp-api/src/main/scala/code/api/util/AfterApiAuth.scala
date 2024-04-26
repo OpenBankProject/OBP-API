@@ -44,7 +44,7 @@ object AfterApiAuth extends MdcLoggable{
    * Types of authentication: Direct Login, OpenID Connect, OAuth1.0a, Direct Login, DAuth and Gateway Login
    */
   def outerLoginUserInitAction(result: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
-    logger.info("AfterApiAuth.outerLoginUserInitAction started successfully")
+    logger.debug("AfterApiAuth.outerLoginUserInitAction started successfully")
     for {
       (user: Box[User], cc) <- result
     } yield {
@@ -54,7 +54,7 @@ object AfterApiAuth extends MdcLoggable{
           innerLoginUserInitAction(authUser)
           (user, cc)
         case userInitActionFailure => // There is no user. Just forward the result.
-          logger.warn("AfterApiAuth.outerLoginUserInitAction: " + userInitActionFailure)
+          logger.debug("AfterApiAuth.outerLoginUserInitAction: " + userInitActionFailure)
           (user, cc)
       }
     }

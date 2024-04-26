@@ -3185,6 +3185,12 @@ object Glossary extends MdcLoggable  {
 					 |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
 
 		glossaryItems += GlossaryItem(
+			title = "TPP",
+			description =
+				s"""(TPP) Third Party Providers are authorised/registered organisations or natural persons that use APIs developed to Standards to access customer’s accounts, in order to provide account information services and/or to initiate payments.
+					 |Third Party Providers are either/both Payment Initiation Service Providers (PISPs) and/or Account Information Service Providers (AISPs).""".stripMargin)
+
+		glossaryItems += GlossaryItem(
 			title = "QSealC",
 			description =
 				s"""Qualified electronic Seal Certificate.
