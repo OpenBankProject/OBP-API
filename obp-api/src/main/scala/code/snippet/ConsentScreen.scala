@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.util.APIUtil
+import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.util.Helper.{MdcLoggable, ObpS}
 import code.util.HydraUtil.integrateWithHydra
@@ -75,9 +76,11 @@ class ConsentScreen extends MdcLoggable {
   
   def consentScreenForm = {
     val username = AuthUser.getCurrentUser.map(_.name).getOrElse("")
-    val oidcProviderDescription = getWebUiPropsValue("webui_hydra_oidc_client", "OpenID Connect Provider")
+    val adminApi: AdminApi = new AdminApi
+    val consumerKey = adminApi.getConsentRequest(consentChallengeVar.is).getClient.getClientId
+    val consumerName = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).map(_.name.get).getOrElse("Unknown")
     "#username *" #> username &
-      "#consumer_description_1 *" #> oidcProviderDescription &
+      "#consumer_description_1 *" #> consumerName &
     "form" #> {
       "#skip_consent_screen_checkbox" #> SHtml.checkbox(skipConsentScreenVar, skipConsentScreenVar(_)) &
         "#allow_access_to_consent" #> SHtml.submit(s"Allow access", () => submitAllowAction) &
