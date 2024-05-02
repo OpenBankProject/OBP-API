@@ -30,7 +30,7 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     }
     val banksJson = getBanksInfo.body.extract[BanksJSON]
 
-    logger.debug(s"banksJson.banks.size is ${banksJson.banks.size}")
+    logger.trace(s"banksJson.banks.size is ${banksJson.banks.size}")
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id

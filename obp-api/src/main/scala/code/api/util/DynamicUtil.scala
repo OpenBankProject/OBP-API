@@ -52,7 +52,7 @@ object DynamicUtil extends MdcLoggable{
    * @return compiled Full[function|object|class] or Failure
    */
   def compileScalaCode[T](code: String): Box[T] = {
-    logger.debug(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
+    logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
     val compiledResult: Box[Any] = dynamicCompileResult.computeIfAbsent(code, _ => {
       val tree = try {
         toolBox.parse(code)
