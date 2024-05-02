@@ -1534,7 +1534,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
 
     def getResourceDocs(operationIds: List[String]): List[ResourceDoc] = {
-      logger.debug(s"ResourceDoc operationIdToResourceDoc.size is ${operationIdToResourceDoc.size()}")
+      logger.trace(s"ResourceDoc operationIdToResourceDoc.size is ${operationIdToResourceDoc.size()}")
       val dynamicDocs = DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs
       operationIds.collect {
         case operationId if operationIdToResourceDoc.containsKey(operationId) =>

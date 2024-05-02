@@ -27,6 +27,7 @@ import scala.concurrent.Future
 
 object MapperViews extends Views with MdcLoggable {
 
+  logger.debug("Run Schemifier.schemify in MapperViews object")
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   private def getViewsForUser(user: User): List[View] = {
