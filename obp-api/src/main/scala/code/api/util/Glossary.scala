@@ -2729,6 +2729,15 @@ object Glossary extends MdcLoggable  {
 |
 |
  """)
+	glossaryItems += GlossaryItem(
+		title = "Qualified Certificate Profiles (PSD2 context)",
+		description =
+			s"""
+				 |An overview of the Qualified Certificate Profiles.
+				 |
+				 |<img width="700" alt="qualified-certificate-profiles"  src="$getServerUrl/media/images/glossary/Qualified_Certificate_Profiles.png"></img>
+				 |
+				 | """.stripMargin)
 
 	glossaryItems += GlossaryItem(
 		title = "Consumer, Consent, Transport and Payload Security",
