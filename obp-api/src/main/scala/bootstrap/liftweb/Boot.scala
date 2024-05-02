@@ -285,18 +285,6 @@ class Boot extends MdcLoggable {
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
       else Empty.isDefined
 
-      val comment: String =
-        s"""
-           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
-           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
-           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
-           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
-           |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
-           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
-           |System view ${SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID} exists/created at the instance: ${manageCustomViews}
-           |""".stripMargin
-      logger.info(comment)
-
       APIUtil.getPropsValue("additional_system_views") match {
         case Full(value) =>
           val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
@@ -313,8 +301,6 @@ class Boot extends MdcLoggable {
             if viewsUKOpenBanking.exists(_ == systemView)
           } {
             Views.views.vend.getOrCreateSystemView(systemView)
-            val comment = s"System view ${systemView} exists/created at the instance"
-            logger.info(comment)
           }
         case _ => // Do nothing
       }
