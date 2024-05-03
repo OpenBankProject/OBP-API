@@ -987,11 +987,11 @@ object ApiRole extends MdcLoggable{
   }
 
   def getOrCreateDynamicApiRole(roleName: String, requiresBankId: Boolean = false): ApiRole = {
-    logger.debug(s"code.api.util.ApiRole.getOrCreateDynamicApiRole.size is ${dynamicApiRoles.size()}")
+    logger.trace(s"code.api.util.ApiRole.getOrCreateDynamicApiRole.size is ${dynamicApiRoles.size()}")
     dynamicApiRoles.computeIfAbsent(roleName, _ => DynamicApiRole(roleName, requiresBankId))
   }
   def removeDynamicApiRole(roleName: String): ApiRole = {
-    logger.debug(s"code.api.util.ApiRole.removeDynamicApiRole.size is ${dynamicApiRoles.size()}")
+    logger.trace(s"code.api.util.ApiRole.removeDynamicApiRole.size is ${dynamicApiRoles.size()}")
     dynamicApiRoles.remove(roleName)
   }
 

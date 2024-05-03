@@ -875,6 +875,7 @@ class Boot extends MdcLoggable {
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
     if (APIUtil.getPropsAsBoolValue("remotedata.enable", false) == false) {
+      logger.debug("Run Schemifier.schemify during Boot:")
       Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
     }
   }
