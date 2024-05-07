@@ -23,7 +23,7 @@ object MigrationOfFastFireHoseView {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             () =>
               """
                 |CREATE VIEW v_fast_firehose_accounts AS select

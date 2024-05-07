@@ -511,9 +511,10 @@ object Migration extends MdcLoggable {
     /**
       * The purpose is to provide answer does a procedure exist at a database instance.
       */
-    def procedureExists(name: String, connection: SuperConnection): Boolean = {
+    def procedureExists(name: String, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head): Boolean = {
       val md = connection.getMetaData
-      using(md.getProcedures(null, getDefaultSchemaName(connection), null)){ rs =>
+      val schema = connection.getSchema
+      using(md.getProcedures(null, schema, null)){ rs =>
         def hasProcedure(rs: ResultSet): Boolean =
           if (!rs.next) false
           else rs.getString(3) match {
@@ -557,7 +558,7 @@ object Migration extends MdcLoggable {
       *
       * @return SQL command.
       */
-    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit, connection: SuperConnection) (makeSql: () => String) : String ={
+    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head) (makeSql: () => String) : String ={
       val ct = makeSql()
       logger.trace("maybeWrite DDL: "+ct)
       if (performWrite) {

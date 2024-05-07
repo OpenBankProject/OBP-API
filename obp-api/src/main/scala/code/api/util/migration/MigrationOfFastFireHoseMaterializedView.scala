@@ -75,7 +75,7 @@ object MigrationOfFastFireHoseMaterializedView {
              |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink);
              |""".stripMargin
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("org.h2.Driver") =>
                 () => migrationSql(false)//Note: H2 database, do not support the MATERIALIZED view

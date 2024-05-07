@@ -43,7 +43,7 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         var isSuccessful = false
         
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case _ =>
                 () => "DROP INDEX IF EXISTS mappedbadloginattempt_musername;"
