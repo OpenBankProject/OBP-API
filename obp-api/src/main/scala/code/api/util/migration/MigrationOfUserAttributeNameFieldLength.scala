@@ -17,7 +17,7 @@ object MigrationOfUserAttributeNameFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterNameLength(name: String): Boolean = {
-    DbFunction.tableExists(UserAttribute, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(UserAttribute) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

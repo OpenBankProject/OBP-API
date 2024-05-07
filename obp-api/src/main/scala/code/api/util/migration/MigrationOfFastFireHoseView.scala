@@ -16,7 +16,7 @@ object MigrationOfFastFireHoseView {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def addFastFireHoseView(name: String): Boolean = {
-    DbFunction.tableExists(ProductFee, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(ProductFee) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

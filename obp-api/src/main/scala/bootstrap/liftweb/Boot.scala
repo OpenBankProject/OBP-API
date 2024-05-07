@@ -144,7 +144,7 @@ import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.Extraction
-import net.liftweb.mapper._
+import net.liftweb.mapper.{DefaultConnectionIdentifier=>_, _}
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
@@ -257,20 +257,20 @@ class Boot extends MdcLoggable {
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo(APIUtil.vendor))
 
-    //    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
-    //      case true => // DB already exist
-    //        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-    //        // Please note that migration scripts are executed before Lift Mapper Schemifier
-    ////        Migration.database.executeScripts(startedBeforeSchemifier = true)
-    //        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
-    //      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
-    //        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
-    //    }
+    DbFunction.tableExists(ResourceUser) match {
+      case true => // DB already exist
+        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+        // Please note that migration scripts are executed before Lift Mapper Schemifier
+        Migration.database.executeScripts(startedBeforeSchemifier = true)
+        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
+      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
+    }
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     
     // Please note that migration scripts are executed after Lift Mapper Schemifier
-    //Migration.database.executeScripts(startedBeforeSchemifier = false)
+    Migration.database.executeScripts(startedBeforeSchemifier = false)
 
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views

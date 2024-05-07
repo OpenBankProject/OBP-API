@@ -18,9 +18,9 @@ object MigrationOfWebhookUrlFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnUrlLength(name: String): Boolean = {
-    DbFunction.tableExists(SystemAccountNotificationWebhook, (DB.use(DefaultConnectionIdentifier){ conn => conn})) &&
-      DbFunction.tableExists(BankAccountNotificationWebhook, (DB.use(DefaultConnectionIdentifier){ conn => conn}))&&
-      DbFunction.tableExists(MappedAccountWebhook, (DB.use(DefaultConnectionIdentifier){ conn => conn}))
+    DbFunction.tableExists(SystemAccountNotificationWebhook) &&
+      DbFunction.tableExists(BankAccountNotificationWebhook)&&
+      DbFunction.tableExists(MappedAccountWebhook)
     match {
       case true =>
         val startDate = System.currentTimeMillis()

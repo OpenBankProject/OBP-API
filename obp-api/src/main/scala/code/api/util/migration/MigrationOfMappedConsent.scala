@@ -17,7 +17,7 @@ object MigrationOfMappedConsent {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnJsonWebToken(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -57,7 +57,7 @@ object MigrationOfMappedConsent {
   }
 
   def alterColumnChallenge(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -103,7 +103,7 @@ object MigrationOfMappedConsent {
     }
   }
   def alterColumnStatus(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

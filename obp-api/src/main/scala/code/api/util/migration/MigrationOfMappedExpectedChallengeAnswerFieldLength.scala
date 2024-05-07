@@ -17,7 +17,7 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedExpectedChallengeAnswer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) 
+    DbFunction.tableExists(MappedExpectedChallengeAnswer) 
     match {
       case true =>
         val startDate = System.currentTimeMillis()

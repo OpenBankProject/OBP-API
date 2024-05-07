@@ -17,7 +17,7 @@ object MigrationOfMappedUserAuthContext {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def dropUniqueIndex(name: String): Boolean = {
-    DbFunction.tableExists(MappedUserAuthContext, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedUserAuthContext) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

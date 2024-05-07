@@ -17,7 +17,7 @@ object MigrationOfTransactionRequestChallengeChallengeTypeLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnChallengeChallengeTypeLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedTransactionRequest, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedTransactionRequest) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

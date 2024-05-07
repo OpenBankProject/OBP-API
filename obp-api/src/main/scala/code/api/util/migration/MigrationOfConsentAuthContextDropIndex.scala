@@ -38,7 +38,7 @@ object MigrationOfConsentAuthContextDropIndex {
   }
   
   def dropUniqueIndex(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsentAuthContext, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsentAuthContext) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

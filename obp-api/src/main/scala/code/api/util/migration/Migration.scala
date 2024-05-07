@@ -2,7 +2,7 @@ package code.api.util.migration
 
 import bootstrap.liftweb.CustomDBVendor
 
-import java.sql.{ResultSet, SQLException}
+import java.sql.{Connection, ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
@@ -17,7 +17,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.zaxxer.hikari.pool.ProxyConnection
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
-import net.liftweb.mapper.{BaseMetaMapper, DB, SuperConnection}
+import net.liftweb.mapper.{BaseMetaMapper, DB, DefaultConnectionIdentifier, SuperConnection}
 
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
@@ -492,10 +492,12 @@ object Migration extends MdcLoggable {
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
       * The purpose is to provide answer does a table exist at a database instance.
       * For instance migration scripts needs to differentiate update of an instance from build a new one from scratch.
+     *  note: 07.05.2024 now. we get the connection from HikariDatasource.ds instead of Liftweb.
       */
-    def tableExists (table: BaseMetaMapper, connection: SuperConnection, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
+    def tableExists (table: BaseMetaMapper, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
       val md = connection.getMetaData
-      using(md.getTables(null, getDefaultSchemaName(connection), null, null)){ rs =>
+      val schema = connection.getSchema
+      using(md.getTables(null, schema, null, null)){ rs =>
         def hasTable(rs: ResultSet): Boolean =
           if (!rs.next) false
           else rs.getString(3) match {

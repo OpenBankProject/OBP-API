@@ -1,96 +1,43 @@
 package code.api.util.migration
 
+import code.api.util.APIUtil
+import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.model.Consumer
+import code.model.dataAccess.ResourceUser
+import net.liftweb.common.Full
+import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.util.DefaultConnectionIdentifier
+
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
-import code.api.util.APIUtil
-import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.model.{AppType, Consumer}
-import net.liftweb.mapper.DB
-import net.liftweb.util.{DefaultConnectionIdentifier, Helpers}
-
-object MigrationOfConsumer {
+object MigrationOfResourceUserIsDeleted {
   
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
-  def populateNamAndAppType(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+  def populateNewFieldIsDeleted(name: String): Boolean = {
+    DbFunction.tableExists(ResourceUser) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val emptyNameConsumers = 
-          for {
-            consumer <- Consumer.findAll() if consumer.name.get.isEmpty()
-          } yield {
-            consumer
-              .name(Helpers.randomString(10).toLowerCase())
-              .saveMe()
-          }
+        // Make back up
+        DbFunction.makeBackUpOfTable(ResourceUser)
 
-        val emptyAppTypeConsumers =
+        val emptyDeletedField = 
           for {
-            consumer <- Consumer.findAll() if consumer.appType.get.isEmpty()
+            user <- ResourceUser.findAll() if user.isDeleted.getOrElse(false) == false
           } yield {
-            consumer
-              .appType(AppType.Confidential.toString())
-              .saveMe()
+            user.IsDeleted(false).saveMe()
           }
         
-        val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
         val endDate = System.currentTimeMillis()
         val comment: String =
           s"""Updated number of rows: 
-             |${consumersAll.size}
-             |""".stripMargin
-        isSuccessful = true
-        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
-        isSuccessful
-
-      case false =>
-        val startDate = System.currentTimeMillis()
-        val commitId: String = APIUtil.gitCommit
-        val isSuccessful = false
-        val endDate = System.currentTimeMillis()
-        val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
-        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
-        isSuccessful
-    }
-  }  
-  def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
-      case true =>
-        val startDate = System.currentTimeMillis()
-        val commitId: String = APIUtil.gitCommit
-        var isSuccessful = false
-
-        val emptyNameConsumers = 
-          for {
-            consumer <- Consumer.findAll() if consumer.azp.equals(null)
-          } yield {
-            consumer
-              .azp(APIUtil.generateUUID())
-              .saveMe()
-          }
-
-        val emptyAppTypeConsumers =
-          for {
-            consumer <- Consumer.findAll() if consumer.sub.equals(null)
-          } yield {
-            consumer
-              .sub(APIUtil.generateUUID())
-              .saveMe()
-          }
-        
-        val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
-        val endDate = System.currentTimeMillis()
-        val comment: String =
-          s"""Updated number of rows: 
-             |${consumersAll.size}
+             |${emptyDeletedField.size}
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
@@ -107,4 +54,48 @@ object MigrationOfConsumer {
         isSuccessful
     }
   }
+
+  def alterColumnEmail(name: String): Boolean = {
+    DbFunction.tableExists(ResourceUser) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
+                    |""".stripMargin
+              case _ =>
+                () =>
+                  """ALTER TABLE resourceuser ALTER COLUMN email type varchar(100);
+                    |""".stripMargin
+            }
+
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Executed SQL: 
+             |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${ResourceUser._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
+  
 }

@@ -18,7 +18,7 @@ object MigrationOfCustomerAttributes {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnValue(name: String): Boolean = {
-    DbFunction.tableExists(MappedCustomerAttribute, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedCustomerAttribute) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -57,7 +57,7 @@ object MigrationOfCustomerAttributes {
     }
   }  
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(Consumer) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

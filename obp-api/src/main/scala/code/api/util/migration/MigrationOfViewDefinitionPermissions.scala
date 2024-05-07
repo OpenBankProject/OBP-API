@@ -9,7 +9,7 @@ import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfViewDefinitionPermissions {
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(ViewDefinition, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(ViewDefinition) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

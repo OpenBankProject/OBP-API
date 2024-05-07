@@ -17,7 +17,7 @@ object MigrationOfMetricTable {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnCorrelationidLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric, (DB.use(DefaultConnectionIdentifier){ conn => conn}))
+    DbFunction.tableExists(MappedMetric)
     match {
       case true =>
         val startDate = System.currentTimeMillis()

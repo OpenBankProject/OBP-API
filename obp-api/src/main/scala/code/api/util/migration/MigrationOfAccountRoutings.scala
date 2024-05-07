@@ -17,7 +17,7 @@ object MigrationOfAccountRoutings {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(BankAccountRouting, (DB.use(DefaultConnectionIdentifier) { conn => conn })) match {
+    DbFunction.tableExists(BankAccountRouting) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
