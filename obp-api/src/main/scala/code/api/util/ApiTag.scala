@@ -64,7 +64,6 @@ object ApiTag {
   val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
   val apiTagMXOpenFinance = ResourceDocTag("MXOpenFinance")
-  val apiTagApiBuilder = ResourceDocTag("API-Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagSystemIntegrity = ResourceDocTag("System-Integrity")
   val apiTagWebhook = ResourceDocTag("Webhook")

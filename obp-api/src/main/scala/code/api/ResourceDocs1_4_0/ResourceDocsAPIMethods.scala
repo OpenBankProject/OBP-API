@@ -5,7 +5,6 @@ import java.util.UUID.randomUUID
 
 import code.api.OBPRestHelper
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomersJson
-import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.dynamic.entity.helper.DynamicEntityHelper
@@ -125,7 +124,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
-        case ApiVersion.`b1`     => OBP_APIBuilder.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
@@ -144,7 +142,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
-        case ApiVersion.`b1`     => OBP_APIBuilder.routes
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
