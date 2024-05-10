@@ -497,6 +497,11 @@ object Migration extends MdcLoggable {
     def tableExists (table: BaseMetaMapper, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
       val md = connection.getMetaData
       val schema = connection.getSchema
+      try {
+        connection.asInstanceOf[ProxyConnection].close()
+      } catch {
+        case t: Throwable => logger.error(s"tableExists close connection, detail is: $t")
+      }
       using(md.getTables(null, schema, null, null)){ rs =>
         def hasTable(rs: ResultSet): Boolean =
           if (!rs.next) false
@@ -514,6 +519,12 @@ object Migration extends MdcLoggable {
     def procedureExists(name: String, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head): Boolean = {
       val md = connection.getMetaData
       val schema = connection.getSchema
+      try {
+        connection.asInstanceOf[ProxyConnection].close()
+      } catch {
+        case t: Throwable => logger.error(s"procedureExists close connection, detail is: $t")
+      }
+      
       using(md.getProcedures(null, schema, null)){ rs =>
         def hasProcedure(rs: ResultSet): Boolean =
           if (!rs.next) false
@@ -566,6 +577,11 @@ object Migration extends MdcLoggable {
         val st = connection.createStatement
         st.execute(ct)
         st.close
+      }
+      try {
+        connection.asInstanceOf[ProxyConnection].close()
+      } catch {
+        case t: Throwable => logger.error(s"maybeWrite close connection, detail is: $t")
       }
       ct
     }
