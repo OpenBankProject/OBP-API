@@ -57,7 +57,7 @@ class ConsumerRegistration extends MdcLoggable {
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object companyVar extends RequestVar("")
-  private object appType extends RequestVar("Unknown")
+  private object appType extends RequestVar("Public")
   private object clientCertificateVar extends RequestVar("")
   private object signingAlgVar extends RequestVar("")
   private object oidcCheckboxVar extends RequestVar(false)
