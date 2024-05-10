@@ -6,7 +6,6 @@ import java.sql.{Connection, ResultSet, SQLException}
 import java.text.SimpleDateFormat
 import java.util.Date
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
-import code.api.util.ErrorMessages.DatabaseConnectionClosedError
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
@@ -494,45 +493,41 @@ object Migration extends MdcLoggable {
       * For instance migration scripts needs to differentiate update of an instance from build a new one from scratch.
      *  note: 07.05.2024 now. we get the connection from HikariDatasource.ds instead of Liftweb.
       */
-    def tableExists (table: BaseMetaMapper, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
-      val md = connection.getMetaData
-      val schema = connection.getSchema
-      try {
-        connection.asInstanceOf[ProxyConnection].close()
-      } catch {
-        case t: Throwable => logger.error(s"tableExists close connection, detail is: $t")
-      }
-      using(md.getTables(null, schema, null, null)){ rs =>
-        def hasTable(rs: ResultSet): Boolean =
-          if (!rs.next) false
-          else rs.getString(3) match {
-            case s if s.toLowerCase == table._dbTableNameLC.toLowerCase => actualTableNames(table._dbTableNameLC) = s; true
-            case _ => hasTable(rs)
+    def tableExists (table: BaseMetaMapper, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          val md = conn.getMetaData
+          val schema =  getDefaultSchemaName(conn)
+      
+          using(md.getTables(null, schema, null, null)){ rs =>
+            def hasTable(rs: ResultSet): Boolean =
+              if (!rs.next) false
+              else rs.getString(3) match {
+                case s if s.toLowerCase == table._dbTableNameLC.toLowerCase => actualTableNames(table._dbTableNameLC) = s; true
+                case _ => hasTable(rs)
+              }
+    
+            hasTable(rs)
           }
-
-        hasTable(rs)
       }
     }
     /**
       * The purpose is to provide answer does a procedure exist at a database instance.
       */
-    def procedureExists(name: String, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head): Boolean = {
-      val md = connection.getMetaData
-      val schema = connection.getSchema
-      try {
-        connection.asInstanceOf[ProxyConnection].close()
-      } catch {
-        case t: Throwable => logger.error(s"procedureExists close connection, detail is: $t")
-      }
-      
-      using(md.getProcedures(null, schema, null)){ rs =>
-        def hasProcedure(rs: ResultSet): Boolean =
-          if (!rs.next) false
-          else rs.getString(3) match {
-            case s if s.toLowerCase == name => true
-            case _ => hasProcedure(rs)
+    def procedureExists(name: String): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          val md = conn.getMetaData
+          val schema = getDefaultSchemaName(conn)
+          using(md.getProcedures(null, schema, null)){ rs =>
+            def hasProcedure(rs: ResultSet): Boolean =
+              if (!rs.next) false
+              else rs.getString(3) match {
+                case s if s.toLowerCase == name => true
+                case _ => hasProcedure(rs)
+              }
+            hasProcedure(rs)
           }
-        hasProcedure(rs)
       }
     }
 
@@ -540,21 +535,14 @@ object Migration extends MdcLoggable {
     /**
       * The purpose is to provide info about the database in mapper mode.
       */
-    def mapperDatabaseInfo(vendor: CustomDBVendor): DatabaseInfoJson = {
-      val connection = vendor.createOne.openOrThrowException(DatabaseConnectionClosedError)
-      try {
-        val md = connection.getMetaData
-        val productName = md.getDatabaseProductName()
-        val productVersion = md.getDatabaseProductVersion()
-        DatabaseInfoJson(product_name = productName, product_version = productVersion)
-      } finally {
-        try {
-          connection.asInstanceOf[ProxyConnection].close()
-        } catch {
-          case t: Throwable => logger.error(s"mapperDatabaseInfo.close connection throw exception, detail is: $t")
-        }
+    def mapperDatabaseInfo: DatabaseInfoJson = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          val md = conn.getMetaData
+          val productName = md.getDatabaseProductName()
+          val productVersion = md.getDatabaseProductVersion()
+          DatabaseInfoJson(product_name = productName, product_version = productVersion)
       }
-      
     }
 
     /**
@@ -569,21 +557,19 @@ object Migration extends MdcLoggable {
       *
       * @return SQL command.
       */
-    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit, connection: Connection = APIUtil.vendor.newConnection(DefaultConnectionIdentifier).head) (makeSql: () => String) : String ={
-      val ct = makeSql()
-      logger.trace("maybeWrite DDL: "+ct)
-      if (performWrite) {
-        logFunc(ct)
-        val st = connection.createStatement
-        st.execute(ct)
-        st.close
+    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit) (makeSql: () => String) : String ={
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          val ct = makeSql()
+          logger.trace("maybeWrite DDL: " + ct)
+          if (performWrite) {
+            logFunc(ct)
+            val st = conn.createStatement
+            st.execute(ct)
+            st.close
+          }
+          ct
       }
-      try {
-        connection.asInstanceOf[ProxyConnection].close()
-      } catch {
-        case t: Throwable => logger.error(s"maybeWrite close connection, detail is: $t")
-      }
-      ct
     }
 
     /**

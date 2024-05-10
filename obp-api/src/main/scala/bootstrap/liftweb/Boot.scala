@@ -255,7 +255,7 @@ class Boot extends MdcLoggable {
     
     schemifyAll()
     
-    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo(APIUtil.vendor))
+    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
     DbFunction.tableExists(ResourceUser) match {
       case true => // DB already exist
