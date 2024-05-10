@@ -30,12 +30,12 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE MappedExpectedChallengeAnswer ALTER COLUMN mChallengeType varchar(100);
+                    |ALTER TABLE ExpectedChallengeAnswer ALTER COLUMN ChallengeType varchar(100);
                     |""".stripMargin
               case _ =>
                 () =>
                   """
-                    |ALTER TABLE MappedExpectedChallengeAnswer ALTER COLUMN mChallengeType TYPE character varying(100);
+                    |ALTER TABLE ExpectedChallengeAnswer ALTER COLUMN ChallengeType TYPE varchar(100);
                     |""".stripMargin
             }
           }
