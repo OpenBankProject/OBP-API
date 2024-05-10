@@ -18,14 +18,14 @@ object MigrationOfCustomerAttributes {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnValue(name: String): Boolean = {
-    DbFunction.tableExists(MappedCustomerAttribute, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedCustomerAttribute) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue varchar(2000);"
@@ -57,7 +57,7 @@ object MigrationOfCustomerAttributes {
     }
   }  
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(Consumer) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

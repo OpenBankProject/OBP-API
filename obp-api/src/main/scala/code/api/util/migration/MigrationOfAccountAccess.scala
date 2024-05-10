@@ -9,7 +9,7 @@ import net.liftweb.util.DefaultConnectionIdentifier
 
 object TableAccountAccess {
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(ViewPrivileges, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(ViewPrivileges) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

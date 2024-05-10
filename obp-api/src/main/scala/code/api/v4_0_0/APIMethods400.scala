@@ -151,7 +151,7 @@ trait APIMethods400 extends MdcLoggable {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           Future {
-            (Migration.DbFunction.mapperDatabaseInfo(APIUtil.vendor), HttpCode.`200`(cc.callContext))
+            (Migration.DbFunction.mapperDatabaseInfo, HttpCode.`200`(cc.callContext))
           }
       }
     }

@@ -17,14 +17,14 @@ object MigrationOfOpnIDConnectToken {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnAccessToken(name: String): Boolean = {
-    DbFunction.tableExists(OpenIDConnectToken, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(OpenIDConnectToken) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken text;"
@@ -56,14 +56,14 @@ object MigrationOfOpnIDConnectToken {
     }
   }  
   def alterColumnRefreshToken(name: String): Boolean = {
-    DbFunction.tableExists(OpenIDConnectToken, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(OpenIDConnectToken) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken text;"

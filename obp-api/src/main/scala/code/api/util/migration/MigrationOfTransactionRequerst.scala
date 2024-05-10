@@ -17,14 +17,14 @@ object MigrationOfTransactionRequerst {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnDetails(name: String): Boolean = {
-    DbFunction.tableExists(MappedTransactionRequest, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedTransactionRequest) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mdetails text;"

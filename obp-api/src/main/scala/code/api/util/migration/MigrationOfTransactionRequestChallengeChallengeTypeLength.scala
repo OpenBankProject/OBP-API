@@ -17,19 +17,19 @@ object MigrationOfTransactionRequestChallengeChallengeTypeLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnChallengeChallengeTypeLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedTransactionRequest, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedTransactionRequest) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType varchar(100);"
                 case _ =>
-                  () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType TYPE character varying(100);"
+                  () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType type varchar(100);"
               }
           }
         

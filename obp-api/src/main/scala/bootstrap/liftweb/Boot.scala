@@ -144,7 +144,7 @@ import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.Extraction
-import net.liftweb.mapper._
+import net.liftweb.mapper.{DefaultConnectionIdentifier=>_, _}
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
@@ -255,22 +255,22 @@ class Boot extends MdcLoggable {
     
     schemifyAll()
     
-    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo(APIUtil.vendor))
+    logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
-    //    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
-    //      case true => // DB already exist
-    //        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-    //        // Please note that migration scripts are executed before Lift Mapper Schemifier
-    ////        Migration.database.executeScripts(startedBeforeSchemifier = true)
-    //        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
-    //      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
-    //        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
-    //    }
+    DbFunction.tableExists(ResourceUser) match {
+      case true => // DB already exist
+        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+        // Please note that migration scripts are executed before Lift Mapper Schemifier
+        Migration.database.executeScripts(startedBeforeSchemifier = true)
+        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
+      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
+    }
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     
     // Please note that migration scripts are executed after Lift Mapper Schemifier
-    //Migration.database.executeScripts(startedBeforeSchemifier = false)
+    Migration.database.executeScripts(startedBeforeSchemifier = false)
 
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views
@@ -284,18 +284,6 @@ class Boot extends MdcLoggable {
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
       else Empty.isDefined
-
-      val comment: String =
-        s"""
-           |System view ${SYSTEM_OWNER_VIEW_ID} exists/created at the instance: ${owner}
-           |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
-           |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
-           |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
-           |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
-           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
-           |System view ${SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID} exists/created at the instance: ${manageCustomViews}
-           |""".stripMargin
-      logger.info(comment)
 
       APIUtil.getPropsValue("additional_system_views") match {
         case Full(value) =>
@@ -313,8 +301,6 @@ class Boot extends MdcLoggable {
             if viewsUKOpenBanking.exists(_ == systemView)
           } {
             Views.views.vend.getOrCreateSystemView(systemView)
-            val comment = s"System view ${systemView} exists/created at the instance"
-            logger.info(comment)
           }
         case _ => // Do nothing
       }
