@@ -17,7 +17,7 @@ object MigrationOfProductAttribute {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populateTheFieldIsActive(name: String): Boolean = {
-    DbFunction.tableExists(MappedProductAttribute, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedProductAttribute) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

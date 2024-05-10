@@ -18,7 +18,7 @@ object BankAccountHoldersAndOwnerViewAccess {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name: String): Boolean = {
-    DbFunction.tableExists(MapperAccountHolders, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MapperAccountHolders) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

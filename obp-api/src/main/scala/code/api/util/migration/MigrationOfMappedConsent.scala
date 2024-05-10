@@ -17,14 +17,14 @@ object MigrationOfMappedConsent {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnJsonWebToken(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
@@ -57,14 +57,14 @@ object MigrationOfMappedConsent {
   }
 
   def alterColumnChallenge(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -103,14 +103,14 @@ object MigrationOfMappedConsent {
     }
   }
   def alterColumnStatus(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
