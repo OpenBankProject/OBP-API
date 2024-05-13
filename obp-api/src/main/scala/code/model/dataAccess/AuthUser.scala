@@ -1038,14 +1038,23 @@ def restoreSomeSessions(): Unit = {
   override def login: NodeSeq = {
     // This query parameter is specific to ORY Hydra login request
     val loginChallenge: Box[String] = ObpS.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
-    def redirectUri(): String = {
-      loginRedirect.get match {
-        case Full(url) =>
-          loginRedirect(Empty)
-          url
-        case _ =>
-          homePage
+    def redirectUri(user: Box[ResourceUser]): String = {
+      val userId = user.map(_.userId).getOrElse("")
+      val hashedAgreementTextOfUser = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "terms_and_conditions").map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
+      val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
+      val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
+      if(hashedAgreementTextOfUser == hashedAgreementText) {
+        loginRedirect.get match {
+          case Full(url) =>
+            loginRedirect(Empty)
+            url
+          case _ =>
+            homePage
+        }
+      } else {
+        "/terms-and-conditions"
       }
+
     }
     //Check the internal redirect, in case for open redirect issue.
     // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
@@ -1131,7 +1140,7 @@ def restoreSomeSessions(): Unit = {
                   // User init actions
                   AfterApiAuth.innerLoginUserInitAction(Full(user))
                   logger.info("login redirect: " + loginRedirect.get)
-                  val redirect = redirectUri()
+                  val redirect = redirectUri(user.user.foreign)
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
                   LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
@@ -1151,7 +1160,7 @@ def restoreSomeSessions(): Unit = {
                   LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
                   val preLoginState = capturePreLoginState()
                   logger.info("login redirect: " + loginRedirect.get)
-                  val redirect = redirectUri()
+                  val redirect = redirectUri(user.user.foreign)
                   //This method is used for connector = kafka* || obpjvm*
                   //It will update the views and createAccountHolder ....
                   registeredUserHelper(user.getProvider(),user.username.get)
@@ -1176,7 +1185,7 @@ def restoreSomeSessions(): Unit = {
 
                 val preLoginState = capturePreLoginState()
                 logger.info("login redirect: " + loginRedirect.get)
-                val redirect = redirectUri()
+                val redirect = redirectUri(user.foreign)
                 externalUserHelper(usernameFromGui, passwordFromGui) match {
                     case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
