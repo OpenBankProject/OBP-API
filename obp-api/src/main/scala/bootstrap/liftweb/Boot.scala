@@ -42,7 +42,6 @@ import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
-import code.api.builder.APIBuilder_Connector
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue, gitCommit}
 import code.api.util._
@@ -454,7 +453,6 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.v5_1_0)
-    enableVersionIfAllowed(ApiVersion.b1)
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
@@ -1089,7 +1087,7 @@ object ToSchemify {
     EndpointTag,
     ProductFee,
     UserInitAction
-  )++ APIBuilder_Connector.allAPIBuilderModels
+  )
 
   // start grpc server
   if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
