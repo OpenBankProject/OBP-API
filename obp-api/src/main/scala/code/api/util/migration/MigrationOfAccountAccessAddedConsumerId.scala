@@ -30,8 +30,17 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |ALTER TABLE accountaccess ADD COLUMN IF NOT EXISTS "consumer_id" character varchar(255) DEFAULT '$ALL_CONSUMERS';
-                    |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
+                    |-- Check if column 'consumer_id' already exists
+                    |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'accountaccess' AND COLUMN_NAME = 'consumer_id')
+                    |BEGIN
+                    |    ALTER TABLE accountaccess ADD consumer_id VARCHAR(255) DEFAULT '$ALL_CONSUMERS';
+                    |END
+                    |
+                    |-- Drop index if it exists
+                    |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'accountaccess_bank_id_account_id_view_fk_user_fk' AND object_id = OBJECT_ID('accountaccess'))
+                    |BEGIN
+                    |    DROP INDEX accountaccess.accountaccess_bank_id_account_id_view_fk_user_fk;
+                    |END
                     |""".stripMargin
               case _ =>
                 () =>
