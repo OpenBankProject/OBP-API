@@ -26,7 +26,17 @@ Berlin 13359, Germany
 <div data-lift="surround?with=default;at=content">
     <div data-lift="WebUI.privacyPolicyText">
         <div id="api_documentation_div">
-            <div id="api_documentation_content" tabindex="-1">
+            <form id="form_privacy_policy" method="post">
+                <div class="row"  data-lift="PrivacyPolicy.updateForm">
+                    <div class="col-xs-6">
+                        <input type="reset" value="Skip" class="btn btn-default pull-right" tabindex="0"/>
+                    </div>
+                    <div class="col-xs-6">
+                        <input type="submit" value="accept terms" class="btn btn-default" tabindex="0"/>
+                    </div>
+                </div>
+            </form>
+            <div>
                 <div id="privacy-policy-page"></div>
             </div>
         </div>

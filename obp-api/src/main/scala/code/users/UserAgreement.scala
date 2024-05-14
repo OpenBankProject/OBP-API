@@ -79,7 +79,8 @@ object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreemen
   override def beforeSave = List(
     agreement =>
       tryo {
-        agreement.AgreementHash( HashUtil.Sha256Hash(agreement.agreementText)).save
+        val hash = HashUtil.Sha256Hash(agreement.agreementText)
+        agreement.AgreementHash(hash ).save
       }
   )
 

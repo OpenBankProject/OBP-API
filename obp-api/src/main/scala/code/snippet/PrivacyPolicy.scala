@@ -34,7 +34,7 @@ import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 
-class TermsAndConditions extends MdcLoggable {
+class PrivacyPolicy extends MdcLoggable {
 
   def updateForm: CssSel = {
 
@@ -55,10 +55,9 @@ class TermsAndConditions extends MdcLoggable {
 
   private def updateUserAgreement() = {
     if(AuthUser.currentUser.isDefined) {
-      val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
-      // val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
+      val agreementText = getWebUiPropsValue("webui_privacy_policy", "not set")
       UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-        AuthUser.currentUser.flatMap(_.user.foreign.map(_.userId)).getOrElse(""), "terms_and_conditions", agreementText)
+        AuthUser.currentUser.flatMap(_.user.foreign.map(_.userId)).getOrElse(""), "privacy_conditions", agreementText)
       S.redirectTo("/")
     }
   }

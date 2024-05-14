@@ -1040,16 +1040,27 @@ def restoreSomeSessions(): Unit = {
     val loginChallenge: Box[String] = ObpS.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(user: Box[ResourceUser]): String = {
       val userId = user.map(_.userId).getOrElse("")
-      val hashedAgreementTextOfUser = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "terms_and_conditions").map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
+      val hashedAgreementTextOfUser =
+        UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "terms_and_conditions")
+          .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
       val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
       val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
-      if(hashedAgreementTextOfUser == hashedAgreementText) {
-        loginRedirect.get match {
-          case Full(url) =>
-            loginRedirect(Empty)
-            url
-          case _ =>
-            homePage
+      if(hashedAgreementTextOfUser == hashedAgreementText) { // Chech terms and conditions
+        val hashedAgreementTextOfUser =
+          UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "privacy_conditions")
+            .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
+        val agreementText = getWebUiPropsValue("webui_privacy_policy", "not set")
+        val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
+        if(hashedAgreementTextOfUser == hashedAgreementText) { // Check privacy policy
+          loginRedirect.get match {
+            case Full(url) =>
+              loginRedirect(Empty)
+              url
+            case _ =>
+              homePage
+          }
+        } else {
+          "/privacy-policy"
         }
       } else {
         "/terms-and-conditions"
