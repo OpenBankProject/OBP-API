@@ -20,7 +20,6 @@ object ApiVersionUtils {
       v5_1_0 ::
       `dynamic-endpoint` ::
       `dynamic-entity` ::
-      b1::
       scannedApis
 
   def valueOf(value: String): ScannedApiVersion = {
@@ -42,7 +41,6 @@ object ApiVersionUtils {
       case v5_1_0.fullyQualifiedVersion | v5_1_0.apiShortVersion => v5_1_0
       case `dynamic-endpoint`.fullyQualifiedVersion | `dynamic-endpoint`.apiShortVersion => `dynamic-endpoint`
       case `dynamic-entity`.fullyQualifiedVersion | `dynamic-entity`.apiShortVersion => `dynamic-entity`
-      case b1.fullyQualifiedVersion     |     b1.apiShortVersion => b1
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head
       case version if(scannedApis.map(_.apiShortVersion).contains(version))
