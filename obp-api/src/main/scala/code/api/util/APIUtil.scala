@@ -42,7 +42,6 @@ import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
-import code.api.builder.OBP_APIBuilder
 import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.oauth1a.Arithmetics
@@ -2701,7 +2700,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
         case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
         case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
-        case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
       }

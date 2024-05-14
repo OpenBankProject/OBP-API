@@ -1,8 +1,5 @@
 package code.api.util.migration
 
-import java.time.format.DateTimeFormatter
-import java.time.{ZoneId, ZonedDateTime}
-
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.Consumer
@@ -11,7 +8,10 @@ import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
-object MigrationOfResourceUser {
+import java.time.format.DateTimeFormatter
+import java.time.{ZoneId, ZonedDateTime}
+
+object MigrationOfResourceUserIsDeleted {
   
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)

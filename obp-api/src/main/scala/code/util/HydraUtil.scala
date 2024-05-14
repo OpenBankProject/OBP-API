@@ -78,6 +78,7 @@ object HydraUtil extends MdcLoggable{
     logger.info("createHydraClient process is starting")
     val redirectUrl = consumer.redirectURL.get
     if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
+      logger.debug(s"createHydraClient process is aborting because of the redirect url: $redirectUrl at consumer.name: ${consumer.name}")
       return None
     }
     val oAuth2Client = new OAuth2Client()
@@ -104,6 +105,7 @@ object HydraUtil extends MdcLoggable{
     oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.hydraTokenEndpointAuthMethod)
 
     val decoratedClient = fun(oAuth2Client)
+    logger.debug(s"oAuth2Client: $oAuth2Client")
     val oAuth2ClientResult = Some(hydraAdmin.createOAuth2Client(decoratedClient))
     logger.info("createHydraClient process is successful.")
     oAuth2ClientResult

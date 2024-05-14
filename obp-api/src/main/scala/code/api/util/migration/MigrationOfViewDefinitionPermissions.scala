@@ -9,7 +9,7 @@ import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfViewDefinitionPermissions {
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(ViewDefinition, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(ViewDefinition) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -34,7 +34,7 @@ object MigrationOfViewDefinitionPermissions {
             .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
             .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
             .save
-        ).head
+        )
         
         val standardView = ViewDefinition.find(
           NullRef(ViewDefinition.bank_id),
@@ -57,10 +57,10 @@ object MigrationOfViewDefinitionPermissions {
             .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
             .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
             .save
-        ).head
+        )
 
       
-        val isSuccessful = ownerView && standardView
+        val isSuccessful = ownerView.isDefined && standardView.isDefined
         val endDate = System.currentTimeMillis()
 
         val comment: String =
@@ -82,6 +82,7 @@ object MigrationOfViewDefinitionPermissions {
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
+        
       case false =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

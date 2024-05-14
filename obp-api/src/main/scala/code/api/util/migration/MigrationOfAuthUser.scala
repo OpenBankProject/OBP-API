@@ -17,14 +17,14 @@ object MigrationOfAuthUser {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnUsernameProviderEmailFirstnameAndLastname(name: String): Boolean = {
-    DbFunction.tableExists(AuthUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(AuthUser) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -70,14 +70,14 @@ object MigrationOfAuthUser {
   }
 
   def dropIndexAtColumnUsername(name: String): Boolean = {
-    DbFunction.tableExists(AuthUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(AuthUser) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match {
               case _ =>
                 () =>

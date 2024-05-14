@@ -5412,7 +5412,7 @@ object SwaggerDefinitionsJSON {
     val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
                             .filter(it => it != null && it.isInstanceOf[AnyRef])
                             .map(_.asInstanceOf[AnyRef])
-    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields 
   }
 
 }

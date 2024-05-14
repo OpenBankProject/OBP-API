@@ -16,7 +16,7 @@ object MigrationOfConsumer {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populateNamAndAppType(name: String): Boolean = {
-    DbFunction.tableExists(Consumer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(Consumer) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -62,7 +62,7 @@ object MigrationOfConsumer {
     }
   }  
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+    DbFunction.tableExists(Consumer) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
