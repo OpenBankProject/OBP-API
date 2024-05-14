@@ -46,9 +46,20 @@ class PrivacyPolicy extends MdcLoggable {
       S.redirectTo("/")
     }
 
+    def displayContent = {
+      if(AuthUser.currentUser.isDefined) {
+        "block"
+      } else {
+        "none"
+      }
+    }
+
     def update = {
+      val username = AuthUser.currentUser.flatMap(_.user.foreign.map(_.name)).getOrElse("")
+      "#privacy-policy-username *" #> username &
       "type=submit" #> SHtml.submit(s"Accept", () => submitButtonDefense) &
-      "type=reset" #> SHtml.submit(s"Skip", () => skipButtonDefense)
+      "type=reset" #> SHtml.submit(s"Skip", () => skipButtonDefense) &
+      "#form_privacy_policy [style]" #> s"display: $displayContent;"
     }
     update
   }
