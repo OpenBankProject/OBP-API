@@ -26,7 +26,18 @@ Berlin 13359, Germany
 <div data-lift="surround?with=default;at=content">
     <div data-lift="WebUI.privacyPolicyText">
         <div id="api_documentation_div">
-            <div id="api_documentation_content" tabindex="-1">
+            <form id="form_privacy_policy" method="post" data-lift="PrivacyPolicy.updateForm">
+                <div class="row" >
+                    <div><lift:loc locid="outdated.policy.warning.1">Dear</lift:loc> <em id="privacy-policy-username"></em> <lift:loc locid="outdated.policy.warning.2">. We have updated our policy since you last agreed to them! Please review the text and agree if you agree!</lift:loc></div>
+                    <div class="col-xs-6">
+                        <input type="reset" value="Skip" class="btn btn-default pull-right" tabindex="0"/>
+                    </div>
+                    <div class="col-xs-6">
+                        <input type="submit" value="accept terms" class="btn btn-default" tabindex="0"/>
+                    </div>
+                </div>
+            </form>
+            <div>
                 <div id="privacy-policy-page"></div>
             </div>
         </div>
