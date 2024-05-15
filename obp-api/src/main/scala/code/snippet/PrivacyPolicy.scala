@@ -28,6 +28,7 @@ package code.snippet
 
 import code.model.dataAccess.AuthUser
 import code.users.UserAgreementProvider
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.http.{S, SHtml}
@@ -57,8 +58,8 @@ class PrivacyPolicy extends MdcLoggable {
     def update = {
       val username = AuthUser.currentUser.flatMap(_.user.foreign.map(_.name)).getOrElse("")
       "#privacy-policy-username *" #> username &
-      "type=submit" #> SHtml.submit(s"Accept", () => submitButtonDefense) &
-      "type=reset" #> SHtml.submit(s"Skip", () => skipButtonDefense) &
+        "type=submit" #> SHtml.submit(s"${Helper.i18n("outdated.terms.button.accept")}", () => submitButtonDefense) &
+      "type=reset" #> SHtml.submit(s"${Helper.i18n("outdated.terms.button.skip")}", () => skipButtonDefense) &
       "#form_privacy_policy [style]" #> s"display: $displayContent;"
     }
     update
