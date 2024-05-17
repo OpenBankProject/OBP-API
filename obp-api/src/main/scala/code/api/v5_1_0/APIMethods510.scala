@@ -19,6 +19,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
+import code.api.v4_0_0.JSONFactory400.createAccountBalancesJson
 import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, RevokedJsonV400}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
@@ -2153,7 +2154,43 @@ trait APIMethods510 {
           }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getBankAccountBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountBalances),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
+      """Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.""",
+      EmptyBody,
+      accountBalanceV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserNoPermissionAccessView,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
 
+    lazy val getBankAccountBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId)  :: "views" :: ViewId(viewId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
+            failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
+            _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
+              view.canSeeBankAccountBalance
+            }
+            (accountBalances, callContext) <- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
+          } yield{
+            (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
 

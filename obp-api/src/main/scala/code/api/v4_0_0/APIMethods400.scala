@@ -3373,9 +3373,9 @@ trait APIMethods400 extends MdcLoggable {
     }
 
     staticResourceDocs += ResourceDoc(
-      getBankAccountBalances,
+      getBankAccountBalancesForCurrentUser,
       implementedInApiVersion,
-      nameOf(getBankAccountBalances),
+      nameOf(getBankAccountBalancesForCurrentUser),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
       "Get Account Balances",
@@ -3386,7 +3386,7 @@ trait APIMethods400 extends MdcLoggable {
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
-    lazy val getBankAccountBalances : OBPEndpoint = {
+    lazy val getBankAccountBalancesForCurrentUser : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
