@@ -2160,16 +2160,15 @@ trait APIMethods510 {
       nameOf(getBankAccountBalances),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances",
-      "Get Account Balances by BANK_ID and ACCOUNT_ID",
-      """Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID.""",
+      "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
+      """Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.""",
       EmptyBody,
       accountBalanceV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
         $BankAccountNotFound,
-        $UserNoPermissionAccessView,
-        CannotFindAccountAccess,
+        UserNoPermissionAccessView,
         UnknownError
       ),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
@@ -2180,7 +2179,13 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(BankIdAccountId(bankId, accountId), callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
+            failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
+            _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
+              view.canSeeBankAccountBalance
+            }
+            (accountBalances, callContext) <- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
           } yield{
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
