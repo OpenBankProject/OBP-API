@@ -18,10 +18,12 @@ class AccountBalanceTest extends V510ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.getBankAccountBalances))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getBankAccountsBalances))
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   def requestGetAccountBalances(viewId: String = "None") = (v5_1_0_Request / "banks" / bankAccount.bank_id / "accounts" / bankAccount.id / "views" / viewId / "balances").GET
+  def requestGetAccountсBalances(viewId: String = "None") = (v5_1_0_Request / "banks" / bankAccount.bank_id / "balances").GET
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -46,4 +48,24 @@ class AccountBalanceTest extends V510ServerSetup {
       responseGetAccountBalances.code should equal(200)
     }
   }
+
+
+  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+      When(s"We make a request $ApiEndpoint1")
+      val responseGetAccountBalances = makeGetRequest(requestGetAccountсBalances())
+      Then("We should get a 401")
+      responseGetAccountBalances.code should equal(401)
+      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper view") {
+    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
+      val responseGetAccountBalances = makeGetRequest(requestGetAccountсBalances("owner") <@ user1)
+      Then("We should get a 200")
+      responseGetAccountBalances.code should equal(200)
+    }
+  }
+
+
 }

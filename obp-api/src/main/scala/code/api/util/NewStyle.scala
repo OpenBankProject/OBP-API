@@ -372,6 +372,16 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
+    def getAccountListThroughView(user : User, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      val viewIds = List(viewId)
+      Views.views.vend.getPrivateBankAccountsFuture(user, viewIds) map { i =>
+        if(i.isEmpty) {
+          (unboxFullOrFail(Empty, callContext, NoViewReadAccountsBerlinGroup , 403), callContext)
+        } else {
+          (i, callContext )
+        }
+      }
+    }
 
     def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
       Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>

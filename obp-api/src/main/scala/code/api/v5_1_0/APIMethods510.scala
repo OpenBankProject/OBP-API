@@ -19,7 +19,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
-import code.api.v4_0_0.JSONFactory400.createAccountBalancesJson
+import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson}
 import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, RevokedJsonV400}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
@@ -2188,6 +2188,42 @@ trait APIMethods510 {
             (accountBalances, callContext) <- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
           } yield{
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Account Balances by BANK_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId) // Get all accounts at the bank the user can see
+            (views, _) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId) // Get all views at the bank the user can access
+            canSeeBankAccountBalanceViews =  views.filter(_.canSeeBankAccountBalance) // Filter views which can read the balance
+            allowedAccounts = availablePrivateAccounts.intersect(canSeeBankAccountBalanceViews.map( i =>
+              BankIdAccountId(i.bankId, i.accountId))
+            ) // Filter out accounts the user has not permission to see balances
+            (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }
