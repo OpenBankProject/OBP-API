@@ -211,7 +211,12 @@ object Helper extends Loggable {
     */
   def isValidInternalRedirectUrl(url: String) : Boolean = {
     //set the default value is "/" and "/oauth/authorize"
-    val validUrls = List("/","/oauth/authorize","/consumer-registration","/dummy-user-tokens","/create-sandbox-account", "/add-user-auth-context-update-request","/otp")
+    val validUrls = List(
+      "/","/oauth/authorize","/consumer-registration",
+      "/dummy-user-tokens","/create-sandbox-account",
+      "/add-user-auth-context-update-request","/otp",
+      "/terms-and-conditions", "/privacy-policy"
+    )
 
     //case1: OBP-API login: url = "/"
     //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"

@@ -7,6 +7,7 @@ import code.api.util.HashUtil
 import code.util.UUIDString
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
+import net.liftweb.common.Box.tryo
 
 object MappedUserAgreementProvider extends UserAgreementProvider {
   override def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
@@ -75,5 +76,13 @@ class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreemen
 
 object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreement] {
   override def dbIndexes: List[BaseIndex[UserAgreement]] = UniqueIndex(UserAgreementId) :: super.dbIndexes
+  override def beforeSave = List(
+    agreement =>
+      tryo {
+        val hash = HashUtil.Sha256Hash(agreement.agreementText)
+        agreement.AgreementHash(hash ).save
+      }
+  )
+
 }
 
