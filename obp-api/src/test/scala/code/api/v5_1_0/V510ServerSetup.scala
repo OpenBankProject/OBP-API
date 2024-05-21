@@ -138,7 +138,7 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     response.code should equal(201)
     response.body.extract[ViewJsonV300]
   }
-  def createTransactionRequest(bankId: String) = {
+  def createTransactionRequest(bankId: String, amountOnMoney: String): (String, String, String) = {
     // Create a Bank
     val bank = createBank(bankId)
     val addAccountJson1 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
@@ -168,13 +168,13 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       fromAccountId = fromAccount.account_id,
       fromCurrency = fromAccount.balance.currency,
       fromViewId = customView.id,
-      amount = "10",
+      amount = amountOnMoney,
       toBankId = bank.bankId.value,
       toAccountId = toAccount.account_id,
       user1
     )
     val transactionId = transactionRequest.transaction_ids.headOption.getOrElse("")
-    (bank.bankId.value, fromAccount.account_id, transactionId)
+    (fromAccount.account_id, toAccount.account_id, transactionId)
   }
   
 }
