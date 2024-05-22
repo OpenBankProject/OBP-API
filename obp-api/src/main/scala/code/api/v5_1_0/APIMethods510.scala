@@ -2271,12 +2271,13 @@ trait APIMethods510 {
 
   }
 
-  private def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]) = {
-    accountAccesses.map(item =>
-      BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get))
-    ).intersect(views.map(item =>
-      BankIdAccountId(item.bankId, item.accountId))
-    ).distinct
+  private def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
+    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
+      .intersect(views.map(item => item.viewId.value)).distinct
+    accountAccesses
+      .filter(i => intersectedViewIds.contains(i.view_id.get))
+      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
+      .distinct
   }
 }
 
