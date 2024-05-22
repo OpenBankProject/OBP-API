@@ -2181,12 +2181,13 @@ trait APIMethods510 {
             (Full(u), callContext) <- SS.user
             bankIdAccountId = BankIdAccountId(bankId, accountId)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
+            // Note we do one explicit check here rather than use moderated account because this provide an explicit message
             failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
             _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
               view.canSeeBankAccountBalance
             }
             (accountBalances, callContext) <- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
-          } yield{
+          } yield {
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
       }
@@ -2215,12 +2216,50 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId) // Get all accounts at the bank the user can see
-            (views, _) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId) // Get all views at the bank the user can access
-            canSeeBankAccountBalanceViews =  views.filter(_.canSeeBankAccountBalance) // Filter views which can read the balance
-            allowedAccounts = availablePrivateAccounts.intersect(canSeeBankAccountBalanceViews.map( i =>
-              BankIdAccountId(i.bankId, i.accountId))
-            ) // Filter out accounts the user has not permission to see balances
+            // Get all views at the bank the user can access
+            (views, availablePrivateAccounts) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            // Filter views which can read the balance
+            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
+            // Filter out accounts the user has not permission to see balances and remove duplicates
+            allowedAccounts = intersectAccountAccessAndView(availablePrivateAccounts, canSeeBankAccountBalanceViews)
+            (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalancesThroughView,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalancesThroughView),
+      "GET",
+      "/banks/BANK_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val getBankAccountsBalancesThroughView : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "views" :: ViewId(viewId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            (views, availablePrivateAccounts) = Views.views.vend.privateViewsUserCanAccessAtBankThroughViews(u, bankId, List(viewId)) // Get all views at the bank the user can access
+            _ <- Helper.booleanToFuture(CannotFindAccountAccess, 403, cc = callContext) {
+              views.nonEmpty
+            }
+            // Filter views which can read the balance
+            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
+            // Filter out accounts the user has not permission to see balances and remove duplicates
+            allowedAccounts = intersectAccountAccessAndView(availablePrivateAccounts, canSeeBankAccountBalanceViews)
             (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
           } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
@@ -2230,6 +2269,14 @@ trait APIMethods510 {
 
 
 
+  }
+
+  private def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]) = {
+    accountAccesses.map(item =>
+      BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get))
+    ).intersect(views.map(item =>
+      BankIdAccountId(item.bankId, item.accountId))
+    ).distinct
   }
 }
 
