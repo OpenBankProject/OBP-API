@@ -3364,9 +3364,14 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
-          } yield{
+            // Get all account accesses at the bank for the user
+            (views, accountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            // Filter views which can read the balance
+            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
+            // Filter accounts the user has permission to see balances and remove duplicates
+            allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
@@ -3391,10 +3396,18 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            bankIdAcconutId <- NewStyle.function.tryons(s"$CannotFindAccountAccess AccountId(${accountId.value})", 400, cc.callContext) {availablePrivateAccounts.find(_.accountId==accountId).get}
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(bankIdAcconutId, callContext)
-          } yield{
+            // Get all account accesses at the bank for the user
+            (views, accountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            // Filter views which can read the balance
+            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
+            // Filter accounts the user has permission to see balances and remove duplicates
+            allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
+            msg = s"$CannotFindAccountAccess AccountId(${accountId.value})"
+            bankIdAccountId <- NewStyle.function.tryons(msg, 400, cc.callContext) {
+              allowedAccounts.find(_.accountId==accountId).get
+            }
+            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
+          } yield {
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
       }

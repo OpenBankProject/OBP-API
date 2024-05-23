@@ -122,6 +122,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.etag.MappedETag
 import code.users.Users
+import code.views.system.AccountAccess
 import net.liftweb.mapper.By
 
 import scala.collection.mutable
@@ -4925,4 +4926,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
+
+  def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
+    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
+      .intersect(views.map(item => item.viewId.value)).distinct // Join view definition and account access via view_id
+    accountAccesses
+      .filter(i => intersectedViewIds.contains(i.view_id.get))
+      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
+      .distinct // List pairs (bank_id, account_id)
+  }
 }

@@ -2260,7 +2260,7 @@ trait APIMethods510 {
             // Filter views which can read the balance
             canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
             // Filter accounts the user has permission to see balances and remove duplicates
-            allowedAccounts = intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
+            allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
             (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
           } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
@@ -2269,16 +2269,6 @@ trait APIMethods510 {
     }
 
 
-
-  }
-
-  private def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
-    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
-      .intersect(views.map(item => item.viewId.value)).distinct // Join view definition and account access via view_id
-    accountAccesses
-      .filter(i => intersectedViewIds.contains(i.view_id.get))
-      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
-      .distinct // List pairs (bank_id, account_id)
   }
 }
 
