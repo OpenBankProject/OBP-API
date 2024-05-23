@@ -84,7 +84,9 @@ trait Views {
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
-  def privateViewsUserCanAccessAtBankThroughViews(user: User, bankId: BankId, viewIds: List[ViewId]): (List[View], List[AccountAccess])
+  def getAccountAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId): (List[View], List[AccountAccess]) =
+    getAccountAccessAtBankThroughViews(user, bankId, List(viewId))
+  def getAccountAccessAtBankThroughViews(user: User, bankId: BankId, viewIds: List[ViewId]): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
