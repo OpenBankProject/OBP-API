@@ -84,6 +84,7 @@ trait Views {
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
+  def getAccountAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
@@ -150,6 +151,7 @@ class RemotedataViewsCaseClasses {
   case class privateViewsUserCanAccess(user: User)
   case class privateViewsUserCanAccessViaViewId(user: User, viewIds: List[ViewId])
   case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
+  case class privateViewsUserCanAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId)
   case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)
   case class publicViews()

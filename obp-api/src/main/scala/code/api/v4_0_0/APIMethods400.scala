@@ -29,7 +29,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
-import code.api.util.newstyle.UserCustomerLinkNewStyle
+import code.api.util.newstyle.{BalanceNewStyle, UserCustomerLinkNewStyle}
 import code.api.util.newstyle.UserCustomerLinkNewStyle.getUserCustomerLinks
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -3346,9 +3346,9 @@ trait APIMethods400 extends MdcLoggable {
     }
 
     staticResourceDocs += ResourceDoc(
-      getBankAccountsBalances,
+      getBankAccountsBalancesForCurrentUser,
       implementedInApiVersion,
-      nameOf(getBankAccountsBalances),
+      nameOf(getBankAccountsBalancesForCurrentUser),
       "GET",
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
@@ -3359,14 +3359,14 @@ trait APIMethods400 extends MdcLoggable {
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
-    lazy val getBankAccountsBalances : OBPEndpoint = {
+    lazy val getBankAccountsBalancesForCurrentUser : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
-          } yield{
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            (accountsBalances, callContext)<- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
@@ -3391,10 +3391,13 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            bankIdAcconutId <- NewStyle.function.tryons(s"$CannotFindAccountAccess AccountId(${accountId.value})", 400, cc.callContext) {availablePrivateAccounts.find(_.accountId==accountId).get}
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(bankIdAcconutId, callContext)
-          } yield{
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            msg = s"$CannotFindAccountAccess AccountId(${accountId.value})"
+            bankIdAccountId <- NewStyle.function.tryons(msg, 400, cc.callContext) {
+              allowedAccounts.find(_.accountId==accountId).get
+            }
+            (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, callContext)
+          } yield {
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
       }
