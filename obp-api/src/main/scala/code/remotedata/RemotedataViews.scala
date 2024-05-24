@@ -119,8 +119,8 @@ object RemotedataViews extends ObpActorInit with Views {
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) = getValueFromFuture(
     (actor ? cc.privateViewsUserCanAccessAtBank(user, bankId)).mapTo[(List[View], List[AccountAccess])]
   )
-  def getAccountAccessAtBankThroughViews(user: User, bankId: BankId, viewIds: List[ViewId]): ((List[View], List[AccountAccess])) = getValueFromFuture(
-    (actor ? cc.privateViewsUserCanAccessAtBankThroughViews(user, bankId, viewIds)).mapTo[(List[View], List[AccountAccess])]
+  def getAccountAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId): ((List[View], List[AccountAccess])) = getValueFromFuture(
+    (actor ? cc.privateViewsUserCanAccessAtBankThroughView(user, bankId, viewId)).mapTo[(List[View], List[AccountAccess])]
   )
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] = getValueFromFuture(

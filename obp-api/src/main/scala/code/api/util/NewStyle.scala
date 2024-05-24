@@ -383,21 +383,9 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
-      Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
-      }
-    }
-
     def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[FastFirehoseAccount]] = {
       Connector.connector.vend.getBankAccountsWithAttributes(bankId, queryParams, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccountsWithAttributes", 400 ), i._2)
-      }
-    }
-
-    def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[AccountBalances] = {
-      Connector.connector.vend.getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
       }
     }
 

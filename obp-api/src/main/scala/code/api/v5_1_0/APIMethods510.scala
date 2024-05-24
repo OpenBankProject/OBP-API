@@ -12,6 +12,7 @@ import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
+import code.api.util.newstyle.BalanceNewStyle
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
@@ -2186,7 +2187,7 @@ trait APIMethods510 {
             _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
               view.canSeeBankAccountBalance
             }
-            (accountBalances, callContext) <- NewStyle.function.getBankAccountBalances(bankIdAccountId, callContext)
+            (accountBalances, callContext) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, callContext)
           } yield {
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
@@ -2216,13 +2217,8 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            // Get all account accesses at the bank for the user
-            (views, accountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            // Filter views which can read the balance
-            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
-            // Filter accounts the user has permission to see balances and remove duplicates
-            allowedAccounts = intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
-            (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            (accountsBalances, callContext) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
           } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
@@ -2252,16 +2248,8 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            // Get all account accesses at the bank for the user
-            (views, accountAccesses) = Views.views.vend.getAccountAccessAtBankThroughView(u, bankId, viewId)
-            _ <- Helper.booleanToFuture(CannotFindAccountAccess, 403, cc = callContext) {
-              views.nonEmpty
-            }
-            // Filter views which can read the balance
-            canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
-            // Filter accounts the user has permission to see balances and remove duplicates
-            allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
-            (accountsBalances, callContext) <- NewStyle.function.getBankAccountsBalances(allowedAccounts, callContext)
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBankThroughView(u, bankId, viewId, callContext)
+            (accountsBalances, callContext) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
           } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
