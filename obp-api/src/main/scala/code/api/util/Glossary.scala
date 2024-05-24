@@ -3009,10 +3009,10 @@ object Glossary extends MdcLoggable  {
 		title = "Account Access",
 		description =
 			s"""
-   |Account Access is OBP View system. The Account owners can create the view themselves.
-   |And they can grant/revoke the view to other users to use their view.
+   |Account Access governs access to Bank Accounts by end Users. It is an intersecting entity between the User and the View Definition.
+   |A User must have at least one Account Access record record in order to interact with a Bank Account over the OBP API.
    |""".stripMargin)
-	
+
 //	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
 //	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
 //	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
