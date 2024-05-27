@@ -9,7 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import code.views.system.ViewDefinition.create
-import code.views.system.{AccountAccess, ViewDefinition}
+import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{Ascending, By, ByList, NullRef, OrderBy, PreCache, Schemifier}
@@ -648,11 +648,141 @@ object MapperViews extends Views with MdcLoggable {
     
     theView
   }
+
+//  private def migrateViewPermissions(view: View) = {
+//    ViewPermission.findViewPermissions(view.viewId).find(_.permission.get == "canSeeBankAccountBalance") match {
+//      case Some(permission) if !view.canSeeBankAccountBalance =>
+//        ViewPermission.delete_!(permission)
+//      case Some(permission) if view.canSeeBankAccountBalance =>
+//        // View definition is in accordance with View permission
+//      case _ => ViewPermission.create
+//        .bank_id(null)
+//        .account_id(null)
+//        .view_id(view.viewId.value)
+//        .permission("canSeeBankAccountBalance")
+//        .save
+//    }
+//  }
+
+  private def migrateViewPermissions(view: View): Unit = {
+    val permissionNames = List(
+      "canSeeTransactionOtherBankAccount",
+      "canSeeTransactionMetadata",
+      "canSeeTransactionDescription",
+      "canSeeTransactionAmount",
+      "canSeeTransactionType",
+      "canSeeTransactionCurrency",
+      "canSeeTransactionStartDate",
+      "canSeeTransactionFinishDate",
+      "canSeeTransactionBalance",
+      "canSeeComments",
+      "canSeeOwnerComment",
+      "canSeeTags",
+      "canSeeImages",
+      "canSeeBankAccountOwners",
+      "canSeeBankAccountType",
+      "canSeeBankAccountBalance",
+      "canQueryAvailableFunds",
+      "canSeeBankAccountLabel",
+      "canSeeBankAccountNationalIdentifier",
+      "canSeeBankAccountSwift_bic",
+      "canSeeBankAccountIban",
+      "canSeeBankAccountNumber",
+      "canSeeBankAccountBankName",
+      "canSeeBankAccountBankPermalink",
+      "canSeeBankRoutingScheme",
+      "canSeeBankRoutingAddress",
+      "canSeeBankAccountRoutingScheme",
+      "canSeeBankAccountRoutingAddress",
+      "canSeeOtherAccountNationalIdentifier",
+      "canSeeOtherAccountSWIFT_BIC",
+      "canSeeOtherAccountIBAN",
+      "canSeeOtherAccountBankName",
+      "canSeeOtherAccountNumber",
+      "canSeeOtherAccountMetadata",
+      "canSeeOtherAccountKind",
+      "canSeeOtherBankRoutingScheme",
+      "canSeeOtherBankRoutingAddress",
+      "canSeeOtherAccountRoutingScheme",
+      "canSeeOtherAccountRoutingAddress",
+      "canSeeMoreInfo",
+      "canSeeUrl",
+      "canSeeImageUrl",
+      "canSeeOpenCorporatesUrl",
+      "canSeeCorporateLocation",
+      "canSeePhysicalLocation",
+      "canSeePublicAlias",
+      "canSeePrivateAlias",
+      "canAddMoreInfo",
+      "canAddURL",
+      "canAddImageURL",
+      "canAddOpenCorporatesUrl",
+      "canAddCorporateLocation",
+      "canAddPhysicalLocation",
+      "canAddPublicAlias",
+      "canAddPrivateAlias",
+      "canAddCounterparty",
+      "canGetCounterparty",
+      "canDeleteCounterparty",
+      "canDeleteCorporateLocation",
+      "canDeletePhysicalLocation",
+      "canEditOwnerComment",
+      "canAddComment",
+      "canDeleteComment",
+      "canAddTag",
+      "canDeleteTag",
+      "canAddImage",
+      "canDeleteImage",
+      "canAddWhereTag",
+      "canSeeWhereTag",
+      "canDeleteWhereTag",
+      "canAddTransactionRequestToOwnAccount",
+      "canAddTransactionRequestToAnyAccount",
+      "canSeeBankAccountCreditLimit",
+      "canCreateDirectDebit",
+      "canCreateStandingOrder",
+      "canRevokeAccessToCustomViews",
+      "canGrantAccessToCustomViews",
+      "canSeeTransactionRequests",
+      "canSeeTransactionRequestTypes",
+      "canSeeAvailableViewsForBankAccount",
+      "canUpdateBankAccountLabel",
+      "canCreateCustomView",
+      "canDeleteCustomView",
+      "canUpdateCustomView",
+      "canSeeViewsWithPermissionsForAllUsers",
+      "canSeeViewsWithPermissionsForOneUser"
+    )
+
+    permissionNames.foreach { permissionName =>
+      // Get permission value
+      val permissionValue = view.getClass.getMethod(permissionName).invoke(view).asInstanceOf[Boolean]
+
+      ViewPermission.findViewPermissions(view.viewId).find(_.permission.get == permissionName) match {
+        case Some(permission) if !permissionValue =>
+          ViewPermission.delete_!(permission)
+        case Some(permission) if permissionValue =>
+          // View definition is in accordance with View permission
+        case _ =>
+          ViewPermission.create
+            .bank_id(null)
+            .account_id(null)
+            .view_id(view.viewId.value)
+            .permission(permissionName)
+            .save
+      }
+    }
+  }
   
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
-      case Empty => createDefaultSystemView(viewId)
-      case Full(v) => Full(v)
+      case Empty =>
+        val view = createDefaultSystemView(viewId)
+        view.map(v => migrateViewPermissions(v))
+        view
+      case Full(v) =>
+        migrateViewPermissions(v)
+        Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
