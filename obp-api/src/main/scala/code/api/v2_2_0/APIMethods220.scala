@@ -442,7 +442,7 @@ trait APIMethods220 {
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
-      List(UnknownError),
+      List(InvalidConnector, UnknownError),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -452,7 +452,7 @@ trait APIMethods220 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             connectorObject <- Future(tryo{Connector.getConnectorInstance(connector)}) map { i =>
-              val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vSept2018..."
+              val msg = s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vSept2018..."
               unboxFullOrFail(i, cc.callContext, msg)
             }
           } yield {

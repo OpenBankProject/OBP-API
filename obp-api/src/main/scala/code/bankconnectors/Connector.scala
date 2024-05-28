@@ -81,6 +81,7 @@ object Connector extends SimpleInjector {
   // An object is a class that has exactly one instance. It is created lazily when it is referenced, like a lazy val.
   // As a top-level value, an object is a singleton.
   // As a member of an enclosing class or as a local value, it behaves exactly like a lazy val.
+  // Previously the right hand part was surrounded by Functions.lazyValue function
   val nameToConnector: Map[String, Connector] = Map(
     "mapped" -> LocalMappedConnector,
     "akka_vDec2018" -> AkkaConnector_vDec2018,
@@ -97,7 +98,7 @@ object Connector extends SimpleInjector {
     connectorVersion match {
       case "star" => StarConnector
       case k => nameToConnector.get(k)
-        .getOrElse(throw new RuntimeException(s"Do not Support this connector version: $k"))
+        .getOrElse(throw new RuntimeException(s"$InvalidConnector Current Input is $k"))
     }
   }
 
