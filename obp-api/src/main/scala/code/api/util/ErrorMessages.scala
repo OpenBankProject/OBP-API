@@ -474,7 +474,7 @@ object ErrorMessages {
   val InsufficientAuthorisationToDeleteBranch  = "OBP-30218: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
   val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
-  val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."
+  val InvalidConnector = "OBP-30211: Invalid Connector. Please specify a valid value for CONNECTOR."
 
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val UserDoesNotHaveEntitlement = "OBP-30213: USER_ID does not have the ENTITLEMENT_ID."

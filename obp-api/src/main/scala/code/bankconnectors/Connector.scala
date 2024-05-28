@@ -78,25 +78,27 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
  */
 
 object Connector extends SimpleInjector {
-
-  val nameToConnector: Map[String, () => Connector] = Map(
-    "mapped" -> lazyValue(LocalMappedConnector),
-    "akka_vDec2018" -> lazyValue(AkkaConnector_vDec2018),
-    "kafka_vSept2018" -> lazyValue(KafkaMappedConnector_vSept2018),
-    "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
-    "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
-    "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
+  // An object is a class that has exactly one instance. It is created lazily when it is referenced, like a lazy val.
+  // As a top-level value, an object is a singleton.
+  // As a member of an enclosing class or as a local value, it behaves exactly like a lazy val.
+  // Previously the right hand part was surrounded by Functions.lazyValue function
+  val nameToConnector: Map[String, Connector] = Map(
+    "mapped" -> LocalMappedConnector,
+    "akka_vDec2018" -> AkkaConnector_vDec2018,
+    "kafka_vSept2018" -> KafkaMappedConnector_vSept2018,
+    "kafka_vMay2019" -> KafkaMappedConnector_vMay2019,
+    "rest_vMar2019" -> RestConnector_vMar2019,
+    "stored_procedure_vDec2019" -> StoredProcedureConnector_vDec2019,
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
-    "proxy" -> lazyValue(ConnectorUtils.proxyConnector),
-    "internal" -> lazyValue(InternalConnector.instance)
+    "proxy" -> ConnectorUtils.proxyConnector,
+    "internal" -> InternalConnector.instance
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {
     connectorVersion match {
       case "star" => StarConnector
       case k => nameToConnector.get(k)
-        .map(f => f())
-        .getOrElse(throw new RuntimeException(s"Do not Support this connector version: $k"))
+        .getOrElse(throw new RuntimeException(s"$InvalidConnector Current Input is $k"))
     }
   }
 

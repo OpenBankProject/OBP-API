@@ -19,5 +19,11 @@ object ViewPermission extends ViewPermission with LongKeyedMetaMapper[ViewPermis
       By(ViewPermission.bank_id, bankId.value),
       By(ViewPermission.account_id, accountId.value),
       By(ViewPermission.view_id, viewId.value)
+    )  // Very working progress
+  def findViewPermissions(viewId: ViewId): List[ViewPermission] =
+    ViewPermission.findAll(
+      NullRef(ViewPermission.bank_id),
+      NullRef(ViewPermission.account_id),
+      By(ViewPermission.view_id, viewId.value)
     )
 }
