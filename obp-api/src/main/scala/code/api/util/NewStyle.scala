@@ -3460,7 +3460,7 @@ object NewStyle extends MdcLoggable{
 
     def getConnectorByName(connectorName: String): Option[Connector] = {
       if(supportedConnectorNames.exists(connectorName.startsWith _)) {
-        Connector.nameToConnector.get(connectorName).map(_())
+        Connector.nameToConnector.get(connectorName)
       } else {
         None
       }
