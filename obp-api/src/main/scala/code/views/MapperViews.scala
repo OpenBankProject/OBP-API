@@ -649,21 +649,6 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
 
-//  private def migrateViewPermissions(view: View) = {
-//    ViewPermission.findViewPermissions(view.viewId).find(_.permission.get == "canSeeBankAccountBalance") match {
-//      case Some(permission) if !view.canSeeBankAccountBalance =>
-//        ViewPermission.delete_!(permission)
-//      case Some(permission) if view.canSeeBankAccountBalance =>
-//        // View definition is in accordance with View permission
-//      case _ => ViewPermission.create
-//        .bank_id(null)
-//        .account_id(null)
-//        .view_id(view.viewId.value)
-//        .permission("canSeeBankAccountBalance")
-//        .save
-//    }
-//  }
-
   private def migrateViewPermissions(view: View): Unit = {
     val permissionNames = List(
       "canSeeTransactionOtherBankAccount",

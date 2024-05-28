@@ -273,7 +273,6 @@ class Boot extends MdcLoggable {
 
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views
-      org.scalameta.logger.elem("I am creating system views")
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
