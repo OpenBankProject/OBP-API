@@ -31,7 +31,7 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |${Helper.alterColumnIfExists("accountaccess", "consumer_id", ALL_CONSUMERS)}
+                    |${Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS)}
                     |${Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk")}
                     |""".stripMargin
               case _ =>

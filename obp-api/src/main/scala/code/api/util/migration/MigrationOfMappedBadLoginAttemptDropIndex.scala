@@ -1,11 +1,11 @@
 package code.api.util.migration
 
-import code.api.Constant
 import code.api.util.{APIUtil, DBUtil}
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.loginattempts.MappedBadLoginAttempt
 import net.liftweb.mapper.{DB, Schemifier}
-import net.liftweb.util.DefaultConnectionIdentifier
+import net.liftweb.common.Full
+import code.util.Helper
 import scalikejdbc.DB.CPContext
 import scalikejdbc._
 import java.time.format.DateTimeFormatter
@@ -44,7 +44,12 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match    {
+            APIUtil.getPropsValue("db.driver") match {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  s"""
+                     |${Helper.dropIndexIfExists("mappedbadloginattempt", "mappedbadloginattempt_musername")}
+                     |""".stripMargin
               case _ =>
                 () => "DROP INDEX IF EXISTS mappedbadloginattempt_musername;"
             }

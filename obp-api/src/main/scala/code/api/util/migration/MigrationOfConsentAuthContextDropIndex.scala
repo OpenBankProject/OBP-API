@@ -4,6 +4,7 @@ import code.api.util.{APIUtil, DBUtil}
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.context.MappedConsentAuthContext
 import net.liftweb.common.Full
+import code.util.Helper
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 import scalikejdbc.DB.CPContext
@@ -46,10 +47,15 @@ object MigrationOfConsentAuthContextDropIndex {
         
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match    {
+            APIUtil.getPropsValue("db.driver") match {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  s"""
+                     |${Helper.dropIndexIfExists("MappedConsentAuthContext", "consentauthcontext_consentid_key_c")}
+                     |""".stripMargin
               case _ =>
                 () => "DROP INDEX IF EXISTS consentauthcontext_consentid_key_c;"
-            }
+              }
           }
         
         val endDate = System.currentTimeMillis()

@@ -518,7 +518,7 @@ object Helper extends Loggable {
     enhancer.create().asInstanceOf[S]
   }
 
-  def alterColumnIfExists(tableName: String, columName: String, default: String) =
+  def addColumnIfNotExists(tableName: String, columName: String, default: String) =
     s"""
        |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName' AND COLUMN_NAME = '$columName')
        |BEGIN

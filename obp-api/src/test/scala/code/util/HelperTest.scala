@@ -73,7 +73,7 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
            |    ALTER TABLE accountaccess ADD consumer_id VARCHAR(255) DEFAULT '$ALL_CONSUMERS';
            |END""".stripMargin
 
-      Helper.alterColumnIfExists("accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
+      Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
     }
 
     scenario(s"test case 2") {
