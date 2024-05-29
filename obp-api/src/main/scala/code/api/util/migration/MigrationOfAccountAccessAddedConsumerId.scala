@@ -3,6 +3,7 @@ package code.api.util.migration
 import code.api.Constant.ALL_CONSUMERS
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.util.Helper
 import code.views.system.AccountAccess
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
@@ -30,17 +31,8 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |-- Check if column 'consumer_id' already exists
-                    |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'accountaccess' AND COLUMN_NAME = 'consumer_id')
-                    |BEGIN
-                    |    ALTER TABLE accountaccess ADD consumer_id VARCHAR(255) DEFAULT '$ALL_CONSUMERS';
-                    |END
-                    |
-                    |-- Drop index if it exists
-                    |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'accountaccess_bank_id_account_id_view_fk_user_fk' AND object_id = OBJECT_ID('accountaccess'))
-                    |BEGIN
-                    |    DROP INDEX accountaccess.accountaccess_bank_id_account_id_view_fk_user_fk;
-                    |END
+                    |${Helper.alterColumnIfExists("accountaccess", "consumer_id", ALL_CONSUMERS)}
+                    |${Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk")}
                     |""".stripMargin
               case _ =>
                 () =>
