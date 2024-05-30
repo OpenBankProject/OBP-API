@@ -341,7 +341,8 @@ class WebUI extends MdcLoggable{
     val webuiSubscriptionsButtonText = getWebUiPropsValue("webui_subscriptions_button_text", s"")
 
     if (webuiSubscriptionsButtonText.isEmpty) {
-      ".subscriptions-button [style]" #> "display:none"
+      ".subscriptions-button [style]" #> "display:none"&
+      ".btn-default [style]" #> "display:none"
     } else {
       ".subscriptions-button [href]" #> scala.xml.Unparsed(webuiSubscriptionsUrl) &
         ".subscriptions-button-text *" #> scala.xml.Unparsed(webuiSubscriptionsButtonText)
@@ -355,7 +356,7 @@ class WebUI extends MdcLoggable{
     if (webuiSubscriptionsInvitationText.isEmpty) {
       ".subscriptions_invitation_text [style]" #> "display:none"
     } else {
-      ".subscriptions_invitation_text_value *" #> scala.xml.Unparsed(webuiSubscriptionsInvitationText)
+      ".subscriptions_invitation_text *" #> scala.xml.Unparsed(webuiSubscriptionsInvitationText)
     }
   }
   
