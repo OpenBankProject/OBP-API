@@ -331,6 +331,30 @@ class WebUI extends MdcLoggable{
     "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(webUiApiDocumentation)
   }
 
+  def subscriptionsButton: CssSel = {
+    val webuiSubscriptionsUrl = getWebUiPropsValue("webui_subscriptions_url", s"")
+    val webuiSubscriptionsButtonText = getWebUiPropsValue("webui_subscriptions_button_text", s"")
+
+    if (webuiSubscriptionsButtonText.isEmpty) {
+      ".subscriptions-button [style]" #> "display:none"&
+      ".btn-default [style]" #> "display:none"
+    } else {
+      ".subscriptions-button [href]" #> scala.xml.Unparsed(webuiSubscriptionsUrl) &
+        ".subscriptions-button-text *" #> scala.xml.Unparsed(webuiSubscriptionsButtonText)
+    }
+  }
+  
+
+  def subscriptionsInvitationText: CssSel = {
+    val webuiSubscriptionsInvitationText = getWebUiPropsValue("webui_subscriptions_invitation_text", s"")
+
+    if (webuiSubscriptionsInvitationText.isEmpty) {
+      ".subscriptions_invitation_text [style]" #> "display:none"
+    } else {
+      ".subscriptions_invitation_text *" #> scala.xml.Unparsed(webuiSubscriptionsInvitationText)
+    }
+  }
+  
   def technicalFaqsAnchor: CssSel = {
     "#technical-faqs-anchor [href]" #> scala.xml.Unparsed(s"${getServerUrl}#technical-faqs")
   }

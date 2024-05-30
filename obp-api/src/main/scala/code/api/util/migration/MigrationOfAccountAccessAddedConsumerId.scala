@@ -3,6 +3,7 @@ package code.api.util.migration
 import code.api.Constant.ALL_CONSUMERS
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.util.Helper
 import code.views.system.AccountAccess
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
@@ -30,8 +31,8 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |ALTER TABLE accountaccess ADD COLUMN IF NOT EXISTS "consumer_id" character varchar(255) DEFAULT '$ALL_CONSUMERS';
-                    |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
+                    |${Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS)}
+                    |${Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk")}
                     |""".stripMargin
               case _ =>
                 () =>

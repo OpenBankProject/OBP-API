@@ -28,14 +28,14 @@
 package code.util
 
 
+import code.api.Constant.ALL_CONSUMERS
 import code.api.util._
 import code.setup.PropsReset
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
-
 class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
-  feature("test APIUtil.getStaticPortionOfRedirectURL method") {
+  feature("test Helper.getStaticPortionOfRedirectURL method") {
     // The redirectURl is `http://localhost:8082/oauthcallback`
     val testString1 = "http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
     val testString2 = "http://localhost:8082?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
@@ -50,7 +50,7 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
     Helper.getStaticPortionOfRedirectURL(testString5).head should be("http://127.0.0.1:8000/oauth/authorize")
   }
   
-  feature("test APIUtil.getHostOnlyOfRedirectURL method") {
+  feature("test Helper.getHostOnlyOfRedirectURL method") {
     // The redirectURl is `http://localhost:8082/oauthcallback`
     val testString1 = "http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018"
     val testString2 = "http://localhost:8082/oauthcallback"
@@ -61,6 +61,32 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
     Helper.getHostOnlyOfRedirectURL(testString2).head should be("http://localhost:8082")
     Helper.getHostOnlyOfRedirectURL(testString3).head should be("http://localhost:8082")
     Helper.getHostOnlyOfRedirectURL(testString4).head should be("http://localhost:8082")
+  }
+
+  feature(s"test Helper.getIfNotExistsAddedColumLengthForMsSqlServer method") {
+
+    scenario(s"test case 1") {
+      val expectedValue =
+        s"""
+           |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'accountaccess' AND COLUMN_NAME = 'consumer_id')
+           |BEGIN
+           |    ALTER TABLE accountaccess ADD consumer_id VARCHAR(255) DEFAULT '$ALL_CONSUMERS';
+           |END""".stripMargin
+
+      Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
+    }
+
+    scenario(s"test case 2") {
+      val expectedValue =
+        s"""
+           |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'accountaccess_bank_id_account_id_view_fk_user_fk' AND object_id = OBJECT_ID('accountaccess'))
+           |BEGIN
+           |    DROP INDEX accountaccess.accountaccess_bank_id_account_id_view_fk_user_fk;
+           |END""".stripMargin
+
+      Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk") should be(expectedValue)
+    }
+    
   }
 
 }

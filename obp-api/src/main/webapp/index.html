@@ -40,7 +40,8 @@ Berlin 13359, Germany
 <!--                    <a href="/consumer-registration" class="btn btn-default">Get API key</a>-->
                     <!--						<a class="sofi-link btn btn-default" data-lift="WebUI.sofiLink" href="">SOFIT</a>-->
                     <!--						<a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">INTRODUCTION</a>-->
-
+                    <a class="btn btn-default subscriptions-button" data-lift="WebUI.subscriptionsButton" href="">
+                        <lift:loc locid="subscriptions"><div class ="subscriptions-button-text">Subscriptions</div></lift:loc></a>
                 </div>
             </div>
         </div>
@@ -58,8 +59,11 @@ Berlin 13359, Germany
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
                 <h3><lift:loc locid="get_started_create_account_title">Create an account</lift:loc></h3>
-                <p><lift:loc locid="get_started_create_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage.</lift:loc><a href="/user_mgt/sign_up"><lift:loc locid="register_for_an_account">Register for an account</lift:loc>
+                <p><lift:loc locid="get_started_create_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage. </lift:loc><a href="/user_mgt/sign_up"><lift:loc locid="register_for_an_account">Register for an account</lift:loc>
                         </a>.</p>
+                <p data-lift="WebUI.subscriptionsInvitationText" class ="subscriptions_invitation_text"> </lift:loc>
+                        </p>
+                </a>
             </div>
         </div>
         <div class="row">
@@ -318,6 +322,11 @@ Berlin 13359, Germany
                 <div class="btn btn-default pull-left">
                     <a href="/consumer-registration">
                         <lift:loc locid="get_api_key">Get API key</lift:loc></a>
+                </div>
+                <div data-lift="WebUI.subscriptionsButton"  class="btn btn-default pull-left" id ="subscriptions-button-div">
+                    <a class="subscriptions-button" href="">
+                        <lift:loc locid="subscriptions"><div class ="subscriptions-button-text">Subscriptions</div></lift:loc>
+                    </a>
                 </div>
             </div>
     

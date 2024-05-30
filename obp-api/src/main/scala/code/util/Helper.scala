@@ -523,4 +523,20 @@ object Helper extends Loggable {
     enhancer.create().asInstanceOf[S]
   }
 
+  def addColumnIfNotExists(tableName: String, columName: String, default: String) =
+    s"""
+       |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName' AND COLUMN_NAME = '$columName')
+       |BEGIN
+       |    ALTER TABLE $tableName ADD $columName VARCHAR(255) DEFAULT '$default';
+       |END""".stripMargin
+
+
+  def dropIndexIfExists(tableName: String, index: String) =
+    s"""
+       |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
+       |BEGIN
+       |    DROP INDEX $tableName.$index;
+       |END""".stripMargin
+
+
 }
