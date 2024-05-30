@@ -2729,6 +2729,15 @@ object Glossary extends MdcLoggable  {
 |
 |
  """)
+	glossaryItems += GlossaryItem(
+		title = "Qualified Certificate Profiles (PSD2 context)",
+		description =
+			s"""
+				 |An overview of the Qualified Certificate Profiles.
+				 |
+				 |<img width="700" alt="qualified-certificate-profiles"  src="$getServerUrl/media/images/glossary/Qualified_Certificate_Profiles.png"></img>
+				 |
+				 | """.stripMargin)
 
 	glossaryItems += GlossaryItem(
 		title = "Consumer, Consent, Transport and Payload Security",
@@ -2753,9 +2762,9 @@ object Glossary extends MdcLoggable  {
 |## JWS
 |
 |The Request is signed by the Consumer with a JWS using the client certificate of the Consumer. Example: [OBP-Hola private void requestIntercept](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/40359cf569a814c1aec4ce593303b39ddf9bdded/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L106)
-|The Request is validated by the OBP API Server using the JWS provided by the Consumer. See [OBP-API def verifySignedRequest](https://github.com/OpenBankProject/OBP-API/blob/752044a35ca73ea4d3563c6ced57ee80903b6d30/obp-api/src/main/scala/code/api/util/JwsUtil.scala#L121)
+|The Request is verified by the OBP API Server using the JWS provided by the Consumer. See [OBP-API def verifySignedRequest](https://github.com/OpenBankProject/OBP-API/blob/752044a35ca73ea4d3563c6ced57ee80903b6d30/obp-api/src/main/scala/code/api/util/JwsUtil.scala#L121)
 |The Response is signed by the OBP API Server with a JWS. See [OBP-API def signResponse](https://github.com/OpenBankProject/OBP-API/blob/752044a35ca73ea4d3563c6ced57ee80903b6d30/obp-api/src/main/scala/code/api/util/JwsUtil.scala#L233)
-|The Response is validated by the Client using the JWS provided by the OBP API Server. Example: [OBP-Hola private void responseIntercept](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/c2e4589ad7e6e6b156b54e535bdcd93638317ff7/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L121)
+|The Response is verified by the Client using the JWS provided by the OBP API Server. Example: [OBP-Hola private void responseIntercept](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/c2e4589ad7e6e6b156b54e535bdcd93638317ff7/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L121)
 |
 |
 |## Consent
@@ -3183,6 +3192,11 @@ object Glossary extends MdcLoggable  {
 			description =
 				s"""A Qualified Website Authentication Certificate is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.
 					 |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
+
+		glossaryItems += GlossaryItem(
+			title = "Dynamic linking (PSD2 context)",
+			description =
+				s"""""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "TPP",

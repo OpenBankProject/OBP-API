@@ -58,11 +58,7 @@ class WebUI extends MdcLoggable{
     * @return html code
     */
   def makeHtml(text: String) = {
-    val hasHtmlTag = """<[^>]*>""".r.findFirstIn(text).isDefined
-    hasHtmlTag match {
-      case false => PegdownOptions.convertGitHubDocMarkdownToHtml(text)
-      case true => text
-    }
+    PegdownOptions.convertGitHubDocMarkdownToHtml(text)
   }
 
   def currentPage = {
