@@ -5,6 +5,7 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.util.Helper
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
@@ -28,12 +29,16 @@ object MigrationOfAuthUser {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
-                  """
+                  s"""
+                    |${Helper.dropIndexIfExists("authUser", "authuser_username_provider")}
+                    |
                     |ALTER TABLE authuser ALTER COLUMN username varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN provider varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN firstname varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN lastname varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN email varchar(100);
+                    |
+                    |${Helper.createIndexIfNotExists("authUser", "authuser_username_provider")}
                     |""".stripMargin
               case _ =>
                 () =>

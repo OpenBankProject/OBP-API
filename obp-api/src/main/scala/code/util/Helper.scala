@@ -532,6 +532,13 @@ object Helper extends Loggable {
        |BEGIN
        |    DROP INDEX $tableName.$index;
        |END""".stripMargin
+       
+  def createIndexIfNotExists(tableName: String, index: String) =
+    s"""
+       |IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
+       |BEGIN
+       |    CREATE INDEX $index on $tableName(${index.split("_").drop(1).mkString(",")});
+       |END""".stripMargin
 
 
 }
