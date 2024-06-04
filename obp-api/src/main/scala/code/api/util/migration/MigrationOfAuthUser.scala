@@ -84,11 +84,12 @@ object MigrationOfAuthUser {
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  s"""${Helper.dropIndexIfExists("authuser", "authuser_username")}"""
               case _ =>
                 () =>
-                  """
-                    |DROP INDEX IF EXISTS authuser_username;
-                    |""".stripMargin
+                  """DROP INDEX IF EXISTS authuser_username;""".stripMargin
             }
 
           }

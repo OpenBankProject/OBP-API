@@ -5,6 +5,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.context.MappedUserAuthContext
+import code.util.Helper
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
@@ -27,9 +28,14 @@ object MigrationOfUserAuthContextFieldLength {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
-                  """
+                  s"""
+                    |${Helper.dropIndexIfExists("mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
+                    |
                     |ALTER TABLE MappedUserAuthContext ALTER COLUMN mKey varchar(4000);
                     |ALTER TABLE MappedUserAuthContext ALTER COLUMN mValue varchar(4000);
+                    |
+                    |${Helper.createIndexIfNotExists("mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
+                    |
                     |""".stripMargin
               case _ =>
                 () =>
