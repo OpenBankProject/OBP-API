@@ -24,15 +24,9 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () =>
-                  s"""
-                     |${Helper.dropIndexIfExists("mappedbadloginattempt", "mappedbadloginattempt_musername")}
-                     |""".stripMargin
-              case _ =>
-                () => "DROP INDEX IF EXISTS mappedbadloginattempt_musername;"
-            }
+            val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
+            () =>
+              s"""${Helper.dropIndexIfExists(dbDriver, "mappedbadloginattempt", "mappedbadloginattempt_musername")}""".stripMargin
           }
         
         val endDate = System.currentTimeMillis()

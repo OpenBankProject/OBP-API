@@ -518,27 +518,40 @@ object Helper extends Loggable {
     enhancer.create().asInstanceOf[S]
   }
 
-  def addColumnIfNotExists(tableName: String, columName: String, default: String) =
-    s"""
-       |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName' AND COLUMN_NAME = '$columName')
-       |BEGIN
-       |    ALTER TABLE $tableName ADD $columName VARCHAR(255) DEFAULT '$default';
-       |END""".stripMargin
+  def addColumnIfNotExists(dbDriver: String, tableName: String, columName: String, default: String) = {
+    if (dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+      s"""
+         |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName' AND COLUMN_NAME = '$columName')
+         |BEGIN
+         |    ALTER TABLE $tableName ADD $columName VARCHAR(255) DEFAULT '$default';
+         |END""".stripMargin
+    else
+      s"""ALTER TABLE $tableName ADD COLUMN IF NOT EXISTS "$columName" character varying(255) DEFAULT '$default';""".stripMargin
+  }
 
 
-  def dropIndexIfExists(tableName: String, index: String) =
-    s"""
-       |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
-       |BEGIN
-       |    DROP INDEX $tableName.$index;
-       |END""".stripMargin
-       
-  def createIndexIfNotExists(tableName: String, index: String) =
-    s"""
-       |IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
-       |BEGIN
-       |    CREATE INDEX $index on $tableName(${index.split("_").drop(1).mkString(",")});
-       |END""".stripMargin
+  def dropIndexIfExists(dbDriver: String, tableName: String, index: String) = {
+    if (dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+      s"""
+         |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
+         |BEGIN
+         |    DROP INDEX $tableName.$index;
+         |END""".stripMargin
+    else
+      s"""DROP INDEX IF EXISTS $index;""".stripMargin
+  }
+
+
+  def createIndexIfNotExists(dbDriver: String, tableName: String, index: String) = {
+    if (dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+      s"""
+         |IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = '$index' AND object_id = OBJECT_ID('$tableName'))
+         |BEGIN
+         |    CREATE INDEX $index on $tableName(${index.split("_").drop(1).mkString(",")});
+         |END""".stripMargin
+    else
+      s"CREATE INDEX IF NOT EXISTS $index on $tableName(${index.split("_").drop(1).mkString(",")});"
+  }
 
 
 }

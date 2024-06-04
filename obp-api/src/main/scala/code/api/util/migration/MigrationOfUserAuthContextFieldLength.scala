@@ -29,12 +29,12 @@ object MigrationOfUserAuthContextFieldLength {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |${Helper.dropIndexIfExists("mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
+                    |${Helper.dropIndexIfExists(value,"mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
                     |
                     |ALTER TABLE MappedUserAuthContext ALTER COLUMN mKey varchar(4000);
                     |ALTER TABLE MappedUserAuthContext ALTER COLUMN mValue varchar(4000);
                     |
-                    |${Helper.createIndexIfNotExists("mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
+                    |${Helper.createIndexIfNotExists(value, "mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
                     |
                     |""".stripMargin
               case _ =>

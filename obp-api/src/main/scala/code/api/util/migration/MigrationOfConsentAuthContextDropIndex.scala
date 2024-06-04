@@ -27,15 +27,9 @@ object MigrationOfConsentAuthContextDropIndex {
         
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () =>
-                  s"""
-                     |${Helper.dropIndexIfExists("MappedConsentAuthContext", "consentauthcontext_consentid_key_c")}
-                     |""".stripMargin
-              case _ =>
-                () => "DROP INDEX IF EXISTS consentauthcontext_consentid_key_c;"
-              }
+            val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
+            () =>
+              s"""${Helper.dropIndexIfExists(dbDriver, "MappedConsentAuthContext", "consentauthcontext_consentid_key_c")}""".stripMargin
           }
         
         val endDate = System.currentTimeMillis()

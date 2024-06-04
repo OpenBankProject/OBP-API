@@ -27,20 +27,11 @@ object MigrationOfAccountAccessAddedConsumerId {
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match    {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () =>
-                  s"""
-                    |${Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS)}
-                    |${Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk")}
-                    |""".stripMargin
-              case _ =>
-                () =>
-                  s"""
-                    |ALTER TABLE accountaccess ADD COLUMN IF NOT EXISTS "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
-                    |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
-                    |""".stripMargin
-            }
+            val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")
+            () => s"""
+               |${Helper.addColumnIfNotExists(dbDriver,"accountaccess", "consumer_id", ALL_CONSUMERS)}
+               |${Helper.dropIndexIfExists(dbDriver, "accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk")}
+               |""".stripMargin
           }
 
         val endDate = System.currentTimeMillis()
