@@ -846,7 +846,7 @@ object JSONFactory300{
       )
     )
 
-  def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
+  def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount], user: User): CoreAccountsJsonV300 =
     CoreAccountsJsonV300(coreAccounts.map(coreAccount => CoreAccountJson(
       coreAccount.id,
       coreAccount.label,
@@ -854,7 +854,7 @@ object JSONFactory300{
       coreAccount.accountType,
       coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
       views = Views.views.vend
-        .assignedViewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
+        .privateViewsUserCanAccessForAccount(user, BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
         .map(mappedView =>
           ViewBasicV300(
             mappedView.viewId.value,
