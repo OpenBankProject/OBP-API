@@ -2,41 +2,18 @@ package code.api.util.migration
 
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
-
-import code.api.Constant
 import code.api.util.{APIUtil, DBUtil}
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.context.MappedUserAuthContext
-import code.views.system.AccountAccess
-import net.liftweb.mapper.{By, Descending, OrderBy}
-import scalikejdbc.DB.CPContext
-import scalikejdbc.{DB => scalikeDB, _}
-
-import scala.collection.immutable.List
-
+import net.liftweb.mapper.{By,Descending, OrderBy}
+import java.sql.ResultSet
+import net.liftweb.db.DB
+import net.liftweb.util.DefaultConnectionIdentifier
 object MigrationOfUserAuthContext {
 
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
-  /**
-   * this connection pool context corresponding db.url in default.props
-   */
-  implicit lazy val context: CPContext = {
-    val settings = ConnectionPoolSettings(
-      initialSize = 5,
-      maxSize = 20,
-      connectionTimeoutMillis = 3000L,
-      validationQuery = "select 1",
-      connectionPoolFactoryName = "commons-dbcp2"
-    )
-    val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
-    val dbName = "DB_NAME" // corresponding props db.url DB
-    ConnectionPool.add(dbName, dbUrl, user, password, settings)
-    val connectionPool = ConnectionPool.get(dbName)
-    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
-  }
   
   def removeDuplicates(name: String): Boolean = {
 
@@ -54,18 +31,16 @@ object MigrationOfUserAuthContext {
                           key: String
                         )
 
-    val result: List[SqlResult] = scalikeDB autoCommit { implicit session =>
-
-      val sqlResult =
-        sql"""select count(mkey), muserid, mkey from mappeduserauthcontext group by muserid, mkey having count(mkey) > 1""".stripMargin
-          .map(
-            rs => // Map result to case class
-              SqlResult(
-                rs.string(1).toInt,
-                rs.string(2),
-                rs.string(3))
-          ).list.apply()
-      sqlResult
+    val result = DB.use(DefaultConnectionIdentifier) { conn =>
+      DB.exec(conn, "select count(mkey), muserid, mkey from mappeduserauthcontext group by muserid, mkey having count(mkey) > 1") {
+        rs: ResultSet => {
+          Iterator.from(0).takeWhile(_ => rs.next()).map(_ => SqlResult(
+            rs.getInt(1),
+            rs.getString(2),
+            rs.getString(3)
+          )).toList
+        }
+      }
     }
     val deleted: List[Boolean] = for (i <- result) yield {
       val duplicatedRows = MappedUserAuthContext.findAll(

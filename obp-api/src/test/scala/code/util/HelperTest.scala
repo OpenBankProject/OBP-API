@@ -65,7 +65,7 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
 
   feature(s"test Helper.getIfNotExistsAddedColumLengthForMsSqlServer method") {
 
-    scenario(s"test case 1") {
+    scenario(s"test case addColumnIfNotExists") {
       val expectedValue =
         s"""
            |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'accountaccess' AND COLUMN_NAME = 'consumer_id')
@@ -73,10 +73,10 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
            |    ALTER TABLE accountaccess ADD consumer_id VARCHAR(255) DEFAULT '$ALL_CONSUMERS';
            |END""".stripMargin
 
-      Helper.addColumnIfNotExists("accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
+      Helper.addColumnIfNotExists("com.microsoft.sqlserver.jdbc.SQLServerDriver","accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
     }
 
-    scenario(s"test case 2") {
+    scenario(s"test case dropIndexIfExists") {
       val expectedValue =
         s"""
            |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'accountaccess_bank_id_account_id_view_fk_user_fk' AND object_id = OBJECT_ID('accountaccess'))
@@ -84,7 +84,18 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
            |    DROP INDEX accountaccess.accountaccess_bank_id_account_id_view_fk_user_fk;
            |END""".stripMargin
 
-      Helper.dropIndexIfExists("accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk") should be(expectedValue)
+      Helper.dropIndexIfExists("com.microsoft.sqlserver.jdbc.SQLServerDriver","accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk") should be(expectedValue)
+    }
+
+    scenario(s"test case createIndexIfNotExists") {
+      val expectedValue =
+        s"""
+           |IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'authuser_username_provider' AND object_id = OBJECT_ID('authUser'))
+           |BEGIN
+           |    CREATE INDEX authuser_username_provider on authUser(username,provider);
+           |END""".stripMargin
+
+      Helper.createIndexIfNotExists("com.microsoft.sqlserver.jdbc.SQLServerDriver","authUser", "authuser_username_provider") should be(expectedValue)
     }
     
   }

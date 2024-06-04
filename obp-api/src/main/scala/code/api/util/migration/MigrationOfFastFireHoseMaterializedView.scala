@@ -79,6 +79,8 @@ object MigrationOfFastFireHoseMaterializedView {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("org.h2.Driver") =>
                 () => migrationSql(false)//Note: H2 database, do not support the MATERIALIZED view
+              case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () => "" //TODO: do not support mssql server yet.
               case _ =>
                 () => migrationSql(true)
             }
