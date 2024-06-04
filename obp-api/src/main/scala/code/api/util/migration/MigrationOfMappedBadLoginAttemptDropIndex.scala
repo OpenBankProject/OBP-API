@@ -6,8 +6,6 @@ import code.loginattempts.MappedBadLoginAttempt
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.common.Full
 import code.util.Helper
-import scalikejdbc.DB.CPContext
-import scalikejdbc._
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
@@ -16,24 +14,6 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
-  /**
-   * this connection pool context corresponding db.url in default.props
-   */
-  implicit lazy val context: CPContext = {
-    val settings = ConnectionPoolSettings(
-      initialSize = 5,
-      maxSize = 20,
-      connectionTimeoutMillis = 3000L,
-      validationQuery = "select 1",
-      connectionPoolFactoryName = "commons-dbcp2"
-    )
-    val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
-    val dbName = "DB_NAME" // corresponding props db.url DB
-    ConnectionPool.add(dbName, dbUrl, user, password, settings)
-    val connectionPool = ConnectionPool.get(dbName)
-    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
-  }
   
   def dropUniqueIndex(name: String): Boolean = {
     DbFunction.tableExists(MappedBadLoginAttempt) match {
@@ -44,15 +24,9 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () =>
-                  s"""
-                     |${Helper.dropIndexIfExists("mappedbadloginattempt", "mappedbadloginattempt_musername")}
-                     |""".stripMargin
-              case _ =>
-                () => "DROP INDEX IF EXISTS mappedbadloginattempt_musername;"
-            }
+            val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
+            () =>
+              s"""${Helper.dropIndexIfExists(dbDriver, "mappedbadloginattempt", "mappedbadloginattempt_musername")}""".stripMargin
           }
         
         val endDate = System.currentTimeMillis()

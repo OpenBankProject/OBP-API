@@ -24,7 +24,11 @@ object MigrationOfFastFireHoseView {
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            () =>
+            APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
+              case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>""  //TODO: do not support mssql server yet.
+              case _ =>
+                ()=>
               """
                 |CREATE VIEW v_fast_firehose_accounts AS select
                 |    mappedbankaccount.theaccountid as account_id,
@@ -76,7 +80,7 @@ object MigrationOfFastFireHoseView {
                 |         LEFT JOIN mapperaccountholders
                 |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink);
                 |""".stripMargin
-          }
+          }}
 
         val endDate = System.currentTimeMillis()
         val comment: String =
