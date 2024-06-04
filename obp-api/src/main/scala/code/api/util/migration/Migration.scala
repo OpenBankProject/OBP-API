@@ -591,7 +591,8 @@ object Migration extends MdcLoggable {
               s"CREATE TABLE ${tableName}_backup_${sdf.format(resultDate)} AS (SELECT * FROM $tableName);"
             }
             DB.prepareStatement(sqlQuery, conn){
-              stmt => stmt.executeQuery()
+              stmt => stmt.execute() //statement.executeQuery() expects a resultset and you don't get one.
+              // Use statement.execute() for an ALTER-statement to avoid this issue.
             }
             true
           } catch {
