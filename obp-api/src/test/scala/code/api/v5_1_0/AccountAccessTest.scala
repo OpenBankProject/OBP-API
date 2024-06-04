@@ -5,10 +5,11 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount, UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount, UserLacksPermissionCanGrantAccessToViewForTargetAccount, UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount, UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UserNotLoggedIn}
+import code.api.util.ApiRole.CanSeeAccountAccessForAnyUser
+import code.api.util.ErrorMessages._
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
-import code.api.v4_0_0.RevokedJsonV400
+import code.api.v4_0_0.{AccountsMinimalJson400, RevokedJsonV400}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -30,6 +31,7 @@ class AccountAccessTest extends V510ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.grantUserAccessToViewById))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.revokeUserAccessToViewById))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.createUserWithAccountAccessById))
+  object GetAccountAccessByUserId extends Tag(nameOf(Implementations5_1_0.getAccountAccessByUserId))
 
   
   lazy val bankId = randomBankId
@@ -52,6 +54,34 @@ class AccountAccessTest extends V510ServerSetup {
   
   def createViewForAnAccount(bankId: String, accountId: String): ViewJsonV300 = {
     createViewViaEndpoint(bankId, accountId, postBodyViewJson, user1)
+  }
+
+  
+
+  feature(s"test ${GetAccountAccessByUserId.name}") {
+    scenario(s"We will test ${GetAccountAccessByUserId.name}", GetAccountAccessByUserId, VersionOfApi) {
+
+      val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "account-access").GET
+
+      // Anonymous call fails
+      val anonymousResponseGet = makeGetRequest(requestGet)
+      anonymousResponseGet.code should equal(401)
+      anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+
+      // Call endpoint without the entitlement
+      val badResponseGet = makeGetRequest(requestGet <@ user1)
+      badResponseGet.code should equal(403)
+      val errorMessage = badResponseGet.body.extract[ErrorMessage].message
+      errorMessage contains UserHasMissingRoles should be (true)
+      errorMessage contains CanSeeAccountAccessForAnyUser.toString() should be (true)
+
+      // All good
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSeeAccountAccessForAnyUser.toString())
+      val goodResponseGet = makeGetRequest(requestGet <@ user1)
+      goodResponseGet.code should equal(200)
+      goodResponseGet.body.extract[AccountsMinimalJson400]
+
+    }
   }
 
   feature(s"test $ApiEndpoint1  Authorized access") {

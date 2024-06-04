@@ -20,7 +20,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
-import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson}
+import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, RevokedJsonV400}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
@@ -2153,6 +2153,37 @@ trait APIMethods510 {
           } yield {
             (JSONFactory400.createAccountsMinimalJson400(accountAccess), HttpCode.`200`(callContext))
           }
+    }
+
+
+
+    staticResourceDocs += ResourceDoc(
+      getCoreAccountByIdThroughView,
+      implementedInApiVersion,
+      nameOf(getCoreAccountByIdThroughView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Get Account by Id (Core) through the VIEW_ID",
+      s"""Information returned about the account through VIEW_ID :
+         |""".stripMargin,
+      EmptyBody,
+      moderatedCoreAccountJsonV400,
+      List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+    lazy val getCoreAccountByIdThroughView : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user @Full(u), account, callContext) <- SS.userAccount
+            bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId , bankIdAccountId, user, callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+          } yield {
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(callContext))
+          }
+      }
     }
 
     staticResourceDocs += ResourceDoc(
