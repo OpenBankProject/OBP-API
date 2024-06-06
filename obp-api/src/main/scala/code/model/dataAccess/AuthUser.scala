@@ -591,7 +591,7 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
-    findAuthUserByUsernameLocally(name).toList ::: findUsersByEmailLocally(name) map {
+    findAuthUserByUsernameLocallyLegacy(name).toList ::: findUsersByEmailLocally(name) map {
       // reason of case parameter name is "u" instead of "user": trait AuthUser have constant mumber name is "user"
       // So if the follow case paramter name is "user" will cause compile warnings
       case u if u.validated_? =>
@@ -840,7 +840,7 @@ import net.liftweb.util.Helpers._
 
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
-    findAuthUserByUsernameLocally(username) match {
+    findAuthUserByUsernameLocallyLegacy(username) match {
       // We have a user from the local provider.
       case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
         if (
@@ -918,7 +918,7 @@ import net.liftweb.util.Helpers._
     Connector.connector.vend.getUser(name, password) match {
       case Full(InboundUser(extEmail, extPassword, extUsername)) => {
         val extProvider = connector
-        val user = findAuthUserByUsernameLocally(name) match {
+        val user = findAuthUserByUsernameLocallyLegacy(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
             // && user.provider == extProvider
@@ -961,7 +961,7 @@ import net.liftweb.util.Helpers._
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
       case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContexts)) =>
-        val user = findAuthUserByUsernameLocally(sub) match { // Check if the external user is already created locally
+        val user = findAuthUserByUsernameAndProvider(sub, iss) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
             userAuthContexts match {
@@ -1118,7 +1118,7 @@ def restoreSomeSessions(): Unit = {
             if(passwordEmptyField)
               S.error("login-form-password-error", Helper.i18n("please.enter.your.password"))
           case false =>
-            findAuthUserByUsernameLocally(usernameFromGui) match {
+            findAuthUserByUsernameLocallyLegacy(usernameFromGui) match {
               case Full(user) if !user.validated_? =>
                 S.error(S.?("account.validation.error"))
 
@@ -1575,13 +1575,18 @@ def restoreSomeSessions(): Unit = {
    * Only search at the local database.
    * Please note that provider is implicitly defined i.e. not provided via a parameter
    */
-  def findAuthUserByUsernameLocally(name: String): Box[TheUserType] = {
+  @deprecated("AuthUser unique key is username and provider, please use @findAuthUserByUsernameAndProvider instead.","06.06.2024")
+  def findAuthUserByUsernameLocallyLegacy(name: String): Box[TheUserType] = {
     // 1st try is provider with local_identity_provider or hostname value
     find(By(this.username, name), By(this.provider, Constant.localIdentityProvider))
       // 2nd try is provider with null value
       .or(find(By(this.username, name), NullRef(this.provider)))
       // 3rd try is provider with empty string value
       .or(find(By(this.username, name), By(this.provider, "")))
+  }
+
+  def findAuthUserByUsernameAndProvider(name: String, provider: String): Box[TheUserType] = {
+    find(By(this.username, name), By(this.provider, provider))
   }
   def findAuthUserByPrimaryKey(key: Long): Box[TheUserType] = {
     find(By(this.user, key))
