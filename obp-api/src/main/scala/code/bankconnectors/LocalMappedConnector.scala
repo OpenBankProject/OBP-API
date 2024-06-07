@@ -5695,7 +5695,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this", "11 September 2018")
   override def setAccountHolder(owner: String, bankId: BankId, accountId: AccountId, account_owners: List[String]): Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
+    val resourceUserOwner = Users.users.vend.getUserByProviderAndUsername(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if (!accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {

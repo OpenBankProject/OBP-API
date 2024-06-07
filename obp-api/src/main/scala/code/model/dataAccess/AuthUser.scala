@@ -350,8 +350,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     }
   }
 
-  def getResourceUserByUsername(provider: String, username: String) : Box[User] = {
-    Users.users.vend.getUserByUserName(provider, username)
+  def getResourceUserByProviderAndUsername(provider: String, username: String) : Box[User] = {
+    Users.users.vend.getUserByProviderAndUsername(provider, username)
   }
 
   override def save(): Boolean = {
@@ -509,7 +509,7 @@ import net.liftweb.util.Helpers._
             Constant.localIdentityProvider 
           else 
             user.provider.get
-        Users.users.vend.getUserByUserName(provider, user.username.get)
+        Users.users.vend.getUserByProviderAndUsername(provider, user.username.get)
       } else if (directLogin.isDefined) // Direct Login
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
@@ -655,7 +655,7 @@ import net.liftweb.util.Helpers._
   }
 
    def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
-     tryo{getResourceUserByUsername(user.getProvider(), user.username.get).head.userId} match {
+     tryo{getResourceUserByProviderAndUsername(user.getProvider(), user.username.get).head.userId} match {
        case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
        case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
      }
@@ -1255,14 +1255,14 @@ def restoreSomeSessions(): Unit = {
     if (connector.startsWith("kafka") ) {
       for {
        user <- getUserFromConnector(name, password)
-       u <- Users.users.vend.getUserByUserName(user.getProvider(), name)
+       u <- Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
       } yield {
         user
       }
     } else {
       for {
         user <- checkExternalUserViaConnector(name, password)
-        u <- Users.users.vend.getUserByUserName(user.getProvider(), name)
+        u <- Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
       } yield {
         user
       }
@@ -1276,7 +1276,7 @@ def restoreSomeSessions(): Unit = {
   def registeredUserHelper(provider: String,  username: String) = {
     if (connector.startsWith("kafka")) {
       for {
-       u <- Users.users.vend.getUserByUserName(provider, username)
+       u <- Users.users.vend.getUserByProviderAndUsername(provider, username)
       } yield {
         refreshUserLegacy(u, None)
       }

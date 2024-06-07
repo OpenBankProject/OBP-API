@@ -102,7 +102,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
         case None => 
           for{
-            user <- Users.users.vend.getUserByUserName(provider,username) ?~! "getAuthInfoFirstCbsCall: can not get user object here."
+            user <- Users.users.vend.getUserByProviderAndUsername(provider,username) ?~! "getAuthInfoFirstCbsCall: can not get user object here."
             userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)?~! "getAuthInfoFirstCbsCall: can not get userAuthContexts object here."
             basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
           } yield

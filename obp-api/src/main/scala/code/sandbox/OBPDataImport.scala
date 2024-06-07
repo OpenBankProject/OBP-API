@@ -125,7 +125,7 @@ trait OBPDataImport extends MdcLoggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
-    val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByUserName(localIdentityProvider, u.user_name))
+    val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByProviderAndUsername(localIdentityProvider, u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 

@@ -141,7 +141,7 @@ object UserX {
   }
 
   def findByUserName(provider: String, userName: String) = {
-    Users.users.vend.getUserByUserName(provider, userName)
+    Users.users.vend.getUserByProviderAndUsername(provider, userName)
   }
 
   def findByEmail(email: String) = {
