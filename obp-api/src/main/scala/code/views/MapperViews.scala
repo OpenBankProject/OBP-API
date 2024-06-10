@@ -607,34 +607,14 @@ object MapperViews extends Views with MdcLoggable {
   
   def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
     logger.debug(s"-->getOrCreateSystemViewFromCbs--- start--${viewId}  ")
-    
-    val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-    val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
-    val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
-    val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
-    val stageOneView = SYSTEM_STAGE_ONE_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
-    val manageCustomViews = SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
-    
-    val theView =
-      if (ownerView)
-        getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-      else if (accountantsView)
-        getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
-      else if (auditorsView)
-        getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-      else if (standardView)
-        getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID)
-      else if (stageOneView)
-        getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID)
-      else if (manageCustomViews)
-        getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID)
-      else {
-        logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
-        Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
-      }
-    
+
+    val theView = if (ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.contains(viewId)) {
+      getOrCreateSystemView(viewId)
+    } else {
+      logger.error(ViewIdNotSupported + s"Your input viewId is :$viewId")
+      Failure(ViewIdNotSupported + s"Your input viewId is :$viewId")
+    }
     logger.debug(s"-->getOrCreateSystemViewFromCbs --- finish.${viewId } : ${theView} ")
-    
     theView
   }
   

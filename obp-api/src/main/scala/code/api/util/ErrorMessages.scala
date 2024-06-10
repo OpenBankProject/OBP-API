@@ -337,13 +337,7 @@ object ErrorMessages {
   val UpdateCardError = "OBP-30033: Could not update the Card"
 
   val ViewIdNotSupported = s"OBP-30034: This ViewId is not supported. Only the following can be used: " +
-    s"$SYSTEM_OWNER_VIEW_ID, " +
-    s"$SYSTEM_ACCOUNTANT_VIEW_ID, " +
-    s"$SYSTEM_AUDITOR_VIEW_ID, " +
-    s"$SYSTEM_STAGE_ONE_VIEW_ID, " +
-    s"$SYSTEM_STANDARD_VIEW_ID, " +
-    s"$SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, " +
-    s"$CUSTOM_PUBLIC_VIEW_ID."
+    code.api.Constant.ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.mkString(", ")
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
