@@ -234,6 +234,7 @@ object ConnectorBuilderUtil {
     "getBankAccountsForUser",
     "getUser",
     "getBankAccountsBalances",
+    "getBankAccountBalances",
     "getCoreBankAccounts",
     "getBankAccountsHeld",
     "getCounterpartyTrait",

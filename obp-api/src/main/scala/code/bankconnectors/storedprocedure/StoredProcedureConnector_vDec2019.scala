@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-29T13:58:37Z
+// ---------- created on 2024-06-12T14:42:25Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1049,6 +1049,43 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_balances", req, callContext)
         response.map(convertToTuple[AccountsBalances](callContext))        
+  }
+          
+  messageDocs += getBankAccountBalancesDoc
+  def getBankAccountBalancesDoc = MessageDoc(
+    process = "obp.getBankAccountBalances",
+    messageFormat = messageFormat,
+    description = "Get Bank Account Balances",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetBankAccountBalances(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankIdAccountId= BankIdAccountId(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetBankAccountBalances(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= AccountBalances(id=idExample.value,
+      label=labelExample.value,
+      bankId=bankIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      balances=List( BankAccountBalance(balance= AmountOfMoney(currency=balanceCurrencyExample.value,
+      amount=balanceAmountExample.value),
+      balanceType="string")),
+      overallBalance= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value),
+      overallBalanceDate=toDate(overallBalanceDateExample)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[Box[AccountBalances]] = {
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountBalances => InBound, OutBoundGetBankAccountBalances => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_balances", req, callContext)
+        response.map(convertToTuple[AccountBalances](callContext))        
   }
           
   messageDocs += getCoreBankAccountsDoc
@@ -6587,8 +6624,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-29T13:58:37Z
-//---------------- dynamic end ---------------------please don't modify this line                               
+// ---------- created on 2024-06-12T14:42:25Z
+//---------------- dynamic end ---------------------please don't modify this line                                 
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

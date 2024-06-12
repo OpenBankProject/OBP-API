@@ -112,6 +112,11 @@ case class OutBoundGetBankAccountsBalances(outboundAdapterCallContext: OutboundA
 
 case class InBoundGetBankAccountsBalances(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountsBalances) extends InBoundTrait[AccountsBalances]
 
+case class OutBoundGetBankAccountBalances(outboundAdapterCallContext: OutboundAdapterCallContext,
+  bankIdAccountId: BankIdAccountId) extends TopicTrait
+
+case class InBoundGetBankAccountBalances(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountBalances) extends InBoundTrait[AccountBalances]
+
 case class OutBoundGetCoreBankAccountsHeld(outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
 case class InBoundGetCoreBankAccountsHeld(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountHeld]) extends InBoundTrait[List[AccountHeld]]
