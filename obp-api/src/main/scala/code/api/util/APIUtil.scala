@@ -148,7 +148,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
-  val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+  lazy val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
 
   val DateWithYearExampleString: String = "1100"
