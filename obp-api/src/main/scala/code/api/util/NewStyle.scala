@@ -410,7 +410,7 @@ object NewStyle extends MdcLoggable{
     }
 
     def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Connector.connector.vend.getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) map { i =>
+      Connector.connector.vend.checkBankAccountExists(BankId(defaultBankId), accountId : AccountId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByAccountId Current account_id is $accountId", 404 ), i._2)
       }
     }

@@ -802,12 +802,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccountCommon(bankId, accountId, callContext)
   }
   
-  def getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] =  {
-    MappedBankAccount.find(
-      By(MappedBankAccount.theAccountId, accountId.value)
-    ).map(bankAccount => (bankAccount, callContext))
-  }
-
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     getBankAccountByRoutingLegacy(None, "IBAN", iban, callContext)
   }
