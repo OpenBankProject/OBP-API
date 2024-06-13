@@ -272,7 +272,7 @@ object Consent {
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
   }
  
-  private def hasConsentInternalOldStyle(consentIdAsJwt: String, calContext: CallContext): Box[User] = {
+  private def applyConsentRulesCommonOldStyle(consentIdAsJwt: String, calContext: CallContext): Box[User] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
@@ -316,7 +316,7 @@ object Consent {
     }
   } 
   
-  private def hasConsentCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def applyConsentRulesCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -374,17 +374,10 @@ object Consent {
     }
   }
   
-  private def hasConsentOldStyle(consentIdAsJwt: String, callContext: CallContext): (Box[User], CallContext) = {
-    (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
-  }  
-  private def hasConsent(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasConsentCommon(consentAsJwt, callContext)
-  }
-  
   def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentJwt, allowed) match {
-      case (Some(consentId), true) => hasConsent(consentId, callContext)
+      case (Some(jwt), true) => applyConsentRulesCommon(jwt, callContext)
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
@@ -410,7 +403,7 @@ object Consent {
       Full(Nil)
     }
   }
-  private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def applyBerlinGroupConsentRulesCommon(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -506,13 +499,10 @@ object Consent {
         Future(Failure(ErrorMessages.ConsentNotFound + s" ($consentId)"), Some(callContext))
     }
   }
-  private def hasBerlinGroupConsent(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasBerlinGroupConsentInternal(consentId, callContext)
-  }
   def applyBerlinGroupRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
-      case (Some(consentId), true) => hasBerlinGroupConsent(consentId, callContext)
+      case (Some(consentId), true) => applyBerlinGroupConsentRulesCommon(consentId, callContext)
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
@@ -520,7 +510,7 @@ object Consent {
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
-      case (Some(consentId), true) => hasConsentOldStyle(consentId, callContext)
+      case (Some(consentId), true) => (applyConsentRulesCommonOldStyle(consentId, callContext), callContext)
       case (_, false) => (Failure(ErrorMessages.ConsentDisabled), callContext)
       case (None, _) => (Failure(ErrorMessages.ConsentHeaderNotFound), callContext)
     }
