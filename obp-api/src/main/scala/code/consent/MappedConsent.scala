@@ -62,13 +62,14 @@ object MappedConsentProvider extends ConsentProvider {
   override def getConsentsByUser(userId: String): List[MappedConsent] = {
     MappedConsent.findAll(By(MappedConsent.mUserId, userId))
   }
-  override def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String]): Box[MappedConsent] = {
+  override def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String], consumer: Option[Consumer]): Box[MappedConsent] = {
     tryo {
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       MappedConsent
         .create
         .mUserId(user.userId)
+        .mConsumerId(consumer.map(_.consumerId.get).getOrElse(null))
         .mConsentRequestId(consentRequestId.getOrElse(null))
         .mChallenge(challengeAnswerHashed)
         .mSalt(salt)

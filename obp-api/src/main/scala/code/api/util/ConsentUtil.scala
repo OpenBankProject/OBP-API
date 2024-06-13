@@ -351,13 +351,16 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentAsJwt, callContext) match { // Check is it Consent-JWT expired
+          // Set Consumer into Call Context
+          val consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
+          val updatedCallContext = callContext.copy(consumer = consumer)
+          checkConsent(consent, consentAsJwt, updatedCallContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
-              Future(failure, Some(callContext))
+              Future(failure, Some(updatedCallContext))
             case _ => // Unexpected errors
-              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
+              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(updatedCallContext))
           }
         } catch { // Possible exceptions
           case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
@@ -387,11 +390,11 @@ object Consent {
     }
   }
   
-  def getConsentJwtValueByConsentId(consentId: String): Option[String] = {
+  def getConsentJwtValueByConsentId(consentId: String): Option[MappedConsent] = {
     APIUtil.checkIfStringIsUUIDVersion1(consentId) match {
       case true => // String is a UUID
         Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
-          case Full(consent) => Some(consent.jsonWebToken) 
+          case Full(consent) => Some(consent) 
           case _ => None // It's not valid UUID value
         }
       case false => None // It's not UUID at all
@@ -464,6 +467,9 @@ object Consent {
     // 1st we need to find a Consent via the field MappedConsent.consentId
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(storedConsent) =>
+        // Set Consumer into Call Context
+        val consumer = Consumers.consumers.vend.getConsumerByConsumerId(storedConsent.consumerId)
+        val updatedCallContext = callContext.copy(consumer = consumer)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
         if(canBeUsed) {
@@ -471,28 +477,28 @@ object Consent {
             case Full(jsonAsString) =>
               try {
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                checkConsent(consent, storedConsent.jsonWebToken, callContext) match { // Check is it Consent-JWT expired
+                checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext) match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     // Update MappedConsent.usesSoFarTodayCounter field
                     Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors
-                    Future(failure, Some(callContext))
+                    Future(failure, Some(updatedCallContext))
                   case _ => // Unexpected errors
-                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
+                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(updatedCallContext))
                 }
               } catch { // Possible exceptions
-                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
-                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(callContext))
-                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(callContext))
+                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(updatedCallContext))
+                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(updatedCallContext))
+                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(updatedCallContext))
               }
             case failure@Failure(_, _, _) =>
-              Future(failure, Some(callContext))
+              Future(failure, Some(updatedCallContext))
             case _ =>
-              Future(Failure("Cannot extract data from: " + consentId), Some(callContext))
+              Future(Failure("Cannot extract data from: " + consentId), Some(updatedCallContext))
           }
         } else {
-          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(callContext))
+          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(updatedCallContext))
         }
       case failure@Failure(_, _, _) =>
         Future(failure, Some(callContext))

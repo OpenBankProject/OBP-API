@@ -2971,8 +2971,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
         Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
-          case Some(jwt) => // JWT value obtained via "Consent-Id" request header
-            Consent.applyRules(Some(jwt), cc)
+          case Some(consent) => // JWT value obtained via "Consent-Id" request header
+            Consent.applyRules(
+              Some(consent.jsonWebToken), 
+              cc.copy(consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.consumerId))
+            )
           case _ => 
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
               case true => // It's JWT obtained via "Consent-JWT" request header

@@ -45,6 +45,7 @@ import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.FutureUtil.EndpointContext
+import code.consumer.Consumers
 import code.util.Helper.booleanToFuture
 import code.views.system.{AccountAccess, ViewDefinition}
 
@@ -991,7 +992,15 @@ trait APIMethods500 {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => SecureRandomUtil.numeric()
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, Some(consentRequestId))) map {
+            consumer = Consumers.consumers.vend.getConsumerByConsumerId(calculatedConsumerId.getOrElse("None"))
+            createdConsent <- Future(
+              Consents.consentProvider.vend.createObpConsent(
+                user, 
+                challengeAnswer, 
+                Some(consentRequestId),
+                consumer
+              )
+            ) map {
               i => connectorEmptyResponse(i, callContext)
             }
 
