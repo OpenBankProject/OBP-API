@@ -2973,7 +2973,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
           case Some(consent) => // JWT value obtained via "Consent-Id" request header
             Consent.applyRules(
-              Some(consent.jsonWebToken), 
+              Some(consent.jsonWebToken),
+              // Note: At this point we are getting the Consumer from the Consumer in the Consent. 
+              // This may later be cross checked via the value in consumer_validation_method_for_consent. 
+              // TODO: Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
               cc.copy(consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.consumerId))
             )
           case _ => 
