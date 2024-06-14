@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URI
-import java.util
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers

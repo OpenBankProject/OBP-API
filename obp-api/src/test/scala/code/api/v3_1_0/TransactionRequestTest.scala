@@ -55,7 +55,7 @@ class TransactionRequestTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
@@ -67,7 +67,7 @@ class TransactionRequestTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")

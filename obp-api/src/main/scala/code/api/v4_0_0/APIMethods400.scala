@@ -1470,7 +1470,7 @@ trait APIMethods400 extends MdcLoggable {
       case "transaction-request-types" :: "CARD" :: "transaction-requests" :: Nil JsonPost json -> _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           val transactionRequestType = TransactionRequestType("CARD")
-          createTransactionRequest(BankId(""), AccountId(""), ViewId("owner"), transactionRequestType, json)
+          createTransactionRequest(BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID), transactionRequestType, json)
     }
 
 
@@ -8338,7 +8338,7 @@ trait APIMethods400 extends MdcLoggable {
               createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
-              thisViewId = "owner",
+              thisViewId = Constant.SYSTEM_OWNER_VIEW_ID,
               otherAccountRoutingScheme=postJson.other_account_routing_scheme,
               otherAccountRoutingAddress=postJson.other_account_routing_address,
               otherAccountSecondaryRoutingScheme=postJson.other_account_secondary_routing_scheme,

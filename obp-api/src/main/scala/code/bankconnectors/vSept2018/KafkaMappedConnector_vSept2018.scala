@@ -23,6 +23,7 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
+import code.api.Constant
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID.randomUUID
@@ -193,7 +194,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     generalContext = Option(List(BasicGeneralContext(key = "string",
       value = "string"))))
   
-  val viewBasicExample = ViewBasic("owner","Owner", "This is the owner view")
+  val viewBasicExample = ViewBasic(Constant.SYSTEM_OWNER_VIEW_ID,Constant.SYSTEM_OWNER_VIEW_ID, "This is the owner view")
 
   val internalBasicCustomerExample = InternalBasicCustomer(
     bankId = ExampleValue.bankIdExample.value,

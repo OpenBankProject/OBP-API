@@ -3245,7 +3245,7 @@ trait APIMethods310 {
         |    {
         |      "bank_id": "GENODEM1GLS",
         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-        |      "view_id": "owner"
+        |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
         |    }
         |  ],
         |  "entitlements": [
@@ -3316,7 +3316,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [
@@ -3395,7 +3395,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [
@@ -3474,7 +3474,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [

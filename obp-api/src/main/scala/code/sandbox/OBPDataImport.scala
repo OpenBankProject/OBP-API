@@ -295,7 +295,7 @@ trait OBPDataImport extends MdcLoggable {
       accId = AccountId(acc.id)
       bankId = BankId(acc.bank)
       //TODO Check the following logic which breaks sandbox tests after ViewsImpl refactoring
-      //ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("owner"), bankId, accId)).isEmpty) ?~ {
+      //ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId(Constant.SYSTEM_OWNER_VIEW_ID), bankId, accId)).isEmpty) ?~ {
       //  s"owner view for account ${acc.id} at bank ${acc.bank} already exists"
       //}
       //publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("public"), bankId, accId)).isEmpty) ?~ {
