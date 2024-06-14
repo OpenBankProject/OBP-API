@@ -997,9 +997,7 @@ trait APIMethods510 {
               unboxFullOrFail(_, cc.callContext, ConsentNotFound)
             }
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
-              consent.mConsumerId.get == null || 
-                consent.mConsumerId.get == "" || 
-                consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.mUserId == cc.userId
             }
           } yield {
             (JSONFactory510.getConsentInfoJson(consent), HttpCode.`200`(cc))
