@@ -15,6 +15,7 @@ import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
@@ -25,7 +26,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
-import net.liftweb.util.ControlHelpers
+import net.liftweb.util.{ControlHelpers, Props}
 import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.collection.immutable.{List, Nil}
@@ -104,7 +105,7 @@ case class Consent(createdByUserId: String,
   }
 }
 
-object Consent {
+object Consent extends MdcLoggable {
 
   final lazy val challengeAnswerAtTestEnvironment = "123"
 
@@ -126,7 +127,11 @@ object Consent {
   private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, callContext: CallContext): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
-        APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_KEY_VALUE") match {
+        val validationMetod = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
+        if(validationMetod != "CONSUMER_CERTIFICATE" && Props.mode == Props.RunModes.Production) {
+          logger.warn(s"consumer_validation_method_for_consent is not set to CONSUMER_CERTIFICATE! The current value is: ${validationMetod}")
+        }
+        validationMetod match {
           case "CONSUMER_KEY_VALUE" =>
             val requestHeaderConsumerKey = getConsumerKey(callContext.requestHeaders)
             requestHeaderConsumerKey match {
@@ -272,7 +277,7 @@ object Consent {
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
   }
  
-  private def hasConsentInternalOldStyle(consentIdAsJwt: String, calContext: CallContext): Box[User] = {
+  private def applyConsentRulesCommonOldStyle(consentIdAsJwt: String, calContext: CallContext): Box[User] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
@@ -316,7 +321,7 @@ object Consent {
     }
   } 
   
-  private def hasConsentCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def applyConsentRulesCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -351,13 +356,16 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentAsJwt, callContext) match { // Check is it Consent-JWT expired
+          // Set Consumer into Call Context
+          val consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
+          val updatedCallContext = callContext.copy(consumer = consumer)
+          checkConsent(consent, consentAsJwt, updatedCallContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
-              Future(failure, Some(callContext))
+              Future(failure, Some(updatedCallContext))
             case _ => // Unexpected errors
-              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
+              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(updatedCallContext))
           }
         } catch { // Possible exceptions
           case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
@@ -371,27 +379,20 @@ object Consent {
     }
   }
   
-  private def hasConsentOldStyle(consentIdAsJwt: String, callContext: CallContext): (Box[User], CallContext) = {
-    (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
-  }  
-  private def hasConsent(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasConsentCommon(consentAsJwt, callContext)
-  }
-  
   def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentJwt, allowed) match {
-      case (Some(consentId), true) => hasConsent(consentId, callContext)
+      case (Some(jwt), true) => applyConsentRulesCommon(jwt, callContext)
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
   }
   
-  def getConsentJwtValueByConsentId(consentId: String): Option[String] = {
+  def getConsentJwtValueByConsentId(consentId: String): Option[MappedConsent] = {
     APIUtil.checkIfStringIsUUIDVersion1(consentId) match {
       case true => // String is a UUID
         Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
-          case Full(consent) => Some(consent.jsonWebToken) 
+          case Full(consent) => Some(consent) 
           case _ => None // It's not valid UUID value
         }
       case false => None // It's not UUID at all
@@ -407,7 +408,7 @@ object Consent {
       Full(Nil)
     }
   }
-  private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def applyBerlinGroupConsentRulesCommon(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -464,6 +465,9 @@ object Consent {
     // 1st we need to find a Consent via the field MappedConsent.consentId
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(storedConsent) =>
+        // Set Consumer into Call Context
+        val consumer = Consumers.consumers.vend.getConsumerByConsumerId(storedConsent.consumerId)
+        val updatedCallContext = callContext.copy(consumer = consumer)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
         if(canBeUsed) {
@@ -471,28 +475,28 @@ object Consent {
             case Full(jsonAsString) =>
               try {
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                checkConsent(consent, storedConsent.jsonWebToken, callContext) match { // Check is it Consent-JWT expired
+                checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext) match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     // Update MappedConsent.usesSoFarTodayCounter field
                     Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors
-                    Future(failure, Some(callContext))
+                    Future(failure, Some(updatedCallContext))
                   case _ => // Unexpected errors
-                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
+                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(updatedCallContext))
                 }
               } catch { // Possible exceptions
-                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
-                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(callContext))
-                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(callContext))
+                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(updatedCallContext))
+                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(updatedCallContext))
+                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(updatedCallContext))
               }
             case failure@Failure(_, _, _) =>
-              Future(failure, Some(callContext))
+              Future(failure, Some(updatedCallContext))
             case _ =>
-              Future(Failure("Cannot extract data from: " + consentId), Some(callContext))
+              Future(Failure("Cannot extract data from: " + consentId), Some(updatedCallContext))
           }
         } else {
-          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(callContext))
+          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(updatedCallContext))
         }
       case failure@Failure(_, _, _) =>
         Future(failure, Some(callContext))
@@ -500,13 +504,10 @@ object Consent {
         Future(Failure(ErrorMessages.ConsentNotFound + s" ($consentId)"), Some(callContext))
     }
   }
-  private def hasBerlinGroupConsent(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasBerlinGroupConsentInternal(consentId, callContext)
-  }
   def applyBerlinGroupRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
-      case (Some(consentId), true) => hasBerlinGroupConsent(consentId, callContext)
+      case (Some(consentId), true) => applyBerlinGroupConsentRulesCommon(consentId, callContext)
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
@@ -514,7 +515,7 @@ object Consent {
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
-      case (Some(consentId), true) => hasConsentOldStyle(consentId, callContext)
+      case (Some(consentId), true) => (applyConsentRulesCommonOldStyle(consentId, callContext), callContext)
       case (_, false) => (Failure(ErrorMessages.ConsentDisabled), callContext)
       case (None, _) => (Failure(ErrorMessages.ConsentHeaderNotFound), callContext)
     }

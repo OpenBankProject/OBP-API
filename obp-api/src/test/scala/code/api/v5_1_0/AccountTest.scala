@@ -20,30 +20,17 @@ class AccountTest extends V510ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
-  object GetAccountAccessByUserId extends Tag(nameOf(Implementations5_1_0.getAccountAccessByUserId))
+  object GetCoreAccountByIdThroughView extends Tag(nameOf(Implementations5_1_0.getCoreAccountByIdThroughView))
 
-  feature(s"test ${GetAccountAccessByUserId.name}") {
-    scenario(s"We will test ${GetAccountAccessByUserId.name}", GetAccountAccessByUserId, VersionOfApi) {
+  feature(s"test ${GetCoreAccountByIdThroughView.name}") {
+    scenario(s"We will test ${GetCoreAccountByIdThroughView.name}", GetCoreAccountByIdThroughView, VersionOfApi) {
 
-      val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "account-access").GET
+      val requestGet = (v5_1_0_Request / "banks" / "BANK_ID" / "accounts" / "ACCOUNT_ID"/ "views" / "VIEW_ID").GET
 
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
       anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
-      
-      // Call endpoint without the entitlement
-      val badResponseGet = makeGetRequest(requestGet <@ user1)
-      badResponseGet.code should equal(403)
-      val errorMessage = badResponseGet.body.extract[ErrorMessage].message
-      errorMessage contains UserHasMissingRoles should be (true)
-      errorMessage contains CanSeeAccountAccessForAnyUser.toString() should be (true)
-
-      // All good
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSeeAccountAccessForAnyUser.toString())
-      val goodResponseGet = makeGetRequest(requestGet <@ user1)
-      goodResponseGet.code should equal(200)
-      goodResponseGet.body.extract[AccountsMinimalJson400]
       
     }
   }

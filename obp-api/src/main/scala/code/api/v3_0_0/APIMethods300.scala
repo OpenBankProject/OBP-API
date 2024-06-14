@@ -500,7 +500,7 @@ trait APIMethods300 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts, u), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1710,7 +1710,7 @@ trait APIMethods300 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             (accounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts, u), HttpCode.`200`(callContext))
           }
       }
     }
