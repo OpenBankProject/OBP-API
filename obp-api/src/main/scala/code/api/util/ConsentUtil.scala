@@ -15,6 +15,7 @@ import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
@@ -25,7 +26,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
-import net.liftweb.util.ControlHelpers
+import net.liftweb.util.{ControlHelpers, Props}
 import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.collection.immutable.{List, Nil}
@@ -104,7 +105,7 @@ case class Consent(createdByUserId: String,
   }
 }
 
-object Consent {
+object Consent extends MdcLoggable {
 
   final lazy val challengeAnswerAtTestEnvironment = "123"
 
@@ -126,7 +127,11 @@ object Consent {
   private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, callContext: CallContext): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
-        APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_KEY_VALUE") match {
+        val validationMetod = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
+        if(validationMetod != "CONSUMER_CERTIFICATE" && Props.mode == Props.RunModes.Production) {
+          logger.warn(s"consumer_validation_method_for_consent is not set to CONSUMER_CERTIFICATE! The current value is: ${validationMetod}")
+        }
+        validationMetod match {
           case "CONSUMER_KEY_VALUE" =>
             val requestHeaderConsumerKey = getConsumerKey(callContext.requestHeaders)
             requestHeaderConsumerKey match {
