@@ -103,6 +103,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     }
   }
 
+  def getConsumerByPemCertificate(pem: String): Box[Consumer] = {
+    Consumer.find(By(Consumer.clientCertificate, pem))
+  }
+  
   def getConsumerByConsumerId(consumerId: String): Box[Consumer] = {
     Consumer.find(By(Consumer.consumerId, consumerId))
   }

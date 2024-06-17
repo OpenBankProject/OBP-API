@@ -119,6 +119,20 @@ object Consent extends MdcLoggable {
       case _ => None
     }
   }
+  /**
+   * Purpose of this helper function is to get the Consumer via MTLS info i.e. PEM certificate.
+   * @return the boxed Consumer 
+   */
+  def getCurrentConsumerViaMtls(callContext: CallContext): Box[Consumer] = {
+    val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders)
+      .getOrElse(SecureRandomUtil.csprng.nextLong().toString)
+    def removeBreakLines(input: String) = input
+      .replace("\n", "")
+      .replace("\r", "")
+    Consumers.consumers.vend.getConsumerByPemCertificate(clientCert).or(
+      Consumers.consumers.vend.getConsumerByPemCertificate(removeBreakLines(clientCert))
+    )
+  }
   
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
     JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
@@ -357,7 +371,7 @@ object Consent extends MdcLoggable {
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
           // Set Consumer into Call Context
-          val consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
+          val consumer = getCurrentConsumerViaMtls(callContext)
           val updatedCallContext = callContext.copy(consumer = consumer)
           checkConsent(consent, consentAsJwt, updatedCallContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
@@ -466,7 +480,7 @@ object Consent extends MdcLoggable {
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(storedConsent) =>
         // Set Consumer into Call Context
-        val consumer = Consumers.consumers.vend.getConsumerByConsumerId(storedConsent.consumerId)
+        val consumer = getCurrentConsumerViaMtls(callContext)
         val updatedCallContext = callContext.copy(consumer = consumer)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
