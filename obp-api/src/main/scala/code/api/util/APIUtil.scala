@@ -2976,8 +2976,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               Some(consent.jsonWebToken),
               // Note: At this point we are getting the Consumer from the Consumer in the Consent. 
               // This may later be cross checked via the value in consumer_validation_method_for_consent. 
-              // TODO: Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
-              cc.copy(consumer = Consumers.consumers.vend.getConsumerByConsumerId(consent.consumerId))
+              // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
+              cc.copy(consumer = Consent.getCurrentConsumerViaMtls(callContext = cc))
             )
           case _ => 
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
