@@ -13,7 +13,7 @@ object Constant extends MdcLoggable {
   
   object Pagination {
     final val offset = 0
-    final val limit = 500
+    final val limit = 50
   }
   
   final val shortEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "short_endpoint_timeout", 1L * 1000L)
