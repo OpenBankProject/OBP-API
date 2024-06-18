@@ -1095,7 +1095,7 @@ trait APIMethods510 {
             (Full(user), callContext) <- authenticatedAccess(cc)
             consentId = getConsentIdRequestHeaderValue(cc.requestHeaders).getOrElse("")
             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-              unboxFullOrFail(_, callContext, ConsentNotFound)
+              unboxFullOrFail(_, callContext, ConsentNotFound, 404)
             }
             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
               i => connectorEmptyResponse(i, callContext)
