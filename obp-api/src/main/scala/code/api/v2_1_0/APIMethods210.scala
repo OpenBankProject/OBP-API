@@ -607,15 +607,15 @@ trait APIMethods210 {
       "Answer Transaction Request Challenge",
       """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
-        |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
+        |This endpoint expects the following data as provided in the createTransactionRequest response body:
         |
-        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL . 
+        |1)`TRANSACTION_REQUEST_TYPE` : as per the selected createTransactionRequest type, part of the request URL.
         |
-        |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
+        |2)`TRANSACTION_REQUEST_ID` : the value of the `id` field of the createTransactionRequest response body.
         |
-        |3) `id` :  is `challenge.id` field in createTransactionRequest response body. 
+        |3) `id` :  the value of `challenge.id` in the createTransactionRequest response body. 
         |
-        |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
+        |4) `answer` : Defaults to `123`, if running in sandbox mode. In production mode, the value will be sent via the configured SCA method.
         |
       """.stripMargin,
       challengeAnswerJSON,
