@@ -994,9 +994,9 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
-              unboxFullOrFail(_, cc.callContext, ConsentNotFound)
+              unboxFullOrFail(_, cc.callContext, ConsentNotFound, 404)
             }
-            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = cc.callContext) {
               consent.mUserId == cc.userId
             }
           } yield {
