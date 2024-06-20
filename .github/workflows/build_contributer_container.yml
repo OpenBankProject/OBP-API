@@ -36,8 +36,9 @@ jobs:
             var fs = require('fs');
             fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
       - run: unzip pr.zip
+      - run: ls -al
       - name: Get user from file
-        run: echo "USER_NAME=$(pr/UN)" >> $GITHUB_ENV
+        run: echo "USER_NAME=$(cat pr/UN)" >> $GITHUB_ENV
 
       - name: prepare the artifact
         run: |
