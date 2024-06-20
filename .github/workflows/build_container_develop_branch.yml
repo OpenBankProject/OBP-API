@@ -1,10 +1,12 @@
-name: Build and publish container
+name: Build and publish container develop
 
 # read-write repo token
 # access to secrets
 on:
   workflow_run:
     workflows: [build maven artifact]
+    branches:
+      - develop
     types:
       - completed
 
@@ -17,6 +19,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - name: 'Download artifact'
