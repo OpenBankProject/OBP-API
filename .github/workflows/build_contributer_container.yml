@@ -42,6 +42,7 @@ jobs:
       - name: prepare the artifact
         run: |
           mkdir -p obp-api/target/
+          ls ./pr
           cp pr/obp-api-1.10.1.war obp-api/target/obp-api-1.10.1.war
 
       - name: Build the Docker image
