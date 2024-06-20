@@ -1,4 +1,4 @@
-name: Comment on the pull request
+name: Build and publish commiter container
 
 # read-write repo token
 # access to secrets
