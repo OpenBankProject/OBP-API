@@ -75,28 +75,15 @@ jobs:
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
-      - name: Build the Docker image
+      - name: Save user name and .war artifact
         run: |
-          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
-          docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ github.event.pull_request.user.login }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ github.event.pull_request.user.login }}:latest 
-          docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }} --all-tags
-          echo docker done
-
-      - uses: sigstore/cosign-installer@main
-
-      - name: Write signing key to disk (only needed for `cosign sign --key`)
-        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
-
-      - name: Sign container image
-        run: |
-          cosign sign -y --key cosign.key \
-            docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ github.event.pull_request.user.login }}:latest
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ github.event.pull_request.user.login }}:$GITHUB_SHA
-        env:
-          COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"
+          mkdir -p ./pr
+          echo ${{ github.event.pull_request.user.login }} > ./pr/UN
+          cp obp-api/target/obp-api-1.*.war ./pr/
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pr
+          path: pr/
 
 
 
