@@ -8,6 +8,10 @@ on:
     types:
       - completed
 
+env:
+  ## Sets environment variable
+  DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
+
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -48,7 +52,7 @@ jobs:
         run: |
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
           docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ env.USER_NAME }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ env.USER_NAME }}:latest 
-          docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }} --all-tags
+          docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api-${{ env.USER_NAME }} --all-tags
           echo docker done
 
       - uses: sigstore/cosign-installer@main
