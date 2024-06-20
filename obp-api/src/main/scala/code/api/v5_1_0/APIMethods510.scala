@@ -2287,9 +2287,47 @@ trait APIMethods510 {
       }
     }
 
-
+    staticResourceDocs += ResourceDoc(
+      createCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(createCounterpartyLimit),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Create Counterparty Limit",
+      s"""Create Counterparty Limit.""",
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val createCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterPartyId) ::"limits" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
+              json.extract[PostCounterpartyLimitV510]
+            }
+            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
+              json.extract[PostCounterpartyLimitV510]
+            }
+            
+          } yield {
+            ("123213", HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
   }
 }
+
+
 
 object APIMethods510 extends RestHelper with APIMethods510 {
   lazy val newStyleEndpoints: List[(String, String)] = Implementations5_1_0.resourceDocs.map {

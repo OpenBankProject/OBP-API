@@ -1696,6 +1696,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val isNeedCheckView = errorResponseBodies.contains($UserNoPermissionAccessView) &&
       requestUrlPartPath.contains("BANK_ID") && requestUrlPartPath.contains("ACCOUNT_ID") && requestUrlPartPath.contains("VIEW_ID")
 
+    private val isNeedCheckCounterparty = errorResponseBodies.contains(CounterpartyNotFoundByCounterpartyId) && requestUrlPartPath.contains("COUNTERPARTY_ID")
+    
     private val reversedRequestUrl = requestUrlPartPath.reverse
     def getPathParams(url: List[String]): Map[String, String] =
       reversedRequestUrl.zip(url.reverse) collect {
@@ -1775,6 +1777,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Future.successful(null.asInstanceOf[View])
         }
       }
+
+      def checkCounterparty(counterpartyId: Option[CounterpartyId], callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
+        if(isNeedCheckCounterparty && counterpartyId.isDefined) {
+          checkCounterpartyFun(counterpartyId.get)(callContext)
+        } else {
+          Future.successful(null.asInstanceOf[CounterpartyTrait] -> callContext)
+        }
+      }
       // reset connectorMethods
       {
         val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
@@ -1794,6 +1804,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
         if (isNeedCheckView) {
           checkerFunctions += checkViewFun
+        }
+        if (isNeedCheckCounterparty) {
+          checkerFunctions += checkCounterpartyFun
         }
         val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_))
           .map(value =>("obp." +value).intern())
@@ -1841,6 +1854,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val bankId = pathParams.get("BANK_ID").map(BankId(_))
           val accountId = pathParams.get("ACCOUNT_ID").map(AccountId(_))
           val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
+          val counterpartyId = pathParams.get("COUNTERPARTY_ID").map(CounterpartyId(_))
 
           val request: Box[Req] = S.request
           val session: Box[LiftSession] = S.session
@@ -1851,7 +1865,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
            * 2. check bankId
            * 3. roles check
            * 4. check accountId
-           * 5. view
+           * 5. view access
+           * 6. check counterpartyId
            *
            * A Bank MUST be checked before Roles.
            * In opposite case we get next paradox:
@@ -1878,6 +1893,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
               // check user access permission of this viewId corresponding view
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
+
+              counterparty <- checkCounterparty(counterpartyId, callContext)
+              
             } yield {
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
 
@@ -4231,6 +4249,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   private val checkViewFun: PartialFunction[ViewId, (BankIdAccountId, Option[User], Option[CallContext]) => Future[View]] = {
     case x => NewStyle.function.checkViewAccessAndReturnView(x, _, _, _)
+  }
+  private val checkCounterpartyFun: PartialFunction[CounterpartyId, Option[CallContext] => OBPReturnType[CounterpartyTrait]] = {
+    case x => NewStyle.function.getCounterpartyByCounterpartyId(x, _)
   }
 
   // cache for method -> called obp methods:

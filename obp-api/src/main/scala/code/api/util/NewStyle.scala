@@ -4056,6 +4056,14 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError"), callContext)
       }
 
+
+
+    def createCounterpartyLimit(bankAccountId: BankIdAccountId, createViewJson: CreateViewJson, callContext: Option[CallContext]): OBPReturnType[View] =
+      Connector.connector.vend.createCounterpartyLimit(customerId: String, bankId, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerAccountLinkError), i._2)
+      }
+    
+
   }
 
 }

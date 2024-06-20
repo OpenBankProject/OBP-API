@@ -6,7 +6,7 @@ import net.liftweb.common.Box
 import scala.concurrent.Future
 
 object CounterpartyLimitProvider extends SimpleInjector {
-  val rateLimiting = new Inject(buildOne _) {}
+  val counterpartyLimit = new Inject(buildOne _) {}
   def buildOne: CounterpartyLimitProviderTrait = APIUtil.getPropsAsBoolValue("use_akka", false) match {
     case _  => MappedCounterpartyLimitProvider
 //    case true => RemotedataCounterpartyLimit // we are getting rid of the akka now. so do not implement it here

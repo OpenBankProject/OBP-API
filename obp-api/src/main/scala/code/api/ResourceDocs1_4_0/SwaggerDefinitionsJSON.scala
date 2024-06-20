@@ -5396,6 +5396,27 @@ object SwaggerDefinitionsJSON {
       phone = phoneExample.value,
   )
   
+  val postCounterpartyLimitV510 = PostCounterpartyLimitV510(
+    max_single_amount = 0,
+    max_monthly_amount = 0,
+    max_number_of_monthly_transactions = 0,
+    max_yearly_amount = 0,
+    max_number_of_yearly_transactions = 0
+  )
+  
+  val counterpartyLimitV510 = CounterpartyLimitV510(
+    counterparty_limit_id = "",
+    bank_id = "",
+    account_id = "",
+    view_id = "",
+    counterparty_id = "",
+    max_single_amount = 0,
+    max_monthly_amount = 0,
+    max_number_of_monthly_transactions = 0,
+    max_yearly_amount = 0,
+    max_number_of_yearly_transactions = 0
+  )
+  
   val atmsJsonV510 = AtmsJsonV510(
     atms = List(atmJsonV510)
   )

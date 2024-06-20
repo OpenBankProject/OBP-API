@@ -5913,5 +5913,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )), callContext)
   }
 
+
+
+  override def createCounterpartyLimit(customerId: String, callContext: Option[CallContext]) = Future{
+    (CounterpartyLimitProvider.counterpartyLimit.vend.getCustomerAccountLinksByCustomerId(customerId),callContext)
+  }
+
   
 }
