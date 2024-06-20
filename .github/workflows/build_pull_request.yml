@@ -79,7 +79,7 @@ jobs:
         run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.user.login }} > ./pr/UN
-          cp obp-api/target/obp-api-1.*.war ./pr/
+          cp obp-api/target/obp-api-1.10.1.war ./pr/obp-api-1.10.1.war
       - uses: actions/upload-artifact@v2
         with:
           name: pr
