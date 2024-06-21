@@ -36,10 +36,45 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: |
-          pwd
-          ls obp-api
-          mkdir obp-api/target/
-          touch obp-api/target/obp-api-1.10.1.war
+          cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/production.default.props
+          echo connector=star > obp-api/src/main/resources/props/test.default.props
+          echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
+          echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
+          echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
+          echo End of minimum settings >> obp-api/src/main/resources/props/test.default.props
+          echo payments_enabled=false >> obp-api/src/main/resources/props/test.default.props
+          echo importer_secret=change_me >> obp-api/src/main/resources/props/test.default.props
+          echo messageQueue.updateBankAccountsTransaction=false >> obp-api/src/main/resources/props/test.default.props
+          echo messageQueue.createBankAccounts=false >> obp-api/src/main/resources/props/test.default.props
+          echo allow_sandbox_account_creation=true >> obp-api/src/main/resources/props/test.default.props
+          echo allow_sandbox_data_import=true >> obp-api/src/main/resources/props/test.default.props
+          echo sandbox_data_import_secret=change_me >> obp-api/src/main/resources/props/test.default.props
+          echo allow_account_deletion=true >> obp-api/src/main/resources/props/test.default.props
+          echo allowed_internal_redirect_urls = /,/oauth/authorize >> obp-api/src/main/resources/props/test.default.props
+          echo transactionRequests_enabled=true >> obp-api/src/main/resources/props/test.default.props
+          echo transactionRequests_supported_types=SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,SIMPLE >> obp-api/src/main/resources/props/test.default.props
+          echo SIMPLE_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo openredirects.hostname.whitlelist=http://127.0.0.1,http://localhost >> obp-api/src/main/resources/props/test.default.props
+          echo remotedata.secret = foobarbaz >> obp-api/src/main/resources/props/test.default.props
+          echo allow_public_views=true >> obp-api/src/main/resources/props/test.default.props
+
+          echo SIMPLE_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo SEPA_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+
+          echo kafka.akka.timeout = 9 >> obp-api/src/main/resources/props/test.default.props
+          echo remotedata.timeout = 10 >> obp-api/src/main/resources/props/test.default.props
+
+          echo allow_oauth2_login=true >> obp-api/src/main/resources/props/test.default.props
+          echo oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs >> obp-api/src/main/resources/props/test.default.props
+
+          echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
+
+          echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
+          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
       - name: Save user name and .war artifact
         run: |
           mkdir -p ./pr
