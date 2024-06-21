@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
@@ -24,6 +23,7 @@ import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
+import code.counterpartylimit.CounterpartyLimit
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.endpointTag.EndpointTagT
 import code.fx.fx.TTL
@@ -2662,5 +2662,19 @@ trait Connector extends MdcLoggable {
   def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[Box[ConsentImplicitSCAT]] = Future{(Failure(setUnimplementedError), callContext)}
-  
+
+//  def createOrUpdateCounterpartyLimit(
+//    counterpartyLimitId:Option[String],
+//    bankId: String,
+//    accountId: String,
+//    viewId: String,
+//    counterpartyId: String,
+//    maxSingleAmount: Int,
+//    maxMonthlyAmount: Int,
+//    maxNumberOfMonthlyTransactions: Int,
+//    maxYearlyAmount: Int,
+//    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]
+//  ): OBPReturnType[Box[CounterpartyLimit]]
+
+
 }

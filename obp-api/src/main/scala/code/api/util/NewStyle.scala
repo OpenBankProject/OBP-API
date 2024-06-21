@@ -3,7 +3,6 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -54,8 +53,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -71,6 +70,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.counterpartylimit.CounterpartyLimit
 import code.crm.CrmEvent
 import code.crm.CrmEvent.CrmEvent
 import code.customeraccountlinks.CustomerAccountLinkTrait
@@ -4058,12 +4058,34 @@ object NewStyle extends MdcLoggable{
 
 
 
-    def createCounterpartyLimit(bankAccountId: BankIdAccountId, createViewJson: CreateViewJson, callContext: Option[CallContext]): OBPReturnType[View] =
-      Connector.connector.vend.createCounterpartyLimit(customerId: String, bankId, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
-        i => (unboxFullOrFail(i._1, callContext, CreateCustomerAccountLinkError), i._2)
-      }
-    
-
+//    def createOrUpdateCounterpartyLimit(
+//      counterpartyLimitId:Option[String],
+//      bankId: String,
+//      accountId: String,
+//      viewId: String,
+//      counterpartyId: String,
+//      maxSingleAmount: Int,
+//      maxMonthlyAmount: Int,
+//      maxNumberOfMonthlyTransactions: Int,
+//      maxYearlyAmount: Int,
+//      maxNumberOfYearlyTransactions: Int,
+//      callContext: Option[CallContext]
+//    ): OBPReturnType[CounterpartyLimit] =
+//      Connector.connector.vend.createOrUpdateCounterpartyLimit(
+//        counterpartyLimitId:Option[String],
+//        bankId: String,
+//        accountId: String,
+//        viewId: String,
+//        counterpartyId: String,
+//        maxSingleAmount: Int,
+//        maxMonthlyAmount: Int,
+//        maxNumberOfMonthlyTransactions: Int,
+//        maxYearlyAmount: Int,
+//        maxNumberOfYearlyTransactions: Int,
+//        callContext: Option[CallContext]
+//    ) map {
+//      i => (unboxFullOrFail(i._1, callContext, CreateCounterpartyLimitError), i._2)
+//    }
   }
 
 }

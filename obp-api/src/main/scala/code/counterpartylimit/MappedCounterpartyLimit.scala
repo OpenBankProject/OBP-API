@@ -23,6 +23,7 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
   }
   
   def createOrUpdateCounterpartyLimit(
+    counterpartyLimitId:Option[String],
     bankId: String,
     accountId: String,
     viewId: String,
@@ -48,15 +49,12 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
       }
     }
 
-    val counterpartyLimit = CounterpartyLimit.find(
-      By(CounterpartyLimit.BankId, bankId),
-      By(CounterpartyLimit.AccountId, accountId),
-      By(CounterpartyLimit.ViewId, viewId),
-      By(CounterpartyLimit.CounterpartyId, counterpartyId),
+    def getCounterpartyLimit = CounterpartyLimit.find(
+      By(CounterpartyLimit.CounterpartyLimitId, counterpartyLimitId.get)
     )
     
-    val result = counterpartyLimit match {
-      case Full(limit) => createCounterpartyLimit(limit)
+    val result = counterpartyLimitId match {
+      case Some(_) => getCounterpartyLimit.map(createCounterpartyLimit).flatten
       case _ => createCounterpartyLimit(CounterpartyLimit.create)
     }
     result

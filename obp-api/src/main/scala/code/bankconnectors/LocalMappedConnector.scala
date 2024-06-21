@@ -30,6 +30,7 @@ import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
 import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
+import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitProvider}
 import code.customer._
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.customeraddress.CustomerAddressX
@@ -5915,9 +5916,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
 
-  override def createCounterpartyLimit(customerId: String, callContext: Option[CallContext]) = Future{
-    (CounterpartyLimitProvider.counterpartyLimit.vend.getCustomerAccountLinksByCustomerId(customerId),callContext)
-  }
+//  override def createOrUpdateCounterpartyLimit(
+//    counterpartyLimitId:Option[String],
+//    bankId: String,
+//    accountId: String,
+//    viewId: String,
+//    counterpartyId: String,
+//    maxSingleAmount: Int,
+//    maxMonthlyAmount: Int,
+//    maxNumberOfMonthlyTransactions: Int,
+//    maxYearlyAmount: Int,
+//    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]):OBPReturnType[CounterpartyLimit] = Future{
+//    (CounterpartyLimitProvider.counterpartyLimit.vend.createOrUpdateCounterpartyLimit(
+//      counterpartyLimitId:Option[String],
+//      bankId: String,
+//      accountId: String,
+//      viewId: String,
+//      counterpartyId: String,
+//      maxSingleAmount: Int,
+//      maxMonthlyAmount: Int,
+//      maxNumberOfMonthlyTransactions: Int,
+//      maxYearlyAmount: Int,
+//      maxNumberOfYearlyTransactions: Int): Future[Box[CounterpartyLimit]],callContext)
+//  }
 
   
 }

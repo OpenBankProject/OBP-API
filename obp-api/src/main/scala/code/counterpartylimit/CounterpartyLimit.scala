@@ -18,6 +18,7 @@ trait CounterpartyLimitProviderTrait {
   def getByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[CounterpartyLimit]]
   def deleteByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[Boolean]]
   def createOrUpdateCounterpartyLimit(
+    counterpartyLimitId:Option[String],
     bankId: String,
     accountId: String,
     viewId: String,

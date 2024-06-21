@@ -2315,12 +2315,22 @@ trait APIMethods510 {
             postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
               json.extract[PostCounterpartyLimitV510]
             }
-            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
-              json.extract[PostCounterpartyLimitV510]
-            }
+//            counterpartyLimit <- NewStyle.function.createOrUpdateCounterpartyLimit(
+//              None,
+//              bankId.value,
+//              accountId.value,
+//              viewId.value,
+//              counterPartyId.value,
+//              postCounterpartyLimitV510.max_single_amount,
+//              postCounterpartyLimitV510.max_monthly_amount,
+//              postCounterpartyLimitV510.max_number_of_monthly_transactions,
+//              postCounterpartyLimitV510.max_yearly_amount,
+//              postCounterpartyLimitV510.max_number_of_yearly_transactions,
+//              callContext: Option[CallContext]
+//            )
             
           } yield {
-            ("123213", HttpCode.`201`(cc.callContext))
+            ("counterpartyLimit", HttpCode.`201`(cc.callContext))
           }
       }
     }

@@ -506,6 +506,9 @@ object ErrorMessages {
   val SystemViewCannotBePublicError = "OBP-30258: System view cannot be public"
   val CreateCustomViewError = "OBP-30259: Could not create the custom view"
   val UpdateCustomViewError = "OBP-30260: Could not update the custom view"
+  val CreateCounterpartyLimitError = "OBP-30261: Could not create the counterparty limit"
+  val UpdateCounterpartyLimitError = "OBP-30262: Could not update the counterparty limit"
+
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
