@@ -70,7 +70,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
-import code.counterpartylimit.CounterpartyLimit
+import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitTrait}
 import code.crm.CrmEvent
 import code.crm.CrmEvent.CrmEvent
 import code.customeraccountlinks.CustomerAccountLinkTrait
@@ -4056,36 +4056,67 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError"), callContext)
       }
 
+    def createOrUpdateCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      maxSingleAmount: Int,
+      maxMonthlyAmount: Int,
+      maxNumberOfMonthlyTransactions: Int,
+      maxYearlyAmount: Int,
+      maxNumberOfYearlyTransactions: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CounterpartyLimitTrait] =
+      Connector.connector.vend.createOrUpdateCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        maxSingleAmount: Int,
+        maxMonthlyAmount: Int,
+        maxNumberOfMonthlyTransactions: Int,
+        maxYearlyAmount: Int,
+        maxNumberOfYearlyTransactions: Int,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, CreateCounterpartyLimitError), i._2)
+    }
 
-
-//    def createOrUpdateCounterpartyLimit(
-//      counterpartyLimitId:Option[String],
-//      bankId: String,
-//      accountId: String,
-//      viewId: String,
-//      counterpartyId: String,
-//      maxSingleAmount: Int,
-//      maxMonthlyAmount: Int,
-//      maxNumberOfMonthlyTransactions: Int,
-//      maxYearlyAmount: Int,
-//      maxNumberOfYearlyTransactions: Int,
-//      callContext: Option[CallContext]
-//    ): OBPReturnType[CounterpartyLimit] =
-//      Connector.connector.vend.createOrUpdateCounterpartyLimit(
-//        counterpartyLimitId:Option[String],
-//        bankId: String,
-//        accountId: String,
-//        viewId: String,
-//        counterpartyId: String,
-//        maxSingleAmount: Int,
-//        maxMonthlyAmount: Int,
-//        maxNumberOfMonthlyTransactions: Int,
-//        maxYearlyAmount: Int,
-//        maxNumberOfYearlyTransactions: Int,
-//        callContext: Option[CallContext]
-//    ) map {
-//      i => (unboxFullOrFail(i._1, callContext, CreateCounterpartyLimitError), i._2)
-//    }
+    def getCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CounterpartyLimitTrait] =
+      Connector.connector.vend.getCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, s"$GetCounterpartyLimitError Current BANK_ID($bankId), " +
+        s"ACCOUNT_ID($accountId), VIEW_ID($viewId),COUNTERPARTY_ID($counterpartyId)"), i._2)
+    }
+    
+    def deleteCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] =
+      Connector.connector.vend.deleteCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyLimitError"), i._2)
+    }
   }
 
 }

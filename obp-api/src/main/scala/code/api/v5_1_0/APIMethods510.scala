@@ -2309,28 +2309,160 @@ trait APIMethods510 {
       List(apiTagCounterpartyLimits),
     )
     lazy val createCounterpartyLimit: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterPartyId) ::"limits" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
               json.extract[PostCounterpartyLimitV510]
             }
-//            counterpartyLimit <- NewStyle.function.createOrUpdateCounterpartyLimit(
-//              None,
-//              bankId.value,
-//              accountId.value,
-//              viewId.value,
-//              counterPartyId.value,
-//              postCounterpartyLimitV510.max_single_amount,
-//              postCounterpartyLimitV510.max_monthly_amount,
-//              postCounterpartyLimitV510.max_number_of_monthly_transactions,
-//              postCounterpartyLimitV510.max_yearly_amount,
-//              postCounterpartyLimitV510.max_number_of_yearly_transactions,
-//              callContext: Option[CallContext]
-//            )
-            
+            (counterpartyLimitBox, callContext) <- Connector.connector.vend.getCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+            failMsg = s"$CounterpartyLimitAlreadyExists Current BANK_ID($bankId), ACCOUNT_ID($accountId), VIEW_ID($viewId),COUNTERPARTY_ID($counterpartyId)"
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              counterpartyLimitBox.isEmpty
+            }
+            (counterpartyLimit,callContext) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              postCounterpartyLimitV510.max_single_amount,
+              postCounterpartyLimitV510.max_monthly_amount,
+              postCounterpartyLimitV510.max_number_of_monthly_transactions,
+              postCounterpartyLimitV510.max_yearly_amount,
+              postCounterpartyLimitV510.max_number_of_yearly_transactions,
+              cc.callContext
+            )
           } yield {
-            ("counterpartyLimit", HttpCode.`201`(cc.callContext))
+             
+            (counterpartyLimit.toJValue, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      updateCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(updateCounterpartyLimit),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Update Counterparty Limit",
+      s"""Update Counterparty Limit.""",
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val updateCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
+              json.extract[PostCounterpartyLimitV510]
+            }
+            (counterpartyLimit,callContext) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              postCounterpartyLimitV510.max_single_amount,
+              postCounterpartyLimitV510.max_monthly_amount,
+              postCounterpartyLimitV510.max_number_of_monthly_transactions,
+              postCounterpartyLimitV510.max_yearly_amount,
+              postCounterpartyLimitV510.max_number_of_yearly_transactions,
+              cc.callContext
+            )
+          } yield {
+            (counterpartyLimit.toJValue, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(getCounterpartyLimit),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Get Counterparty Limit",
+      s"""Get Counterparty Limit.""",
+      EmptyBody,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val getCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (counterpartyLimit, callContext) <- NewStyle.function.getCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+          } yield {
+            (counterpartyLimit.toJValue, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyLimit),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Delete Counterparty Limit",
+      s"""Delete Counterparty Limit.""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val deleteCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (counterpartyLimit, callContext)<- NewStyle.function.deleteCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+          } yield {
+            (Full(counterpartyLimit), HttpCode.`204`(cc.callContext))
           }
       }
     }

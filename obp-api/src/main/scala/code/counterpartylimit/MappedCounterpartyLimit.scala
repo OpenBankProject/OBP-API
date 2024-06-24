@@ -1,29 +1,47 @@
 package code.counterpartylimit
 
-import code.util.{MappedUUID}
+import code.util.MappedUUID
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.json
+import net.liftweb.json.Formats
+import net.liftweb.json.JsonAST.{JValue,JString}
+import net.liftweb.json.JsonDSL._
 import scala.concurrent.Future
 
 object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
   
-  def getAll(): Future[List[CounterpartyLimit]] = Future(CounterpartyLimit.findAll())
-  def getByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[CounterpartyLimit]] = Future {
+  def getCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String
+  ): Future[Box[CounterpartyLimitTrait]] = Future {
     CounterpartyLimit.find(
-      By(CounterpartyLimit.CounterpartyLimitId, counterpartyLimitId),
+      By(CounterpartyLimit.BankId, bankId),
+      By(CounterpartyLimit.AccountId, accountId),
+      By(CounterpartyLimit.ViewId, viewId),
+      By(CounterpartyLimit.CounterpartyId, counterpartyId)
     )
   }
-  def deleteByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[Boolean]] = Future {
+  
+  def deleteCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String
+  ): Future[Box[Boolean]] = Future {
     CounterpartyLimit.find(
-      By(CounterpartyLimit.CounterpartyLimitId, counterpartyLimitId),
+      By(CounterpartyLimit.BankId, bankId),
+      By(CounterpartyLimit.AccountId, accountId),
+      By(CounterpartyLimit.ViewId, viewId),
+      By(CounterpartyLimit.CounterpartyId, counterpartyId)
     ).map(_.delete_!)
   }
   
   def createOrUpdateCounterpartyLimit(
-    counterpartyLimitId:Option[String],
     bankId: String,
     accountId: String,
     viewId: String,
@@ -32,9 +50,9 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,
     maxYearlyAmount: Int,
-    maxNumberOfYearlyTransactions: Int): Future[Box[CounterpartyLimit]]= Future {
+    maxNumberOfYearlyTransactions: Int)= Future {
 
-    def createCounterpartyLimit(counterpartyLimit: CounterpartyLimit): Box[CounterpartyLimit] = {
+    def createCounterpartyLimit(counterpartyLimit: CounterpartyLimit)= {
       tryo {
         counterpartyLimit.BankId(bankId)
         counterpartyLimit.AccountId(accountId)
@@ -50,11 +68,14 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
     }
 
     def getCounterpartyLimit = CounterpartyLimit.find(
-      By(CounterpartyLimit.CounterpartyLimitId, counterpartyLimitId.get)
+      By(CounterpartyLimit.BankId, bankId),
+      By(CounterpartyLimit.AccountId, accountId),
+      By(CounterpartyLimit.ViewId, viewId),
+      By(CounterpartyLimit.CounterpartyId, counterpartyId),
     )
     
-    val result = counterpartyLimitId match {
-      case Some(_) => getCounterpartyLimit.map(createCounterpartyLimit).flatten
+    val result = getCounterpartyLimit match {
+      case Full(counterpartyLimit) => createCounterpartyLimit(counterpartyLimit)
       case _ => createCounterpartyLimit(CounterpartyLimit.create)
     }
     result
@@ -109,6 +130,17 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
   def maxYearlyAmount: Int = MaxYearlyAmount.get
   def maxNumberOfYearlyTransactions: Int = MaxNumberOfYearlyTransactions.get
 
+  override def toJValue(implicit format: Formats): JValue ={
+    ("counterparty_limit_id", counterpartyLimitId) ~ 
+      ("bank_id", bankId) ~ 
+      ("account_id",accountId) ~ 
+      ("view_id",viewId) ~ 
+      ("max_single_amount", maxSingleAmount) ~ 
+      ("max_monthly_amount", maxMonthlyAmount) ~ 
+      ("max_number_of_monthly_transactions", maxNumberOfMonthlyTransactions) ~ 
+      ("max_yearly_amount", maxYearlyAmount) ~ 
+      ("max_number_of_yearly_transactions", maxNumberOfYearlyTransactions)
+  }
 }
 
 object CounterpartyLimit extends CounterpartyLimit with LongKeyedMetaMapper[CounterpartyLimit] {

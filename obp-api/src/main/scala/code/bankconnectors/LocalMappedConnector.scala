@@ -30,7 +30,7 @@ import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
 import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
-import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitProvider}
+import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitProvider, CounterpartyLimitTrait}
 import code.customer._
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.customeraddress.CustomerAddressX
@@ -5914,31 +5914,58 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )), callContext)
   }
 
+  override def createOrUpdateCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    maxSingleAmount: Int,
+    maxMonthlyAmount: Int,
+    maxNumberOfMonthlyTransactions: Int,
+    maxYearlyAmount: Int,
+    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]) =
+    CounterpartyLimitProvider.counterpartyLimit.vend.createOrUpdateCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      maxSingleAmount: Int,
+      maxMonthlyAmount: Int,
+      maxNumberOfMonthlyTransactions: Int,
+      maxYearlyAmount: Int,
+      maxNumberOfYearlyTransactions: Int) map {
+      (_, callContext)
+    }
+    
+  override def getCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    callContext: Option[CallContext]
+  ) =
+    CounterpartyLimitProvider.counterpartyLimit.vend.getCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String
+    ) map {
+      (_, callContext)
+    }
 
-
-//  override def createOrUpdateCounterpartyLimit(
-//    counterpartyLimitId:Option[String],
-//    bankId: String,
-//    accountId: String,
-//    viewId: String,
-//    counterpartyId: String,
-//    maxSingleAmount: Int,
-//    maxMonthlyAmount: Int,
-//    maxNumberOfMonthlyTransactions: Int,
-//    maxYearlyAmount: Int,
-//    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]):OBPReturnType[CounterpartyLimit] = Future{
-//    (CounterpartyLimitProvider.counterpartyLimit.vend.createOrUpdateCounterpartyLimit(
-//      counterpartyLimitId:Option[String],
-//      bankId: String,
-//      accountId: String,
-//      viewId: String,
-//      counterpartyId: String,
-//      maxSingleAmount: Int,
-//      maxMonthlyAmount: Int,
-//      maxNumberOfMonthlyTransactions: Int,
-//      maxYearlyAmount: Int,
-//      maxNumberOfYearlyTransactions: Int): Future[Box[CounterpartyLimit]],callContext)
-//  }
-
+  override def deleteCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] =
+    CounterpartyLimitProvider.counterpartyLimit.vend.deleteCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String) map {
+      (_, callContext)
+    }
   
 }

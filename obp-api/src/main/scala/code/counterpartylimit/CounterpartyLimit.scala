@@ -1,6 +1,7 @@
 package code.counterpartylimit
 
 import code.api.util.APIUtil
+import com.openbankproject.commons.util.JsonAble
 import net.liftweb.util.SimpleInjector
 import net.liftweb.common.Box
 import scala.concurrent.Future
@@ -14,11 +15,21 @@ object CounterpartyLimitProvider extends SimpleInjector {
 }
 
 trait CounterpartyLimitProviderTrait {
-  def getAll(): Future[List[CounterpartyLimit]]
-  def getByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[CounterpartyLimit]]
-  def deleteByCounterpartyLimitId(counterpartyLimitId: String): Future[Box[Boolean]]
+  def getCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String
+  ): Future[Box[CounterpartyLimitTrait]]
+  
+  def deleteCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String
+  ): Future[Box[Boolean]]
+  
   def createOrUpdateCounterpartyLimit(
-    counterpartyLimitId:Option[String],
     bankId: String,
     accountId: String,
     viewId: String,
@@ -27,10 +38,10 @@ trait CounterpartyLimitProviderTrait {
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,
     maxYearlyAmount: Int,
-    maxNumberOfYearlyTransactions: Int): Future[Box[CounterpartyLimit]]
+    maxNumberOfYearlyTransactions: Int): Future[Box[CounterpartyLimitTrait]]
 }
 
-trait CounterpartyLimitTrait {
+trait CounterpartyLimitTrait extends JsonAble{
   def counterpartyLimitId: String
   def bankId: String
   def accountId: String

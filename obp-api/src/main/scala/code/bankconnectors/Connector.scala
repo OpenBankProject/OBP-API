@@ -23,7 +23,7 @@ import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.counterpartylimit.CounterpartyLimit
+import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitTrait}
 import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.endpointTag.EndpointTagT
 import code.fx.fx.TTL
@@ -2663,18 +2663,33 @@ trait Connector extends MdcLoggable {
   
   def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[Box[ConsentImplicitSCAT]] = Future{(Failure(setUnimplementedError), callContext)}
 
-//  def createOrUpdateCounterpartyLimit(
-//    counterpartyLimitId:Option[String],
-//    bankId: String,
-//    accountId: String,
-//    viewId: String,
-//    counterpartyId: String,
-//    maxSingleAmount: Int,
-//    maxMonthlyAmount: Int,
-//    maxNumberOfMonthlyTransactions: Int,
-//    maxYearlyAmount: Int,
-//    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]
-//  ): OBPReturnType[Box[CounterpartyLimit]]
+  def createOrUpdateCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    maxSingleAmount: Int,
+    maxMonthlyAmount: Int,
+    maxNumberOfMonthlyTransactions: Int,
+    maxYearlyAmount: Int,
+    maxNumberOfYearlyTransactions: Int, callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyLimitTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyLimitTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def deleteCounterpartyLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    counterpartyId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
 
 }
