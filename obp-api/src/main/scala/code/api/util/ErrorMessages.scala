@@ -506,6 +506,11 @@ object ErrorMessages {
   val SystemViewCannotBePublicError = "OBP-30258: System view cannot be public"
   val CreateCustomViewError = "OBP-30259: Could not create the custom view"
   val UpdateCustomViewError = "OBP-30260: Could not update the custom view"
+  val CreateCounterpartyLimitError = "OBP-30261: Could not create the counterparty limit."
+  val UpdateCounterpartyLimitError = "OBP-30262: Could not update the counterparty limit."
+  val GetCounterpartyLimitError = "OBP-30263: Counterparty limit not found. Please specify a valid value for BANK_ID, ACCOUNT_ID, VIEW_ID or COUNTERPARTY_ID."
+  val CounterpartyLimitAlreadyExists = "OBP-30264: Counterparty limit already exists. Please specify a different value for  BANK_ID, ACCOUNT_ID, VIEW_ID or COUNTERPARTY_ID."
+  val DeleteCounterpartyLimitError = "OBP-30265: Could not delete the counterparty limit."
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
@@ -848,6 +853,11 @@ object ErrorMessages {
    *  validate method: NewStyle.function.checkViewAccessAndReturnView
    */
   def $UserNoPermissionAccessView = UserNoPermissionAccessView
+  
+  /**
+   *  validate method: NewStyle.function.getCounterpartyByCounterpartyId
+   */
+  def $CounterpartyNotFoundByCounterpartyId = CounterpartyNotFoundByCounterpartyId
 
 
   def getDuplicatedMessageNumbers = {

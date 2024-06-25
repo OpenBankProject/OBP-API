@@ -645,7 +645,8 @@ trait APIMethods121 {
       ),
       List(apiTagAccount, apiTagView, apiTagOldStyle)
     )
-  
+    
+    //TODO. remove and replace it with V510.
     lazy val updateViewForBankAccount: OBPEndpoint = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId

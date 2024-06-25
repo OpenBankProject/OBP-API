@@ -73,6 +73,7 @@ object ApiTag {
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping")
   val apiTagRateLimits = ResourceDocTag("Rate-Limits")
+  val apiTagCounterpartyLimits = ResourceDocTag("Counterparty-Limits")
 
   val apiTagApiCollection = ResourceDocTag("Api-Collection")
   

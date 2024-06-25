@@ -63,6 +63,7 @@ import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
+import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -1087,7 +1088,8 @@ object ToSchemify {
     EndpointTag,
     ProductFee,
     ViewPermission,
-    UserInitAction
+    UserInitAction,
+    CounterpartyLimit
   )
 
   // start grpc server
