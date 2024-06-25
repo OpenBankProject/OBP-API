@@ -1,0 +1,9 @@
+FROM jetty:9.4-jdk11-alpine
+
+# Copy OBP source code
+# Copy build artifact (.war file) into jetty from 'maven' stage.
+COPY /jmx_prometheus_javaagent-0.20.0.jar /var/lib/jetty/jmx_prometheus_javaagent-0.20.0.jar
+COPY /.github/jmx_exporter.config /var/lib/jetty/prometheus_config.yml
+COPY /obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
+
+CMD ["java -jar $JETTY_HOME/start.jar -javaagent:$JETTY_BASE/jmx_prometheus_javaagent-0.20.0.jar=8090:$JETTY_BASE/prometheus_config.yml"]

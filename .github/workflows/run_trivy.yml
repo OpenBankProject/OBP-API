@@ -2,7 +2,9 @@ name: scan container image
 
 on:
   workflow_run:
-    workflows: [build and publish container]
+    workflows:
+      - Build and publish container develop
+      - Build and publish container non develop
     types:
       - completed
 env:
