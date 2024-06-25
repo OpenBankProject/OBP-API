@@ -853,6 +853,11 @@ object ErrorMessages {
    *  validate method: NewStyle.function.checkViewAccessAndReturnView
    */
   def $UserNoPermissionAccessView = UserNoPermissionAccessView
+  
+  /**
+   *  validate method: NewStyle.function.getCounterpartyByCounterpartyId
+   */
+  def $CounterpartyNotFoundByCounterpartyId = CounterpartyNotFoundByCounterpartyId
 
 
   def getDuplicatedMessageNumbers = {

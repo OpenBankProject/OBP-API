@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.{Constant, UserNotFound}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -15,7 +16,9 @@ import code.api.util._
 import code.api.util.newstyle.BalanceNewStyle
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
+import code.api.v1_2_1.CreateViewJsonV121
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
+import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -28,14 +31,14 @@ import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
-import code.model.AppType
+import code.model.{AppType, BankAccountX}
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.ObpS
+import code.util.Helper.{ObpS, booleanToBox}
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -45,9 +48,9 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{compactRender, parse, prettyRender}
+import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Helpers, StringHelpers}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -2302,7 +2305,7 @@ trait APIMethods510 {
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
-        CounterpartyNotFoundByCounterpartyId,
+        $CounterpartyNotFoundByCounterpartyId,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2360,7 +2363,7 @@ trait APIMethods510 {
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
-        CounterpartyNotFoundByCounterpartyId,
+        $CounterpartyNotFoundByCounterpartyId,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2406,7 +2409,7 @@ trait APIMethods510 {
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
-        CounterpartyNotFoundByCounterpartyId,
+        $CounterpartyNotFoundByCounterpartyId,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2444,7 +2447,7 @@ trait APIMethods510 {
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
-        CounterpartyNotFoundByCounterpartyId,
+        $CounterpartyNotFoundByCounterpartyId,
         InvalidJsonFormat,
         UnknownError
       ),

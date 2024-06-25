@@ -1696,7 +1696,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val isNeedCheckView = errorResponseBodies.contains($UserNoPermissionAccessView) &&
       requestUrlPartPath.contains("BANK_ID") && requestUrlPartPath.contains("ACCOUNT_ID") && requestUrlPartPath.contains("VIEW_ID")
 
-    private val isNeedCheckCounterparty = errorResponseBodies.contains(CounterpartyNotFoundByCounterpartyId) && requestUrlPartPath.contains("COUNTERPARTY_ID")
+    private val isNeedCheckCounterparty = errorResponseBodies.contains($CounterpartyNotFoundByCounterpartyId) && requestUrlPartPath.contains("COUNTERPARTY_ID")
     
     private val reversedRequestUrl = requestUrlPartPath.reverse
     def getPathParams(url: List[String]): Map[String, String] =
