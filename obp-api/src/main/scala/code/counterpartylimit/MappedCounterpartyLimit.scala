@@ -135,6 +135,7 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
       ("bank_id", bankId) ~ 
       ("account_id",accountId) ~ 
       ("view_id",viewId) ~ 
+      ("counterparty_id",counterpartyId) ~ 
       ("max_single_amount", maxSingleAmount) ~ 
       ("max_monthly_amount", maxMonthlyAmount) ~ 
       ("max_number_of_monthly_transactions", maxNumberOfMonthlyTransactions) ~ 

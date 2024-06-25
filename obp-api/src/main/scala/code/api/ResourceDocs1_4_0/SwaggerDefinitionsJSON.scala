@@ -5397,11 +5397,11 @@ object SwaggerDefinitionsJSON {
   )
   
   val postCounterpartyLimitV510 = PostCounterpartyLimitV510(
-    max_single_amount = 0,
-    max_monthly_amount = 0,
-    max_number_of_monthly_transactions = 0,
-    max_yearly_amount = 0,
-    max_number_of_yearly_transactions = 0
+    max_single_amount = 200,
+    max_monthly_amount = 1000,
+    max_number_of_monthly_transactions = 10,
+    max_yearly_amount = 100,
+    max_number_of_yearly_transactions = 200
   )
   
   val counterpartyLimitV510 = CounterpartyLimitV510(
