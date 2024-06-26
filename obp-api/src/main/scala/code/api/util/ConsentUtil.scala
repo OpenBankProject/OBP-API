@@ -126,12 +126,14 @@ object Consent extends MdcLoggable {
   def getCurrentConsumerViaMtls(callContext: CallContext): Box[Consumer] = {
     val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders)
       .getOrElse(SecureRandomUtil.csprng.nextLong().toString)
-    def removeBreakLines(input: String) = input
-      .replace("\n", "")
-      .replace("\r", "")
-    Consumers.consumers.vend.getConsumerByPemCertificate(clientCert).or(
-      Consumers.consumers.vend.getConsumerByPemCertificate(removeBreakLines(clientCert))
-    )
+    
+    { // 1st search is via the original value
+      logger.debug(s"getConsumerByPemCertificate ${clientCert}")
+      Consumers.consumers.vend.getConsumerByPemCertificate(clientCert) 
+    }.or { // 2nd search is via the original value we normalize
+      logger.debug(s"getConsumerByPemCertificate ${CertificateUtil.normalizePemX509Certificate(clientCert)}")
+      Consumers.consumers.vend.getConsumerByPemCertificate(CertificateUtil.normalizePemX509Certificate(clientCert)) 
+    }
   }
   
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
