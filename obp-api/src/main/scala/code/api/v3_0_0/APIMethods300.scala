@@ -198,6 +198,7 @@ trait APIMethods300 {
       ),
       List(apiTagView, apiTagAccount))
 
+    //TODO. remove and replace it with V510.
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {

@@ -160,6 +160,27 @@ case class PostAtmJsonV510 (
   phone: String
 )
 
+case class PostCounterpartyLimitV510(
+  max_single_amount: Int,
+  max_monthly_amount: Int,
+  max_number_of_monthly_transactions: Int,
+  max_yearly_amount: Int,
+  max_number_of_yearly_transactions: Int
+)
+
+case class CounterpartyLimitV510(
+  counterparty_limit_id: String,
+  bank_id: String,
+  account_id: String,
+  view_id: String,
+  counterparty_id: String,
+  max_single_amount: Int,
+  max_monthly_amount: Int,
+  max_number_of_monthly_transactions: Int,
+  max_yearly_amount: Int,
+  max_number_of_yearly_transactions: Int
+)
+
 case class AtmJsonV510 (
   id : Option[String],
   bank_id : String,
