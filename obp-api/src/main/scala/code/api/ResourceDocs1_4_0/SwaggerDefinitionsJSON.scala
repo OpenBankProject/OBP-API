@@ -314,6 +314,15 @@ object SwaggerDefinitionsJSON {
     "can_revoke_access_to_custom_views"
   )
   
+//  val createCustomViewJson = CustomViewJsonV510(
+//    name = "_test",
+//    description= "This view is for family",
+//    metadata_view= "This view is for family",
+//    is_public = true,
+//    which_alias_to_use ="family",
+//    hide_metadata_if_alias_used = true,
+//    allowed_permissions= allowedActionsV500,
+//  )
   val createSystemViewJsonV500 = CreateViewJsonV500(
     name = "_test",
     description = "This view is for family",

@@ -28,17 +28,17 @@ package code.api.v5_1_0
 
 import code.api.Constant
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
-import code.api.util.APIUtil.gitCommit
+import code.api.util.APIUtil.{gitCommit, stringOrNull}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
-import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300}
+import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300, ViewJsonV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostViewJsonV400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.{UserAttribute, Users}
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, Customer, Location, Meta, RegulatedEntityTrait}
+import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, CreateViewJson, Customer, Location, Meta, RegulatedEntityTrait, UpdateViewJSON, View}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import java.util.Date
@@ -332,8 +332,80 @@ case class PostCreateUserAccountAccessJsonV510(username: String, provider:String
 
 case class PostAccountAccessJsonV510(user_id: String, view_id: String)
 
+case class CreateCustomViewJson(
+  name: String,
+  description: String,
+  metadata_view: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_permissions : List[String],
+) {
+  def toCreateViewJson = CreateViewJson(
+    name: String,
+    description: String,
+    metadata_view: String,
+    is_public: Boolean,
+    which_alias_to_use: String,
+    hide_metadata_if_alias_used: Boolean,
+    allowed_actions = allowed_permissions,
+  )
+}
+
+case class UpdateCustomViewJson(
+  description: String,
+  metadata_view: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions: List[String]
+) {
+  def toUpdateViewJson = UpdateViewJSON(
+    description: String,
+    metadata_view: String,
+    is_public: Boolean,
+    is_firehose= None,
+    which_alias_to_use: String,
+    hide_metadata_if_alias_used: Boolean,
+    allowed_actions: List[String]
+  )
+}
+
+case class CustomViewJsonV510(
+  id: String,
+  short_name: String,
+  description: String,
+  metadata_view: String,
+  is_public: Boolean,
+  is_system: Boolean,
+  is_firehose: Option[Boolean] = None,
+  alias: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_permissions: List[String]
+)
+
 object JSONFactory510 extends CustomJsonFormats {
 
+  def createViewJson(view: View): CustomViewJsonV510 = {
+    val alias =
+      if (view.usePublicAliasIfOneExists)
+        "public"
+      else if (view.usePrivateAliasIfOneExists)
+        "private"
+      else
+        ""
+    CustomViewJsonV510(
+      id = view.viewId.value,
+      short_name = stringOrNull(view.name),
+      description = stringOrNull(view.description),
+      metadata_view = view.metadataView,
+      is_public = view.isPublic,
+      is_system = view.isSystem,
+      alias = alias,
+      hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
+      allowed_permissions = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList
+    )
+  }
   def createCustomersIds(customers :  List[Customer]): CustomersIdsJsonV510 =
     CustomersIdsJsonV510(customers.map(x => CustomerIdJson(x.customerId)))
 
