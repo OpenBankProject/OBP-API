@@ -358,7 +358,7 @@ case class UpdateCustomViewJson(
   is_public: Boolean,
   which_alias_to_use: String,
   hide_metadata_if_alias_used: Boolean,
-  allowed_actions: List[String]
+  allowed_permissions: List[String]
 ) {
   def toUpdateViewJson = UpdateViewJSON(
     description: String,
@@ -367,7 +367,7 @@ case class UpdateCustomViewJson(
     is_firehose= None,
     which_alias_to_use: String,
     hide_metadata_if_alias_used: Boolean,
-    allowed_actions: List[String]
+    allowed_actions = allowed_permissions
   )
 }
 

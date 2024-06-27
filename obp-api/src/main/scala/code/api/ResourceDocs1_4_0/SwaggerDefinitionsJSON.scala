@@ -52,6 +52,7 @@ import scala.collection.immutable.List
   */
 object SwaggerDefinitionsJSON {
 
+  implicit def convertStringToBoolean(value:String) = value.toBoolean
 
   lazy val regulatedEntitiesJsonV510: RegulatedEntitiesJsonV510 = RegulatedEntitiesJsonV510(List(regulatedEntityJsonV510))
   lazy val regulatedEntityJsonV510: RegulatedEntityJsonV510 = RegulatedEntityJsonV510(
@@ -340,7 +341,7 @@ object SwaggerDefinitionsJSON {
     description = viewDescriptionExample.value,
     metadata_view =viewDescriptionExample.value,
     is_public = isPublicExample.value,
-    alias = whichAliasToUseExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
     hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
     allowed_actions = allowedActionsV500,
     // Version 5.0.0
@@ -352,7 +353,7 @@ object SwaggerDefinitionsJSON {
     description = viewDescriptionExample.value,
     metadata_view = metadataViewExample.value,
     is_public = isPublicExample.value,
-    alias = whichAliasToUseExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
     hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
     allowed_permissions = allowedActionsV500
   )

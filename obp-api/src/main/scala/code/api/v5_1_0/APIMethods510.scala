@@ -2577,7 +2577,7 @@ trait APIMethods510 {
               isValidCustomViewId(targetViewId.value)
             }
             permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
-            permissionsFromTarget = targetCreateCustomViewJson.allowed_actions
+            permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
 
             _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
               permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
