@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.{AtmsJsonV510, _}
+import code.api.v5_1_0.{AtmsJsonV510, CustomViewJsonV510, _}
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json.Extraction
 
@@ -314,26 +314,47 @@ object SwaggerDefinitionsJSON {
     "can_revoke_access_to_custom_views"
   )
   
-//  val createCustomViewJson = CustomViewJsonV510(
-//    name = "_test",
-//    description= "This view is for family",
-//    metadata_view= "This view is for family",
-//    is_public = true,
-//    which_alias_to_use ="family",
-//    hide_metadata_if_alias_used = true,
-//    allowed_permissions= allowedActionsV500,
-//  )
+  val createCustomViewJson = CreateCustomViewJson(
+    name = viewNameExample.value,
+    description= viewDescriptionExample.value,
+    metadata_view= metadataViewExample.value,
+    is_public = isPublicExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions= allowedActionsV500,
+  )
+  
+  val customViewJsonV510 = CustomViewJsonV510(
+    id = viewIdExample.value,
+    name = viewNameExample.value,
+    description = viewDescriptionExample.value,
+    metadata_view = metadataViewExample.value,
+    is_public = isPublicExample.value,
+    alias = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions = allowedActionsV500
+  )
+  
   val createSystemViewJsonV500 = CreateViewJsonV500(
-    name = "_test",
-    description = "This view is for family",
-    metadata_view ="_test",
-    is_public = false,
-    which_alias_to_use = "family",
-    hide_metadata_if_alias_used = false,
+    name = viewNameExample.value,
+    description = viewDescriptionExample.value,
+    metadata_view =viewDescriptionExample.value,
+    is_public = isPublicExample.value,
+    alias = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
     allowed_actions = allowedActionsV500,
     // Version 5.0.0
-    can_grant_access_to_views = Some(List("owner")),
-    can_revoke_access_to_views = Some(List("owner"))
+    can_grant_access_to_views = Some(List(viewIdExample.value)),
+    can_revoke_access_to_views = Some(List(viewIdExample.value))
+  )
+  
+  val updateCustomViewJson = UpdateCustomViewJson(
+    description = viewDescriptionExample.value,
+    metadata_view = metadataViewExample.value,
+    is_public = isPublicExample.value,
+    alias = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions = allowedActionsV500
   )
 
   val updateViewJsonV300 = UpdateViewJsonV300(

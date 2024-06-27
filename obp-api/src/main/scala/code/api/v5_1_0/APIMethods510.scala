@@ -2493,8 +2493,8 @@ trait APIMethods510 {
          |
          | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
          | """,
-      SwaggerDefinitionsJSON.createViewJsonV300,
-      viewJsonV300,
+      createCustomViewJson,
+      customViewJsonV510,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2551,8 +2551,8 @@ trait APIMethods510 {
          |
          |The json sent is the same as during view creation (above), with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created)""",
-      updateViewJsonV300,
-      viewJsonV300,
+      updateCustomViewJson,
+      customViewJsonV510,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -2628,7 +2628,7 @@ trait APIMethods510 {
          |
          |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
-      viewsJsonV500,
+      customViewJsonV510,
       List(
         $UserNotLoggedIn,
         $BankNotFound,

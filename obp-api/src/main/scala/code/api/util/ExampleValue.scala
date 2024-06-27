@@ -1171,7 +1171,7 @@ object ExampleValue {
   lazy val accountOtpExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("account_otp", accountOtpExample)
 
-  lazy val hideMetadataIfAliasUsedExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val hideMetadataIfAliasUsedExample = ConnectorField("true",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("hide_metadata_if_alias_used", hideMetadataIfAliasUsedExample)
 
   lazy val canSeeBankAccountCurrencyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

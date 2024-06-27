@@ -373,12 +373,10 @@ case class UpdateCustomViewJson(
 
 case class CustomViewJsonV510(
   id: String,
-  short_name: String,
+  name: String,
   description: String,
   metadata_view: String,
   is_public: Boolean,
-  is_system: Boolean,
-  is_firehose: Option[Boolean] = None,
   alias: String,
   hide_metadata_if_alias_used: Boolean,
   allowed_permissions: List[String]
@@ -396,11 +394,10 @@ object JSONFactory510 extends CustomJsonFormats {
         ""
     CustomViewJsonV510(
       id = view.viewId.value,
-      short_name = stringOrNull(view.name),
+      name = stringOrNull(view.name),
       description = stringOrNull(view.description),
       metadata_view = view.metadataView,
       is_public = view.isPublic,
-      is_system = view.isSystem,
       alias = alias,
       hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
       allowed_permissions = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList
