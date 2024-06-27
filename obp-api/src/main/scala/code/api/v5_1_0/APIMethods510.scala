@@ -2290,6 +2290,18 @@ trait APIMethods510 {
       }
     }
 
+
+    lazy val counterPartyLimitIntro: String =
+      """Counter Party Limits can be used to restrict the Transaction Request amounts and frequencies (per month and year) that can be made to a Counterparty (Beneficiary).
+        |
+        |In order to implement VRP (Variable Recurring Payments) perform the following steps:
+        |1) Create a Custom View named e.g. VRP1.
+        |2) Place a Beneficiary Counterparty on that view.
+        |3) Add Counterparty Limits for that Counterparty.
+        |4) Generate a Consent containing the bank, account and view (e.g. VRP1)
+        |5) Let the App use the consent to trigger Transaction Requests.
+        |""".stripMargin
+
     staticResourceDocs += ResourceDoc(
       createCounterpartyLimit,
       implementedInApiVersion,
@@ -2297,7 +2309,11 @@ trait APIMethods510 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
       "Create Counterparty Limit",
-      s"""Create Counterparty Limit.""",
+      s"""Create Counterparty Limit.
+         |
+         |$counterPartyLimitIntro
+         |
+         |""".stripMargin,
       postCounterpartyLimitV510,
       counterpartyLimitV510,
       List(
