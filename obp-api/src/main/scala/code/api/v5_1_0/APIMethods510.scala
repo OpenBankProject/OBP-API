@@ -2485,6 +2485,240 @@ trait APIMethods510 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      createCustomView,
+      implementedInApiVersion,
+      nameOf(createCustomView),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views",
+      "Create Custom View",
+      s"""Create a custom view on bank account
+         |
+         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         | The 'alias' field in the JSON can take one of three values:
+         |
+         | * _public_: to use the public alias if there is one specified for the other account.
+         | * _private_: to use the private alias if there is one specified for the other account.
+         |
+         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+         |
+         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+         |
+         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+         |
+         | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
+         | """,
+      createCustomViewJson,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val createCustomView: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"target-views" ::  Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            createCustomViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[CreateViewJson]}", 400, cc.callContext) {
+              json.extract[CreateCustomViewJson]
+            }
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current view_name (${createCustomViewJson.name})", cc = callContext) {
+              isValidCustomViewName(createCustomViewJson.name)
+            }
+
+            permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+            permissionsFromTarget = createCustomViewJson.allowed_permissions
+
+            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source viewId($viewId) permissions ($permissionsFromSource), target viewName${createCustomViewJson.name} permissions ($permissionsFromTarget)", cc = callContext) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+
+            failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canCreateCustomView))}` permission on VIEW_ID(${viewId.value})"
+
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              view.canCreateCustomView
+            }
+            (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createCustomViewJson.toCreateViewJson, callContext)
+          } yield {
+            (JSONFactory510.createViewJson(view), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomView,
+      implementedInApiVersion,
+      nameOf(updateCustomView),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Update Custom View",
+      s"""Update an existing custom view on a bank account
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+         |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateCustomViewJson,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val updateCustomView: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId) :: Nil JsonPut json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            targetCreateCustomViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[UpdateCustomViewJson]}", 400, cc.callContext) {
+              json.extract[UpdateCustomViewJson]
+            }
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId})", cc = callContext) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+            permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
+
+            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+
+            failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canUpdateCustomView))}` permission on VIEW_ID(${viewId.value})"
+
+            _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
+              view.canCreateCustomView
+            }
+
+            (view, callContext) <- NewStyle.function.updateCustomView(BankIdAccountId(bankId, accountId), targetViewId, targetCreateCustomViewJson.toUpdateViewJson, callContext)
+          } yield {
+            (JSONFactory510.createViewJson(view), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomView,
+      implementedInApiVersion,
+      nameOf(getCustomView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Get Custom View",
+      s"""#Views
+         |
+         |
+         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+         |
+         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+         |
+         |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+         |
+         |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+         |
+         |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+         |
+         |**Metadata:**
+         |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+         |
+         |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+         |
+         |# All
+         |*Optional*
+         |
+         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
+      EmptyBody,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val getCustomView: OBPEndpoint = {
+      //get the available views on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId):: Nil JsonGet req => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+            for {
+              (_, _, _, view, callContext) <- SS.userBankAccountView
+              //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = callContext) {
+                isValidCustomViewId(targetViewId.value)
+              }
+              failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canSeeAvailableViewsForBankAccount))}`permission on any your views. Current VIEW_ID (${viewId.value})"
+              _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
+                view.canSeeAvailableViewsForBankAccount
+              }
+              targetView <- NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+            } yield {
+              (JSONFactory510.createViewJson(targetView), HttpCode.`200`(callContext))
+            }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteCustomView,
+      implementedInApiVersion,
+      nameOf(deleteCustomView),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Delete Custom View",
+      "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+
+    lazy val deleteCustomView: OBPEndpoint = {
+      //deletes a view on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId ) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId) :: Nil JsonDelete req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = callContext) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canDeleteCustomView))}` permission on any your views.Current VIEW_ID (${viewId.value})"
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              view.canDeleteCustomView
+            }
+            _ <- NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+            deleted <- NewStyle.function.removeCustomView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
   }
 }
 

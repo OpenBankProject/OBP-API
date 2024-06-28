@@ -9016,7 +9016,7 @@ trait APIMethods400 extends MdcLoggable {
               json.extract[PostApiCollectionJson400]
             }
             apiCollection <- Future{MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(cc.userId, postJson.api_collection_name)}
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.", cc=cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExists Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.", cc=cc.callContext) {
               apiCollection.isEmpty
             }
             (apiCollection, callContext) <- NewStyle.function.createApiCollection(
@@ -9299,7 +9299,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
@@ -9348,7 +9348,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionId) ", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionId) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
