@@ -38,7 +38,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
   )
   
 
-  feature(s"test $ApiEndpoint1  Authorized access") {
+  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint4,   Authorized access") {
     
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString); 
