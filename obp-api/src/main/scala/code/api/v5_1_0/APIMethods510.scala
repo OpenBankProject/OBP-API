@@ -2522,7 +2522,7 @@ trait APIMethods510 {
             permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
             permissionsFromTarget = createCustomViewJson.allowed_permissions
 
-            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source viewId($viewId) permissions ($permissionsFromSource), target viewName${createCustomViewJson.name} permissions ($permissionsFromTarget)", cc = callContext) {
               permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
             }
 
@@ -2583,7 +2583,7 @@ trait APIMethods510 {
               permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
             }
 
-            failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canCreateCustomView))}` permission on VIEW_ID(${viewId.value})"
+            failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canUpdateCustomView))}` permission on VIEW_ID(${viewId.value})"
 
             _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
               view.canCreateCustomView
