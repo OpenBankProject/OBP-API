@@ -198,7 +198,7 @@ object ErrorMessages {
     s"OBP-20048: If target viewId is system view,  the current view.can_revoke_access_to_views does not contains it. Or" +
       s"if target viewId is custom view, the current view.can_revoke_access_to_custom_views is false."
       
-  val SourceViewHasLessPermission = "OBP-20050: Source view contains less permissions than target view."
+  val SourceViewHasLessPermission = "OBP-20049: Source view contains less permissions than target view."
   
   val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
@@ -408,8 +408,8 @@ object ErrorMessages {
   val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."
   val CreateApiCollectionEndpointError = "OBP-30083: Could not create ApiCollectionEndpoint."
   val DeleteApiCollectionEndpointError = "OBP-30084: Could not delete ApiCollectionEndpoint."
-  val ApiCollectionEndpointAlreadyExisting = "OBP-30085: The ApiCollectionEndpoint is already Existing."
-  val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
+  val ApiCollectionEndpointAlreadyExists = "OBP-30085: The ApiCollectionEndpoint is already exists."
+  val ApiCollectionAlreadyExists = "OBP-30086: The ApiCollection is already exists."
 
   val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
   
@@ -501,7 +501,7 @@ object ErrorMessages {
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
   val UpdateSystemViewError = "OBP-30253: Could not update the system view"
-  val ExistingSystemViewError = "OBP-30254: The system view is already Existing."
+  val SystemViewAlreadyExistsError = "OBP-30254: The system view is already exists."
   val EmptyNameOfSystemViewError = "OBP-30255: You cannot create a View with an empty Name"
   val DeleteCustomViewError = "OBP-30256: Could not delete the custom view"
   val CannotFindCustomViewError = "OBP-30257: Could not find the custom view"
@@ -513,7 +513,7 @@ object ErrorMessages {
   val GetCounterpartyLimitError = "OBP-30263: Counterparty limit not found. Please specify a valid value for BANK_ID, ACCOUNT_ID, VIEW_ID or COUNTERPARTY_ID."
   val CounterpartyLimitAlreadyExists = "OBP-30264: Counterparty limit already exists. Please specify a different value for  BANK_ID, ACCOUNT_ID, VIEW_ID or COUNTERPARTY_ID."
   val DeleteCounterpartyLimitError = "OBP-30265: Could not delete the counterparty limit."
-  val ExistingCustomViewError = "OBP-30266: The custom view is already Existing."
+  val CustomViewAlreadyExistsError = "OBP-30266: The custom view is already exists."
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
@@ -734,7 +734,7 @@ object ErrorMessages {
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
-  val ExistingMethodRoutingError = "OBP-70003: Method Routing is already existing."
+  val MethodRoutingAlreadyExistsError = "OBP-70003: Method Routing is already exists."
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
