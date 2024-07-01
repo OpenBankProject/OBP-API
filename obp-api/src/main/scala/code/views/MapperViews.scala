@@ -399,7 +399,7 @@ object MapperViews extends Views with MdcLoggable {
 
           existing match {
             case true =>
-              Failure(s"$ExistingSystemViewError $viewId")
+              Failure(s"$SystemViewAlreadyExistsError Current VIEW_ID($viewId)")
             case false =>
               val createdView = ViewDefinition.create.name_(view.name).view_id(viewId)
               createdView.setFromViewData(view)
@@ -436,7 +436,7 @@ object MapperViews extends Views with MdcLoggable {
     ) == 1
 
     if (existing)
-      Failure(s"There is already a view with permalink $viewId on this bank account")
+      Failure(s"$CustomViewAlreadyExistsError Current BankId(${bankAccountId.bankId.value}), AccountId(${bankAccountId.accountId.value}), ViewId($viewId).")
     else {
       val createdView = ViewDefinition.create.
         name_(view.name).

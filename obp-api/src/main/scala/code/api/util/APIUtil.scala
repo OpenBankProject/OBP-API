@@ -122,7 +122,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.etag.MappedETag
 import code.users.Users
-import code.views.system.AccountAccess
+import code.views.system.{AccountAccess, ViewDefinition}
 import net.liftweb.mapper.By
 
 import scala.collection.mutable
@@ -4962,4 +4962,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
       .distinct // List pairs (bank_id, account_id)
   }
+  
+  //get all the permission Pair from one record, eg:
+  //List("can_see_transaction_this_bank_account","can_see_transaction_requests"....)
+  //Note, do not contain can_revoke_access_to_views and can_grant_access_to_views permission yet.
+  def getViewPermissions(view: ViewDefinition) = view.allFields.map(x => (x.name, x.get))
+    .filter(pair =>pair._2.isInstanceOf[Boolean])
+    .filter(pair => pair._1.startsWith("can"))
+    .filter(pair => pair._2.equals(true))
+    .map(pair => 
+      StringHelpers.snakify(pair._1)
+        .dropRight(1) //Remove the "_" in the end, eg canCreateStandingOrder_ --> canCreateStandingOrder
+    ).toSet
+  
 }

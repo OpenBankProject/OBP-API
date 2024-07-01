@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.UKOpenBanking.v2_0_0.{APIMethods_UKOpenBanking_200, OBP_UKOpenBanking_200}
 import code.api.UKOpenBanking.v3_1_0.{APIMethods_AccountAccessApi, OBP_UKOpenBanking_310}
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
@@ -37,6 +38,7 @@ import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.{OBPAPI4_0_0, V400ServerSetup}
 import code.setup.PropsReset
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.util.ApiVersion
 
 class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
@@ -163,6 +165,31 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
     allowedOperationIds5.length should be (1)
     allowedOperationIds5 contains("UKv3.1-createAccountAccessConsents") should be (true)
     allowedOperationIds5 contains("UKv3.1-deleteConsent") should be (false)
+  }
+
+  feature("test APIUtil.getPermissionPairFromViewDefinition method") {
+
+    scenario(s"Test the getPermissionPairFromViewDefinition method") {
+
+      val subList = List(
+        "can_see_transaction_request_types",
+        "can_see_available_views_for_bank_account",
+        "can_see_views_with_permissions_for_all_users",
+        "can_see_views_with_permissions_for_one_user",
+        "can_see_transaction_this_bank_account",
+        "can_see_transaction_other_bank_account",
+        "can_see_transaction_description",
+        "can_see_transaction_start_date",
+        "can_see_transaction_finish_date",
+        "can_see_bank_account_national_identifier",
+        "can_see_bank_account_swift_bic"
+      ).toSet
+      val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
+      val permissions = APIUtil.getViewPermissions(systemOwnerView.asInstanceOf[ViewDefinition])
+
+      subList.subsetOf(permissions)
+    }
+    
   }
   
 }
