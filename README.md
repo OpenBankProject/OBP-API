@@ -97,6 +97,10 @@ Run one test
 
     mvn -DwildcardSuites=code.api.directloginTest test
 
+Run all test and save output to a file
+
+    export MAVEN_OPTS="-Xss128m" && mvn clean test | tee obp-api-test-results.txt
+
 ## Ubuntu
 
 If you use Ubuntu (or a derivate) and encrypted home directories (e.g. you have ~/.Private), you might run into the following error when the project is built:
