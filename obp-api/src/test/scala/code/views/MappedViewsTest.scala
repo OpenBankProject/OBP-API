@@ -60,7 +60,9 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       val wrongViewId = "WrongViewId"
       val wrongView = MapperViews.getOrCreateSystemViewFromCbs(wrongViewId)
   
-      wrongView should equal(Failure(ViewIdNotSupported+ s"Your input viewId is :$wrongViewId"))
+      wrongView.toString contains  ViewIdNotSupported shouldBe (true)
+      
+      wrongView.toString contains  wrongViewId shouldBe(true)
   
     }
   

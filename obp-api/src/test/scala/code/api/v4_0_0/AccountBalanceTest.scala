@@ -16,8 +16,8 @@ class AccountBalanceTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getBankAccountsBalances))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getBankAccountBalances))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getBankAccountsBalancesForCurrentUser))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getBankAccountBalancesForCurrentUser))
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)

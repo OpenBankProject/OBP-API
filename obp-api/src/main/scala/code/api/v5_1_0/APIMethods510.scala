@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.{Constant, UserNotFound}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -12,13 +13,17 @@ import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
+import code.api.util.newstyle.BalanceNewStyle
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
+import code.api.v1_2_1.CreateViewJsonV121
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
+import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
+import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, RevokedJsonV400}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
@@ -26,14 +31,14 @@ import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
-import code.model.AppType
+import code.model.{AppType, BankAccountX}
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.ObpS
+import code.util.Helper.{ObpS, booleanToBox}
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -43,9 +48,9 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{compactRender, parse, prettyRender}
+import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Helpers, StringHelpers}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -992,9 +997,9 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
-              unboxFullOrFail(_, cc.callContext, ConsentNotFound)
+              unboxFullOrFail(_, cc.callContext, ConsentNotFound, 404)
             }
-            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = cc.callContext) {
               consent.mUserId == cc.userId
             }
           } yield {
@@ -1093,7 +1098,7 @@ trait APIMethods510 {
             (Full(user), callContext) <- authenticatedAccess(cc)
             consentId = getConsentIdRequestHeaderValue(cc.requestHeaders).getOrElse("")
             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-              unboxFullOrFail(_, callContext, ConsentNotFound)
+              unboxFullOrFail(_, callContext, ConsentNotFound, 404)
             }
             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
               i => connectorEmptyResponse(i, callContext)
@@ -2155,10 +2160,569 @@ trait APIMethods510 {
 
 
 
+    staticResourceDocs += ResourceDoc(
+      getCoreAccountByIdThroughView,
+      implementedInApiVersion,
+      nameOf(getCoreAccountByIdThroughView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Get Account by Id (Core) through the VIEW_ID",
+      s"""Information returned about the account through VIEW_ID :
+         |""".stripMargin,
+      EmptyBody,
+      moderatedCoreAccountJsonV400,
+      List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+    lazy val getCoreAccountByIdThroughView : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user @Full(u), account, callContext) <- SS.userAccount
+            bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId , bankIdAccountId, user, callContext)
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+          } yield {
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            (createNewCoreBankAccountJson(moderatedAccount, availableViews), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountBalances),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
+      """Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.""",
+      EmptyBody,
+      accountBalanceV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserNoPermissionAccessView,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val getBankAccountBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId)  :: "views" :: ViewId(viewId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
+            // Note we do one explicit check here rather than use moderated account because this provide an explicit message
+            failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
+            _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
+              view.canSeeBankAccountBalance
+            }
+            (accountBalances, callContext) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, callContext)
+          } yield {
+            (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Account Balances by BANK_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val getBankAccountsBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            (accountsBalances, callContext) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAccountsBalancesThroughView,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalancesThroughView),
+      "GET",
+      "/banks/BANK_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val getBankAccountsBalancesThroughView : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "views" :: ViewId(viewId) :: "balances" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- SS.user
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBankThroughView(u, bankId, viewId, callContext)
+            (accountsBalances, callContext) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
+    lazy val counterPartyLimitIntro: String =
+      """Counter Party Limits can be used to restrict the Transaction Request amounts and frequencies (per month and year) that can be made to a Counterparty (Beneficiary).
+        |
+        |In order to implement VRP (Variable Recurring Payments) perform the following steps:
+        |1) Create a Custom View named e.g. VRP1.
+        |2) Place a Beneficiary Counterparty on that view.
+        |3) Add Counterparty Limits for that Counterparty.
+        |4) Generate a Consent containing the bank, account and view (e.g. VRP1)
+        |5) Let the App use the consent to trigger Transaction Requests.
+        |""".stripMargin
+
+    staticResourceDocs += ResourceDoc(
+      createCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(createCounterpartyLimit),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Create Counterparty Limit",
+      s"""Create Counterparty Limit.
+         |
+         |$counterPartyLimitIntro
+         |
+         |""".stripMargin,
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val createCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
+              json.extract[PostCounterpartyLimitV510]
+            }
+            (counterpartyLimitBox, callContext) <- Connector.connector.vend.getCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+            failMsg = s"$CounterpartyLimitAlreadyExists Current BANK_ID($bankId), ACCOUNT_ID($accountId), VIEW_ID($viewId),COUNTERPARTY_ID($counterpartyId)"
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              counterpartyLimitBox.isEmpty
+            }
+            (counterpartyLimit,callContext) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              postCounterpartyLimitV510.max_single_amount,
+              postCounterpartyLimitV510.max_monthly_amount,
+              postCounterpartyLimitV510.max_number_of_monthly_transactions,
+              postCounterpartyLimitV510.max_yearly_amount,
+              postCounterpartyLimitV510.max_number_of_yearly_transactions,
+              cc.callContext
+            )
+          } yield {
+             
+            (counterpartyLimit.toJValue, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      updateCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(updateCounterpartyLimit),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Update Counterparty Limit",
+      s"""Update Counterparty Limit.""",
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val updateCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postCounterpartyLimitV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
+              json.extract[PostCounterpartyLimitV510]
+            }
+            (counterpartyLimit,callContext) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              postCounterpartyLimitV510.max_single_amount,
+              postCounterpartyLimitV510.max_monthly_amount,
+              postCounterpartyLimitV510.max_number_of_monthly_transactions,
+              postCounterpartyLimitV510.max_yearly_amount,
+              postCounterpartyLimitV510.max_number_of_yearly_transactions,
+              cc.callContext
+            )
+          } yield {
+            (counterpartyLimit.toJValue, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(getCounterpartyLimit),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Get Counterparty Limit",
+      s"""Get Counterparty Limit.""",
+      EmptyBody,
+      counterpartyLimitV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val getCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (counterpartyLimit, callContext) <- NewStyle.function.getCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+          } yield {
+            (counterpartyLimit.toJValue, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteCounterpartyLimit,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyLimit),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Delete Counterparty Limit",
+      s"""Delete Counterparty Limit.""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagCounterpartyLimits),
+    )
+    lazy val deleteCounterpartyLimit: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"counterparties" :: CounterpartyId(counterpartyId) ::"limits" :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (counterpartyLimit, callContext)<- NewStyle.function.deleteCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              counterpartyId.value,
+              cc.callContext
+            )
+          } yield {
+            (Full(counterpartyLimit), HttpCode.`204`(cc.callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createCustomView,
+      implementedInApiVersion,
+      nameOf(createCustomView),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views",
+      "Create Custom View",
+      s"""Create a custom view on bank account
+         |
+         | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         | The 'alias' field in the JSON can take one of three values:
+         |
+         | * _public_: to use the public alias if there is one specified for the other account.
+         | * _private_: to use the private alias if there is one specified for the other account.
+         |
+         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+         |
+         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+         |
+         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+         |
+         | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
+         | """,
+      createCustomViewJson,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val createCustomView: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) ::"target-views" ::  Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            createCustomViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[CreateViewJson]}", 400, cc.callContext) {
+              json.extract[CreateCustomViewJson]
+            }
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current view_name (${createCustomViewJson.name})", cc = callContext) {
+              isValidCustomViewName(createCustomViewJson.name)
+            }
+
+            permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+            permissionsFromTarget = createCustomViewJson.allowed_permissions
+
+            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source viewId($viewId) permissions ($permissionsFromSource), target viewName${createCustomViewJson.name} permissions ($permissionsFromTarget)", cc = callContext) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+
+            failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canCreateCustomView))}` permission on VIEW_ID(${viewId.value})"
+
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              view.canCreateCustomView
+            }
+            (view, callContext) <- NewStyle.function.createCustomView(BankIdAccountId(bankId, accountId), createCustomViewJson.toCreateViewJson, callContext)
+          } yield {
+            (JSONFactory510.createViewJson(view), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomView,
+      implementedInApiVersion,
+      nameOf(updateCustomView),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Update Custom View",
+      s"""Update an existing custom view on a bank account
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+         |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateCustomViewJson,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val updateCustomView: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId) :: Nil JsonPut json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            targetCreateCustomViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[UpdateCustomViewJson]}", 400, cc.callContext) {
+              json.extract[UpdateCustomViewJson]
+            }
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId})", cc = callContext) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+            permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
+
+            _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+
+            failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canUpdateCustomView))}` permission on VIEW_ID(${viewId.value})"
+
+            _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
+              view.canCreateCustomView
+            }
+
+            (view, callContext) <- NewStyle.function.updateCustomView(BankIdAccountId(bankId, accountId), targetViewId, targetCreateCustomViewJson.toUpdateViewJson, callContext)
+          } yield {
+            (JSONFactory510.createViewJson(view), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomView,
+      implementedInApiVersion,
+      nameOf(getCustomView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Get Custom View",
+      s"""#Views
+         |
+         |
+         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+         |
+         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+         |
+         |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+         |
+         |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+         |
+         |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+         |
+         |**Metadata:**
+         |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+         |
+         |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+         |
+         |# All
+         |*Optional*
+         |
+         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
+      EmptyBody,
+      customViewJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+    lazy val getCustomView: OBPEndpoint = {
+      //get the available views on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId):: Nil JsonGet req => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+            for {
+              (_, _, _, view, callContext) <- SS.userBankAccountView
+              //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = callContext) {
+                isValidCustomViewId(targetViewId.value)
+              }
+              failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canSeeAvailableViewsForBankAccount))}`permission on any your views. Current VIEW_ID (${viewId.value})"
+              _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
+                view.canSeeAvailableViewsForBankAccount
+              }
+              targetView <- NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+            } yield {
+              (JSONFactory510.createViewJson(targetView), HttpCode.`200`(callContext))
+            }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteCustomView,
+      implementedInApiVersion,
+      nameOf(deleteCustomView),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Delete Custom View",
+      "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+
+    lazy val deleteCustomView: OBPEndpoint = {
+      //deletes a view on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId ) :: "views" :: ViewId(viewId) :: "target-views" :: ViewId(targetViewId) :: Nil JsonDelete req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, _, view, callContext) <- SS.userBankAccountView
+            //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = callContext) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canDeleteCustomView))}` permission on any your views.Current VIEW_ID (${viewId.value})"
+            _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+              view.canDeleteCustomView
+            }
+            _ <- NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+            deleted <- NewStyle.function.removeCustomView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
   }
 }
+
+
 
 object APIMethods510 extends RestHelper with APIMethods510 {
   lazy val newStyleEndpoints: List[(String, String)] = Implementations5_1_0.resourceDocs.map {

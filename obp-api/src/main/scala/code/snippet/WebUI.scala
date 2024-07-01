@@ -328,12 +328,7 @@ class WebUI extends MdcLoggable{
   
   def sandboxIntroductionLink: CssSel = {
     val webUiApiDocumentation = getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction")
-    val apiDocumentation = 
-      if (webUiApiDocumentation == s"${getServerUrl}/introduction") 
-        webUiApiDocumentation 
-      else
-        webUiApiDocumentation + "#Sandbox-Introduction"
-    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(apiDocumentation)
+    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(webUiApiDocumentation)
   }
 
   def subscriptionsButton: CssSel = {

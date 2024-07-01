@@ -26,7 +26,18 @@ Berlin 13359, Germany
 <div data-lift="surround?with=default;at=content">
     <div data-lift="WebUI.termsAndConditionsText">
         <div id="api_documentation_div">
-            <div id="api_documentation_content" tabindex="-1">
+            <form id="form_terms_and_conditions" method="post" data-lift="TermsAndConditions.updateForm">
+                <div class="row"  >
+                    <div><lift:loc locid="outdated.terms.warning.1">Dear</lift:loc> <em id="terms-and-conditions-username"></em> <lift:loc locid="outdated.terms.warning.2">. We have updated our terms since you last agreed to them! Please review the text and agree if you agree!</lift:loc></div>
+                    <div class="col-xs-6">
+                        <input type="reset" value="Skip" class="btn btn-default pull-right" tabindex="0"/>
+                    </div>
+                    <div class="col-xs-6">
+                        <input type="submit" value="accept terms" class="btn btn-default" tabindex="0"/>
+                    </div>
+                </div>
+            </form>
+            <div>
                 <div id="terms-and-conditions-page"></div>
             </div>
         </div>

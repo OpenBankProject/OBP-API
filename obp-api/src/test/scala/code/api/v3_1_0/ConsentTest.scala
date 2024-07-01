@@ -103,19 +103,27 @@ class ConsentTest extends V310ServerSetup {
     }
 
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionality(RequestHeader.`Consent-JWT`)
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")
     }
 
     scenario("We will call the endpoint with user credentials and deprecated header name", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionality(RequestHeader.`Consent-Id`)
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")
     }
 
     scenario("We will call the endpoint with user credentials-Implicit", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionalityImplicit(RequestHeader.`Consent-JWT`)
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")
     }
 
     scenario("We will call the endpoint with user credentials and deprecated header name-Implicit", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionalityImplicit(RequestHeader.`Consent-Id`)
+      setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")
     }
   }
 

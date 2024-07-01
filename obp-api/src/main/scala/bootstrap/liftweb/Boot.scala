@@ -63,6 +63,7 @@ import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
+import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -129,7 +130,7 @@ import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
 import code.views.Views
-import code.views.system.{AccountAccess, ViewDefinition}
+import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
@@ -143,7 +144,7 @@ import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.Extraction
-import net.liftweb.mapper.{DefaultConnectionIdentifier=>_, _}
+import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
@@ -1086,7 +1087,9 @@ object ToSchemify {
     DynamicMessageDoc,
     EndpointTag,
     ProductFee,
-    UserInitAction
+    ViewPermission,
+    UserInitAction,
+    CounterpartyLimit
   )
 
   // start grpc server

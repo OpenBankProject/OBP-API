@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.{AtmsJsonV510, _}
+import code.api.v5_1_0.{AtmsJsonV510, CustomViewJsonV510, _}
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json.Extraction
 
@@ -52,6 +52,7 @@ import scala.collection.immutable.List
   */
 object SwaggerDefinitionsJSON {
 
+  implicit def convertStringToBoolean(value:String) = value.toBoolean
 
   lazy val regulatedEntitiesJsonV510: RegulatedEntitiesJsonV510 = RegulatedEntitiesJsonV510(List(regulatedEntityJsonV510))
   lazy val regulatedEntityJsonV510: RegulatedEntityJsonV510 = RegulatedEntityJsonV510(
@@ -314,17 +315,47 @@ object SwaggerDefinitionsJSON {
     "can_revoke_access_to_custom_views"
   )
   
+  val createCustomViewJson = CreateCustomViewJson(
+    name = viewNameExample.value,
+    description= viewDescriptionExample.value,
+    metadata_view= metadataViewExample.value,
+    is_public = isPublicExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions= allowedActionsV500,
+  )
+  
+  val customViewJsonV510 = CustomViewJsonV510(
+    id = viewIdExample.value,
+    name = viewNameExample.value,
+    description = viewDescriptionExample.value,
+    metadata_view = metadataViewExample.value,
+    is_public = isPublicExample.value,
+    alias = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions = allowedActionsV500
+  )
+  
   val createSystemViewJsonV500 = CreateViewJsonV500(
-    name = "_test",
-    description = "This view is for family",
-    metadata_view ="_test",
-    is_public = false,
-    which_alias_to_use = "family",
-    hide_metadata_if_alias_used = false,
+    name = viewNameExample.value,
+    description = viewDescriptionExample.value,
+    metadata_view =viewDescriptionExample.value,
+    is_public = isPublicExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
     allowed_actions = allowedActionsV500,
     // Version 5.0.0
     can_grant_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID)),
     can_revoke_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID))
+  )
+  
+  val updateCustomViewJson = UpdateCustomViewJson(
+    description = viewDescriptionExample.value,
+    metadata_view = metadataViewExample.value,
+    is_public = isPublicExample.value,
+    which_alias_to_use = whichAliasToUseExample.value,
+    hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
+    allowed_permissions = allowedActionsV500
   )
 
   val updateViewJsonV300 = UpdateViewJsonV300(
@@ -5394,6 +5425,27 @@ object SwaggerDefinitionsJSON {
       balance_inquiry_fee = balanceInquiryFeeExample.value,
       atm_type = atmTypeExample.value,
       phone = phoneExample.value,
+  )
+  
+  val postCounterpartyLimitV510 = PostCounterpartyLimitV510(
+    max_single_amount = maxSingleAmountExample.value.toInt,
+    max_monthly_amount = maxMonthlyAmountExample.value.toInt,
+    max_number_of_monthly_transactions = maxNumberOfMonthlyTransactionsExample.value.toInt,
+    max_yearly_amount = maxYearlyAmountExample.value.toInt,
+    max_number_of_yearly_transactions = maxNumberOfYearlyTransactionsExample.value.toInt
+  )
+  
+  val counterpartyLimitV510 = CounterpartyLimitV510(
+    counterparty_limit_id = counterpartyLimitIdExample.value,
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    view_id = viewIdExample.value,
+    counterparty_id = counterpartyIdExample.value,
+    max_single_amount = maxSingleAmountExample.value.toInt,
+    max_monthly_amount = maxMonthlyAmountExample.value.toInt,
+    max_number_of_monthly_transactions = maxNumberOfMonthlyTransactionsExample.value.toInt,
+    max_yearly_amount = maxYearlyAmountExample.value.toInt,
+    max_number_of_yearly_transactions = maxNumberOfYearlyTransactionsExample.value.toInt
   )
   
   val atmsJsonV510 = AtmsJsonV510(

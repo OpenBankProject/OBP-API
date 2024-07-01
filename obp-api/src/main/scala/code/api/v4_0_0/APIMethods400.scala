@@ -29,7 +29,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
-import code.api.util.newstyle.UserCustomerLinkNewStyle
+import code.api.util.newstyle.{BalanceNewStyle, UserCustomerLinkNewStyle}
 import code.api.util.newstyle.UserCustomerLinkNewStyle.getUserCustomerLinks
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -3346,9 +3346,9 @@ trait APIMethods400 extends MdcLoggable {
     }
 
     staticResourceDocs += ResourceDoc(
-      getBankAccountsBalances,
+      getBankAccountsBalancesForCurrentUser,
       implementedInApiVersion,
-      nameOf(getBankAccountsBalances),
+      nameOf(getBankAccountsBalancesForCurrentUser),
       "GET",
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
@@ -3359,23 +3359,23 @@ trait APIMethods400 extends MdcLoggable {
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
-    lazy val getBankAccountsBalances : OBPEndpoint = {
+    lazy val getBankAccountsBalancesForCurrentUser : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
-          } yield{
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            (accountsBalances, callContext)<- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, callContext)
+          } yield {
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getBankAccountBalances,
+      getBankAccountBalancesForCurrentUser,
       implementedInApiVersion,
-      nameOf(getBankAccountBalances),
+      nameOf(getBankAccountBalancesForCurrentUser),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
       "Get Account Balances",
@@ -3386,15 +3386,18 @@ trait APIMethods400 extends MdcLoggable {
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
-    lazy val getBankAccountBalances : OBPEndpoint = {
+    lazy val getBankAccountBalancesForCurrentUser : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- SS.user
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            bankIdAcconutId <- NewStyle.function.tryons(s"$CannotFindAccountAccess AccountId(${accountId.value})", 400, cc.callContext) {availablePrivateAccounts.find(_.accountId==accountId).get}
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(bankIdAcconutId, callContext)
-          } yield{
+            (allowedAccounts, callContext) <- BalanceNewStyle.getAccountAccessAtBank(u, bankId, callContext)
+            msg = s"$CannotFindAccountAccess AccountId(${accountId.value})"
+            bankIdAccountId <- NewStyle.function.tryons(msg, 400, cc.callContext) {
+              allowedAccounts.find(_.accountId==accountId).get
+            }
+            (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, callContext)
+          } yield {
             (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
       }
@@ -9013,7 +9016,7 @@ trait APIMethods400 extends MdcLoggable {
               json.extract[PostApiCollectionJson400]
             }
             apiCollection <- Future{MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(cc.userId, postJson.api_collection_name)}
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.", cc=cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExists Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.", cc=cc.callContext) {
               apiCollection.isEmpty
             }
             (apiCollection, callContext) <- NewStyle.function.createApiCollection(
@@ -9296,7 +9299,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
@@ -9345,7 +9348,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionId) ", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionId) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(

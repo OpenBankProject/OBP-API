@@ -58,7 +58,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
+      <version>1.2.13</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
@@ -114,7 +114,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.4.3</version>
+      <version>42.4.4</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8-production -->
     <dependency>
@@ -212,7 +212,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>8.8.1</version>
+      <version>8.14.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
@@ -266,7 +266,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
-      <version>1.23.0</version>
+      <version>1.26.0</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
@@ -299,7 +299,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.31</version>
+      <version>9.37.2</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>

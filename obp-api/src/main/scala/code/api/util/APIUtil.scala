@@ -122,6 +122,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.etag.MappedETag
 import code.users.Users
+import code.views.system.{AccountAccess, ViewDefinition}
 import net.liftweb.mapper.By
 
 import scala.collection.mutable
@@ -1695,6 +1696,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val isNeedCheckView = errorResponseBodies.contains($UserNoPermissionAccessView) &&
       requestUrlPartPath.contains("BANK_ID") && requestUrlPartPath.contains("ACCOUNT_ID") && requestUrlPartPath.contains("VIEW_ID")
 
+    private val isNeedCheckCounterparty = errorResponseBodies.contains($CounterpartyNotFoundByCounterpartyId) && requestUrlPartPath.contains("COUNTERPARTY_ID")
+    
     private val reversedRequestUrl = requestUrlPartPath.reverse
     def getPathParams(url: List[String]): Map[String, String] =
       reversedRequestUrl.zip(url.reverse) collect {
@@ -1774,6 +1777,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Future.successful(null.asInstanceOf[View])
         }
       }
+
+      def checkCounterparty(counterpartyId: Option[CounterpartyId], callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
+        if(isNeedCheckCounterparty && counterpartyId.isDefined) {
+          checkCounterpartyFun(counterpartyId.get)(callContext)
+        } else {
+          Future.successful(null.asInstanceOf[CounterpartyTrait] -> callContext)
+        }
+      }
       // reset connectorMethods
       {
         val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
@@ -1793,6 +1804,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
         if (isNeedCheckView) {
           checkerFunctions += checkViewFun
+        }
+        if (isNeedCheckCounterparty) {
+          checkerFunctions += checkCounterpartyFun
         }
         val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_))
           .map(value =>("obp." +value).intern())
@@ -1840,6 +1854,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val bankId = pathParams.get("BANK_ID").map(BankId(_))
           val accountId = pathParams.get("ACCOUNT_ID").map(AccountId(_))
           val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
+          val counterpartyId = pathParams.get("COUNTERPARTY_ID").map(CounterpartyId(_))
 
           val request: Box[Req] = S.request
           val session: Box[LiftSession] = S.session
@@ -1850,7 +1865,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
            * 2. check bankId
            * 3. roles check
            * 4. check accountId
-           * 5. view
+           * 5. view access
+           * 6. check counterpartyId
            *
            * A Bank MUST be checked before Roles.
            * In opposite case we get next paradox:
@@ -1877,6 +1893,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
               // check user access permission of this viewId corresponding view
               view <- checkView(viewId, bankId, accountId, boxUser, callContext)
+
+              counterparty <- checkCounterparty(counterpartyId, callContext)
+              
             } yield {
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
 
@@ -2970,8 +2989,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
         Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
-          case Some(jwt) => // JWT value obtained via "Consent-Id" request header
-            Consent.applyRules(Some(jwt), cc)
+          case Some(consent) => // JWT value obtained via "Consent-Id" request header
+            Consent.applyRules(
+              Some(consent.jsonWebToken),
+              // Note: At this point we are getting the Consumer from the Consumer in the Consent. 
+              // This may later be cross checked via the value in consumer_validation_method_for_consent. 
+              // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
+              cc.copy(consumer = Consent.getCurrentConsumerViaMtls(callContext = cc))
+            )
           case _ => 
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
               case true => // It's JWT obtained via "Consent-JWT" request header
@@ -4225,6 +4250,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val checkViewFun: PartialFunction[ViewId, (BankIdAccountId, Option[User], Option[CallContext]) => Future[View]] = {
     case x => NewStyle.function.checkViewAccessAndReturnView(x, _, _, _)
   }
+  private val checkCounterpartyFun: PartialFunction[CounterpartyId, Option[CallContext] => OBPReturnType[CounterpartyTrait]] = {
+    case x => NewStyle.function.getCounterpartyByCounterpartyId(x, _)
+  }
 
   // cache for method -> called obp methods:
   // (className, methodName, signature) -> List[(className, methodName, signature)]
@@ -4925,4 +4953,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
+
+  def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
+    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
+      .intersect(views.map(item => item.viewId.value)).distinct // Join view definition and account access via view_id
+    accountAccesses
+      .filter(i => intersectedViewIds.contains(i.view_id.get))
+      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
+      .distinct // List pairs (bank_id, account_id)
+  }
+  
+  //get all the permission Pair from one record, eg:
+  //List("can_see_transaction_this_bank_account","can_see_transaction_requests"....)
+  //Note, do not contain can_revoke_access_to_views and can_grant_access_to_views permission yet.
+  def getViewPermissions(view: ViewDefinition) = view.allFields.map(x => (x.name, x.get))
+    .filter(pair =>pair._2.isInstanceOf[Boolean])
+    .filter(pair => pair._1.startsWith("can"))
+    .filter(pair => pair._2.equals(true))
+    .map(pair => 
+      StringHelpers.snakify(pair._1)
+        .dropRight(1) //Remove the "_" in the end, eg canCreateStandingOrder_ --> canCreateStandingOrder
+    ).toSet
+  
 }

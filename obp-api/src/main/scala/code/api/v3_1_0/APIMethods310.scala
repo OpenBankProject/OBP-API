@@ -17,6 +17,7 @@ import code.api.util.ExampleValue._
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.newstyle.BalanceNewStyle
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
@@ -3951,7 +3952,7 @@ trait APIMethods310 {
         | The 'alias' field in the JSON can take one of two values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
-        | * _private_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the private alias if there is one specified for the other account.
         |
         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
         |
@@ -5935,7 +5936,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
+            (accountsBalances, callContext)<- BalanceNewStyle.getBankAccountsBalances(availablePrivateAccounts, callContext)
           } yield{
             (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }

@@ -1,6 +1,13 @@
-name: build maven artifact
+name: Build on Pull Request
 
-on: [push]
+on:
+  pull_request:
+    branches:
+      - '**'
+env:
+  ## Sets environment variable
+  DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
+
 
 jobs:
   build:
@@ -68,18 +75,15 @@ jobs:
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
-
-      - name: Save .war artifact
+      - name: Save user name and .war artifact
         run: |
-          mkdir -p ./push
-          cp obp-api/target/obp-api-1.*.war ./push/
+          mkdir -p ./pr
+          echo ${{ github.event.pull_request.user.login }} > ./pr/UN
+          cp obp-api/target/obp-api-1.10.1.war ./pr/obp-api-1.10.1.war
       - uses: actions/upload-artifact@v2
         with:
-          name: push
-          path: push/
-
-
-
+          name: pr
+          path: pr/
 
 
 

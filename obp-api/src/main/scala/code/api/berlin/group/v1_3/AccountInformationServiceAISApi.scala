@@ -1,7 +1,6 @@
 package code.api.builder.AccountInformationServiceAISApi
 
 import java.text.SimpleDateFormat
-
 import code.api.APIFailureNewStyle
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
@@ -12,6 +11,7 @@ import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
+import code.api.util.newstyle.BalanceNewStyle
 import code.api.util.{APIUtil, ApiTag, CallContext, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
@@ -367,7 +367,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
+            (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }
@@ -482,7 +482,7 @@ This account-id then can be retrieved by the
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
-             (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
+             (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }

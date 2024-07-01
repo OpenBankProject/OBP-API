@@ -881,7 +881,11 @@ database_messages_scheduler_interval=3600
 # -- Consents ---------------------------------------------
 # In case isn't defined default value is "false"
 # consents.allowed=true
-# consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
+# 
+# In order to pin a consent to a consumer we can use the property consumer_validation_method_for_consent
+# Possibile values are: CONSUMER_CERTIFICATE, CONSUMER_KEY_VALUE, NONE
+# consumer_validation_method_for_consent=CONSUMER_CERTIFICATE
+# 
 # consents.max_time_to_live=3600
 # In case isn't defined default value is "false"
 # consents.sca.enabled=true

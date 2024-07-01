@@ -70,6 +70,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitTrait}
 import code.crm.CrmEvent
 import code.crm.CrmEvent.CrmEvent
 import code.customeraccountlinks.CustomerAccountLinkTrait
@@ -372,22 +373,20 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
-
-    def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
-      Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+    def getAccountListThroughView(user : User, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      val viewIds = List(viewId)
+      Views.views.vend.getPrivateBankAccountsFuture(user, viewIds) map { i =>
+        if(i.isEmpty) {
+          (unboxFullOrFail(Empty, callContext, NoViewReadAccountsBerlinGroup , 403), callContext)
+        } else {
+          (i, callContext )
+        }
       }
     }
 
     def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[FastFirehoseAccount]] = {
       Connector.connector.vend.getBankAccountsWithAttributes(bankId, queryParams, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccountsWithAttributes", 400 ), i._2)
-      }
-    }
-
-    def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[AccountBalances] = {
-      Connector.connector.vend.getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
       }
     }
 
@@ -2927,7 +2926,7 @@ object NewStyle extends MdcLoggable{
           }
 
       val notExists = if(exists) Empty else Full(true)
-      (unboxFullOrFail(notExists, callContext, s"$ExistingMethodRoutingError Please modify the following parameters:" +
+      (unboxFullOrFail(notExists, callContext, s"$MethodRoutingAlreadyExistsError Please modify the following parameters:" +
         s"is_bank_id_exact_match(${methodRouting.isBankIdExactMatch}), " +
         s"method_name(${methodRouting.methodName}), " +
         s"bank_id_pattern(${methodRouting.bankIdPattern.getOrElse("")})"
@@ -3464,7 +3463,7 @@ object NewStyle extends MdcLoggable{
 
     def getConnectorByName(connectorName: String): Option[Connector] = {
       if(supportedConnectorNames.exists(connectorName.startsWith _)) {
-        Connector.nameToConnector.get(connectorName).map(_())
+        Connector.nameToConnector.get(connectorName)
       } else {
         None
       }
@@ -4060,6 +4059,67 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i, callContext, s"$DeleteCustomViewError"), callContext)
       }
 
+    def createOrUpdateCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      maxSingleAmount: Int,
+      maxMonthlyAmount: Int,
+      maxNumberOfMonthlyTransactions: Int,
+      maxYearlyAmount: Int,
+      maxNumberOfYearlyTransactions: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CounterpartyLimitTrait] =
+      Connector.connector.vend.createOrUpdateCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        maxSingleAmount: Int,
+        maxMonthlyAmount: Int,
+        maxNumberOfMonthlyTransactions: Int,
+        maxYearlyAmount: Int,
+        maxNumberOfYearlyTransactions: Int,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, CreateCounterpartyLimitError), i._2)
+    }
+
+    def getCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CounterpartyLimitTrait] =
+      Connector.connector.vend.getCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, s"$GetCounterpartyLimitError Current BANK_ID($bankId), " +
+        s"ACCOUNT_ID($accountId), VIEW_ID($viewId),COUNTERPARTY_ID($counterpartyId)"), i._2)
+    }
+    
+    def deleteCounterpartyLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      counterpartyId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] =
+      Connector.connector.vend.deleteCounterpartyLimit(
+        bankId: String,
+        accountId: String,
+        viewId: String,
+        counterpartyId: String,
+        callContext: Option[CallContext]
+    ) map {
+      i => (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyLimitError"), i._2)
+    }
   }
 
 }

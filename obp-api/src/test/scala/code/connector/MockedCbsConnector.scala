@@ -1,7 +1,6 @@
 package code.connector
 
-import code.api.Constant
-import code.api.Constant.SYSTEM_STANDARD_VIEW_ID
+import code.api.Constant._
 import code.api.util.{CallContext, CustomJsonFormats}
 import code.bankconnectors._
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
@@ -39,7 +38,7 @@ object MockedCbsConnector extends ServerSetup
         balanceAmount = "",
         balanceCurrency = "",
         owners = List(""),
-        viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Constant.SYSTEM_OWNER_VIEW_ID :: "_Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: SYSTEM_OWNER_VIEW_ID :: CUSTOM_PUBLIC_VIEW_ID :: SYSTEM_ACCOUNTANT_VIEW_ID :: SYSTEM_AUDITOR_VIEW_ID :: Nil,
         bankRoutingScheme = "",
         bankRoutingAddress = "",
         branchRoutingScheme = "",
@@ -55,7 +54,7 @@ object MockedCbsConnector extends ServerSetup
         balanceAmount = "",
         balanceCurrency = "",
         owners = List(""),
-        viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Constant.SYSTEM_OWNER_VIEW_ID :: "_Public" :: "Accountant" :: "Auditor" :: Nil,
+        viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: SYSTEM_OWNER_VIEW_ID :: CUSTOM_PUBLIC_VIEW_ID :: SYSTEM_ACCOUNTANT_VIEW_ID :: SYSTEM_AUDITOR_VIEW_ID :: Nil,
         bankRoutingScheme = "",
         bankRoutingAddress = "",
         branchRoutingScheme = "",

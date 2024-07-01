@@ -178,7 +178,7 @@ trait APIMethods300 {
         | The 'alias' field in the JSON can take one of three values:
         |
         | * _public_: to use the public alias if there is one specified for the other account.
-        | * _private_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the private alias if there is one specified for the other account.
         |
         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
         |
@@ -198,6 +198,7 @@ trait APIMethods300 {
       ),
       List(apiTagView, apiTagAccount))
 
+    //TODO. remove and replace it with V510.
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
@@ -500,7 +501,7 @@ trait APIMethods300 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts, u), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1710,7 +1711,7 @@ trait APIMethods300 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             (accounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts, u), HttpCode.`200`(callContext))
           }
       }
     }
