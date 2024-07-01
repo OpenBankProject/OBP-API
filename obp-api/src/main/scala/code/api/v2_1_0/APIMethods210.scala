@@ -1,7 +1,6 @@
 package code.api.v2_1_0
 
 import java.util.Date
-
 import code.TransactionTypes.TransactionType
 import code.api.util
 import code.api.util.ApiTag._
@@ -32,7 +31,7 @@ import code.util.Helper.booleanToBox
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.ChallengeType
+import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -681,7 +680,7 @@ trait APIMethods210 {
                 existingTransactionRequest.challenge.challenge_type == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString
               }
             
-              (isChallengeAnswerValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+              (isChallengeAnswerValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE, callContext)
               
               _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer
                   .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")

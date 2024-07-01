@@ -3,7 +3,6 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -54,8 +53,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -80,6 +79,7 @@ import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
+import com.openbankproject.commons.model.enums.SuppliedAnswerType.SuppliedAnswerType
 import net.liftweb.mapper.By
 
 object NewStyle extends MdcLoggable{
@@ -1302,9 +1302,8 @@ object NewStyle extends MdcLoggable{
       }
     }
     
-
-    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
-     Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
+    def validateChallengeAnswer(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType,  callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+     Connector.connector.vend.validateChallengeAnswerV2(challengeId, suppliedAnswer, suppliedAnswerType, callContext) map { i =>
        (unboxFullOrFail(i._1, callContext, s"${
          InvalidChallengeAnswer
            .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")

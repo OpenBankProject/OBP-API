@@ -86,7 +86,7 @@ import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model.{ListResult, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion._
 import net.liftweb.common._
@@ -95,7 +95,7 @@ import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
-import net.liftweb.json.{compactRender, prettyRender, _}
+import net.liftweb.json._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
@@ -1637,7 +1637,7 @@ trait APIMethods400 extends MdcLoggable {
               case _ =>
                 for {
   
-                  (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+                  (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE,callContext)
 
                   _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer
                     .replace("answer may be expired.",s"answer may be expired (${transactionRequestChallengeTtl} seconds).")

@@ -859,6 +859,16 @@ case class InBoundValidateChallengeAnswer(inboundAdapterCallContext: InboundAdap
                                 status: Status,
                                 data: Boolean) extends InBoundTrait[Boolean]
 
+
+case class OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                             challengeId: String,
+                                             suppliedAnswer: String,
+                                             suppliedAnswerType: String) extends TopicTrait
+
+case class InBoundValidateChallengeAnswerV2(inboundAdapterCallContext: InboundAdapterCallContext,
+                                status: Status,
+                                data: Boolean) extends InBoundTrait[Boolean]
+
 //---------------------
 
 

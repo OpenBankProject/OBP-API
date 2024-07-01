@@ -80,6 +80,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.SuppliedAnswerType.SuppliedAnswerType
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
@@ -484,6 +485,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
     Future {(Challenges.ChallengeProvider.vend.getChallenge(challengeId), callContext)}
+
+  override def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
+    Future { 
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      //In OBP, we only validateChallenge with SuppliedAnswerType.PLAN_TEXT,
+      (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId).isDefined), callContext)
+    } 
 
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
