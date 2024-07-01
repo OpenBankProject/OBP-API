@@ -229,10 +229,10 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object TransactionRequest extends Value
 }
 
-
-object SuppliedAnswerType extends Enumeration {
-  type SuppliedAnswerType = Value
-  val PLAIN_TEXT_VALUE, HASH_VALUE = Value
+sealed trait SuppliedAnswerType extends EnumValue
+object SuppliedAnswerType extends OBPEnumeration[SuppliedAnswerType]{
+  object PLAIN_TEXT_VALUE extends Value
+  object HASH_VALUE extends Value
 }
 
 

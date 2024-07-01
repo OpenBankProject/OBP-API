@@ -79,7 +79,7 @@ import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.enums.SuppliedAnswerType.SuppliedAnswerType
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import net.liftweb.mapper.By
 
 object NewStyle extends MdcLoggable{
@@ -1302,7 +1302,7 @@ object NewStyle extends MdcLoggable{
       }
     }
     
-    def validateChallengeAnswer(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType,  callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+    def validateChallengeAnswer(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType.Value,  callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswerV2(challengeId, suppliedAnswer, suppliedAnswerType, callContext) map { i =>
        (unboxFullOrFail(i._1, callContext, s"${
          InvalidChallengeAnswer
@@ -1331,6 +1331,7 @@ object NewStyle extends MdcLoggable{
        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse() "), i._2)
       }
 
+    //At moment this method is used for Berlin Group Payments
     def validateChallengeAnswerC2(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
@@ -1359,6 +1360,8 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
+
+    //At moment this method is used for Berlin Group SigningBasketsApi.scala
     def validateChallengeAnswerC3(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String],

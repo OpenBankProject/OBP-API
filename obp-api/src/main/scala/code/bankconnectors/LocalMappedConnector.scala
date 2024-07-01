@@ -80,7 +80,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
-import com.openbankproject.commons.model.enums.SuppliedAnswerType.SuppliedAnswerType
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments

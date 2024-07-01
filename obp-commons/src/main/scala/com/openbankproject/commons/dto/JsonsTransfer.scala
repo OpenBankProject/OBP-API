@@ -27,9 +27,10 @@ TESOBE (http://www.tesobe.com/)
 package com.openbankproject.commons.dto
 
 import java.util.Date
-import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, SuppliedAnswerType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.{enums, _}
 import net.liftweb.json.{JObject, JValue}
 
@@ -863,7 +864,7 @@ case class InBoundValidateChallengeAnswer(inboundAdapterCallContext: InboundAdap
 case class OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext: OutboundAdapterCallContext,
                                              challengeId: String,
                                              suppliedAnswer: String,
-                                             suppliedAnswerType: String) extends TopicTrait
+                                             suppliedAnswerType: SuppliedAnswerType) extends TopicTrait
 
 case class InBoundValidateChallengeAnswerV2(inboundAdapterCallContext: InboundAdapterCallContext,
                                 status: Status,
