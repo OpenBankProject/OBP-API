@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-06-12T14:42:25Z
+// ---------- created on 2024-07-01T13:40:08Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -431,6 +431,34 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswer => InBound, OutBoundValidateChallengeAnswer => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_validate_challenge_answer", req, callContext)
+        response.map(convertToTuple[Boolean](callContext))        
+  }
+          
+  messageDocs += validateChallengeAnswerV2Doc
+  def validateChallengeAnswerV2Doc = MessageDoc(
+    process = "obp.validateChallengeAnswerV2",
+    messageFormat = messageFormat,
+    description = "Validate Challenge Answer V2",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      challengeId=challengeIdExample.value,
+      suppliedAnswer="string",
+      suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateChallengeAnswerV2(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=true)
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType: SuppliedAnswerType.Value, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerV2 => InBound, OutBoundValidateChallengeAnswerV2 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, challengeId, suppliedAnswer, suppliedAnswerType)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_validate_challenge_answer_v2", req, callContext)
         response.map(convertToTuple[Boolean](callContext))        
   }
           
@@ -6624,8 +6652,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-06-12T14:42:25Z
-//---------------- dynamic end ---------------------please don't modify this line                                 
+// ---------- created on 2024-07-01T13:40:08Z
+//---------------- dynamic end ---------------------please don't modify this line                                  
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
