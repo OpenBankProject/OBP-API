@@ -72,7 +72,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val exampleDate = DateWithSecondsExampleObject
   
   // @code.setup.TestConnectorSetup.createBanks we can know, the bankIds in test database.
-  val testBankId1 = BankId("testBank1")
+  val testBankId1 = BankId(APIUtil.defaultBankId)
   val testBankId2 = BankId("testBank2")
   
  // @code.setup.TestConnectorSetup.createAccounts we can know, the accountIds in test database.
