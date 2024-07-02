@@ -418,7 +418,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>8.1.0.jre${java.version}-preview</version>
+      <version>11.2.0.jre${java.version}</version>
     </dependency>
     <!-- scalikejdbc for call stored procedure end-->
 
@@ -530,7 +530,7 @@
           <!-- add src/main/java to source dirs -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.10</version>
+          <version>3.6.0</version>
           <executions>
             <execution>
               <phase>generate-sources</phase>
