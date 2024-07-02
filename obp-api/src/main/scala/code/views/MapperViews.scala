@@ -720,6 +720,7 @@ object MapperViews extends Views with MdcLoggable {
       "canCreateCustomView",
       "canDeleteCustomView",
       "canUpdateCustomView",
+      "canGetCustomView",
       "canSeeViewsWithPermissionsForAllUsers",
       "canSeeViewsWithPermissionsForOneUser"
     )
@@ -912,9 +913,6 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeTransactionRequests_(false)
       .canSeeTransactionRequestTypes_(false)
       .canUpdateBankAccountLabel_(false)
-      .canCreateCustomView_(false)
-      .canDeleteCustomView_(false)
-      .canUpdateCustomView_(false)
       .canSeeViewsWithPermissionsForOneUser_(false)
       .canSeeViewsWithPermissionsForAllUsers_(false)
       .canRevokeAccessToCustomViews_(false)
@@ -922,6 +920,7 @@ object MapperViews extends Views with MdcLoggable {
       .canCreateCustomView_(false)
       .canDeleteCustomView_(false)
       .canUpdateCustomView_(false)
+      .canGetCustomView_(false)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
@@ -945,6 +944,7 @@ object MapperViews extends Views with MdcLoggable {
           .canCreateCustomView_(true)
           .canDeleteCustomView_(true)
           .canUpdateCustomView_(true)
+          .canGetCustomView_(true)
       case SYSTEM_FIREHOSE_VIEW_ID =>
         entity
           .isFirehose_(true)
@@ -1046,7 +1046,11 @@ object MapperViews extends Views with MdcLoggable {
       canAddTransactionRequestToAnyAccount_(false).
       canSeeTransactionRequests_(false).
       canSeeTransactionRequestTypes_(false).
-      canUpdateBankAccountLabel_(false)
+      canUpdateBankAccountLabel_(false).
+      canCreateCustomView_(false).
+      canDeleteCustomView_(false).
+      canUpdateCustomView_(false).
+      canGetCustomView_(false)
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

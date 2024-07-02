@@ -325,6 +325,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canUpdateCustomView_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canGetCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeViewsWithPermissionsForAllUsers_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -591,6 +594,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canCreateCustomView: Boolean = canCreateCustomView_.get
   def canDeleteCustomView: Boolean = canDeleteCustomView_.get
   def canUpdateCustomView: Boolean = canUpdateCustomView_.get
+  def canGetCustomView: Boolean = canGetCustomView_.get
   //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }

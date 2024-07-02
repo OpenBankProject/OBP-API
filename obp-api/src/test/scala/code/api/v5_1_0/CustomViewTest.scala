@@ -134,12 +134,12 @@ class CustomViewTest extends V510ServerSetup {
       }
       {
         
-        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId /"views" / SYSTEM_AUDITOR_VIEW_ID /"target-views" / targetViewId ).GET <@ (user1)
+        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId /"views" / ownerView /"target-views" / targetViewId ).GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 400")
         response510.code should equal(400)
         response510.body.extract[ErrorMessage].message contains (ViewDoesNotPermitAccess) shouldBe (true)
-        response510.body.extract[ErrorMessage].message contains ("can_see_available_views_for_bank_account") shouldBe (true)
+        response510.body.extract[ErrorMessage].message contains ("can_get_custom_view") shouldBe (true)
 
       }
       {
@@ -169,7 +169,7 @@ class CustomViewTest extends V510ServerSetup {
       response510.body.extract[CustomViewJsonV510].allowed_permissions.sorted should equal(postCustomViewJson.allowed_permissions.sorted)
 
       {
-        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView / "target-views" / targetViewId).GET <@ (user1)
+        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / manageCustomView / "target-views" / targetViewId).GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 200")
         response510.code should equal(200)
@@ -198,7 +198,7 @@ class CustomViewTest extends V510ServerSetup {
 
       }
       {
-        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId /"views" / ownerView /"target-views" / targetViewId ).GET <@ (user1)
+        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId /"views" / manageCustomView /"target-views" / targetViewId ).GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 200")
         response510.code should equal(200)
@@ -217,7 +217,7 @@ class CustomViewTest extends V510ServerSetup {
         response510.code should equal(204)
       }
       {
-        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView / "target-views" / targetViewId).GET <@ (user1)
+        val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / manageCustomView / "target-views" / targetViewId).GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 400")
         response510.code should equal(400)
