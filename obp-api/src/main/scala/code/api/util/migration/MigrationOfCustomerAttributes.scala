@@ -27,9 +27,9 @@ object MigrationOfCustomerAttributes {
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue varchar(2000);"
-              case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+              case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                 () => "ALTER TABLE mappedcustomerattribute MODIFY COLUMN mvalue varchar(2000);"
               case _ =>
                 () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue type varchar(2000);"

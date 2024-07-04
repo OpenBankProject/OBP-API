@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import code.api.Constant
 import java.util.concurrent.TimeUnit
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -98,7 +99,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
         account.account_id,
         resourceUser2.userId,
         user1,
-        PostViewJsonV400(view_id = "owner", is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_OWNER_VIEW_ID, is_system = true)
       )
 
       createWebhookViaEndpoint(

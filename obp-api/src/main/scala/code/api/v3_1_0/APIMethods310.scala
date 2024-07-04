@@ -1925,7 +1925,7 @@ trait APIMethods310 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
             (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             _ <- AuthUser.refreshUser(user, callContext) 
@@ -3246,7 +3246,7 @@ trait APIMethods310 {
         |    {
         |      "bank_id": "GENODEM1GLS",
         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-        |      "view_id": "owner"
+        |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
         |    }
         |  ],
         |  "entitlements": [
@@ -3317,7 +3317,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [
@@ -3396,7 +3396,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [
@@ -3475,7 +3475,7 @@ trait APIMethods310 {
          |    {
          |      "bank_id": "GENODEM1GLS",
          |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-         |      "view_id": "owner"
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
          |    }
          |  ],
          |  "entitlements": [

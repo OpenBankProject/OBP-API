@@ -432,4 +432,5 @@ trait View {
   def canCreateCustomView: Boolean
   def canDeleteCustomView: Boolean
   def canUpdateCustomView: Boolean
+  def canGetCustomView: Boolean
 }

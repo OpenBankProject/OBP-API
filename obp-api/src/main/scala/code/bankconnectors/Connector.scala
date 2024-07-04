@@ -42,6 +42,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, DirectDebitTrait, FXRate, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, TransactionRequestTypeCharge, UserAuthContext, UserAuthContextUpdate, _}
 import com.openbankproject.commons.util.Functions.lazyValue
@@ -437,7 +438,10 @@ trait Connector extends MdcLoggable {
     callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
 
   // Validates an answer for a challenge and returns if the answer is correct or not
+  @deprecated("Please use @validateChallengeAnswerV2 instead ","01.07.2024")
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
+  
+  def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType.Value, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
   def allChallengesSuccessfullyAnswered(
     bankId: BankId,
@@ -544,7 +548,6 @@ trait Connector extends MdcLoggable {
   //This one just added the callContext in parameters.
   def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
   
-  def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError), callContext)}
@@ -1582,7 +1585,7 @@ trait Connector extends MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this","11 September 2018")
   def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
+    val resourceUserOwner = Users.users.vend.getUserByProviderAndUsername(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {

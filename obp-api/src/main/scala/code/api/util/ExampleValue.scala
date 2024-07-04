@@ -1,6 +1,7 @@
 package code.api.util
 
 
+import code.api.Constant
 import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgo, oneYearAgoDate, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import net.liftweb.json.JsonDSL._
@@ -331,10 +332,10 @@ object ExampleValue {
   lazy val owner1Example = ConnectorField("SusanSmith", "A username that is the owner of the account.")
   glossaryItems += makeGlossaryItem("Account.owner", owner1Example)
 
-  lazy val viewIdExample = ConnectorField("owner", "A viewId can be owner, accountant, public ....")
+  lazy val viewIdExample = ConnectorField(Constant.SYSTEM_OWNER_VIEW_ID, "A viewId can be owner, accountant ....")
   glossaryItems += makeGlossaryItem("view.id", viewIdExample)
   
-  lazy val viewNameExample = ConnectorField("Owner","A viewName can be Owner, Accountant, Public ....")
+  lazy val viewNameExample = ConnectorField(Constant.SYSTEM_OWNER_VIEW_ID,"A viewName can be owner, accountant ....")
   glossaryItems += makeGlossaryItem("view.name",viewNameExample)
   
   lazy val viewDescriptionExample = ConnectorField("This view is for the owner for the account.", "A description for this view.")
@@ -1497,7 +1498,7 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("basket_id", basketIdExample)
   
   lazy val consentRequestPayloadExample = ConnectorField(
-    """{
+    s"""{
       |  "everything": false,
       |  "account_access": [
       |    {
@@ -1505,7 +1506,7 @@ object ExampleValue {
       |        "scheme": "AccountNumber",
       |        "address": "4930396"
       |      },
-      |      "view_id": "owner"
+      |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
       |    }
       |  ],
       |  "phone_number": "+44 07972 444 876",

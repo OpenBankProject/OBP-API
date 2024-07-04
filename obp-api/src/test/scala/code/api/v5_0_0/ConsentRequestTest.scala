@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_0_0
 
+import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -68,7 +69,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
   lazy val accountAccess = List(AccountAccessV500(
     account_routing = AccountRoutingJsonV121(
       scheme = "AccountId",
-      address = testAccountId1.value), "owner"))
+      address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
     .copy(consumer_id=None)

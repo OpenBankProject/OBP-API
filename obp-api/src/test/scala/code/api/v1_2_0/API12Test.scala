@@ -167,7 +167,7 @@
 //  def randomViewPermalinkButNotOwner(bankId: String, account: AccountJSON) : String = {
 //    val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
 //    val reply = makeGetRequest(request)
-//    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true).filterNot(_.id == "owner")
+//    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true).filterNot(_.id == Constant.SYSTEM_OWNER_VIEW_ID)
 //    val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
 //    possibleViewsPermalinksWithoutOwner(randomPosition).id
 //  }
@@ -1377,7 +1377,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val viewId = "owner"
+//      val viewId = Constant.SYSTEM_OWNER_VIEW_ID
 //      val userId1 = resourceUser2.idGivenByProvider
 //      val userId2 = resourceUser2.idGivenByProvider
 //      grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
@@ -1395,7 +1395,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val viewId = ViewId("owner")
+//      val viewId = ViewId(Constant.SYSTEM_OWNER_VIEW_ID)
 //      val view = Views.views.vend.view(BankIdAccountIdViewId(BankId(bankId), AccountId(bankAccount.id), viewId)).get
 //      if(Views.views.vend.getOwners(view).toList.length == 0){
 //        val userId = resourceUser2.idGivenByProvider
@@ -4122,7 +4122,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      When("the request is sent")
 //      val randomNarrative = randomString(20)
@@ -4140,7 +4140,7 @@
 //      Given("We will not use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4159,7 +4159,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4178,7 +4178,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4197,7 +4197,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
 //      val postReply = postNarrativeForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomNarrative, user1)
@@ -4213,7 +4213,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      When("the request is sent")
 //      val randomNarrative = randomString(20)
@@ -4231,7 +4231,7 @@
 //      Given("We will not use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4250,7 +4250,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4269,7 +4269,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transactionId = randomString(5)
 //      val randomNarrative = randomString(20)
 //      When("the request is sent")
@@ -4286,7 +4286,7 @@
 //      Given("We will use an access token and will set a narrative first")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -4304,7 +4304,7 @@
 //      Given("We will not use an access token and will set a narrative first")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -4322,7 +4322,7 @@
 //      Given("We will use an access token and will set a narrative first")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val transaction = randomTransaction(bankId, bankAccount.id, view)
 //      val randomNarrative = randomString(20)
 //      postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, user1)
@@ -4340,7 +4340,7 @@
 //      Given("We will use an access token")
 //      val bankId = randomBank
 //      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-//      val view = "owner"
+//      val view = Constant.SYSTEM_OWNER_VIEW_ID
 //      val randomNarrative = randomString(20)
 //      When("the delete request is sent")
 //      val deleteReply = deleteNarrativeForOneTransaction(bankId, bankAccount.id, view, randomString(5), user1)

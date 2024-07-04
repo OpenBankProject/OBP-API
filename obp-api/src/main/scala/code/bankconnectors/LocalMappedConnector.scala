@@ -10,7 +10,7 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -53,7 +53,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.metrics.MappedMetric
 import code.model._
-import code.model.dataAccess.AuthUser.findAuthUserByUsernameLocally
+import code.model.dataAccess.AuthUser.findAuthUserByUsernameLocallyLegacy
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
@@ -81,6 +81,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
@@ -486,6 +487,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
     Future {(Challenges.ChallengeProvider.vend.getChallenge(challengeId), callContext)}
 
+  override def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
+    Future { 
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      //In OBP, we only validateChallenge with SuppliedAnswerType.PLAN_TEXT,
+      (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId).isDefined), callContext)
+    } 
+
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
@@ -610,7 +618,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
@@ -803,16 +811,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccountCommon(bankId, accountId, callContext)
   }
   
-  override def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
-    getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext])
-  }
-  
-  def getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] =  {
-    MappedBankAccount.find(
-      By(MappedBankAccount.theAccountId, accountId.value)
-    ).map(bankAccount => (bankAccount, callContext))
-  }
-
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
     getBankAccountByRoutingLegacy(None, "IBAN", iban, callContext)
   }
@@ -5696,7 +5694,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this", "11 September 2018")
   override def setAccountHolder(owner: String, bankId: BankId, accountId: AccountId, account_owners: List[String]): Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
+    val resourceUserOwner = Users.users.vend.getUserByProviderAndUsername(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if (!accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {
@@ -5794,7 +5792,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
   //    : we call that method only when we set external authentication and provider is not OBP-API
   override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
-    findAuthUserByUsernameLocally(username).map(user =>
+    findAuthUserByUsernameLocallyLegacy(username).map(user =>
       InboundExternalUser(aud = "",
         exp = "",
         iat = "",

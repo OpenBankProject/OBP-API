@@ -234,6 +234,7 @@ object ConnectorBuilderUtil {
     "getBankAccountsForUser",
     "getUser",
     "getBankAccountsBalances",
+    "getBankAccountBalances",
     "getCoreBankAccounts",
     "getBankAccountsHeld",
     "getCounterpartyTrait",
@@ -372,6 +373,7 @@ object ConnectorBuilderUtil {
     "validateAndCheckIbanNumber",
     "validateChallengeAnswerC2",
     "validateChallengeAnswerC3",
+    "validateChallengeAnswerV2",
     "getCounterpartyByIbanAndBankAccountId",
   ).distinct
 
