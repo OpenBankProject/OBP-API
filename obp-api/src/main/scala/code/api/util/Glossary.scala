@@ -739,7 +739,16 @@ object Glossary extends MdcLoggable  {
 		s"""
 		  |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
 		  |
-		  |Each Consumer has a consumer key and secrect which allows it to enter into secure communication with the API server.
+		  |Each Consumer has a consumer key and secret which allows it to enter into secure communication with the API server.
+			|
+			|A Consumer is given a Consumer ID (a UUID) which appears in logs and messages to the backend.
+			|
+			|A Consumer may be pinned to an mTLS certificate i.e. the consumer record in the database is given a field which matches the PEM representation of the certificate.
+			|
+			|After pinning, the consumer must present the certificate in all communication with the server.
+			|
+			|There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
+			|
 		""")
 
 	  glossaryItems += GlossaryItem(
