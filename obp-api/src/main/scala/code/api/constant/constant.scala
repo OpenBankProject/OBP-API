@@ -61,8 +61,8 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID = "ReadBalancesBerlinGroup"
   final val SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID = "ReadTransactionsBerlinGroup"
 
-  //TODO, this need to be double check
-  final val ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT = 
+  //This is used for the canRevokeAccessToViews_ and canGrantAccessToViews_ fields of SYSTEM_OWNER_VIEW_ID or SYSTEM_STANDARD_VIEW_ID.
+  final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS = 
     SYSTEM_OWNER_VIEW_ID::
     SYSTEM_AUDITOR_VIEW_ID::
     SYSTEM_ACCOUNTANT_VIEW_ID::
@@ -80,7 +80,10 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID :: Nil
   
-  final val ALL_SYSTEM_VIEWS_CREATED_FROM_CBS = 
+  //We allow CBS side to generate views by getBankAccountsForUser.viewsToGenerate filed.
+  // viewsToGenerate can be any views, and OBP will check the following list, to make sure only allowed views are generated
+  // If some views are not allowed, obp just log it, do not throw exceptions.
+  final val VIEWS_GENERATED_FROM_CBS_WHITE_LIST = 
     SYSTEM_OWNER_VIEW_ID::
     SYSTEM_ACCOUNTANT_VIEW_ID::
     SYSTEM_AUDITOR_VIEW_ID::

@@ -619,14 +619,10 @@ object MapperViews extends Views with MdcLoggable {
   def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
     logger.debug(s"-->getOrCreateSystemViewFromCbs--- start--${viewId}  ")
 
-    val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-
-    val theView = if (ownerView) {
-      getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-    } else if (ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.contains(viewId)) {
+    val theView = if (VIEWS_GENERATED_FROM_CBS_WHITE_LIST.contains(viewId)) {
       getOrCreateSystemView(viewId)
     } else {
-      val errorMessage = ViewIdNotSupported + code.api.Constant.ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.mkString(", ") + s"Your input viewId is :$viewId"
+      val errorMessage = ViewIdNotSupported + code.api.Constant.VIEWS_GENERATED_FROM_CBS_WHITE_LIST.mkString(", ") + s"Your input viewId is :$viewId"
       logger.error(errorMessage)
       Failure(errorMessage)
     }
@@ -931,8 +927,8 @@ object MapperViews extends Views with MdcLoggable {
           .canUpdateBankAccountLabel_(true)
           .canSeeViewsWithPermissionsForOneUser_(true)
           .canSeeViewsWithPermissionsForAllUsers_(true)
-          .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
-          .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+          .canGrantAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
+          .canRevokeAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)
