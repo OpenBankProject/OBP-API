@@ -1014,7 +1014,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(getConsentByConsentIdViaConsumer),
       "GET",
-      "/consumer/consents/CONSENT_ID",
+      "/consumer/current/consents/CONSENT_ID",
       "Get Consent By Consent Id",
       s"""
          |
@@ -1031,7 +1031,7 @@ trait APIMethods510 {
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
     lazy val getConsentByConsentIdViaConsumer: OBPEndpoint = {
-      case "consumer" :: "consents" :: consentId :: Nil  JsonGet _  => {
+      case "consumer" :: "current"  :: "consents" :: consentId :: Nil  JsonGet _  => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
