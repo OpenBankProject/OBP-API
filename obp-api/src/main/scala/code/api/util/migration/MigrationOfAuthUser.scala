@@ -27,10 +27,10 @@ object MigrationOfAuthUser {
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |${Helper.dropIndexIfExists(value,"authUser", "authuser_username_provider")}
+                    |${Helper.dropIndexIfExists(dbDriver,"authUser", "authuser_username_provider")}
                     |
                     |ALTER TABLE authuser ALTER COLUMN username varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN provider varchar(100);
@@ -38,7 +38,7 @@ object MigrationOfAuthUser {
                     |ALTER TABLE authuser ALTER COLUMN lastname varchar(100);
                     |ALTER TABLE authuser ALTER COLUMN email varchar(100);
                     |
-                    |${Helper.createIndexIfNotExists(value,"authUser", "authuser_username_provider")}
+                    |${Helper.createIndexIfNotExists(dbDriver,"authUser", "authuser_username_provider")}
                     |""".stripMargin
               case _ =>
                 () =>

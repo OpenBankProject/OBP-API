@@ -1,7 +1,7 @@
 package code.api.util
 
 import java.io.File
-
+import code.api.Constant
 import code.api.Constant.{PARAM_LOCALE, directLoginHeaderName}
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
@@ -739,7 +739,16 @@ object Glossary extends MdcLoggable  {
 		s"""
 		  |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
 		  |
-		  |Each Consumer has a consumer key and secrect which allows it to enter into secure communication with the API server.
+		  |Each Consumer has a consumer key and secret which allows it to enter into secure communication with the API server.
+			|
+			|A Consumer is given a Consumer ID (a UUID) which appears in logs and messages to the backend.
+			|
+			|A Consumer may be pinned to an mTLS certificate i.e. the consumer record in the database is given a field which matches the PEM representation of the certificate.
+			|
+			|After pinning, the consumer must present the certificate in all communication with the server.
+			|
+			|There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
+			|
 		""")
 
 	  glossaryItems += GlossaryItem(
@@ -1752,7 +1761,7 @@ object Glossary extends MdcLoggable  {
 |
 |Body:
 |
-|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":"owner"  }],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomer"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
+|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":${Constant.SYSTEM_OWNER_VIEW_ID}],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomer"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
 |
 |Headers:
 |

@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.{ApiRole, ErrorMessages}
@@ -156,7 +157,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val accountViews = accountViewsResponse.body.extract[ViewsJSONV220]
       //Note: now when we create new account, will have the systemOwnerView access to this view.
       accountViews.views.length > 0 should be (true)
-      accountViews.views.map(_.id).toString() contains("owner") should be (true)
+      accountViews.views.map(_.id).toString() contains(Constant.SYSTEM_OWNER_VIEW_ID) should be (true)
     }
 
     scenario("We create an account, but with wrong format of account_id ") {

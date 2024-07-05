@@ -618,34 +618,19 @@ object MapperViews extends Views with MdcLoggable {
   
   def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
     logger.debug(s"-->getOrCreateSystemViewFromCbs--- start--${viewId}  ")
-    
+
     val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-    val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
-    val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
-    val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
-    val stageOneView = SYSTEM_STAGE_ONE_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
-    val manageCustomViews = SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
-    
-    val theView =
-      if (ownerView)
-        getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-      else if (accountantsView)
-        getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
-      else if (auditorsView)
-        getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-      else if (standardView)
-        getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID)
-      else if (stageOneView)
-        getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID)
-      else if (manageCustomViews)
-        getOrCreateSystemView(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID)
-      else {
-        logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
-        Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
-      }
-    
+
+    val theView = if (ownerView) {
+      getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
+    } else if (ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.contains(viewId)) {
+      getOrCreateSystemView(viewId)
+    } else {
+      val errorMessage = ViewIdNotSupported + code.api.Constant.ALL_SYSTEM_VIEWS_CREATED_FROM_CBS.mkString(", ") + s"Your input viewId is :$viewId"
+      logger.error(errorMessage)
+      Failure(errorMessage)
+    }
     logger.debug(s"-->getOrCreateSystemViewFromCbs --- finish.${viewId } : ${theView} ")
-    
     theView
   }
 
@@ -735,6 +720,7 @@ object MapperViews extends Views with MdcLoggable {
       "canCreateCustomView",
       "canDeleteCustomView",
       "canUpdateCustomView",
+      "canGetCustomView",
       "canSeeViewsWithPermissionsForAllUsers",
       "canSeeViewsWithPermissionsForOneUser"
     )
@@ -927,9 +913,6 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeTransactionRequests_(false)
       .canSeeTransactionRequestTypes_(false)
       .canUpdateBankAccountLabel_(false)
-      .canCreateCustomView_(false)
-      .canDeleteCustomView_(false)
-      .canUpdateCustomView_(false)
       .canSeeViewsWithPermissionsForOneUser_(false)
       .canSeeViewsWithPermissionsForAllUsers_(false)
       .canRevokeAccessToCustomViews_(false)
@@ -937,6 +920,7 @@ object MapperViews extends Views with MdcLoggable {
       .canCreateCustomView_(false)
       .canDeleteCustomView_(false)
       .canUpdateCustomView_(false)
+      .canGetCustomView_(false)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
@@ -960,6 +944,7 @@ object MapperViews extends Views with MdcLoggable {
           .canCreateCustomView_(true)
           .canDeleteCustomView_(true)
           .canUpdateCustomView_(true)
+          .canGetCustomView_(true)
       case SYSTEM_FIREHOSE_VIEW_ID =>
         entity
           .isFirehose_(true)
@@ -1061,7 +1046,11 @@ object MapperViews extends Views with MdcLoggable {
       canAddTransactionRequestToAnyAccount_(false).
       canSeeTransactionRequests_(false).
       canSeeTransactionRequestTypes_(false).
-      canUpdateBankAccountLabel_(false)
+      canUpdateBankAccountLabel_(false).
+      canCreateCustomView_(false).
+      canDeleteCustomView_(false).
+      canUpdateCustomView_(false).
+      canGetCustomView_(false)
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
