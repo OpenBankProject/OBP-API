@@ -23,7 +23,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
@@ -1259,12 +1259,13 @@ Maybe in a later version the access path will change.
              _ <- NewStyle.function.tryons(s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)", 400, callContext) {
                challenges.filter(_.challengeId == authorisationId).size == 1
              }
-             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
                ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
                None,
                Some(consentId),
                challenges.filter(_.challengeId == authorisationId).head.challengeId,
                updateJson.scaAuthenticationData,
+               SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext
              )
              consent <- challenge.scaStatus match {

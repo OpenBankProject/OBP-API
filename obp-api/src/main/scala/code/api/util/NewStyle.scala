@@ -1330,13 +1330,14 @@ object NewStyle extends MdcLoggable{
        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse() "), i._2)
       }
 
-    //At moment this method is used for Berlin Group Payments
-    def validateChallengeAnswerC2(
+    //At moment this method is used for Berlin Group Payments and Consents
+    def validateChallengeAnswerC4(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String], 
       consentId: Option[String], 
-      challengeId: String, 
-      hashOfSuppliedAnswer: String, 
+      challengeId: String,
+      suppliedAnswer: String,
+      suppliedAnswerType: SuppliedAnswerType.Value,
       callContext: Option[CallContext]
     ): OBPReturnType[ChallengeTrait] = {
       if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
@@ -1344,11 +1345,12 @@ object NewStyle extends MdcLoggable{
       }else if(challengeType == ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
       }else{
-        Connector.connector.vend.validateChallengeAnswerC2(
+        Connector.connector.vend.validateChallengeAnswerC4(
           transactionRequestId: Option[String],
           consentId: Option[String],
           challengeId: String,
-          hashOfSuppliedAnswer: String,
+          suppliedAnswer: String,
+          suppliedAnswerType: SuppliedAnswerType.Value,
           callContext: Option[CallContext]
         ) map { i =>
           (unboxFullOrFail(i._1, callContext, s"${
@@ -1361,13 +1363,14 @@ object NewStyle extends MdcLoggable{
     }
 
     //At moment this method is used for Berlin Group SigningBasketsApi.scala
-    def validateChallengeAnswerC3(
+    def validateChallengeAnswerC5(
       challengeType: ChallengeType.Value,
       transactionRequestId: Option[String],
       consentId: Option[String],
       basketId: Option[String],
       challengeId: String,
-      hashOfSuppliedAnswer: String,
+      suppliedAnswer: String,
+      suppliedAnswerType: SuppliedAnswerType.Value,
       callContext: Option[CallContext]
     ): OBPReturnType[Box[ChallengeTrait]] = {
       if(challengeType == ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
@@ -1377,12 +1380,13 @@ object NewStyle extends MdcLoggable{
       } else if(challengeType == ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE && basketId.isEmpty ){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: basketId($basketId) ")}
       } else {
-        Connector.connector.vend.validateChallengeAnswerC3(
+        Connector.connector.vend.validateChallengeAnswerC5(
           transactionRequestId: Option[String],
           consentId: Option[String],
           basketId: Option[String],
           challengeId: String,
-          hashOfSuppliedAnswer: String,
+          suppliedAnswer: String,
+          suppliedAnswerType: SuppliedAnswerType.Value,
           callContext: Option[CallContext]
         )
       }
