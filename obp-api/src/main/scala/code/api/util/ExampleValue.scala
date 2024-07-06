@@ -241,6 +241,9 @@ object ExampleValue {
 
   lazy val hashOfSuppliedAnswerExample = ConnectorField(HashUtil.Sha256Hash("123"), s"Sha256 hash value of the ChallengeAnswer.challengeId")
   glossaryItems += makeGlossaryItem("ChallengeAnswer.hashOfSuppliedAnswer", hashOfSuppliedAnswerExample)
+  
+  lazy val suppliedAnswerExample = ConnectorField("123456", s"The value of the ChallengeAnswer.challengeId")
+  glossaryItems += makeGlossaryItem("ChallengeAnswer.suppliedAnswerExample", suppliedAnswerExample)
 
 
   lazy val gitCommitExample = ConnectorField("59623811dd8a41f6ffe67be46954eee11913dc28", "Identifies the code running on the OBP-API (Connector) or Adapter.")
