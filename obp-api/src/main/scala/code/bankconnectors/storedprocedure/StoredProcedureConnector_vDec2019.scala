@@ -600,7 +600,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       basketId=Some(basketIdExample.value),
       challengeId=challengeIdExample.value,
-      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value,
+      suppliedAnswer=suppliedAnswerExample.value,
       suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
     ),
     exampleInboundMessage = (
