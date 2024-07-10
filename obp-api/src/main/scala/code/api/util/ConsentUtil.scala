@@ -500,9 +500,18 @@ object Consent extends MdcLoggable {
                     Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(updatedCallContext))
                 }
               } catch { // Possible exceptions
-                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(updatedCallContext))
-                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(updatedCallContext))
-                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(updatedCallContext))
+                case e: ParseException => {
+                  logger.debug(s"code.api.util.JwtUtil.getSignedPayloadAsJson.ParseException: $e")
+                  Future(Failure("ParseException: " + e.getMessage), Some(updatedCallContext))
+                }
+                case e: MappingException => {
+                  logger.debug(s"code.api.util.JwtUtil.getSignedPayloadAsJson.MappingException: $e")
+                  Future(Failure("MappingException: " + e.getMessage), Some(updatedCallContext))
+                }
+                case e: Throwable => {
+                  logger.debug(s"code.api.util.JwtUtil.getSignedPayloadAsJson.Throwable: $e")
+                  Future(Failure("parsing failed: " + e.getMessage), Some(updatedCallContext))
+                }
               }
             case failure@Failure(_, _, _) =>
               Future(failure, Some(updatedCallContext))
