@@ -29,16 +29,18 @@ package code.api.v5_1_0
 import code.api.Constant
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, Role}
 import code.api.util.APIUtil.{gitCommit, stringOrNull}
+import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300, ViewJsonV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostViewJsonV400}
+import code.api.v5_0_0.{PostConsentRequestJsonV500}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.{UserAttribute, Users}
 import code.views.system.{AccountAccess, ViewDefinition}
-import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, BankIdAccountId, CreateViewJson, Customer, Location, Meta, RegulatedEntityTrait, UpdateViewJSON, View}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, Address, AtmId, AtmT, BankId, BankIdAccountId, BranchRoutingJsonV141, CreateViewJson, Customer, Location, Meta, RegulatedEntityTrait, UpdateViewJSON, View}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import java.util.Date
@@ -161,6 +163,7 @@ case class PostAtmJsonV510 (
 )
 
 case class PostCounterpartyLimitV510(
+  currency: String,
   max_single_amount: Int,
   max_monthly_amount: Int,
   max_number_of_monthly_transactions: Int,
@@ -381,6 +384,40 @@ case class CustomViewJsonV510(
   hide_metadata_if_alias_used: Boolean,
   allowed_permissions: List[String]
 )
+
+case class ConsentRequestFromAccountJson(
+  bank_routing: BankRoutingJsonV121,
+  account_routing: AccountRoutingJsonV121,
+  branch_routing: BranchRoutingJsonV141
+)
+
+case class ConsentRequestToAccountJson(
+  bank_routing: BankRoutingJsonV121,
+  account_routing: AccountRoutingJsonV121,
+  branch_routing: BranchRoutingJsonV141,
+  limit: PostCounterpartyLimitV510
+)
+
+case class PostConsentRequestJsonV510(
+  from_account:ConsentRequestFromAccountJson,
+  to_account:ConsentRequestToAccountJson,
+  valid_from: Option[Date],
+  time_to_live: Option[Long]
+){
+  def toPostConsentRequestJsonV500 = {
+    PostConsentRequestJsonV500(
+      everything = false,
+      bank_id = Some(from_account.bank_routing.address),
+      account_access = Nil,
+      entitlements = None,
+      consumer_id = None,
+      email = None,
+      phone_number = None,
+      valid_from = valid_from,
+      time_to_live = time_to_live
+    )
+  }
+}
 
 object JSONFactory510 extends CustomJsonFormats {
 

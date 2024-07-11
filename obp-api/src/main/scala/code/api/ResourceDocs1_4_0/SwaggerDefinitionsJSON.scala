@@ -1529,7 +1529,7 @@ object SwaggerDefinitionsJSON {
     from_person = "String"
   )
 
-  val branchRoutingJSON = BranchRoutingJsonV141(
+  val branchRoutingJsonV141 = BranchRoutingJsonV141(
     scheme = "BranchNumber",
     address = "678"
   )
@@ -1542,7 +1542,7 @@ object SwaggerDefinitionsJSON {
     lobby = lobbyJson,
     drive_up = driveUpJson,
     meta = metaJson,
-    branch_routing = branchRoutingJSON
+    branch_routing = branchRoutingJsonV141
   )
 
 
@@ -3229,7 +3229,7 @@ object SwaggerDefinitionsJSON {
     meta = metaJson,
     lobby = lobbyJson,
     drive_up = driveUpJson,
-    branch_routing = branchRoutingJSON
+    branch_routing = branchRoutingJsonV141
   )
 
 
@@ -3820,7 +3820,7 @@ object SwaggerDefinitionsJSON {
     account_id =accountIdExample.value ,
     account_type  ="330",
     account_routings  = List(accountRoutingJsonV121),
-    branch_routings = List(branchRoutingJSON)
+    branch_routings = List(branchRoutingJsonV141)
   )
   
   val checkbookOrdersJson = CheckbookOrdersJson(
@@ -5205,6 +5205,12 @@ object SwaggerDefinitionsJSON {
     consumer_id = consumerIdExample.value
     )
   
+  val vrpConsentRequestResponseJson = ConsentRequestResponseJson(
+    consent_request_id = consentRequestIdExample.value,
+    payload = json.parse(vrpConsentRequestPayloadExample.value), 
+    consumer_id = consumerIdExample.value
+    )
+  
   val consentJsonV500 = ConsentJsonV500(
     consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
     jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
@@ -5226,6 +5232,26 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
     )
+  
+  val consentRequestFromAccountJson = ConsentRequestFromAccountJson (
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    branch_routing = branchRoutingJsonV141
+  )
+  
+  val consentRequestToAccountJson = ConsentRequestToAccountJson (
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    branch_routing = branchRoutingJsonV141,
+    limit = postCounterpartyLimitV510
+  )
+  
+  val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
+    from_account = consentRequestFromAccountJson,
+    to_account = consentRequestToAccountJson,
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600)
+  )
 
   val createPhysicalCardJsonV500 = CreatePhysicalCardJsonV500(
     card_number = bankCardNumberExample.value,
@@ -5428,6 +5454,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val postCounterpartyLimitV510 = PostCounterpartyLimitV510(
+    currency = currencyExample.value,
     max_single_amount = maxSingleAmountExample.value.toInt,
     max_monthly_amount = maxMonthlyAmountExample.value.toInt,
     max_number_of_monthly_transactions = maxNumberOfMonthlyTransactionsExample.value.toInt,
