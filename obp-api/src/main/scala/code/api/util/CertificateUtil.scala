@@ -225,6 +225,40 @@ object CertificateUtil extends MdcLoggable {
     jwtParsed.getJWTClaimsSet
   }
 
+  // Remove all whitespace characters including spaces, tabs, newlines, and carriage returns
+  def normalizePemX509Certificate(pem: String): String = {
+    val pemHeader = "-----BEGIN CERTIFICATE-----"
+    val pemFooter = "-----END CERTIFICATE-----"
+
+    def extractContent(pem: String): Option[String] = {
+      val start = pem.indexOf(pemHeader)
+      val end = pem.indexOf(pemFooter)
+
+      if (start >= 0 && end > start) {
+        Some(pem.substring(start + pemHeader.length, end))
+      } else {
+        None
+      }
+    }
+
+    extractContent(pem).map { content => // Extract content from PEM representation of X509 certificate
+      val normalizedContent = content.replaceAll("\\s+", "")
+      s"$pemHeader$normalizedContent$pemFooter"
+    }.getOrElse(pem) // In case the extraction cannot be done default the input value we try to normalize
+  }
+
+  def comparePemX509Certificates(pem1: String, pem2: String): Boolean = {
+    val normalizedPem1 = normalizePemX509Certificate(pem1)
+    val normalizedPem2 = normalizePemX509Certificate(pem2)
+
+    val result = normalizedPem1 == normalizedPem2
+    if(!result) { 
+      logger.debug(s"normalizedPem1: ${normalizedPem1}")
+      logger.debug(s"normalizedPem2: ${normalizedPem2}")
+    }
+    result
+  }
+
 
 
   def main(args: Array[String]): Unit = {

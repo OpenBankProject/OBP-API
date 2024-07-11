@@ -976,7 +976,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(getConsentByConsentId),
       "GET",
-      "/consumer/consents/CONSENT_ID",
+      "/user/current/consents/CONSENT_ID",
       "Get Consent By Consent Id",
       s"""
          |
@@ -993,7 +993,7 @@ trait APIMethods510 {
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
     lazy val getConsentByConsentId: OBPEndpoint = {
-      case "consumer" :: "consents" :: consentId :: Nil  JsonGet _  => {
+      case "user" :: "current" :: "consents" :: consentId :: Nil  JsonGet _  => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
@@ -1001,6 +1001,44 @@ trait APIMethods510 {
             }
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = cc.callContext) {
               consent.mUserId == cc.userId
+            }
+          } yield {
+            (JSONFactory510.getConsentInfoJson(consent), HttpCode.`200`(cc))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getConsentByConsentIdViaConsumer,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentIdViaConsumer),
+      "GET",
+      "/consumer/current/consents/CONSENT_ID",
+      "Get Consent By Consent Id",
+      s"""
+         |
+         |This endpoint gets the Consent By consent id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV500,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
+    lazy val getConsentByConsentIdViaConsumer: OBPEndpoint = {
+      case "consumer" :: "current"  :: "consents" :: consentId :: Nil  JsonGet _  => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
+              unboxFullOrFail(_, cc.callContext, ConsentNotFound, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${consent.mConsumerId.get} != ${cc.consumer.map(_.consumerId.get).getOrElse("None")}", failCode = 404, cc = cc.callContext) {
+              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
             }
           } yield {
             (JSONFactory510.getConsentInfoJson(consent), HttpCode.`200`(cc))

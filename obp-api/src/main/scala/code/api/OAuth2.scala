@@ -27,8 +27,10 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URI
+import java.util
+
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, JwtUtil}
+import code.api.util.{APIUtil, CallContext, CertificateUtil, JwtUtil}
 import code.consumer.Consumers
 import code.consumer.Consumers.consumers
 import code.loginattempts.LoginAttempt
@@ -161,8 +163,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             // hydra update client endpoint have bug, So here delete and create to do update
             hydraAdmin.deleteOAuth2Client(clientId)
             hydraAdmin.createOAuth2Client(oAuth2Client)
-          } else if(stringNotEq(certInConsumer, cert)) { 
-            // Cannot match the value from PSD2-CERT header and the database value Consumer.clientCertificate
+          } else if(!CertificateUtil.comparePemX509Certificates(certInConsumer, cert)) { 
+            // Cannot mat.ch the value from PSD2-CERT header and the database value Consumer.clientCertificate
             logger.debug("Cert in Consumer: " + certInConsumer)
             logger.debug("Cert in Request: " + cert)
             logger.debug(s"Token: $value")
@@ -207,15 +209,6 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       applyRules(value, cc)
     }
 
-    /**
-     * check whether two string equal, ignore line break type
-     * @param str1
-     * @param str2
-     * @return true if two string are different
-     */
-    private def stringNotEq(str1: String, str2: String): Boolean =
-      str1.trim != str2.trim &&
-        str1.trim.replace("\r\n", "\n") != str2.trim.replace("\r\n", "\n")
   }
   
   trait OAuth2Util {
