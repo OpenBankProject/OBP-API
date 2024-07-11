@@ -316,7 +316,7 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]")
+          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
           logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
@@ -373,7 +373,7 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]")
+          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
           logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
           // Set Consumer into Call Context
@@ -494,7 +494,7 @@ object Consent extends MdcLoggable {
           JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
             case Full(jsonAsString) =>
               try {
-                logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]")
+                logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
                 logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
                 checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext) match { // Check is it Consent-JWT expired
