@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import code.api.Constant
 import java.util.{Date, UUID}
 import code.api.ChargePolicy
 import code.api.Constant._
@@ -1184,7 +1185,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.accountId1.value,
           resourceUser2.userId,
           user1,
-          PostViewJsonV400(view_id = "owner", is_system = true)
+          PostViewJsonV400(view_id = Constant.SYSTEM_OWNER_VIEW_ID, is_system = true)
         )
 
         Then("we call the 'V400 Create Transaction Request' endpoint")
@@ -1432,7 +1433,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.accountId1.value,
           resourceUser2.userId,
           user1,
-          PostViewJsonV400(view_id = "owner", is_system = true)
+          PostViewJsonV400(view_id = Constant.SYSTEM_OWNER_VIEW_ID, is_system = true)
         )
 
         Then("we call the 'V400 Create Transaction Request' endpoint")
@@ -1697,7 +1698,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.accountId1.value,
           resourceUser2.userId,
           user1,
-          PostViewJsonV400(view_id = "owner", is_system = true)
+          PostViewJsonV400(view_id = Constant.SYSTEM_OWNER_VIEW_ID, is_system = true)
         )
 
         Then("we call the 'V400 Create Transaction Request' endpoint")
@@ -1750,7 +1751,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
     lazy val bankId = testBankId1.value
     lazy val accountId = testAccountId1.value
-    lazy val view = "owner"
+    lazy val view = Constant.SYSTEM_OWNER_VIEW_ID
 
     scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
 

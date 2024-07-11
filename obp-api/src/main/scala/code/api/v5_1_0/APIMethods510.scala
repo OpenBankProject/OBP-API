@@ -2665,9 +2665,9 @@ trait APIMethods510 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = callContext) {
                 isValidCustomViewId(targetViewId.value)
               }
-              failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canSeeAvailableViewsForBankAccount))}`permission on any your views. Current VIEW_ID (${viewId.value})"
+              failmsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canGetCustomView))}`permission on any your views. Current VIEW_ID (${viewId.value})"
               _ <- Helper.booleanToFuture(failmsg, cc = callContext) {
-                view.canSeeAvailableViewsForBankAccount
+                view.canGetCustomView
               }
               targetView <- NewStyle.function.customView(targetViewId, BankIdAccountId(bankId, accountId), callContext)
             } yield {

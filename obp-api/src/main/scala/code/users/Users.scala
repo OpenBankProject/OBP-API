@@ -42,8 +42,8 @@ trait Users {
   def getUserByUserIdFuture(userId : String) : Future[Box[User]]
   def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]]
 
-  // find ResourceUser by Resourceuser user name 
-  def getUserByUserName(provider: String, userName: String) : Box[User]
+  // find ResourceUser by Resourceuser username 
+  def getUserByProviderAndUsername(provider: String, userName: String) : Box[User]
   def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]]
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]

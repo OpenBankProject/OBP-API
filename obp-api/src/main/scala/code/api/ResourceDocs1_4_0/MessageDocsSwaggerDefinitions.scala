@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.Constant
 import java.util.Date
 
 import code.api.util.APIUtil._
@@ -23,7 +24,7 @@ object MessageDocsSwaggerDefinitions
     balanceAmount = balanceAmountExample.value,
     balanceCurrency = currencyExample.value,
     owners = List(owner1Example.value),
-    viewsToGenerate = List("Owner", "Accountant", "Auditor"),
+    viewsToGenerate = List(Constant.SYSTEM_OWNER_VIEW_ID, Constant.SYSTEM_ACCOUNTANT_VIEW_ID,Constant.SYSTEM_AUDITOR_VIEW_ID),
     bankRoutingScheme = bankRoutingSchemeExample.value,
     bankRoutingAddress = bankRoutingAddressExample.value,
     branchRoutingScheme = branchRoutingSchemeExample.value,

@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import code.api.Constant
 import code.api.RequestHeader
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.{APIUtil, Consent}
@@ -59,7 +60,7 @@ class ConsentTest extends V310ServerSetup {
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
-  lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, "owner"))
+  lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
     .copy(consumer_id=Some(testConsumer.consumerId.get))

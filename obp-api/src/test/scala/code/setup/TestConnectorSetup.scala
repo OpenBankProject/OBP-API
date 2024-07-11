@@ -2,7 +2,7 @@ package code.setup
 
 import java.util.{Calendar, Date}
 import code.accountholders.AccountHolders
-import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.Constant._
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}

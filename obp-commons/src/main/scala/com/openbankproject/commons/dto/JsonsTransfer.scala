@@ -27,9 +27,10 @@ TESOBE (http://www.tesobe.com/)
 package com.openbankproject.commons.dto
 
 import java.util.Date
-import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, SuppliedAnswerType, TransactionAttributeType, TransactionRequestStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.{enums, _}
 import net.liftweb.json.{JObject, JValue}
 
@@ -111,6 +112,11 @@ case class OutBoundGetBankAccountsBalances(outboundAdapterCallContext: OutboundA
   bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
 
 case class InBoundGetBankAccountsBalances(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountsBalances) extends InBoundTrait[AccountsBalances]
+
+case class OutBoundGetBankAccountBalances(outboundAdapterCallContext: OutboundAdapterCallContext,
+  bankIdAccountId: BankIdAccountId) extends TopicTrait
+
+case class InBoundGetBankAccountBalances(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountBalances) extends InBoundTrait[AccountBalances]
 
 case class OutBoundGetCoreBankAccountsHeld(outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
@@ -851,6 +857,16 @@ case class OutBoundValidateChallengeAnswer(outboundAdapterCallContext: OutboundA
                                            hashOfSuppliedAnswer: String) extends TopicTrait
 
 case class InBoundValidateChallengeAnswer(inboundAdapterCallContext: InboundAdapterCallContext,
+                                status: Status,
+                                data: Boolean) extends InBoundTrait[Boolean]
+
+
+case class OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                             challengeId: String,
+                                             suppliedAnswer: String,
+                                             suppliedAnswerType: SuppliedAnswerType) extends TopicTrait
+
+case class InBoundValidateChallengeAnswerV2(inboundAdapterCallContext: InboundAdapterCallContext,
                                 status: Status,
                                 data: Boolean) extends InBoundTrait[Boolean]
 

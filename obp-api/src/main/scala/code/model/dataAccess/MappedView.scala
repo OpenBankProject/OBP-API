@@ -454,6 +454,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canUpdateCustomView_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canGetCustomView_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canRevokeAccessToCustomViews_ extends MappedBoolean(this) {
     override def defaultValue = false
   }
@@ -582,6 +585,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canCreateCustomView: Boolean = canCreateCustomView_.get
   def canDeleteCustomView: Boolean = canDeleteCustomView_.get
   def canUpdateCustomView: Boolean = canUpdateCustomView_.get
+  def canGetCustomView: Boolean = canGetCustomView_.get
 
   override def canGrantAccessToCustomViews: Boolean = canGrantAccessToCustomViews_.get
   override def canRevokeAccessToCustomViews: Boolean = canRevokeAccessToCustomViews_.get

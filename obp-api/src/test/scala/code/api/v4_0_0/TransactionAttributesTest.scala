@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-
+import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -33,7 +33,7 @@ class TransactionAttributesTest extends V400ServerSetup {
   lazy val accountId = testAccountId1.value
   lazy val postTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400
   lazy val putTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400.copy(name="test")
-  lazy val view = "owner"
+  lazy val view = Constant.SYSTEM_OWNER_VIEW_ID
 
   
 
@@ -72,7 +72,7 @@ class TransactionAttributesTest extends V400ServerSetup {
       lazy val accountId = bankAccount.id
       lazy val postTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400
       lazy val putTransactionAttributeJsonV400 = SwaggerDefinitionsJSON.transactionAttributeJsonV400.copy(name="test")
-      lazy val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
+      lazy val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
       lazy val transaction = randomTransactionViaEndpoint(bankId, bankAccount.id, view)
       lazy val transactionId = transaction.id
       

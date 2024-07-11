@@ -1,5 +1,6 @@
 package code.views
 
+import code.api.Constant
 import code.api.util.ErrorMessages.ViewIdNotSupported
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.ViewDefinition
@@ -20,7 +21,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
   
-  val viewIdOwner = "owner"
+  val viewIdOwner = Constant.SYSTEM_OWNER_VIEW_ID
   val viewIdAccountant = "accountant"
   val viewIdAuditor = "auditor"
   val viewIdNotSupport = "NotSupport"
@@ -37,7 +38,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       var allExistingViewsForOneAccount = MapperViews.availableViewsForAccount(bankIdAccountId)
       
       Then("Check the result from database. it should have 4 views and with the right viewId")
-      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewOwner.head.viewId.value should equal(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(3)
@@ -49,7 +50,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       allExistingViewsForOneAccount = MapperViews.availableViewsForAccount(bankIdAccountId)
   
       Then("Check the result from database again. it should have four views and with the right viewId, there should be not changed.")
-      viewOwner.head.viewId.value should equal("owner".toLowerCase())
+      viewOwner.head.viewId.value should equal(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
       allExistingViewsForOneAccount.length should equal(3)
@@ -59,7 +60,9 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       val wrongViewId = "WrongViewId"
       val wrongView = MapperViews.getOrCreateSystemViewFromCbs(wrongViewId)
   
-      wrongView should equal(Failure(ViewIdNotSupported+ s"Your input viewId is :$wrongViewId"))
+      wrongView.toString contains  ViewIdNotSupported shouldBe (true)
+      
+      wrongView.toString contains  wrongViewId shouldBe(true)
   
     }
   

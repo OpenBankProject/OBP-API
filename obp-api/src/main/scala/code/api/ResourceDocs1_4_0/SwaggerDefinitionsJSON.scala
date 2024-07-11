@@ -345,8 +345,8 @@ object SwaggerDefinitionsJSON {
     hide_metadata_if_alias_used = hideMetadataIfAliasUsedExample.value.toBoolean,
     allowed_actions = allowedActionsV500,
     // Version 5.0.0
-    can_grant_access_to_views = Some(List(viewIdExample.value)),
-    can_revoke_access_to_views = Some(List(viewIdExample.value))
+    can_grant_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID)),
+    can_revoke_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID))
   )
   
   val updateCustomViewJson = UpdateCustomViewJson(
@@ -447,8 +447,8 @@ object SwaggerDefinitionsJSON {
     hide_metadata_if_alias_used = true,
     allowed_actions = allowedActionsV500,
     // Version 5.0.0
-    can_grant_access_to_views = Some(List("owner")),
-    can_revoke_access_to_views = Some(List("owner"))
+    can_grant_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID)),
+    can_revoke_access_to_views = Some(List(Constant.SYSTEM_OWNER_VIEW_ID))
   )
   lazy val updateSystemViewJson500 = updateViewJsonV500.copy(is_public = false, is_firehose = Some(false))
 
@@ -3079,15 +3079,15 @@ object SwaggerDefinitionsJSON {
     can_see_bank_account_credit_limit = true,
     can_create_direct_debit = true,
     can_create_standing_order = true,
-    can_grant_access_to_views = List("Owner"),
-    can_revoke_access_to_views = List("Owner")
+    can_grant_access_to_views = List(Constant.SYSTEM_OWNER_VIEW_ID),
+    can_revoke_access_to_views = List(Constant.SYSTEM_OWNER_VIEW_ID)
   )
 
   val viewsJsonV500 = ViewsJsonV500(
     views = List(viewJsonV500)
   )
 
-  val viewIdJsonV500 = ViewIdJsonV500(id = "owner")
+  val viewIdJsonV500 = ViewIdJsonV500(id = Constant.SYSTEM_OWNER_VIEW_ID)
   val viewIdsJsonV500 = ViewsIdsJsonV500(
     views = List(viewIdJsonV500)
   )

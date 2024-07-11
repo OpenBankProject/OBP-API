@@ -1,5 +1,6 @@
 package code.api.util.migration
 
+import code.api.Constant
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
@@ -42,7 +43,7 @@ object BankAccountHoldersAndOwnerViewAccess {
             ownerViewAccess = AccountAccess.findAll(
               By(AccountAccess.bank_id, bankId),
               By(AccountAccess.account_id, accountId),
-              ByList(AccountAccess.view_id, List("owner", "_owner"))
+              ByList(AccountAccess.view_id, List(Constant.SYSTEM_OWNER_VIEW_ID, "_owner"))
             )
           } yield {
             (bankId, accountId, ownerViewAccess.size > 0)

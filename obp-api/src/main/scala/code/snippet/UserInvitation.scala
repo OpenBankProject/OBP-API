@@ -99,7 +99,7 @@ class UserInvitation extends MdcLoggable {
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
       else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
       else if(AuthUser.currentUser.isDefined) showErrorYouMustBeLoggedOff()
-      else if(Users.users.vend.getUserByUserName(localIdentityProvider, usernameVar.is).isDefined) showErrorsForUsername()
+      else if(Users.users.vend.getUserByProviderAndUsername(localIdentityProvider, usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()

@@ -26,9 +26,9 @@ object MigrationOfMappedUserAuthContextUpdate {
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
-                case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "DROP INDEX IF EXISTS mappeduserauthcontextupdate_muserid_mkey ON mappeduserauthcontextupdate;"
-                case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                   () => "DROP INDEX mappeduserauthcontextupdate_muserid_mkey ON mappeduserauthcontextupdate;"
                 case _ =>
                   () => "DROP INDEX IF EXISTS mappeduserauthcontextupdate_muserid_mkey;"

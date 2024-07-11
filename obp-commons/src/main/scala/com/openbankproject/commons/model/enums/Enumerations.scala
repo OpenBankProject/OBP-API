@@ -229,6 +229,13 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object TransactionRequest extends Value
 }
 
+sealed trait SuppliedAnswerType extends EnumValue
+object SuppliedAnswerType extends OBPEnumeration[SuppliedAnswerType]{
+  object PLAIN_TEXT_VALUE extends Value
+  object HASH_VALUE extends Value
+}
+
+
 object TransactionRequestStatus extends Enumeration {
   type TransactionRequestStatus = Value
   val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED, CANCELLATION_PENDING = Value

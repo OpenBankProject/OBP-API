@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn}
@@ -15,7 +16,7 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
 
   lazy val testBankId: BankId = testBankId1
   lazy val testAccountId: AccountId = testAccountId1
-  lazy val view = "owner"
+  lazy val view = Constant.SYSTEM_OWNER_VIEW_ID
 
   /**
    * Test tags

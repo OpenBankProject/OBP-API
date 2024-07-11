@@ -65,7 +65,7 @@ object MigrationOfResourceUser {
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
-              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
                     |""".stripMargin

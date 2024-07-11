@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanUseAccountFirehose, CanUseAccountFirehoseAtAnyBank}
@@ -77,7 +78,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       setPropsValues("enable.force_error"->"true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
-      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/"owner"/"transactions").GET <@ (user1)
+      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 200 and check the response body")
       response.code should equal(200)
@@ -89,7 +90,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       setPropsValues("enable.force_error" -> "true")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanUseAccountFirehose.toString)
       When("We send the request")
-      val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / testAccountId1.value / "views" / "owner" / "transactions").GET <@ (user1)
+      val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / testAccountId1.value / "views" / Constant.SYSTEM_OWNER_VIEW_ID / "transactions").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 200 and check the response body")
       response.code should equal(200)
@@ -100,7 +101,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       setPropsValues("allow_firehose_views" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
-      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/"owner"/"transactions").GET <@ (user1)
+      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 200 and check the response body")
       response.code should equal(200)
@@ -111,7 +112,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_account_firehose" -> "true")
       When("We send the request")
-      val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / testAccountId1.value /"views" / "owner"/"transactions").GET <@ (user1)
+      val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / testAccountId1.value /"views" / Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 403 and check the response body")
       response.code should equal(403)
@@ -122,7 +123,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
-      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/"owner"/"transactions").GET <@ (user1)
+      val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 400 and check the response body")
       response.code should equal(400)

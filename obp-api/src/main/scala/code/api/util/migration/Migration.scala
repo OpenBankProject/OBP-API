@@ -584,8 +584,15 @@ object Migration extends MdcLoggable {
             val tableName = table.dbTableName
             val sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS")
             val resultDate = new Date(System.currentTimeMillis())
-            DB.prepareStatement(s"CREATE TABLE ${tableName}_backup_${sdf.format(resultDate)} AS (SELECT * FROM $tableName); ", conn){
-              stmt => stmt.executeQuery()
+            val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")
+            val sqlQuery = if (dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver")) {
+              s"SELECT * INTO ${tableName}_backup_${sdf.format(resultDate)} FROM $tableName;"
+            }else{
+              s"CREATE TABLE ${tableName}_backup_${sdf.format(resultDate)} AS (SELECT * FROM $tableName);"
+            }
+            DB.prepareStatement(sqlQuery, conn){
+              stmt => stmt.execute() //statement.executeQuery() expects a resultset and you don't get one.
+              // Use statement.execute() for an ALTER-statement to avoid this issue.
             }
             true
           } catch {

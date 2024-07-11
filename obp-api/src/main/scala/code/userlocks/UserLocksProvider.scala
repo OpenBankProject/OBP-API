@@ -8,7 +8,7 @@ import net.liftweb.util.Helpers._
 
 object UserLocksProvider extends MdcLoggable {
   def isLocked(provider: String, username: String): Boolean = {
-    Users.users.vend.getUserByUserName(provider, username) match {
+    Users.users.vend.getUserByProviderAndUsername(provider, username) match {
       case Full(user) =>
         UserLocks.find(By(UserLocks.UserId, user.userId)) match {
           case Full(_) => true
@@ -18,7 +18,7 @@ object UserLocksProvider extends MdcLoggable {
     }
   }
   def lockUser(provider: String, username: String): Box[UserLocks] = {
-    Users.users.vend.getUserByUserName(provider, username) match {
+    Users.users.vend.getUserByProviderAndUsername(provider, username) match {
       case Full(user) =>
         UserLocks.find(By(UserLocks.UserId, user.userId)) match {
           case Full(userLocks) =>
@@ -41,7 +41,7 @@ object UserLocksProvider extends MdcLoggable {
     }
   }
   def unlockUser(provider: String, username: String): Box[Boolean] = {
-    Users.users.vend.getUserByUserName(provider, username) match {
+    Users.users.vend.getUserByProviderAndUsername(provider, username) match {
       case Full(user) =>
         UserLocks.find(By(UserLocks.UserId, user.userId)) match {
           case Full(userLocks) => Some(userLocks.delete_!)

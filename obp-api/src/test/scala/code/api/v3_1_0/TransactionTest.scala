@@ -80,7 +80,7 @@ class TransactionTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(SYSTEM_OWNER_VIEW_ID)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transactions" / transaction.id / "transaction").GET
       val response310 = makeGetRequest(request310)
@@ -93,7 +93,7 @@ class TransactionTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse("owner")
+      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(SYSTEM_OWNER_VIEW_ID)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transactions" / transaction.id / "transaction").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -214,7 +214,7 @@ class TransactionTest extends V310ServerSetup {
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
 
       When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
+      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 201 and check all the fields")
@@ -286,7 +286,7 @@ class TransactionTest extends V310ServerSetup {
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId1,other_account_routing_address=bankAccountId1)
 
       When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / "owner" / "counterparties" ).POST <@ (user1)
+      val requestPost = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 201 and check all the fields")
@@ -358,7 +358,7 @@ class TransactionTest extends V310ServerSetup {
       val counterpartyPostJsonFrom = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId1,other_account_routing_address=bankAccountId1)
 
       When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPostFrom = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
+      val requestPostFrom = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
       val responsePostFrom = makePostRequest(requestPostFrom, write(counterpartyPostJsonFrom))
 
       Then("We should get a 201 and check all the fields")
@@ -371,7 +371,7 @@ class TransactionTest extends V310ServerSetup {
       val counterpartyPostJsonTo = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
 
       When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPostTo = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / "owner" / "counterparties" ).POST <@ (user1)
+      val requestPostTo = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
       val responsePostTo = makePostRequest(requestPostTo, write(counterpartyPostJsonTo))
 
       Then("We should get a 201 and check all the fields")
@@ -429,7 +429,7 @@ class TransactionTest extends V310ServerSetup {
       val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
 
       When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / "owner" / "counterparties" ).POST <@ (user1)
+      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 201 and check all the fields")

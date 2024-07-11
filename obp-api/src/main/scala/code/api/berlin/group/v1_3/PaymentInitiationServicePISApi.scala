@@ -1,5 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
+import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson,
   CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkUpdatePsuAuthentication,checkAuthorisationConfirmation,
@@ -590,7 +591,7 @@ Check the transaction status of a payment initiation.""",
           for {
             (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
               u,
-              ViewId("Owner"), //This is the default
+              ViewId(Constant.SYSTEM_OWNER_VIEW_ID), //This is the default
               fromAccount,
               toAccount,
               TransactionRequestType(transactionRequestTypes.toString),
