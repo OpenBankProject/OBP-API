@@ -46,6 +46,7 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
     accountId: String,
     viewId: String,
     counterpartyId: String,
+    currency: String,
     maxSingleAmount: Int,
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,
@@ -58,6 +59,7 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
         counterpartyLimit.AccountId(accountId)
         counterpartyLimit.ViewId(viewId)
         counterpartyLimit.CounterpartyId(counterpartyId)
+        counterpartyLimit.Currency(currency)
         counterpartyLimit.MaxSingleAmount(maxSingleAmount)
         counterpartyLimit.MaxMonthlyAmount(maxMonthlyAmount)
         counterpartyLimit.MaxNumberOfMonthlyTransactions(maxNumberOfMonthlyTransactions)
@@ -100,6 +102,9 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
     override def dbNotNull_? = true
   }
   
+  object Currency extends MappedString(this, 255){
+    override def dbNotNull_? = true
+  }
   
   object MaxSingleAmount extends MappedInt(this) {
     override def defaultValue = -1
@@ -123,6 +128,7 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
   def accountId: String = AccountId.get
   def viewId: String = ViewId.get
   def counterpartyId: String = CounterpartyId.get
+  def currency: String = Currency.get
 
   def maxSingleAmount: Int = MaxSingleAmount.get
   def maxMonthlyAmount: Int = MaxMonthlyAmount.get
@@ -136,6 +142,7 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
       ("account_id",accountId) ~ 
       ("view_id",viewId) ~ 
       ("counterparty_id",counterpartyId) ~ 
+      ("currency",currency) ~ 
       ("max_single_amount", maxSingleAmount) ~ 
       ("max_monthly_amount", maxMonthlyAmount) ~ 
       ("max_number_of_monthly_transactions", maxNumberOfMonthlyTransactions) ~ 

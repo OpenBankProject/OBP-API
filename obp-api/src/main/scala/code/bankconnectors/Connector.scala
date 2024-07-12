@@ -437,10 +437,10 @@ trait Connector extends MdcLoggable {
     authenticationMethodId: Option[String],
     callContext: Option[CallContext]) : OBPReturnType[Box[List[ChallengeTrait]]]= Future{(Failure(setUnimplementedError), callContext)}
 
-  // Validates an answer for a challenge and returns if the answer is correct or not
   @deprecated("Please use @validateChallengeAnswerV2 instead ","01.07.2024")
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
+  // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType.Value, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
   def allChallengesSuccessfullyAnswered(
@@ -449,7 +449,8 @@ trait Connector extends MdcLoggable {
     transReqId: TransactionRequestId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]]= Future{(Full(true), callContext)}
-  
+
+  @deprecated("Please use @validateChallengeAnswerC4 instead ","04.07.2024")
   def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
@@ -457,12 +458,33 @@ trait Connector extends MdcLoggable {
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  @deprecated("Please use @validateChallengeAnswerC5 instead ","04.07.2024")
   def validateChallengeAnswerC3(
     transactionRequestId: Option[String],
     consentId: Option[String],
     basketId: Option[String],
     challengeId: String,
     hashOfSuppliedAnswer: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def validateChallengeAnswerC4(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    challengeId: String,
+    suppliedAnswer: String,
+    suppliedAnswerType: SuppliedAnswerType.Value,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def validateChallengeAnswerC5(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    basketId: Option[String],
+    challengeId: String,
+    suppliedAnswer: String,
+    suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
@@ -2671,6 +2693,7 @@ trait Connector extends MdcLoggable {
     accountId: String,
     viewId: String,
     counterpartyId: String,
+    currency: String,
     maxSingleAmount: Int,
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,

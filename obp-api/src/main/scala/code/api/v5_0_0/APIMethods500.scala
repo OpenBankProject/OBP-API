@@ -1,7 +1,6 @@
 package code.api.v5_0_0
 
 import java.util.concurrent.ThreadLocalRandom
-
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -45,6 +44,7 @@ import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.FutureUtil.EndpointContext
+import code.api.v5_1_0.PostConsentRequestJsonV510
 import code.consumer.Consumers
 import code.util.Helper.booleanToFuture
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -927,10 +927,18 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString(), StrongCustomerAuthentication.IMPLICIT.toString()).exists(_ == scaMethod)
             }
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
-            consentRequestJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
-            }
+            consentRequestJson <- 
+              if(createdConsentRequest.payload.contains("to_account")) {
+               val failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+                NewStyle.function.tryons(failMsg, 400, callContext) {
+                  json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
+                }.map(_.toPostConsentRequestJsonV500)
+              } else{
+                val failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+                NewStyle.function.tryons(failMsg, 400, callContext) {
+                  json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
+                }
+              }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
               consentRequestJson.time_to_live match {

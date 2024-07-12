@@ -30,6 +30,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
   val ownerView = SYSTEM_OWNER_VIEW_ID
   val postCounterpartyLimitV510 = code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postCounterpartyLimitV510
   val putCounterpartyLimitV510 = PostCounterpartyLimitV510(
+    currency = "EUR",
     max_single_amount = 1,
     max_monthly_amount = 2,
     max_number_of_monthly_transactions = 3,

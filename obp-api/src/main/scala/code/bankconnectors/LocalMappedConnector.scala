@@ -474,6 +474,36 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
     }
   }
+
+
+  override def validateChallengeAnswerC4(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    challengeId: String,
+    suppliedAnswer: String,
+    suppliedAnswerType: SuppliedAnswerType.Value,
+    callContext: Option[CallContext]
+  ) = Future {
+    Future {
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
+    }
+  }
+  
+  override def validateChallengeAnswerC5(
+    transactionRequestId: Option[String],
+    consentId: Option[String],
+    basketId: Option[String],
+    challengeId: String,
+    suppliedAnswer: String,
+    suppliedAnswerType: SuppliedAnswerType.Value,
+    callContext: Option[CallContext]
+  ) = Future {
+    Future {
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
+    }
+  }
   
   override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
     Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}  
@@ -5917,6 +5947,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     accountId: String,
     viewId: String,
     counterpartyId: String,
+    currency: String,
     maxSingleAmount: Int,
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,
@@ -5927,6 +5958,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountId: String,
       viewId: String,
       counterpartyId: String,
+      currency: String,
       maxSingleAmount: Int,
       maxMonthlyAmount: Int,
       maxNumberOfMonthlyTransactions: Int,

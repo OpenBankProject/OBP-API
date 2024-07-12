@@ -1381,6 +1381,37 @@ case class OutBoundValidateChallengeAnswerC3(
   hashOfSuppliedAnswer: String
 ) extends TopicTrait
 
+case class OutBoundValidateChallengeAnswerC4(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  transactionRequestId: Option[String],
+  consentId: Option[String],
+  challengeId: String,
+  suppliedAnswer: String,
+  suppliedAnswerType: SuppliedAnswerType
+) extends TopicTrait
+
+case class OutBoundValidateChallengeAnswerC5(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  transactionRequestId: Option[String],
+  consentId: Option[String],
+  basketId: Option[String],
+  challengeId: String,
+  suppliedAnswer: String,
+  suppliedAnswerType: SuppliedAnswerType,
+) extends TopicTrait
+
+case class InBoundValidateChallengeAnswerC4(
+  inboundAdapterCallContext: InboundAdapterCallContext, 
+  status: Status, 
+  data: ChallengeCommons
+) extends InBoundTrait[ChallengeCommons]
+
+case class InBoundValidateChallengeAnswerC5(
+  inboundAdapterCallContext: InboundAdapterCallContext, 
+  status: Status, 
+  data: ChallengeCommons
+) extends InBoundTrait[ChallengeCommons]
+
 case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 case class InBoundValidateChallengeAnswerC3(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
 

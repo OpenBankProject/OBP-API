@@ -241,6 +241,9 @@ object ExampleValue {
 
   lazy val hashOfSuppliedAnswerExample = ConnectorField(HashUtil.Sha256Hash("123"), s"Sha256 hash value of the ChallengeAnswer.challengeId")
   glossaryItems += makeGlossaryItem("ChallengeAnswer.hashOfSuppliedAnswer", hashOfSuppliedAnswerExample)
+  
+  lazy val suppliedAnswerExample = ConnectorField("123456", s"The value of the ChallengeAnswer.challengeId")
+  glossaryItems += makeGlossaryItem("ChallengeAnswer.suppliedAnswerExample", suppliedAnswerExample)
 
 
   lazy val gitCommitExample = ConnectorField("59623811dd8a41f6ffe67be46954eee11913dc28", "Identifies the code running on the OBP-API (Connector) or Adapter.")
@@ -1516,7 +1519,53 @@ object ExampleValue {
     "The whole create consent request json body."
     )
   
+  lazy val vrpConsentRequestPayloadExample = ConnectorField(
+    s"""{
+       |    "from_account": {
+       |        "bank_routing": {
+       |            "scheme": "BIC",
+       |            "address": "ABCDED"
+       |        },
+       |        "account_routing": {
+       |            "scheme": "AccountNumber",
+       |            "address": "4930396"
+       |        },
+       |        "branch_routing": {
+       |            "scheme": "",
+       |            "address": ""
+       |        }
+       |    },
+       |    "to_account": {
+       |        "bank_routing": {
+       |            "scheme": "BIC",
+       |            "address": "DDFFFF"
+       |        },
+       |        "account_routing": {
+       |            "scheme": "AccountNumber",
+       |            "address": "123567"
+       |        },
+       |        "branch_routing": {
+       |            "scheme": "",
+       |            "address": ""
+       |        },
+       |        "limit": {
+       |            "currency": "EUR",
+       |            "max_single_amount": 1000,
+       |            "max_monthly_amount": 10000,
+       |            "max_number_of_monthly_transactions": 10,
+       |            "max_yearly_amount": 12000,
+       |            "max_number_of_yearly_transactions": 100
+       |        }
+       |    },
+       |    "valid_from": "2024-07-10T09:22:06Z",
+       |    "time_to_live": 3600
+       |}
+       |""".stripMargin,
+    "The whole create consent request json body."
+    )
+  
   glossaryItems += makeGlossaryItem("payload", consentRequestPayloadExample)
+  glossaryItems += makeGlossaryItem("vrp_consent_request.payload", vrpConsentRequestPayloadExample)
  
   lazy val consentRequestIdExample = ConnectorField (
     "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", 
