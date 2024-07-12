@@ -102,9 +102,7 @@ class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[Coun
     override def dbNotNull_? = true
   }
   
-  object Currency extends MappedString(this, 255){
-    override def dbNotNull_? = true
-  }
+  object Currency extends MappedString(this, 255)
   
   object MaxSingleAmount extends MappedInt(this) {
     override def defaultValue = -1
