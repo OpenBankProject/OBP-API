@@ -562,6 +562,8 @@ The same as `Frozen APIs`, if related unit test fail, make sure whether the modi
 * OracleJDK: 1.8, 13
 * OpenJdk: 11
 
+OpenJDK 11 is available for download here: https://jdk.java.net/archive/
+
 ## Endpoint Request and Response Example
     ResourceDoc#exampleRequestBody and ResourceDoc#successResponseBody can be the follow type
 * Any Case class
