@@ -2730,7 +2730,7 @@ trait APIMethods510 {
       nameOf(createVRPConsentRequest),
       "POST",
       "/consumer/vrp-consent-requests",
-      "Create VRP Consent Request",
+      "Create Consent Request VRP",
       s"""
          |Client Authentication (mandatory)
          |

@@ -5232,28 +5232,6 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
     )
-  
-  val consentRequestFromAccountJson = ConsentRequestFromAccountJson (
-    bank_routing = bankRoutingJsonV121,
-    account_routing = accountRoutingJsonV121,
-    branch_routing = branchRoutingJsonV141
-  )
-  
-  val consentRequestToAccountJson = ConsentRequestToAccountJson (
-    bank_routing = bankRoutingJsonV121,
-    account_routing = accountRoutingJsonV121,
-    branch_routing = branchRoutingJsonV141,
-    limit = postCounterpartyLimitV510
-  )
-  
-  val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
-    from_account = consentRequestFromAccountJson,
-    to_account = consentRequestToAccountJson,
-    email = Some(emailExample.value),
-    phone_number = Some(mobileNumberExample.value),
-    valid_from = Some(new Date()),
-    time_to_live = Some(3600)
-  )
 
   val createPhysicalCardJsonV500 = CreatePhysicalCardJsonV500(
     card_number = bankCardNumberExample.value,
@@ -5483,6 +5461,29 @@ object SwaggerDefinitionsJSON {
   )
   
   val postAccountAccessJsonV510 = PostAccountAccessJsonV510(userIdExample.value,viewIdExample.value)
+
+  val consentRequestFromAccountJson = ConsentRequestFromAccountJson (
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    branch_routing = branchRoutingJsonV141
+  )
+
+  val consentRequestToAccountJson = ConsentRequestToAccountJson (
+    bank_routing = bankRoutingJsonV121,
+    account_routing = accountRoutingJsonV121,
+    branch_routing = branchRoutingJsonV141,
+    limit = postCounterpartyLimitV510
+  )
+
+  val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
+    from_account = consentRequestFromAccountJson,
+    to_account = consentRequestToAccountJson,
+    email = Some(emailExample.value),
+    phone_number = Some(mobileNumberExample.value),
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600)
+  )
+  
   
   //The common error or success format.
   //Just some helper format to use in Json 
