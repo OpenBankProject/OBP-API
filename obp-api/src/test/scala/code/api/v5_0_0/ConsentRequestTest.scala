@@ -118,8 +118,9 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_0_0_Request / "users").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
-      Then("We get successful response")
+      Then("We get 401 error")
       responseWhichFails.code should equal(401)
+      responseWhichFails.body.toString contains(ConsentStatusIssue) shouldBe(true)
 
 
       val answerConsentChallengeRequest = (v5_0_0_Request / "banks" / testBankId1.value / "consents" / consentId / "challenge").POST <@ (user1)

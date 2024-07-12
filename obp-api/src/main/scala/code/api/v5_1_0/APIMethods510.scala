@@ -2723,12 +2723,12 @@ trait APIMethods510 {
 
 
     staticResourceDocs += ResourceDoc(
-      createVPRConsentRequest,
+      createVRPConsentRequest,
       implementedInApiVersion,
-      nameOf(createVPRConsentRequest),
+      nameOf(createVRPConsentRequest),
       "POST",
       "/consumer/vrp-consent-requests",
-      "Create VPR Consent Request",
+      "Create VRP Consent Request",
       s"""
          |Client Authentication (mandatory)
          |
@@ -2755,7 +2755,7 @@ trait APIMethods510 {
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
-    lazy val createVPRConsentRequest : OBPEndpoint = {
+    lazy val createVRPConsentRequest : OBPEndpoint = {
       case  "consumer" :: "vrp-consent-requests" :: Nil JsonPost json -> _  =>  {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {

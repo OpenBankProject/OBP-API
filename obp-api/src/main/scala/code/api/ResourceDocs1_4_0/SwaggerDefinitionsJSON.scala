@@ -5249,6 +5249,8 @@ object SwaggerDefinitionsJSON {
   val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
     from_account = consentRequestFromAccountJson,
     to_account = consentRequestToAccountJson,
+    email = Some(emailExample.value),
+    phone_number = Some(mobileNumberExample.value),
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )

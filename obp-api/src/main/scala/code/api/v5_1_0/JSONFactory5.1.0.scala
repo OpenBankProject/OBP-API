@@ -401,6 +401,8 @@ case class ConsentRequestToAccountJson(
 case class PostConsentRequestJsonV510(
   from_account:ConsentRequestFromAccountJson,
   to_account:ConsentRequestToAccountJson,
+  email: Option[String],
+  phone_number: Option[String],
   valid_from: Option[Date],
   time_to_live: Option[Long]
 ){
@@ -411,8 +413,8 @@ case class PostConsentRequestJsonV510(
       account_access = Nil,
       entitlements = None,
       consumer_id = None,
-      email = None,
-      phone_number = None,
+      email = email,
+      phone_number = phone_number,
       valid_from = valid_from,
       time_to_live = time_to_live
     )
