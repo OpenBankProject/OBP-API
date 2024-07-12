@@ -183,7 +183,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   }
 
   private def extractParams(s: S): (String, String, String) = {
-    val code = ObpS.param("code")
+    // TODO Figure out why ObpS does not contain response parameter code
+    val code = s.param("code")
     val state = ObpS.param("state")
     val sessionState = OpenIDConnectSessionState.get
     (code.getOrElse(""), state.getOrElse("0"), sessionState.map(_.toString).getOrElse("1"))
