@@ -34,6 +34,7 @@ trait CounterpartyLimitProviderTrait {
     accountId: String,
     viewId: String,
     counterpartyId: String,
+    currency: String,
     maxSingleAmount: Int,
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,
@@ -48,6 +49,7 @@ trait CounterpartyLimitTrait extends JsonAble{
   def viewId: String
   def counterpartyId: String
   
+  def currency: String
   def maxSingleAmount: Int
   def maxMonthlyAmount: Int
   def maxNumberOfMonthlyTransactions: Int

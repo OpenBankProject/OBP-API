@@ -373,6 +373,8 @@ object ConnectorBuilderUtil {
     "validateAndCheckIbanNumber",
     "validateChallengeAnswerC2",
     "validateChallengeAnswerC3",
+    "validateChallengeAnswerC4",
+    "validateChallengeAnswerC5",
     "validateChallengeAnswerV2",
     "getCounterpartyByIbanAndBankAccountId",
   ).distinct

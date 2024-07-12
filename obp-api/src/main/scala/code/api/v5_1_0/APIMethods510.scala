@@ -21,14 +21,15 @@ import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
-import code.api.v3_1_0.ConsentJsonV310
+import code.api.v3_1_0.{ConsentJsonV310, PostConsentBodyCommonJson}
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, RevokedJsonV400}
+import code.api.v5_0_0.{JSONFactory500, PostConsentRequestJsonV500}
 import code.api.v5_1_0.JSONFactory510.{createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
-import code.consent.Consents
+import code.consent.{ConsentRequests, Consents}
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model.{AppType, BankAccountX}
@@ -2388,6 +2389,7 @@ trait APIMethods510 {
               accountId.value,
               viewId.value,
               counterpartyId.value,
+              postCounterpartyLimitV510.currency,
               postCounterpartyLimitV510.max_single_amount,
               postCounterpartyLimitV510.max_monthly_amount,
               postCounterpartyLimitV510.max_number_of_monthly_transactions,
@@ -2435,6 +2437,7 @@ trait APIMethods510 {
               accountId.value,
               viewId.value,
               counterpartyId.value,
+              postCounterpartyLimitV510.currency,
               postCounterpartyLimitV510.max_single_amount,
               postCounterpartyLimitV510.max_monthly_amount,
               postCounterpartyLimitV510.max_number_of_monthly_transactions,
@@ -2756,7 +2759,71 @@ trait APIMethods510 {
           }
       }
     }
-    
+
+
+
+    staticResourceDocs += ResourceDoc(
+      createVRPConsentRequest,
+      implementedInApiVersion,
+      nameOf(createVRPConsentRequest),
+      "POST",
+      "/consumer/vrp-consent-requests",
+      "Create VRP Consent Request",
+      s"""
+         |Client Authentication (mandatory)
+         |
+         |It is used when applications request an access token to access their own resources, not on behalf of a user.
+         |
+         |The client needs to authenticate themselves for this request.
+         |In case of public client we use client_id and private kew to obtain access token, otherwise we use client_id and client_secret.
+         |The obtained access token is used in the HTTP Bearer auth header of our request.
+         |
+         |Example:
+         |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+         |
+         |""".stripMargin,
+      postConsentRequestJsonV510,
+      vrpConsentRequestResponseJson,
+      List(
+        InvalidJsonFormat,
+        ConsentMaxTTL,
+        X509CannotGetCertificate,
+        X509GeneralError,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
+    )
+
+    lazy val createVRPConsentRequest : OBPEndpoint = {
+      case  "consumer" :: "vrp-consent-requests" :: Nil JsonPost json -> _  =>  {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- applicationAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentRequestJsonV510 "
+            consentRequestJson: PostConsentRequestJsonV510 <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentRequestJsonV510]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
+              consentRequestJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
+            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
+              callContext.flatMap(_.consumer),
+              Some(compactRender(json))
+            )) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (JSONFactory500.createConsentRequestResponseJson(createdConsentRequest), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
   }
 }
 

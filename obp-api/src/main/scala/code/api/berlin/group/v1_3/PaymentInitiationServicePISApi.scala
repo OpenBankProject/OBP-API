@@ -2,9 +2,7 @@ package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson,
-  CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkUpdatePsuAuthentication,checkAuthorisationConfirmation,
-  checkTransactionAuthorisation, checkSelectPsuAuthenticationMethod, createCancellationTransactionRequestJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkAuthorisationConfirmation, checkSelectPsuAuthenticationMethod, checkTransactionAuthorisation, checkUpdatePsuAuthentication, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -24,7 +22,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb
 import net.liftweb.common.Box.tryo
@@ -1227,12 +1225,13 @@ There are the following request types on this access path:
                existingTransactionRequest.status == TransactionRequestStatus.COMPLETED.toString
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
                ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationId,
                transactionAuthorisation.scaAuthenticationData,
+               SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext
              )
 
@@ -1470,12 +1469,13 @@ There are the following request types on this access path:
              _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUData, cc=callContext) {
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
              }
-             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
                ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
                authorisationid,
                transactionAuthorisationJson.scaAuthenticationData,
+               SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext
              )
              

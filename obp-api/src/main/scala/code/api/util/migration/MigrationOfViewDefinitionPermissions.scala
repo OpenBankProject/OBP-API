@@ -1,6 +1,6 @@
 package code.api.util.migration
 
-import code.api.Constant.{ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT, SYSTEM_OWNER_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
+import code.api.Constant.{DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS, SYSTEM_OWNER_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.ViewDefinition
@@ -31,8 +31,8 @@ object MigrationOfViewDefinitionPermissions {
             .canUpdateCustomView_(false)
             .canGrantAccessToCustomViews_(false)
             .canRevokeAccessToCustomViews_(false)
-            .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
-            .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+            .canGrantAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
+            .canRevokeAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
             .save
         )
         
@@ -54,8 +54,8 @@ object MigrationOfViewDefinitionPermissions {
             .canUpdateCustomView_(false)
             .canGrantAccessToCustomViews_(false)
             .canRevokeAccessToCustomViews_(false)
-            .canGrantAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
-            .canRevokeAccessToViews_(ALL_SYSTEM_VIEWS_CREATED_FROM_BOOT.mkString(","))
+            .canGrantAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
+            .canRevokeAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
             .save
         )
 

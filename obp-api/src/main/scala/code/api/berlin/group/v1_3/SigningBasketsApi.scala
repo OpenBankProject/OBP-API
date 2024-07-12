@@ -15,7 +15,7 @@ import code.util.Helper.booleanToFuture
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLETED, REJECTED}
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus,SuppliedAnswerType}
 import com.openbankproject.commons.model.{ChallengeTrait, TransactionRequestId}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Empty, Full}
@@ -476,13 +476,14 @@ There are the following request types on this access path:
              }
              _ <- SigningBasketNewStyle.checkSigningBasketPayments(basketId, callContext)
              // Validate a challenge answer and get an error if any
-             (boxedChallenge: Box[ChallengeTrait], callContext) <- NewStyle.function.validateChallengeAnswerC3(
+             (boxedChallenge: Box[ChallengeTrait], callContext) <- NewStyle.function.validateChallengeAnswerC5(
                ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
                None,
                None,
                Some(basketId),
                authorisationId,
                updateBasketPsuDataJson.scaAuthenticationData,
+               SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext
              )
              // Get the challenge after validation
