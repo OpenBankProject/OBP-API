@@ -545,11 +545,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     GetConsentResponseJson(
       access = access,
       recurringIndicator = createdConsent.recurringIndicator,
-      validUntil = new SimpleDateFormat(DateWithDay).format(createdConsent.validUntil), 
+      validUntil = if(createdConsent.validUntil == null) null else new SimpleDateFormat(DateWithDay).format(createdConsent.validUntil), 
       frequencyPerDay = createdConsent.frequencyPerDay,
       combinedServiceIndicator= createdConsent.combinedServiceIndicator,
-      lastActionDate= new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
-      consentStatus= createdConsent.status.toLowerCase()
+      lastActionDate = if(createdConsent.lastActionDate == null) null else new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
+      consentStatus = createdConsent.status.toLowerCase()
     )
   }
 
