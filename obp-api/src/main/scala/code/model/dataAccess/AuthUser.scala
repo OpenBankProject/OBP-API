@@ -1162,6 +1162,7 @@ def restoreSomeSessions(): Unit = {
               case Full(user) if LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) =>
                 LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+                loginRedirect(ObpS.param("Referer").or(S.param("Referer")))
 
               // Check if user came from kafka/obpjvm/stored_procedure and
               // if User is NOT locked. Then check username and password
