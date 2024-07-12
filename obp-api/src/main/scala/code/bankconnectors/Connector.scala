@@ -2693,6 +2693,7 @@ trait Connector extends MdcLoggable {
     accountId: String,
     viewId: String,
     counterpartyId: String,
+    currency: String,
     maxSingleAmount: Int,
     maxMonthlyAmount: Int,
     maxNumberOfMonthlyTransactions: Int,

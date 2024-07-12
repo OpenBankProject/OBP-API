@@ -177,6 +177,7 @@ case class CounterpartyLimitV510(
   account_id: String,
   view_id: String,
   counterparty_id: String,
+  currency: String,
   max_single_amount: Int,
   max_monthly_amount: Int,
   max_number_of_monthly_transactions: Int,

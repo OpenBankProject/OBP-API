@@ -5470,6 +5470,7 @@ object SwaggerDefinitionsJSON {
     account_id = accountIdExample.value,
     view_id = viewIdExample.value,
     counterparty_id = counterpartyIdExample.value,
+    currency = currencyExample.value,
     max_single_amount = maxSingleAmountExample.value.toInt,
     max_monthly_amount = maxMonthlyAmountExample.value.toInt,
     max_number_of_monthly_transactions = maxNumberOfMonthlyTransactionsExample.value.toInt,
