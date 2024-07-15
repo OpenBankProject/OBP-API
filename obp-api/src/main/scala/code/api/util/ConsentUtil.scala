@@ -209,6 +209,7 @@ object Consent extends MdcLoggable {
   }
 
   private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[(Box[User], Boolean)] = {
+    logger.debug(s"getOrCreateUser(subject($subject), issuer($issuer), consentId($consentId), name($name), email($email))")
     Users.users.vend.getOrCreateUserByProviderIdFuture(
       provider = issuer,
       idGivenByProvider = subject,
@@ -508,7 +509,8 @@ object Consent extends MdcLoggable {
                 consentBox match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     // Update MappedConsent.usesSoFarTodayCounter field
-                    Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                    val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                    logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors
                     Future(failure, Some(updatedCallContext))
