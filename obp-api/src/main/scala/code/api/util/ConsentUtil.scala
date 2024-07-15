@@ -170,9 +170,13 @@ object Consent extends MdcLoggable {
             def removeBreakLines(input: String) = input
               .replace("\n", "")
               .replace("\r", "")
-            if (removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get))
+            val certificate = consumerFromConsent.clientCertificate
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumer.certificate:: certificate($certificate)")
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumer.certificate.dbNotNull_?(${certificate.dbNotNull_?})")
+            if (certificate.dbNotNull_? && removeBreakLines(clientCert) == removeBreakLines(certificate.get)) {
+            logger.debug(s"certificate.dbNotNull_? && removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get) result == true")
               Full(true) // This consent can be used by current application
-            else // This consent can NOT be used by current application
+            } else // This consent can NOT be used by current application
               Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
           case "NONE" => // This instance does not require validation method
             Full(true)
