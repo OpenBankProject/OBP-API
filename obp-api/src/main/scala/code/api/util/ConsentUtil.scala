@@ -144,7 +144,9 @@ object Consent extends MdcLoggable {
   }
 
   private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, callContext: CallContext): Box[Boolean] = {
-    Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
+    val consumerBox = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
+    logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.getConsumerByConsumerId consumerBox:: consumerBox($consumerBox)")
+    consumerBox match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
         val validationMetod = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
         if(validationMetod != "CONSUMER_CERTIFICATE" && Props.mode == Props.RunModes.Production) {
@@ -153,6 +155,7 @@ object Consent extends MdcLoggable {
         validationMetod match {
           case "CONSUMER_KEY_VALUE" =>
             val requestHeaderConsumerKey = getConsumerKey(callContext.requestHeaders)
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumerBox.requestHeaderConsumerKey:: requestHeaderConsumerKey($requestHeaderConsumerKey)")
             requestHeaderConsumerKey match {
               case Some(reqHeaderConsumerKey) =>
                 if (reqHeaderConsumerKey == consumerFromConsent.key.get)
@@ -163,6 +166,7 @@ object Consent extends MdcLoggable {
             }
           case "CONSUMER_CERTIFICATE" =>
             val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders).getOrElse(SecureRandomUtil.csprng.nextLong().toString)
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumerBox clientCert:: clientCert($clientCert)")
             def removeBreakLines(input: String) = input
               .replace("\n", "")
               .replace("\r", "")
