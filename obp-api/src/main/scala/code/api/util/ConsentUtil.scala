@@ -185,8 +185,8 @@ object Consent extends MdcLoggable {
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, callContext: CallContext): Box[Boolean] = {
     logger.debug(s"code.api.util.Consent.checkConsent beginning: consent($consent), consentIdAsJwt($consentIdAsJwt)")
     val consentBox = Consents.consentProvider.vend.getConsentByConsentId(consent.jti)
-    logger.debug(s"code.api.util.Consent.checkConsent.consentBox: consentBox($consentBox)")
-    consentBox match {
+    logger.debug(s"code.api.util.Consent.checkConsent.getConsentByConsentId: consentBox($consentBox)")
+    val result = consentBox match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString | c.mStatus == ConsentStatus.VALID.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
           case true =>
@@ -196,7 +196,10 @@ object Consent extends MdcLoggable {
               case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
                 Failure(ErrorMessages.ConsentExpiredIssue)
               case _ =>
-                checkConsumerIsActiveAndMatched(consent, callContext)
+                logger.debug(s"start code.api.util.Consent.checkConsent.checkConsumerIsActiveAndMatched(consent($consent))")
+                val result = checkConsumerIsActiveAndMatched(consent, callContext)
+                logger.debug(s"end code.api.util.Consent.checkConsent.checkConsumerIsActiveAndMatched: result($result)")
+                result
             }
           case false =>
             Failure(ErrorMessages.ConsentVerificationIssue)
@@ -206,6 +209,8 @@ object Consent extends MdcLoggable {
       case _ => 
         Failure(ErrorMessages.ConsentNotFound)
     }
+    logger.debug(s"code.api.util.Consent.checkConsent.consentBox.result: result($result)")
+    result
   }
 
   private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[(Box[User], Boolean)] = {
