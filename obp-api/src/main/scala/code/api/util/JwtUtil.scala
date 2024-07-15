@@ -3,7 +3,6 @@ package code.api.util
 import java.net.{URI, URL}
 import java.nio.file.{Files, Paths}
 import java.text.ParseException
-
 import code.api.util.RSAUtil.logger
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.JWSAlgorithm
@@ -15,6 +14,7 @@ import com.nimbusds.jose.util.{DefaultResourceRetriever, JSONObjectUtils}
 import com.nimbusds.jwt.proc.{BadJWTException, DefaultJWTProcessor}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
+import dispatch.Future
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 object JwtUtil extends MdcLoggable {
@@ -58,9 +58,14 @@ object JwtUtil extends MdcLoggable {
     * @return True or False
     */
   def verifyHmacSignedJwt(jwtToken: String, sharedSecret: String): Boolean = {
+    logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt beginning:: jwtToken($jwtToken), sharedSecret($sharedSecret)")
     val signedJWT = SignedJWT.parse(jwtToken)
     val verifier = new MACVerifier(sharedSecret)
-    signedJWT.verify(verifier)
+    logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt beginning:: signedJWT($signedJWT)")
+    logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt beginning:: verifier($verifier)")
+    val result = signedJWT.verify(verifier)
+    logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt result:: result($verifier)")
+    result
   }
 
   /**
@@ -287,6 +292,7 @@ object JwtUtil extends MdcLoggable {
 
     val idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNmMDIyYTQ5ZTk3ODYxNDhhZDBlMzc5Y2M4NTQ4NDRlMzZjM2VkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkQ0VlZTSThXXzBXSC1QM1o5TW9NSEEiLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUNIaTNyY0lDel9Kemk5UEdnY3RrVzRzRzdWQmtFV2d2QS9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTUyMzc3ODgwLCJleHAiOjE1NTIzODE0ODB9.g2gIxUPT2zFmeTpbeeU4t0vmzrwgbKJSSQ_V33e9iWx63aDSHreGOwAMn6bPlI7b3DXB6Kjzx_6OoijoEsyoUHdJ4Pa5Ds611KKgBKDL0ztqKAtcLFE66kiHtUSnZyFUiYykzE6uGcluBaeXVQOkZqpeXEwhUVbUZSkM0QZ1l2DoOnnJB3rsNsoTBVnIYfQDZR8huxNCb9gjrYTzvtjifYG8uJ7FWMndcTorlUUpd3TxFkxJvws8oD2Au564awNQsQymZ10ZVDQ-D_mImJo5EQDxRiCtwMRDP_UtIYI9AkBHbE_6hi8kbeop-gDpDsLvl1v4Wl_rFciRxPgXP07Xuw"
     println("validateIdToken: " + validateIdToken(idToken = idToken, remoteJWKSetUrl = "https://www.googleapis.com/oauth2/v3/certs").map("Logged in user: " + _.getSubject))
+
   }
 
 
