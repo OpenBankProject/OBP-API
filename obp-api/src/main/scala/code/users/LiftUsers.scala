@@ -1,7 +1,8 @@
 package code.users
 
-import java.util.Date
+import code.api.util.Consent.logger
 
+import java.util.Date
 import code.api.util._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
@@ -70,7 +71,9 @@ object LiftUsers extends Users with MdcLoggable{
   }
   def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)] = {
     Future {
-      getOrCreateUserByProviderId(provider, idGivenByProvider,consentId, name, email)
+      val result = getOrCreateUserByProviderId(provider, idGivenByProvider, consentId, name, email)
+      logger.debug(s"getOrCreateUserByProviderId.result ($result)")
+      result
     }
   }
 

@@ -137,11 +137,16 @@ object Consent extends MdcLoggable {
   }
   
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
-    JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
+    logger.debug(s"code.api.util.Consent.verifyHmacSignedJwt beginning:: jwtToken($jwtToken), MappedConsent($c)")
+    val result = JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
+    logger.debug(s"code.api.util.Consent.verifyHmacSignedJwt result:: result($result)")
+    result
   }
 
   private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, callContext: CallContext): Box[Boolean] = {
-    Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
+    val consumerBox = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
+    logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.getConsumerByConsumerId consumerBox:: consumerBox($consumerBox)")
+    consumerBox match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
         val validationMetod = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
         if(validationMetod != "CONSUMER_CERTIFICATE" && Props.mode == Props.RunModes.Production) {
@@ -150,6 +155,7 @@ object Consent extends MdcLoggable {
         validationMetod match {
           case "CONSUMER_KEY_VALUE" =>
             val requestHeaderConsumerKey = getConsumerKey(callContext.requestHeaders)
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumerBox.requestHeaderConsumerKey:: requestHeaderConsumerKey($requestHeaderConsumerKey)")
             requestHeaderConsumerKey match {
               case Some(reqHeaderConsumerKey) =>
                 if (reqHeaderConsumerKey == consumerFromConsent.key.get)
@@ -160,12 +166,17 @@ object Consent extends MdcLoggable {
             }
           case "CONSUMER_CERTIFICATE" =>
             val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders).getOrElse(SecureRandomUtil.csprng.nextLong().toString)
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumerBox clientCert:: clientCert($clientCert)")
             def removeBreakLines(input: String) = input
               .replace("\n", "")
               .replace("\r", "")
-            if (removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get))
+            val certificate = consumerFromConsent.clientCertificate
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumer.certificate:: certificate($certificate)")
+            logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumer.certificate.dbNotNull_?(${certificate.dbNotNull_?})")
+            if (certificate.dbNotNull_? && removeBreakLines(clientCert) == removeBreakLines(certificate.get)) {
+            logger.debug(s"certificate.dbNotNull_? && removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get) result == true")
               Full(true) // This consent can be used by current application
-            else // This consent can NOT be used by current application
+            } else // This consent can NOT be used by current application
               Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
           case "NONE" => // This instance does not require validation method
             Full(true)
@@ -180,7 +191,10 @@ object Consent extends MdcLoggable {
   }
 
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, callContext: CallContext): Box[Boolean] = {
-    Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
+    logger.debug(s"code.api.util.Consent.checkConsent beginning: consent($consent), consentIdAsJwt($consentIdAsJwt)")
+    val consentBox = Consents.consentProvider.vend.getConsentByConsentId(consent.jti)
+    logger.debug(s"code.api.util.Consent.checkConsent.getConsentByConsentId: consentBox($consentBox)")
+    val result = consentBox match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString | c.mStatus == ConsentStatus.VALID.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
           case true =>
@@ -190,7 +204,10 @@ object Consent extends MdcLoggable {
               case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
                 Failure(ErrorMessages.ConsentExpiredIssue)
               case _ =>
-                checkConsumerIsActiveAndMatched(consent, callContext)
+                logger.debug(s"start code.api.util.Consent.checkConsent.checkConsumerIsActiveAndMatched(consent($consent))")
+                val result = checkConsumerIsActiveAndMatched(consent, callContext)
+                logger.debug(s"end code.api.util.Consent.checkConsent.checkConsumerIsActiveAndMatched: result($result)")
+                result
             }
           case false =>
             Failure(ErrorMessages.ConsentVerificationIssue)
@@ -200,9 +217,12 @@ object Consent extends MdcLoggable {
       case _ => 
         Failure(ErrorMessages.ConsentNotFound)
     }
+    logger.debug(s"code.api.util.Consent.checkConsent.consentBox.result: result($result)")
+    result
   }
 
   private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[(Box[User], Boolean)] = {
+    logger.debug(s"getOrCreateUser(subject($subject), issuer($issuer), consentId($consentId), name($name), email($email))")
     Users.users.vend.getOrCreateUserByProviderIdFuture(
       provider = issuer,
       idGivenByProvider = subject,
@@ -316,9 +336,9 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
@@ -373,9 +393,9 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+          logger.debug(s"applyConsentRulesCommon.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+          logger.debug(s"applyConsentRulesCommon.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
           // Set Consumer into Call Context
           val consumer = getCurrentConsumerViaMtls(callContext)
           val updatedCallContext = callContext.copy(consumer = consumer)
@@ -494,13 +514,16 @@ object Consent extends MdcLoggable {
           JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
             case Full(jsonAsString) =>
               try {
-                logger.debug(s"Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+                logger.debug(s"applyBerlinGroupConsentRulesCommon.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
-                checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext) match { // Check is it Consent-JWT expired
+                logger.debug(s"applyBerlinGroupConsentRulesCommon.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+                val consentBox = checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext)
+                logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT].checkConsent.consentBox: $consent")
+                consentBox match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     // Update MappedConsent.usesSoFarTodayCounter field
-                    Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                    val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                    logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors
                     Future(failure, Some(updatedCallContext))
