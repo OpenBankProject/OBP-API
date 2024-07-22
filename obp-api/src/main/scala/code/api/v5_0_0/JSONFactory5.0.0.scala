@@ -235,7 +235,6 @@ case class PostConsentRequestJsonV500(
 )
 
 case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
-case class CreateConsentByRequestIdJson(source_view_id: Option[String])
 
 case class CreatePhysicalCardJsonV500(
   card_number: String,

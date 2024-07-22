@@ -5218,10 +5218,6 @@ object SwaggerDefinitionsJSON {
     consent_request_id = Some(consentRequestIdExample.value)
     )
   
-  val createConsentByRequestIdJson = CreateConsentByRequestIdJson(
-    source_view_id = Some(viewIdExample.copy(value="_VRP-9d429899-24f5-42c8-8565-943ffa6a7945").value)
-  )
-  
   val postConsentRequestJsonV500 = PostConsentRequestJsonV500(
     everything = false,
     bank_id = None,
@@ -5473,6 +5469,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val consentRequestToAccountJson = ConsentRequestToAccountJson (
+    counterparty_name = counterpartyNameExample.value,
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
     branch_routing = branchRoutingJsonV141,

@@ -393,6 +393,7 @@ case class ConsentRequestFromAccountJson(
 )
 
 case class ConsentRequestToAccountJson(
+  counterparty_name: String,
   bank_routing: BankRoutingJsonV121,
   account_routing: AccountRoutingJsonV121,
   branch_routing: BranchRoutingJsonV141,

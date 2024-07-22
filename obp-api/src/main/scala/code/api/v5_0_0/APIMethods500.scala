@@ -792,7 +792,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
-      createConsentByRequestIdJson,
+      EmptyBody,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -820,7 +820,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
-      createConsentByRequestIdJson,
+      EmptyBody,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -851,7 +851,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
-      createConsentByRequestIdJson,
+      EmptyBody,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -876,7 +876,7 @@ trait APIMethods500 {
     
     lazy val createConsentByConsentRequestId : OBPEndpoint = {
      
-      case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost jsonBody -> _  => {
+      case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost _ -> _  => {
         def sendEmailNotification(callContext: Option[CallContext], consentRequestJson: PostConsentRequestJsonV500, challengeText: String) = {
           for {
             failMsg <- Future {
@@ -961,39 +961,30 @@ trait APIMethods500 {
                 which_alias_to_use = vrpViewId,
                 hide_metadata_if_alias_used = true,
                 allowed_permissions = targetPermissions
-              
-              val failMsg = s"$InvalidJsonFormat The vrp consent request json body should be the $PostConsentRequestJsonV510 "
+              )
 
               for {
-                requestJsonViewIdOption <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                  json.parse(createdConsentRequest.payload)
-                    .extractOpt[CreateConsentByRequestIdJson]
-                    .map(_.source_view_id)
-                    .flatten
-                    .filterNot(_.isEmpty) // if view_id = "",then return NONE.
-                }
-                //the json body view_id is an option field, if it is NONE, we need to find all the permissions the user have, 
-                sourceViewId = requestJsonViewIdOption.getOrElse(APIUtil.getPropsValue("defaultBank.view_id", "owner"))//get all the views the user has, 
                 //1st: create the Custom View for the from account.
                 (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(fromBankIdAccountId.bankId, fromBankIdAccountId.accountId, callContext)
-                view <- NewStyle.function.checkViewAccessAndReturnView(ViewId(sourceViewId), fromBankIdAccountId, Some(user), callContext)
+                //we do not need sourceViewId so far, we need to get all the view access for the login user, and
 
-                permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+                permission <- NewStyle.function.permission(fromAccount.bankId, fromAccount.accountId, user, callContext)
+
+                permissionsFromSource = permission.views.map(view =>APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList).flatten.toSet
                 permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
 
-                _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
-                  permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
-                }
-                failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canUpdateCustomView))}` permission on VIEW_ID(${sourceViewId})"
+                userMissingPermissions = permissionsFromTarget.toSet diff permissionsFromSource
+
+                failMsg = s"${ErrorMessages.UserDoesNotHavePermission} ${userMissingPermissions.toString}"
                 _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
-                  view.canCreateCustomView
+                  userMissingPermissions.isEmpty
                 }
                 (view, callContext) <- NewStyle.function.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
 
                 //2st: Create a new counterparty on that view (_VRP-9d429899-24f5-42c8-8565-943ffa6a7945)
                 postJson = PostCounterpartyJson400(
-                  name = "", //TODO, this need to be a unique.
-                  description = "",
+                  name = postConsentRequestJsonV510.to_account.counterparty_name,
+                  description = postConsentRequestJsonV510.to_account.counterparty_name,
                   currency = postConsentRequestJsonV510.to_account.limit.currency,
                   other_account_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
                   other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
@@ -1014,7 +1005,7 @@ trait APIMethods500 {
                 (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, fromBankIdAccountId.bankId.value, fromBankIdAccountId.accountId.value, view.viewId.value, callContext)
 
                 _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-                  s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${fromBankIdAccountId.bankId.value}) and ACCOUNT_ID(${fromBankIdAccountId.accountId.value}) and VIEW_ID($sourceViewId)"), cc = callContext) {
+                  s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${fromBankIdAccountId.bankId.value}) and ACCOUNT_ID(${fromBankIdAccountId.accountId.value}) and VIEW_ID($vrpViewId)"), cc = callContext) {
                   counterparty.isEmpty
                 }
 
@@ -1029,7 +1020,7 @@ trait APIMethods500 {
                   createdByUserId = user.userId,
                   thisBankId = fromBankIdAccountId.bankId.value,
                   thisAccountId = fromBankIdAccountId.accountId.value,
-                  thisViewId = sourceViewId,
+                  thisViewId = vrpViewId,
                   otherAccountRoutingScheme = postJson.other_account_routing_scheme,
                   otherAccountRoutingAddress = postJson.other_account_routing_address,
                   otherAccountSecondaryRoutingScheme = postJson.other_account_secondary_routing_scheme,
@@ -1056,11 +1047,11 @@ trait APIMethods500 {
                 (counterpartyLimitBox, callContext) <- Connector.connector.vend.getCounterpartyLimit(
                   fromBankIdAccountId.bankId.value,
                   fromBankIdAccountId.accountId.value,
-                  sourceViewId,
+                  vrpViewId,
                   counterparty.counterpartyId,
                   cc.callContext
                 )
-                failMsg = s"$CounterpartyLimitAlreadyExists Current BANK_ID(${fromBankIdAccountId.bankId.value}), ACCOUNT_ID(${fromBankIdAccountId.accountId.value}), VIEW_ID($sourceViewId),COUNTERPARTY_ID(${counterparty.counterpartyId})"
+                failMsg = s"$CounterpartyLimitAlreadyExists Current BANK_ID(${fromBankIdAccountId.bankId.value}), ACCOUNT_ID(${fromBankIdAccountId.accountId.value}), VIEW_ID($vrpViewId),COUNTERPARTY_ID(${counterparty.counterpartyId})"
                 _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
                   counterpartyLimitBox.isEmpty
                 }
