@@ -309,8 +309,8 @@ case class AccountsBalancesJsonV400(accounts:List[AccountBalanceJsonV400])
 case class BalanceJsonV400(`type`: String, currency: String, amount: String)
 
 case class AccountBalanceJsonV400(
-                                   account_id: String,
                                    bank_id: String,
+                                   account_id: String,
                                    account_routings: List[AccountRouting],
                                    label: String,
                                    balances: List[BalanceJsonV400]
