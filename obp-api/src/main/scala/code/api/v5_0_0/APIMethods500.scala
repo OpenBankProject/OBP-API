@@ -15,7 +15,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
-import code.api.v4_0_0.{JSONFactory400, OBPAPI4_0_0, PutProductJsonV400}
+import code.api.v4_0_0.{JSONFactory400, OBPAPI4_0_0, PostCounterpartyJson400, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsIdsJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequest, ConsentRequests, Consents}
@@ -44,11 +44,13 @@ import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.FutureUtil.EndpointContext
-import code.api.v5_1_0.PostConsentRequestJsonV510
+import code.api.v5_1_0.{CreateCustomViewJson, PostConsentRequestJsonV510, PostCounterpartyLimitV510}
 import code.consumer.Consumers
+import code.metadata.counterparties.MappedCounterparty
 import code.util.Helper.booleanToFuture
 import code.views.system.{AccountAccess, ViewDefinition}
 
+import java.util.UUID
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -790,7 +792,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
-      EmptyBody,
+      createConsentByRequestIdJson,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -818,7 +820,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
-      EmptyBody,
+      createConsentByRequestIdJson,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -849,7 +851,7 @@ trait APIMethods500 {
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
-      EmptyBody,
+      createConsentByRequestIdJson,
       consentJsonV500,
       List(
         UserNotLoggedIn,
@@ -874,7 +876,7 @@ trait APIMethods500 {
     
     lazy val createConsentByConsentRequestId : OBPEndpoint = {
      
-      case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost _ -> _  => {
+      case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost jsonBody -> _  => {
         def sendEmailNotification(callContext: Option[CallContext], consentRequestJson: PostConsentRequestJsonV500, challengeText: String) = {
           for {
             failMsg <- Future {
@@ -929,16 +931,160 @@ trait APIMethods500 {
             }
             consentRequestJson <- 
               if(createdConsentRequest.payload.contains("to_account")) {
-               val failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+                val failMsg = s"$InvalidJsonFormat The vrp consent request json body should be the $PostConsentRequestJsonV510 "
                 NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
                 }.map(_.toPostConsentRequestJsonV500)
               } else{
-                val failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+                val failMsg = s"$InvalidJsonFormat The consent request Json body should be the $PostConsentRequestJsonV500 "
                 NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
                 }
               }
+            
+            _ <- if (createdConsentRequest.payload.contains("to_account")) {
+              val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
+              val fromBankIdAccountId = BankIdAccountId(BankId(postConsentRequestJsonV510.from_account.bank_routing.address), AccountId(postConsentRequestJsonV510.from_account.account_routing.address))
+              
+              val vrpViewId = "_VRP-" + UUID.randomUUID.toString
+              val targetPermissions = List(//may need getTransactionRequest .. so far only this payments.
+                "can_add_transaction_request_to_own_account",
+                "can_add_transaction_request_to_any_account",
+                "can_add_transaction_request_to_beneficiary"
+              ) //TODO,here need to be checked later.
+              
+              val targetCreateCustomViewJson = CreateCustomViewJson(
+                name = vrpViewId,
+                description = vrpViewId,
+                metadata_view = vrpViewId,
+                is_public = false,
+                which_alias_to_use = vrpViewId,
+                hide_metadata_if_alias_used = true,
+                allowed_permissions = targetPermissions
+              
+              val failMsg = s"$InvalidJsonFormat The vrp consent request json body should be the $PostConsentRequestJsonV510 "
+
+              for {
+                requestJsonViewIdOption <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                  json.parse(createdConsentRequest.payload)
+                    .extractOpt[CreateConsentByRequestIdJson]
+                    .map(_.source_view_id)
+                    .flatten
+                    .filterNot(_.isEmpty) // if view_id = "",then return NONE.
+                }
+                //the json body view_id is an option field, if it is NONE, we need to find all the permissions the user have, 
+                sourceViewId = requestJsonViewIdOption.getOrElse(APIUtil.getPropsValue("defaultBank.view_id", "owner"))//get all the views the user has, 
+                //1st: create the Custom View for the from account.
+                (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(fromBankIdAccountId.bankId, fromBankIdAccountId.accountId, callContext)
+                view <- NewStyle.function.checkViewAccessAndReturnView(ViewId(sourceViewId), fromBankIdAccountId, Some(user), callContext)
+
+                permissionsFromSource = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition])
+                permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
+
+                _ <- Helper.booleanToFuture(failMsg = SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = callContext) {
+                  permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+                }
+                failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(view.canUpdateCustomView))}` permission on VIEW_ID(${sourceViewId})"
+                _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+                  view.canCreateCustomView
+                }
+                (view, callContext) <- NewStyle.function.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
+
+                //2st: Create a new counterparty on that view (_VRP-9d429899-24f5-42c8-8565-943ffa6a7945)
+                postJson = PostCounterpartyJson400(
+                  name = "", //TODO, this need to be a unique.
+                  description = "",
+                  currency = postConsentRequestJsonV510.to_account.limit.currency,
+                  other_account_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_account_secondary_routing_scheme = "",
+                  other_account_secondary_routing_address = "",
+                  other_bank_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_bank_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_branch_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_branch_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  is_beneficiary = true,
+                  bespoke = Nil
+                )
+                _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc = callContext) {
+                  postJson.description.length <= 36
+                }
+
+
+                (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, fromBankIdAccountId.bankId.value, fromBankIdAccountId.accountId.value, view.viewId.value, callContext)
+
+                _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
+                  s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${fromBankIdAccountId.bankId.value}) and ACCOUNT_ID(${fromBankIdAccountId.accountId.value}) and VIEW_ID($sourceViewId)"), cc = callContext) {
+                  counterparty.isEmpty
+                }
+
+                _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc = callContext) {
+                  isValidCurrencyISOCode(postJson.currency)
+                }
+                
+                (counterparty, callContext) <- NewStyle.function.createCounterparty(
+                  name = postJson.name,
+                  description = postJson.description,
+                  currency = postJson.currency,
+                  createdByUserId = user.userId,
+                  thisBankId = fromBankIdAccountId.bankId.value,
+                  thisAccountId = fromBankIdAccountId.accountId.value,
+                  thisViewId = sourceViewId,
+                  otherAccountRoutingScheme = postJson.other_account_routing_scheme,
+                  otherAccountRoutingAddress = postJson.other_account_routing_address,
+                  otherAccountSecondaryRoutingScheme = postJson.other_account_secondary_routing_scheme,
+                  otherAccountSecondaryRoutingAddress = postJson.other_account_secondary_routing_address,
+                  otherBankRoutingScheme = postJson.other_bank_routing_scheme,
+                  otherBankRoutingAddress = postJson.other_bank_routing_address,
+                  otherBranchRoutingScheme = postJson.other_branch_routing_scheme,
+                  otherBranchRoutingAddress = postJson.other_branch_routing_address,
+                  isBeneficiary = postJson.is_beneficiary,
+                  bespoke = postJson.bespoke.map(bespoke => CounterpartyBespoke(bespoke.key, bespoke.value)),
+                  callContext
+                )
+
+
+                postCounterpartyLimitV510 = PostCounterpartyLimitV510(
+                  currency = postConsentRequestJsonV510.to_account.limit.currency,
+                  max_single_amount = postConsentRequestJsonV510.to_account.limit.max_single_amount,
+                  max_monthly_amount = postConsentRequestJsonV510.to_account.limit.max_monthly_amount,
+                  max_number_of_monthly_transactions = postConsentRequestJsonV510.to_account.limit.max_number_of_monthly_transactions,
+                  max_yearly_amount = postConsentRequestJsonV510.to_account.limit.max_yearly_amount,
+                  max_number_of_yearly_transactions = postConsentRequestJsonV510.to_account.limit.max_number_of_yearly_transactions
+                )
+                //3rd: create the counterparty limit
+                (counterpartyLimitBox, callContext) <- Connector.connector.vend.getCounterpartyLimit(
+                  fromBankIdAccountId.bankId.value,
+                  fromBankIdAccountId.accountId.value,
+                  sourceViewId,
+                  counterparty.counterpartyId,
+                  cc.callContext
+                )
+                failMsg = s"$CounterpartyLimitAlreadyExists Current BANK_ID(${fromBankIdAccountId.bankId.value}), ACCOUNT_ID(${fromBankIdAccountId.accountId.value}), VIEW_ID($sourceViewId),COUNTERPARTY_ID(${counterparty.counterpartyId})"
+                _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
+                  counterpartyLimitBox.isEmpty
+                }
+                (counterpartyLimit, callContext) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+                  bankId = counterparty.thisBankId,
+                  accountId = counterparty.thisAccountId,
+                  viewId = counterparty.thisViewId,
+                  counterpartyId = counterparty.counterpartyId,
+                  postCounterpartyLimitV510.currency,
+                  postCounterpartyLimitV510.max_single_amount,
+                  postCounterpartyLimitV510.max_monthly_amount,
+                  postCounterpartyLimitV510.max_number_of_monthly_transactions,
+                  postCounterpartyLimitV510.max_yearly_amount,
+                  postCounterpartyLimitV510.max_number_of_yearly_transactions,
+                  cc.callContext
+                )
+                
+              } yield {
+                (view,counterparty,counterpartyLimit)
+              }
+            }else{
+              Future.successful(true)
+            }
+        
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
               consentRequestJson.time_to_live match {
