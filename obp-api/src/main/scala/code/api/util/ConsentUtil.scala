@@ -683,6 +683,7 @@ object Consent extends MdcLoggable {
     // 1. Add access
     val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.accounts.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
@@ -692,6 +693,7 @@ object Consent extends MdcLoggable {
     }
     val balances: List[Future[ConsentView]] = consent.access.balances.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.balances.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
@@ -701,6 +703,7 @@ object Consent extends MdcLoggable {
     }
     val transactions: List[Future[ConsentView]] = consent.access.transactions.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.transactions.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
