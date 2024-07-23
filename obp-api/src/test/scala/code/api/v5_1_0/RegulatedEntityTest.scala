@@ -23,9 +23,8 @@ class RegulatedEntityTest extends V510ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createRegulatedEntity))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getRegulatedEntityById))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getRegulatedEntityById))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations5_1_0.deleteRegulatedEntity))
-  
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.deleteRegulatedEntity))
+
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -36,7 +35,7 @@ class RegulatedEntityTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
-  
+
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -47,7 +46,7 @@ class RegulatedEntityTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanCreateRegulatedEntity)
     }
   }
-  
+
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRegulatedEntity.toString)
@@ -61,7 +60,7 @@ class RegulatedEntityTest extends V510ServerSetup {
   }
 
   // ApiEndpoint4 - deleteRegulatedEntity
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "regulated-entities" / "some id").DELETE
@@ -71,7 +70,7 @@ class RegulatedEntityTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "regulated-entities" / "some id").DELETE <@ (user1)
@@ -83,7 +82,7 @@ class RegulatedEntityTest extends V510ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint4 version $VersionOfApi - CRUD") {
+  feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3 version $VersionOfApi - CRUD") {
     scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       // Create a row
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRegulatedEntity.toString)
