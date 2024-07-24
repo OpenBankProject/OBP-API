@@ -666,7 +666,8 @@ object Consent extends MdcLoggable {
                                   secret: String,
                                   consentId: String,
                                   consumerId: Option[String],
-                                  validUntil: Option[Date]): Future[String] = {
+                                  validUntil: Option[Date], 
+                                  callContext: Option[CallContext]): Future[String] = {
 
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = validUntil match {
@@ -682,7 +683,7 @@ object Consent extends MdcLoggable {
     
     // 1. Add access
     val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
         logger.debug(s"createBerlinGroupConsentJWT.accounts.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
@@ -692,7 +693,7 @@ object Consent extends MdcLoggable {
       }
     }
     val balances: List[Future[ConsentView]] = consent.access.balances.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
         logger.debug(s"createBerlinGroupConsentJWT.balances.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
@@ -702,7 +703,7 @@ object Consent extends MdcLoggable {
       }
     }
     val transactions: List[Future[ConsentView]] = consent.access.transactions.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
         logger.debug(s"createBerlinGroupConsentJWT.transactions.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
