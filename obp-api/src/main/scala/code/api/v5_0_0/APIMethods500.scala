@@ -977,7 +977,9 @@ trait APIMethods500 {
                 _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
                   userMissingPermissions.isEmpty
                 }
-                (view, callContext) <- NewStyle.function.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
+                (vrpView, callContext) <- NewStyle.function.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
+
+                _ <-NewStyle.function.grantAccessToCustomView(vrpView, user, callContext)
 
                 //2st: Create a new counterparty on that view (_VRP-9d429899-24f5-42c8-8565-943ffa6a7945)
                 postJson = PostCounterpartyJson400(
@@ -1000,7 +1002,7 @@ trait APIMethods500 {
                 }
 
 
-                (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, fromBankIdAccountId.bankId.value, fromBankIdAccountId.accountId.value, view.viewId.value, callContext)
+                (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, fromBankIdAccountId.bankId.value, fromBankIdAccountId.accountId.value, vrpView.viewId.value, callContext)
 
                 _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
                   s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${fromBankIdAccountId.bankId.value}) and ACCOUNT_ID(${fromBankIdAccountId.accountId.value}) and VIEW_ID($vrpViewId)"), cc = callContext) {
@@ -1010,7 +1012,7 @@ trait APIMethods500 {
                 _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc = callContext) {
                   isValidCurrencyISOCode(postJson.currency)
                 }
-                
+
                 (counterparty, callContext) <- NewStyle.function.createCounterparty(
                   name = postJson.name,
                   description = postJson.description,
@@ -1066,9 +1068,9 @@ trait APIMethods500 {
                   postCounterpartyLimitV510.max_number_of_yearly_transactions,
                   cc.callContext
                 )
-                
+
               } yield {
-                (view,counterparty,counterpartyLimit)
+                (vrpView,counterparty,counterpartyLimit)
               }
             }else{
               Future.successful(true)
