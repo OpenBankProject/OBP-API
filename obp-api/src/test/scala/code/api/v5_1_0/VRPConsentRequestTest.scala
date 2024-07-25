@@ -26,10 +26,12 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121, bankRoutingJsonV121, branchRoutingJsonV141, postCounterpartyLimitV510}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
+import code.api.util.ExampleValue.counterpartyNameExample
 import code.api.v3_1_0.PostConsentChallengeJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.UsersJsonV400
@@ -75,7 +77,23 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   def createConsentByConsentRequestIdImplicit(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"IMPLICIT"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
-  lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV510
+  val fromAccountJson = ConsentRequestFromAccountJson (
+    bank_routing = bankRoutingJsonV121.copy(address = testBankId1.value),
+    account_routing = accountRoutingJsonV121.copy(address = testAccountId0.value),
+    branch_routing = branchRoutingJsonV141
+  )
+
+  val toAccountJson = ConsentRequestToAccountJson (
+    counterparty_name = counterpartyNameExample.value,
+    bank_routing = bankRoutingJsonV121.copy(address = testBankId1.value),
+    account_routing = accountRoutingJsonV121.copy(address = testAccountId1.value),
+    branch_routing = branchRoutingJsonV141,
+    limit = postCounterpartyLimitV510
+  )
+  lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV510.copy(
+    from_account=fromAccountJson,
+    to_account=toAccountJson
+  )
   
   
   feature("Create/Get Consent Request v5.1.0") {

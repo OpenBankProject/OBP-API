@@ -945,12 +945,12 @@ trait APIMethods500 {
             _ <- if (createdConsentRequest.payload.contains("to_account")) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
               val fromBankIdAccountId = BankIdAccountId(BankId(postConsentRequestJsonV510.from_account.bank_routing.address), AccountId(postConsentRequestJsonV510.from_account.account_routing.address))
-              
-              val vrpViewId = "_VRP-" + UUID.randomUUID.toString
+
+              val vrpViewId = s"_VRP-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.
               val targetPermissions = List(//may need getTransactionRequest .. so far only this payments.
                 "can_add_transaction_request_to_own_account",
                 "can_add_transaction_request_to_any_account",
-                "can_add_transaction_request_to_beneficiary"
+//                "can_add_transaction_request_to_beneficiary"
               ) //TODO,here need to be checked later.
               
               val targetCreateCustomViewJson = CreateCustomViewJson(
