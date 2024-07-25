@@ -942,7 +942,7 @@ trait APIMethods500 {
                 }
               }
             
-            _ <- if (createdConsentRequest.payload.contains("to_account")) {
+            bankIdAccountIdViewId <- if (createdConsentRequest.payload.contains("to_account")) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
               val fromBankIdAccountId = BankIdAccountId(BankId(postConsentRequestJsonV510.from_account.bank_routing.address), AccountId(postConsentRequestJsonV510.from_account.account_routing.address))
 
@@ -1070,10 +1070,10 @@ trait APIMethods500 {
                 )
 
               } yield {
-                (vrpView,counterparty,counterpartyLimit)
+                BankIdAccountIdViewId(fromAccount.bankId, fromAccount.accountId, vrpView.viewId)
               }
             }else{
-              Future.successful(true)
+              Future.successful(BankIdAccountIdViewId(BankId(""), AccountId(""), ViewId("")))
             }
         
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
@@ -1100,17 +1100,25 @@ trait APIMethods500 {
                   )
                 )
             }
-            postConsentViewJsons <- Future.sequence(
-              consentRequestJson.account_access.map(
-                access => 
-                  NewStyle.function.getBankAccountByRouting(None,access.account_routing.scheme, access.account_routing.address, cc.callContext)
-                    .map(result =>PostConsentViewJsonV310(
-                      result._1.bankId.value,
-                      result._1.accountId.value,
-                      access.view_id
-                    ))
+            postConsentViewJsons <- if(createdConsentRequest.payload.contains("to_account")) {
+              Future.successful(List(PostConsentViewJsonV310(
+                bankIdAccountIdViewId.bankId.value,
+                bankIdAccountIdViewId.accountId.value,
+                bankIdAccountIdViewId.viewId.value
+              )))
+            }else{
+              Future.sequence(
+                consentRequestJson.account_access.map(
+                  access =>
+                    NewStyle.function.getBankAccountByRouting(None,access.account_routing.scheme, access.account_routing.address, cc.callContext)
+                      .map(result =>PostConsentViewJsonV310(
+                        result._1.bankId.value,
+                        result._1.accountId.value,
+                        access.view_id
+                      ))
                 )
               )
+            }
   
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
             _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc=callContext){
