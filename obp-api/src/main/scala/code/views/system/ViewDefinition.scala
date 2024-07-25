@@ -298,7 +298,13 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   }
   
   //internal transfer between my own accounts
+
+  @deprecated("we added new field `canAddTransactionRequestToBeneficiary_`","25-07-2024")
   object canAddTransactionRequestToOwnAccount_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+
+  object canAddTransactionRequestToBeneficiary_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   
@@ -438,7 +444,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canAddWhereTag_(actions.exists(_ == "can_add_where_tag"))
     canSeeWhereTag_(actions.exists(_ == "can_see_where_tag"))
     canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
-    canAddTransactionRequestToOwnAccount_(actions.exists(_ == "can_add_transaction_request_to_own_account")) //added following two for payments
+    canAddTransactionRequestToBeneficiary_(actions.exists(_ == "can_add_transaction_request_to_beneficiary"))
     canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
     canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
     canCreateDirectDebit_(actions.exists(_ == "can_create_direct_debit"))
@@ -585,8 +591,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeWhereTag : Boolean = canSeeWhereTag_.get
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
 
-  def canAddTransactionRequestToOwnAccount: Boolean = canAddTransactionRequestToOwnAccount_.get //added following two for payments
+  def canAddTransactionRequestToOwnAccount: Boolean = false //we do not need this field, set this to false.
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
+  def canAddTransactionRequestToBeneficiary: Boolean = canSeeBankAccountCreditLimit_.get
   def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
   
   def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
