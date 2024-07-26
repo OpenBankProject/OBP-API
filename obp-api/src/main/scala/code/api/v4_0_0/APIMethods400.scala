@@ -8390,8 +8390,8 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
-              view.canAddCounterparty == true
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
+              view.canGetCounterparty == true
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
