@@ -130,6 +130,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
               canSeeOtherAccountRoutingAddress_(true).
               canAddTransactionRequestToOwnAccount_(false). //added following two for payments
               canAddTransactionRequestToAnyAccount_(false).
+              canAddTransactionRequestToBeneficiary_(false).
               canSeeBankAccountCreditLimit_(true).
               saveMe
           }
