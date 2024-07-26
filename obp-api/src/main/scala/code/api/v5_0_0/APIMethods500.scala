@@ -44,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.FutureUtil.EndpointContext
-import code.api.v5_1_0.{CreateCustomViewJson, PostConsentRequestJsonV510, PostCounterpartyLimitV510}
+import code.api.v5_1_0.{CreateCustomViewJson, PostVRPConsentRequestJsonV510, PostCounterpartyLimitV510}
 import code.consumer.Consumers
 import code.metadata.counterparties.MappedCounterparty
 import code.util.Helper.booleanToFuture
@@ -929,21 +929,22 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString(), StrongCustomerAuthentication.IMPLICIT.toString()).exists(_ == scaMethod)
             }
-            consentRequestJson <- 
+            (consentRequestJson, isVRPConsentRequest) <-
               if(createdConsentRequest.payload.contains("to_account")) {
-                val failMsg = s"$InvalidJsonFormat The vrp consent request json body should be the $PostConsentRequestJsonV510 "
+                val failMsg = s"$InvalidJsonFormat The vrp consent request json body should be the $PostVRPConsentRequestJsonV510 "
                 NewStyle.function.tryons(failMsg, 400, callContext) {
-                  json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
-                }.map(_.toPostConsentRequestJsonV500)
+                  json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonInternalV510]
+                }.map(postVRPConsentRequest => (postVRPConsentRequest.toPostConsentRequestJsonV500, true))
               } else{
                 val failMsg = s"$InvalidJsonFormat The consent request Json body should be the $PostConsentRequestJsonV500 "
                 NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
-                }
+                }.map(postVRPConsentRequest => (postVRPConsentRequest, false))
               }
-            
-            bankIdAccountIdViewId <- if (createdConsentRequest.payload.contains("to_account")) {
-              val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostConsentRequestJsonV510]
+
+            //Here are all the VRP consent request
+            (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
+              val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
               val fromBankIdAccountId = BankIdAccountId(BankId(postConsentRequestJsonV510.from_account.bank_routing.address), AccountId(postConsentRequestJsonV510.from_account.account_routing.address))
 
               val vrpViewId = s"_VRP-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.
@@ -1070,10 +1071,10 @@ trait APIMethods500 {
                 )
 
               } yield {
-                BankIdAccountIdViewId(fromAccount.bankId, fromAccount.accountId, vrpView.viewId)
+                (fromAccount.bankId, fromAccount.accountId, vrpView.viewId, CounterpartyId(counterparty.counterpartyId))
               }
             }else{
-              Future.successful(BankIdAccountIdViewId(BankId(""), AccountId(""), ViewId("")))
+              Future.successful(BankId(""), AccountId(""), ViewId(""),CounterpartyId(""))
             }
         
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
@@ -1101,10 +1102,10 @@ trait APIMethods500 {
                 )
             }
             postConsentViewJsons <- if(createdConsentRequest.payload.contains("to_account")) {
-              Future.successful(List(PostConsentViewJsonV310(
-                bankIdAccountIdViewId.bankId.value,
-                bankIdAccountIdViewId.accountId.value,
-                bankIdAccountIdViewId.viewId.value
+            Future.successful(List(PostConsentViewJsonV310(
+                bankId.value,
+                accountId.value,
+                viewId.value
               )))
             }else{
               Future.sequence(
@@ -1203,7 +1204,13 @@ trait APIMethods500 {
               case _ =>Future{"Success"}
             }
           } yield {
-            (ConsentJsonV500(createdConsent.consentId, consentJWT, createdConsent.status, Some(createdConsent.consentRequestId)), HttpCode.`201`(callContext))
+            (ConsentJsonV500(
+              createdConsent.consentId,
+              consentJWT,
+              createdConsent.status,
+              Some(createdConsent.consentRequestId),
+              if (isVRPConsentRequest) Some(HelperInfoJson(bankId.value, accountId.value, viewId.value, counterpartyId.value)) else None
+            ), HttpCode.`201`(callContext))
           }
       }
     }

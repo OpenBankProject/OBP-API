@@ -27,6 +27,7 @@ package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121, bankRoutingJsonV121, branchRoutingJsonV141, postCounterpartyLimitV510}
+import code.api.v5_0_0.ConsentJsonV500
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.Consent
@@ -90,16 +91,16 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
     branch_routing = branchRoutingJsonV141,
     limit = postCounterpartyLimitV510
   )
-  lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV510.copy(
+  lazy val postVRPConsentRequestJson = SwaggerDefinitionsJSON.postVRPConsentRequestJsonV510.copy(
     from_account=fromAccountJson,
     to_account=toAccountJson
   )
-  
-  
+
+
   feature("Create/Get Consent Request v5.1.0") {
     scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
-      val response510 = makePostRequest(createVRPConsentRequestWithoutLoginUrl, write(postConsentRequestJson))
+      val response510 = makePostRequest(createVRPConsentRequestWithoutLoginUrl, write(postVRPConsentRequestJson))
       Then("We should get a 401")
       response510.code should equal(401)
       response510.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
@@ -107,7 +108,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
-      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postConsentRequestJson))
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestJson))
       Then("We should get a 201")
       createConsentResponse.code should equal(201)
       val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
@@ -126,8 +127,10 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
-      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV510].consent_id
-      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV510].jwt
+      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
+      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
+      val helperInfo = createConsentByRequestResponse.body.extract[ConsentJsonV500].helper_info
+      helperInfo.isDefined should equal(true)
 
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET
@@ -159,7 +162,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
-      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postConsentRequestJson))
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestJson))
       Then("We should get a 201")
       createConsentResponse.code should equal(201)
       val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
@@ -178,8 +181,11 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdImplicit(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
-      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV510].consent_id
-      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV510].jwt
+      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
+      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
+      val helperInfo = createConsentByRequestResponse.body.extract[ConsentJsonV500].helper_info
+      helperInfo.isDefined should equal(true)
+
 
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET

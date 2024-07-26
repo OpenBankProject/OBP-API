@@ -35,7 +35,7 @@ import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AccountIdJson, AccountsIdsJsonV300, AddressJsonV300, OpeningTimesV300, ViewJsonV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostViewJsonV400}
-import code.api.v5_0_0.{PostConsentRequestJsonV500}
+import code.api.v5_0_0.PostConsentRequestJsonV500
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.users.{UserAttribute, Users}
@@ -47,6 +47,7 @@ import java.util.Date
 import code.consent.MappedConsent
 import code.metrics.APIMetric
 import code.model.Consumer
+import com.openbankproject.commons.model.enums.ConsentType
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
 import net.liftweb.json.{JString, JValue, parse, parseOpt}
@@ -400,14 +401,14 @@ case class ConsentRequestToAccountJson(
   limit: PostCounterpartyLimitV510
 )
 
-case class PostConsentRequestJsonV510(
-  from_account:ConsentRequestFromAccountJson,
-  to_account:ConsentRequestToAccountJson,
+case class PostVRPConsentRequestJsonInternalV510(
+  consent_type: String,
+  from_account: ConsentRequestFromAccountJson,
+  to_account: ConsentRequestToAccountJson,
   email: Option[String],
   phone_number: Option[String],
   valid_from: Option[Date],
-  time_to_live: Option[Long]
-){
+  time_to_live: Option[Long]) {
   def toPostConsentRequestJsonV500 = {
     PostConsentRequestJsonV500(
       everything = false,
@@ -422,6 +423,15 @@ case class PostConsentRequestJsonV510(
     )
   }
 }
+
+case class PostVRPConsentRequestJsonV510(
+  from_account:ConsentRequestFromAccountJson,
+  to_account:ConsentRequestToAccountJson,
+  email: Option[String],
+  phone_number: Option[String],
+  valid_from: Option[Date],
+  time_to_live: Option[Long]
+)
 
 object JSONFactory510 extends CustomJsonFormats {
 

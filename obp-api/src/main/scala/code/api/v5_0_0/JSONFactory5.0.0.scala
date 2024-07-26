@@ -233,8 +233,15 @@ case class PostConsentRequestJsonV500(
   valid_from: Option[Date],
   time_to_live: Option[Long]
 )
+case class HelperInfoJson(
+  bank_id:String,
+  account_id:String,
+  view_id:String,
+  counterparty_id:String
+)
 
-case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
+
+case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String], helper_info:Option[HelperInfoJson] = None)
 
 case class CreatePhysicalCardJsonV500(
   card_number: String,

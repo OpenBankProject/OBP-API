@@ -5476,7 +5476,7 @@ object SwaggerDefinitionsJSON {
     limit = postCounterpartyLimitV510
   )
 
-  val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
+  val postVRPConsentRequestJsonV510 = PostVRPConsentRequestJsonV510(
     from_account = consentRequestFromAccountJson,
     to_account = consentRequestToAccountJson,
     email = Some(emailExample.value),
