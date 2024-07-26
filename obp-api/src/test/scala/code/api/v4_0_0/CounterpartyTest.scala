@@ -32,9 +32,9 @@ class CounterpartyTest extends V400ServerSetup {
   
   
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.createExplicitCounterparty))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getExplictCounterpartyById))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getExplicitCounterpartyById))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.deleteExplicitCounterparty))
-  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getExplictCounterpartiesForAccount))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getExplicitCounterpartiesForAccount))
 
 
   feature(s" test manage counterparties endpoints.") {

@@ -185,7 +185,7 @@ case class CounterpartyJsonV220(
                            )
 
 case class CounterpartyMetadataJson(
-  public_alias : String, // Only have this value when we create explict counterparty
+  public_alias : String, // Only have this value when we create explicit counterparty
   more_info : String,
   url : String,
   image_url : String,

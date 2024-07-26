@@ -178,8 +178,8 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.createViewForBankAccount ::
                           Implementations2_2_0.updateViewForBankAccount ::
                           Implementations2_2_0.getCurrentFxRate ::
-                          Implementations2_2_0.getExplictCounterpartiesForAccount ::
-                          Implementations2_2_0.getExplictCounterpartyById ::
+                          Implementations2_2_0.getExplicitCounterpartiesForAccount ::
+                          Implementations2_2_0.getExplicitCounterpartyById ::
                           Implementations2_2_0.getMessageDocs ::
                           Implementations2_2_0.createBank ::
                           Implementations2_2_0.createAccount ::
