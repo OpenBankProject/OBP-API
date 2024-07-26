@@ -593,7 +593,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
   def canAddTransactionRequestToOwnAccount: Boolean = false //we do not need this field, set this to false.
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
-  def canAddTransactionRequestToBeneficiary: Boolean = canSeeBankAccountCreditLimit_.get
+  def canAddTransactionRequestToBeneficiary: Boolean = canAddTransactionRequestToBeneficiary_.get
   def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
   
   def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
