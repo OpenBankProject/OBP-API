@@ -1209,7 +1209,7 @@ trait APIMethods500 {
               consentJWT,
               createdConsent.status,
               Some(createdConsent.consentRequestId),
-              if (isVRPConsentRequest) Some(HelperInfoJson(bankId.value, accountId.value, viewId.value, counterpartyId.value)) else None
+              if (isVRPConsentRequest) Some(ConsentAccountAccessJson(bankId.value, accountId.value, viewId.value, HelperInfoJson(List(counterpartyId.value)))) else None
             ), HttpCode.`201`(callContext))
           }
       }

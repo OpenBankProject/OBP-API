@@ -129,9 +129,12 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       createConsentByRequestResponse.code should equal(201)
       val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
       val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
-      val helperInfo = createConsentByRequestResponse.body.extract[ConsentJsonV500].helper_info
-      helperInfo.isDefined should equal(true)
-
+      val accountAccess = createConsentByRequestResponse.body.extract[ConsentJsonV500].account_access
+      accountAccess.isDefined should equal(true)
+      accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
+      accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
+      accountAccess.get.view_id contains("_VRP-") shouldBe( true)
+      
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
@@ -183,8 +186,11 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       createConsentByRequestResponse.code should equal(201)
       val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
       val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
-      val helperInfo = createConsentByRequestResponse.body.extract[ConsentJsonV500].helper_info
-      helperInfo.isDefined should equal(true)
+      val accountAccess = createConsentByRequestResponse.body.extract[ConsentJsonV500].account_access
+      accountAccess.isDefined should equal(true)
+      accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
+      accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
+      accountAccess.get.view_id contains("_VRP-") shouldBe( true)
 
 
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
