@@ -133,7 +133,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       accountAccess.isDefined should equal(true)
       accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
       accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
-      accountAccess.get.view_id contains("_VRP-") shouldBe( true)
+      accountAccess.get.view_id contains("_vrp-") shouldBe( true)
       
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET
@@ -190,7 +190,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       accountAccess.isDefined should equal(true)
       accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
       accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
-      accountAccess.get.view_id contains("_VRP-") shouldBe( true)
+      accountAccess.get.view_id contains("_vrp-") shouldBe( true)
 
 
       setPropsValues("consumer_validation_method_for_consent"->"NONE")

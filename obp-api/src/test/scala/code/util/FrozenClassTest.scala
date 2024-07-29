@@ -53,7 +53,7 @@ class FrozenClassTest extends ServerSetup {
       } yield {
         s"$version increased apis: $increasedApis"
       }
-      increasedApis should equal(Nil)
+       increasedApis should equal(Nil)
     }
   }
 
