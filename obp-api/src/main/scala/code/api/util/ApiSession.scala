@@ -30,6 +30,7 @@ case class CallContext(
                         dauthResponseHeader: Option[String] = None,
                         spelling: Option[String] = None,
                         user: Box[User] = Empty,
+                        consenter: Box[User] = Empty,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
                         resourceDocument: Option[ResourceDoc] = None,

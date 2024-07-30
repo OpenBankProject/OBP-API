@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-07-06T09:03:12Z
+// ---------- created on 2024-07-30T13:47:52Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -444,7 +444,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       challengeId=challengeIdExample.value,
-      suppliedAnswer="string",
+      suppliedAnswer=suppliedAnswerExample.value,
       suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
     ),
     exampleInboundMessage = (
@@ -557,7 +557,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       transactionRequestId=Some(transactionRequestIdExample.value),
       consentId=Some(consentIdExample.value),
       challengeId=challengeIdExample.value,
-      suppliedAnswer="string",
+      suppliedAnswer=suppliedAnswerExample.value,
       suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
     ),
     exampleInboundMessage = (
@@ -6737,8 +6737,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-07-06T09:03:12Z
-//---------------- dynamic end ---------------------please don't modify this line                                   
+// ---------- created on 2024-07-30T13:47:52Z
+//---------------- dynamic end ---------------------please don't modify this line                                     
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

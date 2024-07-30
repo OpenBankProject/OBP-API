@@ -507,7 +507,8 @@ object Consent extends MdcLoggable {
       case Full(storedConsent) =>
         // Set Consumer into Call Context
         val consumer = getCurrentConsumerViaMtls(callContext)
-        val updatedCallContext = callContext.copy(consumer = consumer)
+        val user = Users.users.vend.getUserByUserId(storedConsent.userId)
+        val updatedCallContext = callContext.copy(consumer = consumer).copy(consenter = user)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
         if(canBeUsed) {
