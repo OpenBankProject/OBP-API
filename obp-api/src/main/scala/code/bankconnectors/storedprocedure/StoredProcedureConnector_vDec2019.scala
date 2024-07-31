@@ -1304,7 +1304,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
 
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{InBoundCheckBankAccountExists => InBound, OutBoundCheckBankAccountExists => OutBound}  
+        logger.debug(s"StoredProcedureConnector_vDec2019.checkBankAccountExists.callContext : $callContext")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
+        logger.debug(s"StoredProcedureConnector_vDec2019.checkBankAccountExists.req : $req")
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_bank_account_exists", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
