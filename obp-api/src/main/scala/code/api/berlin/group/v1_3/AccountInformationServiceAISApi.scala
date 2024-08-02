@@ -75,7 +75,7 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       Future {
         Helper.booleanToBox(u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId, callContext))
       } map {
-        unboxFullOrFail(_, callContext, NoViewReadAccountsBerlinGroup + " userId : " + u.userId + ". account : " + account.accountId, 403)
+        unboxFullOrFail(_, callContext, s"$NoViewReadAccountsBerlinGroup ${viewId.value} userId : ${u.userId}. account : ${account.accountId}", 403)
       }
     }
             
