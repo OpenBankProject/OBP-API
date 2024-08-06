@@ -451,7 +451,7 @@ object Consent extends MdcLoggable {
   private def applyBerlinGroupConsentRulesCommon(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
-    def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
+    def applyConsentRules(consent: ConsentJWT, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
@@ -508,6 +508,7 @@ object Consent extends MdcLoggable {
         // Set Consumer into Call Context
         val consumer = getCurrentConsumerViaMtls(callContext)
         val user = Users.users.vend.getUserByUserId(storedConsent.userId)
+        logger.debug(s"applyBerlinGroupConsentRulesCommon.storedConsent.user : $user")
         val updatedCallContext = callContext.copy(consumer = consumer).copy(consenter = user)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
@@ -525,7 +526,7 @@ object Consent extends MdcLoggable {
                     // Update MappedConsent.usesSoFarTodayCounter field
                     val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
-                    applyConsentRules(consent)
+                    applyConsentRules(consent, updatedCallContext)
                   case failure@Failure(_, _, _) => // Handled errors
                     Future(failure, Some(updatedCallContext))
                   case _ => // Unexpected errors

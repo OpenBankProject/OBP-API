@@ -97,7 +97,14 @@ case class CallContext(
           username = username,
           linkedCustomers = likedCustomersBasic,
           userAuthContext = basicUserAuthContexts,
-          if (authViews.isEmpty) None else Some(authViews)))
+          if (authViews.isEmpty) None else Some(authViews))),
+        outboundAdapterConsenterInfo = 
+          if (this.consenter.isDefined){
+            Some(OutboundAdapterAuthInfo(
+              username = this.consenter.toOption.map(_.name)))//TODO, here we may added more field to the consenter, at the moment only username is useful
+          }else{
+            None
+          }
       )
     }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
       this.correlationId,
