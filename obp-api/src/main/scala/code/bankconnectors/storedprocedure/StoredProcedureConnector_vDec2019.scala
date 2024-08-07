@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-07-30T13:47:52Z
+// ---------- created on 2024-08-07T12:43:02Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -706,6 +706,44 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
           
+  messageDocs += getChallengesByBasketIdDoc
+  def getChallengesByBasketIdDoc = MessageDoc(
+    process = "obp.getChallengesByBasketId",
+    messageFormat = messageFormat,
+    description = "Get Challenges By Basket Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallengesByBasketId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      basketId=basketIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallengesByBasketId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallengesByBasketId(basketId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallengesByBasketId => InBound, OutBoundGetChallengesByBasketId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, basketId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenges_by_basket_id", req, callContext)
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
   messageDocs += getChallengeDoc
   def getChallengeDoc = MessageDoc(
     process = "obp.getChallenge",
@@ -1304,9 +1342,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
 
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{InBoundCheckBankAccountExists => InBound, OutBoundCheckBankAccountExists => OutBound}  
-        logger.debug(s"StoredProcedureConnector_vDec2019.checkBankAccountExists.callContext : $callContext")
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
-        logger.debug(s"StoredProcedureConnector_vDec2019.checkBankAccountExists.req : $req")
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_bank_account_exists", req, callContext)
         response.map(convertToTuple[BankAccountCommons](callContext))        
   }
@@ -6739,8 +6775,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-07-30T13:47:52Z
-//---------------- dynamic end ---------------------please don't modify this line                                     
+// ---------- created on 2024-08-07T12:43:02Z
+//---------------- dynamic end ---------------------please don't modify this line                                      
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
