@@ -187,7 +187,9 @@ As a last option, an ASPSP might in addition accept a command with access rights
                createdConsent.consentId,
                callContext.flatMap(_.consumer).map(_.consumerId.get),
                Some(validUntil)
-             )
+             ) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
              _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
                i => connectorEmptyResponse(i, callContext)
              }

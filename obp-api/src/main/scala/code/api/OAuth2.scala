@@ -165,7 +165,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             hydraAdmin.createOAuth2Client(oAuth2Client)
           } else if(!CertificateUtil.comparePemX509Certificates(certInConsumer, cert)) { 
             // Cannot mat.ch the value from PSD2-CERT header and the database value Consumer.clientCertificate
-            logger.debug("Cert in Consumer: " + certInConsumer)
+            logger.debug(s"Cert in Consumer with the name ***${foundConsumer.name}*** : " + certInConsumer)
             logger.debug("Cert in Request: " + cert)
             logger.debug(s"Token: $value")
             logger.debug(s"Client ID: ${introspectOAuth2Token.getClientId}")
