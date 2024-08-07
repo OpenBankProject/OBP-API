@@ -903,8 +903,11 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherBankRoutingAddress_(true)
       .canSeeOtherAccountRoutingScheme_(true)
       .canSeeOtherAccountRoutingAddress_(true)
+      
+      // TODO  Allow use only for certain cases
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
+      
       .canSeeAvailableViewsForBankAccount_(false)
       .canSeeTransactionRequests_(false)
       .canSeeTransactionRequestTypes_(false)
