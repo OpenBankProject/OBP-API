@@ -571,7 +571,7 @@ Reads account data from a given card account addressed by "account-id".
              _ <- passesPsd2Aisp(callContext)
              (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
              view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
