@@ -571,12 +571,9 @@ Check the transaction status of a payment initiation.""",
       viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
       bankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
       view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
-
-      _ <- if (view.canAddTransactionRequestToAnyAccount)
-        Future.successful(Full(Unit))
-      else
-        NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
-
+      _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest, cc = callContext) {
+        view.canAddTransactionRequestToAnyAccount
+      }
       // Prevent default value for transaction request type (at least).
       _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc = callContext) {
         transDetailsJson.instructedAmount.currency == fromAccount.currency
