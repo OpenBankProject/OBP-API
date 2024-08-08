@@ -923,7 +923,7 @@ object MapperViews extends Views with MdcLoggable {
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
-        entity
+        entity // Make additional setup to the existing view
           .canSeeAvailableViewsForBankAccount_(true)
           .canSeeTransactionRequests_(true)
           .canSeeTransactionRequestTypes_(true)
@@ -933,11 +933,11 @@ object MapperViews extends Views with MdcLoggable {
           .canGrantAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
           .canRevokeAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
       case SYSTEM_STAGE_ONE_VIEW_ID =>
-        entity
+        entity // Make additional setup to the existing view
           .canSeeTransactionDescription_(false)
           .canAddTransactionRequestToAnyAccount_(false)
       case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
-        entity
+        entity // Make additional setup to the existing view
           .canRevokeAccessToCustomViews_(true)
           .canGrantAccessToCustomViews_(true)
           .canCreateCustomView_(true)
@@ -945,8 +945,32 @@ object MapperViews extends Views with MdcLoggable {
           .canUpdateCustomView_(true)
           .canGetCustomView_(true)
       case SYSTEM_FIREHOSE_VIEW_ID =>
-        entity
+        entity // Make additional setup to the existing view
           .isFirehose_(true)
+      case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID | 
+           SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID =>
+        create // A new one
+          .isSystem_(true)
+          .isFirehose_(false)
+          .name_(StringHelpers.capify(viewId))
+          .view_id(viewId)
+          .description_(viewId)
+      case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>
+        create // A new one
+          .isSystem_(true)
+          .isFirehose_(false)
+          .name_(StringHelpers.capify(viewId))
+          .view_id(viewId)
+          .description_(viewId)
+          .canSeeTransactionThisBankAccount_(true)
+          .canSeeTransactionOtherBankAccount_(true)
+          .canSeeTransactionAmount_(true)
+          .canSeeTransactionCurrency_(true)
+          .canSeeTransactionBalance_(true)
+          .canSeeTransactionStartDate_(true)
+          .canSeeTransactionFinishDate_(true)
+          .canSeeTransactionDescription_(true)
+          .canAddTransactionRequestToAnyAccount_(true)
       case _ =>
         entity
     }
