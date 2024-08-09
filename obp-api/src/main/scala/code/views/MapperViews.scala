@@ -970,6 +970,13 @@ object MapperViews extends Views with MdcLoggable {
           .canSeeTransactionStartDate_(true)
           .canSeeTransactionFinishDate_(true)
           .canSeeTransactionDescription_(true)
+      case SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID =>
+        create // A new one
+          .isSystem_(true)
+          .isFirehose_(false)
+          .name_(StringHelpers.capify(viewId))
+          .view_id(viewId)
+          .description_(viewId)
           .canAddTransactionRequestToAnyAccount_(true)
       case _ =>
         entity
