@@ -972,6 +972,8 @@ trait APIMethods500 {
                 permissionsFromSource = permission.views.map(view =>APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList).flatten.toSet
                 permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
 
+                //eg: permissionsFromTarget=List(1,2), permissionsFromSource = List(1,3,4) => userMissingPermissions = List(2)
+                //Here would find the missing permissions and show them in the error messages
                 userMissingPermissions = permissionsFromTarget.toSet diff permissionsFromSource
 
                 failMsg = s"${ErrorMessages.UserDoesNotHavePermission} ${userMissingPermissions.toString}"
