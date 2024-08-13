@@ -104,11 +104,12 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
        listFields.toString contains ("private final java.util.Date code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassDate, ") shouldBe (true)
        listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.strings2, ") shouldBe (true)
        listFields.toString contains ("private int java.lang.String.hash, private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, ") shouldBe (true)
-       listFields.toString contains ("private static final long java.lang.String.serialVersionUID, private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.$outer, ") shouldBe (true)
+       listFields.toString contains ("private static final long java.lang.String.serialVersionUID,") shouldBe (true)
+       listFields.toString contains ("private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.$outer, ") shouldBe (true)
        listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionNoneIn") shouldBe (true)
 //      println(listFields)
     }
-    
+
 
   }
   

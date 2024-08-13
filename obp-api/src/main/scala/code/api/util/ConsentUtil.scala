@@ -451,7 +451,7 @@ object Consent extends MdcLoggable {
   private def applyBerlinGroupConsentRulesCommon(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
-    def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
+    def applyConsentRules(consent: ConsentJWT, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
@@ -507,7 +507,9 @@ object Consent extends MdcLoggable {
       case Full(storedConsent) =>
         // Set Consumer into Call Context
         val consumer = getCurrentConsumerViaMtls(callContext)
-        val updatedCallContext = callContext.copy(consumer = consumer)
+        val user = Users.users.vend.getUserByUserId(storedConsent.userId)
+        logger.debug(s"applyBerlinGroupConsentRulesCommon.storedConsent.user : $user")
+        val updatedCallContext = callContext.copy(consumer = consumer).copy(consenter = user)
         // This function MUST be called only once per call. I.e. it's date dependent
         val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
         if(canBeUsed) {
@@ -524,7 +526,7 @@ object Consent extends MdcLoggable {
                     // Update MappedConsent.usesSoFarTodayCounter field
                     val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
-                    applyConsentRules(consent)
+                    applyConsentRules(consent, updatedCallContext)
                   case failure@Failure(_, _, _) => // Handled errors
                     Future(failure, Some(updatedCallContext))
                   case _ => // Unexpected errors
@@ -666,7 +668,8 @@ object Consent extends MdcLoggable {
                                   secret: String,
                                   consentId: String,
                                   consumerId: Option[String],
-                                  validUntil: Option[Date]): Future[String] = {
+                                  validUntil: Option[Date], 
+                                  callContext: Option[CallContext]): Future[String] = {
 
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = validUntil match {
@@ -682,7 +685,8 @@ object Consent extends MdcLoggable {
     
     // 1. Add access
     val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.accounts.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
@@ -691,7 +695,8 @@ object Consent extends MdcLoggable {
       }
     }
     val balances: List[Future[ConsentView]] = consent.access.balances.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.balances.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
@@ -700,7 +705,8 @@ object Consent extends MdcLoggable {
       }
     }
     val transactions: List[Future[ConsentView]] = consent.access.transactions.getOrElse(Nil) map { account =>
-      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), callContext) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.transactions.bankAccount: $bankAccount")
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),

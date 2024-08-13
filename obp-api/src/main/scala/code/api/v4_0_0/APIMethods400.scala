@@ -8363,9 +8363,9 @@ trait APIMethods400 extends MdcLoggable {
     }
 
     staticResourceDocs += ResourceDoc(
-      getExplictCounterpartiesForAccount,
+      getExplicitCounterpartiesForAccount,
       implementedInApiVersion,
-      "getExplictCounterpartiesForAccount",
+      "getExplicitCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
@@ -8385,13 +8385,13 @@ trait APIMethods400 extends MdcLoggable {
       ),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount))
 
-    lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
+    lazy val getExplicitCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
-              view.canAddCounterparty == true
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
+              view.canGetCounterparty == true
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
@@ -8466,9 +8466,9 @@ trait APIMethods400 extends MdcLoggable {
     }
 
     staticResourceDocs += ResourceDoc(
-      getExplictCounterpartyById,
+      getExplicitCounterpartyById,
       implementedInApiVersion,
-      "getExplictCounterpartyById",
+      "getExplicitCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
       "Get Counterparty by Id (Explicit)",
@@ -8482,7 +8482,7 @@ trait APIMethods400 extends MdcLoggable {
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData)
     )
 
-    lazy val getExplictCounterpartyById : OBPEndpoint = {
+    lazy val getExplicitCounterpartyById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {

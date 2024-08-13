@@ -211,7 +211,7 @@ object ErrorMessages {
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
   val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
-  val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID."
+  val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view:"
   val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
   val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 
@@ -507,6 +507,7 @@ object ErrorMessages {
   val CounterpartyLimitAlreadyExists = "OBP-30264: Counterparty limit already exists. Please specify a different value for  BANK_ID, ACCOUNT_ID, VIEW_ID or COUNTERPARTY_ID."
   val DeleteCounterpartyLimitError = "OBP-30265: Could not delete the counterparty limit."
   val CustomViewAlreadyExistsError = "OBP-30266: The custom view is already exists."
+  val UserDoesNotHavePermission = "OBP-30267: The user does not have the permission:"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
@@ -599,7 +600,8 @@ object ErrorMessages {
     "because the login user doesn't have access to the view of the from account " +
     "or the consumer doesn't have the access to the view of the from account " +
     s"or the login user does not have the `${CanCreateAnyTransactionRequest.toString()}` role " +
-    s"or the view does not have the permission ${StringHelpers.snakify(ViewDefinition.canAddTransactionRequestToAnyAccount_.dbColumnName).dropRight(1)}."
+    s"or the view does not have the permission can_add_transaction_request_to_any_account " +
+    s"or the view does not have the permission can_add_transaction_request_to_beneficiary."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."

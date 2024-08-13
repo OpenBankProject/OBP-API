@@ -905,6 +905,7 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherAccountRoutingAddress_(true)
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
+      .canAddTransactionRequestToBeneficiary_(true)
       .canSeeAvailableViewsForBankAccount_(false)
       .canSeeTransactionRequests_(false)
       .canSeeTransactionRequestTypes_(false)
@@ -933,6 +934,7 @@ object MapperViews extends Views with MdcLoggable {
         entity
           .canSeeTransactionDescription_(false)
           .canAddTransactionRequestToAnyAccount_(false)
+          .canAddTransactionRequestToBeneficiary_(false)
       case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
         entity
           .canRevokeAccessToCustomViews_(true)
@@ -1040,6 +1042,8 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherAccountRoutingAddress_(true).
       canAddTransactionRequestToOwnAccount_(false). //added following two for payments
       canAddTransactionRequestToAnyAccount_(false).
+      canAddTransactionRequestToBeneficiary_(false).
+      canAddTransactionRequestToBeneficiary_(false).
       canSeeTransactionRequests_(false).
       canSeeTransactionRequestTypes_(false).
       canUpdateBankAccountLabel_(false).

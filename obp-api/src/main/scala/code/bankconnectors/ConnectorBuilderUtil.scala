@@ -359,6 +359,7 @@ object ConnectorBuilderUtil {
     "createDirectDebit",
     "deleteCustomerAttribute",
     "getPhysicalCardsForUser",
+    "getChallengesByBasketId",
 
     // The follow methods's parameter or return type are special
     "getCurrentFxRate",

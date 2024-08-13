@@ -3649,11 +3649,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
 
+    lazy val canAddTransactionRequestToBeneficiary = view.map(_.canAddTransactionRequestToBeneficiary).getOrElse(false)
     //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
     if (hasCanCreateAnyTransactionRequestRole) {
       Full(true)
-      //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
-    } else if (canAddTransactionRequestToAnyAccount) {
+    } else if (canAddTransactionRequestToAnyAccount) { //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+      Full(true)
+    } else if (canAddTransactionRequestToBeneficiary) { //3erd: check if the user have the view access and the view has the `canAddTransactionRequestToBeneficiary` permission
       Full(true)
     } else {
       Empty
