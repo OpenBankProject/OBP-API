@@ -5469,13 +5469,14 @@ object SwaggerDefinitionsJSON {
   )
 
   val consentRequestToAccountJson = ConsentRequestToAccountJson (
+    counterparty_name = counterpartyNameExample.value,
     bank_routing = bankRoutingJsonV121,
     account_routing = accountRoutingJsonV121,
     branch_routing = branchRoutingJsonV141,
     limit = postCounterpartyLimitV510
   )
 
-  val postConsentRequestJsonV510 = PostConsentRequestJsonV510(
+  val postVRPConsentRequestJsonV510 = PostVRPConsentRequestJsonV510(
     from_account = consentRequestFromAccountJson,
     to_account = consentRequestToAccountJson,
     email = Some(emailExample.value),

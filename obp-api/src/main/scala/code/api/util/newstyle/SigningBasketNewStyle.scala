@@ -23,7 +23,7 @@ object SigningBasketNewStyle {
         basket.flatMap(_.payments.map(_.forall(i => Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), callContext).isDefined)))
       if (existAll.getOrElse(false)) {
         Some(true)
-      } else { // Fail due to unexisting payment
+      } else { // Fail due to nonexistent payment
         val paymentIds = basket.flatMap(_.payments).getOrElse(Nil).mkString(",")
         unboxFullOrFail(Empty, callContext, s"$InvalidConnectorResponse  Some of paymentIds [${paymentIds}] are invalid")
       }

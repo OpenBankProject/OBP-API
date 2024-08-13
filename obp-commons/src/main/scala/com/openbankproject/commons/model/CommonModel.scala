@@ -886,6 +886,7 @@ case class OutboundAdapterCallContext(
   consumerId: Option[String] = None,
   generalContext: Option[List[BasicGeneralContext]]= None,
   outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo] = None,
+  outboundAdapterConsenterInfo: Option[OutboundAdapterAuthInfo] = None, //Here consentInfo object structure is the same as AuthInfo. so share the same class
 )
 
 case class BasicGeneralContext(

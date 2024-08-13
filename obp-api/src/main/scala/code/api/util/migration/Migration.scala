@@ -101,6 +101,7 @@ object Migration extends MdcLoggable {
       alterMappedCustomerAttribute(startedBeforeSchemifier)
       dropMappedBadLoginAttemptIndex()
       alterMetricColumnUrlLength()
+      populateViewDefinitionCanAddTransactionRequestToBeneficiary()
     }
     
     private def dummyScript(): Boolean = {
@@ -127,6 +128,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateTableViewDefinition)
       runOnce(name) {
         TableViewDefinition.populate(name)
+      }
+    } 
+
+    private def populateViewDefinitionCanAddTransactionRequestToBeneficiary(): Boolean = {
+      val name = nameOf(populateViewDefinitionCanAddTransactionRequestToBeneficiary)
+      runOnce(name) {
+        MigrationOfViewDefinitionCanAddTransactionRequestToBeneficiary.populateTheField(name)
       }
     }  
     

@@ -26,10 +26,13 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121, bankRoutingJsonV121, branchRoutingJsonV141, postCounterpartyLimitV510}
+import code.api.v5_0_0.ConsentJsonV500
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
+import code.api.util.ExampleValue.counterpartyNameExample
 import code.api.v3_1_0.PostConsentChallengeJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.UsersJsonV400
@@ -75,13 +78,29 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   def createConsentByConsentRequestIdImplicit(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"IMPLICIT"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
-  lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV510
-  
-  
+  val fromAccountJson = ConsentRequestFromAccountJson (
+    bank_routing = bankRoutingJsonV121.copy(address = testBankId1.value),
+    account_routing = accountRoutingJsonV121.copy(address = testAccountId0.value),
+    branch_routing = branchRoutingJsonV141
+  )
+
+  val toAccountJson = ConsentRequestToAccountJson (
+    counterparty_name = counterpartyNameExample.value,
+    bank_routing = bankRoutingJsonV121.copy(address = testBankId1.value),
+    account_routing = accountRoutingJsonV121.copy(address = testAccountId1.value),
+    branch_routing = branchRoutingJsonV141,
+    limit = postCounterpartyLimitV510
+  )
+  lazy val postVRPConsentRequestJson = SwaggerDefinitionsJSON.postVRPConsentRequestJsonV510.copy(
+    from_account=fromAccountJson,
+    to_account=toAccountJson
+  )
+
+
   feature("Create/Get Consent Request v5.1.0") {
     scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
-      val response510 = makePostRequest(createVRPConsentRequestWithoutLoginUrl, write(postConsentRequestJson))
+      val response510 = makePostRequest(createVRPConsentRequestWithoutLoginUrl, write(postVRPConsentRequestJson))
       Then("We should get a 401")
       response510.code should equal(401)
       response510.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
@@ -89,7 +108,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
-      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postConsentRequestJson))
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestJson))
       Then("We should get a 201")
       createConsentResponse.code should equal(201)
       val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
@@ -108,9 +127,14 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
-      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV510].consent_id
-      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV510].jwt
-
+      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
+      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
+      val accountAccess = createConsentByRequestResponse.body.extract[ConsentJsonV500].account_access
+      accountAccess.isDefined should equal(true)
+      accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
+      accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
+      accountAccess.get.view_id contains("_vrp-") shouldBe( true)
+      
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
@@ -141,7 +165,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
-      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postConsentRequestJson))
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestJson))
       Then("We should get a 201")
       createConsentResponse.code should equal(201)
       val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
@@ -160,8 +184,14 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdImplicit(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
-      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV510].consent_id
-      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV510].jwt
+      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
+      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
+      val accountAccess = createConsentByRequestResponse.body.extract[ConsentJsonV500].account_access
+      accountAccess.isDefined should equal(true)
+      accountAccess.get.bank_id should equal(fromAccountJson.bank_routing.address)
+      accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
+      accountAccess.get.view_id contains("_vrp-") shouldBe( true)
+
 
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
       val requestWhichFails = (v5_1_0_Request / "users").GET

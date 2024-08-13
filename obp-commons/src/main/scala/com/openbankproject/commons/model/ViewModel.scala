@@ -421,6 +421,7 @@ trait View {
 
   def canAddTransactionRequestToOwnAccount: Boolean //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean
+  def canAddTransactionRequestToBeneficiary: Boolean
 
   def canSeeBankAccountCreditLimit: Boolean
   

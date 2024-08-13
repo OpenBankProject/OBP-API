@@ -49,7 +49,8 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
+import net.liftweb.json
+import net.liftweb.json.{Extraction, JObject, compactRender, parse, prettyRender}
 import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, StringHelpers}
 import net.liftweb.util.Helpers.tryo
@@ -57,7 +58,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-
+import com.openbankproject.commons.model.enums.ConsentType
 
 trait APIMethods510 {
   self: RestHelper =>
@@ -2782,7 +2783,7 @@ trait APIMethods510 {
          |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
          |
          |""".stripMargin,
-      postConsentRequestJsonV510,
+      postVRPConsentRequestJsonV510,
       vrpConsentRequestResponseJson,
       List(
         InvalidJsonFormat,
@@ -2796,25 +2797,29 @@ trait APIMethods510 {
     )
 
     lazy val createVRPConsentRequest : OBPEndpoint = {
-      case  "consumer" :: "vrp-consent-requests" :: Nil JsonPost json -> _  =>  {
+      case  "consumer" :: "vrp-consent-requests" :: Nil JsonPost postJson -> _  =>  {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- applicationAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentRequestJsonV510 "
-            consentRequestJson: PostConsentRequestJsonV510 <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PostConsentRequestJsonV510]
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostVRPConsentRequestJsonV510 "
+            consentRequestJson: PostVRPConsentRequestJsonV510 <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              postJson.extract[PostVRPConsentRequestJsonV510]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
-            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContext) {
               consentRequestJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive
                 case _ => true
               }
             }
+
+            // we need to add the consent_type internally, the user does not need to know it.
+            consentType = json.parse(s"""{"consent_type": "${ConsentType.VRP}"}""")
+
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
               callContext.flatMap(_.consumer),
-              Some(compactRender(json))
+              Some(compactRender(postJson merge consentType))
             )) map {
               i => connectorEmptyResponse(i, callContext)
             }

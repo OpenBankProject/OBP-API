@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-07-06T09:03:12Z
+// ---------- created on 2024-08-07T12:43:02Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -444,7 +444,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundValidateChallengeAnswerV2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       challengeId=challengeIdExample.value,
-      suppliedAnswer="string",
+      suppliedAnswer=suppliedAnswerExample.value,
       suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
     ),
     exampleInboundMessage = (
@@ -557,7 +557,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       transactionRequestId=Some(transactionRequestIdExample.value),
       consentId=Some(consentIdExample.value),
       challengeId=challengeIdExample.value,
-      suppliedAnswer="string",
+      suppliedAnswer=suppliedAnswerExample.value,
       suppliedAnswerType=com.openbankproject.commons.model.enums.SuppliedAnswerType.example)
     ),
     exampleInboundMessage = (
@@ -703,6 +703,44 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundGetChallengesByConsentId => InBound, OutBoundGetChallengesByConsentId => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, consentId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenges_by_consent_id", req, callContext)
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
+  messageDocs += getChallengesByBasketIdDoc
+  def getChallengesByBasketIdDoc = MessageDoc(
+    process = "obp.getChallengesByBasketId",
+    messageFormat = messageFormat,
+    description = "Get Challenges By Basket Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallengesByBasketId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      basketId=basketIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallengesByBasketId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      basketId=Some(basketIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallengesByBasketId(basketId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallengesByBasketId => InBound, OutBoundGetChallengesByBasketId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, basketId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_challenges_by_basket_id", req, callContext)
         response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
           
@@ -6737,8 +6775,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-07-06T09:03:12Z
-//---------------- dynamic end ---------------------please don't modify this line                                   
+// ---------- created on 2024-08-07T12:43:02Z
+//---------------- dynamic end ---------------------please don't modify this line                                      
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

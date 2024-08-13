@@ -79,13 +79,44 @@ object MessageDocsSwaggerDefinitions
           emailAddress = emailExample.value,
           name = usernameExample.value
         )))))))
+
+  val outboundAdapterConsenterInfo = OutboundAdapterAuthInfo(
+    userId = Some(userIdExample.value),
+    username = Some(usernameExample.value),
+    linkedCustomers = Some(List(BasicLinkedCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value))),
+    userAuthContext = Some(List(BasicUserAuthContext(keyExample.value,valueExample.value))), //be set by obp from some endpoints.
+    authViews = Some(List(AuthView(
+      view = ViewBasic(
+        id = viewIdExample.value,
+        name = viewNameExample.value,
+        description = viewDescriptionExample.value,
+        ),
+      account = AccountBasic(
+        id = accountIdExample.value,
+        accountRoutings =List(AccountRouting(
+          scheme = accountRoutingSchemeExample.value,
+          address = accountRoutingAddressExample.value
+        )),
+        customerOwners = List(InternalBasicCustomer(
+          bankId = bankIdExample.value,
+          customerId = customerIdExample.value,
+          customerNumber = customerNumberExample.value,
+          legalName = legalNameExample.value,
+          dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+        )),
+        userOwners = List(InternalBasicUser(
+          userId = userIdExample.value,
+          emailAddress = emailExample.value,
+          name = usernameExample.value
+        )))))))
   
   val outboundAdapterCallContext = OutboundAdapterCallContext(
       correlationIdExample.value,
       Some(sessionIdExample.value),
       Some(consumerIdExample.value),
       generalContext = Some(List(BasicGeneralContext(keyExample.value,valueExample.value))), 
-      Some(outboundAdapterAuthInfo)
+      Some(outboundAdapterAuthInfo),
+      Some(outboundAdapterConsenterInfo)
     )
   
   val inboundAdapterCallContext = InboundAdapterCallContext(
