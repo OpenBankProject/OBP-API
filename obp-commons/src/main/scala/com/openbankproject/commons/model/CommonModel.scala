@@ -652,7 +652,7 @@ case class TransactionRequestTransferToAtm(
                                             to: ToAccountTransferToAtm
                                           ) extends TransactionRequestCommonBodyJSON
 
-//For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
+//For COUNTERPARTY, it needs the counterparty_id to find the toCounterparty--> toBankAccount
 case class TransactionRequestCounterpartyId (counterparty_id : String)
 
 case class TransactionRequestSimple (
@@ -712,7 +712,12 @@ case class SepaCreditTransfersBerlinGroupV13( //This is from berlinGroup
                                               remittanceInformationStructured: Option[String] = None,
                                               remittanceInformationStructuredArray: Option[String] = None,
                                               requestedExecutionDate: Option[String] = None,
-                                              requestedExecutionTime: Option[String] = None
+                                              requestedExecutionTime: Option[String] = None,
+                                              startDate: Option[String] = None,//this is mandatory for periodic-payments, we have guard in api level
+                                              executionRule: Option[String] = None,
+                                              endDate: Option[String] = None,
+                                              frequency: Option[String] = None, //this is mandatory for periodic-payments, we have guard in api level
+                                              dayOfExecution: Option[String] = None,
                                             )
 
 case class TransactionRequestBodyAllTypes (
@@ -781,7 +786,17 @@ case class TransactionRequest (
                                 @optional
                                 is_beneficiary :Boolean,
                                 @optional
-                                future_date :Option[String] = None
+                                future_date :Option[String] = None,
+                                @optional
+                                payment_start_date :Option[Date] = None,
+                                @optional
+                                payment_end_date :Option[Date] = None,
+                                @optional
+                                payment_execution_Rule :Option[String] = None,
+                                @optional
+                                payment_frequency :Option[String] = None,
+                                @optional
+                                payment_day_of_execution :Option[String] = None,
                               )
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,

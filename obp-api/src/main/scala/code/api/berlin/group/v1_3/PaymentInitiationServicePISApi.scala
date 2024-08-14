@@ -45,7 +45,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
 
   def checkPaymentServerError(paymentService: String) = {
     val ccc = ""
-    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` or `periodic-payments` for now, will support `bulk-payments` soon"
   }
   def checkPaymentProductError(paymentProduct: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be `sepa-credit-transfers`for now, will support (instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers) soon."
 
@@ -529,15 +529,38 @@ Check the transaction status of a payment initiation.""",
     for {
       (Full(u), callContext) <- authenticatedAccess(cc)
       _ <- passesPsd2Pisp(callContext)
+      
       _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService), 400, callContext) {
         PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
       }
+      _ <- Helper.booleanToFuture(failMsg= checkPaymentServerError(paymentService), cc=callContext) {
+        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments) ||
+        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments) 
+      }
+      
       transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
       transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
         json.extract[SepaCreditTransfersBerlinGroupV13]
+      }
+      //If it is periodic_payments, we need to make sure, we have more fileds.
+
+      _ <- Helper.booleanToFuture(s"$InvalidJsonFormat startDate field is missing. ", 400, callContext) {
+        if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
+          transDetailsJson.startDate.isDefined
+        } else { 
+          true
+        }
+      }
+      
+      _ <- Helper.booleanToFuture(s"$InvalidJsonFormat frequency field is missing. ", 400, callContext) {
+        if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
+          transDetailsJson.frequency.isDefined
+        } else {
+          true
+        }
       }
 
       transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {

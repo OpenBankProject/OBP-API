@@ -136,7 +136,14 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
       .mBody_Description(transactionRequestCommonBody.description)
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+      
+      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
 
+      .mPaymentStartDate(now)
+      .mPaymentEndDate(now)
+      .mPaymentExecutionRule("")
+      .mPaymentFrequency("")
+      .mPaymentDayOfExecution("")
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
@@ -235,7 +242,14 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mOtherBankRoutingScheme extends MappedString(this, 32)
   object mOtherBankRoutingAddress extends MappedString(this, 64)
   object mIsBeneficiary extends MappedBoolean(this)
-
+  
+  //Here are for Berlin Group V1.3 
+  object mPaymentStartDate extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2024-08-12"
+  object mPaymentEndDate	 extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2025-08-01"
+  object mPaymentExecutionRule extends MappedString(this, 64) //BGv1.3 Open API Document example value: "executionRule":"preceding" 
+  object mPaymentFrequency extends MappedString(this, 64)     //BGv1.3 Open API Document example value: "frequency":"Monthly", 
+  object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01" 
+  
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)
   }
