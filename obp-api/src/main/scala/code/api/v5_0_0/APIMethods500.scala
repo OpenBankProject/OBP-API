@@ -2361,7 +2361,7 @@ trait APIMethods500 {
       "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
       EmptyBody,

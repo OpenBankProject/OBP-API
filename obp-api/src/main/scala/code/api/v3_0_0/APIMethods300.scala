@@ -1064,7 +1064,7 @@ trait APIMethods300 {
       "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
         |
-        |${authenticationRequiredMessage(false)}
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       EmptyBody,
