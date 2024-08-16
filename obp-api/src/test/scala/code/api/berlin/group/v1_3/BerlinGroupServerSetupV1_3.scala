@@ -23,6 +23,7 @@ trait BerlinGroupServerSetupV1_3 extends ServerSetupWithTestData {
     Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
     Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID)
     Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
+    Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
   }
 
   def grantUserAccessToViewViaEndpoint(bankId: String,

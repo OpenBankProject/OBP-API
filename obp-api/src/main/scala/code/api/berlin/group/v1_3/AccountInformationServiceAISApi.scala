@@ -75,7 +75,7 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       Future {
         Helper.booleanToBox(u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId, callContext))
       } map {
-        unboxFullOrFail(_, callContext, NoViewReadAccountsBerlinGroup + " userId : " + u.userId + ". account : " + account.accountId, 403)
+        unboxFullOrFail(_, callContext, s"$NoViewReadAccountsBerlinGroup ${viewId.value} userId : ${u.userId}. account : ${account.accountId}", 403)
       }
     }
             
@@ -186,7 +186,8 @@ As a last option, an ASPSP might in addition accept a command with access rights
                createdConsent.secret,
                createdConsent.consentId,
                callContext.flatMap(_.consumer).map(_.consumerId.get),
-               Some(validUntil)
+               Some(validUntil),
+               callContext
              ) map {
                i => connectorEmptyResponse(i, callContext)
              }
@@ -571,7 +572,7 @@ Reads account data from a given card account addressed by "account-id".
              _ <- passesPsd2Aisp(callContext)
              (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
              view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
@@ -1257,15 +1258,12 @@ Maybe in a later version the access path will change.
              updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                jsonPut.extract[TransactionAuthorisation]
              }
-             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
-             _ <- NewStyle.function.tryons(s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)", 400, callContext) {
-               challenges.filter(_.challengeId == authorisationId).size == 1
-             }
+             (_, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
                ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
                None,
                Some(consentId),
-               challenges.filter(_.challengeId == authorisationId).head.challengeId,
+               authorisationId,
                updateJson.scaAuthenticationData,
                SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext

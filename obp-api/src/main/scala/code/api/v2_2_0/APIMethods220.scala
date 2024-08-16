@@ -335,9 +335,9 @@ trait APIMethods220 {
     }
 
     resourceDocs += ResourceDoc(
-      getExplictCounterpartiesForAccount,
+      getExplicitCounterpartiesForAccount,
       implementedInApiVersion,
-      "getExplictCounterpartiesForAccount",
+      "getExplicitCounterpartiesForAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
@@ -357,7 +357,7 @@ trait APIMethods220 {
       ),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2))
 
-    lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
+    lazy val getExplicitCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
@@ -391,9 +391,9 @@ trait APIMethods220 {
 
   
     resourceDocs += ResourceDoc(
-      getExplictCounterpartyById,
+      getExplicitCounterpartyById,
       implementedInApiVersion,
-      "getExplictCounterpartyById",
+      "getExplicitCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
       "Get Counterparty by Counterparty Id (Explicit)",
@@ -407,7 +407,7 @@ trait APIMethods220 {
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
     )
   
-    lazy val getExplictCounterpartyById : OBPEndpoint = {
+    lazy val getExplicitCounterpartyById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {

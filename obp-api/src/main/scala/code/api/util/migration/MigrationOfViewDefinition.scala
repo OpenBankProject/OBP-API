@@ -115,6 +115,7 @@ object TableViewDefinition {
               .canSeeOtherAccountRoutingAddress_(view.canSeeOtherAccountRoutingAddress)
               .canAddTransactionRequestToOwnAccount_(view.canAddTransactionRequestToOwnAccount)
               .canAddTransactionRequestToAnyAccount_(view.canAddTransactionRequestToAnyAccount)
+              .canAddTransactionRequestToBeneficiary_(view.canAddTransactionRequestToBeneficiary)
               .save
           }
         val isSuccessful = insertedRows.forall(_ == true)

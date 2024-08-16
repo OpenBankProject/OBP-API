@@ -568,15 +568,12 @@ Check the transaction status of a payment initiation.""",
       }
       (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-      viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
+      viewId = ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
       bankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
       view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
-
-      _ <- if (view.canAddTransactionRequestToAnyAccount)
-        Future.successful(Full(Unit))
-      else
-        NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
-
+      _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest, cc = callContext) {
+        view.canAddTransactionRequestToAnyAccount
+      }
       // Prevent default value for transaction request type (at least).
       _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc = callContext) {
         transDetailsJson.instructedAmount.currency == fromAccount.currency
@@ -933,7 +930,7 @@ This applies in the following scenarios:
               None,
               callContext
             )
-            //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+            //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it returns the 1st challenge properly.
             challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge, 400, callContext) {
               challenges.head
             }
@@ -1447,7 +1444,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentPsuDataTransactionAuthorisation : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json) =>  {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationId :: Nil JsonPut json -> _ if checkTransactionAuthorisation(json) =>  {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1469,11 +1466,12 @@ There are the following request types on this access path:
              _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUData, cc=callContext) {
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
              }
+             (_, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
                ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
                Some(paymentId),
                None,
-               authorisationid,
+               authorisationId,
                transactionAuthorisationJson.scaAuthenticationData,
                SuppliedAnswerType.PLAIN_TEXT_VALUE,
                callContext

@@ -60,6 +60,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID = "ReadAccountsBerlinGroup"
   final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID = "ReadBalancesBerlinGroup"
   final val SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID = "ReadTransactionsBerlinGroup"
+  final val SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID = "InitiatePaymentsBerlinGroup"
 
   //This is used for the canRevokeAccessToViews_ and canGrantAccessToViews_ fields of SYSTEM_OWNER_VIEW_ID or SYSTEM_STANDARD_VIEW_ID.
   final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS = 
@@ -78,7 +79,8 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID::
     SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
-    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID :: Nil
+    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID :: 
+      SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID :: Nil
   
   //We allow CBS side to generate views by getBankAccountsForUser.viewsToGenerate filed.
   // viewsToGenerate can be any views, and OBP will check the following list, to make sure only allowed views are generated
@@ -92,7 +94,8 @@ object Constant extends MdcLoggable {
     SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID::
     SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
-    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID :: Nil
+    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID ::
+      SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID :: Nil
 
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
   final val INCOMING_SETTLEMENT_ACCOUNT_ID = "OBP-INCOMING-SETTLEMENT-ACCOUNT"    

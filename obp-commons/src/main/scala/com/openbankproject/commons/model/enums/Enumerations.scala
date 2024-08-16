@@ -218,6 +218,11 @@ object AttributeType extends OBPEnumeration[AttributeType]{
   object DATE_WITH_DAY extends Value
 }
 
+sealed trait ConsentType extends EnumValue
+object ConsentType extends OBPEnumeration[ConsentType]{
+  object VRP extends Value
+}
+
 sealed trait AttributeCategory extends EnumValue
 object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Bank extends Value

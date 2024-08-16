@@ -388,11 +388,11 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def moderatedOtherBankAccounts(view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : Box[List[ModeratedOtherBankAccount]] =
     if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)){
       val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderateOtherAccount(oAcc)).flatten
-      val explictCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
-      explictCounterpartiesBox match {
+      val explicitCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
+      explicitCounterpartiesBox match {
         case Full((counterparties, callContext))=> {
-          val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
-          Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
+          val explicitModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
+          Full(explicitModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
         }
         case _ => Full(implicitModeratedOtherBankAccounts)
       }
@@ -409,7 +409,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedOtherBankAccount] =
     if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
       Connector.connector.vend.getCounterpartyByCounterpartyIdLegacy(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccountX.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
-        //First check the explict counterparty
+        //First check the explicit counterparty
         case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)
         //Than we checked the implict counterparty.
         case _ => Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID).flatMap(oAcc => view.moderateOtherAccount(oAcc))

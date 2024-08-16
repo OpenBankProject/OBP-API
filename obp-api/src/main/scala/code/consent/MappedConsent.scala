@@ -7,6 +7,7 @@ import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
+import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{MappedString, _}
 import net.liftweb.util.Helpers.{now, tryo}
@@ -74,6 +75,12 @@ object MappedConsentProvider extends ConsentProvider {
         .mChallenge(challengeAnswerHashed)
         .mSalt(salt)
         .mStatus(ConsentStatus.INITIATED.toString)
+        .mRecurringIndicator(true)
+        .mFrequencyPerDay(100)
+        .mUsesSoFarTodayCounter(0)
+        .mUsesSoFarTodayCounterUpdatedAt(new Date())
+        .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
+        .mApiStandard(ApiStandards.obp.toString)
         .saveMe()
     }
   }

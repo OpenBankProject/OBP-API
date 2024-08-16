@@ -14,11 +14,11 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
 
   override def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent] = {
     val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId))
-    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.basketId) match {
+    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.paymentId) match {
       case Nil => None
       case head :: tail => Some(head :: tail)
     }
-    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.basketId) match {
+    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.consentId) match {
       case Nil => None
       case head :: tail => Some(head :: tail)
     }
@@ -26,11 +26,11 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
   }
   override def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent] = {
     val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId)).map(_.Status(status).saveMe)
-    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.basketId) match {
+    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.paymentId) match {
       case Nil => None
       case head :: tail => Some(head :: tail)
     }
-    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.basketId) match {
+    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.consentId) match {
       case Nil => None
       case head :: tail => Some(head :: tail)
     }

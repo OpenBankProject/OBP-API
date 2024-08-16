@@ -111,7 +111,7 @@ The resource identifications of these transactions are contained in the  payload
                jsonPost.extract[PostSigningBasketJsonV13]
              }
              _ <- booleanToFuture(failMsg, cc = callContext) {
-               // One of them MUST be defined. Otherwise post json is treated as empty one.
+               // One of them MUST be defined. Otherwise, post json is treated as empty one.
                !(jsonPost.extract[PostSigningBasketJsonV13].paymentIds.isEmpty &&
                  jsonPost.extract[PostSigningBasketJsonV13].consentIds.isEmpty)
              }

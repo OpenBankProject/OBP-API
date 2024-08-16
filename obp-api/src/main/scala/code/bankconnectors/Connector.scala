@@ -521,7 +521,7 @@ trait Connector extends MdcLoggable {
    *  If it is Mapped connector:  
    *    OBP will return all the accounts from accountHolder
     * @param username username of the user.
-    * @param callContext inside, should contains the proper values for CBS to identify a bank Customer 
+    * @param callContext inside, should contain the proper values for CBS to identify a bank Customer 
     * @return all the accounts, get from Main Frame.
     */
   def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
