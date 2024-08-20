@@ -1076,7 +1076,19 @@ trait Connector extends MdcLoggable {
       chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount)
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
-      transactionRequest <- Future{ createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)} map {
+      transactionRequest <- Future{
+        TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(
+          TransactionRequestId(generateUUID()),
+          transactionRequestType,
+          fromAccount,
+          toAccount,
+          transactionRequestCommonBody,
+          detailsPlain,
+          status.toString,
+          charge,
+          chargePolicy,
+        )
+      } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
 
@@ -1100,7 +1112,7 @@ trait Connector extends MdcLoggable {
 
             //save transaction_id into database
             _ <- Future {saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)}
-            //update transaction_id field for varibale 'transactionRequest'
+            //update transaction_id field for variable 'transactionRequest'
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
 
           } yield {
@@ -1165,34 +1177,10 @@ trait Connector extends MdcLoggable {
                                    berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  //place holder for various connector methods that overwrite methods like these, does the actual data access
+  //placeholder for various connector methods that overwrite methods like these, does the actual data access
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = Failure(setUnimplementedError)
-
-  /**
-    *
-    * @param transactionRequestId
-    * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
-    * @param fromAccount
-    * @param toAccount
-    * @param transactionRequestCommonBody Body from http request: should have common fields:
-    * @param details  This is the details / body of the request (contains all fields in the body)
-    * @param status   "INITIATED" "PENDING" "FAILED"  "COMPLETED"
-    * @param charge
-    * @param chargePolicy  SHARED, SENDER, RECEIVER
-    * @return  Always create a new Transaction Request in mapper, and return all the fields
-    */
-  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                transactionRequestType: TransactionRequestType,
-                                                fromAccount: BankAccount,
-                                                toAccount: BankAccount,
-                                                transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                                details: String,
-                                                status: String,
-                                                charge: TransactionRequestCharge,
-                                                chargePolicy: String,
-                                                berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest] = Failure(setUnimplementedError)
 
   def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] =
     Future{(Failure(setUnimplementedError), callContext)}
