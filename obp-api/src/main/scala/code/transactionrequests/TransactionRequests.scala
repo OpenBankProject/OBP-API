@@ -2,7 +2,6 @@ package code.transactionrequests
 
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataTransactionRequests
 import com.openbankproject.commons.model.{TransactionRequest, TransactionRequestChallenge, TransactionRequestCharge, _}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
@@ -29,10 +28,7 @@ object TransactionRequests extends SimpleInjector {
 
   def buildOne: TransactionRequestProvider  =
     APIUtil.getPropsValue("transactionRequests_connector", "mapped") match {
-      case "mapped" => APIUtil.getPropsAsBoolValue("use_akka", false) match {
-        case false  => MappedTransactionRequestProvider
-        case true => RemotedataTransactionRequests     // We will use Akka as a middleware
-      }
+      case "mapped" => MappedTransactionRequestProvider
       case tc: String => throw new IllegalArgumentException("No such connector for Transaction Requests: " + tc)
     }
 
@@ -78,7 +74,8 @@ trait TransactionRequestProvider {
                                       details: String,
                                       status: String,
                                       charge: TransactionRequestCharge,
-                                      chargePolicy: String): Box[TransactionRequest]
+                                      chargePolicy: String,
+                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest]
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
   def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
@@ -87,33 +84,4 @@ trait TransactionRequestProvider {
   def bulkDeleteTransactionRequests(): Boolean
 }
 
-class RemotedataTransactionRequestsCaseClasses {
-  case class getMappedTransactionRequest(transactionRequestId: TransactionRequestId)
-  case class getTransactionRequestsFromProvider(bankId : BankId, accountId: AccountId)
-  case class getTransactionRequestFromProvider(transactionRequestId : TransactionRequestId)
-  case class updateAllPendingTransactionRequests()
-  case class createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
-                                          transactionRequestType: TransactionRequestType,
-                                          account : BankAccount,
-                                          counterparty : BankAccount,
-                                          body: TransactionRequestBody,
-                                          status: String,
-                                          charge: TransactionRequestCharge)
-  case class createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                             transactionRequestType: TransactionRequestType,
-                                             fromAccount: BankAccount, 
-                                             toAccount: BankAccount,
-                                             transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                             details: String,
-                                             status: String,
-                                             charge: TransactionRequestCharge,
-                                             chargePolicy: String)
-  case class saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
-  case class saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
-  case class saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String)
-  case class saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String)
-  case class bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId)
-  case class bulkDeleteTransactionRequests()
-}
 
-object RemotedataTransactionRequestsCaseClasses extends RemotedataTransactionRequestsCaseClasses

@@ -1,5 +1,6 @@
 package code.transactionrequests
 
+import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
@@ -13,6 +14,8 @@ import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
+
+import java.text.SimpleDateFormat
 
 object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
@@ -84,7 +87,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                details: String,
                                                status: String,
                                                charge: TransactionRequestCharge,
-                                               chargePolicy: String): Box[TransactionRequest] = {
+                                               chargePolicy: String,
+                                               berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest] = {
 
     val toAccountRouting = transactionRequestType.value match {
       case "SEPA" =>
@@ -93,6 +97,9 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       case _ => toAccount.accountRoutings.headOption
     }
 
+    val paymentStartDate = berlinGroupPayments.flatMap(_.startDate).map(DateWithMsFormat.parse)
+    val paymentEndDate = berlinGroupPayments.flatMap(_.endDate).map(DateWithMsFormat.parse)
+    
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -139,11 +146,11 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
 
-      .mPaymentStartDate(now)
-      .mPaymentEndDate(now)
-      .mPaymentExecutionRule("")
-      .mPaymentFrequency("")
-      .mPaymentDayOfExecution("")
+      .mPaymentStartDate(paymentStartDate.orNull)
+      .mPaymentEndDate(paymentEndDate.orNull)
+      .mPaymentExecutionRule(berlinGroupPayments.flatMap(_.executionRule).orNull)
+      .mPaymentFrequency(berlinGroupPayments.flatMap(_.frequency).orNull)
+      .mPaymentDayOfExecution(berlinGroupPayments.flatMap(_.dayOfExecution).orNull)
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)

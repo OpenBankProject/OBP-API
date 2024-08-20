@@ -542,33 +542,33 @@ Check the transaction status of a payment initiation.""",
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
-      transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+      sepaCreditTransfersBerlinGroupV13 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
         json.extract[SepaCreditTransfersBerlinGroupV13]
       }
       //If it is periodic_payments, we need to make sure, we have more fileds.
 
       _ <- Helper.booleanToFuture(s"$InvalidJsonFormat startDate field is missing. ", 400, callContext) {
         if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
-          transDetailsJson.startDate.isDefined
+          sepaCreditTransfersBerlinGroupV13.startDate.isDefined
         } else { 
           true
         }
       }
-      
+
       _ <- Helper.booleanToFuture(s"$InvalidJsonFormat frequency field is missing. ", 400, callContext) {
         if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
-          transDetailsJson.frequency.isDefined
+          sepaCreditTransfersBerlinGroupV13.frequency.isDefined
         } else {
           true
         }
       }
 
       transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
-        write(transDetailsJson)(Serialization.formats(NoTypeHints))
+        write(sepaCreditTransfersBerlinGroupV13)(Serialization.formats(NoTypeHints))
       }
 
-      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
-        BigDecimal(transDetailsJson.instructedAmount.amount)
+      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${sepaCreditTransfersBerlinGroupV13.instructedAmount.amount} ", 400, callContext) {
+        BigDecimal(sepaCreditTransfersBerlinGroupV13.instructedAmount.amount)
       }
 
       _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc = callContext) {
@@ -576,13 +576,13 @@ Check the transaction status of a payment initiation.""",
       }
 
       // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'", cc = callContext) {
-        isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
+      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}'", cc = callContext) {
+        isValidCurrencyISOCode(sepaCreditTransfersBerlinGroupV13.instructedAmount.currency)
       }
 
       _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-      fromAccountIban = transDetailsJson.debtorAccount.iban
-      toAccountIban = transDetailsJson.creditorAccount.iban
+      fromAccountIban = sepaCreditTransfersBerlinGroupV13.debtorAccount.iban
+      toAccountIban = sepaCreditTransfersBerlinGroupV13.creditorAccount.iban
 
       (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
       (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
@@ -601,11 +601,11 @@ Check the transaction status of a payment initiation.""",
         NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
       // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc = callContext) {
-        transDetailsJson.instructedAmount.currency == fromAccount.currency
+      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}", cc = callContext) {
+        sepaCreditTransfersBerlinGroupV13.instructedAmount.currency == fromAccount.currency
       }
 
-      amountOfMoneyJSON = transDetailsJson.instructedAmount
+      amountOfMoneyJSON = sepaCreditTransfersBerlinGroupV13.instructedAmount
 
       (createdTransactionRequest, callContext) <- transactionRequestTypes match {
         case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
@@ -625,7 +625,7 @@ Check the transaction status of a payment initiation.""",
               Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
               None,
               None,
-              Some(transDetailsJson),
+              Some(sepaCreditTransfersBerlinGroupV13),
               callContext
             ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
           } yield (createdTransactionRequest, callContext)

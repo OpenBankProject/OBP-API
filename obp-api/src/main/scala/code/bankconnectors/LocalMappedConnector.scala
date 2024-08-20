@@ -2234,7 +2234,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                details: String,
                                                status: String,
                                                charge: TransactionRequestCharge,
-                                               chargePolicy: String): Box[TransactionRequest] = {
+                                               chargePolicy: String,
+                                               berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest] = {
 
     TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(transactionRequestId,
       transactionRequestType,
@@ -2244,7 +2245,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       details,
       status,
       charge,
-      chargePolicy)
+      chargePolicy,
+      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13])
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {

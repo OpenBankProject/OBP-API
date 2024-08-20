@@ -1191,7 +1191,8 @@ trait Connector extends MdcLoggable {
                                                 details: String,
                                                 status: String,
                                                 charge: TransactionRequestCharge,
-                                                chargePolicy: String): Box[TransactionRequest] = Failure(setUnimplementedError)
+                                                chargePolicy: String,
+                                                berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest] = Failure(setUnimplementedError)
 
   def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] =
     Future{(Failure(setUnimplementedError), callContext)}
