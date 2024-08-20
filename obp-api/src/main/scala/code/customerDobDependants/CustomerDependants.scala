@@ -1,7 +1,6 @@
 package code.CustomerDependants
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataCustomerDependants
 import com.openbankproject.commons.model.CustomerDependant
 import net.liftweb.util.SimpleInjector
 
@@ -11,11 +10,7 @@ object CustomerDependants extends SimpleInjector {
 
   val CustomerDependants = new Inject(buildOne _) {}
 
-  def buildOne: CustomerDependants =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedCustomerDependants
-      case true => RemotedataCustomerDependants     // We will use Akka as a middleware
-    }
+  def buildOne: CustomerDependants = MappedCustomerDependants
 
 }
 
@@ -24,10 +19,3 @@ trait CustomerDependants {
   def createCustomerDependants(mapperCustomerPrimaryKey: Long, customerDependants: List[CustomerDependant]): List[MappedCustomerDependant]
   def getCustomerDependantsByCustomerPrimaryKey(mapperCustomerPrimaryKey: Long): List[MappedCustomerDependant]
 }
-
-class RemotedataCustomerDependantsCaseClasses {
-  case class createCustomerDependants(mapperCustomerPrimaryKey: Long, customerDependants: List[CustomerDependant])
-  case class getCustomerDependantsByCustomerPrimaryKey(mapperCustomerPrimaryKey: Long)
-}
-
-object RemotedataCustomerDependantsCaseClasses extends RemotedataCustomerDependantsCaseClasses

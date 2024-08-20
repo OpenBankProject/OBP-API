@@ -6,9 +6,6 @@ import code.util.Helper
 
 object ObpActorConfig {
 
-  val remoteHostname = APIUtil.getPropsValue("remotedata.hostname").openOr("127.0.0.1")
-  val remotePort = APIUtil.getPropsValue("remotedata.port").openOr("2662")
-
   val localHostname = "127.0.0.1"
   val localPort = Helper.findAvailablePort()
 
@@ -95,15 +92,6 @@ object ObpActorConfig {
   akka {
     remote.netty.tcp.hostname = ${localHostname}
     remote.netty.tcp.port = ${localPort}
-  }
-  """
-
-  val remoteConf = 
-  s"""
-  ${commonConf} 
-  akka {
-    remote.netty.tcp.hostname = ${remoteHostname}
-    remote.netty.tcp.port = ${remotePort}
   }
   """
 }

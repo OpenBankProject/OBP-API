@@ -2,7 +2,6 @@ package code.entitlement
 
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataEntitlements
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
@@ -12,11 +11,8 @@ object Entitlement extends SimpleInjector {
 
   val entitlement = new Inject(buildOne _) {}
 
-  def buildOne: EntitlementProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedEntitlementsProvider
-      case true => RemotedataEntitlements     // We will use Akka as a middleware
-    }
+  def buildOne: EntitlementProvider = MappedEntitlementsProvider 
+  
 }
 
 trait EntitlementProvider {
@@ -42,21 +38,3 @@ trait Entitlement {
   def roleName : String
   def createdByProcess : String
 }
-
-class RemotedataEntitlementsCaseClasses {
-  case class getEntitlement(bankId: String, userId: String, roleName: String)
-  case class getEntitlementById(entitlementId: String)
-  case class getEntitlementsByUserId(userId: String)
-  case class getEntitlementsByUserIdFuture(userId: String)
-  case class getEntitlementsByBankId(bankId: String)
-  case class deleteEntitlement(entitlement: Box[Entitlement])
-  case class getEntitlements()
-  case class getEntitlementsByRole(roleName: String)
-  case class getEntitlementsFuture()
-  case class getEntitlementsByRoleFuture(roleName: String)
-  case class addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String="manual", grantorUserId: Option[String]=None)
-  case class deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String])
-  case class deleteEntitlements(entityNames: List[String])
-}
-
-object RemotedataEntitlementsCaseClasses extends RemotedataEntitlementsCaseClasses

@@ -1,6 +1,6 @@
 package code.actorsystem
 
-import akka.actor.{ActorSelection, ActorSystem}
+import akka.actor.{ActorSystem}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedOutInBoundTransfer
 import code.bankconnectors.akka.actor.{AkkaConnectorActorConfig, AkkaConnectorHelperActor}
@@ -56,21 +56,15 @@ trait ObpLookupSystem extends MdcLoggable {
     this.obpLookupSystem.actorSelection(actorPath)
   }
 
-  def getRemotedataActor(actorName: String) = {
+  def getActor(actorName: String) = {
 
-    val actorPath: String = APIUtil.getPropsAsBoolValue("remotedata.enable", false) match {
-    case true =>
-      val hostname = ObpActorConfig.remoteHostname
-      val port = ObpActorConfig.remotePort
-      val remotedata_hostname = Helper.getRemotedataHostname
-      s"akka.tcp://RemotedataActorSystem_${remotedata_hostname}@${hostname}:${port}/user/${actorName}"
+    val actorPath: String = {
 
-    case false =>
       val hostname = ObpActorConfig.localHostname
       val port = ObpActorConfig.localPort
       val props_hostname = Helper.getHostname
       if (port == 0) {
-        logger.error("Failed to connect to local Remotedata actor")
+        logger.error("Failed to connect to local Remotedata actor, the port is 0, can not find a proper port in current machine.")
       }
       s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }

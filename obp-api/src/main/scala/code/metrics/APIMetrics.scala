@@ -2,7 +2,6 @@ package code.metrics
 
 import java.util.{Calendar, Date}
 import code.api.util.{APIUtil, OBPQueryParam}
-import code.remotedata.RemotedataMetrics
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -16,12 +15,7 @@ object APIMetrics extends SimpleInjector {
   def buildOne: APIMetrics =
     APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) &&
       APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) match {
-        // case false => MappedMetrics
-        case false =>
-          APIUtil.getPropsAsBoolValue("use_akka", false) match {
-            case false  => MappedMetrics
-            case true => RemotedataMetrics     // We will use Akka as a middleware
-          }
+        case false => MappedMetrics
         case true => ElasticsearchMetrics
     }
 
@@ -107,27 +101,6 @@ trait APIMetrics {
   def bulkDeleteMetrics(): Boolean
 
 }
-
-class RemotedataMetricsCaseClasses {
-  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
-                        responseBody: String,
-                        sourceIp: String,
-                        targetIp: String)
-  case class saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
-                                responseBody: String,
-                                sourceIp: String,
-                                targetIp: String)
-//  case class getAllGroupedByUrl()
-//  case class getAllGroupedByDay()
-//  case class getAllGroupedByUserId()
-  case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean)
-  case class getTopApisFuture(queryParams: List[OBPQueryParam])
-  case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
-  case class bulkDeleteMetrics()
-}
-
-object RemotedataMetricsCaseClasses extends RemotedataMetricsCaseClasses
 
 trait APIMetric {
 

@@ -107,7 +107,6 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
-import code.remotedata.RemotedataActors
 import code.scheduler.{DataBaseCleanerScheduler, DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
@@ -534,16 +533,6 @@ class Boot extends MdcLoggable {
       OBPKafkaConsumer.primaryConsumer.start()
     }
 
-    if (APIUtil.getPropsAsBoolValue("use_akka", false) == true) {
-      try {
-        logger.info(s"RemotedataActors.startActors( ${actorSystem} ) starting")
-        RemotedataActors.startActors(actorSystem)
-      } catch {
-        case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) could not start: $ex")
-      }
-    }
-
-
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
     if (APIUtil.getPropsAsBoolValue("write_metrics", false)) {
@@ -772,17 +761,7 @@ class Boot extends MdcLoggable {
     LiftSession.onBeginServicing = UsernameLockedChecker.onBeginServicing _ :: LiftSession.onBeginServicing
     LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
     LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
-
-    APIUtil.akkaSanityCheck() match {
-      case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
-      case Full(c) if c == false => throw new Exception(ErrorMessages.RemoteDataSecretMatchError)
-      case Empty =>  APIUtil.getPropsAsBoolValue("use_akka", false) match {
-        case true => throw new Exception(ErrorMessages.RemoteDataSecretObtainError)
-        case false => logger.info("Akka middleware layer is disabled.")
-      }
-      case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
-    }
-
+    
     // Sanity check for incompatible Props values for Scopes.
     sanityCheckOPropertiesRegardingScopes()
     // export one Connector's methods as endpoints, it is just for develop
@@ -859,10 +838,6 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
-    if (APIUtil.getPropsAsBoolValue("remotedata.enable", false) == false) {
-      logger.debug("Run Schemifier.schemify during Boot:")
-      Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
-    }
   }
 
   private def showExceptionAtJson(error: Throwable): String = {
@@ -967,62 +942,6 @@ class Boot extends MdcLoggable {
 }
 
 object ToSchemify {
-  // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
-  // TODO EPIC The aim is to have all models prefixed with "Mapped" but table names should not be prefixed with "Mapped
-  // TODO EPIC The aim is to remove all field name prefixes("m")
-  val modelsRemotedata: List[MetaMapper[_]] = List(
-    AccountAccess,
-    ViewDefinition,
-    ResourceUser,
-    UserInvitation,
-    UserAgreement,
-    UserAttribute,
-    MappedComment,
-    MappedTag,
-    MappedWhereTag,
-    MappedTransactionImage,
-    MappedNarrative,
-    MappedCustomer,
-    MappedUserCustomerLink,
-    Consumer,
-    Token,
-    OpenIDConnectToken,
-    Nonce,
-    MappedCounterparty,
-    MappedCounterpartyBespoke,
-    MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag,
-    MappedTransactionRequest,
-    TransactionRequestAttribute,
-    MappedMetric,
-    MetricArchive,
-    MapperAccountHolders,
-    MappedEntitlement,
-    MappedConnectorMetric,
-    MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest,
-    MappedScope,
-    MappedUserScope,
-    MappedTaxResidence,
-    MappedCustomerAddress,
-    MappedUserAuthContext,
-    MappedUserAuthContextUpdate,
-    MappedConsentAuthContext,
-    MappedAccountApplication,
-    MappedProductCollection,
-    MappedProductCollectionItem,
-    MappedAccountAttribute,
-    MappedCustomerAttribute,
-    MappedTransactionAttribute,
-    MappedCardAttribute,
-    BankAttribute,
-    RateLimiting,
-    MappedCustomerDependant,
-    AttributeDefinition,
-    CustomerAccountLink
-  )
-
-  // The following tables are accessed directly via Mapper / JDBC
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     JobScheduler,
@@ -1089,7 +1008,56 @@ object ToSchemify {
     ProductFee,
     ViewPermission,
     UserInitAction,
-    CounterpartyLimit
+    CounterpartyLimit,
+    AccountAccess,
+    ViewDefinition,
+    ResourceUser,
+    UserInvitation,
+    UserAgreement,
+    UserAttribute,
+    MappedComment,
+    MappedTag,
+    MappedWhereTag,
+    MappedTransactionImage,
+    MappedNarrative,
+    MappedCustomer,
+    MappedUserCustomerLink,
+    Consumer,
+    Token,
+    OpenIDConnectToken,
+    Nonce,
+    MappedCounterparty,
+    MappedCounterpartyBespoke,
+    MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag,
+    MappedTransactionRequest,
+    TransactionRequestAttribute,
+    MappedMetric,
+    MetricArchive,
+    MapperAccountHolders,
+    MappedEntitlement,
+    MappedConnectorMetric,
+    MappedExpectedChallengeAnswer,
+    MappedEntitlementRequest,
+    MappedScope,
+    MappedUserScope,
+    MappedTaxResidence,
+    MappedCustomerAddress,
+    MappedUserAuthContext,
+    MappedUserAuthContextUpdate,
+    MappedConsentAuthContext,
+    MappedAccountApplication,
+    MappedProductCollection,
+    MappedProductCollectionItem,
+    MappedAccountAttribute,
+    MappedCustomerAttribute,
+    MappedTransactionAttribute,
+    MappedCardAttribute,
+    BankAttribute,
+    RateLimiting,
+    MappedCustomerDependant,
+    AttributeDefinition,
+    CustomerAccountLink
   )
 
   // start grpc server

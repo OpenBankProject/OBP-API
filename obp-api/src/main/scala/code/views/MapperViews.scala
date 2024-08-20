@@ -22,13 +22,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.collection.immutable
 import scala.concurrent.Future
 
-//TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
-
 
 object MapperViews extends Views with MdcLoggable {
-
-  logger.debug("Run Schemifier.schemify in MapperViews object")
-  Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   private def getViewsForUser(user: User): List[View] = {
     val accountAccessList = AccountAccess.findAll(

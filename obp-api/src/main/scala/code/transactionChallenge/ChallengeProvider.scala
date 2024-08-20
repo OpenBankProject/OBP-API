@@ -37,27 +37,3 @@ trait ChallengeProvider {
 }
 
 
-
-class RemotedataChallengeProviderCaseClasses {
-  case class saveChallenge(
-    challengeId: String,
-    transactionRequestId: String,
-    salt: String,
-    expectedAnswer: String,
-    expectedUserId: String,
-    scaMethod: Option[SCA],
-    scaStatus: Option[SCAStatus],
-    consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
-    basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
-    authenticationMethodId: Option[String],
-    challengeType: String,
-  )
-  case class getChallenge(challengeId: String)
-  case class getChallengesByTransactionRequestId(transactionRequestId: String)
-  case class getChallengesByConsentId(consentId: String)
-  case class validateChallenge(challengeId: String, challengeAnswer: String, userId: Option[String])
-}
-
-object RemotedataChallengeProviderCaseClasses extends RemotedataChallengeProviderCaseClasses
-
-

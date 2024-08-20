@@ -3,7 +3,6 @@ package code.accountattribute
 /* For AccountAttribute */
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataAccountAttribute
 import com.openbankproject.commons.model.enums.AccountAttributeType
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankId, BankIdAccountId, ProductAttribute, ProductCode, ViewId}
 import net.liftweb.common.{Box, Logger}
@@ -16,12 +15,8 @@ object AccountAttributeX extends SimpleInjector {
 
   val accountAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: AccountAttributeProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedAccountAttributeProvider
-      case true => RemotedataAccountAttribute     // We will use Akka as a middleware
-    }
-
+  def buildOne: AccountAttributeProvider = MappedAccountAttributeProvider
+  
   // Helper to get the count out of an option
   def countOfAccountAttribute(listOpt: Option[List[AccountAttribute]]): Int = {
     val count = listOpt match {
@@ -70,37 +65,3 @@ trait AccountAttributeProvider {
 
   // End of Trait
 }
-
-class RemotedataAccountAttributeCaseClasses {
-  case class getAccountAttributesFromProvider(accountId: AccountId, productCode: ProductCode)
-  case class getAccountAttributesByAccount(bankId: BankId,
-                                           accountId: AccountId)
-  case class getAccountAttributesByAccountCanBeSeenOnView(bankId: BankId, 
-                                                          accountId: AccountId, 
-                                                          viewId: ViewId) 
-  case class getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
-                                                           viewId: ViewId)
-
-  case class getAccountAttributeById(accountAttributeId: String)
-
-  case class createOrUpdateAccountAttribute(bankId: BankId,
-                                            accountId: AccountId,
-                                            productCode: ProductCode,
-                                            accountAttributeId: Option[String],
-                                            name: String,
-                                            attributeType: AccountAttributeType.Value,
-                                            value: String,
-                                            productInstanceCode: Option[String])
-  
-  case class createAccountAttributes(bankId: BankId,
-                                     accountId: AccountId,
-                                     productCode: ProductCode,
-                                     accountAttributes: List[ProductAttribute],
-                                     productInstanceCode: Option[String])
-
-  case class deleteAccountAttribute(accountAttributeId: String)
-
-  case class getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]])
-}
-
-object RemotedataAccountAttributeCaseClasses extends RemotedataAccountAttributeCaseClasses

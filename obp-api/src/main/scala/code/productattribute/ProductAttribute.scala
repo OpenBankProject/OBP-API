@@ -4,7 +4,6 @@ package code.productattribute
 
 import code.api.util.APIUtil
 import code.productAttributeattribute.MappedProductAttributeProvider
-import code.remotedata.RemotedataProductAttribute
 import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
@@ -16,11 +15,7 @@ object ProductAttributeX extends SimpleInjector {
 
   val productAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: ProductAttributeProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedProductAttributeProvider
-      case true => RemotedataProductAttribute     // We will use Akka as a middleware
-    }
+  def buildOne: ProductAttributeProvider = MappedProductAttributeProvider
 
   // Helper to get the count out of an option
   def countOfProductAttribute(listOpt: Option[List[ProductAttribute]]): Int = {
@@ -52,21 +47,3 @@ trait ProductAttributeProvider {
   def deleteProductAttribute(productAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }
-
-class RemotedataProductAttributeCaseClasses {
-  case class getProductAttributesFromProvider(bank: BankId, productCode: ProductCode)
-
-  case class getProductAttributeById(cproductAttributeId: String)
-
-  case class createOrUpdateProductAttribute(bankId : BankId,
-                                            productCode: ProductCode,
-                                            productAttributeId: Option[String],
-                                            name: String,
-                                            attributeType: ProductAttributeType.Value,
-                                            value: String, 
-                                            isActive: Option[Boolean])
-
-  case class deleteProductAttribute(productAttributeId: String)
-}
-
-object RemotedataProductAttributeCaseClasses extends RemotedataProductAttributeCaseClasses
