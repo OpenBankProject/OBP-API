@@ -2,19 +2,14 @@ package code.metrics
 
 import java.util.{Calendar, Date}
 
-import code.api.util.{APIUtil, OBPQueryParam}
-import code.remotedata.RemotedataConnectorMetrics
+import code.api.util.OBPQueryParam
 import net.liftweb.util.SimpleInjector
 
 object ConnectorMetricsProvider extends SimpleInjector {
 
   val metrics = new Inject(buildOne _) {}
 
-  def buildOne: ConnectorMetricsProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => ConnectorMetrics
-      case true => RemotedataConnectorMetrics     // We will use Akka as a middleware
-    }
+  def buildOne: ConnectorMetricsProvider = ConnectorMetrics 
 
   /**
    * Returns a Date which is at the start of the day of the date
@@ -41,14 +36,6 @@ trait ConnectorMetricsProvider {
   def bulkDeleteConnectorMetrics(): Boolean
 
 }
-
-class RemotedataConnectorMetricsCaseClasses {
-  case class saveConnecotrMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long)
-  case class getAllConnectorMetrics(queryParams: List[OBPQueryParam])
-  case class bulkDeleteMetrics()
-}
-
-object RemotedataConnectorMetricsCaseClasses extends RemotedataConnectorMetricsCaseClasses
 
 trait ConnectorMetric {
 

@@ -2280,10 +2280,7 @@ object ExampleValue {
 
   lazy val canDeleteCommentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_delete_comment", canDeleteCommentExample)
-
-  lazy val remoteDataSecretMatchedExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("remote_data_secret_matched", remoteDataSecretMatchedExample)
-
+  
   lazy val commentsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("comments", commentsExample)
 

@@ -3,7 +3,6 @@ package code.cardattribute
 /* For CardAttribute */
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataCardAttribute
 import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.model.{AccountId, BankId, CardAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
@@ -15,12 +14,7 @@ object CardAttributeX extends SimpleInjector {
 
   val cardAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: CardAttributeProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedCardAttributeProvider
-      case true => RemotedataCardAttribute     // We will use Akka as a middleware
-    }
-
+  def buildOne: CardAttributeProvider = MappedCardAttributeProvider
   // Helper to get the count out of an option
   def countOfCardAttribute(listOpt: Option[List[CardAttribute]]): Int = {
     val count = listOpt match {
@@ -53,22 +47,3 @@ trait CardAttributeProvider {
   def deleteCardAttribute(cardAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }
-
-class RemotedataCardAttributeCaseClasses {
-  case class getCardAttributesFromProvider(cardId: String)
-
-  case class getCardAttributeById(cardAttributeId: String)
-
-  case class createOrUpdateCardAttribute(
-    bankId: Option[BankId],
-    cardId: Option[String],
-    cardAttributeId: Option[String],
-    name: String,
-    attributeType: CardAttributeType.Value,
-    value: String
-  )
-
-  case class deleteCardAttribute(cardAttributeId: String)
-}
-
-object RemotedataCardAttributeCaseClasses extends RemotedataCardAttributeCaseClasses

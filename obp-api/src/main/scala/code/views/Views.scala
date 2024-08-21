@@ -1,16 +1,13 @@
 package code.views
 
 import code.api.util.{APIUtil, CallContext}
-import code.model.dataAccess.{MappedBankAccount, ViewImpl, ViewPrivileges}
-import code.remotedata.RemotedataViews
-import code.views.MapperViews.getPrivateBankAccounts
+import code.model.dataAccess.{MappedBankAccount}
 import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{CreateViewJson, _}
 import net.liftweb.common.Box
 import net.liftweb.mapper.By
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.{SimpleInjector}
 
-import scala.collection.immutable.List
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
@@ -20,13 +17,8 @@ object Views  extends SimpleInjector {
 
   val views = new Inject(buildOne _) {}
  
-  //TODO Remove MapperViews when Remotedata is optimized and stable
-  def buildOne: Views =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MapperViews
-      case true => RemotedataViews     // We will use Akka as a middleware
-    }
-  
+  def buildOne: Views = MapperViews
+ 
 }
 
 trait Views {
@@ -125,59 +117,4 @@ trait Views {
 }
 
 
-class RemotedataViewsCaseClasses {
-
-  case class permissions(account: BankIdAccountId)
-  case class getPermissionForUser(user: User)
-  case class permission(account: BankIdAccountId, user: User)
-  case class getViewBydBankIdAccountIdViewIdAndUser(bankIdAccountIdViewId: BankIdAccountIdViewId, userPrimaryKey: UserPrimaryKey)
-  case class addPermission(viewUID: BankIdAccountIdViewId, user: User)
-  case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
-  case class revokeAccess(bankIdAccountIdViewId: BankIdAccountIdViewId, user : User)
-  case class grantAccessToMultipleViews(views: List[BankIdAccountIdViewId], user: User, callContext: Option[CallContext])
-  case class revokeAccessToMultipleViews(views: List[BankIdAccountIdViewId],  user: User)
-  case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
-  case class revokeAllAccountAccess(bankId: BankId, accountId: AccountId, user: User)
-  case class revokeAccountAccessByUser(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext])
-  case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
-  case class createSystemView(view: CreateViewJson)
-  case class removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId)
-  case class removeSystemView(viewId: ViewId)
-  case class updateCustomView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
-  case class updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON)
-  case class assignedViewsForAccount(bankAccountId: BankIdAccountId)
-  case class availableViewsForAccount(bankAccountId: BankIdAccountId)
-  case class viewsUserCanAccess(user: User)
-  case class privateViewsUserCanAccess(user: User)
-  case class privateViewsUserCanAccessViaViewId(user: User, viewIds: List[ViewId])
-  case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
-  case class privateViewsUserCanAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId)
-  case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
-  case class getAllFirehoseAccounts(bank: Bank, user : User)
-  case class publicViews()
-  case class publicViewsForBank(bankId: BankId)
-  case class customView(pars: Any*) {
-    def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
-  }
-  case class systemView(viewId : ViewId)
-  case class getSystemViews()
-  case class customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
-  case class systemViewFuture(viewId : ViewId)
-  case class getOrCreateSystemViewFromCbs(viewId: String)
-  case class getOrCreateSystemView(viewId: String)
-  case class getOrCreatePublicPublicView(bankId: BankId, accountId: AccountId, description: String)
-
-  case class getOwners(view: View)
-  
-  case class removeAllPermissions(bankId: BankId, accountId: AccountId)
-  case class removeAllViews(bankId: BankId, accountId: AccountId)
-
-  case class bulkDeleteAllPermissionsAndViews()
-
-  case class revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String)
-  case class revokeAccessToCustomViewForConsumer(view : View, consumerId : String)
-
-}
-
-object RemotedataViewsCaseClasses extends RemotedataViewsCaseClasses
 

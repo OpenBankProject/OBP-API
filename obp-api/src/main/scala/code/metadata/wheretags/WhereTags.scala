@@ -4,7 +4,6 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.model._
-import code.remotedata.RemotedataWhereTags
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -13,11 +12,7 @@ object WhereTags  extends SimpleInjector {
 
   val whereTags = new Inject(buildOne _) {}
 
-  def buildOne: WhereTags =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MapperWhereTags
-      case true => RemotedataWhereTags     // We will use Akka as a middleware
-    }
+  def buildOne: WhereTags = MapperWhereTags
 
 }
 
@@ -38,13 +33,3 @@ trait WhereTags {
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) : Boolean
 
 }
-
-class RemotedataWhereTagsCaseClasses {
-  case class addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)
-  case class deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
-  case class getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
-  case class bulkDeleteWhereTagsOnTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
-  case class bulkDeleteWhereTags(bankId: BankId, accountId: AccountId)
-}
-
-object RemotedataWhereTagsCaseClasses extends RemotedataWhereTagsCaseClasses

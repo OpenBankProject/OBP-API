@@ -272,13 +272,6 @@ object Helper extends Loggable {
     }
   }
 
-  def getRemotedataHostname(): String = {
-    APIUtil.getPropsValue("remotedata.hostname", "") match {
-      case s: String if s.nonEmpty => s.replaceAll("\\/", "").replaceAll("\\.", "-")
-      case _ => "unknown"
-    }
-  }
-  
   def getAkkaConnectorHostname(): String = {
     APIUtil.getPropsValue("akka_connector.hostname", "") match {
       case s: String if s.nonEmpty => s.replaceAll("\\/", "").replaceAll("\\.", "-")
