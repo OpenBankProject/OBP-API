@@ -178,8 +178,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
-
+    
     // Flush all data from Redis
     try {
       Redis.use(JedisMethod.FLUSHDB, "")

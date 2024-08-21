@@ -5,7 +5,6 @@ import java.util.Date
 import code.api.util.{APIUtil, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
-import code.remotedata.RemotedataUsers
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -17,11 +16,7 @@ object Users  extends SimpleInjector {
 
   val users = new Inject(buildOne _) {}
 
-  def buildOne: Users =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => LiftUsers
-      case true => RemotedataUsers     // We will use Akka as a middleware
-    }
+  def buildOne: Users = LiftUsers 
   
 }
 
@@ -76,31 +71,3 @@ trait Users {
 
   def bulkDeleteAllResourceUsers() : Box[Boolean]
 }
-
-class RemotedataUsersCaseClasses {
-  case class getUserByResourceUserId(id : Long)
-  case class getResourceUserByResourceUserId(id : Long)
-  case class getResourceUserByResourceUserIdFuture(id : Long)
-  case class getUserByProviderId(provider : String, idGivenByProvider : String)
-  case class getUserByProviderIdFuture(provider : String, idGivenByProvider : String)
-  case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, createdByConsentId: Option[String],name: Option[String], email: Option[String])
-  case class getUserByUserId(userId : String)
-  case class getUserByUserIdFuture(userId : String)
-  case class getUsersByUserIdsFuture(userId : List[String])
-  case class getUserByUserName(provider : String, userName : String)
-  case class getUserByUserNameFuture(provider : String, userName : String)
-  case class getUserByEmail(email : String)
-  case class getUserByEmailFuture(email : String)
-  case class getUsersByEmail(email : String)
-  case class getAllUsers()
-  case class getAllUsersF(queryParams: List[OBPQueryParam])
-  case class getUsers(queryParams: List[OBPQueryParam])
-  case class createResourceUser(provider: String, providerId: Option[String],createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String], company: Option[String], lastMarketingAgreementSignedDate: Option[Date])
-  case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
-  case class saveResourceUser(resourceUser: ResourceUser)
-  case class deleteResourceUser(userId: Long)
-  case class scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey)
-  case class bulkDeleteAllResourceUsers()
-}
-
-object RemotedataUsersCaseClasses extends RemotedataUsersCaseClasses
