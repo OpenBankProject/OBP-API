@@ -99,7 +99,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     }
     //drop database tables before
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
     AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))

@@ -3,7 +3,6 @@ package code.customerattribute
 /* For CustomerAttribute */
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataCustomerAttribute
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.CustomerAttributeType
 import com.openbankproject.commons.model.{BankId, Customer, CustomerAttribute, CustomerId}
@@ -17,11 +16,7 @@ object CustomerAttributeX extends SimpleInjector {
 
   val customerAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: CustomerAttributeProvider =
-    APIUtil.getPropsAsBoolValue("use_akka", false) match {
-      case false  => MappedCustomerAttributeProvider
-      case true => RemotedataCustomerAttribute     // We will use Akka as a middleware
-    }
+  def buildOne: CustomerAttributeProvider = MappedCustomerAttributeProvider 
 
   // Helper to get the count out of an option
   def countOfCustomerAttribute(listOpt: Option[List[CustomerAttribute]]): Int = {
@@ -63,28 +58,3 @@ trait CustomerAttributeProvider {
   def deleteCustomerAttribute(customerAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }
-
-class RemotedataCustomerAttributeCaseClasses {
-  case class getCustomerAttributesFromProvider(customerId: CustomerId)
-  case class getCustomerAttributes(bankId: BankId,
-                                           customerId: CustomerId)
-  case class getCustomerIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]])
-  case class getCustomerAttributesForCustomers(customers: List[Customer])
-
-  case class getCustomerAttributeById(customerAttributeId: String)
-
-  case class createOrUpdateCustomerAttribute(bankId: BankId,
-                                            customerId: CustomerId,
-                                            customerAttributeId: Option[String],
-                                            name: String,
-                                            attributeType: CustomerAttributeType.Value,
-                                            value: String)
-  
-  case class createCustomerAttributes(bankId: BankId,
-                                     customerId: CustomerId,
-                                     customerAttributes: List[CustomerAttribute])
-
-  case class deleteCustomerAttribute(customerAttributeId: String)
-}
-
-object RemotedataCustomerAttributeCaseClasses extends RemotedataCustomerAttributeCaseClasses

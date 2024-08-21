@@ -1,7 +1,6 @@
 package code.api.attributedefinition
 
 import code.api.util.APIUtil
-import code.remotedata.RemotedataAttributeDefinition
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType}
 import net.liftweb.common.Box
@@ -12,10 +11,7 @@ import scala.concurrent.Future
 
 object AttributeDefinitionDI extends SimpleInjector {
   val attributeDefinition = new Inject(buildOne _) {}
-  def buildOne: AttributeDefinitionProviderTrait = APIUtil.getPropsAsBoolValue("use_akka", false) match {
-    case false  => MappedAttributeDefinitionProvider
-    case true => RemotedataAttributeDefinition   // We will use Akka as a middleware
-  }
+  def buildOne: AttributeDefinitionProviderTrait = MappedAttributeDefinitionProvider 
 }
 
 trait AttributeDefinitionProviderTrait {
@@ -46,20 +42,3 @@ trait AttributeDefinitionTrait {
   def canBeSeenOnViews: List[String]
   def isActive: Boolean
 }
-
-
-class RemotedataAttributeDefinitionCaseClasses {
-
-  case class createOrUpdateAttributeDefinition(bankId: BankId,
-                                               name: String,
-                                               category: AttributeCategory.Value,
-                                               `type`: AttributeType.Value,
-                                               description: String,
-                                               alias: String,
-                                               canBeSeenOnViews: List[String],
-                                               isActive: Boolean)
-  case class deleteAttributeDefinition(attributeDefinitionId: String, category: AttributeCategory.Value)
-  case class getAttributeDefinition(category: AttributeCategory.Value)
-}
-
-object RemotedatAttributeDefinitionCaseClasses extends RemotedataAttributeDefinitionCaseClasses

@@ -69,7 +69,6 @@ import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
-import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -2500,16 +2499,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     result
   }
 
-  def akkaSanityCheck (): Box[Boolean] = {
-    getPropsAsBoolValue("use_akka", false) match {
-      case true =>
-        val remotedataSecret = APIUtil.getPropsValue("remotedata.secret").openOrThrowException("Cannot obtain property remotedata.secret")
-        SanityCheck.sanityCheck.vend.remoteAkkaSanityCheck(remotedataSecret)
-      case false => Empty
-    }
-
-
-  }
   /**
    * The POST or PUT body.  This will be empty if the content
    * type is application/x-www-form-urlencoded or a multipart mime.
