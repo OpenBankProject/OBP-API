@@ -5103,6 +5103,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
+                                            paymentService: Option[String],
                                             berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 

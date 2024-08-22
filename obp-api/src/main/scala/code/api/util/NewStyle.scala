@@ -1129,6 +1129,7 @@ object NewStyle extends MdcLoggable{
                                       challengeType: Option[ChallengeType.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
+                                      paymentService: Option[String],
                                       berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
@@ -1144,6 +1145,7 @@ object NewStyle extends MdcLoggable{
         challengeType = challengeType.map(_.toString),
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
+        paymentService: Option[String],
         berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
         callContext: Option[CallContext]
       ) map { i =>

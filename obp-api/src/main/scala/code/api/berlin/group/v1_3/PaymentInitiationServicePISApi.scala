@@ -615,6 +615,7 @@ Check the transaction status of a payment initiation.""",
               Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
               None,
               None,
+              Some(paymentService),
               Some(sepaCreditTransfersBerlinGroupV13),
               callContext
             ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
