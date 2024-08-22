@@ -75,8 +75,9 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
     .copy(consumer_id=None)
+    .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
-  
+
   val createConsentRequestWithoutLoginUrl = (v5_1_0_Request / "consumer" / "consent-requests")
   val createConsentRequestUrl = (v5_1_0_Request / "consumer"/ "consent-requests").POST<@(user1)
   def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)

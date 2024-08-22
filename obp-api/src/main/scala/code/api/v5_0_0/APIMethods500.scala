@@ -1113,7 +1113,7 @@ trait APIMethods500 {
               Future.sequence(
                 consentRequestJson.account_access.map(
                   access =>
-                    NewStyle.function.getBankAccountByRouting(None,access.account_routing.scheme, access.account_routing.address, cc.callContext)
+                    NewStyle.function.getBankAccountByRouting(consentRequestJson.bank_id.map(BankId(_)),access.account_routing.scheme, access.account_routing.address, cc.callContext)
                       .map(result =>PostConsentViewJsonV310(
                         result._1.bankId.value,
                         result._1.accountId.value,
