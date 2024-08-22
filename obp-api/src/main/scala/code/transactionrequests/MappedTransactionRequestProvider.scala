@@ -88,7 +88,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                status: String,
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String,
-                                               berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13]): Box[TransactionRequest] = {
+                                               berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]): Box[TransactionRequest] = {
 
     val toAccountRouting = transactionRequestType.value match {
       case "SEPA" =>
@@ -97,8 +97,21 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       case _ => toAccount.accountRoutings.headOption
     }
 
-    val paymentStartDate = berlinGroupPayments.flatMap(_.startDate).map(DateWithMsFormat.parse)
-    val paymentEndDate = berlinGroupPayments.flatMap(_.endDate).map(DateWithMsFormat.parse)
+    val (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution) = if(transactionRequestType == TransactionRequestType("")){ //TODO, here need to add the paymentService
+      val paymentFields = berlinGroupPayments.asInstanceOf[Option[PeriodicSepaCreditTransfersBerlinGroupV13]]
+      
+      val paymentStartDate = paymentFields.map(_.startDate).map(DateWithMsFormat.parse).orNull
+      val paymentEndDate = paymentFields.flatMap(_.endDate).map(DateWithMsFormat.parse).orNull
+      
+      val executionRule = paymentFields.flatMap(_.executionRule).orNull
+      val frequency = paymentFields.map(_.frequency).orNull
+      val dayOfExecution = paymentFields.flatMap(_.dayOfExecution).orNull
+
+      (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution)
+    } else{
+      (null, null, null, null, null)
+    }
+
     
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
@@ -146,11 +159,11 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
 
-      .mPaymentStartDate(paymentStartDate.orNull)
-      .mPaymentEndDate(paymentEndDate.orNull)
-      .mPaymentExecutionRule(berlinGroupPayments.flatMap(_.executionRule).orNull)
-      .mPaymentFrequency(berlinGroupPayments.flatMap(_.frequency).orNull)
-      .mPaymentDayOfExecution(berlinGroupPayments.flatMap(_.dayOfExecution).orNull)
+      .mPaymentStartDate(paymentStartDate)
+      .mPaymentEndDate(paymentEndDate)
+      .mPaymentExecutionRule(executionRule)
+      .mPaymentFrequency(frequency)
+      .mPaymentDayOfExecution(dayOfExecution)
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)

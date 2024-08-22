@@ -434,6 +434,35 @@ trait TransactionRequestCommonBodyJSON {
   val description: String
 }
 
+trait BerlinGroupTransactionRequestCommonBodyJson {
+  val endToEndIdentification:  Option[String]
+  val instructionIdentification:  Option[String]
+  val debtorName:  Option[String]
+  val debtorAccount: PaymentAccount
+  val debtorId: Option[String]
+  val ultimateDebtor: Option[String]
+  val instructedAmount: AmountOfMoneyJsonV121
+  val currencyOfTransfer: Option[String]
+  val exchangeRateInformation: Option[String]
+  val creditorAccount: PaymentAccount
+  val creditorAgent: Option[String]
+  val creditorAgentName: Option[String]
+  val creditorName: String
+  val creditorId: Option[String]
+  val creditorAddress: Option[String]
+  val creditorNameAndAddress: Option[String]
+  val ultimateCreditor: Option[String]
+  val purposeCode: Option[String]
+  val chargeBearer: Option[String]
+  val serviceLevel: Option[String]
+  val remittanceInformationUnstructured: Option[String]
+  val remittanceInformationUnstructuredArray: Option[String]
+  val remittanceInformationStructured: Option[String]
+  val remittanceInformationStructuredArray: Option[String]
+  val requestedExecutionDate: Option[String]
+  val requestedExecutionTime: Option[String]
+}
+
 trait Product {
   def code : ProductCode
   def parentProductCode : ProductCode

@@ -1087,6 +1087,7 @@ trait Connector extends MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
+          None,
         )
       } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
@@ -1174,7 +1175,7 @@ trait Connector extends MdcLoggable {
                                    challengeType: Option[String],
                                    scaMethod: Option[SCA],
                                    reasons: Option[List[TransactionRequestReason]],
-                                   berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
+                                   berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(setUnimplementedError), callContext)}
 
   //placeholder for various connector methods that overwrite methods like these, does the actual data access

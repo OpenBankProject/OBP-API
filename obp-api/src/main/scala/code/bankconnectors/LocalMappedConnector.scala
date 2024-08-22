@@ -5013,6 +5013,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
+          None, //berlinGroupPayments this is only from BerlinGroup
         )
       } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
@@ -5102,7 +5103,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
-                                            berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
+                                            berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
@@ -5168,6 +5169,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
+          berlinGroupPayments
         )
         saveTransactionRequestReasons(reasons, transactionRequest)
         transactionRequest

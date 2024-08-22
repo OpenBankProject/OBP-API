@@ -89,7 +89,7 @@ trait TransactionRequestProvider {
                                       status: String,
                                       charge: TransactionRequestCharge,
                                       chargePolicy: String,
-                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13] = None): Box[TransactionRequest]
+                                      berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]): Box[TransactionRequest]
   
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]

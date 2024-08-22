@@ -542,26 +542,16 @@ Check the transaction status of a payment initiation.""",
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
-      sepaCreditTransfersBerlinGroupV13 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
-        json.extract[SepaCreditTransfersBerlinGroupV13]
+      sepaCreditTransfersBerlinGroupV13 <- if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments)){
+        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+          json.extract[SepaCreditTransfersBerlinGroupV13]
+        }
+      } else{
+        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PeriodicSepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+          json.extract[PeriodicSepaCreditTransfersBerlinGroupV13]
+        }
       }
       //If it is periodic_payments, we need to make sure, we have more fileds.
-
-      _ <- Helper.booleanToFuture(s"$InvalidJsonFormat startDate field is missing. ", 400, callContext) {
-        if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
-          sepaCreditTransfersBerlinGroupV13.startDate.isDefined
-        } else { 
-          true
-        }
-      }
-
-      _ <- Helper.booleanToFuture(s"$InvalidJsonFormat frequency field is missing. ", 400, callContext) {
-        if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments)) {
-          sepaCreditTransfersBerlinGroupV13.frequency.isDefined
-        } else {
-          true
-        }
-      }
 
       transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
         write(sepaCreditTransfersBerlinGroupV13)(Serialization.formats(NoTypeHints))
