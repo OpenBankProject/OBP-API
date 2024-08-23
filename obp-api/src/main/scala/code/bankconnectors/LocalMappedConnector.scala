@@ -857,11 +857,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     bankId match {
-      case Some(bankId) =>
+      case Some(bankId) => // Bank specific routing
         val routing = BankAccountRouting
           .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
         handleRouting(routing)
-      case None =>
+      case None => // World wide specific routing (IBAN etc.)
         val routing = BankAccountRouting
           .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
         handleRouting(routing)
