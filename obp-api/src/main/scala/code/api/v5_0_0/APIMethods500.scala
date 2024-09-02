@@ -990,13 +990,13 @@ trait APIMethods500 {
                   description = postConsentRequestJsonV510.to_account.counterparty_name,
                   currency = postConsentRequestJsonV510.to_account.limit.currency,
                   other_account_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.address,
                   other_account_secondary_routing_scheme = "",
                   other_account_secondary_routing_address = "",
-                  other_bank_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_bank_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_branch_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_branch_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_bank_routing_scheme = postConsentRequestJsonV510.to_account.bank_routing.scheme,
+                  other_bank_routing_address = postConsentRequestJsonV510.to_account.bank_routing.address,
+                  other_branch_routing_scheme = postConsentRequestJsonV510.to_account.branch_routing.scheme,
+                  other_branch_routing_address = postConsentRequestJsonV510.to_account.branch_routing.address,
                   is_beneficiary = true,
                   bespoke = Nil
                 )
