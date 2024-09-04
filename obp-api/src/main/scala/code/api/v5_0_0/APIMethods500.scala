@@ -951,7 +951,8 @@ trait APIMethods500 {
 
               val vrpViewId = s"_VRP-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.
               val targetPermissions = List(//may need getTransactionRequest .. so far only this payments.
-                "can_add_transaction_request_to_beneficiary"
+                "can_add_transaction_request_to_beneficiary",
+                "can_get_counterparty"
               )
               
               val targetCreateCustomViewJson = CreateCustomViewJson(
