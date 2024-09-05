@@ -1180,6 +1180,11 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # local_identity_provider=strongly recommended to use top level domain name so that all nodes in the cluster share same provider name
 
 
+# User Invitation Link Base URL
+# it defaults to the "portal_hostname" as a 1st choise and to the "hostname" props value as a 2nd choise
+# user_invitation_link_base_URL=strongly recommended to use top level domain name so that all nodes in the cluster share same URL
+
+
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
 dynamic_code_sandbox_enable=false
 # Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.

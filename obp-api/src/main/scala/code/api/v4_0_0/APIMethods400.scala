@@ -3822,7 +3822,7 @@ trait APIMethods400 extends MdcLoggable {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val link = s"${APIUtil.getPropsValue("portal_hostname", Constant.HostName)}/user-invitation?id=${invitation.secretKey}"
+            val link = s"${APIUtil.getPropsValue("user_invitation_link_base_URL", APIUtil.getPropsValue("portal_hostname", Constant.HostName))}/user-invitation?id=${invitation.secretKey}"
             if (postedData.purpose == UserInvitationPurpose.DEVELOPER.toString){
               val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
               val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
