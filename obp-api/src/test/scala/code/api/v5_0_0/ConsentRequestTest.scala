@@ -64,6 +64,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
   object ApiEndpoint6 extends Tag(nameOf(Implementations5_0_0.getConsentRequest))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
+  lazy val bankId = testBankId1.value
   lazy val forbiddenEntitlementOneBank = List(PostConsentEntitlementJsonV310(testBankId1.value, CanCreateEntitlementAtOneBank.toString()))
   lazy val forbiddenEntitlementAnyBank = List(PostConsentEntitlementJsonV310("", CanCreateEntitlementAtAnyBank.toString()))
   lazy val accountAccess = List(AccountAccessV500(
@@ -73,6 +74,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
   lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
     .copy(consumer_id=None)
+    .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
   
   val createConsentRequestWithoutLoginUrl = (v5_0_0_Request / "consumer" / "consent-requests")
