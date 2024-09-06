@@ -849,7 +849,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
       if (routing.size > 1) { // Handle more than 1 occurrence
         // Routing MUST be unique
-        val errorMessage = s"Routing ($scheme, $address) is not unique at this instance"
+        val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
         Failure(errorMessage)
       } else { // Handle 0 and 1 occurrence
         Box(routing.headOption).flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
