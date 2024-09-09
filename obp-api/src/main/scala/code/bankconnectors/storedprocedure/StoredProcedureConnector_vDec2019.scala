@@ -2504,6 +2504,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       amount=Some(amountExample.value),
       currency=Some(currencyExample.value),
       description=Some(descriptionExample.value)))),
+      paymentService = Some(paymentServiceExample.value),
       berlinGroupPayments=Some( SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
       instructionIdentification=Some("string"),
       debtorName=Some("string"),
@@ -2613,9 +2614,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], paymentService: Option[String], berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv400 => InBound, OutBoundCreateTransactionRequestv400 => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons, berlinGroupPayments)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons, paymentService, berlinGroupPayments)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_requestv400", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
   }

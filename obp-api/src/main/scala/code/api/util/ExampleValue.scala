@@ -2275,6 +2275,9 @@ object ExampleValue {
   lazy val descriptionExample = ConnectorField(s"This an optional field. Maximum length is ${ApiCollection.Description.maxLen}. It can be any characters here.","The human readable description here.")
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
+  lazy val paymentServiceExample = ConnectorField("payments", s"The berlin group payment services, eg: payments, periodic-payments and bulk-payments. ")
+  glossaryItems += makeGlossaryItem("paymentService", paymentServiceExample)
+
   lazy val dynamicResourceDocDescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.description", dynamicResourceDocDescriptionExample)
 

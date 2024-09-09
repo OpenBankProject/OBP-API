@@ -434,7 +434,6 @@ object ConnectorBuilderUtil {
   val protectedMethods = List(
     "makePaymentImpl",
     "createTransactionRequestImpl",
-    "createTransactionRequestImpl210",
     "saveTransactionRequestTransactionImpl",
     "saveTransactionRequestChallengeImpl",
     "saveTransactionRequestStatusImpl",

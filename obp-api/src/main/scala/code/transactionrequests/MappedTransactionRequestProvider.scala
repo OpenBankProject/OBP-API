@@ -1,5 +1,6 @@
 package code.transactionrequests
 
+import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
@@ -13,6 +14,8 @@ import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
+
+import java.text.SimpleDateFormat
 
 object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
@@ -84,7 +87,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                details: String,
                                                status: String,
                                                charge: TransactionRequestCharge,
-                                               chargePolicy: String): Box[TransactionRequest] = {
+                                               chargePolicy: String,
+                                               berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]): Box[TransactionRequest] = {
 
     val toAccountRouting = transactionRequestType.value match {
       case "SEPA" =>
@@ -93,6 +97,22 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       case _ => toAccount.accountRoutings.headOption
     }
 
+    val (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution) = if(transactionRequestType == TransactionRequestType("")){ //TODO, here need to add the paymentService
+      val paymentFields = berlinGroupPayments.asInstanceOf[Option[PeriodicSepaCreditTransfersBerlinGroupV13]]
+      
+      val paymentStartDate = paymentFields.map(_.startDate).map(DateWithMsFormat.parse).orNull
+      val paymentEndDate = paymentFields.flatMap(_.endDate).map(DateWithMsFormat.parse).orNull
+      
+      val executionRule = paymentFields.flatMap(_.executionRule).orNull
+      val frequency = paymentFields.map(_.frequency).orNull
+      val dayOfExecution = paymentFields.flatMap(_.dayOfExecution).orNull
+
+      (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution)
+    } else{
+      (null, null, null, null, null)
+    }
+
+    
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -136,7 +156,14 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
       .mBody_Description(transactionRequestCommonBody.description)
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+      
+      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
 
+      .mPaymentStartDate(paymentStartDate)
+      .mPaymentEndDate(paymentEndDate)
+      .mPaymentExecutionRule(executionRule)
+      .mPaymentFrequency(frequency)
+      .mPaymentDayOfExecution(dayOfExecution)
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
@@ -235,7 +262,14 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mOtherBankRoutingScheme extends MappedString(this, 32)
   object mOtherBankRoutingAddress extends MappedString(this, 64)
   object mIsBeneficiary extends MappedBoolean(this)
-
+  
+  //Here are for Berlin Group V1.3 
+  object mPaymentStartDate extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2024-08-12"
+  object mPaymentEndDate	 extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2025-08-01"
+  object mPaymentExecutionRule extends MappedString(this, 64) //BGv1.3 Open API Document example value: "executionRule":"preceding" 
+  object mPaymentFrequency extends MappedString(this, 64)     //BGv1.3 Open API Document example value: "frequency":"Monthly", 
+  object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01" 
+  
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)
   }

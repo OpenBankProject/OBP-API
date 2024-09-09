@@ -1129,7 +1129,8 @@ object NewStyle extends MdcLoggable{
                                       challengeType: Option[ChallengeType.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
-                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
+                                      paymentService: Option[String],
+                                      berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
@@ -1144,7 +1145,8 @@ object NewStyle extends MdcLoggable{
         challengeType = challengeType.map(_.toString),
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
-        berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
+        paymentService: Option[String],
+        berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
