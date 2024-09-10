@@ -642,7 +642,12 @@ object SwaggerDefinitionsJSON {
     other_bank_routing_scheme= counterpartyOtherBankRoutingSchemeExample.value,
     other_bank_routing_address= counterpartyOtherBankRoutingAddressExample.value,
     is_beneficiary= true,
-    future_date = Some(futureDateExample.value)
+    future_date = Some(futureDateExample.value),
+    payment_start_date = Some(DateWithDayExampleObject),
+    payment_end_date = Some(DateWithDayExampleObject),
+    payment_execution_Rule = Some("String"),
+    payment_frequency = Some("String"),
+    payment_day_of_execution = Some("String"),
   )
 
   val adapterImplementationJson = AdapterImplementationJson("CORE",3)
