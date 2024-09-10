@@ -82,7 +82,7 @@ object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreemen
     agreement =>
       tryo {
         val hash = HashUtil.Sha256Hash(agreement.agreementText)
-        agreement.AgreementHash(hash ).save
+        agreement.AgreementHash(hash)
       }
   )
 
