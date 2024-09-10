@@ -652,7 +652,7 @@ case class TransactionRequestTransferToAtm(
                                             to: ToAccountTransferToAtm
                                           ) extends TransactionRequestCommonBodyJSON
 
-//For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
+//For COUNTERPARTY, it needs the counterparty_id to find the toCounterparty--> toBankAccount
 case class TransactionRequestCounterpartyId (counterparty_id : String)
 
 case class TransactionRequestSimple (
@@ -686,34 +686,68 @@ case class SepaCreditTransfers( //This is from berlinGroup
   creditorName: String
 )
 
-case class SepaCreditTransfersBerlinGroupV13( //This is from berlinGroup
-                                              endToEndIdentification:  Option[String] = None,
-                                              instructionIdentification:  Option[String] = None,
-                                              debtorName:  Option[String] = None,
-                                              debtorAccount: PaymentAccount,
-                                              debtorId: Option[String] = None,
-                                              ultimateDebtor: Option[String] = None,
-                                              instructedAmount: AmountOfMoneyJsonV121,
-                                              currencyOfTransfer: Option[String] = None,
-                                              exchangeRateInformation: Option[String] = None,
-                                              creditorAccount: PaymentAccount,
-                                              creditorAgent: Option[String] = None,
-                                              creditorAgentName: Option[String] = None,
-                                              creditorName: String,
-                                              creditorId: Option[String] = None,
-                                              creditorAddress: Option[String] = None,
-                                              creditorNameAndAddress: Option[String] = None,
-                                              ultimateCreditor: Option[String] = None,
-                                              purposeCode: Option[String] = None,
-                                              chargeBearer: Option[String] = None,
-                                              serviceLevel: Option[String] = None,
-                                              remittanceInformationUnstructured: Option[String] = None,
-                                              remittanceInformationUnstructuredArray: Option[String] = None,
-                                              remittanceInformationStructured: Option[String] = None,
-                                              remittanceInformationStructuredArray: Option[String] = None,
-                                              requestedExecutionDate: Option[String] = None,
-                                              requestedExecutionTime: Option[String] = None
-                                            )
+case class SepaCreditTransfersBerlinGroupV13(
+  endToEndIdentification: Option[String] = None,
+  instructionIdentification: Option[String] = None,
+  debtorName: Option[String] = None,
+  debtorAccount: PaymentAccount,
+  debtorId: Option[String] = None,
+  ultimateDebtor: Option[String] = None,
+  instructedAmount: AmountOfMoneyJsonV121,
+  currencyOfTransfer: Option[String] = None,
+  exchangeRateInformation: Option[String] = None,
+  creditorAccount: PaymentAccount,
+  creditorAgent: Option[String] = None,
+  creditorAgentName: Option[String] = None,
+  creditorName: String,
+  creditorId: Option[String] = None,
+  creditorAddress: Option[String] = None,
+  creditorNameAndAddress: Option[String] = None,
+  ultimateCreditor: Option[String] = None,
+  purposeCode: Option[String] = None,
+  chargeBearer: Option[String] = None,
+  serviceLevel: Option[String] = None,
+  remittanceInformationUnstructured: Option[String] = None,
+  remittanceInformationUnstructuredArray: Option[String] = None,
+  remittanceInformationStructured: Option[String] = None,
+  remittanceInformationStructuredArray: Option[String] = None,
+  requestedExecutionDate: Option[String] = None,
+  requestedExecutionTime: Option[String] = None
+) extends  BerlinGroupTransactionRequestCommonBodyJson
+
+case class PeriodicSepaCreditTransfersBerlinGroupV13( 
+  endToEndIdentification: Option[String] = None,
+  instructionIdentification: Option[String] = None,
+  debtorName: Option[String] = None,
+  debtorAccount: PaymentAccount,
+  debtorId: Option[String] = None,
+  ultimateDebtor: Option[String] = None,
+  instructedAmount: AmountOfMoneyJsonV121,
+  currencyOfTransfer: Option[String] = None,
+  exchangeRateInformation: Option[String] = None,
+  creditorAccount: PaymentAccount,
+  creditorAgent: Option[String] = None,
+  creditorAgentName: Option[String] = None,
+  creditorName: String,
+  creditorId: Option[String] = None,
+  creditorAddress: Option[String] = None,
+  creditorNameAndAddress: Option[String] = None,
+  ultimateCreditor: Option[String] = None,
+  purposeCode: Option[String] = None,
+  chargeBearer: Option[String] = None,
+  serviceLevel: Option[String] = None,
+  remittanceInformationUnstructured: Option[String] = None,
+  remittanceInformationUnstructuredArray: Option[String] = None,
+  remittanceInformationStructured: Option[String] = None,
+  remittanceInformationStructuredArray: Option[String] = None,
+  requestedExecutionDate: Option[String] = None,
+  requestedExecutionTime: Option[String] = None,
+  startDate: String,
+  executionRule: Option[String] = None,
+  endDate: Option[String] = None,
+  frequency: String,
+  dayOfExecution: Option[String] = None,
+) extends BerlinGroupTransactionRequestCommonBodyJson
 
 case class TransactionRequestBodyAllTypes (
                                             @optional
@@ -781,7 +815,17 @@ case class TransactionRequest (
                                 @optional
                                 is_beneficiary :Boolean,
                                 @optional
-                                future_date :Option[String] = None
+                                future_date :Option[String] = None,
+                                @optional
+                                payment_start_date :Option[Date] = None,
+                                @optional
+                                payment_end_date :Option[Date] = None,
+                                @optional
+                                payment_execution_Rule :Option[String] = None,
+                                @optional
+                                payment_frequency :Option[String] = None,
+                                @optional
+                                payment_day_of_execution :Option[String] = None,
                               )
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,

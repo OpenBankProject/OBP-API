@@ -2236,27 +2236,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       charge)
   }
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                               transactionRequestType: TransactionRequestType,
-                                               fromAccount: BankAccount,
-                                               toAccount: BankAccount,
-                                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                                               details: String,
-                                               status: String,
-                                               charge: TransactionRequestCharge,
-                                               chargePolicy: String): Box[TransactionRequest] = {
-
-    TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(transactionRequestId,
-      transactionRequestType,
-      fromAccount,
-      toAccount,
-      transactionRequestCommonBody,
-      details,
-      status,
-      charge,
-      chargePolicy)
-  }
-
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
@@ -5034,7 +5013,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
       transactionRequest <- Future {
-        createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)
+        TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(
+          TransactionRequestId(generateUUID()),
+          transactionRequestType,
+          fromAccount,
+          toAccount,
+          transactionRequestCommonBody,
+          detailsPlain,
+          status.toString,
+          charge,
+          chargePolicy,
+          None, //berlinGroupPayments this is only from BerlinGroup
+        )
       } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
@@ -5123,7 +5113,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
-                                            berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
+                                            paymentService: Option[String],
+                                            berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
@@ -5179,7 +5170,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
       transactionRequest <- Future {
-        val transactionRequest = createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)
+        val transactionRequest = TransactionRequests.transactionRequestProvider.vend.createTransactionRequestImpl210(
+          TransactionRequestId(generateUUID()),
+          transactionRequestType,
+          fromAccount,
+          toAccount,
+          transactionRequestCommonBody,
+          detailsPlain,
+          status.toString,
+          charge,
+          chargePolicy,
+          berlinGroupPayments
+        )
         saveTransactionRequestReasons(reasons, transactionRequest)
         transactionRequest
       } map {

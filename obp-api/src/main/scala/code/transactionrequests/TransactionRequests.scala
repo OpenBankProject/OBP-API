@@ -66,6 +66,20 @@ trait TransactionRequestProvider {
                                    body: TransactionRequestBody,
                                    status: String,
                                    charge: TransactionRequestCharge) : Box[TransactionRequest]
+
+  /**
+   *
+   * @param transactionRequestId
+   * @param transactionRequestType Support Types: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY
+   * @param fromAccount
+   * @param toAccount
+   * @param transactionRequestCommonBody Body from http request: should have common fields:
+   * @param details  This is the details / body of the request (contains all fields in the body)
+   * @param status   "INITIATED" "PENDING" "FAILED"  "COMPLETED"
+   * @param charge
+   * @param chargePolicy  SHARED, SENDER, RECEIVER
+   * @return  Always create a new Transaction Request in mapper, and return all the fields
+   */
   def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                       transactionRequestType: TransactionRequestType,
                                       fromAccount: BankAccount,
@@ -74,7 +88,9 @@ trait TransactionRequestProvider {
                                       details: String,
                                       status: String,
                                       charge: TransactionRequestCharge,
-                                      chargePolicy: String): Box[TransactionRequest]
+                                      chargePolicy: String,
+                                      berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]): Box[TransactionRequest]
+  
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
   def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
@@ -82,3 +98,5 @@ trait TransactionRequestProvider {
   def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean
   def bulkDeleteTransactionRequests(): Boolean
 }
+
+

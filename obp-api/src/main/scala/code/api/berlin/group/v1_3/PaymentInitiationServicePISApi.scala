@@ -45,7 +45,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
 
   def checkPaymentServerError(paymentService: String) = {
     val ccc = ""
-    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+    s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` or `periodic-payments` for now, will support `bulk-payments` soon"
   }
   def checkPaymentProductError(paymentProduct: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be `sepa-credit-transfers`for now, will support (instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers) soon."
 
@@ -529,23 +529,36 @@ Check the transaction status of a payment initiation.""",
     for {
       (Full(u), callContext) <- authenticatedAccess(cc)
       _ <- passesPsd2Pisp(callContext)
+      
       _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService), 400, callContext) {
         PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
       }
+      _ <- Helper.booleanToFuture(failMsg= checkPaymentServerError(paymentService), cc=callContext) {
+        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments) ||
+        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments) 
+      }
+      
       transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
-      transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
-        json.extract[SepaCreditTransfersBerlinGroupV13]
+      sepaCreditTransfersBerlinGroupV13 <- if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments)){
+        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+          json.extract[SepaCreditTransfersBerlinGroupV13]
+        }
+      } else{
+        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PeriodicSepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+          json.extract[PeriodicSepaCreditTransfersBerlinGroupV13]
+        }
       }
+      //If it is periodic_payments, we need to make sure, we have more fileds.
 
       transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
-        write(transDetailsJson)(Serialization.formats(NoTypeHints))
+        write(sepaCreditTransfersBerlinGroupV13)(Serialization.formats(NoTypeHints))
       }
 
-      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
-        BigDecimal(transDetailsJson.instructedAmount.amount)
+      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${sepaCreditTransfersBerlinGroupV13.instructedAmount.amount} ", 400, callContext) {
+        BigDecimal(sepaCreditTransfersBerlinGroupV13.instructedAmount.amount)
       }
 
       _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc = callContext) {
@@ -553,13 +566,13 @@ Check the transaction status of a payment initiation.""",
       }
 
       // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'", cc = callContext) {
-        isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
+      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}'", cc = callContext) {
+        isValidCurrencyISOCode(sepaCreditTransfersBerlinGroupV13.instructedAmount.currency)
       }
 
       _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-      fromAccountIban = transDetailsJson.debtorAccount.iban
-      toAccountIban = transDetailsJson.creditorAccount.iban
+      fromAccountIban = sepaCreditTransfersBerlinGroupV13.debtorAccount.iban
+      toAccountIban = sepaCreditTransfersBerlinGroupV13.creditorAccount.iban
 
       (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
       (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
@@ -575,11 +588,11 @@ Check the transaction status of a payment initiation.""",
         view.canAddTransactionRequestToAnyAccount
       }
       // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc = callContext) {
-        transDetailsJson.instructedAmount.currency == fromAccount.currency
+      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}", cc = callContext) {
+        sepaCreditTransfersBerlinGroupV13.instructedAmount.currency == fromAccount.currency
       }
 
-      amountOfMoneyJSON = transDetailsJson.instructedAmount
+      amountOfMoneyJSON = sepaCreditTransfersBerlinGroupV13.instructedAmount
 
       (createdTransactionRequest, callContext) <- transactionRequestTypes match {
         case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
@@ -599,7 +612,8 @@ Check the transaction status of a payment initiation.""",
               Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
               None,
               None,
-              Some(transDetailsJson),
+              Some(paymentService),
+              Some(sepaCreditTransfersBerlinGroupV13),
               callContext
             ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
           } yield (createdTransactionRequest, callContext)
