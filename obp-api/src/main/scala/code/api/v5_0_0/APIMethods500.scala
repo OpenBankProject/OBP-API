@@ -951,7 +951,8 @@ trait APIMethods500 {
 
               val vrpViewId = s"_VRP-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.
               val targetPermissions = List(//may need getTransactionRequest .. so far only this payments.
-                "can_add_transaction_request_to_beneficiary"
+                "can_add_transaction_request_to_beneficiary",
+                "can_get_counterparty"
               )
               
               val targetCreateCustomViewJson = CreateCustomViewJson(
@@ -992,13 +993,13 @@ trait APIMethods500 {
                   description = postConsentRequestJsonV510.to_account.counterparty_name,
                   currency = postConsentRequestJsonV510.to_account.limit.currency,
                   other_account_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_account_routing_address = postConsentRequestJsonV510.to_account.account_routing.address,
                   other_account_secondary_routing_scheme = "",
                   other_account_secondary_routing_address = "",
-                  other_bank_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_bank_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_branch_routing_scheme = postConsentRequestJsonV510.to_account.account_routing.scheme,
-                  other_branch_routing_address = postConsentRequestJsonV510.to_account.account_routing.scheme,
+                  other_bank_routing_scheme = postConsentRequestJsonV510.to_account.bank_routing.scheme,
+                  other_bank_routing_address = postConsentRequestJsonV510.to_account.bank_routing.address,
+                  other_branch_routing_scheme = postConsentRequestJsonV510.to_account.branch_routing.scheme,
+                  other_branch_routing_address = postConsentRequestJsonV510.to_account.branch_routing.address,
                   is_beneficiary = true,
                   bespoke = Nil
                 )
@@ -1115,7 +1116,7 @@ trait APIMethods500 {
               Future.sequence(
                 consentRequestJson.account_access.map(
                   access =>
-                    NewStyle.function.getBankAccountByRouting(None,access.account_routing.scheme, access.account_routing.address, cc.callContext)
+                    NewStyle.function.getBankAccountByRouting(consentRequestJson.bank_id.map(BankId(_)),access.account_routing.scheme, access.account_routing.address, cc.callContext)
                       .map(result =>PostConsentViewJsonV310(
                         result._1.bankId.value,
                         result._1.accountId.value,

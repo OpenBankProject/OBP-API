@@ -1045,7 +1045,7 @@ def restoreSomeSessions(): Unit = {
           .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
       val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
       val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
-      if(hashedAgreementTextOfUser == hashedAgreementText) { // Chech terms and conditions
+      if(hashedAgreementTextOfUser == hashedAgreementText) { // Check terms and conditions
         val hashedAgreementTextOfUser =
           UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "privacy_conditions")
             .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))

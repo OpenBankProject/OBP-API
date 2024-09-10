@@ -10,11 +10,13 @@ import net.liftweb.mapper._
 import net.liftweb.common.Box.tryo
 
 object MappedUserAgreementProvider extends UserAgreementProvider {
+  // TODO Change the function name
   override def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
     UserAgreement.find(
       By(UserAgreement.UserId, userId),
       By(UserAgreement.AgreementType, agreementType)
     ) match {
+      // TODO We should be adding an additional record. Not changing existing one.
       case Full(existingUser) =>
         Full(
           existingUser
@@ -80,7 +82,7 @@ object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreemen
     agreement =>
       tryo {
         val hash = HashUtil.Sha256Hash(agreement.agreementText)
-        agreement.AgreementHash(hash ).save
+        agreement.AgreementHash(hash)
       }
   )
 

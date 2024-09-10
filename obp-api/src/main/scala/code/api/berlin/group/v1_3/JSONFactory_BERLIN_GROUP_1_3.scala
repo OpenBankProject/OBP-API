@@ -442,22 +442,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  private def extractAccountData(scheme: String, address: String): (String, String, String, String, String) = {
-    val (iban: String, bban: String, pan: String, maskedPan: String, currency: String) = Connector.connector.vend.getBankAccountByRoutingLegacy(
-      None,
-      scheme,
-      address,
-      None
-    ) match {
-      case Full((account, _)) =>
-        val (iban: String, bban: String) = getIbanAndBban(account)
-        val (pan, maskedPan) = (account.number, getMaskedPrimaryAccountNumber(accountNumber = account.number))
-        (iban, bban, pan, maskedPan, account.currency)
-      case _ => ("", "", "", "", "")
-    }
-    (iban, bban, pan, maskedPan, currency)
-  }
-
   def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV13 = {
     val accountId = bankAccount.accountId.value
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
