@@ -88,6 +88,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                status: String,
                                                charge: TransactionRequestCharge,
                                                chargePolicy: String,
+                                               paymentService: Option[String],
                                                berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]): Box[TransactionRequest] = {
 
     val toAccountRouting = transactionRequestType.value match {
@@ -97,7 +98,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       case _ => toAccount.accountRoutings.headOption
     }
 
-    val (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution) = if(transactionRequestType == TransactionRequestType("")){ //TODO, here need to add the paymentService
+    val (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution) = if(paymentService == Some("periodic-payments")){
       val paymentFields = berlinGroupPayments.asInstanceOf[Option[PeriodicSepaCreditTransfersBerlinGroupV13]]
       
       val paymentStartDate = paymentFields.map(_.startDate).map(DateWithMsFormat.parse).orNull

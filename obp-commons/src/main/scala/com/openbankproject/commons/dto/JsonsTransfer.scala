@@ -515,7 +515,11 @@ case class OutBoundCreateChallenge(outboundAdapterCallContext: OutboundAdapterCa
 
 case class InBoundCreateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: String) extends InBoundTrait[String]
 
-case class OutBoundCreateCounterparty(outboundAdapterCallContext: OutboundAdapterCallContext, name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke]) extends TopicTrait
+case class OutBoundCreateCounterparty(outboundAdapterCallContext: OutboundAdapterCallContext, name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, 
+  otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, 
+  otherBankRoutingScheme: String, otherBankRoutingAddress: String, 
+  otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, 
+  bespoke: List[CounterpartyBespoke]) extends TopicTrait
 
 case class InBoundCreateCounterparty(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
@@ -1091,7 +1095,16 @@ case class InBoundGetChargeValue(status: Status, data: String) extends InBoundTr
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], paymentService: Option[String], berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]) extends TopicTrait
+case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType,
+  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+  detailsPlain: String, 
+  chargePolicy: String,
+  challengeType: Option[String], 
+  scaMethod: Option[StrongCustomerAuthentication.SCA],
+  reasons: Option[List[TransactionRequestReason]], 
+  paymentService: Option[String],
+  berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]
+) extends TopicTrait
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 case class OutBoundCreateTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, counterparty: BankAccount, body: TransactionRequestBody, status: String, charge: TransactionRequestCharge) extends TopicTrait

@@ -573,19 +573,28 @@ object SwaggerDefinitionsJSON {
     to = toAccountTransferToAccount
   )
 
-    val sepaCreditTransfers = SepaCreditTransfers(
-      debtorAccount = PaymentAccount(iban = "12345"),
-      instructedAmount = amountOfMoneyJsonV121,
-      creditorAccount = PaymentAccount(iban = "54321"),
-      creditorName = "John Miles"
-    )
-  
-    val sepaCreditTransfersBerlinGroupV13 = SepaCreditTransfersBerlinGroupV13(
-      debtorAccount = PaymentAccount(iban = "GB33BUKB20201555555555"),
-      instructedAmount = amountOfMoneyJsonV121,
-      creditorAccount = PaymentAccount(iban = "DE75512108001245126199"),
-      creditorName = "John Miles"
-    )
+  val sepaCreditTransfers = SepaCreditTransfers(
+    debtorAccount = PaymentAccount(iban = "12345"),
+    instructedAmount = amountOfMoneyJsonV121,
+    creditorAccount = PaymentAccount(iban = "54321"),
+    creditorName = "John Miles"
+  )
+
+  val sepaCreditTransfersBerlinGroupV13 = SepaCreditTransfersBerlinGroupV13(
+    debtorAccount = PaymentAccount(iban = "GB33BUKB20201555555555"),
+    instructedAmount = amountOfMoneyJsonV121,
+    creditorAccount = PaymentAccount(iban = "DE75512108001245126199"),
+    creditorName = "John Miles"
+  )
+
+  val periodicSepaCreditTransfersBerlinGroupV13 = PeriodicSepaCreditTransfersBerlinGroupV13(
+    debtorAccount = PaymentAccount(iban = "GB33BUKB20201555555555"),
+    instructedAmount = amountOfMoneyJsonV121,
+    creditorAccount = PaymentAccount(iban = "DE75512108001245126199"),
+    creditorName = "John Miles",
+    frequency = "Monthly",
+    startDate ="2018-03-01",
+  )
   
   val transactionRequestSimple= TransactionRequestSimple(
     otherBankRoutingScheme = bankRoutingSchemeExample.value,
