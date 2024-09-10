@@ -10,32 +10,6 @@ import net.liftweb.mapper._
 import net.liftweb.common.Box.tryo
 
 object MappedUserAgreementProvider extends UserAgreementProvider {
-  // TODO Change the function name
-  override def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
-    UserAgreement.find(
-      By(UserAgreement.UserId, userId),
-      By(UserAgreement.AgreementType, agreementType)
-    ) match {
-      // TODO We should be adding an additional record. Not changing existing one.
-      case Full(existingUser) =>
-        Full(
-          existingUser
-            .AgreementType(agreementType)
-            .AgreementText(agreementText)
-            .saveMe()
-        )
-      case Empty =>
-        Full(
-          UserAgreement.create
-            .UserId(userId)
-            .AgreementType(agreementType)
-            .AgreementText(agreementText)
-            .Date(new Date)
-            .saveMe()
-        )
-      case everythingElse => everythingElse
-    }
-  }
   override def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
     Full(
       UserAgreement.create
@@ -46,7 +20,7 @@ object MappedUserAgreementProvider extends UserAgreementProvider {
         .saveMe()
     )
   }
-  override def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement] = {
+  override def getLastUserAgreement(userId: String, agreementType: String): Box[UserAgreement] = {
     UserAgreement.findAll(
       By(UserAgreement.UserId, userId),
       By(UserAgreement.AgreementType, agreementType)

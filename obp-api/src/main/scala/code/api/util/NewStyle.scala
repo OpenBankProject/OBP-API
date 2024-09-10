@@ -852,7 +852,7 @@ object NewStyle extends MdcLoggable{
       }
     }
     def getAgreementByUserId(userId: String, agreementType: String, callContext: Option[CallContext]): Future[Box[UserAgreement]] = {
-      Future(UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, agreementType))
+      Future(UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, agreementType))
     }
 
     def getEntitlementsByBankId(bankId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {

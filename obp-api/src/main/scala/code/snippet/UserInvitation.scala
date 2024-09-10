@@ -121,13 +121,13 @@ class UserInvitation extends MdcLoggable {
               showError(msg)
             case _ =>
               // User Agreement table
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "privacy_conditions", privacyConditionsValue)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "terms_and_conditions", termsAndConditionsValue)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "consent_for_collecting_personal_data", consentForCollectingCheckboxVar.is.toString)
               // Set the status of the user invitation to "FINISHED"
               UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")

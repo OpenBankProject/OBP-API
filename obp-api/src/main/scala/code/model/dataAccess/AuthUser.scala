@@ -686,9 +686,9 @@ import net.liftweb.util.Helpers._
     val privacyPolicyValue: String = getWebUiPropsValue("webui_privacy_policy", "")
     val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
     // User Agreement table
-    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+    UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
       theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
-    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+    UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
       theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
@@ -1041,13 +1041,13 @@ def restoreSomeSessions(): Unit = {
     def redirectUri(user: Box[ResourceUser]): String = {
       val userId = user.map(_.userId).getOrElse("")
       val hashedAgreementTextOfUser =
-        UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "terms_and_conditions")
+        UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, "terms_and_conditions")
           .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
       val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
       val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
       if(hashedAgreementTextOfUser == hashedAgreementText) { // Check terms and conditions
         val hashedAgreementTextOfUser =
-          UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, "privacy_conditions")
+          UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, "privacy_conditions")
             .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
         val agreementText = getWebUiPropsValue("webui_privacy_policy", "not set")
         val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
