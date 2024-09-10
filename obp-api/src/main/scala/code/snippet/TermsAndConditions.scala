@@ -70,7 +70,9 @@ class TermsAndConditions extends MdcLoggable {
       val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
       // val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
       UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-        AuthUser.currentUser.flatMap(_.user.foreign.map(_.userId)).getOrElse(""), "terms_and_conditions", agreementText)
+        AuthUser.currentUser.flatMap(_.user.foreign.map(_.userId)).getOrElse(""),
+        "terms_and_conditions",
+        agreementText)
       S.redirectTo("/")
     }
   }
