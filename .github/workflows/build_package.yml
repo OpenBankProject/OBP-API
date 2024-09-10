@@ -73,7 +73,7 @@ jobs:
         run: |
           mkdir -p ./push
           cp obp-api/target/obp-api-1.*.war ./push/
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: push
           path: push/
