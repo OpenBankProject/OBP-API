@@ -945,6 +945,8 @@ trait APIMethods500 {
             //Here are all the VRP consent request
             (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
+              
+              // TODO Add routing scheme as well. In case IBAN is provided this will not work.
               val fromBankIdAccountId = BankIdAccountId(BankId(postConsentRequestJsonV510.from_account.bank_routing.address), AccountId(postConsentRequestJsonV510.from_account.account_routing.address))
 
               val vrpViewId = s"_VRP-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.

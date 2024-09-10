@@ -669,7 +669,7 @@ object Consent extends MdcLoggable {
                                   consentId: String,
                                   consumerId: Option[String],
                                   validUntil: Option[Date], 
-                                  callContext: Option[CallContext]): Future[String] = {
+                                  callContext: Option[CallContext]): Future[Box[String]] = {
 
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = validUntil match {
@@ -731,10 +731,14 @@ object Consent extends MdcLoggable {
         views = views,
         access = Some(consent.access)
       )
-      implicit val formats = CustomJsonFormats.formats
-      val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
-      val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
-      CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
+      if(views.isEmpty) {
+        Empty
+      } else {
+        implicit val formats = CustomJsonFormats.formats
+        val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+        val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+        Full(CertificateUtil.jwtWithHmacProtection(jwtClaims, secret))
+      }
     }
   }
   

@@ -1111,6 +1111,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def isObpProvider(user: AuthUser) = {
+      // TODO Consider does http://host should match https://host in development mode
       user.getProvider() == Constant.localIdentityProvider
     }
 
