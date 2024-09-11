@@ -30,6 +30,7 @@ import net.liftweb.util.StringHelpers
 import scala.collection.mutable.ListBuffer
 import com.openbankproject.commons.model.ListResult
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Box.tryo
 import net.liftweb.common.{EmptyBox, Full}
 import net.liftweb.json
 
@@ -692,7 +693,12 @@ object SwaggerJSONFactory extends MdcLoggable {
       case _ if isOneOfType[Coll[BigDecimal], Coll[JBigDecimal]]                 => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
       case _ if isOneOfType[Option[Coll[BigDecimal]], Option[Coll[JBigDecimal]]] => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
       //Date
-      case _ if isOneOfType[Date, Option[Date]]                   => s""" {"type":"string", "format":"date","example":"${APIUtil.DateWithSecondsFormat.format(exampleValue)}"}"""
+      case _ if isOneOfType[Date, Option[Date]]                   => {
+        val valueBox = tryo {s"""${APIUtil.DateWithSecondsFormat.format(exampleValue)}"""}
+        if(valueBox.isEmpty) logger.debug(s"isOneOfType[Date, Option[Date]]- Current Example Value is: $paramType - $exampleValue")
+        val value = valueBox.getOrElse(APIUtil.DateWithSecondsExampleString)
+        s""" {"type":"string", "format":"date","example":"$value"}"""
+      }
       case _ if isOneOfType[Coll[Date], Option[Coll[Date]]]       => s""" {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
       //List or Array Option data.
