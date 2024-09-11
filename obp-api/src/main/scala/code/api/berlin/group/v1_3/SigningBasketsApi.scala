@@ -52,7 +52,7 @@ object APIMethods_SigningBasketsApi extends RestHelper {
        "POST",
        "/signing-baskets",
        "Create a signing basket resource",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Create a signing basket resource for authorising several transactions with one SCA method. 
 The resource identifications of these transactions are contained in the  payload of this access method
 """,
@@ -136,7 +136,7 @@ The resource identifications of these transactions are contained in the  payload
        "DELETE",
        "/signing-baskets/BASKETID",
        "Delete the signing basket",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
 The undlerying transactions are not affected by this deletion.
 
@@ -173,7 +173,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "GET",
        "/signing-baskets/BASKETID",
        "Returns the content of an signing basket object.",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Returns the content of an signing basket object.""",
        emptyObjectJson,
        json.parse("""{
@@ -209,7 +209,7 @@ Returns the content of an signing basket object.""",
        "GET",
        "/signing-baskets/BASKETID/authorisations",
        "Get Signing Basket Authorisation Sub-Resources Request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -242,7 +242,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET",
        "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID",
        "Read the SCA status of the signing basket authorisation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method returns the SCA status of a signing basket's authorisation sub-resource.
 """,
        emptyObjectJson,
@@ -278,7 +278,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        "GET",
        "/signing-baskets/BASKETID/status",
        "Read the status of the signing basket",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Returns the status of a signing basket object. 
 """,
        emptyObjectJson,
@@ -312,7 +312,7 @@ Returns the status of a signing basket object.
        "POST",
        "/signing-baskets/BASKETID/authorisations",
        "Start the authorisation process for a signing basket",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process of a signing basket. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -409,7 +409,7 @@ This applies in the following scenarios:
        "PUT",
        "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID",
        "Update PSU Data for signing basket",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method update PSU data on the signing basket resource if needed. 
 It may authorise a igning basket within the Embedded SCA Approach where needed.
 
