@@ -5023,8 +5023,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
-          None, //berlinGroupPayments this is only from BerlinGroup
-        )
+          None, 
+          None)
       } map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
@@ -5180,6 +5180,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
+          paymentService,
           berlinGroupPayments
         )
         saveTransactionRequestReasons(reasons, transactionRequest)

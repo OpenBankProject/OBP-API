@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+11/09/2024    c7398e2e      Unfreeze and freeze the connector meta to pass the tests, because 5 new fields were added to the transactionRequest class: 
+                            payment_start_date, payment_end_date, payment_execution_Rule, payment_frequency, and payment_day_of_execution.
 12/01/2024    e14946b8      Renamed table MappedExpectedChallengeAnswer => ExpectedChallengeAnswer and removed prefix 'm' from fields. 
 16/11/2023    2b8811dc      Added show_used_connector_methods, default is false. 
 30/10/2023    4e82c66c      Added createLocalisedResourceDocJson.cache.ttl.seconds, default is 3600 

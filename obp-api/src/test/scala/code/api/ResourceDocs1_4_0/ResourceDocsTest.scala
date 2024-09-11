@@ -87,6 +87,15 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v5.1.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "v5.1.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv5.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "OBPv5.0.0" / "obp").GET

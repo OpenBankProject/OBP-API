@@ -1,7 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.Constant
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkAuthorisationConfirmation, checkSelectPsuAuthenticationMethod, checkTransactionAuthorisation, checkUpdatePsuAuthentication, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
@@ -633,7 +632,19 @@ Check the transaction status of a payment initiation.""",
       "/payments/PAYMENT_PRODUCT",
       "Payment initiation request(payments)",
       generalPaymentSummary,
-      sepaCreditTransfersBerlinGroupV13,
+      json.parse(s"""{
+                      "debtorAccount": {
+                          "iban": "DE123456987480123"
+                      },
+                      "instructedAmount": {
+                          "currency": "EUR",
+                          "amount": "100"
+                      },
+                      "creditorAccount": {
+                          "iban": "UK12 1234 5123 4517 2948 6166 077"
+                      },
+                      "creditorName": "70charname"
+                  }"""),
       json.parse(s"""{
                     "transactionStatus": "RCVD",
                     "paymentId": "1234-wertiq-983",
