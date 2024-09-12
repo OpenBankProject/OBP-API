@@ -486,7 +486,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Get all Transaction Requests",
       "",
       emptyObjectJson,
-      transactionRequest,
+      List(transactionRequestJson),
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -511,10 +511,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})"
               )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
+              oldTransactionRequest = transactionRequests.map(transforOldTransactionRequest(_).head)
             }
             yield {
-              // TODO return 1.4.0 version of Transaction Requests!
-              val successJson = Extraction.decompose(transactionRequests)
+              val successJson = Extraction.decompose(oldTransactionRequest)
               successJsonResponse(successJson)
             }
           } else {

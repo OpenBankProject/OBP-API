@@ -620,31 +620,6 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value
   )
 
-  val transactionRequest = TransactionRequest(
-    id= transactionRequestIdSwagger,
-    `type`= "String",
-    from= transactionRequestAccount,
-    body= transactionRequestBodyAllTypes,
-    transaction_ids= "String",
-    status= "String",
-    start_date= DateWithDayExampleObject,
-    end_date= DateWithDayExampleObject,
-    challenge= transactionRequestChallenge,
-    charge= transactionRequestCharge,
-    charge_policy= "String",
-    counterparty_id= counterpartyIdSwagger,
-    name= "String",
-    this_bank_id= bankIdSwagger,
-    this_account_id= accountIdSwagger,
-    this_view_id= viewIdSwagger,
-    other_account_routing_scheme= counterpartyOtherAccountRoutingSchemeExample.value,
-    other_account_routing_address= counterpartyOtherAccountRoutingAddressExample.value,
-    other_bank_routing_scheme= counterpartyOtherBankRoutingSchemeExample.value,
-    other_bank_routing_address= counterpartyOtherBankRoutingAddressExample.value,
-    is_beneficiary= true,
-    future_date = Some(futureDateExample.value)
-  )
-
   val adapterImplementationJson = AdapterImplementationJson("CORE",3)
 
   val messageDocJson = MessageDocJson(
