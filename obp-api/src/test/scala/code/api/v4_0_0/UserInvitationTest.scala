@@ -2,9 +2,11 @@ package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanCreateUserInvitation, CanGetUserInvitation}
 import code.api.util.ErrorMessages.{CannotGetUserInvitation, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -46,6 +48,29 @@ class UserInvitationTest extends V400ServerSetup {
       Then("error should be " + UserHasMissingRoles + CanCreateUserInvitation)
       response400.code should equal(403)
       response400.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanCreateUserInvitation)
+    }
+  }
+  feature(s"test $ApiEndpoint1 and $ApiEndpoint4 version $VersionOfApi - Successful response") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+      When("We add required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserInvitation.toString)
+      Then("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitation").POST <@(user1)
+      val postJson = SwaggerDefinitionsJSON.userInvitationPostJsonV400
+      val response400 = makePostRequest(request400, write(postJson))
+      Then("We get successful response")
+      response400.code should equal(201)
+      val userInvitation = response400.body.extract[UserInvitationJsonV400]
+
+      When("We add required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetUserInvitation.toString)
+      Then(s"We make a request $ApiEndpoint4")
+      val request = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We get successful response")
+      response.code should equal(200)
+      val userInvitations = response.body.extract[UserInvitationsJsonV400]
+      userInvitations.user_invitations.exists(i => i.email == userInvitation.email)
     }
   }
 
