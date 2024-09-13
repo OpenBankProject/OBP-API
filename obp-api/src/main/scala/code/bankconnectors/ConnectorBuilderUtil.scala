@@ -345,6 +345,7 @@ object ConnectorBuilderUtil {
     //"getCustomerByCustomerIdLegacy", // should not generate for Legacy methods
 
     "createChallenges",
+    "createTransactionRequestv400",
     "getCustomersByCustomerPhoneNumber",
     "getTransactionAttributeById",
     "createOrUpdateCustomerAttribute",
@@ -389,7 +390,6 @@ object ConnectorBuilderUtil {
     "makePaymentv200",
     "createTransactionRequest",
     "createTransactionRequestv200",
-    "createTransactionRequestv400",
     "getStatus",
     "getChargeValue",
     "saveTransactionRequestTransaction",
