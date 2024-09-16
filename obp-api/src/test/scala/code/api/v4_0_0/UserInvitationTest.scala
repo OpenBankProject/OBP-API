@@ -7,11 +7,16 @@ import code.api.util.ApiRole.{CanCreateUserInvitation, CanGetUserInvitation}
 import code.api.util.ErrorMessages.{CannotGetUserInvitation, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
+import code.users.{UserInvitation, UserInvitationProvider}
+import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
+import net.liftweb.util.Helpers.tryo
 import org.scalatest.Tag
+import org.scalatestplus.selenium.HtmlUnit
 
 class UserInvitationTest extends V400ServerSetup {
   /**
@@ -26,6 +31,26 @@ class UserInvitationTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getUserInvitationAnonymous))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getUserInvitation))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getUserInvitations))
+
+
+  case class UserInvitationAtBrowser() extends HtmlUnit with MdcLoggable {
+    implicit val driver = webDriver
+
+    def checkPrepoulatedFields(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+      tryo {
+        go.to(loginPage)
+        val firstNameOk = textField("firstName").value == userInvitation.firstName
+        val lastNameOk = textField("lastName").value == userInvitation.lastName
+        val emailOk = textField("devEmail").value == userInvitation.email
+        val companyNameOk = textField("companyName").value == userInvitation.company
+        val countryOk = textField("country").value == userInvitation.country
+
+        close()
+        quit()
+        firstNameOk && lastNameOk && emailOk && companyNameOk && countryOk
+      }
+    }
+  }
   
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
@@ -70,7 +95,17 @@ class UserInvitationTest extends V400ServerSetup {
       Then("We get successful response")
       response.code should equal(200)
       val userInvitations = response.body.extract[UserInvitationsJsonV400]
-      userInvitations.user_invitations.exists(i => i.email == userInvitation.email)
+      userInvitations.user_invitations.exists(i => i.email == userInvitation.email) should equal(true)
+
+
+      val invitation: UserInvitation = UserInvitationProvider.userInvitationProvider.vend.getUserInvitations(testBankId1)
+        .getOrElse(Nil)
+        .filter(i => i.email == userInvitation.email)
+        .head
+
+      val b = UserInvitationAtBrowser()
+      val pageUrl = (baseRequest / "user-invitation" <<? List(("id", invitation.secretKey.toString))).toRequest.getUrl
+      b.checkPrepoulatedFields(pageUrl, invitation) should equal(true)
     }
   }
 
