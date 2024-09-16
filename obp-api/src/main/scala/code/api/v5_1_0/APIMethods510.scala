@@ -2256,8 +2256,8 @@ trait APIMethods510 {
             (Full(u), callContext) <- SS.user
             bankIdAccountId = BankIdAccountId(bankId, accountId)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
-            // Note we do one explicit check here rather than use moderated account because this provide an explicit message
-            failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
+            // Note we do one explicit check here rather than use moderated account because this provides an explicit message
+            failMsg = ViewDoesNotPermitAccess + s" You need the `${StringHelpers.snakify(nameOf(view.canSeeBankAccountBalance))}` permission on VIEW_ID(${viewId.value})"
             _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
               view.canSeeBankAccountBalance
             }

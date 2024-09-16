@@ -1810,7 +1810,7 @@ trait APIMethods500 {
               permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
               _ <- Helper.booleanToFuture(
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views",
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views",
                 cc = callContext
               ) {
                 anyViewContainsCanSeeAvailableViewsForBankAccountPermission

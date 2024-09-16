@@ -30,6 +30,7 @@ import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
 import code.views.system.ViewDefinition
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType}
 import com.openbankproject.commons.util.ApiVersion
@@ -752,7 +753,7 @@ trait APIMethods210 {
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )")
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value} )")
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {

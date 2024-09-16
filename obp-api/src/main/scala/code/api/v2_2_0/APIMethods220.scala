@@ -1,7 +1,6 @@
 package code.api.v2_2_0
 
 import java.util.Date
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canCreateBranch, _}
@@ -26,6 +25,7 @@ import code.util.Helper
 import code.util.Helper._
 import code.views.Views
 import code.views.system.ViewDefinition
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -138,7 +138,7 @@ trait APIMethods220 {
             permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
             anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views",
               cc= callContext
             ){
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission
@@ -208,7 +208,7 @@ trait APIMethods220 {
               .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanCreateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canCreateCustomView_)).dropRight(1)}` permission on any your views"
             )
             view <- Views.views.vend.createCustomView(BankIdAccountId(bankId, accountId), createViewJson) ?~ CreateCustomViewError
           } yield {
@@ -267,7 +267,7 @@ trait APIMethods220 {
               .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCancanUpdateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateCustomView_)).dropRight(1)}` permission on any your views"
             )
             updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateViewJson) ?~ CreateCustomViewError
           } yield {

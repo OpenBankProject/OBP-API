@@ -15,6 +15,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import code.views.system.ViewDefinition
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
@@ -481,7 +482,7 @@ trait APIMethods121 {
             anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateBankAccountLabel_.dbColumnName).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateBankAccountLabel_)).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanUpdateBankAccountLabelPermission
@@ -545,7 +546,7 @@ trait APIMethods121 {
             anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
             _ <- Helper.booleanToBox(
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission, 
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views"
             )
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {
@@ -610,7 +611,7 @@ trait APIMethods121 {
               .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanCreateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canCreateCustomView_)).dropRight(1)}` permission on any your views"
             )
             view <- Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), createViewJson)?~ CreateCustomViewError
           } yield {
@@ -672,7 +673,7 @@ trait APIMethods121 {
               .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanUpdateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateCustomView_)).dropRight(1)}` permission on any your views"
             )
             updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId),viewId,  updateViewJson) ?~ CreateCustomViewError
           } yield {
@@ -717,7 +718,7 @@ trait APIMethods121 {
             anyViewContainsCanDeleteCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canDeleteCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canDeleteCustomView_.dbColumnName).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canDeleteCustomView_)).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanDeleteCustomViewPermission
@@ -757,7 +758,7 @@ trait APIMethods121 {
               .map(_.views.map(_.canSeeViewsWithPermissionsForAllUsers).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForAllUsers_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeViewsWithPermissionsForAllUsers_)).dropRight(1)}` permission on any your views"
             )
             permissions = Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
           } yield {
@@ -802,7 +803,7 @@ trait APIMethods121 {
               .find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canSeeViewsWithPermissionsForOneUser_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeViewsWithPermissionsForOneUser_)).dropRight(1)}` permission on any your views"
             )
             userFromURL <- UserX.findByProviderId(provider, providerId) ?~! UserNotFoundByProviderAndProvideId
             permission <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), userFromURL)
