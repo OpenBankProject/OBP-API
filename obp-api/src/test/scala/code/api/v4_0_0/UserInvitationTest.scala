@@ -36,6 +36,11 @@ class UserInvitationTest extends V400ServerSetup {
   case class UserInvitationAtBrowser() extends HtmlUnit with MdcLoggable {
     implicit val driver = webDriver
 
+    def closeAndQuit(): Unit = {
+      close()
+      quit()
+    }
+
     def checkPrepoulatedFields(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
       tryo {
         go.to(loginPage)
@@ -45,11 +50,64 @@ class UserInvitationTest extends V400ServerSetup {
         val companyNameOk = textField("companyName").value == userInvitation.company
         val countryOk = textField("country").value == userInvitation.country
 
-        close()
-        quit()
         firstNameOk && lastNameOk && emailOk && companyNameOk && countryOk
       }
     }
+    def checkSubmitButtonDisabled(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+      tryo {
+        go.to(loginPage)
+        val consentForCollectingCheckbox = checkbox("consent_for_collecting_checkbox").isSelected
+        val privacyCheckbox = checkbox("user_invitation_privacy_checkbox").isSelected
+        val termsCheckboxValue = checkbox("user_invitation_terms_checkbox").isSelected
+        val button = driver.findElementById("submit-button")
+
+        ((termsCheckboxValue && privacyCheckbox && consentForCollectingCheckbox) == button.isEnabled) &&
+          !button.isEnabled
+      }
+    }
+    def checkSubmitButtonDisabled2(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+      tryo {
+        go.to(loginPage)
+        checkbox("user_invitation_privacy_checkbox").select
+        val consentForCollectingCheckbox = checkbox("consent_for_collecting_checkbox").isSelected
+        val privacyCheckbox = checkbox("user_invitation_privacy_checkbox").isSelected
+        val termsCheckboxValue = checkbox("user_invitation_terms_checkbox").isSelected
+        val button = driver.findElementById("submit-button")
+
+        ((termsCheckboxValue && privacyCheckbox && consentForCollectingCheckbox) == button.isEnabled) &&
+          !button.isEnabled
+      }
+    }
+    def checkSubmitButtonDisabled3(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+      tryo {
+        go.to(loginPage)
+        checkbox("user_invitation_terms_checkbox").select
+        val consentForCollectingCheckbox = checkbox("consent_for_collecting_checkbox").isSelected
+        val privacyCheckbox = checkbox("user_invitation_privacy_checkbox").isSelected
+        val termsCheckboxValue = checkbox("user_invitation_terms_checkbox").isSelected
+        val button = driver.findElementById("submit-button")
+
+        ((termsCheckboxValue && privacyCheckbox && consentForCollectingCheckbox) == button.isEnabled) &&
+          !button.isEnabled
+      }
+    }
+    def checkSubmitButtonEnabled(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+      tryo {
+        go.to(loginPage)
+        checkbox("consent_for_collecting_checkbox").select
+        checkbox("user_invitation_privacy_checkbox").select
+        checkbox("user_invitation_terms_checkbox").select
+        val consentForCollectingCheckbox = checkbox("consent_for_collecting_checkbox").isSelected
+        val privacyCheckbox = checkbox("user_invitation_privacy_checkbox").isSelected
+        val termsCheckboxValue = checkbox("user_invitation_terms_checkbox").isSelected
+        val button = driver.findElementById("submit-button")
+
+        ((termsCheckboxValue && privacyCheckbox && consentForCollectingCheckbox) == button.isEnabled) &&
+          button.isEnabled
+      }
+    }
+
+
   }
   
 
@@ -106,6 +164,11 @@ class UserInvitationTest extends V400ServerSetup {
       val b = UserInvitationAtBrowser()
       val pageUrl = (baseRequest / "user-invitation" <<? List(("id", invitation.secretKey.toString))).toRequest.getUrl
       b.checkPrepoulatedFields(pageUrl, invitation) should equal(true)
+      b.checkSubmitButtonDisabled(pageUrl, invitation) should equal(true)
+      b.checkSubmitButtonDisabled2(pageUrl, invitation) should equal(true)
+      b.checkSubmitButtonDisabled3(pageUrl, invitation) should equal(true)
+      b.checkSubmitButtonEnabled(pageUrl, invitation) should equal(true)
+      b.closeAndQuit()
     }
   }
 
