@@ -18,7 +18,7 @@ import net.liftweb.util.Helpers.tryo
 import org.scalatest.Tag
 import org.scalatestplus.selenium.HtmlUnit
 
-class UserInvitationTest extends V400ServerSetup {
+class UserInvitationApiAndGuiTest extends V400ServerSetup {
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":
