@@ -187,9 +187,9 @@ class UserInvitation extends MdcLoggable {
           "#companyName" #> SHtml.text(companyVar.is, companyVar(_)) &
           "#devEmail" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#username" #> SHtml.text(usernameVar, usernameVar(_)) &
-          "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
-          "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
-          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
+          "#user_invitation_privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_), "id" -> "user_invitation_privacy_checkbox") &
+          "#user_invitation_terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_), "id" -> "user_invitation_terms_checkbox") &
+          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_), "id" -> "marketing_info_checkbox") &
           "#consent_for_collecting_checkbox" #> SHtml.checkbox(consentForCollectingCheckboxVar, consentForCollectingCheckboxVar(_), "id" -> "consent_for_collecting_checkbox") &
           "#consent_for_collecting_mandatory" #> SHtml.checkbox(consentForCollectingMandatoryCheckboxVar, consentForCollectingMandatoryCheckboxVar(_), "id" -> "consent_for_collecting_mandatory", "hidden" -> "true") &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)

@@ -106,6 +106,19 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
           button.isEnabled
       }
     }
+    def submitForm(loginPage: String, userInvitation: UserInvitation): Box[Boolean]= {
+      tryo {
+        go.to(loginPage)
+        checkbox("consent_for_collecting_checkbox").select
+        checkbox("user_invitation_privacy_checkbox").select
+        checkbox("user_invitation_terms_checkbox").select
+        click on XPathQuery("""//input[@type='submit']""")
+        val newURL = currentUrl
+        // In case of successful submit the new URL looks like
+        // http://localhost:8016/user_mgt/reset_password/IXIU0TVDUCKOH3RWEJF0XSSHNKSEFTQT?action=set
+        newURL.contains("user_mgt/reset_password")
+      }
+    }
 
 
   }
@@ -163,11 +176,17 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
 
       val b = UserInvitationAtBrowser()
       val pageUrl = (baseRequest / "user-invitation" <<? List(("id", invitation.secretKey.toString))).toRequest.getUrl
+      // Check form rules
       b.checkPrepoulatedFields(pageUrl, invitation) should equal(true)
       b.checkSubmitButtonDisabled(pageUrl, invitation) should equal(true)
       b.checkSubmitButtonDisabled2(pageUrl, invitation) should equal(true)
       b.checkSubmitButtonDisabled3(pageUrl, invitation) should equal(true)
       b.checkSubmitButtonEnabled(pageUrl, invitation) should equal(true)
+
+      // Submit form
+      b.submitForm(pageUrl, invitation) should equal(true)
+
+      // Clean the resources
       b.closeAndQuit()
     }
   }
