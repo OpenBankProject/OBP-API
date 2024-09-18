@@ -53,7 +53,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
         firstNameOk && lastNameOk && emailOk && companyNameOk && countryOk
       }
     }
-    def checkSubmitButtonDisabled(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+    def checkSubmitButtonDisabled(loginPage: String): Box[Boolean] = {
       tryo {
         go.to(loginPage)
         val consentForCollectingCheckbox = checkbox("consent_for_collecting_checkbox").isSelected
@@ -65,7 +65,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
           !button.isEnabled
       }
     }
-    def checkSubmitButtonDisabled2(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+    def checkSubmitButtonDisabled2(loginPage: String): Box[Boolean] = {
       tryo {
         go.to(loginPage)
         checkbox("user_invitation_privacy_checkbox").select
@@ -78,7 +78,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
           !button.isEnabled
       }
     }
-    def checkSubmitButtonDisabled3(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+    def checkSubmitButtonDisabled3(loginPage: String): Box[Boolean] = {
       tryo {
         go.to(loginPage)
         checkbox("user_invitation_terms_checkbox").select
@@ -91,7 +91,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
           !button.isEnabled
       }
     }
-    def checkSubmitButtonEnabled(loginPage: String, userInvitation: UserInvitation): Box[Boolean] = {
+    def checkSubmitButtonEnabled(loginPage: String): Box[Boolean] = {
       tryo {
         go.to(loginPage)
         checkbox("consent_for_collecting_checkbox").select
@@ -106,17 +106,36 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
           button.isEnabled
       }
     }
-    def submitForm(loginPage: String, userInvitation: UserInvitation): Box[Boolean]= {
+    def submitForm(loginPage: String, invitation: UserInvitation): Box[Boolean]= {
       tryo {
         go.to(loginPage)
         checkbox("consent_for_collecting_checkbox").select
         checkbox("user_invitation_privacy_checkbox").select
         checkbox("user_invitation_terms_checkbox").select
         click on XPathQuery("""//input[@type='submit']""")
-        val newURL = currentUrl
+        val setPasswordUrl = currentUrl
         // In case of successful submit the new URL looks like
         // http://localhost:8016/user_mgt/reset_password/IXIU0TVDUCKOH3RWEJF0XSSHNKSEFTQT?action=set
-        newURL.contains("user_mgt/reset_password")
+        if(setPasswordUrl.contains("user_mgt/reset_password") && setPasswordUrl.contains("action=set")) {
+          // Set a new password
+          val password = "Mjsjssj2odjd#"
+          val passwordField = IdQuery("password").webElement
+          passwordField.clear()
+          passwordField.sendKeys(password)
+          // Repeat the password value
+          val repeatPasswordField = IdQuery("repeatpassword").webElement
+          repeatPasswordField.clear()
+          repeatPasswordField.sendKeys(password)
+          // Submit the form
+          click on XPathQuery("""//input[@type='submit']""")
+          // After the password is set the page is redirected to the home page i.e. http://localhost:8016/
+          // and the user is logged in
+          val span = driver.findElementById("loggedIn-username")
+          loginPage.contains(currentUrl) &&
+            span.getText == s"${invitation.firstName.toLowerCase()}.${invitation.lastName.toLowerCase()}"
+        } else {
+          false
+        }
       }
     }
 
@@ -178,10 +197,10 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
       val pageUrl = (baseRequest / "user-invitation" <<? List(("id", invitation.secretKey.toString))).toRequest.getUrl
       // Check form rules
       b.checkPrepoulatedFields(pageUrl, invitation) should equal(true)
-      b.checkSubmitButtonDisabled(pageUrl, invitation) should equal(true)
-      b.checkSubmitButtonDisabled2(pageUrl, invitation) should equal(true)
-      b.checkSubmitButtonDisabled3(pageUrl, invitation) should equal(true)
-      b.checkSubmitButtonEnabled(pageUrl, invitation) should equal(true)
+      b.checkSubmitButtonDisabled(pageUrl) should equal(true)
+      b.checkSubmitButtonDisabled2(pageUrl) should equal(true)
+      b.checkSubmitButtonDisabled3(pageUrl) should equal(true)
+      b.checkSubmitButtonEnabled(pageUrl) should equal(true)
 
       // Submit form
       b.submitForm(pageUrl, invitation) should equal(true)
