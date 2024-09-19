@@ -121,13 +121,13 @@ class UserInvitation extends MdcLoggable {
               showError(msg)
             case _ =>
               // User Agreement table
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "privacy_conditions", privacyConditionsValue)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "terms_and_conditions", termsAndConditionsValue)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
-              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+              UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
                 u.userId, "consent_for_collecting_personal_data", consentForCollectingCheckboxVar.is.toString)
               // Set the status of the user invitation to "FINISHED"
               UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
@@ -187,9 +187,9 @@ class UserInvitation extends MdcLoggable {
           "#companyName" #> SHtml.text(companyVar.is, companyVar(_)) &
           "#devEmail" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#username" #> SHtml.text(usernameVar, usernameVar(_)) &
-          "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
-          "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
-          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
+          "#user_invitation_privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_), "id" -> "user_invitation_privacy_checkbox") &
+          "#user_invitation_terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_), "id" -> "user_invitation_terms_checkbox") &
+          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_), "id" -> "marketing_info_checkbox") &
           "#consent_for_collecting_checkbox" #> SHtml.checkbox(consentForCollectingCheckboxVar, consentForCollectingCheckboxVar(_), "id" -> "consent_for_collecting_checkbox") &
           "#consent_for_collecting_mandatory" #> SHtml.checkbox(consentForCollectingMandatoryCheckboxVar, consentForCollectingMandatoryCheckboxVar(_), "id" -> "consent_for_collecting_mandatory", "hidden" -> "true") &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)

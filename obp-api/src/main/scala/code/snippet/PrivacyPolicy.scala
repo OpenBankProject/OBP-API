@@ -68,7 +68,7 @@ class PrivacyPolicy extends MdcLoggable {
   private def updateUserAgreement() = {
     if(AuthUser.currentUser.isDefined) {
       val agreementText = getWebUiPropsValue("webui_privacy_policy", "not set")
-      UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+      UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
         AuthUser.currentUser.flatMap(_.user.foreign.map(_.userId)).getOrElse(""), "privacy_conditions", agreementText)
       S.redirectTo("/")
     }

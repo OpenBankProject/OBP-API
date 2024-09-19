@@ -16,9 +16,8 @@ object UserAgreementProvider extends SimpleInjector {
 }
 
 trait UserAgreementProvider {
-  def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
   def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
-  def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement]
+  def getLastUserAgreement(userId: String, agreementType: String): Box[UserAgreement]
 }
 
 trait UserAgreementTrait {

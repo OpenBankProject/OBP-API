@@ -3869,16 +3869,17 @@ trait APIMethods400 extends MdcLoggable {
       "POST",
       "/banks/BANK_ID/user-invitations",
       "Get User Invitation Information",
-      s"""Create User Invitation Information.
+      s"""Get User Invitation Information.
          |
          |${authenticationRequiredMessage(false)}
          |""",
       PostUserInvitationAnonymousJsonV400(secret_key = 5819479115482092878L),
       userInvitationJsonV400,
       List(
-        UserNotLoggedIn,
         $BankNotFound,
         UserCustomerLinksNotFoundForUser,
+        CannotGetUserInvitation,
+        CannotFindUserInvitation,
         UnknownError
       ),
       List(apiTagUserInvitation, apiTagKyc)

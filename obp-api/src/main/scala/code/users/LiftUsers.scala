@@ -133,9 +133,9 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   private def getUserAgreements(user: ResourceUser) = {
-    val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
-    val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
-    val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
+    val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "accept_marketing_info")
+    val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "terms_and_conditions")
+    val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "privacy_conditions")
     val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
     agreements
   }

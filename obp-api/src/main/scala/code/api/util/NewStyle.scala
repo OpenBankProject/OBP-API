@@ -833,7 +833,7 @@ object NewStyle extends MdcLoggable{
     }
     def getUserInvitation(bankId: BankId, secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
       val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitation(bankId, secretLink)
-      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
+      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 404), callContext)
     }
     def getUserInvitations(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[UserInvitation]] = Future {
       val response = UserInvitationProvider.userInvitationProvider.vend.getUserInvitations(bankId)
@@ -852,7 +852,7 @@ object NewStyle extends MdcLoggable{
       }
     }
     def getAgreementByUserId(userId: String, agreementType: String, callContext: Option[CallContext]): Future[Box[UserAgreement]] = {
-      Future(UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, agreementType))
+      Future(UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, agreementType))
     }
 
     def getEntitlementsByBankId(bankId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
