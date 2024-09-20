@@ -67,9 +67,10 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
-import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
@@ -84,6 +85,8 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount

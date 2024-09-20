@@ -35,7 +35,6 @@ import code.metrics.APIMetrics
 import code.model.{AppType, BankAccountX}
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
@@ -45,6 +44,8 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full

@@ -26,7 +26,8 @@ import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}

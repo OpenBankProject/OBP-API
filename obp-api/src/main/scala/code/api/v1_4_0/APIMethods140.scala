@@ -486,7 +486,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Get all Transaction Requests",
       "",
       emptyObjectJson,
-      List(transactionRequestJson),
+      transactionRequestJson,
       List(
         UserNotLoggedIn,
         BankNotFound,

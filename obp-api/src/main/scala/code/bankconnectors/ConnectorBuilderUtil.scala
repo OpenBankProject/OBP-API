@@ -346,6 +346,8 @@ object ConnectorBuilderUtil {
 
     "createChallenges",
     "createTransactionRequestv400",
+    "createTransactionRequestSepaCreditTransfersBGV1",
+    "createTransactionRequestPeriodicSepaCreditTransfersBGV1",
     "getCustomersByCustomerPhoneNumber",
     "getTransactionAttributeById",
     "createOrUpdateCustomerAttribute",

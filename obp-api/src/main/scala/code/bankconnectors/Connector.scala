@@ -32,8 +32,8 @@ import code.model.toUserExtended
 import code.productfee.ProductFeeX
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.transactionrequests.TransactionRequests._
 import code.users.{UserAttribute, Users}
 import code.util.Helper._

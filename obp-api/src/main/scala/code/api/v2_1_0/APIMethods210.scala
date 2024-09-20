@@ -24,7 +24,6 @@ import code.fx.fx
 import code.metrics.APIMetrics
 import code.model.{BankAccountX, BankX, Consumer, UserX, toUserExtended}
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
@@ -32,7 +31,9 @@ import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType}
+import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -48,7 +49,8 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.{APIFailure, ChargePolicy}
 import code.sandbox.{OBPDataImport, SandboxDataImport}
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}

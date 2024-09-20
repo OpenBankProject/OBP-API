@@ -44,6 +44,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
@@ -79,9 +81,6 @@ import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
-import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
-import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.TransactionRequestTypes
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
 import com.openbankproject.commons.model.enums.SuppliedAnswerType

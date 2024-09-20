@@ -5,14 +5,14 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.LocalMappedConnector._
-import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests._
 import code.util.Helper
 import code.util.Helper._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.PaymentServiceTypes
 import net.liftweb.common._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{NoTypeHints, Serialization}

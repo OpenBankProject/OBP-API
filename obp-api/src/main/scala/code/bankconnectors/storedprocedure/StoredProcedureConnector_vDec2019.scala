@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-09-13T09:50:02Z
+// ---------- created on 2024-09-20T12:17:12Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -2508,8 +2508,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       documentNumber=Some(documentNumberExample.value),
       amount=Some(amountExample.value),
       currency=Some(currencyExample.value),
-      description=Some(descriptionExample.value))))
-     )
+      description=Some(descriptionExample.value)))))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -2602,6 +2601,141 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_requestv400", req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
+  }
+          
+  messageDocs += createTransactionRequestSepaCreditTransfersBGV1Doc
+  def createTransactionRequestSepaCreditTransfersBGV1Doc = MessageDoc(
+    process = "obp.createTransactionRequestSepaCreditTransfersBGV1",
+    messageFormat = messageFormat,
+    description = "Create Transaction Request Sepa Credit Transfers BG V1",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      userId=userIdExample.value,
+      idGivenByProvider="string",
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
+      transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
+      transactionRequestBody= SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
+      instructionIdentification=Some("string"),
+      debtorName=Some("string"),
+      debtorAccount=PaymentAccount("string"),
+      debtorId=Some("string"),
+      ultimateDebtor=Some("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      currencyOfTransfer=Some("string"),
+      exchangeRateInformation=Some("string"),
+      creditorAccount=PaymentAccount("string"),
+      creditorAgent=Some("string"),
+      creditorAgentName=Some("string"),
+      creditorName="string",
+      creditorId=Some("string"),
+      creditorAddress=Some("string"),
+      creditorNameAndAddress=Some("string"),
+      ultimateCreditor=Some("string"),
+      purposeCode=Some("string"),
+      chargeBearer=Some("string"),
+      serviceLevel=Some("string"),
+      remittanceInformationUnstructured=Some("string"),
+      remittanceInformationUnstructuredArray=Some("string"),
+      remittanceInformationStructured=Some("string"),
+      remittanceInformationStructuredArray=Some("string"),
+      requestedExecutionDate=Some("string"),
+      requestedExecutionTime=Some("string")))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateTransactionRequestSepaCreditTransfersBGV1(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= TransactionRequestBGV1(id=TransactionRequestId(idExample.value),
+      status=statusExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestSepaCreditTransfersBGV1 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_sepa_credit_transfers_bgv1", req, callContext)
+        response.map(convertToTuple[TransactionRequestBGV1](callContext))        
+  }
+          
+  messageDocs += createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc
+  def createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc = MessageDoc(
+    process = "obp.createTransactionRequestPeriodicSepaCreditTransfersBGV1",
+    messageFormat = messageFormat,
+    description = "Create Transaction Request Periodic Sepa Credit Transfers BG V1",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      userId=userIdExample.value,
+      idGivenByProvider="string",
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
+      transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
+      transactionRequestBody= PeriodicSepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
+      instructionIdentification=Some("string"),
+      debtorName=Some("string"),
+      debtorAccount=PaymentAccount("string"),
+      debtorId=Some("string"),
+      ultimateDebtor=Some("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      currencyOfTransfer=Some("string"),
+      exchangeRateInformation=Some("string"),
+      creditorAccount=PaymentAccount("string"),
+      creditorAgent=Some("string"),
+      creditorAgentName=Some("string"),
+      creditorName="string",
+      creditorId=Some("string"),
+      creditorAddress=Some("string"),
+      creditorNameAndAddress=Some("string"),
+      ultimateCreditor=Some("string"),
+      purposeCode=Some("string"),
+      chargeBearer=Some("string"),
+      serviceLevel=Some("string"),
+      remittanceInformationUnstructured=Some("string"),
+      remittanceInformationUnstructuredArray=Some("string"),
+      remittanceInformationStructured=Some("string"),
+      remittanceInformationStructuredArray=Some("string"),
+      requestedExecutionDate=Some("string"),
+      requestedExecutionTime=Some("string"),
+      startDate=startDateExample.value,
+      executionRule=Some("string"),
+      endDate=Some(endDateExample.value),
+      frequency=frequencyExample.value,
+      dayOfExecution=Some("string")))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= TransactionRequestBGV1(id=TransactionRequestId(idExample.value),
+      status=statusExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_periodic_sepa_credit_transfers_bgv1", req, callContext)
+        response.map(convertToTuple[TransactionRequestBGV1](callContext))        
   }
           
   messageDocs += getTransactionRequests210Doc
@@ -6794,8 +6928,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-09-13T09:50:02Z
-//---------------- dynamic end ---------------------please don't modify this line                                         
+// ---------- created on 2024-09-20T12:17:12Z
+//---------------- dynamic end ---------------------please don't modify this line                                           
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

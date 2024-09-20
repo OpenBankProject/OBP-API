@@ -5,10 +5,12 @@ import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.model._
-import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}

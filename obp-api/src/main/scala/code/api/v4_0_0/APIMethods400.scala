@@ -67,8 +67,6 @@ import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -87,6 +85,8 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion._
 import net.liftweb.common._

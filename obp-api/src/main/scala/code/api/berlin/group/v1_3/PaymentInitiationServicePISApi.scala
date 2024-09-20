@@ -12,9 +12,6 @@ import code.api.berlin.group.v1_3.model._
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.api.Constant._
-import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{SEPA_CREDIT_TRANSFERS, TransactionRequestTypes}
-import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -22,7 +19,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus,TransactionRequestTypes,PaymentServiceTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb
 import net.liftweb.common.Box.tryo
