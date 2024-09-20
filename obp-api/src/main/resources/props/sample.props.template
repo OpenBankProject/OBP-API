@@ -936,7 +936,8 @@ database_messages_scheduler_interval=3600
                                                     ReadTransactionsBasic,\
                                                     ReadTransactionsDebits,\
                                                     ReadTransactionsDetail, \
-                                                    ReadAccountsBerlinGroup
+                                                    ReadAccountsBerlinGroup, \
+                                                    InitiatePaymentsBerlinGroup
 # -----------------------------------------------------------------------------
                       
 
