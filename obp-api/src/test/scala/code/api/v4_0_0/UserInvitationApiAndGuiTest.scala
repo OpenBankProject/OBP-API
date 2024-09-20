@@ -8,6 +8,7 @@ import code.api.util.ErrorMessages.{CannotGetUserInvitation, UserHasMissingRoles
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.users.{UserInvitation, UserInvitationProvider}
+import scala.util.Random.nextString
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -118,7 +119,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
         // http://localhost:8016/user_mgt/reset_password/IXIU0TVDUCKOH3RWEJF0XSSHNKSEFTQT?action=set
         if(setPasswordUrl.contains("user_mgt/reset_password") && setPasswordUrl.contains("action=set")) {
           // Set a new password
-          val password = "Mjsjssj2odjd#"
+          val password = s"M${nextString(6)}#"
           val passwordField = IdQuery("password").webElement
           passwordField.clear()
           passwordField.sendKeys(password)
