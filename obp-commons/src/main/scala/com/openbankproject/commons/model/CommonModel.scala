@@ -858,6 +858,12 @@ case class TransactionRequest (
                                 @optional
                                 payment_day_of_execution :Option[String] = None,
                               )
+
+case class TransactionRequestBGV1(
+  id: TransactionRequestId,
+  status: String,
+)
+
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,
                                     val value : AmountOfMoney,

@@ -12,7 +12,8 @@ import code.api.berlin.group.v1_3.model._
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.api.Constant._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.SEPA_CREDIT_TRANSFERS
+import code.transactionrequests.TransactionRequests.PaymentServiceTypes.PaymentServiceTypes
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{SEPA_CREDIT_TRANSFERS, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import code.views.Views
@@ -42,7 +43,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-  def checkPaymentServerError(paymentService: String) = {
+  def checkPaymentServerTypeError(paymentService: String) = {
     val ccc = ""
     s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` or `periodic-payments` for now, will support `bulk-payments` soon"
   }
@@ -116,7 +117,7 @@ or * access method is generally applicable, but further authorisation processes 
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -192,7 +193,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -239,7 +240,7 @@ Returns the content of a payment object""",
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -298,7 +299,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -336,7 +337,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -373,7 +374,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -412,7 +413,7 @@ Check the transaction status of a payment initiation.""",
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -474,8 +475,8 @@ Check the transaction status of a payment initiation.""",
     """.stripMargin
 
 
-    private val generalPaymentSummary =
-      s"""${mockedDataText(false)}
+  def generalPaymentSummary (isMockedData :Boolean) =
+      s"""${mockedDataText(isMockedData)}
   This method is used to initiate a payment at the ASPSP.
 
   ## Variants of Payment Initiation Requests
@@ -528,35 +529,28 @@ Check the transaction status of a payment initiation.""",
     for {
       (Full(u), callContext) <- authenticatedAccess(cc)
       _ <- passesPsd2Pisp(callContext)
-      
-      _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService), 400, callContext) {
+
+      paymentServiceType <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 400, callContext) {
         PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
       }
-      _ <- Helper.booleanToFuture(failMsg= checkPaymentServerError(paymentService), cc=callContext) {
-        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments) ||
-        PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.periodic_payments) 
-      }
-      
-      transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
+
+      //Berlin Group PaymentProduct is OBP transaction request type
+      transacitonRequestType <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
-      sepaCreditTransfersBerlinGroupV13 <- if(PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")).equals(PaymentServiceTypes.payments)){
+      sepaCreditTransfersBerlinGroupV13 <- if(paymentServiceType.equals(PaymentServiceTypes.payments)){
         NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
           json.extract[SepaCreditTransfersBerlinGroupV13]
         }
-      } else{
+      } else if(paymentServiceType.equals(PaymentServiceTypes.periodic_payments)){
         NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PeriodicSepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
           json.extract[PeriodicSepaCreditTransfersBerlinGroupV13]
         }
+      }else{
+        Future{throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString))}
       }
-      //If it is periodic_payments, we need to make sure, we have more fileds.
-
-      transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
-        write(sepaCreditTransfersBerlinGroupV13)(Serialization.formats(NoTypeHints))
-      }
-
-      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${sepaCreditTransfersBerlinGroupV13.instructedAmount.amount} ", 400, callContext) {
+      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${sepaCreditTransfersBerlinGroupV13.instructedAmount.amount} ", 400, callContext) {
         BigDecimal(sepaCreditTransfersBerlinGroupV13.instructedAmount.amount)
       }
 
@@ -570,51 +564,18 @@ Check the transaction status of a payment initiation.""",
       }
 
       _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-      fromAccountIban = sepaCreditTransfersBerlinGroupV13.debtorAccount.iban
-      toAccountIban = sepaCreditTransfersBerlinGroupV13.creditorAccount.iban
 
-      (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-      (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
-      _ <- Helper.booleanToFuture(invalidIban, cc = callContext) {
-        ibanChecker.isValid == true
-      }
-      (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-      viewId = ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
-      bankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-      view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
-      _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest, cc = callContext) {
-        view.canAddTransactionRequestToAnyAccount
-      }
-      // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}", cc = callContext) {
-        sepaCreditTransfersBerlinGroupV13.instructedAmount.currency == fromAccount.currency
-      }
-
-      amountOfMoneyJSON = sepaCreditTransfersBerlinGroupV13.instructedAmount
-
-      (createdTransactionRequest, callContext) <- transactionRequestTypes match {
+      (createdTransactionRequest, callContext) <- transacitonRequestType match {
         case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
           for {
-            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
-              u,
-              ViewId(Constant.SYSTEM_OWNER_VIEW_ID), //This is the default
-              fromAccount,
-              toAccount,
-              TransactionRequestType(transactionRequestTypes.toString),
-              TransactionRequestCommonBodyJSONCommons(
-                amountOfMoneyJSON,
-                ""
-              ),
-              transDetailsSerialized,
-              "",
-              Some(BERLIN_GROUP_PAYMENT_CHALLENGE),
-              None,
-              None,
-              Some(paymentService),
-              Some(sepaCreditTransfersBerlinGroupV13),
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestBGV1(
+              initiator = u,
+              paymentServiceType,
+              transacitonRequestType,
+              transactionRequestBody = sepaCreditTransfersBerlinGroupV13,
               callContext
-            ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+            )
           } yield (createdTransactionRequest, callContext)
         }
       }
@@ -631,7 +592,7 @@ Check the transaction status of a payment initiation.""",
       "POST",
       "/payments/PAYMENT_PRODUCT",
       "Payment initiation request(payments)",
-      generalPaymentSummary,
+      generalPaymentSummary(false),
       json.parse(s"""{
                       "debtorAccount": {
                           "iban": "DE123456987480123"
@@ -675,7 +636,7 @@ Check the transaction status of a payment initiation.""",
       "POST",
       "/periodic-payments/PAYMENT_PRODUCT",
       "Payment initiation request(periodic-payments)",
-      generalPaymentSummary,
+      generalPaymentSummary(false),
       json.parse(s"""{
                     "instructedAmount": {
                       "currency": "EUR",
@@ -723,7 +684,7 @@ Check the transaction status of a payment initiation.""",
       "POST",
       "/bulk-payments/PAYMENT_PRODUCT",
       "Payment initiation request(bulk-payments)",
-      generalPaymentSummary,
+      generalPaymentSummary(true),
       json.parse(s"""{
                     "batchBookingPreferred": "true",
                     "debtorAccount": {
@@ -937,7 +898,7 @@ This applies in the following scenarios:
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Pisp(callContext)
-            _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService), 400, callContext) {
+            _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 400, callContext) {
               PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
             }
             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 400, callContext) {
@@ -1030,7 +991,7 @@ This applies in the following scenarios:
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -1232,7 +1193,7 @@ There are the following request types on this access path:
                json.extract[TransactionAuthorisation]
              }
 
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
@@ -1479,7 +1440,7 @@ There are the following request types on this access path:
                json.extract[TransactionAuthorisation]
              }
 
-             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {

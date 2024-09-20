@@ -1102,8 +1102,6 @@ case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: Outb
   challengeType: Option[String], 
   scaMethod: Option[StrongCustomerAuthentication.SCA],
   reasons: Option[List[TransactionRequestReason]], 
-  paymentService: Option[String],
-  berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]
 ) extends TopicTrait
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 

@@ -1095,8 +1095,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
 
                 _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
@@ -1152,8 +1150,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
               } yield (createdTransactionRequest, callContext)
             }
@@ -1181,8 +1177,6 @@ trait APIMethods400 extends MdcLoggable {
                   sharedChargePolicy.toString,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
               } yield (createdTransactionRequest, callContext)
@@ -1218,8 +1212,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
             }
@@ -1250,8 +1242,6 @@ trait APIMethods400 extends MdcLoggable {
                   chargePolicy,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
@@ -1304,8 +1294,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
 
@@ -1340,8 +1328,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   transDetailsSEPAJson.reasons.map(_.map(_.transform)),
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
             }
@@ -1365,8 +1351,6 @@ trait APIMethods400 extends MdcLoggable {
                   sharedChargePolicy.toString,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext)
               } yield
