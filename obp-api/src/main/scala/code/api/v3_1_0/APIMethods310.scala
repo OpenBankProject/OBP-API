@@ -659,7 +659,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ViewDoesNotPermitAccess +  You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canQueryAvailableFunds_)).dropRight(1)}` permission on any your views", cc=callContext) {
               view.canQueryAvailableFunds
             }
             httpParams: List[HTTPParam] <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
@@ -1130,7 +1130,7 @@ trait APIMethods310 {
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value})",
               cc=callContext){
               view.canSeeTransactionRequests
             }

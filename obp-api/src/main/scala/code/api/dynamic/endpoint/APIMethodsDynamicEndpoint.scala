@@ -10,7 +10,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.endpointMapping.EndpointMappingCommons
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._

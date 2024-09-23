@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package com.openbankproject.commons.dto
 
 import java.util.Date
-import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, StrongCustomerAuthentication, SuppliedAnswerType, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, PaymentServiceTypes, StrongCustomerAuthentication, SuppliedAnswerType, TransactionAttributeType, TransactionRequestStatus, TransactionRequestTypes}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.SuppliedAnswerType
@@ -1102,10 +1102,26 @@ case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: Outb
   challengeType: Option[String], 
   scaMethod: Option[StrongCustomerAuthentication.SCA],
   reasons: Option[List[TransactionRequestReason]], 
-  paymentService: Option[String],
-  berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson]
 ) extends TopicTrait
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
+
+case class OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(
+  outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User,
+  paymentServiceType: PaymentServiceTypes.Value,
+  transactionRequestType: TransactionRequestTypes.Value,
+  transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
+) extends TopicTrait
+
+case class InBoundCreateTransactionRequestSepaCreditTransfersBGV1 (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
+
+case class OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(
+  outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User,
+  paymentServiceType: PaymentServiceTypes.Value,
+  transactionRequestType: TransactionRequestTypes.Value,
+  transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,
+) extends TopicTrait
+
+case class InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
 case class OutBoundCreateTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, counterparty: BankAccount, body: TransactionRequestBody, status: String, charge: TransactionRequestCharge) extends TopicTrait
 case class InBoundCreateTransactionRequestImpl(status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest] {

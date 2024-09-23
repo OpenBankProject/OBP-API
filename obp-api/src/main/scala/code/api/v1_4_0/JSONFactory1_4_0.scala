@@ -139,7 +139,6 @@ object JSONFactory1_4_0 extends MdcLoggable{
     is_beneficiary :Boolean
   )
 
-
   def createCustomerJson(cInfo : Customer) : CustomerJsonV140 = {
 
     CustomerJsonV140(
@@ -913,12 +912,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
       `type` = transactionRequest.`type`,
       from = transactionRequest.from,
       details = TransactionRequestBodyJson(
-        transactionRequest.body.to_sandbox_tan.get, 
+        transactionRequest.body.to_sandbox_tan.getOrElse(null), 
         transactionRequest.body.value, 
         transactionRequest.body.description
       ),
       body = TransactionRequestBodyJson(
-        transactionRequest.body.to_sandbox_tan.get, 
+        transactionRequest.body.to_sandbox_tan.getOrElse(null), 
         transactionRequest.body.value, 
         transactionRequest.body.description
       ),

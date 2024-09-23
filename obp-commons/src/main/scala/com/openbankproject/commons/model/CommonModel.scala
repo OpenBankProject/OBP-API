@@ -388,6 +388,37 @@ case class TransactionRequestCommonBodyJSONCommons(
 
 object TransactionRequestCommonBodyJSONCommons extends Converter[TransactionRequestCommonBodyJSON, TransactionRequestCommonBodyJSONCommons]
 
+case class BerlinGroupTransactionRequestCommonBodyJsonCommons(
+  endToEndIdentification:  Option[String],
+  instructionIdentification:  Option[String],
+  debtorName:  Option[String],
+  debtorAccount: PaymentAccount,
+  debtorId: Option[String],
+  ultimateDebtor: Option[String],
+  instructedAmount: AmountOfMoneyJsonV121,
+  currencyOfTransfer: Option[String],
+  exchangeRateInformation: Option[String],
+  creditorAccount: PaymentAccount,
+  creditorAgent: Option[String],
+  creditorAgentName: Option[String],
+  creditorName: String,
+  creditorId: Option[String],
+  creditorAddress: Option[String],
+  creditorNameAndAddress: Option[String],
+  ultimateCreditor: Option[String],
+  purposeCode: Option[String],
+  chargeBearer: Option[String],
+  serviceLevel: Option[String],
+  remittanceInformationUnstructured: Option[String],
+  remittanceInformationUnstructuredArray: Option[String],
+  remittanceInformationStructured: Option[String],
+  remittanceInformationStructuredArray: Option[String],
+  requestedExecutionDate: Option[String],
+  requestedExecutionTime: Option[String],
+) extends BerlinGroupTransactionRequestCommonBodyJson
+
+object BerlinGroupTransactionRequestCommonBodyJsonCommons extends Converter[BerlinGroupTransactionRequestCommonBodyJson, BerlinGroupTransactionRequestCommonBodyJsonCommons]
+
 case class TransactionRequestStatusCommons(
                                             transactionRequestId: String,
                                             bulkTransactionsStatus: List[TransactionStatus]
@@ -827,6 +858,12 @@ case class TransactionRequest (
                                 @optional
                                 payment_day_of_execution :Option[String] = None,
                               )
+
+case class TransactionRequestBGV1(
+  id: TransactionRequestId,
+  status: String,
+)
+
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,
                                     val value : AmountOfMoney,

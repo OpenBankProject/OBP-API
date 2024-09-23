@@ -35,7 +35,6 @@ import code.metrics.APIMetrics
 import code.model.{AppType, BankAccountX}
 import code.model.dataAccess.MappedBankAccount
 import code.regulatedentities.MappedRegulatedEntityProvider
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
@@ -45,6 +44,8 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
@@ -2256,8 +2257,8 @@ trait APIMethods510 {
             (Full(u), callContext) <- SS.user
             bankIdAccountId = BankIdAccountId(bankId, accountId)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
-            // Note we do one explicit check here rather than use moderated account because this provide an explicit message
-            failMsg = ViewDoesNotPermitAccess + " You need the permission canSeeBankAccountBalance."
+            // Note we do one explicit check here rather than use moderated account because this provides an explicit message
+            failMsg = ViewDoesNotPermitAccess + s" You need the `${StringHelpers.snakify(nameOf(view.canSeeBankAccountBalance))}` permission on VIEW_ID(${viewId.value})"
             _ <- Helper.booleanToFuture(failMsg, 403, cc = callContext) {
               view.canSeeBankAccountBalance
             }

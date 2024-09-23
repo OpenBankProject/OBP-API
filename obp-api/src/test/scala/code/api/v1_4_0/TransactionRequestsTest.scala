@@ -7,13 +7,15 @@ import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.setup.DefaultUsers
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import com.openbankproject.commons.model.enums.{ChallengeType, TransactionRequestStatus}
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 import code.api.util.ErrorMessages._
 import code.model.BankAccountX
+import com.openbankproject.commons.model.enums.TransactionRequestTypes.SANDBOX_TAN
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 
 import scala.collection.immutable.List

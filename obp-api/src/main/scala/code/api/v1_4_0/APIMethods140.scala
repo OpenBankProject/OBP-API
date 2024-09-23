@@ -457,7 +457,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequestTypes_)).dropRight(1)}` permission on the View(${viewId.value} )",
               cc = callContext
             ) {
               view.canSeeTransactionRequestTypes
@@ -486,7 +486,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "Get all Transaction Requests",
       "",
       emptyObjectJson,
-      transactionRequest,
+      transactionRequestJson,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -508,13 +508,13 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(
                 view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})"
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value})"
               )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
+              oldTransactionRequest = transactionRequests.map(transforOldTransactionRequest(_).head)
             }
             yield {
-              // TODO return 1.4.0 version of Transaction Requests!
-              val successJson = Extraction.decompose(transactionRequests)
+              val successJson = Extraction.decompose(oldTransactionRequest)
               successJsonResponse(successJson)
             }
           } else {

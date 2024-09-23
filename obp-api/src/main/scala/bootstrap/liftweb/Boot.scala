@@ -286,19 +286,22 @@ class Boot extends MdcLoggable {
 
       APIUtil.getPropsValue("additional_system_views") match {
         case Full(value) =>
-          val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
-          val viewsUKOpenBanking = List(
-            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
-            SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
+          val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
+          val additionalSystemViews = List(
+            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, 
+            SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+            SYSTEM_READ_BALANCES_VIEW_ID, 
+            SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, 
+            SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
             SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
             SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID,
             SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID,
             SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
           )
           for {
-            systemView <- viewSetUKOpenBanking
-            if viewsUKOpenBanking.exists(_ == systemView)
+            systemView <- additionalSystemViewsFromProps
+            if additionalSystemViews.exists(_ == systemView)
           } {
             Views.views.vend.getOrCreateSystemView(systemView)
           }

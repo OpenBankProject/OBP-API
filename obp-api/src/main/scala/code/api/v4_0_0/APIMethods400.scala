@@ -67,8 +67,6 @@ import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -87,6 +85,8 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion._
 import net.liftweb.common._
@@ -1095,8 +1095,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
 
                 _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
@@ -1152,8 +1150,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
               } yield (createdTransactionRequest, callContext)
             }
@@ -1181,8 +1177,6 @@ trait APIMethods400 extends MdcLoggable {
                   sharedChargePolicy.toString,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
               } yield (createdTransactionRequest, callContext)
@@ -1218,8 +1212,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
             }
@@ -1250,8 +1242,6 @@ trait APIMethods400 extends MdcLoggable {
                   chargePolicy,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
@@ -1304,8 +1294,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   None,
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
 
@@ -1340,8 +1328,6 @@ trait APIMethods400 extends MdcLoggable {
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
                   transDetailsSEPAJson.reasons.map(_.map(_.transform)),
-                  None,
-                  None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
             }
@@ -1365,8 +1351,6 @@ trait APIMethods400 extends MdcLoggable {
                   sharedChargePolicy.toString,
                   Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                   getScaMethodAtInstance(transactionRequestType.value).toOption,
-                  None,
-                  None,
                   None,
                   callContext)
               } yield
@@ -2780,7 +2764,7 @@ trait APIMethods400 extends MdcLoggable {
             anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateBankAccountLabel_.dbColumnName).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateBankAccountLabel_)).dropRight(1)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanUpdateBankAccountLabelPermission
@@ -5196,7 +5180,7 @@ trait APIMethods400 extends MdcLoggable {
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value})",
               cc = callContext) {
               view.canSeeTransactionRequests
             }
