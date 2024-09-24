@@ -447,7 +447,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,false, false)
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,false)
           resourceDocs
       }
     }
@@ -472,43 +472,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           implicit val ec = EndpointContext(Some(cc))
-          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,true, false)
+          val resourceDocs = getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,true)
           resourceDocs
       }
     }
-
-//    localResourceDocs += ResourceDoc(
-//      getStaticResourceDocsObp,
-//      implementedInApiVersion,
-//      nameOf(getStaticResourceDocsObp),
-//      "GET",
-//      "/static-resource-docs/API_VERSION/obp",
-//      "Get Static Resource Docs",
-//      getResourceDocsDescription(false),
-//      emptyObjectJson,
-//      exampleResourceDocsJsonV400,
-//      UnknownError :: Nil,
-//      List(apiTagDocumentation, apiTagApi),
-//      Some(List(canReadStaticResourceDoc))
-//    )
-//
-//    def getStaticResourceDocsObp : OBPEndpoint = {
-//      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-//        cc =>
-//          getApiLevelResourceDocs(
-//            cc,requestedApiVersionString,
-//            tags,
-//            partialFunctions,
-//            locale,
-//            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
-//            apiCollectionIdParam,
-//            true,
-//            true
-//          )
-//      }
-//    }
-
 
     //API level just mean, this response will be forward to liftweb directly.
     private def getApiLevelResourceDocs(
@@ -520,7 +487,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       contentParam: Option[ContentParam],
       apiCollectionIdParam: Option[String],
       isVersion4OrHigher: Boolean,
-      isStaticResource: Boolean,
     ) = {
         for {
           (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
@@ -529,10 +495,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           }
           _ <- resourceDocsRequireRole match {
             case false => Future()
-            case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-              if(isStaticResource)
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadStaticResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadStaticResourceDoc :: Nil, cc.callContext)
-              else
+            case true => // If set resource_docs_requires_role=true, we need check the roles as well
                 NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
@@ -552,8 +515,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             locale,
             contentParam,
             apiCollectionIdParam,
-            Some(isVersion4OrHigher),
-            Some(isStaticResource))
+            Some(isVersion4OrHigher))
           json <- locale match {
             case _ if (apiCollectionIdParam.isDefined) =>
               val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
@@ -665,7 +627,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               locale,
               contentParam,
               apiCollectionIdParam,
-              None,
               None)
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
               val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
@@ -739,7 +700,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               requestedApiVersionString,
               resourceDocTags,
               partialFunctions,
-              None,
               None,
               None,
               None,

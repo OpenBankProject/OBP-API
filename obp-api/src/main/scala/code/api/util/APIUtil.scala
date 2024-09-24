@@ -4927,10 +4927,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
-    isVersion4OrHigher: Option[Boolean],
-    isStaticResource: Option[Boolean],
+    isVersion4OrHigher: Option[Boolean]
   ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
-    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
+    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))

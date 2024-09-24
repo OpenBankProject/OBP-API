@@ -24,8 +24,6 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
   object ApiEndpoint1 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsObp))
   object ApiEndpoint2 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsSwagger))
   object ApiEndpoint3 extends Tag(nameOf(ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp))
-//  object ApiEndpoint4 extends Tag(nameOf(ImplementationsResourceDocs.getStaticResourceDocsObp))
-
   
   override def beforeEach() = {
     super.beforeEach()
