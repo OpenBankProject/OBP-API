@@ -19,6 +19,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.newstyle.BalanceNewStyle
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
@@ -3200,10 +3201,11 @@ trait APIMethods310 {
             (_, callContext) <- anonymousAccess(cc)
             messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
             resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, resourceDocTags, partialFunctions)
-            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocListFiltered, ApiVersion.v3_1_0)}
-            //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
+            resourceDocJsonList =  JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, true, None).resource_docs
+            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)}
+            //For this connector swagger, it shares some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
-            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocListFiltered, allSwaggerDefinitionCaseClasses)}
+            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)}
           } yield {
             // Merge both results and return
             (Extraction.decompose(json) merge jsonAST, HttpCode.`200`(callContext))

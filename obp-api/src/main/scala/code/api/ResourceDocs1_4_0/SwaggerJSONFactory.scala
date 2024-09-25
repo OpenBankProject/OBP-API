@@ -24,6 +24,7 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.{OBP_BERLIN_GROUP_1_3, OBP_BERLIN_GROUP_1_3_Alias}
+import code.api.v1_4_0.JSONFactory1_4_0
 import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
@@ -140,11 +141,11 @@ object SwaggerJSONFactory extends MdcLoggable {
 
     def apply(jObject:JObject) = JObjectSchemaJson(jObject)
 
-    def getRequestBodySchema(rd: ResourceDoc): Option[ResponseObjectSchemaJson] =
-      getSchema(rd.exampleRequestBody)
+    def getRequestBodySchema(rd: JSONFactory1_4_0.ResourceDocJson): Option[ResponseObjectSchemaJson] =
+      getSchema(rd.example_request_body)
 
-    def getResponseBodySchema(rd: ResourceDoc): Option[ResponseObjectSchemaJson] =
-      getSchema(rd.successResponseBody)
+    def getResponseBodySchema(rd: JSONFactory1_4_0.ResourceDocJson): Option[ResponseObjectSchemaJson] =
+      getSchema(rd.success_response_body)
 
     private def getSchema(value: Any): Option[ResponseObjectSchemaJson] = {
       value match {
@@ -259,7 +260,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     * @param requestedApiVersion eg: 2_2_0
     * @return
     */
-  def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: ApiVersion): SwaggerResourceDoc = {
+  def createSwaggerResourceDoc(resourceDocList: List[JSONFactory1_4_0.ResourceDocJson], requestedApiVersion: ApiVersion): SwaggerResourceDoc = {
     
     //reference to referenceObject: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#referenceObject  
     //according to the apiFunction name, prepare the reference 
@@ -323,7 +324,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     //        "400": {
     //          "description": "Error",
     //          "schema": {"$ref": "#/definitions/Error"
-    val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.specifiedUrl.getOrElse(x.requestUrl)).toSeq.sortBy(x => x._1).map { mrd =>
+    val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.specified_url).toSeq.sortBy(x => x._1).map { mrd =>
       
       //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
       val pathAddedObpandVersion = mrd._1
@@ -496,14 +497,14 @@ object SwaggerJSONFactory extends MdcLoggable {
         pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
   
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
-        (rd.requestVerb.toLowerCase,
+        (rd.request_verb.toLowerCase,
           OperationObjectJson(
-            tags = rd.tags.map(_.tag),
+            tags = rd.tags,
             summary = rd.summary,
             description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
-            operationId = s"${rd.partialFunctionName}",
+            operationId = s"${rd.operation_id}",
             parameters ={
-              val description = rd.exampleRequestBody match {
+              val description = rd.example_request_body match {
                 case EmptyBody => ""
                 case example: PrimaryDataBody[_] => s"${example.swaggerDataTypeName} type value."
                 case s:scala.Product => s"${s.getClass.getSimpleName} object that needs to be added."
@@ -518,7 +519,7 @@ object SwaggerJSONFactory extends MdcLoggable {
               }
             },
             responses = {
-              val successKey = rd.requestVerb.toLowerCase match {
+              val successKey = rd.request_verb.toLowerCase match {
                 case "post" => "201"
                 case "delete" => "204"
                 case _ => "200"
@@ -526,7 +527,7 @@ object SwaggerJSONFactory extends MdcLoggable {
 
               Map(
                 successKey -> ResponseObjectJson(Some("Success"), ResponseObjectSchemaJson.getResponseBodySchema(rd)),
-                "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.errorResponseBodies.head)}")))
+                "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.error_response_bodies.head)}")))
               )
             }
 
@@ -929,7 +930,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     *         } ...
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
+  def loadDefinitions(resourceDocList: List[JSONFactory1_4_0.ResourceDocJson], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
 
     // filter function: not null and not type of EnumValue, PrimaryDataBody, JObject, JArray.
     val predicate: Any => Boolean = {
@@ -938,8 +939,8 @@ object SwaggerJSONFactory extends MdcLoggable {
     }
 
     val docEntityExamples: List[AnyRef] = (List(notSupportedYet):::
-                                           resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
-                                           resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
+                                           resourceDocList.map(_.example_request_body.asInstanceOf[AnyRef]) :::
+                                           resourceDocList.map(_.success_response_body.asInstanceOf[AnyRef])
                                           ).filter(predicate)
 
     val allDocExamples = getAllEntities(docEntityExamples)
@@ -957,7 +958,7 @@ object SwaggerJSONFactory extends MdcLoggable {
                               .filter(predicate)
                               .map(translateEntity)
 
-    val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet
+    val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.error_response_bodies).toSet
 
     val errorDefinitions = ErrorMessages.allFields
       .filterNot(null ==)
