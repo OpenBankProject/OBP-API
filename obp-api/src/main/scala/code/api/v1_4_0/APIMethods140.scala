@@ -745,9 +745,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion, apiVersionStatus),
+        testResourceDoc,
         apiVersion,
-        "testResourceDoc",
+        nameOf(testResourceDoc),
         "GET",
         "/dummy",
         "I am only a test resource Doc",
@@ -779,13 +779,13 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |_etc_...""",
         emptyObjectJson,
         apiInfoJSON,
-        List(UserNotLoggedIn, UnknownError),
+        List(UnknownError),
         List(apiTagDocumentation, apiTagOldStyle))
       }
 
 
 
-    def dummy(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
+    lazy val testResourceDoc : OBPEndpoint = {
       case "dummy" :: Nil JsonGet req => {
         cc =>
           val apiDetails: JValue = {
