@@ -777,7 +777,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |There are (underscores_in_words_in_brackets)
             |
             |_etc_...""",
-        emptyObjectJson,
+        EmptyBody,
         apiInfoJSON,
         List(UnknownError),
         List(apiTagDocumentation, apiTagOldStyle))

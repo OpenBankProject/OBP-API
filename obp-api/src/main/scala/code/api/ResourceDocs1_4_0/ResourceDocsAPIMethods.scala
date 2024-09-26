@@ -347,29 +347,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
-    val exampleResourceDoc =  ResourceDoc(
-      dummy(implementedInApiVersion.toString, "DUMMY"),
-      implementedInApiVersion,
-      "testResourceDoc",
-      "GET",
-      "/dummy",
-      "Test Resource Doc.",
-      """I am only a test Resource Doc""",
-      emptyObjectJson,
-      emptyObjectJson,
-      UnknownError :: Nil,
-      List(apiTagDocumentation),
-      Some(List(canGetCustomersJson))
-    )
-
-
-    val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), false, None)
-    
-    val exampleResourceDocsJsonV400 = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), true, None)
-
-
-
-
     def getResourceDocsDescription(isBankLevelResourceDoc: Boolean) = {
 
       val endpointBankIdPath = if (isBankLevelResourceDoc) "/banks/BANK_ID" else ""
@@ -433,7 +410,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "Get Resource Docs.",
       getResourceDocsDescription(false),
       emptyObjectJson,
-      exampleResourceDocsJson, 
+      emptyObjectJson, 
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadResourceDoc))
@@ -461,7 +438,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "Get Resource Docs",
       getResourceDocsDescription(false),
       emptyObjectJson,
-      exampleResourceDocsJsonV400,
+      emptyObjectJson,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadResourceDoc))
@@ -586,7 +563,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "Get Bank Level Dynamic Resource Docs.",
       getResourceDocsDescription(true),
       emptyObjectJson,
-      exampleResourceDocsJson,
+      emptyObjectJson,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadDynamicResourceDocsAtOneBank))
@@ -882,62 +859,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
 
       resourceDocsToJValue(resourceDocsJson)
-    }
-
-    if (Props.devMode) {
-      localResourceDocs += ResourceDoc(
-        dummy(implementedInApiVersion.vDottedApiVersion, "DUMMY"),
-        implementedInApiVersion,
-        "testResourceDoc",
-        "GET",
-        "/dummy",
-        "Test Resource Doc.",
-        """
-          |I am only a test Resource Doc
-          |
-          |#This should be H1
-          |
-          |##This should be H2
-          |
-          |###This should be H3
-          |
-          |####This should be H4
-          |
-          |Here is a list with two items:
-          |
-          |* One
-          |* Two
-          |
-          |There are underscores by them selves _
-          |
-          |There are _underscores_ around a word
-          |
-          |There are underscores_in_words
-          |
-          |There are 'underscores_in_words_inside_quotes'
-          |
-          |There are (underscores_in_words_in_brackets)
-          |
-          |_etc_...""",
-        emptyObjectJson,
-        emptyObjectJson,
-        UnknownError :: Nil,
-        List(apiTagDocumentation))
-    }
-
-
-
-    def dummy(apiVersion : String, apiVersionStatus: String) : OBPEndpoint = {
-      case "dummy" :: Nil JsonGet req => {
-        cc =>
-          val apiDetails: JValue = {
-            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "http://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy)
-            Extraction.decompose(apiInfoJSON)
-          }
-
-          Full(successJsonResponse(apiDetails, 200))
-      }
     }
 
   }
