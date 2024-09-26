@@ -3187,7 +3187,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       EmptyBody,
-      messageDocsJson,
+      EmptyBody,
       List(UnknownError),
       List(apiTagDocumentation, apiTagApi)
     )
