@@ -753,7 +753,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 if (cacheValueFromRedis.isDefined) {
                   json.parse(cacheValueFromRedis.get)
                 } else {
-                  val swaggerDocJsonJValue = getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocsJsonFiltered)
+                  val swaggerDocJsonJValue = getResourceDocsSwaggerAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
                   val jsonString = json.compactRender(swaggerDocJsonJValue)
                   Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
                   swaggerDocJsonJValue
@@ -768,9 +768,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
 
-    private def getResourceDocsSwaggerCached(requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
-      logger.debug(s"Generating Swagger-getResourceDocsSwaggerCached requestedApiVersion is $requestedApiVersionString")
-      getResourceDocsSwagger(requestedApiVersionString, resourceDocsJson).head
+    private def getResourceDocsSwaggerAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+      logger.debug(s"Generating Swagger-getResourceDocsSwaggerAndSetCache requestedApiVersion is $requestedApiVersionString")
+      val swaggerDocJsonJValue = getResourceDocsSwagger(requestedApiVersionString, resourceDocsJson).head
+
+      val jsonString = json.compactRender(swaggerDocJsonJValue)
+      Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+
+      swaggerDocJsonJValue
     }
 
     // if not supply resourceDocs parameter, just get dynamic ResourceDocs swagger

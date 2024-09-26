@@ -141,14 +141,15 @@ object SwaggerJSONFactory extends MdcLoggable {
 
     def apply(jObject:JObject) = JObjectSchemaJson(jObject)
 
-    def getRequestBodySchema(rd: JSONFactory1_4_0.ResourceDocJson): Option[ResponseObjectSchemaJson] =
-      getSchema(rd.example_request_body)
+    def getRequestBodySchema(value: Any): Option[ResponseObjectSchemaJson] =
+      getSchema(value)
 
-    def getResponseBodySchema(rd: JSONFactory1_4_0.ResourceDocJson): Option[ResponseObjectSchemaJson] =
-      getSchema(rd.success_response_body)
+    def getResponseBodySchema(value: Any): Option[ResponseObjectSchemaJson] =
+      getSchema(value)
 
     private def getSchema(value: Any): Option[ResponseObjectSchemaJson] = {
       value match {
+        case JNothing => None
         case EmptyBody => None
         case example: PrimaryDataBody[_] => Some(ResponseObjectSchemaJson(example))
         case example: JObject => Some(JObjectSchemaJson(example))
@@ -505,12 +506,13 @@ object SwaggerJSONFactory extends MdcLoggable {
             operationId = s"${rd.operation_id}",
             parameters ={
               val description = rd.example_request_body match {
+                case JNothing => ""
                 case EmptyBody => ""
                 case example: PrimaryDataBody[_] => s"${example.swaggerDataTypeName} type value."
                 case s:scala.Product => s"${s.getClass.getSimpleName} object that needs to be added."
                 case _ => "NotSupportedYet type that needs to be added."
               }
-              ResponseObjectSchemaJson.getRequestBodySchema(rd) match {
+              ResponseObjectSchemaJson.getRequestBodySchema(rd.example_request_body) match {
                 case Some(schema) =>
                   OperationParameterBodyJson(
                     description = description,
@@ -526,7 +528,7 @@ object SwaggerJSONFactory extends MdcLoggable {
               }
 
               Map(
-                successKey -> ResponseObjectJson(Some("Success"), ResponseObjectSchemaJson.getResponseBodySchema(rd)),
+                successKey -> ResponseObjectJson(Some("Success"), ResponseObjectSchemaJson.getResponseBodySchema(rd.success_response_body)),
                 "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFieldNameByValue(rd.error_response_bodies.head)}")))
               )
             }
