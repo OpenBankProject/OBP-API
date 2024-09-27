@@ -51,7 +51,7 @@ trait APIMethods220 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson = EmptyClassJson()
+    
     val implementedInApiVersion = ApiVersion.v2_2_0
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -69,7 +69,7 @@ trait APIMethods220 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -119,7 +119,7 @@ trait APIMethods220 {
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJSONV220,
       List(
         UserNotLoggedIn,
@@ -303,7 +303,7 @@ trait APIMethods220 {
         |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       List(apiTagFx))
@@ -346,7 +346,7 @@ trait APIMethods220 {
           |
           |${authenticationRequiredMessage(true)}
           |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartiesJsonV220,
       List(
         UserNotLoggedIn,
@@ -402,7 +402,7 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
@@ -441,7 +441,7 @@ trait APIMethods220 {
         | 
         | `CONNECTOR`: kafka_vSept2018, stored_procedure_vDec2019 ...
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       messageDocsJson,
       List(InvalidConnector, UnknownError),
       List(apiTagDocumentation, apiTagApi)
@@ -905,7 +905,7 @@ trait APIMethods220 {
         |* Akka ports
         |* Elastic search ports
         |* Cached function """,
-      emptyObjectJson,
+      EmptyBody,
       configurationJSON,
       List(
         UserNotLoggedIn,
@@ -964,7 +964,7 @@ trait APIMethods220 {
         |7 correlation_id (if null ignore)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       connectorMetricsJson,
       List(
         InvalidDateFormat,
@@ -1254,7 +1254,7 @@ trait APIMethods220 {
           |* View: view_id
           |
          |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerViewsJsonV220,
       List(
         UserNotLoggedIn,

@@ -39,7 +39,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
             Obtain scheduled, outgoing payments for a specific account
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "scheduledPayments" : [ {
@@ -657,7 +657,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
             Obtain scheduled payments for multiple, filtered accounts that are the source of funds for the payments
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "scheduledPayments" : [ {

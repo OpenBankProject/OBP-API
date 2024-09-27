@@ -39,7 +39,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
             Obtain direct debit authorisations for a specific account
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "directDebitAuthorisations" : [ {
@@ -141,7 +141,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
             Obtain direct debit authorisations for multiple, filtered accounts
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "directDebitAuthorisations" : [ {

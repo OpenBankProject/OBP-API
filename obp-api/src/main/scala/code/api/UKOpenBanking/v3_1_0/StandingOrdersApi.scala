@@ -36,7 +36,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        "Get Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -220,7 +220,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        "Get Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

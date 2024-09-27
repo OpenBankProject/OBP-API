@@ -39,7 +39,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        "Create Domestic Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -247,7 +247,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        "Create Domestic Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -433,7 +433,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        "Get Domestic Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -641,7 +641,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        "Get Domestic Payment Consents Funds Confirmation",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -705,7 +705,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        "Get Domestic Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

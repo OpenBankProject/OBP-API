@@ -64,7 +64,7 @@ In REDIRECT and DECOUPLED approach, this confirmation is not a prerequisite to t
        json.parse("""{
   "psuAuthenticationFactor" : "JJKJKJ788GKJKJBK"
 }"""),
-       emptyObjectJson,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
@@ -278,8 +278,8 @@ The ASPSP returns the previously posted Payment/Transfer Request which is enrich
 The status information must be available during at least 30 calendar days after the posting of the Payment Request. However, the ASPSP may increase this availability duration, based on its own rules.  
 
             """,
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
@@ -521,7 +521,7 @@ When the chosen authentication approach within the ASPSP answers is set to "EMBE
     "unsuccessfulReportUrl" : "http://myPisp/PaymentFailure"
   }
 }"""),
-       emptyObjectJson,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )

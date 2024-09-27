@@ -1842,7 +1842,7 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
   "state" : "state",
   "client_id" : "client_id"
 }"""),
-       emptyObjectJson,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("AS") :: apiTagMockedData :: Nil
      )

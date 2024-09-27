@@ -38,7 +38,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        "Create International Standing Order Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -286,7 +286,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        "Create International Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -510,7 +510,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        "Get International Standing Order Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -758,7 +758,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        "Get International Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

@@ -186,7 +186,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
-  val emptyObjectJson = EmptyClassJson()
+  
 
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._

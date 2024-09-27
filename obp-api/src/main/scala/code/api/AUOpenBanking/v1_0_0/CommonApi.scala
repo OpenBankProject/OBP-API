@@ -40,7 +40,7 @@ object APIMethods_CommonApi extends RestHelper {
             Obtain basic information on the customer that has authorised the current session
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "person" : {
@@ -134,7 +134,7 @@ object APIMethods_CommonApi extends RestHelper {
             Obtain detailed information on the authorised customer within the current session.
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "person" : "",
@@ -182,7 +182,7 @@ object APIMethods_CommonApi extends RestHelper {
             Obtain a list of scheduled outages for the implementation
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "outages" : [ {
@@ -246,7 +246,7 @@ object APIMethods_CommonApi extends RestHelper {
             Obtain a health check status for the implementation
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "updateTime" : "updateTime",
