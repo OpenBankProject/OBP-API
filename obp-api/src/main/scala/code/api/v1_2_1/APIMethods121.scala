@@ -108,7 +108,6 @@ trait APIMethods121 {
   val Implementations1_2_1 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson = EmptyClassJson()
     val apiVersion = ApiVersion.v1_2_1 // was String "1_2_1"
     val apiVersionStatus : String = "STABLE"
 
@@ -124,7 +123,7 @@ trait APIMethods121 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -156,7 +155,7 @@ trait APIMethods121 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       banksJSON,
       List(UnknownError),
       apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil)
@@ -191,7 +190,7 @@ trait APIMethods121 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil)
@@ -223,7 +222,7 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
       apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
@@ -256,7 +255,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UserNotLoggedIn, UnknownError),
       apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
@@ -288,7 +287,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required.
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UnknownError),
       apiTagAccount :: apiTagOldStyle :: Nil)
@@ -320,7 +319,7 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(true)}
         |
       """,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       apiTagAccount :: apiTagOldStyle :: Nil)
@@ -353,7 +352,7 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       List(apiTagAccount, apiTagPsd2, apiTagOldStyle))
@@ -385,7 +384,7 @@ trait APIMethods121 {
         |Authentication via OAuth is not required.
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  apiTagOldStyle :: Nil)
@@ -428,7 +427,7 @@ trait APIMethods121 {
          |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedAccountJSON,
       List(UserNotLoggedIn, UnknownError, BankAccountNotFound),
       apiTagAccount ::  apiTagOldStyle :: Nil)
@@ -530,7 +529,7 @@ trait APIMethods121 {
          |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJSONV121,
       List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
       List(apiTagView, apiTagAccount, apiTagOldStyle))
@@ -691,8 +690,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Delete Custom View",
       "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -741,7 +740,7 @@ trait APIMethods121 {
       s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       permissionsJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagView, apiTagAccount, apiTagEntitlement, apiTagOldStyle)
@@ -779,7 +778,7 @@ trait APIMethods121 {
         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJSONV121,
       List(
         UserNotLoggedIn,
@@ -877,7 +876,7 @@ trait APIMethods121 {
           |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
           |
           |Granting access to a public view will return an error message, as the user already has access.""",
-      emptyObjectJson, // No Json body required
+      EmptyBody, // No Json body required
       viewJSONV121,
       List(
         UserNotLoggedIn,
@@ -938,8 +937,8 @@ trait APIMethods121 {
          |$generalRevokeAccessToViewText
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -976,8 +975,8 @@ trait APIMethods121 {
          |$generalRevokeAccessToViewText
          |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1011,7 +1010,7 @@ trait APIMethods121 {
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountsJSON,
       List(
         BankAccountNotFound,
@@ -1044,7 +1043,7 @@ trait APIMethods121 {
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagCounterparty, apiTagAccount, apiTagOldStyle))
@@ -1075,7 +1074,7 @@ trait APIMethods121 {
         |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
         |Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
@@ -1109,7 +1108,7 @@ trait APIMethods121 {
       s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
         |${authenticationRequiredMessage(false)}
         |${authenticationRequiredMessage(true)} if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       aliasJSON,
       List(
         BankAccountNotFound,
@@ -1263,8 +1262,8 @@ trait APIMethods121 {
          |
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         BankAccountNotFound,
         "the view does not allow metadata access",
@@ -1311,7 +1310,7 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       aliasJSON,
       List(
         UserNotLoggedIn,
@@ -1459,8 +1458,8 @@ trait APIMethods121 {
         |
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view is not public.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1605,8 +1604,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Delete more info of other bank account",
       "",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1751,8 +1750,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Delete url of other bank account",
       "",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1895,8 +1894,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Delete Counterparty Image URL",
       "Delete image url of other bank account",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
@@ -2033,8 +2032,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Delete Counterparty Open Corporates URL",
       "Delete open corporate url of other bank account",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -2187,8 +2186,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Delete Counterparty Corporate Location",
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -2344,8 +2343,8 @@ trait APIMethods121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Delete Counterparty Physical Location",
       "Delete physical location of other bank account",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -2397,7 +2396,7 @@ trait APIMethods121 {
          |${urlParametersDocument(true, true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle))
@@ -2463,7 +2462,7 @@ trait APIMethods121 {
          |
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagPsd2, apiTagOldStyle))
@@ -2493,7 +2492,7 @@ trait APIMethods121 {
       """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
          |
          |Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       transactionNarrativeJSON,
       List(
         BankAccountNotFound,
@@ -2611,8 +2610,8 @@ trait APIMethods121 {
       """Deletes the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -2648,7 +2647,7 @@ trait APIMethods121 {
       """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       transactionCommentsJSON,
       List(
         UserNotLoggedIn,
@@ -2731,8 +2730,8 @@ trait APIMethods121 {
       """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         BankAccountNotFound,
         NoViewPermission,
@@ -2769,7 +2768,7 @@ trait APIMethods121 {
       "Get Transaction Tags",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       transactionTagJSON,
       List(
         BankAccountNotFound,
@@ -2853,8 +2852,8 @@ trait APIMethods121 {
         |Authentication via OAuth is required. The user must either have owner privileges for this account, 
         |or must be the user that posted the tag.
         |""".stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(NoViewPermission,
            ViewNotFound,
            UnknownError),
@@ -2889,7 +2888,7 @@ trait APIMethods121 {
       "Get Transaction Images",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       transactionImagesJSON,
       List(
         UserNotLoggedIn,
@@ -2972,8 +2971,8 @@ trait APIMethods121 {
       """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         BankAccountNotFound,
         NoViewPermission,
@@ -3015,7 +3014,7 @@ trait APIMethods121 {
         |It represents the location where the transaction has been initiated.
         |
         |Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       transactionWhereJSON,
       List(BankAccountNotFound,
            NoViewPermission,
@@ -3145,8 +3144,8 @@ trait APIMethods121 {
         |${authenticationRequiredMessage(true)}
         |
         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -3187,7 +3186,7 @@ trait APIMethods121 {
       """Get other account of a transaction.
          |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
           Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagCounterparty))

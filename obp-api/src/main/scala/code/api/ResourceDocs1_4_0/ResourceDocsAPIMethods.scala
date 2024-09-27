@@ -72,7 +72,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   val ImplementationsResourceDocs = new Object() {
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson = EmptyClassJson()
 
     val implementedInApiVersion = ApiVersion.v1_4_0
 
@@ -409,8 +408,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/resource-docs/API_VERSION/obp",
       "Get Resource Docs.",
       getResourceDocsDescription(false),
-      emptyObjectJson,
-      emptyObjectJson, 
+      EmptyBody,
+      EmptyBody, 
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadResourceDoc))
@@ -437,8 +436,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/resource-docs/API_VERSION/obp",
       "Get Resource Docs",
       getResourceDocsDescription(false),
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadResourceDoc))
@@ -562,8 +561,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "/banks/BANK_ID/resource-docs/API_VERSION/obp",
       "Get Bank Level Dynamic Resource Docs.",
       getResourceDocsDescription(true),
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
       Some(List(canReadDynamicResourceDocsAtOneBank))
@@ -653,8 +652,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank,PSD2&functions=getBanks,bankById
          |
       """,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi)
     )
@@ -753,10 +752,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 if (cacheValueFromRedis.isDefined) {
                   json.parse(cacheValueFromRedis.get)
                 } else {
-                  val swaggerDocJsonJValue = getResourceDocsSwaggerAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
-                  val jsonString = json.compactRender(swaggerDocJsonJValue)
-                  Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
-                  swaggerDocJsonJValue
+                  getResourceDocsSwaggerAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
                 }
                 dynamicDocs
             }
