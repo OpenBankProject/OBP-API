@@ -3773,7 +3773,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       messageDoc.exampleOutboundMessage,
       messageDoc.exampleInboundMessage,
       errorResponseBodies = List(InvalidJsonFormat),
-      List(apiTagBank)
+      List(apiTagBank),
+      specifiedUrl = Some(s"/obp-adapter/$connectorMethodName")
     )
   }
 
@@ -4342,7 +4343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *         
    */
   private def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
-  if (SHOW_USED_CONNECTOR_METHODS) {
+  if (SHOW_USED_CONNECTOR_METHODS && endpoint != null) {
     val connectorTypeName = classOf[Connector].getName
     val endpointClassName = endpoint.getClass.getName
     // not analyze dynamic code

@@ -1340,7 +1340,7 @@ trait APIMethods200 {
         |
         |""".stripMargin,
       transactionRequestBodyJsonV200,
-      EmptyBody,
+      transactionRequestWithChargesJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -2280,7 +2280,7 @@ trait APIMethods200 {
           |
         """,
         EmptyBody,
-        EmptyBody, //TODO what is output here?
+        emptyElasticSearch, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagSearchWarehouse, apiTagOldStyle),
         Some(List(canSearchWarehouse)))
@@ -2366,7 +2366,7 @@ trait APIMethods200 {
           |
         """,
         EmptyBody,
-        EmptyBody,
+        emptyElasticSearch,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         List(apiTagMetric, apiTagApi, apiTagOldStyle),
         Some(List(canSearchMetrics)))

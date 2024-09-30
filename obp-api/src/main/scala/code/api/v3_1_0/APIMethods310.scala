@@ -3199,8 +3199,8 @@ trait APIMethods310 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
-            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, resourceDocTags, partialFunctions)
+            convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, resourceDocTags, partialFunctions)
             resourceDocJsonList =  JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, true, None).resource_docs
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)}
             //For this connector swagger, it shares some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
@@ -3208,7 +3208,7 @@ trait APIMethods310 {
             jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)}
           } yield {
             // Merge both results and return
-            (Extraction.decompose(json) merge jsonAST, HttpCode.`200`(callContext))
+            (Extraction.decompose(json) , HttpCode.`200`(callContext))
           }
         }
       }
