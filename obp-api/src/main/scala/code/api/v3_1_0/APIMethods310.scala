@@ -8,7 +8,7 @@ import java.util.UUID
 import java.util.regex.Pattern
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
-import code.api.cache.Redis
+import code.api.cache.{Caching, Redis}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -65,6 +65,8 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
+import net.liftweb.json
+import net.liftweb.json.JsonAST.JValue
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -3202,13 +3204,37 @@ trait APIMethods310 {
             convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
             resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, resourceDocTags, partialFunctions)
             resourceDocJsonList =  JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, true, None).resource_docs
-            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)}
+            swaggerResourceDoc <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)}
             //For this connector swagger, it shares some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
-            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)}
+            
+
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              None,
+              restConnectorVersion,
+              resourceDocTags,
+              partialFunctions,
+              locale,
+              contentParam,
+              apiCollectionIdParam,
+              None
+            )
+            swaggerJValue <- NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
+              val cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+              if (cacheValueFromRedis.isDefined) {
+                json.parse(cacheValueFromRedis.get)
+              } else {
+                val jsonAST = SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)
+                val swaggerDocJsonJValue = Extraction.decompose(swaggerResourceDoc) merge jsonAST
+                val jsonString = json.compactRender(swaggerDocJsonJValue)
+                Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+                swaggerDocJsonJValue
+              }
+            }
+             
           } yield {
             // Merge both results and return
-            (Extraction.decompose(json) , HttpCode.`200`(callContext))
+            (swaggerJValue, HttpCode.`200`(callContext))
           }
         }
       }
