@@ -218,12 +218,12 @@ object CodeGenerateUtils {
     } else if(typeName.matches("""Array|List|Seq""")) {
       val TypeRef(_, _, args: List[Type]) = tp
       (example, typeName) match {
-        case (Some(v), "Array") if(args.head =:= typeOf[String]) => s"""$v.split("[,;]")"""
-        case (Some(v), "List")  if(args.head =:= typeOf[String]) => s"""$v.split("[,;]").toList"""
-        case (Some(v), "Seq")   if(args.head =:= typeOf[String]) => s"""$v.split("[,;]").toSeq"""
-        case (Some(v), "Array") if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq)"""
-        case (Some(v), "List")  if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toList"""
-        case (Some(v), "Seq")   if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toSeq"""
+        case (Some(v), "Array") if(args.head =:= typeOf[String]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",")"""
+        case (Some(v), "List")  if(args.head =:= typeOf[String]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",").toList"""
+        case (Some(v), "Seq")   if(args.head =:= typeOf[String]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",").toSeq"""
+        case (Some(v), "Array") if(args.head =:= typeOf[Date]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq)"""
+        case (Some(v), "List")  if(args.head =:= typeOf[Date]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList"""
+        case (Some(v), "Seq")   if(args.head =:= typeOf[Date]) => s"""$v.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toSeq"""
         case (_, collName) if ReflectUtils.isObpType(args.head) =>
           val itemExpression = createDocExample(args.head, fieldName, parentFieldName, parentType)
           s"$collName($itemExpression)"
