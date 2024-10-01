@@ -3644,6 +3644,21 @@ object SwaggerDefinitionsJSON {
     views_available = List(viewJsonV300),
     account_routings = List(accountRoutingJsonV121)
   )
+
+  val accountAttributeJson = AccountAttributeJson(
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
+  )
+  val accountAttributeResponseJson = AccountAttributeResponseJson(
+    product_code = productCodeExample.value,
+    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
+  )
   
   val moderatedCoreAccountJsonV300 = ModeratedCoreAccountJsonV300(
     id = accountIdExample.value,
@@ -3654,7 +3669,8 @@ object SwaggerDefinitionsJSON {
     `type`= typeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    account_rules = List(accountRuleJsonV300)
+    account_rules = List(accountRuleJsonV300),
+    account_attributes= Some(List(accountAttributeResponseJson))
   )
   
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
@@ -4063,22 +4079,7 @@ object SwaggerDefinitionsJSON {
   val atmAttributesResponseJsonV510 = AtmAttributesResponseJsonV510(
     List(atmAttributeResponseJsonV510)
   )
-
-  val accountAttributeJson = AccountAttributeJson(
-    name = "OVERDRAFT_START_DATE",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23",
-    product_instance_code = Some("LKJL98769F"),
-  )  
-  val accountAttributeResponseJson = AccountAttributeResponseJson(
-    product_code = productCodeExample.value,
-    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    name = "OVERDRAFT_START_DATE",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23",
-    product_instance_code = Some("LKJL98769F"),
-  )
-
+  
   val moderatedAccountJSON310 = ModeratedAccountJSON310(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     label = "NoneLabel",
