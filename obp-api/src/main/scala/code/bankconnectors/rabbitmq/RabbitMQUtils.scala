@@ -7,6 +7,11 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Serialization.write
+import com.rabbitmq.client.AMQP.BasicProperties
+import com.rabbitmq.client._
+
+import java.util.UUID
+import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue}
 
 
 /**
@@ -23,35 +28,61 @@ object RabbitMQUtils extends MdcLoggable{
   val username = APIUtil.getPropsValue("rabbitmq_connector.username").openOrThrowException("mandatory property rabbitmq_connector.username is missing!")
   val password = APIUtil.getPropsValue("rabbitmq_connector.password").openOrThrowException("mandatory property rabbitmq_connector.password is missing!") 
   
-  //TODO ,need to check if we really need the pool for it.
-//    Class.forName(driver)
-//    val settings = ConnectionPoolSettings(
-//      initialSize = initialSize,
-//      maxSize = maxSize,
-//      connectionTimeoutMillis = timeoutMillis,
-//      validationQuery = validationQuery,
-//      connectionPoolFactoryName = poolFactoryName
-//    )
-//    ConnectionPool.singleton(url, user, password, settings)
 
+  class ResponseCallback(val corrId: String) extends DeliverCallback {
+    val response: BlockingQueue[String] = new ArrayBlockingQueue[String](1)
 
+    override def handle(consumerTag: String, message: Delivery): Unit = {
+      if (message.getProperties.getCorrelationId.equals(corrId)) {
+        response.offer(new String(message.getBody, "UTF-8"))
+      }
+    }
+
+    def take(): String = {
+      response.take();
+    }
+  }
+
+  
   def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val rabbitRequestJsonString: String = write(outBound) // convert OutBound to json string
-    val rabbitResponseJsonString: String ={
-      var rpcClient: RabbitMQRPClient = null
+    val rabbitResponseJsonString: String = {
+      var connection: Connection = null
       try {
         logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $procedureName = $rabbitRequestJsonString")
-        rpcClient = new RabbitMQRPClient(host,port, username, password)
-        rpcClient.call(rabbitRequestJsonString)
+        
+        val factory = new ConnectionFactory()
+        factory.setHost(host)
+        factory.setPort(port)
+        factory.setUsername(username)
+        factory.setPassword(password)
+
+        connection = factory.newConnection()
+        val channel: Channel = connection.createChannel()
+        val requestQueueName: String = "obp_rpc_queue"
+        val replyQueueName: String = channel.queueDeclare().getQueue
+        
+        val corrId = UUID.randomUUID().toString
+        val props = new BasicProperties.Builder()
+          .correlationId(corrId)
+          .replyTo(replyQueueName)
+          .build()
+        channel.basicPublish("", requestQueueName, props, rabbitRequestJsonString.getBytes("UTF-8"))
+
+        val responseCallback = new ResponseCallback(corrId)
+        channel.basicConsume(replyQueueName, true, responseCallback, _ => { })
+
+        responseCallback.take()
+        
       } catch {
         case e: Throwable =>{
           logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $procedureName = ${e}")
           throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API level
         }
       } finally {
-        if (rpcClient != null) {
+        if (connection != null) {
           try {
-            rpcClient.close()
+            connection.close()
           } catch {
             case e: Throwable =>{
               logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $procedureName = ${e}")

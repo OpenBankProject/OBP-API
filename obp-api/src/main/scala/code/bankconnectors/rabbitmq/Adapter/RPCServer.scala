@@ -42,11 +42,7 @@ class ServerCallback(val ch: Channel, val latch: CountDownLatch) extends Deliver
       val responseToOBP = write(inBoundGetBanks)
       println(s"Response: inBound message to OBP: $responseToOBP " )
       response = "" + responseToOBP // convert OutBound to json string
-
-//      val message = new String(delivery.getBody, "UTF-8")
-//      val n = java.lang.Integer.parseInt(message)
-//      println(" [.] fib(" + message + ")")
-//      response = "" + Fibonacci.fib(n)
+      
     } catch {
       case e: Exception => {
         println(" [.] " + e.toString)
