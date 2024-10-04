@@ -63,7 +63,7 @@ class ServerCallback(val ch: Channel, val latch: CountDownLatch) extends Deliver
 }
 
 object RPCServer {
-  private val RPC_QUEUE_NAME = "rpc_queue"
+  private val RPC_QUEUE_NAME = "obp_rpc_queue"
 
   def main(argv: Array[String]) {
     var connection: Connection = null

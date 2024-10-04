@@ -29,12 +29,13 @@ class RabbitMQRPClient(host: String, port: Int, username:String, password:String
 
   val connection: Connection = factory.newConnection()
   val channel: Channel = connection.createChannel()
-  val requestQueueName: String = "rpc_queue"
+  val requestQueueName: String = "obp_rpc_queue"
   val replyQueueName: String = channel.queueDeclare().getQueue
 
   def call(message: String): String = {
     val corrId = UUID.randomUUID().toString
-    val props = new BasicProperties.Builder().correlationId(corrId)
+    val props = new BasicProperties.Builder()
+      .correlationId(corrId)
       .replyTo(replyQueueName)
       .build()
     channel.basicPublish("", requestQueueName, props, message.getBytes("UTF-8"))

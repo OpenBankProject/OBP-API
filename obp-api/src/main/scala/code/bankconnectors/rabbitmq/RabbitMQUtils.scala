@@ -36,14 +36,13 @@ object RabbitMQUtils extends MdcLoggable{
 
 
   def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
-    val procedureParam: String = write(outBound) // convert OutBound to json string
-    val responseJson: String ={
+    val rabbitRequestJsonString: String = write(outBound) // convert OutBound to json string
+    val rabbitResponseJsonString: String ={
       var rpcClient: RabbitMQRPClient = null
       try {
-        logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $procedureName = $procedureParam")
-//        rpcClient = new RabbitMQRPClient(host,port, username, password)
-        rpcClient = new RabbitMQRPClient("localhost",5672, "guest", "guest")
-        rpcClient.call(procedureParam)
+        logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $procedureName = $rabbitRequestJsonString")
+        rpcClient = new RabbitMQRPClient(host,port, username, password)
+        rpcClient.call(rabbitRequestJsonString)
       } catch {
         case e: Throwable =>{
           logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $procedureName = ${e}")
@@ -62,7 +61,7 @@ object RabbitMQUtils extends MdcLoggable{
         }
       }
     }
-    logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $procedureName = $responseJson" )
-    Connector.extractAdapterResponse[T](responseJson, Empty)
+    logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $procedureName = $rabbitResponseJsonString" )
+    Connector.extractAdapterResponse[T](rabbitResponseJsonString, Empty)
   }
 }
