@@ -18,6 +18,7 @@ import code.api.{APIFailure, APIFailureNewStyle}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
+import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
@@ -91,6 +92,7 @@ object Connector extends SimpleInjector {
     "kafka_vMay2019" -> KafkaMappedConnector_vMay2019,
     "rest_vMar2019" -> RestConnector_vMar2019,
     "stored_procedure_vDec2019" -> StoredProcedureConnector_vDec2019,
+    "rabbitmq_vOct2024" -> RabbitMQConnector_vOct2024,
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> ConnectorUtils.proxyConnector,
     "internal" -> InternalConnector.instance

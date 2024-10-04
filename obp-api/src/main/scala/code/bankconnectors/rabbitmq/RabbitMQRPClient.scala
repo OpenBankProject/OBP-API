@@ -1,10 +1,9 @@
-package code.bankconnectors.vSept2018
+package code.bankconnectors.rabbitmq
+import com.rabbitmq.client.AMQP.BasicProperties
+import com.rabbitmq.client._
 
 import java.util.UUID
 import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue}
-
-import com.rabbitmq.client.AMQP.BasicProperties
-import com.rabbitmq.client._
 
 class ResponseCallback(val corrId: String) extends DeliverCallback {
   val response: BlockingQueue[String] = new ArrayBlockingQueue[String](1)
@@ -20,10 +19,13 @@ class ResponseCallback(val corrId: String) extends DeliverCallback {
   }
 }
 
-class RPCClient(host: String) {
+class RabbitMQRPClient(host: String, port: Int, username:String, password:String) {
 
   val factory = new ConnectionFactory()
   factory.setHost(host)
+  factory.setPort(port)
+  factory.setUsername(username)
+  factory.setPassword(password)
 
   val connection: Connection = factory.newConnection()
   val channel: Channel = connection.createChannel()
@@ -45,31 +47,5 @@ class RPCClient(host: String) {
 
   def close() {
     connection.close()
-  }
-}
-
-object RPCClient {
-
-  def main(argv: Array[String]) {
-    var fibonacciRpc: RPCClient = null
-    var response: String = null
-    try {
-      val host = if (argv.isEmpty) "localhost" else argv(0)
-
-      fibonacciRpc = new RPCClient(host)
-      println(" [x] Requesting fib(30)")
-      response = fibonacciRpc.call("30")
-      println(" [.] Got '" + response + "'")
-    } catch {
-      case e: Exception => e.printStackTrace()
-    } finally {
-      if (fibonacciRpc != null) {
-        try {
-          fibonacciRpc.close()
-        } catch {
-          case ignore: Exception =>
-        }
-      }
-    }
   }
 }
