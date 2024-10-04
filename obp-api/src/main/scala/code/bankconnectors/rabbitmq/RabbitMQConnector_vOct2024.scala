@@ -73,7 +73,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   val connectorName = "rabbitmq_vOct2024"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-09-20T12:17:12Z
+// ---------- created on 2024-10-04T12:25:46Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -296,7 +296,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
      OutBoundCreateChallenges(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replace("[","").replace("]","").split(",").toList,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
@@ -304,7 +304,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundCreateChallenges(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replace("[","").replace("]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -325,7 +325,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateChallengesC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replace("[","").replace("]","").split(",").toList,
       challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
       transactionRequestId=Some(transactionRequestIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
@@ -369,7 +369,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateChallengesC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replace("[","").replace("]","").split(",").toList,
       challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
       transactionRequestId=Some(transactionRequestIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
@@ -869,8 +869,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       accountType=accountTypeExample.value,
       balanceAmount=balanceAmountExample.value,
       balanceCurrency=balanceCurrencyExample.value,
-      owners=inboundAccountOwnersExample.value.split("[,;]").toList,
-      viewsToGenerate=inboundAccountViewsToGenerateExample.value.split("[,;]").toList,
+      owners=inboundAccountOwnersExample.value.replace("[","").replace("]","").split(",").toList,
+      viewsToGenerate=inboundAccountViewsToGenerateExample.value.replace("[","").replace("]","").split(",").toList,
       bankRoutingScheme=bankRoutingSchemeExample.value,
       bankRoutingAddress=bankRoutingAddressExample.value,
       branchRoutingScheme=branchRoutingSchemeExample.value,
@@ -1808,7 +1808,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1876,7 +1876,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1992,7 +1992,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2052,8 +2052,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
-      allows=allowsExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
+      allows=allowsExample.value.replace("[","").replace("]","").split(",").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
       replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
@@ -2082,7 +2082,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2143,8 +2143,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
-      allows=allowsExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
+      allows=allowsExample.value.replace("[","").replace("]","").split(",").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
       replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
@@ -2171,7 +2171,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replace("[","").replace("]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -3308,7 +3308,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundGetProducts(bankId=BankId(bankIdExample.value),
       params=List( GetProductsParam(name=nameExample.value,
-      value=valueExample.value.split("[,;]").toList)))
+      value=valueExample.value.replace("[","").replace("]","").split(",").toList)))
     ),
     exampleInboundMessage = (
      InBoundGetProducts(status=MessageDocsSwaggerDefinitions.inboundStatus,
@@ -3596,12 +3596,12 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
-      services=Some(listExample.value.split("[,;]").toList),
-      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
-      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
-      notes=Some(listExample.value.split("[,;]").toList),
-      locationCategories=Some(listExample.value.split("[,;]").toList),
+      supportedLanguages=Some(supportedLanguagesExample.value.replace("[","").replace("]","").split(",").toList),
+      services=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.replace("[","").replace("]","").split(",").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.replace("[","").replace("]","").split(",").toList),
+      notes=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      locationCategories=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
       minimumWithdrawal=Some("string"),
       branchIdentification=Some("string"),
       siteIdentification=Some(siteIdentification.value),
@@ -3677,12 +3677,12 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
-      services=Some(listExample.value.split("[,;]").toList),
-      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
-      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
-      notes=Some(listExample.value.split("[,;]").toList),
-      locationCategories=Some(listExample.value.split("[,;]").toList),
+      supportedLanguages=Some(supportedLanguagesExample.value.replace("[","").replace("]","").split(",").toList),
+      services=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.replace("[","").replace("]","").split(",").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.replace("[","").replace("]","").split(",").toList),
+      notes=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      locationCategories=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
       minimumWithdrawal=Some("string"),
       branchIdentification=Some("string"),
       siteIdentification=Some(siteIdentification.value),
@@ -4380,7 +4380,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       kycStatus=kycStatusExample.value.toBoolean,
@@ -4407,7 +4407,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4458,7 +4458,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4510,7 +4510,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4569,7 +4569,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4617,7 +4617,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4665,7 +4665,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4714,7 +4714,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5012,7 +5012,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5061,7 +5061,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5732,7 +5732,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetCustomerIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replace("[","").replace("]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5764,7 +5764,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5813,7 +5813,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetTransactionIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replace("[","").replace("]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -6122,7 +6122,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollection(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       collectionCode=collectionCodeExample.value,
-      productCodes=listExample.value.split("[,;]").toList)
+      productCodes=listExample.value.replace("[","").replace("]","").split(",").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollection(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -6177,7 +6177,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollectionItem(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       collectionCode=collectionCodeExample.value,
-      memberProductCodes=listExample.value.split("[,;]").toList)
+      memberProductCodes=listExample.value.replace("[","").replace("]","").split(",").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollectionItem(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -6926,8 +6926,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-09-20T12:17:12Z
-//---------------- dynamic end ---------------------please don't modify this line                                           
+// ---------- created on 2024-10-04T12:25:46Z
+//---------------- dynamic end ---------------------please don't modify this line                                             
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
