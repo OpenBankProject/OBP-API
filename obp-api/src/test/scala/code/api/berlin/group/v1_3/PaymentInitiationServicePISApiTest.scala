@@ -12,7 +12,10 @@ import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages.{AuthorisationNotFound, InvalidJsonFormat, NotPositiveAmount, _}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
-import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme

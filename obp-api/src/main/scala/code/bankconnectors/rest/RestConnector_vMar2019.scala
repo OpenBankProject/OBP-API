@@ -96,7 +96,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-01-29T13:59:34Z
+// ---------- created on 2024-09-30T23:50:52Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -319,7 +319,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
      OutBoundCreateChallenges(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
@@ -327,7 +327,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleInboundMessage = (
      InBoundCreateChallenges(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -348,7 +348,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateChallengesC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
       transactionRequestId=Some(transactionRequestIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
@@ -392,7 +392,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateChallengesC3(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      userIds=listExample.value.split("[,;]").toList,
+      userIds=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
       transactionRequestId=Some(transactionRequestIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
@@ -741,8 +741,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       accountType=accountTypeExample.value,
       balanceAmount=balanceAmountExample.value,
       balanceCurrency=balanceCurrencyExample.value,
-      owners=inboundAccountOwnersExample.value.split("[,;]").toList,
-      viewsToGenerate=inboundAccountViewsToGenerateExample.value.split("[,;]").toList,
+      owners=inboundAccountOwnersExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
+      viewsToGenerate=inboundAccountViewsToGenerateExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       bankRoutingScheme=bankRoutingSchemeExample.value,
       bankRoutingAddress=bankRoutingAddressExample.value,
       branchRoutingScheme=branchRoutingSchemeExample.value,
@@ -1643,7 +1643,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1711,7 +1711,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1827,7 +1827,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1887,8 +1887,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
-      allows=allowsExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
+      allows=allowsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
       replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
@@ -1917,7 +1917,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -1978,8 +1978,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
-      allows=allowsExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
+      allows=allowsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
       replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
@@ -2006,7 +2006,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       cancelled=cancelledExample.value.toBoolean,
       onHotList=onHotListExample.value.toBoolean,
       technology=technologyExample.value,
-      networks=networksExample.value.split("[,;]").toList,
+      networks=networksExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
@@ -2256,7 +2256,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2336,35 +2341,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       documentNumber=Some(documentNumberExample.value),
       amount=Some(amountExample.value),
       currency=Some(currencyExample.value),
-      description=Some(descriptionExample.value)))),
-      paymentService = Some(paymentServiceExample.value),
-      berlinGroupPayments=Some( SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
-      instructionIdentification=Some("string"),
-      debtorName=Some("string"),
-      debtorAccount=PaymentAccount("string"),
-      debtorId=Some("string"),
-      ultimateDebtor=Some("string"),
-      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount=amountExample.value),
-      currencyOfTransfer=Some("string"),
-      exchangeRateInformation=Some("string"),
-      creditorAccount=PaymentAccount("string"),
-      creditorAgent=Some("string"),
-      creditorAgentName=Some("string"),
-      creditorName="string",
-      creditorId=Some("string"),
-      creditorAddress=Some("string"),
-      creditorNameAndAddress=Some("string"),
-      ultimateCreditor=Some("string"),
-      purposeCode=Some("string"),
-      chargeBearer=Some("string"),
-      serviceLevel=Some("string"),
-      remittanceInformationUnstructured=Some("string"),
-      remittanceInformationUnstructuredArray=Some("string"),
-      remittanceInformationStructured=Some("string"),
-      remittanceInformationStructuredArray=Some("string"),
-      requestedExecutionDate=Some("string"),
-      requestedExecutionTime=Some("string"))))
+      description=Some(descriptionExample.value)))))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -2442,14 +2419,19 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], paymentService: Option[String], berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv400 => InBound, OutBoundCreateTransactionRequestv400 => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons, paymentService, berlinGroupPayments)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons)
         val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "createTransactionRequestv400"), HttpMethods.POST, req, callContext)
         response.map(convertToTuple[TransactionRequest](callContext))        
   }
@@ -2568,7 +2550,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string"))))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2667,7 +2654,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2779,7 +2771,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionAfterChallengeV210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -2857,7 +2854,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3006,7 +3008,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleOutboundMessage = (
      OutBoundGetProducts(bankId=BankId(bankIdExample.value),
       params=List( GetProductsParam(name=nameExample.value,
-      value=valueExample.value.split("[,;]").toList)))
+      value=valueExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)))
     ),
     exampleInboundMessage = (
      InBoundGetProducts(status=MessageDocsSwaggerDefinitions.inboundStatus,
@@ -3294,12 +3296,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
-      services=Some(listExample.value.split("[,;]").toList),
-      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
-      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
-      notes=Some(listExample.value.split("[,;]").toList),
-      locationCategories=Some(listExample.value.split("[,;]").toList),
+      supportedLanguages=Some(supportedLanguagesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      services=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      notes=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      locationCategories=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
       minimumWithdrawal=Some("string"),
       branchIdentification=Some("string"),
       siteIdentification=Some(siteIdentification.value),
@@ -3375,12 +3377,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
-      services=Some(listExample.value.split("[,;]").toList),
-      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
-      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
-      notes=Some(listExample.value.split("[,;]").toList),
-      locationCategories=Some(listExample.value.split("[,;]").toList),
+      supportedLanguages=Some(supportedLanguagesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      services=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      notes=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
+      locationCategories=Some(listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList),
       minimumWithdrawal=Some("string"),
       branchIdentification=Some("string"),
       siteIdentification=Some(siteIdentification.value),
@@ -3549,7 +3551,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3814,7 +3821,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")))
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3908,7 +3920,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       other_bank_routing_scheme="string",
       other_bank_routing_address="string",
       is_beneficiary=true,
-      future_date=Some("string")),
+      future_date=Some("string"),
+      payment_start_date=Some(toDate(dateExample)),
+      payment_end_date=Some(toDate(dateExample)),
+      payment_execution_Rule=Some("string"),
+      payment_frequency=Some("string"),
+      payment_day_of_execution=Some("string")),
       reasons=Some(List( TransactionRequestReason(code=codeExample.value,
       documentNumber=Some(documentNumberExample.value),
       amount=Some(amountExample.value),
@@ -4063,7 +4080,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       kycStatus=kycStatusExample.value.toBoolean,
@@ -4090,7 +4107,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4141,7 +4158,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4193,7 +4210,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4252,7 +4269,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4300,7 +4317,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4348,7 +4365,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4397,7 +4414,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4695,7 +4712,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -4744,7 +4761,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5415,7 +5432,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleInboundMessage = (
      InBoundGetCustomerIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5447,7 +5464,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      dobOfDependents=dobOfDependentsExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       creditRating= CreditRating(rating=ratingExample.value,
@@ -5496,7 +5513,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleInboundMessage = (
      InBoundGetTransactionIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=listExample.value.split("[,;]").toList)
+      data=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5805,7 +5822,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollection(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       collectionCode=collectionCodeExample.value,
-      productCodes=listExample.value.split("[,;]").toList)
+      productCodes=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollection(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5860,7 +5877,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollectionItem(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       collectionCode=collectionCodeExample.value,
-      memberProductCodes=listExample.value.split("[,;]").toList)
+      memberProductCodes=listExample.value.replaceAll("\\[","").replaceAll("\\]","").split(",").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollectionItem(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -6609,10 +6626,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-01-29T13:59:34Z
-//---------------- dynamic end ---------------------please don't modify this line            
+// ---------- created on 2024-09-30T23:50:52Z
+//---------------- dynamic end ---------------------please don't modify this line             
 
-  private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
+  private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("\\[", ", ", "\\]")
 
   messageDocs += dynamicEntityProcessDoc
   def dynamicEntityProcessDoc = MessageDoc(

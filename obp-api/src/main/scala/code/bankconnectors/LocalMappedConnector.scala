@@ -67,8 +67,10 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
@@ -83,6 +85,8 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.SuppliedAnswerType
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
@@ -5113,8 +5117,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
-                                            paymentService: Option[String],
-                                            berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
@@ -5180,8 +5182,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status.toString,
           charge,
           chargePolicy,
-          paymentService,
-          berlinGroupPayments
+          None,
+          None
         )
         saveTransactionRequestReasons(reasons, transactionRequest)
         transactionRequest
@@ -5285,6 +5287,39 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Full(transactionRequest), callContext)
     }
   }
+  
+  override def createTransactionRequestSepaCreditTransfersBGV1(
+    initiator: User,
+    paymentServiceType: PaymentServiceTypes,
+    transactionRequestType: TransactionRequestTypes,
+    transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionRequestBGV1]] = {
+    LocalMappedConnectorHelper.createTransactionRequestBGInternal( 
+      initiator: User,
+      paymentServiceType: PaymentServiceTypes,
+      transactionRequestType: TransactionRequestTypes,
+      transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
+      callContext: Option[CallContext]
+    )
+  }
+
+  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
+    initiator: User,
+    paymentServiceType: PaymentServiceTypes,
+    transactionRequestType: TransactionRequestTypes,
+    transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionRequestBGV1]] = {
+    LocalMappedConnectorHelper.createTransactionRequestBGInternal(
+      initiator: User,
+      paymentServiceType: PaymentServiceTypes,
+      transactionRequestType: TransactionRequestTypes,
+      transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,
+      callContext: Option[CallContext]
+    )
+  }
+
 
   private def saveTransactionRequestReasons(reasons: Option[List[TransactionRequestReason]], transactionRequest: Box[TransactionRequest]) = {
     for (reason <- reasons.getOrElse(Nil)) {

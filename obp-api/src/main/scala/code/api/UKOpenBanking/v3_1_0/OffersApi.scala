@@ -36,7 +36,7 @@ object APIMethods_OffersApi extends RestHelper {
        "Get Offers",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -168,7 +168,7 @@ object APIMethods_OffersApi extends RestHelper {
        "Get Offers",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

@@ -10,7 +10,8 @@ import code.bankconnectors.Connector
 import code.fx.fx
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props

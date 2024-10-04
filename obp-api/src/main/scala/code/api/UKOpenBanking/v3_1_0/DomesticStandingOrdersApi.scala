@@ -38,7 +38,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        "Create Domestic Standing Order Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -232,7 +232,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        "Create Domestic Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -402,7 +402,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        "Get Domestic Standing Order Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -596,7 +596,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        "Get Domestic Standing Orders",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

@@ -38,7 +38,7 @@ object APIMethods_ProductsApi extends RestHelper {
             Obtain detailed information on a single product offered openly to the market
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : "",
   "meta" : " ",
@@ -120,7 +120,7 @@ It is expected that data consumers needing this data will call relatively freque
 In addition, the concept of effective date and time has also been included. This allows for a product to be marked for obsolescence, or introduction, from a certain time without the need for an update to show that a product has been changed. The inclusion of these dates also removes the need to represent deleted products in the payload. Products that are no long offered can be marked not effective for a few weeks before they are then removed from the product set as an option entirely.
 
             """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "data" : {
     "products" : [ {

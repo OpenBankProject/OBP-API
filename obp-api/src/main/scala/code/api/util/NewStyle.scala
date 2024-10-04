@@ -44,6 +44,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
@@ -63,6 +65,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{checkPaymentProductError, checkPaymentServerTypeError, checkPaymentServiceType}
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.v4_0_0.JSONFactory400
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
@@ -1129,8 +1132,6 @@ object NewStyle extends MdcLoggable{
                                       challengeType: Option[ChallengeType.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
-                                      paymentService: Option[String],
-                                      berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
@@ -1145,11 +1146,39 @@ object NewStyle extends MdcLoggable{
         challengeType = challengeType.map(_.toString),
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
-        paymentService: Option[String],
-        berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
+      }
+    }
+    
+    def createTransactionRequestBGV1(
+      initiator: User,
+      paymentServiceType: PaymentServiceTypes,
+      transactionRequestType: TransactionRequestTypes,
+      transactionRequestBody: BerlinGroupTransactionRequestCommonBodyJson,
+      callContext: Option[CallContext]
+    ): OBPReturnType[TransactionRequestBGV1] = {
+      val response = if(paymentServiceType.equals(PaymentServiceTypes.payments)){
+        Connector.connector.vend.createTransactionRequestSepaCreditTransfersBGV1(
+          initiator: User,
+          paymentServiceType: PaymentServiceTypes,
+          transactionRequestType: TransactionRequestTypes,
+          transactionRequestBody.asInstanceOf[SepaCreditTransfersBerlinGroupV13],
+          callContext: Option[CallContext]
+        ) 
+      }else if(paymentServiceType.equals(PaymentServiceTypes.periodic_payments)){
+        Connector.connector.vend.createTransactionRequestPeriodicSepaCreditTransfersBGV1(
+          initiator: User,
+          paymentServiceType: PaymentServiceTypes,
+          transactionRequestType: TransactionRequestTypes,
+          transactionRequestBody.asInstanceOf[PeriodicSepaCreditTransfersBerlinGroupV13],
+          callContext: Option[CallContext]
+        )
+      }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
+
+      response map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
       }
     }
 

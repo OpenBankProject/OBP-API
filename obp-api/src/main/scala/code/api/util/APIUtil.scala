@@ -186,7 +186,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
-  val emptyObjectJson = EmptyClassJson()
+  
 
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
@@ -3773,7 +3773,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       messageDoc.exampleOutboundMessage,
       messageDoc.exampleInboundMessage,
       errorResponseBodies = List(InvalidJsonFormat),
-      List(apiTagBank)
+      List(apiTagBank),
+      specifiedUrl = Some(s"/obp-adapter/$connectorMethodName")
     )
   }
 
@@ -4342,7 +4343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *         
    */
   private def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = 
-  if (SHOW_USED_CONNECTOR_METHODS) {
+  if (SHOW_USED_CONNECTOR_METHODS && endpoint != null) {
     val connectorTypeName = classOf[Connector].getName
     val endpointClassName = endpoint.getClass.getName
     // not analyze dynamic code
@@ -4927,10 +4928,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
-    isVersion4OrHigher: Option[Boolean],
-    isStaticResource: Option[Boolean],
+    isVersion4OrHigher: Option[Boolean]
   ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
-    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-isStaticResource:$isStaticResource".intern()
+    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))

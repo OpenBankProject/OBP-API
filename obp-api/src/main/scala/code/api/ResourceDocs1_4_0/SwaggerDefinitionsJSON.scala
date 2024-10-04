@@ -26,7 +26,8 @@ import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -3643,6 +3644,21 @@ object SwaggerDefinitionsJSON {
     views_available = List(viewJsonV300),
     account_routings = List(accountRoutingJsonV121)
   )
+
+  val accountAttributeJson = AccountAttributeJson(
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
+  )
+  val accountAttributeResponseJson = AccountAttributeResponseJson(
+    product_code = productCodeExample.value,
+    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
+  )
   
   val moderatedCoreAccountJsonV300 = ModeratedCoreAccountJsonV300(
     id = accountIdExample.value,
@@ -3653,7 +3669,8 @@ object SwaggerDefinitionsJSON {
     `type`= typeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    account_rules = List(accountRuleJsonV300)
+    account_rules = List(accountRuleJsonV300),
+    account_attributes= Some(List(accountAttributeResponseJson))
   )
   
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
@@ -4062,22 +4079,7 @@ object SwaggerDefinitionsJSON {
   val atmAttributesResponseJsonV510 = AtmAttributesResponseJsonV510(
     List(atmAttributeResponseJsonV510)
   )
-
-  val accountAttributeJson = AccountAttributeJson(
-    name = "OVERDRAFT_START_DATE",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23",
-    product_instance_code = Some("LKJL98769F"),
-  )  
-  val accountAttributeResponseJson = AccountAttributeResponseJson(
-    product_code = productCodeExample.value,
-    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    name = "OVERDRAFT_START_DATE",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23",
-    product_instance_code = Some("LKJL98769F"),
-  )
-
+  
   val moderatedAccountJSON310 = ModeratedAccountJSON310(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     label = "NoneLabel",
@@ -5193,14 +5195,26 @@ object SwaggerDefinitionsJSON {
     consent_request_id = consentRequestIdExample.value,
     payload = json.parse(vrpConsentRequestPayloadExample.value), 
     consumer_id = consumerIdExample.value
-    )
+  )
+  
+  val helperInfoJson = HelperInfoJson(
+    counterparty_id = List(counterpartyIdExample.value)
+  )
+  
+  val consentAccountAccessJson=  ConsentAccountAccessJson(
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    view_id = viewIdExample.value,
+    helper_info = helperInfoJson
+  )
   
   val consentJsonV500 = ConsentJsonV500(
     consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
     jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
     status = ConsentStatus.INITIATED.toString,
-    consent_request_id = Some(consentRequestIdExample.value)
-    )
+    consent_request_id = Some(consentRequestIdExample.value),
+    account_access= Some(consentAccountAccessJson)
+  )
   
   val postConsentRequestJsonV500 = PostConsentRequestJsonV500(
     everything = false,

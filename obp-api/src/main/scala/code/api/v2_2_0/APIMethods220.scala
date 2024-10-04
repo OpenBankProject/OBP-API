@@ -1,7 +1,6 @@
 package code.api.v2_2_0
 
 import java.util.Date
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canCreateBranch, _}
@@ -26,6 +25,7 @@ import code.util.Helper
 import code.util.Helper._
 import code.views.Views
 import code.views.system.ViewDefinition
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -51,7 +51,7 @@ trait APIMethods220 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson = EmptyClassJson()
+    
     val implementedInApiVersion = ApiVersion.v2_2_0
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -69,7 +69,7 @@ trait APIMethods220 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -97,7 +97,8 @@ trait APIMethods220 {
       s"""#Views
         |
         |
-        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. 
+        |Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
         |
         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
         |
@@ -118,7 +119,7 @@ trait APIMethods220 {
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJSONV220,
       List(
         UserNotLoggedIn,
@@ -137,7 +138,7 @@ trait APIMethods220 {
             permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
             anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views",
               cc= callContext
             ){
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission
@@ -207,7 +208,7 @@ trait APIMethods220 {
               .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCanCreateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canCreateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canCreateCustomView_)).dropRight(1)}` permission on any your views"
             )
             view <- Views.views.vend.createCustomView(BankIdAccountId(bankId, accountId), createViewJson) ?~ CreateCustomViewError
           } yield {
@@ -266,7 +267,7 @@ trait APIMethods220 {
               .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
             _ <- booleanToBox(
               anyViewContainsCancanUpdateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(ViewDefinition.canUpdateCustomView_.dbColumnName).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateCustomView_)).dropRight(1)}` permission on any your views"
             )
             updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateViewJson) ?~ CreateCustomViewError
           } yield {
@@ -302,7 +303,7 @@ trait APIMethods220 {
         |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       List(apiTagFx))
@@ -345,7 +346,7 @@ trait APIMethods220 {
           |
           |${authenticationRequiredMessage(true)}
           |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartiesJsonV220,
       List(
         UserNotLoggedIn,
@@ -401,7 +402,7 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
@@ -440,7 +441,7 @@ trait APIMethods220 {
         | 
         | `CONNECTOR`: kafka_vSept2018, stored_procedure_vDec2019 ...
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       messageDocsJson,
       List(InvalidConnector, UnknownError),
       List(apiTagDocumentation, apiTagApi)
@@ -904,7 +905,7 @@ trait APIMethods220 {
         |* Akka ports
         |* Elastic search ports
         |* Cached function """,
-      emptyObjectJson,
+      EmptyBody,
       configurationJSON,
       List(
         UserNotLoggedIn,
@@ -963,7 +964,7 @@ trait APIMethods220 {
         |7 correlation_id (if null ignore)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       connectorMetricsJson,
       List(
         InvalidDateFormat,
@@ -1253,7 +1254,7 @@ trait APIMethods220 {
           |* View: view_id
           |
          |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerViewsJsonV220,
       List(
         UserNotLoggedIn,

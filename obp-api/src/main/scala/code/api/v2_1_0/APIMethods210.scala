@@ -24,14 +24,16 @@ import code.fx.fx
 import code.metrics.APIMetrics
 import code.model.{BankAccountX, BankX, Consumer, UserX, toUserExtended}
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
 import code.views.system.ViewDefinition
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType}
+import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -47,7 +49,8 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.{APIFailure, ChargePolicy}
 import code.sandbox.{OBPDataImport, SandboxDataImport}
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}
@@ -69,7 +72,7 @@ trait APIMethods210 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson = EmptyClassJson()
+    
     val apiVersion = ApiVersion.v2_1_0 // was String "2_1_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -87,7 +90,7 @@ trait APIMethods210 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -174,7 +177,7 @@ trait APIMethods210 {
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
         |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagTransactionRequest, apiTagBank))
@@ -731,7 +734,7 @@ trait APIMethods210 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
         UserNotLoggedIn,
@@ -752,7 +755,7 @@ trait APIMethods210 {
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(ViewDefinition.canSeeTransactionRequests_.dbColumnName).dropRight(1)}` permission on the View(${viewId.value} )")
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value} )")
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {
@@ -778,7 +781,7 @@ trait APIMethods210 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagRole))
@@ -812,7 +815,7 @@ trait APIMethods210 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(
         UserNotLoggedIn,
@@ -863,7 +866,7 @@ trait APIMethods210 {
       s"""Get the Consumer specified by CONSUMER_ID.
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumerJSON,
       List(
         UserNotLoggedIn,
@@ -902,7 +905,7 @@ trait APIMethods210 {
       s"""Get the all Consumers.
           |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumersJson,
       List(
         UserNotLoggedIn,
@@ -1069,7 +1072,7 @@ trait APIMethods210 {
         |* locked_status (if null ignore)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(
         UserNotLoggedIn,
@@ -1163,7 +1166,7 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM, apiTagOldStyle)
@@ -1208,7 +1211,7 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       branchJson,
       List(
         UserNotLoggedIn,
@@ -1259,7 +1262,7 @@ trait APIMethods210 {
           |* Terms and Conditions
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productJsonV210,
       List(
         UserNotLoggedIn,
@@ -1309,7 +1312,7 @@ trait APIMethods210 {
           |* Terms and Conditions
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productsJsonV210,
       List(
         UserNotLoggedIn,
@@ -1440,7 +1443,7 @@ trait APIMethods210 {
       """Gets all Customers that are linked to a User.
         |
         |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customerJsonV210,
       List(
         UserNotLoggedIn,
@@ -1474,7 +1477,7 @@ trait APIMethods210 {
         |
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerJSONs,
       List(
         UserNotLoggedIn,
@@ -1708,7 +1711,7 @@ trait APIMethods210 {
         |16 duration (if null ignore) non digit chars will be silently omitted
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       metricsJson,
       List(
         UserNotLoggedIn,

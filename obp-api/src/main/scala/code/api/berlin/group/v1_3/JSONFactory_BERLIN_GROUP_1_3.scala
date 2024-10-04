@@ -546,7 +546,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createTransactionRequestJson(transactionRequest : TransactionRequest) : InitiatePaymentResponseJson = {
+  def createTransactionRequestJson(transactionRequest : TransactionRequestBGV1) : InitiatePaymentResponseJson = {
 //    - 'ACCC': 'AcceptedSettlementCompleted' -
 //      Settlement on the creditor's account has been completed.
 //      - 'ACCP': 'AcceptedCustomerProfile' -

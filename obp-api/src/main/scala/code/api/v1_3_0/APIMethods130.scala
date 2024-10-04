@@ -28,7 +28,6 @@ trait APIMethods130 {
   val Implementations1_3_0 = new Object(){
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson = EmptyClassJson()
     val apiVersion = ApiVersion.v1_3_0 // was String "1_3_0"
 
 
@@ -44,7 +43,7 @@ trait APIMethods130 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -69,7 +68,7 @@ trait APIMethods130 {
       "/cards",
       "Get cards for the current user",
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
-      emptyObjectJson,
+      EmptyBody,
       physicalCardsJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagCard))
@@ -97,7 +96,7 @@ trait APIMethods130 {
       "/banks/BANK_ID/cards",
       "Get cards for the specified bank",
       "",
-      emptyObjectJson,
+      EmptyBody,
       physicalCardsJSON,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
       List(apiTagCard, apiTagOldStyle))
