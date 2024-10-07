@@ -44,7 +44,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        "Get Transactions",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
@@ -517,7 +517,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        "/accounts/ACCOUNT_ID/transactions", 
        "Get Transactions",
        s"""""", 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
@@ -784,7 +784,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        "/transactions", 
        "Get Transactions",
        s"""""", 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",

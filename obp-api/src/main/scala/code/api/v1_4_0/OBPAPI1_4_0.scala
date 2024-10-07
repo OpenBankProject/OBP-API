@@ -106,7 +106,8 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
     Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
     Implementations1_4_0.getTransactionRequestTypes,
-    Implementations1_4_0.answerTransactionRequestChallenge
+    Implementations1_4_0.answerTransactionRequestChallenge,
+    Implementations1_4_0.testResourceDoc
   )
 
 

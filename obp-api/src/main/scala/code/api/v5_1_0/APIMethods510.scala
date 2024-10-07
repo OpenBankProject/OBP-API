@@ -673,7 +673,7 @@ trait APIMethods510 {
       """Get Currencies specified by BANK_ID
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       currenciesJsonV510,
       List(
         $UserNotLoggedIn,
@@ -1534,7 +1534,7 @@ trait APIMethods510 {
          |16 duration (if null ignore) non digit chars will be silently omitted
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       metricsJsonV510,
       List(
         UserNotLoggedIn,

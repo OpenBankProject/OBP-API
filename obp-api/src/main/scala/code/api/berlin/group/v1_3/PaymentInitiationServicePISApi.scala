@@ -97,7 +97,7 @@ for scheduled payments of the last business day before the scheduled execution d
 DELETE command will tell the TPP whether the * access method was rejected * access method was successful, 
 or * access method is generally applicable, but further authorisation processes are needed.
 """,
-       emptyObjectJson,
+       EmptyBody,
        CancelPaymentResponseJson(
          "ACTC",
          _links = CancelPaymentResponseLinks(
@@ -178,7 +178,7 @@ or * access method is generally applicable, but further authorisation processes 
        s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
@@ -215,7 +215,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "Get Payment Information",
        s"""${mockedDataText(false)}
 Returns the content of a payment object""",
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
                       "debtorAccount":{
                         "iban":"GR12 1234 5123 4511 3981 4475 477"
@@ -269,7 +269,7 @@ Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""[
                        {
                            "scaStatus": "received",
@@ -322,7 +322,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        s"""${mockedDataText(false)}
 Retrieve a list of all created cancellation authorisation sub-resources.
 """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e]"
 }"""),
@@ -359,7 +359,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
@@ -398,7 +398,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "Payment initiation status request",
        s"""${mockedDataText(false)}
 Check the transaction status of a payment initiation.""",
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
                       "transactionStatus": "ACCP"
                      }"""),

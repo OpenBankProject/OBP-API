@@ -38,7 +38,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        "Create Funds Confirmation Consent",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -114,7 +114,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        "Create Funds Confirmation",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -186,8 +186,8 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        "Delete Funds Confirmation Consent",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
@@ -212,7 +212,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
        "Get Funds Confirmation Consent",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

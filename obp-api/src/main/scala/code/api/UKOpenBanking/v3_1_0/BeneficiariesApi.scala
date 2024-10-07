@@ -36,7 +36,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        "Get Beneficiaries",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -200,7 +200,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        "Get Beneficiaries",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

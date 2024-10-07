@@ -36,7 +36,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        "Get Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -172,7 +172,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        "Get Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

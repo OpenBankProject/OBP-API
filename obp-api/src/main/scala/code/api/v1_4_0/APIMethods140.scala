@@ -60,7 +60,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   val Implementations1_4_0 = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
-    val emptyObjectJson = EmptyClassJson()
     val apiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
@@ -77,7 +76,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -104,7 +103,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       """Information about the currently authenticated user.
       |
       |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customerJsonV140,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagCustomer, apiTagOldStyle))
@@ -139,7 +138,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Messages sent to the currently authenticated user.
       |
       |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customerMessagesJson,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagMessage, apiTagCustomer))
@@ -224,7 +223,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |You can use the url query parameters *limit* and *offset* for pagination
         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       branchesJson,
       List(
         UserNotLoggedIn,
@@ -276,7 +275,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |${urlParametersDocument(false,false)}         
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       atmsJson,
       List(
         UserNotLoggedIn,
@@ -334,7 +333,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Terms and Conditions
         |* License the data under this endpoint is released under
         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productsJson,
       List(
         UserNotLoggedIn,
@@ -375,7 +374,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/crm-events",
       "Get CRM Events",
       "",
-      emptyObjectJson,
+      EmptyBody,
       crmEventsJson,
       List(
         UserNotLoggedIn,
@@ -430,7 +429,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
         | 
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestTypesJsonV140,
       List(
         UserNotLoggedIn,
@@ -485,7 +484,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get all Transaction Requests",
       "",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestJson,
       List(
         UserNotLoggedIn,
@@ -745,9 +744,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion, apiVersionStatus),
+        testResourceDoc,
         apiVersion,
-        "testResourceDoc",
+        nameOf(testResourceDoc),
         "GET",
         "/dummy",
         "I am only a test resource Doc",
@@ -777,15 +776,15 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             |There are (underscores_in_words_in_brackets)
             |
             |_etc_...""",
-        emptyObjectJson,
+        EmptyBody,
         apiInfoJSON,
-        List(UserNotLoggedIn, UnknownError),
+        List(UnknownError),
         List(apiTagDocumentation, apiTagOldStyle))
       }
 
 
 
-    def dummy(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
+    lazy val testResourceDoc : OBPEndpoint = {
       case "dummy" :: Nil JsonGet req => {
         cc =>
           val apiDetails: JValue = {

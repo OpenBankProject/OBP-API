@@ -80,7 +80,7 @@ trait APIMethods300 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -828,7 +828,7 @@ trait APIMethods300 {
         |
         """,
       elasticSearchJsonV300,
-      emptyObjectJson, //TODO what is output here?
+      emptyElasticSearch, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)))
@@ -907,7 +907,7 @@ trait APIMethods300 {
          |
         """,
       elasticSearchJsonV300,
-      emptyObjectJson, //TODO what is output here?
+      emptyElasticSearch, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics))

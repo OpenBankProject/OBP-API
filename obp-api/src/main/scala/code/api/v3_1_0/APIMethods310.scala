@@ -8,7 +8,7 @@ import java.util.UUID
 import java.util.regex.Pattern
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
-import code.api.cache.Redis
+import code.api.cache.{Caching, Redis}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -19,6 +19,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.newstyle.BalanceNewStyle
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
@@ -64,6 +65,8 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
+import net.liftweb.json
+import net.liftweb.json.JsonAST.JValue
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -96,7 +99,7 @@ trait APIMethods310 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -3186,7 +3189,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       EmptyBody,
-      messageDocsJson,
+      EmptyBody,
       List(UnknownError),
       List(apiTagDocumentation, apiTagApi)
     )
@@ -3198,15 +3201,40 @@ trait APIMethods310 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
-            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, resourceDocTags, partialFunctions)
-            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocListFiltered, ApiVersion.v3_1_0)}
-            //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
+            convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, resourceDocTags, partialFunctions)
+            resourceDocJsonList =  JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, true, None).resource_docs
+            swaggerResourceDoc <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)}
+            //For this connector swagger, it shares some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
-            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(resourceDocListFiltered, allSwaggerDefinitionCaseClasses)}
+            
+
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              None,
+              restConnectorVersion,
+              resourceDocTags,
+              partialFunctions,
+              locale,
+              contentParam,
+              apiCollectionIdParam,
+              None
+            )
+            swaggerJValue <- NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
+              val cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+              if (cacheValueFromRedis.isDefined) {
+                json.parse(cacheValueFromRedis.get)
+              } else {
+                val jsonAST = SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)
+                val swaggerDocJsonJValue = Extraction.decompose(swaggerResourceDoc) merge jsonAST
+                val jsonString = json.compactRender(swaggerDocJsonJValue)
+                Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+                swaggerDocJsonJValue
+              }
+            }
+             
           } yield {
             // Merge both results and return
-            (Extraction.decompose(json) merge jsonAST, HttpCode.`200`(callContext))
+            (swaggerJValue, HttpCode.`200`(callContext))
           }
         }
       }

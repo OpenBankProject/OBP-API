@@ -128,7 +128,7 @@ trait APIMethods200 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson = EmptyClassJson()
+    
     val apiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -147,7 +147,7 @@ trait APIMethods200 {
         |* API version
         |* Hosted by information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
       apiTagApi :: Nil)
@@ -180,7 +180,7 @@ trait APIMethods200 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagOldStyle))
@@ -214,7 +214,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       coreAccountsJSON,
       List(UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagOldStyle))
@@ -257,7 +257,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData)
@@ -294,7 +294,7 @@ trait APIMethods200 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
@@ -339,7 +339,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
@@ -411,7 +411,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPsd2)
@@ -449,7 +449,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(false)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List(UnknownError),
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
@@ -480,7 +480,7 @@ trait APIMethods200 {
         |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
         |${authenticationRequiredMessage(false)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagKyc, apiTagCustomer),
@@ -517,7 +517,7 @@ trait APIMethods200 {
       s"""Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
     List(apiTagKyc, apiTagCustomer),
@@ -550,7 +550,7 @@ trait APIMethods200 {
       s"""Get KYC checks for the Customer specified by CUSTOMER_ID.
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagKyc, apiTagCustomer),
@@ -583,7 +583,7 @@ trait APIMethods200 {
       s"""Get the KYC statuses for a customer specified by CUSTOMER_ID over time.
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagKyc, apiTagCustomer),
@@ -617,7 +617,7 @@ trait APIMethods200 {
       s"""Get social media handles for a customer specified by CUSTOMER_ID.
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       socialMediasJSON,
       List(UserNotLoggedIn, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagCustomer),
@@ -915,7 +915,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |      
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountJSON,
       List(BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
@@ -957,7 +957,7 @@ trait APIMethods200 {
         |${urlParametersDocument(true, true)}
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle))
@@ -1009,7 +1009,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedAccountJSON,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       apiTagAccount :: apiTagOldStyle :: Nil)
@@ -1046,7 +1046,7 @@ trait APIMethods200 {
         |and the user needs to have access to the owner view.
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)
@@ -1088,7 +1088,7 @@ trait APIMethods200 {
         |${authenticationRequiredMessage(true)}
         |
         |The user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJSONV121,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle))
@@ -1266,7 +1266,7 @@ trait APIMethods200 {
           |  * charge : The charge to the customer for each one of these
           |
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
       List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
@@ -1340,7 +1340,7 @@ trait APIMethods200 {
         |
         |""".stripMargin,
       transactionRequestBodyJsonV200,
-      emptyObjectJson,
+      transactionRequestWithChargesJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -1517,7 +1517,7 @@ trait APIMethods200 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargesJson,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound, UserNoPermissionAccessView, UnknownError),
       List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle))
@@ -1695,7 +1695,7 @@ trait APIMethods200 {
 //        |
 //        |This call is **experimental** and will require further authorisation in the future.
 //      """.stripMargin,
-//      emptyObjectJson,
+//      EmptyBody,
 //      meetingsJson,
 //      List(
 //        UserNotLoggedIn,
@@ -1750,7 +1750,7 @@ trait APIMethods200 {
 //        |
 //        |This call is **experimental** and will require further authorisation in the future.
 //      """.stripMargin,
-//      emptyObjectJson,
+//      EmptyBody,
 //      meetingJson,
 //      List(
 //        UserNotLoggedIn, 
@@ -1887,7 +1887,7 @@ trait APIMethods200 {
         |
         |Login is required.
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userJsonV200,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagOldStyle))
@@ -1921,7 +1921,7 @@ trait APIMethods200 {
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser, apiTagOldStyle),
@@ -2102,7 +2102,7 @@ trait APIMethods200 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagOldStyle),
@@ -2147,8 +2147,8 @@ trait APIMethods200 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
       List(apiTagRole, apiTagUser, apiTagEntitlement))
 
@@ -2185,7 +2185,7 @@ trait APIMethods200 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagRole, apiTagEntitlement))
@@ -2279,8 +2279,8 @@ trait APIMethods200 {
           |You can specify the esType thus: /search/warehouse/esType=type&q=a
           |
         """,
-        emptyObjectJson,
-        emptyObjectJson, //TODO what is output here?
+        EmptyBody,
+        emptyElasticSearch, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagSearchWarehouse, apiTagOldStyle),
         Some(List(canSearchWarehouse)))
@@ -2365,8 +2365,8 @@ trait APIMethods200 {
           |
           |
         """,
-        emptyObjectJson,
-        emptyObjectJson,
+        EmptyBody,
+        emptyElasticSearch,
         List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
         List(apiTagMetric, apiTagApi, apiTagOldStyle),
         Some(List(canSearchMetrics)))
@@ -2395,7 +2395,7 @@ trait APIMethods200 {
       """Information about the currently authenticated user.
         |
         |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customersJsonV140,
       List(UserNotLoggedIn, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagPerson, apiTagCustomer, apiTagOldStyle))
