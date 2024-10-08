@@ -29,11 +29,11 @@ object RabbitMQUtils extends MdcLoggable{
   val password = APIUtil.getPropsValue("rabbitmq_connector.password").openOrThrowException("mandatory property rabbitmq_connector.password is missing!") 
   
 
-  class ResponseCallback(val corrId: String) extends DeliverCallback {
+  class ResponseCallback(val rabbitCorrelationId: String) extends DeliverCallback {
     val response: BlockingQueue[String] = new ArrayBlockingQueue[String](1)
 
     override def handle(consumerTag: String, message: Delivery): Unit = {
-      if (message.getProperties.getCorrelationId.equals(corrId)) {
+      if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
         response.offer(new String(message.getBody, "UTF-8"))
       }
     }
@@ -44,12 +44,12 @@ object RabbitMQUtils extends MdcLoggable{
   }
 
   
-  def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
+  def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](messageId: String, outBound: TopicTrait): Box[T] = {
     val rabbitRequestJsonString: String = write(outBound) // convert OutBound to json string
     val rabbitResponseJsonString: String = {
       var connection: Connection = null
       try {
-        logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $procedureName = $rabbitRequestJsonString")
+        logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $messageId = $rabbitRequestJsonString")
         
         val factory = new ConnectionFactory()
         factory.setHost(host)
@@ -62,21 +62,22 @@ object RabbitMQUtils extends MdcLoggable{
         val requestQueueName: String = "obp_rpc_queue"
         val replyQueueName: String = channel.queueDeclare().getQueue
         
-        val corrId = UUID.randomUUID().toString
-        val props = new BasicProperties.Builder()
-          .correlationId(corrId)
+        val rabbitMQCorrelationId = UUID.randomUUID().toString
+        val rabbitMQprops = new BasicProperties.Builder()
+          .messageId(messageId)
+          .correlationId(rabbitMQCorrelationId)
           .replyTo(replyQueueName)
           .build()
-        channel.basicPublish("", requestQueueName, props, rabbitRequestJsonString.getBytes("UTF-8"))
+        channel.basicPublish("", requestQueueName, rabbitMQprops, rabbitRequestJsonString.getBytes("UTF-8"))
 
-        val responseCallback = new ResponseCallback(corrId)
+        val responseCallback = new ResponseCallback(rabbitMQCorrelationId)
         channel.basicConsume(replyQueueName, true, responseCallback, _ => { })
 
         responseCallback.take()
         
       } catch {
         case e: Throwable =>{
-          logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $procedureName = ${e}")
+          logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
           throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API level
         }
       } finally {
@@ -85,14 +86,14 @@ object RabbitMQUtils extends MdcLoggable{
             connection.close()
           } catch {
             case e: Throwable =>{
-              logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $procedureName = ${e}")
+              logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
               throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API Level
             }
           }
         }
       }
     }
-    logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $procedureName = $rabbitResponseJsonString" )
+    logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $messageId = $rabbitResponseJsonString" )
     Connector.extractAdapterResponse[T](rabbitResponseJsonString, Empty)
   }
 }
