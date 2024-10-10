@@ -2,6 +2,7 @@ package code.bankconnectors.rabbitmq
 
 
 
+import code.api.util.APIUtil
 import com.rabbitmq.client.{Connection, ConnectionFactory}
 import org.apache.commons.pool2.impl.{GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.BasePooledObjectFactory
@@ -10,10 +11,18 @@ import org.apache.commons.pool2.impl.DefaultPooledObject
 
 // Factory to create RabbitMQ connections
 class RabbitMQConnectionFactory extends BasePooledObjectFactory[Connection] {
+
+  // lazy initial RabbitMQ connection
+  val host = APIUtil.getPropsValue("rabbitmq_connector.host").openOrThrowException("mandatory property rabbitmq_connector.host is missing!")
+  val port = APIUtil.getPropsAsIntValue("rabbitmq_connector.port").openOrThrowException("mandatory property rabbitmq_connector.port is missing!")
+  val username = APIUtil.getPropsValue("rabbitmq_connector.username").openOrThrowException("mandatory property rabbitmq_connector.username is missing!")
+  val password = APIUtil.getPropsValue("rabbitmq_connector.password").openOrThrowException("mandatory property rabbitmq_connector.password is missing!")
+
   private val factory = new ConnectionFactory()
-  factory.setHost("localhost")
-  factory.setUsername("guest")
-  factory.setPassword("guest")
+  factory.setHost(host)
+  factory.setPort(port)
+  factory.setUsername(username)
+  factory.setPassword(password)
 
   // Create a new RabbitMQ connection
   override def create(): Connection = factory.newConnection()
@@ -37,9 +46,9 @@ class RabbitMQConnectionFactory extends BasePooledObjectFactory[Connection] {
 }
 
 // Pool to manage RabbitMQ connections
-class RabbitMQConnectionPool {
+object RabbitMQConnectionPool {
   private val poolConfig = new GenericObjectPoolConfig()
-  poolConfig.setMaxTotal(10)           // Maximum number of connections
+  poolConfig.setMaxTotal(5)           // Maximum number of connections
   poolConfig.setMinIdle(2)             // Minimum number of idle connections
   poolConfig.setMaxIdle(5)             // Maximum number of idle connections
   poolConfig.setMaxWaitMillis(30000)   // Wait time for obtaining a connection
@@ -54,14 +63,13 @@ class RabbitMQConnectionPool {
   def returnConnection(conn: Connection): Unit = pool.returnObject(conn)
 }
 
-object RabbitMQWithCommonsPool extends App {
+object RabbitMQConnectionPoolTest extends App {
   // Initialize the RabbitMQ connection pool
-  val rabbitMQPool = new RabbitMQConnectionPool()
 
   // Function to delete a queue
   def deleteQueue(queueName: String): Unit = {
     // Borrow a connection from the pool
-    val connection = rabbitMQPool.borrowConnection()
+    val connection = RabbitMQConnectionPool.borrowConnection()
     val channel = connection.createChannel()
 
     try {
@@ -73,7 +81,7 @@ object RabbitMQWithCommonsPool extends App {
     } finally {
       // Close the channel and return the connection to the pool
       channel.close()
-      rabbitMQPool.returnConnection(connection)
+//      RabbitMQConnectionPool.returnConnection(connection)
     }
   }
 

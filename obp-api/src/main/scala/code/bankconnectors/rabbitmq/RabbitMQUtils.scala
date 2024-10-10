@@ -1,6 +1,5 @@
 package code.bankconnectors.rabbitmq
 
-import code.api.util.APIUtil
 import code.api.util.ErrorMessages.AdapterUnknownError
 import code.bankconnectors.Connector
 import code.util.Helper.MdcLoggable
@@ -10,8 +9,10 @@ import net.liftweb.json.Serialization.write
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client._
 
+import java.util
 import java.util.UUID
-import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 
 
 /**
@@ -21,58 +22,67 @@ import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue}
 object RabbitMQUtils extends MdcLoggable{
 
   private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
-
-  // lazy initial RabbitMQ connection
-  val host = APIUtil.getPropsValue("rabbitmq_connector.host").openOrThrowException("mandatory property rabbitmq_connector.host is missing!")
-  val port = APIUtil.getPropsAsIntValue("rabbitmq_connector.port").openOrThrowException("mandatory property rabbitmq_connector.port is missing!")
-  val username = APIUtil.getPropsValue("rabbitmq_connector.username").openOrThrowException("mandatory property rabbitmq_connector.username is missing!")
-  val password = APIUtil.getPropsValue("rabbitmq_connector.password").openOrThrowException("mandatory property rabbitmq_connector.password is missing!") 
   
+  val requestQueueName: String = "obp_rpc_queue"
 
   class ResponseCallback(val rabbitCorrelationId: String) extends DeliverCallback {
-    val response: BlockingQueue[String] = new ArrayBlockingQueue[String](1)
+
+    val promise = Promise[String]()
+    val future: Future[String] = promise.future
 
     override def handle(consumerTag: String, message: Delivery): Unit = {
       if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
-        response.offer(new String(message.getBody, "UTF-8"))
+        {
+          promise.success(new String(message.getBody, "UTF-8"))
+        }
       }
     }
 
-    def take(): String = {
-      response.take();
+    def take(): Future[String] = {
+      future
     }
   }
 
   
-  def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](messageId: String, outBound: TopicTrait): Box[T] = {
+  def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](messageId: String, outBound: TopicTrait): Future[Box[T]] = {
+
     val rabbitRequestJsonString: String = write(outBound) // convert OutBound to json string
-    val rabbitResponseJsonString: String = {
-      var connection: Connection = null
+    
+    val args = new util.HashMap[String, AnyRef]()
+    //60s  It sets the time (in milliseconds) after which the queue will 
+    // automatically be deleted if it is not used, i.e., if no consumer is connected to it during that time.
+    args.put("x-expires", Integer.valueOf(60000)) 
+    
+
+    // Create a Connection and Channel pool with max 5 connections and 10 channels per connection
+//    val connectionChannelPool = new RabbitMQConnectionPool2(factory, maxConnections = 5, maxChannelsPerConnection = 1)
+    val connection = RabbitMQConnectionPool2.borrowConnection()
+    val channel = RabbitMQConnectionPool2.borrowChannel(connection)
+//    val connection = RabbitMQConnectionPool.borrowConnection()
+//    val channel = connection.createChannel()
+    val replyQueueName:String = channel.queueDeclare(
+      "",  // Queue name
+      false,  // durable: non-persistent
+      true,   // exclusive: non-exclusive
+      true,   // autoDelete: delete when no consumers
+      args   //  extra arguments
+    ).getQueue
+
+    val rabbitResponseJsonFuture  = {
       try {
         logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $messageId = $rabbitRequestJsonString")
         
-        val factory = new ConnectionFactory()
-        factory.setHost(host)
-        factory.setPort(port)
-        factory.setUsername(username)
-        factory.setPassword(password)
-
-        connection = factory.newConnection()
-        val channel: Channel = connection.createChannel()
-        val requestQueueName: String = "obp_rpc_queue"
-        val replyQueueName: String = channel.queueDeclare().getQueue
-        
         val rabbitMQCorrelationId = UUID.randomUUID().toString
-        val rabbitMQprops = new BasicProperties.Builder()
+        val rabbitMQProps = new BasicProperties.Builder()
           .messageId(messageId)
+          .contentType("application/json")
           .correlationId(rabbitMQCorrelationId)
           .replyTo(replyQueueName)
           .build()
-        channel.basicPublish("", requestQueueName, rabbitMQprops, rabbitRequestJsonString.getBytes("UTF-8"))
+        channel.basicPublish("", requestQueueName, rabbitMQProps, rabbitRequestJsonString.getBytes("UTF-8"))
 
         val responseCallback = new ResponseCallback(rabbitMQCorrelationId)
         channel.basicConsume(replyQueueName, true, responseCallback, _ => { })
-
         responseCallback.take()
         
       } catch {
@@ -80,20 +90,14 @@ object RabbitMQUtils extends MdcLoggable{
           logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
           throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API level
         }
-      } finally {
-        if (connection != null) {
-          try {
-            connection.close()
-          } catch {
-            case e: Throwable =>{
-              logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
-              throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API Level
-            }
-          }
-        }
+      } 
+      finally {
+//        channel.close() --> this will tell rebbitMQ to delete the replyQueue.
+        RabbitMQConnectionPool2.returnChannel(channel)
+        RabbitMQConnectionPool2.returnConnection(connection)
       }
     }
-    logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $messageId = $rabbitResponseJsonString" )
-    Connector.extractAdapterResponse[T](rabbitResponseJsonString, Empty)
+    rabbitResponseJsonFuture.map(rabbitResponseJsonString =>logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $messageId = $rabbitResponseJsonString" ))
+    rabbitResponseJsonFuture.map(rabbitResponseJsonString =>Connector.extractAdapterResponse[T](rabbitResponseJsonString, Empty))
   }
 }

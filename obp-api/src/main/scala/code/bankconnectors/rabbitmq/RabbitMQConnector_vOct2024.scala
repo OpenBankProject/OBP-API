@@ -7004,11 +7004,12 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](process: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     Helper.convertToReference(outBound)
-    Future{
-      RabbitMQUtils.sendRequestUndGetResponseFromRabbitMQ[T](process, outBound)
-    }.map(Helper.convertToId(_)) recoverWith {
-      case e: Exception => Future(Failure(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}"))
-    }
+    RabbitMQUtils
+      .sendRequestUndGetResponseFromRabbitMQ[T](process, outBound)
+      .map(Helper.convertToId(_))
+      .recoverWith {
+        case e: Exception => Future(Failure(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}"))
+      }
   }
 
 
