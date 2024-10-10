@@ -43,6 +43,7 @@ object RabbitMQUtils extends MdcLoggable{
     }
   }
 
+  val cancelCallback: CancelCallback = (consumerTag: String) =>  logger.info(s"consumerTag($consumerTag) is  cancelled!!")
   
   def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](messageId: String, outBound: TopicTrait): Future[Box[T]] = {
 
@@ -82,7 +83,7 @@ object RabbitMQUtils extends MdcLoggable{
         channel.basicPublish("", requestQueueName, rabbitMQProps, rabbitRequestJsonString.getBytes("UTF-8"))
 
         val responseCallback = new ResponseCallback(rabbitMQCorrelationId)
-        channel.basicConsume(replyQueueName, true, responseCallback, _ => { })
+        channel.basicConsume(replyQueueName, true, responseCallback, cancelCallback)
         responseCallback.take()
         
       } catch {
