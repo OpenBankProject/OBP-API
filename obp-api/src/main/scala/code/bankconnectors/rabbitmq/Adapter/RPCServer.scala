@@ -69,6 +69,9 @@ class ServerCallback(val ch: Channel) extends DeliverCallback {
             data = null
           ))
         }
+        //---------------- dynamic start -------------------please don't modify this line
+        
+        //---------------- dynamic end ---------------------please don't modify this line
       } else {  
         Future {
           1
@@ -79,7 +82,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback {
       response.map(res => println(s"Response: inBound message to OBP: process($obpMessageId) : message is $res "))
       response
     } catch {
-      case e: Throwable => println(" Exception [.] " + e.toString)
+      case e: Throwable => println("Unknown exception: " + e.toString)
 
     } finally {
       response.map(res => ch.basicPublish("", delivery.getProperties.getReplyTo, replyProps, res.getBytes("UTF-8")))
@@ -99,11 +102,6 @@ object RPCServer extends App {
 
   DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
-
-
-  import com.zaxxer.hikari.HikariConfig
-  import com.zaxxer.hikari.HikariDataSource
-
   
   
   var connection: Connection = null
