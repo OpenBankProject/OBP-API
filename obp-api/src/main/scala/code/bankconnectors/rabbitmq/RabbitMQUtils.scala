@@ -25,7 +25,7 @@ object RabbitMQUtils extends MdcLoggable{
   
   val requestQueueName: String = "obp_rpc_queue"
 
-  class ResponseCallback(val rabbitCorrelationId: String) extends DeliverCallback {
+  class ResponseCallback(val rabbitCorrelationId: String, channel: Channel) extends DeliverCallback {
 
     val promise = Promise[String]()
     val future: Future[String] = promise.future
@@ -33,7 +33,18 @@ object RabbitMQUtils extends MdcLoggable{
     override def handle(consumerTag: String, message: Delivery): Unit = {
       if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
         {
-          promise.success(new String(message.getBody, "UTF-8"))
+          promise.success {
+            val response =new String(message.getBody, "UTF-8");
+            try {
+              if (channel.isOpen) channel.close();
+            } catch {
+              case e: Throwable =>{
+                logger.debug(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
+                throw new RuntimeException(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
+              }
+            }
+            response
+          }
         }
       }
     }
@@ -55,12 +66,8 @@ object RabbitMQUtils extends MdcLoggable{
     args.put("x-expires", Integer.valueOf(60000)) 
     
 
-    // Create a Connection and Channel pool with max 5 connections and 10 channels per connection
-//    val connectionChannelPool = new RabbitMQConnectionPool2(factory, maxConnections = 5, maxChannelsPerConnection = 1)
     val connection = RabbitMQConnectionPool2.borrowConnection()
-    val channel = RabbitMQConnectionPool2.borrowChannel(connection)
-//    val connection = RabbitMQConnectionPool.borrowConnection()
-//    val channel = connection.createChannel()
+    val channel = connection.createChannel() // channel is not thread safe, so we always create new channel for each message.
     val replyQueueName:String = channel.queueDeclare(
       "",  // Queue name
       false,  // durable: non-persistent
@@ -82,9 +89,10 @@ object RabbitMQUtils extends MdcLoggable{
           .build()
         channel.basicPublish("", requestQueueName, rabbitMQProps, rabbitRequestJsonString.getBytes("UTF-8"))
 
-        val responseCallback = new ResponseCallback(rabbitMQCorrelationId)
+        val responseCallback = new ResponseCallback(rabbitMQCorrelationId, channel)
         channel.basicConsume(replyQueueName, true, responseCallback, cancelCallback)
         responseCallback.take()
+        
         
       } catch {
         case e: Throwable =>{
@@ -93,8 +101,6 @@ object RabbitMQUtils extends MdcLoggable{
         }
       } 
       finally {
-//        channel.close() --> this will tell rebbitMQ to delete the replyQueue.
-        RabbitMQConnectionPool2.returnChannel(channel)
         RabbitMQConnectionPool2.returnConnection(connection)
       }
     }
