@@ -63,10 +63,10 @@ object RabbitMQUtils extends MdcLoggable{
     val args = new util.HashMap[String, AnyRef]()
     //60s  It sets the time (in milliseconds) after which the queue will 
     // automatically be deleted if it is not used, i.e., if no consumer is connected to it during that time.
-    args.put("x-expires", Integer.valueOf(60000)) 
-    
+    args.put("x-expires", Integer.valueOf(60000))
 
-    val connection = RabbitMQConnectionPool2.borrowConnection()
+
+    val connection = RabbitMQConnectionPool.borrowConnection()
     val channel = connection.createChannel() // channel is not thread safe, so we always create new channel for each message.
     val replyQueueName:String = channel.queueDeclare(
       "",  // Queue name
@@ -101,7 +101,7 @@ object RabbitMQUtils extends MdcLoggable{
         }
       } 
       finally {
-        RabbitMQConnectionPool2.returnConnection(connection)
+        RabbitMQConnectionPool.returnConnection(connection)
       }
     }
     rabbitResponseJsonFuture.map(rabbitResponseJsonString =>logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $messageId = $rabbitResponseJsonString" ))
