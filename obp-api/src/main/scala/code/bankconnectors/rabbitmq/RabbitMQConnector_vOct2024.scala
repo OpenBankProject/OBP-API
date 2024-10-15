@@ -73,7 +73,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   val connectorName = "rabbitmq_vOct2024"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2024-10-04T12:25:46Z
+// ---------- created on 2024-10-16T00:14:34Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -886,150 +886,6 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, provider, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_for_user", req, callContext)
         response.map(convertToTuple[List[InboundAccountCommons]](callContext))        
-  }
-          
-  messageDocs += getUserDoc
-  def getUserDoc = MessageDoc(
-    process = "obp.getUser",
-    messageFormat = messageFormat,
-    description = "Get User",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetUser(name=userNameExample.value,
-      password=passwordExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundGetUser(status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= InboundUser(email=emailExample.value,
-      password=passwordExample.value,
-      displayName=displayNameExample.value))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getUser(name: String, password: String): Box[InboundUser] = {
-        import com.openbankproject.commons.dto.{InBoundGetUser => InBound, OutBoundGetUser => OutBound}  
-        val callContext: Option[CallContext] = None
-        val req = OutBound(name, password)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_user", req, callContext)
-        response.map(convertToTuple[InboundUser](callContext))        
-  }
-          
-  messageDocs += checkExternalUserCredentialsDoc
-  def checkExternalUserCredentialsDoc = MessageDoc(
-    process = "obp.checkExternalUserCredentials",
-    messageFormat = messageFormat,
-    description = "Check External User Credentials",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundCheckExternalUserCredentials(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      username=usernameExample.value,
-      password=passwordExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundCheckExternalUserCredentials(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= InboundExternalUser(aud=audExample.value,
-      exp=expExample.value,
-      iat=iatExample.value,
-      iss=issExample.value,
-      sub=subExample.value,
-      azp=Some("string"),
-      email=Some(emailExample.value),
-      emailVerified=Some(emailVerifiedExample.value),
-      name=Some(userNameExample.value),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
-        import com.openbankproject.commons.dto.{InBoundCheckExternalUserCredentials => InBound, OutBoundCheckExternalUserCredentials => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username, password)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_credentials", req, callContext)
-        response.map(convertToTuple[InboundExternalUser](callContext))        
-  }
-          
-  messageDocs += checkExternalUserExistsDoc
-  def checkExternalUserExistsDoc = MessageDoc(
-    process = "obp.checkExternalUserExists",
-    messageFormat = messageFormat,
-    description = "Check External User Exists",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundCheckExternalUserExists(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      username=usernameExample.value)
-    ),
-    exampleInboundMessage = (
-     InBoundCheckExternalUserExists(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= InboundExternalUser(aud=audExample.value,
-      exp=expExample.value,
-      iat=iatExample.value,
-      iss=issExample.value,
-      sub=subExample.value,
-      azp=Some("string"),
-      email=Some(emailExample.value),
-      emailVerified=Some(emailVerifiedExample.value),
-      name=Some(userNameExample.value),
-      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
-      value=valueExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
-        import com.openbankproject.commons.dto.{InBoundCheckExternalUserExists => InBound, OutBoundCheckExternalUserExists => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_exists", req, callContext)
-        response.map(convertToTuple[InboundExternalUser](callContext))        
-  }
-          
-  messageDocs += getBankAccountOldDoc
-  def getBankAccountOldDoc = MessageDoc(
-    process = "obp.getBankAccountOld",
-    messageFormat = messageFormat,
-    description = "Get Bank Account Old",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-     OutBoundGetBankAccountOld(bankId=BankId(bankIdExample.value),
-      accountId=AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
-     InBoundGetBankAccountOld(status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
-      accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceExample.value),
-      currency=currencyExample.value,
-      name=bankAccountNameExample.value,
-      label=labelExample.value,
-      number=bankAccountNumberExample.value,
-      bankId=BankId(bankIdExample.value),
-      lastUpdate=toDate(bankAccountLastUpdateExample),
-      branchId=branchIdExample.value,
-      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
-      address=accountRoutingAddressExample.value)),
-      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
-      value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value,
-      attributes=Some(List( Attribute(name=attributeNameExample.value,
-      `type`=attributeTypeExample.value,
-      value=attributeValueExample.value)))))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def getBankAccountOld(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
-        import com.openbankproject.commons.dto.{InBoundGetBankAccountOld => InBound, OutBoundGetBankAccountOld => OutBound}  
-        val callContext: Option[CallContext] = None
-        val req = OutBound(bankId, accountId)
-        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_old", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
   }
           
   messageDocs += getBankAccountByIbanDoc
@@ -6926,8 +6782,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2024-10-04T12:25:46Z
-//---------------- dynamic end ---------------------please don't modify this line                                             
+// ---------- created on 2024-10-16T00:14:34Z
+//---------------- dynamic end ---------------------please don't modify this line                                                 
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
