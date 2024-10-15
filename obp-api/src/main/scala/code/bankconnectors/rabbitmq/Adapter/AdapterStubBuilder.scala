@@ -1,12 +1,14 @@
 package code.bankconnectors.rabbitmq.Adapter
 
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.successStatus
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{outboundAdapterAuthInfo, successStatus}
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.CustomJsonFormats.formats
-import code.api.util.{APIUtil, OptionalFieldSerializer}
+import code.api.util.{APIUtil, NewStyle, OptionalFieldSerializer}
+import code.bankconnectors.Connector
+import code.bankconnectors.Connector.connector
 import code.bankconnectors.ConnectorBuilderUtil._
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
-import com.openbankproject.commons.model.Status
+import com.openbankproject.commons.model.{Status, TopicTrait}
 import com.openbankproject.commons.util.Functions
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
@@ -19,7 +21,7 @@ import java.util.{Date, TimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * create the adapter side, using obp mapped connector to return the value
+ * create ms sql server stored procedure according messageDocs.
  */
 object AdapterStubBuilder {
   specialMethods // this line just for modify "MappedWebUiPropsProvider"
@@ -38,22 +40,28 @@ object AdapterStubBuilder {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     val messageDocs: ArrayBuffer[MessageDoc] = RabbitMQConnector_vOct2024.messageDocs
 
-    val codeList = messageDocs.map(doc => {
-      val processName = doc.process
-      val outBoundExample = doc.exampleOutboundMessage
-      val inBoundExample = doc.exampleInboundMessage
-      buildConnectorStub(processName, outBoundExample, inBoundExample)
-    })
+    val codeList = messageDocs
+//      .filterNot(_.process.equals("obp.getBankAccountOld"))//getBanks is the template code, already in the code.
+//      .filter(_.process.equals("obp.getTransactions"))//getBanks is the template code, already in the code.
+//      .take(40)
+      .slice(41,50)
+      .map(
+        doc => {
+          val processName = doc.process
+          val outBoundExample = doc.exampleOutboundMessage
+          val inBoundExample = doc.exampleInboundMessage
+          buildConnectorStub(processName, outBoundExample, inBoundExample)
+        })
 
-    
-//    val source = FileUtils.write(path, procedureNameToInbound, "utf-8")
+
+    //    val source = FileUtils.write(path, procedureNameToInbound, "utf-8")
 
     //  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
     //  println(symbols)
-//    println("-------------------")
-//    codeList.foreach(println(_))
-//    println("===================")
-    
+    //    println("-------------------")
+    //    codeList.foreach(println(_))
+    //    println("===================")
+
     val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""),
       "src/main/scala/code/bankconnectors/rabbitmq/Adapter/RPCServer.scala")
     val source = FileUtils.readFileToString(path, "utf-8")
@@ -69,34 +77,74 @@ object AdapterStubBuilder {
          |$end """.stripMargin
     val newSource = source.replaceFirst(placeHolderInSource, insertCode)
     FileUtils.writeStringToFile(path, newSource, "utf-8")
-    
-    
+    println("finished")
+
+    sys.exit(0)  // Pass 0 for a normal termination, other codes for abnormal termination
   }
 
   def buildConnectorStub(processName: String, outBoundExample: scala.Product, inBoundExample: scala.Product) = {
-    // eg: processName= obp.getAtms --> partialFunctionName = getAtms
-    val partialFunctionName= processName.replace("obp.","")
-    val partialFunctionNameCapitalized = partialFunctionName.capitalize
+    val allParameters: List[(String, Any)] = outBoundExample.asInstanceOf[TopicTrait].nameToValue
     
-    //the difficult is the parameters.
+    val paginationParameters = List("limit","offset","fromDate","toDate")
     
-    s"""} else if (obpMessageId.contains("${StringHelpers.snakify(partialFunctionName)}")) {
-       |        val outBound = json.parse(message).extract[OutBound$partialFunctionNameCapitalized]
-       |        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.$partialFunctionName(outBound.bankId, None, Nil).map(_.map(_._1).head)
+    val parametersRemovedPagination = allParameters.filterNot(parameter => paginationParameters.contains(parameter._1))
+      
+    val parameters = 
+      //do not need the 1st parameter "outboundAdapterCallContext" so remove it.
+      if(allParameters.nonEmpty && allParameters.head._1.equals("outboundAdapterCallContext"))
+        parametersRemovedPagination.drop(1)
+      else
+        parametersRemovedPagination
+    
+    val parameterString = 
+      if(parameters.isEmpty) 
+        "" 
+      else
+        parameters.map(_._1).mkString("outBound.",",outBound.",",")
+    
+    // eg: processName= obp.getAtms --> connectorMethodName = getAtms
+    val connectorMethodName= processName.replace("obp.","") //eg: getBank
+    val connectorMethodNameCapitalized = connectorMethodName.capitalize // eg: GetBank 
+
+    //the connector method return types are different, eg: OBPReturnType[Box[T]], Future[Box[(T, Option[CallContext])]],,,
+    // we need to prepare different code for them.
+    val methodSymbol = NewStyle.function.getConnectorMethod("mapped", connectorMethodName)
+    val returnType = methodSymbol.map(_.returnType)
+    val returnTypeString = returnType.map(_.toString).getOrElse("")
+    
+    val obpMappedResponse = if (returnTypeString.contains("OBPReturnType") && allParameters.find(_._1=="limit").isDefined) 
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}Nil,None).map(_._1.head)" 
+    else if(returnTypeString.contains("OBPReturnType"))
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_._1.head)" 
+    else 
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_.map(_._1).head)" 
+    
+    //the InBound.data field sometimes can not be null .we need to prepare the proper value for it. this is only use for errro handling.
+    // eg: inBoundExample.toString = InBoundValidateChallengeAnswer(InboundAdapterCallContext(....,true)
+    val data = if(inBoundExample.toString.endsWith(",true)")) 
+      false 
+    else 
+      null
+    
+    
+    s"""
+       |      } else if (obpMessageId.contains("${StringHelpers.snakify(connectorMethodName)}")) {
+       |        val outBound = json.parse(message).extract[OutBound$connectorMethodNameCapitalized]
+       |        val obpMappedResponse = $obpMappedResponse
        |        
-       |        obpMappedResponse.map(response => InBound$partialFunctionNameCapitalized(
+       |        obpMappedResponse.map(response => InBound$connectorMethodNameCapitalized(
        |          inboundAdapterCallContext = InboundAdapterCallContext(
        |            correlationId = outBound.outboundAdapterCallContext.correlationId
        |          ),
        |          status = Status("", Nil),
        |          data = response
        |        )).recoverWith {
-       |          case e: Exception => Future(InBound$partialFunctionNameCapitalized(
+       |          case e: Exception => Future(InBound$connectorMethodNameCapitalized(
        |            inboundAdapterCallContext = InboundAdapterCallContext(
        |              correlationId = outBound.outboundAdapterCallContext.correlationId
        |            ),
        |            status = Status(e.getMessage, Nil),
-       |            data = null
+       |            data = $data
        |          ))
        |        }""".stripMargin
   }
