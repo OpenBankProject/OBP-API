@@ -459,7 +459,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     challengeId: String,
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
-  ) = Future {
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
     val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
@@ -470,11 +470,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     challengeId: String,
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
-  ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
-    }
+  ) : OBPReturnType[Box[ChallengeTrait]] = Future {
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
 
 
@@ -485,7 +483,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswer: String,
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
-  ) = Future {
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
     val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
@@ -498,7 +496,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswer: String,
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
-  ) = Future {
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
     val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
