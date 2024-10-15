@@ -19,7 +19,7 @@ import java.util.{Date, TimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * create ms sql server stored procedure according messageDocs.
+ * create the adapter side, using obp mapped connector to return the value
  */
 object AdapterStubBuilder {
   specialMethods // this line just for modify "MappedWebUiPropsProvider"

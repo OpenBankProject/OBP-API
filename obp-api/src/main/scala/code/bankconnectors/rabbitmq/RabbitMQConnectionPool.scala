@@ -81,7 +81,7 @@ object RabbitMQConnectionPoolTest extends App {
     } finally {
       // Close the channel and return the connection to the pool
       channel.close()
-//      RabbitMQConnectionPool.returnConnection(connection)
+      RabbitMQConnectionPool.returnConnection(connection)
     }
   }
 

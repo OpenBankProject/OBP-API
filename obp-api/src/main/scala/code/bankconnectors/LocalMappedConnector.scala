@@ -460,10 +460,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
   ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
-    }
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
   override def validateChallengeAnswerC3(
     transactionRequestId: Option[String],
@@ -488,10 +486,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
   ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
-    }
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
   override def validateChallengeAnswerC5(
@@ -503,10 +499,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
   ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
-    }
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
   override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
