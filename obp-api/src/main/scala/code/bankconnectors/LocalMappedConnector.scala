@@ -459,11 +459,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     challengeId: String,
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
-  ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
-    }
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
   override def validateChallengeAnswerC3(
     transactionRequestId: Option[String],
@@ -472,11 +470,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     challengeId: String,
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
-  ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
-    }
+  ) : OBPReturnType[Box[ChallengeTrait]] = Future {
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
 
 
@@ -487,11 +483,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswer: String,
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
-  ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
-    }
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
   override def validateChallengeAnswerC5(
@@ -502,11 +496,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswer: String,
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
-  ) = Future {
-    Future {
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
-      (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
-    }
+  ): OBPReturnType[Box[ChallengeTrait]] = Future {
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
   override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
@@ -1293,7 +1285,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future(Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
   }
 
-  override def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+  override def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
     Future(Counterparties.counterparties.vend.getCounterpartyByIbanAndBankAccountId(iban, bankId, accountId), callContext)
   }
 

@@ -232,7 +232,6 @@ object ConnectorBuilderUtil {
     "getBank",
     "getBanks",
     "getBankAccountsForUser",
-    "getUser",
     "getBankAccountsBalances",
     "getBankAccountBalances",
     "getCoreBankAccounts",
@@ -365,9 +364,7 @@ object ConnectorBuilderUtil {
 
     // The follow methods's parameter or return type are special
     "getCurrentFxRate",
-    "getBankAccountOld",    // old method, but v3.0.0 apis use a lot
-    "checkExternalUserCredentials",
-    "checkExternalUserExists",
+//    "getBankAccountOld",    // old method, but v3.0.0 apis use a lot, no callContext, and return box. 
     "createChallengesC2",
     "createChallengesC3",
     "getChallenge",
@@ -467,6 +464,10 @@ object ConnectorBuilderUtil {
     //      "createDynamicEndpoint",
     //      "getDynamicEndpoint",
     //      "getDynamicEndpoints",
+    
+    //    "checkExternalUserCredentials",// this is not a standard connector method. 
+    //    "getUser", // this is not a standard connector method.
+    //    "checkExternalUserExists", // this is not a standard connector method. 
   ).distinct
 }
 
