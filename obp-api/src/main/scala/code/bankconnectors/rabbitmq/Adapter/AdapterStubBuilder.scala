@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{outboundAdapter
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.CustomJsonFormats.formats
 import code.api.util.{APIUtil, NewStyle, OptionalFieldSerializer}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, ConnectorBuilderUtil}
 import code.bankconnectors.Connector.connector
 import code.bankconnectors.ConnectorBuilderUtil._
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
@@ -42,9 +42,9 @@ object AdapterStubBuilder {
 
     val codeList = messageDocs
 //      .filterNot(_.process.equals("obp.getBankAccountOld"))//getBanks is the template code, already in the code.
-//      .filter(_.process.equals("obp.getTransactions"))//getBanks is the template code, already in the code.
-//      .take(40)
-      .slice(41,50)
+//      .filter(_.process.equals("obp.dynamicEntityProcess"))//getBanks is the template code, already in the code.
+//      .take(80)
+//      .slice(91,1000)
       .map(
         doc => {
           val processName = doc.process
@@ -101,6 +101,7 @@ object AdapterStubBuilder {
         "" 
       else
         parameters.map(_._1).mkString("outBound.",",outBound.",",")
+          .replace(".type",".`type`") //type is the keyword in scala. so must be use `type` instead
     
     // eg: processName= obp.getAtms --> connectorMethodName = getAtms
     val connectorMethodName= processName.replace("obp.","") //eg: getBank
@@ -112,10 +113,18 @@ object AdapterStubBuilder {
     val returnType = methodSymbol.map(_.returnType)
     val returnTypeString = returnType.map(_.toString).getOrElse("")
     
-    val obpMappedResponse = if (returnTypeString.contains("OBPReturnType") && allParameters.find(_._1=="limit").isDefined) 
+    val obpMappedResponse = if (connectorMethodName == "dynamicEntityProcess") 
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None,None,None,false,None).map(_._1.head)" 
+    else if (returnTypeString.contains("OBPReturnType") && allParameters.exists(_._1 == "limit") && connectorMethodName !="getTransactions") 
       s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}Nil,None).map(_._1.head)" 
-    else if(returnTypeString.contains("OBPReturnType"))
+    else if(returnTypeString.contains("OBPReturnType")&&allParameters.head._1.equals("outboundAdapterCallContext"))
       s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_._1.head)" 
+    else if(!returnTypeString.contains("OBPReturnType") && !returnTypeString.contains("Future") && returnTypeString.contains("Box[(") && allParameters.head._1.equals("outboundAdapterCallContext"))
+      s"Future{code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_._1).head}"
+    else if(!returnTypeString.contains("OBPReturnType") && !returnTypeString.contains("Future") && returnTypeString.contains("Box[(") && !allParameters.head._1.equals("outboundAdapterCallContext"))
+      s"Future{code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString.dropRight(1)}).map(_._1).head}"
+    else if(!returnTypeString.contains("OBPReturnType") && !returnTypeString.contains("Future") && returnTypeString.contains("Box[") && !allParameters.head._1.equals("outboundAdapterCallContext"))
+      s"Future{code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString.dropRight(1)}).head}"
     else 
       s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_.map(_._1).head)" 
     
@@ -126,23 +135,35 @@ object AdapterStubBuilder {
     else 
       null
     
+    val response = if(inBoundExample.toString.contains("PhysicalCards"))
+      "response.asInstanceOf[List[PhysicalCard]]"
+    else if(inBoundExample.toString.contains("PhysicalCard"))
+      "response.asInstanceOf[PhysicalCard]"
+    else
+      "response"
+    
+    
+    val inboundAdapterCallContext = if(ConnectorBuilderUtil.specialMethods.contains(connectorMethodName) ||
+      connectorMethodName == "getPhysicalCardsForUser" // this need to be check, InBoundGetPhysicalCardsForUser is missing inboundAdapterCallContext field.
+    )
+      ""
+    else
+      """          
+        |          
+        |          inboundAdapterCallContext = InboundAdapterCallContext(
+        |            correlationId = outBound.outboundAdapterCallContext.correlationId
+        |          ),""".stripMargin
     
     s"""
        |      } else if (obpMessageId.contains("${StringHelpers.snakify(connectorMethodName)}")) {
        |        val outBound = json.parse(message).extract[OutBound$connectorMethodNameCapitalized]
        |        val obpMappedResponse = $obpMappedResponse
        |        
-       |        obpMappedResponse.map(response => InBound$connectorMethodNameCapitalized(
-       |          inboundAdapterCallContext = InboundAdapterCallContext(
-       |            correlationId = outBound.outboundAdapterCallContext.correlationId
-       |          ),
+       |        obpMappedResponse.map(response => InBound$connectorMethodNameCapitalized($inboundAdapterCallContext
        |          status = Status("", Nil),
-       |          data = response
+       |          data = $response
        |        )).recoverWith {
-       |          case e: Exception => Future(InBound$connectorMethodNameCapitalized(
-       |            inboundAdapterCallContext = InboundAdapterCallContext(
-       |              correlationId = outBound.outboundAdapterCallContext.correlationId
-       |            ),
+       |          case e: Exception => Future(InBound$connectorMethodNameCapitalized($inboundAdapterCallContext
        |            status = Status(e.getMessage, Nil),
        |            data = $data
        |          ))
