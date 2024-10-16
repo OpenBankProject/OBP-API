@@ -41,8 +41,9 @@ object AdapterStubBuilder {
     val messageDocs: ArrayBuffer[MessageDoc] = RabbitMQConnector_vOct2024.messageDocs
 
     val codeList = messageDocs
+      //these are only for debugging.
 //      .filterNot(_.process.equals("obp.getBankAccountOld"))//getBanks is the template code, already in the code.
-//      .filter(_.process.equals("obp.dynamicEntityProcess"))//getBanks is the template code, already in the code.
+//      .filter(_.process.equals("obp.getCustomers"))//getBanks is the template code, already in the code.
 //      .take(80)
 //      .slice(91,1000)
       .map(
@@ -54,13 +55,9 @@ object AdapterStubBuilder {
         })
 
 
-    //    val source = FileUtils.write(path, procedureNameToInbound, "utf-8")
-
-    //  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
-    //  println(symbols)
-    //    println("-------------------")
-    //    codeList.foreach(println(_))
-    //    println("===================")
+    println("-------------------")
+    codeList.foreach(println(_))
+    println("===================")
 
     val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""),
       "src/main/scala/code/bankconnectors/rabbitmq/Adapter/RPCServer.scala")
@@ -125,23 +122,20 @@ object AdapterStubBuilder {
       s"Future{code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString.dropRight(1)}).map(_._1).head}"
     else if(!returnTypeString.contains("OBPReturnType") && !returnTypeString.contains("Future") && returnTypeString.contains("Box[") && !allParameters.head._1.equals("outboundAdapterCallContext"))
       s"Future{code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString.dropRight(1)}).head}"
+    else if(!returnTypeString.contains("OBPReturnType") && returnTypeString.contains("scala.concurrent.Future[net.liftweb.common.Box[") && !returnTypeString.contains("scala.concurrent.Future[net.liftweb.common.Box[("))
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_.head)"
     else 
-      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_.map(_._1).head)" 
+      s"code.bankconnectors.LocalMappedConnector.$connectorMethodName(${parameterString}None).map(_.map(_._1).head)"
+
+    val isDataFieldBoolean = inBoundExample.toString.endsWith(",true)") || inBoundExample.toString.endsWith(",false)")
+    
     
     //the InBound.data field sometimes can not be null .we need to prepare the proper value for it. this is only use for errro handling.
     // eg: inBoundExample.toString = InBoundValidateChallengeAnswer(InboundAdapterCallContext(....,true)
-    val data = if(inBoundExample.toString.endsWith(",true)")) 
+    val data = if(isDataFieldBoolean) 
       false 
     else 
       null
-    
-    val response = if(inBoundExample.toString.contains("PhysicalCards"))
-      "response.asInstanceOf[List[PhysicalCard]]"
-    else if(inBoundExample.toString.contains("PhysicalCard"))
-      "response.asInstanceOf[PhysicalCard]"
-    else
-      "response"
-    
     
     val inboundAdapterCallContext = if(ConnectorBuilderUtil.specialMethods.contains(connectorMethodName) ||
       connectorMethodName == "getPhysicalCardsForUser" // this need to be check, InBoundGetPhysicalCardsForUser is missing inboundAdapterCallContext field.
@@ -161,7 +155,7 @@ object AdapterStubBuilder {
        |        
        |        obpMappedResponse.map(response => InBound$connectorMethodNameCapitalized($inboundAdapterCallContext
        |          status = Status("", Nil),
-       |          data = $response
+       |          data = response
        |        )).recoverWith {
        |          case e: Exception => Future(InBound$connectorMethodNameCapitalized($inboundAdapterCallContext
        |            status = Status(e.getMessage, Nil),

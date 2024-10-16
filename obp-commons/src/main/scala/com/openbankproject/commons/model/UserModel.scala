@@ -96,6 +96,8 @@ case class UserAuthContextUpdateCommons(
                                          consumerId: String
                                        ) extends UserAuthContextUpdate
 
+object UserAuthContextUpdateCommons extends Converter[UserAuthContextUpdate, UserAuthContextUpdateCommons]
+
 object UserAuthContextUpdateStatus extends Enumeration {
   type ConsentStatus = Value
   val INITIATED, ACCEPTED, REJECTED = Value

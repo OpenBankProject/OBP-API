@@ -91,6 +91,7 @@ case class PhysicalCard  (
   override val brand: Option[String] = None
 ) extends PhysicalCardTrait
 
+object PhysicalCard extends Converter[PhysicalCardTrait, PhysicalCard]
 
 sealed trait CardAction extends SimpleEnum
 
