@@ -87,7 +87,7 @@ object RabbitMQUtils extends MdcLoggable{
     val channel = connection.createChannel() // channel is not thread safe, so we always create new channel for each message.
     channel.queueDeclare(
       RPC_QUEUE_NAME,  // Queue name
-      true,            // durable: non-persis, here set durable = true
+      false,           // durable: non-persis, here set durable = true
       false,           // exclusive: non-excl4, here set exclusive = false
       false,           // autoDelete: delete, here set autoDelete = false 
       args             // extra arguments,
