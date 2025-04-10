@@ -1,21 +1,274 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liftweb Portal | Modern Interface</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            --card-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.15);
+        }
+        
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .hero-section {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 5rem 0;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        
+        .hero-section::after {
+            content: "";
+            position: absolute;
+            bottom: -80px;
+            left: -30px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow);
+        }
+        
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #28a745;
+        }
+        
+        footer {
+            background: #343a40;
+            color: white;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-box-seam me-2"></i>
+                Liftweb Portal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center position-relative">
+            <h1 class="display-3 fw-bold mb-4">Liftweb Framework</h1>
+            <p class="lead mb-5">Powerful Scala web framework with modern interface</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="#main-content" class="btn btn-light btn-lg px-4">
+                    <i class="bi bi-arrow-down-circle me-2"></i>Explore
+                </a>
+                <a href="http://www.example.com" class="btn btn-outline-light btn-lg px-4">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Documentation
+                </a>
+            </div>
+        </div>
+    </section>
 
+    <!-- Main Content (Liftweb Section) -->
+    <div class="container mb-5" id="main-content">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div id="main" data-lift="surround?with=default;at=content" class="bg-white p-4 p-md-5 rounded-4 shadow-sm">
+                    <h2 class="fw-bold mb-4 text-center">
+                        <i class="bi bi-code-slash me-2"></i>Liftweb Integration
+                    </h2>
+                    
+                    <div class="row g-4 mt-4">
+                        <!-- Original Content Card -->
+                        <div class="col-md-6">
+                            <div class="feature-card card h-100 p-4">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-link-45deg card-icon"></i>
+                                    <h3 class="h4 mb-3">Code Surround</h3>
+                                    <p class="mb-4">Your original Liftweb content with modern styling</p>
+                                    <div class="text-start">
+                                        <h4 class="h5"><i class="bi bi-check-circle-fill text-success me-2"></i>Original Content</h4>
+                                        <p class="small">with a <a href="http://www.example.com" class="text-decoration-none">link</a></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resources Card -->
+                        <div class="col-md-6">
+                            <div class="feature-card card h-100 p-4">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder card-icon"></i>
+                                    <h3 class="h4 mb-3">Resources</h3>
+                                    <div class="d-grid gap-2">
+                                        <a href="/static" class="btn btn-outline-primary btn-lg">
+                                            <i class="bi bi-image me-2"></i>Static Assets
+                                        </a>
+                                        <a href="/sdks" class="btn btn-outline-success btn-lg">
+                                            <i class="bi bi-download me-2"></i>SDK Downloads
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Features Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5 fw-bold">Framework Features</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card card h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-lightning-fill card-icon"></i>
+                            <h3 class="h4">High Performance</h3>
+                            <p>Optimized for speed and scalability with Scala's powerful runtime</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card card h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-shield-lock card-icon"></i>
+                            <h3 class="h4">Secure</h3>
+                            <p>Built-in security features to protect your application</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card card h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-arrows-angle-expand card-icon"></i>
+                            <h3 class="h4">Scalable</h3>
+                            <p>Easily scale your application to meet growing demands</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<head><title>Basic Liftweb Suround with default</title></head>
-<body bgcolor="green">
+    <!-- Footer -->
+    <footer class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3 class="h5 mb-3">Liftweb Framework</h3>
+                    <p class="small text-muted">A powerful web framework for building scalable applications in Scala.</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="h5 mb-3">Links</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted small">Documentation</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted small">GitHub</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted small">Community</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="h5 mb-3">Resources</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="/static" class="text-decoration-none text-muted small">Static Files</a></li>
+                        <li class="mb-2"><a href="/sdks" class="text-decoration-none text-muted small">SDKs</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted small">Examples</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="text-center small text-muted">
+                &copy; 2023 Liftweb Framework. All rights reserved.
+            </div>
+        </div>
+    </footer>
 
-<div id="main" data-lift="surround?with=default;at=content" tabindex="-1">
-
-<h1>I call LiftWeb code surround</h1>
-with a <a href="http://www.example.com">link</a>
-<h1>Link to static</h1><a href="/static">static image</a>
-<h1>Link to SDKs</h1><a href="/sdks">SDKs</a>
-
-</div>
-
-
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.createElement('button');
+            themeToggle.className = 'btn btn-sm btn-outline-secondary position-fixed bottom-0 end-0 m-3';
+            themeToggle.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            themeToggle.onclick = function() {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-bs-theme', newTheme);
+                themeToggle.innerHTML = newTheme === 'dark' 
+                    ? '<i class="bi bi-sun"></i>' 
+                    : '<i class="bi bi-moon-stars"></i>';
+            };
+            document.body.appendChild(themeToggle);
+        });
+    </script>
 </body>
 </html>
