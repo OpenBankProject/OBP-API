@@ -4,6 +4,7 @@ ENV JMX_EXPORTER_VERSION=1.2.0
 
 # To enable add "-javaagent:$JETTY_BASE/jmx-exporter.jar=8090:$JETTY_BASE/prometheus_config.yml" to the JAVA_OPTIONS
 RUN wget https://github.com/prometheus/jmx_exporter/releases/download/$JMX_EXPORTER_VERSION/jmx_prometheus_javaagent-$JMX_EXPORTER_VERSION.jar -o /var/lib/jetty/jmx-exporter.jar
+RUN wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar  -o /var/lib/jetty/opentelemetry.jar
 COPY .github/jmx_exporter.config /var/lib/jetty/prometheus_config.yml
 # Copy OBP source code
 # Copy build artifact (.war file) into jetty from 'maven' stage.
