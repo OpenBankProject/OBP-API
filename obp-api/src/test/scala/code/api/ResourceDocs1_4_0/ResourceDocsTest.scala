@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
+import code.api.berlin.group.ConstantsBG
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.APIUtil.OAuth._
 
@@ -283,7 +284,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / ConstantsBG.berlinGroupVersion1.apiShortVersion / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -293,7 +294,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "BGv1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / s"BG${ConstantsBG.berlinGroupVersion1.apiShortVersion}" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -540,7 +541,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / "v1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / ConstantsBG.berlinGroupVersion1.apiShortVersion / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -550,7 +551,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / "BGv1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / s"BG${ConstantsBG.berlinGroupVersion1.apiShortVersion}" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]

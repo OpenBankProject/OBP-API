@@ -1,5 +1,7 @@
 package code.api.util
 
+import code.api.berlin.group.ConstantsBG
+
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
@@ -256,7 +258,7 @@ object Consent extends MdcLoggable {
           case false =>
             Failure(ErrorMessages.ConsentVerificationIssue)
         }
-      case Full(c) if c.apiStandard == ApiVersion.berlinGroupV13.apiStandard && // Berlin Group Consent
+      case Full(c) if c.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard && // Berlin Group Consent
         c.status.toLowerCase() != ConsentStatus.valid.toString =>
         Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.valid.toString}.")
       case Full(c) if c.mStatus.toString().toUpperCase() != ConsentStatus.ACCEPTED.toString =>
@@ -569,9 +571,11 @@ object Consent extends MdcLoggable {
                 logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT].checkConsent.consentBox: $consent")
                 consentBox match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
-                    // Update MappedConsent.usesSoFarTodayCounter field
-                    val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
-                    logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
+                    if(BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
+                      // Update MappedConsent.usesSoFarTodayCounter field
+                      val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                      logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
+                    }
                     applyConsentRules(consent, updatedCallContext)
                   case failure@Failure(_, _, _) => // Handled errors
                     Future(failure, Some(updatedCallContext))
@@ -598,7 +602,8 @@ object Consent extends MdcLoggable {
               Future(Failure("Cannot extract data from: " + consentId), Some(updatedCallContext))
           }
         } else {
-          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(updatedCallContext))
+          val errorMessage = ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"
+          Future(fullBoxOrException(Empty ~> APIFailureNewStyle(errorMessage, 429, Some(callContext.toLight))), Some(callContext))
         }
       case failure@Failure(_, _, _) =>
         Future(failure, Some(callContext))
@@ -779,6 +784,7 @@ object Consent extends MdcLoggable {
     val xRequestId: Option[HTTPParam] = callContext.map(_.requestHeaders).getOrElse(Nil).find(_.name == RequestHeader.`X-Request-ID`)
     val psuDeviceId: Option[HTTPParam] = callContext.map(_.requestHeaders).getOrElse(Nil).find(_.name == RequestHeader.`PSU-Device-ID`)
     val psuIpAddress: Option[HTTPParam] = callContext.map(_.requestHeaders).getOrElse(Nil).find(_.name == RequestHeader.`PSU-IP-Address`)
+    val psuGeoLocation: Option[HTTPParam] = callContext.map(_.requestHeaders).getOrElse(Nil).find(_.name == RequestHeader.`PSU-Geo-Location`)
     Future.sequence(accounts ::: balances ::: transactions) map { views =>
       val json = ConsentJWT(
         createdByUserId = user.map(_.userId).getOrElse(""),
@@ -793,7 +799,8 @@ object Consent extends MdcLoggable {
           tppNokRedirectUri.toList :::
           xRequestId.toList :::
           psuDeviceId.toList :::
-          psuIpAddress.toList,
+          psuIpAddress.toList :::
+          psuGeoLocation.toList,
         name = None,
         email = None,
         entitlements = Nil,
@@ -1048,9 +1055,9 @@ object Consent extends MdcLoggable {
 
   def expireAllPreviousValidBerlinGroupConsents(consent: MappedConsent, updateTostatus: ConsentStatus): Boolean = {
     if(updateTostatus == ConsentStatus.valid &&
-      consent.apiStandard == ApiVersion.berlinGroupV13.apiStandard) {
+      consent.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) {
       MappedConsent.findAll( // Find all
-          By(MappedConsent.mApiStandard, ApiVersion.berlinGroupV13.apiStandard), // Berlin Group
+          By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard), // Berlin Group
           By(MappedConsent.mRecurringIndicator, true), // recurring
           By(MappedConsent.mStatus, ConsentStatus.valid.toString), // and valid consents
           By(MappedConsent.mUserId, consent.userId), // for the same PSU

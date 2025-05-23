@@ -1,5 +1,6 @@
 package code.api.builder.ConfirmationOfFundsServicePIISApi
 
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.{JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
@@ -20,7 +21,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
 object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
-    val apiVersion =  ApiVersion.berlinGroupV13
+    val apiVersion =  ConstantsBG.berlinGroupVersion1
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

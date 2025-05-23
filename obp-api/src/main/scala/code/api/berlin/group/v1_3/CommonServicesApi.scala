@@ -1,5 +1,6 @@
 package code.api.builder.CommonServicesApi
 
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.{JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
@@ -14,7 +15,7 @@ import scala.collection.mutable.ArrayBuffer
 
 //TODO maybe we can remove this common services, it just show other apis in this tag. no new ones.
 object APIMethods_CommonServicesApi extends RestHelper {
-    val apiVersion =  ApiVersion.berlinGroupV13
+    val apiVersion = ConstantsBG.berlinGroupVersion1
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

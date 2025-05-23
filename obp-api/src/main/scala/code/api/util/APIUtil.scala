@@ -34,6 +34,7 @@ import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api._
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, ErrorMessagesBG}
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
@@ -520,7 +521,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val mirrorByProperties = getPropsValue("mirror_request_headers_to_response", "").split(",").toList.map(_.trim)
 
     val mirrorRequestHeadersToResponse: List[String] =
-      if (callContext.exists(_.url.contains(ApiVersion.berlinGroupV13.urlPrefix))) {
+      if (callContext.exists(_.url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix))) {
         // Berlin Group Specification
         RequestHeader.`X-Request-ID` :: mirrorByProperties
       } else {
@@ -725,7 +726,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     def composeErrorMessage() = {
       val path = callContextLight.map(_.url).getOrElse("")
-      if (path.contains(ApiVersion.berlinGroupV13.urlPrefix)) {
+      if (path.contains(ConstantsBG.berlinGroupVersion1.urlPrefix)) {
         val path =
           if(APIUtil.getPropsAsBoolValue("berlin_group_error_message_show_path", defaultValue = true))
             callContextLight.map(_.url)

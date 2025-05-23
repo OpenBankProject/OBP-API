@@ -1,7 +1,9 @@
 package code.api.util
 
-import code.api.APIFailureNewStyle
+import code.api.berlin.group.ConstantsBG
+import code.api.{APIFailureNewStyle, RequestHeader}
 import code.api.util.APIUtil.{OBPReturnType, fullBoxOrException}
+import code.api.util.BerlinGroupSigning.getHeaderValue
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiVersion
@@ -27,7 +29,7 @@ object BerlinGroupCheck extends MdcLoggable {
 
   private def validateHeaders(verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     val headerMap = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
-    val missingHeaders = if(url.contains(ApiVersion.berlinGroupV13.urlPrefix) && url.endsWith("/consents"))
+    val missingHeaders = if(url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && url.endsWith("/consents"))
       (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(headerMap.contains)
     else
       berlinGroupMandatoryHeaders.filterNot(headerMap.contains)
@@ -43,8 +45,22 @@ object BerlinGroupCheck extends MdcLoggable {
     }
   }
 
+  def isTppRequestsWithoutPsuInvolvement(requestHeaders: List[HTTPParam]): Boolean = {
+    val psuIpAddress = getHeaderValue(RequestHeader.`PSU-IP-Address`, requestHeaders)
+    val psuDeviceId = getHeaderValue(RequestHeader.`PSU-Device-ID`, requestHeaders)
+    val psuDeviceNAme = getHeaderValue(RequestHeader.`PSU-Device-Name`, requestHeaders)
+    if(psuIpAddress == "0.0.0.0" || psuDeviceId == "no-psu-involved" || psuDeviceNAme == "no-psu-involved") {
+      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuIpAddress: $psuIpAddress")
+      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuDeviceId: $psuDeviceId")
+      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuDeviceNAme: $psuDeviceNAme")
+      true
+    } else {
+      false
+    }
+  }
+
   def validate(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])): OBPReturnType[Box[User]] = {
-    if(url.contains(ApiVersion.berlinGroupV13.urlPrefix)) {
+    if(url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix)) {
       validateHeaders(verb, url, reqHeaders, forwardResult) match {
         case (user, _) if user.isDefined || user == Empty => // All good. Chain another check
           // Verify signed request (Berlin Group)

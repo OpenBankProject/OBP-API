@@ -8081,7 +8081,9 @@ trait APIMethods400 extends MdcLoggable {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded, cc=callContext) { consent.userId != null }
+            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded, cc = cc.callContext) {
+              Option(consent.userId).forall(_.isBlank) // checks whether userId is not populated
+            }
             consent <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user)) map {
               i => connectorEmptyResponse(i, callContext)
             }

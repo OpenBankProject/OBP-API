@@ -32,6 +32,7 @@
 package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
+import code.api.berlin.group.ConstantsBG
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
@@ -40,7 +41,7 @@ import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion,ApiVersionStatus}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -52,7 +53,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-  override val apiVersion = ApiVersion.berlinGroupV13
+  override val apiVersion = ConstantsBG.berlinGroupVersion1
   val versionStatus = ApiVersionStatus.DRAFT.toString
 
   val endpoints =

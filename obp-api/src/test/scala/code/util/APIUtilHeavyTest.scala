@@ -30,6 +30,7 @@ package code.util
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.UKOpenBanking.v2_0_0.{APIMethods_UKOpenBanking_200, OBP_UKOpenBanking_200}
 import code.api.UKOpenBanking.v3_1_0.{APIMethods_AccountAccessApi, OBP_UKOpenBanking_310}
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil.OBPEndpoint
@@ -42,6 +43,8 @@ import code.views.system.ViewDefinition
 import com.openbankproject.commons.util.ApiVersion
 
 class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
+
+  val bgVersion = ConstantsBG.berlinGroupVersion1.apiShortVersion
   
   feature("test APIUtil.versionIsAllowed method") {
     //This mean, we are only disabled the v4.0.0, all other versions should be enabled
@@ -101,70 +104,72 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
 
 
   feature("test APIUtil.getAllowedEndpoints method") {
-    val obpEndpointsV400: List[OBPEndpoint] = OBPAPI4_0_0.endpointsOf4_0_0.toList
-    val obpAllResourceDocsV400 = Implementations4_0_0.resourceDocs
+    scenario(s"Test the APIUtil.getAllowedEndpoints method") {
+      val obpEndpointsV400: List[OBPEndpoint] = OBPAPI4_0_0.endpointsOf4_0_0.toList
+      val obpAllResourceDocsV400 = Implementations4_0_0.resourceDocs
 
-    val allowedEndpoints: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
+      val allowedEndpoints: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
 
-    val allowedOperationIds = allowedEndpoints.map(_.operationId)
+      val allowedOperationIds = allowedEndpoints.map(_.operationId)
 
-    allowedOperationIds contains("OBPv4.0.0-getLogoutLink") should be (true)
-
-
-    setPropsValues(
-      "api_disabled_endpoints" -> "[OBPv4.0.0-getLogoutLink,OBPv4.0.0-getMapperDatabaseInfo,OBPv4.0.0-callsLimit,OBPv4.0.0-getBanks,OBPv4.0.0-ibanChecker]",
-      "api_enabled_endpoints" -> "[]"
-    )
-    val allowedEndpoints2: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
-
-    val allowedOperationIds2 = allowedEndpoints2.map(_.operationId)
-
-    allowedOperationIds2 contains("OBPv4.0.0-getLogoutLink") should be (false)
-    allowedOperationIds2 contains("OBPv4.0.0-getMapperDatabaseInfo") should be (false)
-    allowedOperationIds2 contains("OBPv4.0.0-callsLimit") should be (false)
+      allowedOperationIds contains("OBPv4.0.0-getLogoutLink") should be (true)
 
 
-    val bgResourceDocsV13 = APIMethods_AccountInformationServiceAISApi.resourceDocs
-    val bgEndpointsV13 = APIMethods_AccountInformationServiceAISApi.endpoints
+      setPropsValues(
+        "api_disabled_endpoints" -> "[OBPv4.0.0-getLogoutLink,OBPv4.0.0-getMapperDatabaseInfo,OBPv4.0.0-callsLimit,OBPv4.0.0-getBanks,OBPv4.0.0-ibanChecker]",
+        "api_enabled_endpoints" -> "[]"
+      )
+      val allowedEndpoints2: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
 
-    setPropsValues(
-      "api_disabled_endpoints" -> "[BGv1.3-createConsent,BGv1.3-deleteConsent]",
-      "api_enabled_endpoints" -> "[]"
-    )
-    
-    val allowedEndpoints3: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(bgEndpointsV13, bgResourceDocsV13).toList
-    val allowedOperationIds3 = allowedEndpoints3.map(_.operationId)
-   
-    allowedOperationIds3 contains("BGv1.3-getCardAccountTransactionList") should be (true)
-    allowedOperationIds3 contains("BGv1.3-createConsent") should be (false)
-    allowedOperationIds3 contains("BGv1.3-deleteConsent") should be (false)
+      val allowedOperationIds2 = allowedEndpoints2.map(_.operationId)
 
-    val ukResourceDocsV31 = APIMethods_AccountAccessApi.resourceDocs
-    val ukEndpointsV31 = APIMethods_AccountAccessApi.endpoints
+      allowedOperationIds2 contains("OBPv4.0.0-getLogoutLink") should be (false)
+      allowedOperationIds2 contains("OBPv4.0.0-getMapperDatabaseInfo") should be (false)
+      allowedOperationIds2 contains("OBPv4.0.0-callsLimit") should be (false)
 
-    setPropsValues(
-      "api_disabled_endpoints" -> "[UKv3.1-createAccountAccessConsents,UKv3.1-deleteConsent]",
-      "api_enabled_endpoints" -> "[]"
-    )
 
-    val allowedEndpoints4: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
-    val allowedOperationIds4 = allowedEndpoints4.map(_.operationId)
+      val bgResourceDocsV13 = APIMethods_AccountInformationServiceAISApi.resourceDocs
+      val bgEndpointsV13 = APIMethods_AccountInformationServiceAISApi.endpoints
 
-    allowedOperationIds4 contains("UKv3.1-getAccountAccessConsentsConsentId") should be (true)
-    allowedOperationIds4 contains("UKv3.1-createAccountAccessConsents") should be (false)
-    allowedOperationIds4 contains("UKv3.1-deleteConsent") should be (false)
+      setPropsValues(
+        "api_disabled_endpoints" -> s"[BG${bgVersion}-createConsent,BG${bgVersion}-deleteConsent]",
+        "api_enabled_endpoints" -> "[]"
+      )
 
-    setPropsValues(
-      "api_disabled_endpoints" -> "[]",
-      "api_enabled_endpoints" -> "[UKv3.1-createAccountAccessConsents]"
-    )
+      val allowedEndpoints3: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(bgEndpointsV13, bgResourceDocsV13).toList
+      val allowedOperationIds3 = allowedEndpoints3.map(_.operationId)
 
-    val allowedEndpoints5: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
-    val allowedOperationIds5 = allowedEndpoints5.map(_.operationId)
+      allowedOperationIds3 contains(s"BG${bgVersion}-getCardAccountTransactionList") should be (true)
+      allowedOperationIds3 contains(s"BG${bgVersion}-createConsent") should be (false)
+      allowedOperationIds3 contains(s"BG${bgVersion}-deleteConsent") should be (false)
 
-    allowedOperationIds5.length should be (1)
-    allowedOperationIds5 contains("UKv3.1-createAccountAccessConsents") should be (true)
-    allowedOperationIds5 contains("UKv3.1-deleteConsent") should be (false)
+      val ukResourceDocsV31 = APIMethods_AccountAccessApi.resourceDocs
+      val ukEndpointsV31 = APIMethods_AccountAccessApi.endpoints
+
+      setPropsValues(
+        "api_disabled_endpoints" -> "[UKv3.1-createAccountAccessConsents,UKv3.1-deleteConsent]",
+        "api_enabled_endpoints" -> "[]"
+      )
+
+      val allowedEndpoints4: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
+      val allowedOperationIds4 = allowedEndpoints4.map(_.operationId)
+
+      allowedOperationIds4 contains("UKv3.1-getAccountAccessConsentsConsentId") should be (true)
+      allowedOperationIds4 contains("UKv3.1-createAccountAccessConsents") should be (false)
+      allowedOperationIds4 contains("UKv3.1-deleteConsent") should be (false)
+
+      setPropsValues(
+        "api_disabled_endpoints" -> "[]",
+        "api_enabled_endpoints" -> "[UKv3.1-createAccountAccessConsents]"
+      )
+
+      val allowedEndpoints5: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
+      val allowedOperationIds5 = allowedEndpoints5.map(_.operationId)
+
+      allowedOperationIds5.length should be (1)
+      allowedOperationIds5 contains("UKv3.1-createAccountAccessConsents") should be (true)
+      allowedOperationIds5 contains("UKv3.1-deleteConsent") should be (false)
+    }
   }
 
   feature("test APIUtil.getPermissionPairFromViewDefinition method") {

@@ -393,7 +393,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
           s"$redirectUriValue?CONSENT_ID=${consentId}"
         )
       case _ =>
-        S.error("Cannot bet consent")
+        S.error(ErrorMessages.ConsentNotFound)
     }
 
   }
@@ -411,7 +411,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
           s"/confirm-bg-consent-request-redirect-uri?CONSENT_ID=${consentId}"
         )
       case _ =>
-        S.error("Wrong OTP value")
+        S.error(ErrorMessages.OneTimePasswordInvalid)
     }
   }
 

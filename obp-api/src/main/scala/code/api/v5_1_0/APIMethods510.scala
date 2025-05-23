@@ -1439,7 +1439,7 @@ trait APIMethods510 {
       nameOf(updateConsentUserIdByConsentId),
       "PUT",
       "/management/banks/BANK_ID/consents/CONSENT_ID/created-by-user",
-      "Update Consent Created by User by CONSENT_ID",
+      "Update Created by User of Consent by CONSENT_ID",
       s"""
          |
          |This endpoint is used to Update the User bound to a consent.

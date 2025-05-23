@@ -1,5 +1,6 @@
 package code.scheduler
 
+import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil
 import code.consent.{ConsentStatus, MappedConsent}
 import code.util.Helper.MdcLoggable
@@ -52,7 +53,7 @@ object ConsentScheduler extends MdcLoggable {
 
       val outdatedConsents = MappedConsent.findAll(
         By(MappedConsent.mStatus, ConsentStatus.received.toString),
-        By(MappedConsent.mApiStandard, ApiVersion.berlinGroupV13.apiStandard),
+        By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard),
         By_<(MappedConsent.updatedAt, SchedulerUtil.someSecondsAgo(seconds))
       )
 
@@ -78,7 +79,7 @@ object ConsentScheduler extends MdcLoggable {
 
       val expiredConsents = MappedConsent.findAll(
         By(MappedConsent.mStatus, ConsentStatus.valid.toString),
-        By(MappedConsent.mApiStandard, ApiVersion.berlinGroupV13.apiStandard),
+        By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard),
         By_<(MappedConsent.mValidUntil, new Date())
       )
 

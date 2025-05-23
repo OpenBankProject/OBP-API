@@ -1147,6 +1147,9 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # the alias prefix path for BerlinGroupV1.3 (OBP built-in is berlin-group/v1.3), the format must be xxx/yyy, eg: 0.6/v1 
 #berlin_group_v1_3_alias_path=
 
+# Berlin Group URL version
+#berlin_group_version_1_canonical_path=v1.3
+
 # Show the path inside of Berlin Group error message
 #berlin_group_error_message_show_path = true
 

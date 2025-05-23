@@ -149,6 +149,8 @@ object RequestHeader {
   final lazy val `PSD2-CERT` = "PSD2-CERT"
   final lazy val `If-None-Match` = "If-None-Match"
 
+  final lazy val `PSU-Geo-Location` = "PSU-Geo-Location" // Berlin Group
+  final lazy val `PSU-Device-Name` = "PSU-Device-Name" // Berlin Group
   final lazy val `PSU-Device-ID` = "PSU-Device-ID" // Berlin Group
   final lazy val `PSU-IP-Address` = "PSU-IP-Address" // Berlin Group
   final lazy val `X-Request-ID` = "X-Request-ID" // Berlin Group
