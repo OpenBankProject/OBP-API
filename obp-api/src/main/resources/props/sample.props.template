@@ -73,7 +73,7 @@ starConnector_supported_types=mapped,internal
 #endpointMapping.cache.ttl.seconds=0
 
 ## webui props cache time-to-live in seconds
-#webui.props.cache.ttl.seconds=20
+#webui.props.cache.ttl.seconds=0
 
 ## DynamicEntity cache time-to-live in seconds, default is 30, the value is 0 at test environment
 ## no 0 value will cause new dynamic entity will be shown after that seconds
