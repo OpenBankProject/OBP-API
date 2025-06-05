@@ -1,10 +1,10 @@
 package code.api.v1_3_0
 
 import java.util.Date
-
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, ApiRole, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
+import code.entitlement.Entitlement
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
@@ -13,7 +13,7 @@ import net.liftweb.common.{Box, Full}
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
-class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
+class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnectorTestSetup {
 
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
 
@@ -34,10 +34,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     Connector.connector.default.set(Connector.buildOne)
     wipeTestData()
   }
-  
-  def createCard(number : String) = PhysicalCard(
-    cardId ="",
-    bankId= bank.bankId.value,
+
+  def createCard(number: String) = PhysicalCard(
+    cardId = "",
+    bankId = bank.bankId.value,
     bankCardNumber = number,
     cardType = "",
     nameOnCard = "",
@@ -74,10 +74,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     implicit override val nameOfConnector = "MockedCardConnector"
 
-    
-    
+
     override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = Full(bank, callContext)
 
+    override def getBank(bankId: BankId, callContext: Option[CallContext]) = Future {
+      getBankLegacy(bankId, callContext)
+    }
+    
     //these methods are required in this test, there is no need to extends connector.
     override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]) = {
       val cardList = if (user == resourceUser1) {
@@ -100,13 +103,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       }
       Full(cardList)
     }.map((_, callContext))
-    
-    feature("Getting details of physical cards") {
+  }
+
+  feature("Getting details of physical cards") {
 
     scenario("A user wants to get details of all their cards across all banks") {
       When("A user requests their cards")
 
-      val request = (v1_3Request / "cards").GET <@(user1)
+      val request = (v1_3Request / "cards").GET <@ (user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -126,9 +130,17 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       When("A user requests their cards")
 
       //our dummy connector doesn't care about the value of the bank id, so we can just use "somebank"
-      val request = (v1_3Request / "banks" / bank.bankId.value / "cards").GET <@(user1)
-      val response = makeGetRequest(request)
+      val request = (v1_3Request / "banks" / bank.bankId.value / "cards").GET <@ (user1)
+      val response1 = makeGetRequest(request)
 
+      Then("We should get a 403")
+      response1.code should equal(403)
+
+      When("We add one required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser1.userId, ApiRole.CanGetCardsForBank.toString)
+      val response = makeGetRequest(request)
+      
+      
       Then("We should get a 200")
       response.code should equal(200)
 
@@ -144,7 +156,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     }
 
   }
-    
-  }
-  
+
+
 }

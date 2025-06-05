@@ -9,23 +9,20 @@ import code.api.{APIFailure, APIFailureNewStyle}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
+import code.bankconnectors.cardano.CardanoConnector_vJun2025
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import com.openbankproject.commons.model.CounterpartyLimitTrait
-import com.openbankproject.commons.model.CustomerAccountLinkTrait
-import com.openbankproject.commons.model.EndpointTagT
 import code.model.dataAccess.BankAccountRouting
-import com.openbankproject.commons.model.StandingOrderTrait
 import code.users.UserAttribute
 import code.util.Helper._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.model.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common._
 import net.liftweb.json
@@ -65,6 +62,7 @@ object Connector extends SimpleInjector {
     "rest_vMar2019" -> RestConnector_vMar2019,
     "stored_procedure_vDec2019" -> StoredProcedureConnector_vDec2019,
     "rabbitmq_vOct2024" -> RabbitMQConnector_vOct2024,
+    "cardano_vJun2025" -> CardanoConnector_vJun2025,
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> ConnectorUtils.proxyConnector,
     // internal is the dynamic connector, the developers can upload the source code and override connector method themselves.
@@ -1898,6 +1896,11 @@ trait Connector extends MdcLoggable {
     accountId: AccountId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getBankAccountBalancesByAccountId(_, _)))), callContext)}
+  
+  def getBankAccountsBalancesByAccountIds(
+    accountIds: List[AccountId],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getBankAccountsBalancesByAccountIds(_, _)))), callContext)}
 
   def getBankAccountBalanceById(
     balanceId: BalanceId,

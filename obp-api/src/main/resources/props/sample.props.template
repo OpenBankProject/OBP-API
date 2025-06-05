@@ -179,6 +179,8 @@ jwt.use.ssl=false
 
 
 ## Expire OBP consents with status "ACCEPTED"
+## If this props is not set corresponding job is not started
+## Unit is a second
 # obp_expired_consents_interval_in_seconds =
 
 
@@ -304,7 +306,7 @@ sandbox_data_import_secret=change_me
 payments_enabled=true
 
 ## Transaction requests are replacing simple payments starting from 1.4.0
-transactionRequests_enabled=true
+transactionRequests_enabled=false
 transactionRequests_connector=mapped
 
 ## Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM
@@ -1160,11 +1162,17 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 ## Berlin Group Create Consent Frequency per Day Upper Limit
 #berlin_group_frequency_per_day_upper_limit = 4
 
+## Berlin Group Create Consent ASPSP-SCA-Approach response header value
+#berlin_group_aspsp_sca_approach = redirect
+
 # Support multiple brands on one instance. Note this needs checking on a clustered environment 
 #brands_enabled=false
 
 # Support removing the app type checkbox during consumer registration 
 #consumer_registration.display_app_type=true
+
+# Default logo URL during of consumer
+#consumer_default_logo_url=
 
 # if set this props, we can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging 
 # to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 

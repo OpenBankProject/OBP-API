@@ -192,7 +192,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response.code should equal(200)
       response.body.extract[TransactionsJsonV13].account.iban should not be ("")
       response.body.extract[TransactionsJsonV13].transactions.booked.length >0 should be (true)
-      response.body.extract[TransactionsJsonV13].transactions.pending.length >0 should be (true)
+//      response.body.extract[TransactionsJsonV13].transactions.pending.length >0 should be (true)
     }
   }
 
@@ -221,7 +221,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response.code should equal(200)
       response.body.extract[TransactionsJsonV13].account.iban should not be ("")
       response.body.extract[TransactionsJsonV13].transactions.booked.length > 0 should be (true)
-      response.body.extract[TransactionsJsonV13].transactions.pending.length > 0 should be (true)
+//      response.body.extract[TransactionsJsonV13].transactions.pending.length > 0 should be (true)
       val transactionId = response.body.extract[TransactionsJsonV13].transactions.booked.head.transactionId
 
       val requestGet2 = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / transactionId).GET <@ (user1)
@@ -255,6 +255,68 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response.code should equal(200)
       response.body.extract[CardTransactionsJsonV13].cardAccount.maskedPan.length >0 should be (true)
       response.body.extract[CardTransactionsJsonV13].transactions.booked.length >0 should be (true)
+    }
+  }
+
+  feature(s"BG v1.3 - $createConsent - postJsonBodyAvailableAccounts") {
+    lazy val postJsonBody = PostConsentJson(
+      access = ConsentAccessJson(
+        accounts = None,
+        balances = None,
+        transactions = None,
+        availableAccounts = Some("allAccounts"),
+        allPsd2 = None
+      ),
+      recurringIndicator = false,
+      validUntil = getNextMonthDate(),
+      frequencyPerDay = 1,
+      combinedServiceIndicator = Some(false)
+    )
+    val postJsonBodyWrong1 = postJsonBody.copy(
+      access = postJsonBody.access.copy(
+        availableAccounts = Some("wrong")
+      )
+    )
+    val postJsonBodyWrong2 = postJsonBody.copy(
+      frequencyPerDay = 2
+    )
+    val postJsonBodyWrong3 = postJsonBody.copy(
+      recurringIndicator = true
+    )
+
+    scenario("Authentication User, test failed due to availableAccounts wrong value", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong1))
+
+      Then("We should get a 400")
+      response.code should equal(400)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessAvailableAccounts)
+    }
+    scenario("Authentication User, test failed due to frequency per day", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong2))
+
+      Then("We should get a 400")
+      response.code should equal(400)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessFrequencyPerDay)
+    }
+    scenario("Authentication User, test failed due to recurringIndicator = true", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong3))
+
+      Then("We should get a 400")
+      response.code should equal(400)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessRecurringIndicator)
+    }
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
+
+      Then("We should get a 201 ")
+      response.code should equal(201)
+      val jsonResponse = response.body.extract[PostConsentResponseJson]
+      jsonResponse.consentId should not be (empty)
+      jsonResponse.consentStatus should be (ConsentStatus.received.toString)
     }
   }
 

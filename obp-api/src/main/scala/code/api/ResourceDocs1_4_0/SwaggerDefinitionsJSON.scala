@@ -12,7 +12,6 @@ import code.api.util.{ApiRole, ApiTrigger, ExampleValue}
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0._
-import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_1_0._
 import code.api.v4_0_0._
 import code.api.v5_0_0._
@@ -22,7 +21,6 @@ import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.ConsentStatus
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
-import code.sandbox.SandboxData
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -2729,6 +2727,23 @@ object SwaggerDefinitionsJSON {
     created = DateWithDayExampleObject,
     logo_url = Some(logoURLExample.value)
   )
+  lazy val consumerJsonOnlyForPostResponseV510: ConsumerJsonOnlyForPostResponseV510 = ConsumerJsonOnlyForPostResponseV510(
+    consumer_id = consumerIdExample.value,
+    consumer_key = consumerKeyExample.value,
+    consumer_secret = consumerSecretExample.value,
+    app_name = appNameExample.value,
+    app_type = appTypeExample.value,
+    description = descriptionExample.value,
+    developer_email = emailExample.value,
+    company = companyExample.value,
+    redirect_url = redirectUrlExample.value,
+    certificate_pem = pem,
+    certificate_info = Some(certificateInfoJsonV510),
+    created_by_user = resourceUserJSON,
+    enabled = true,
+    created = DateWithDayExampleObject,
+    logo_url = Some(logoURLExample.value)
+  )
   
   lazy val createConsumerRequestJsonV510 = CreateConsumerRequestJsonV510(
     appNameExample.value,
@@ -4248,7 +4263,7 @@ object SwaggerDefinitionsJSON {
   )
   
   lazy val allConsentJsonV510 = AllConsentJsonV510(
-    consent_reference_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+    consent_reference_id = consentReferenceIdExample.value,
     consumer_id = consumerIdExample.value,
     created_by_user_id = userIdExample.value,
     last_action_date = dateExample.value,
@@ -4259,6 +4274,7 @@ object SwaggerDefinitionsJSON {
     jwt_payload = Some(consentJWT)
   )
   lazy val consentInfoJsonV510 = ConsentInfoJsonV510(
+    consent_reference_id = consentReferenceIdExample.value,
     consent_id = consentIdExample.value,
     consumer_id = consumerIdExample.value,
     created_by_user_id = userIdExample.value,

@@ -47,7 +47,7 @@ object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with Sc
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = if(berlinGroupV13AliasPath.nonEmpty){
     OBP_BERLIN_GROUP_1_3.allResourceDocs.map(resourceDoc => resourceDoc.copy(
-      implementedInApiVersion = apiVersion,
+      implementedInApiVersion = apiVersion.copy(apiStandard = resourceDoc.implementedInApiVersion.apiStandard),
     ))
   } else ArrayBuffer.empty[ResourceDoc]
 

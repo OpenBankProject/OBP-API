@@ -389,7 +389,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    developerEmail: Option[String],
                                    redirectURL: Option[String],
                                    createdByUserId: Option[String],
-                                   certificate: Option[String]): Box[Consumer] = {
+                                   certificate: Option[String],
+                                   logoUrl: Option[String],
+                                  ): Box[Consumer] = {
 
     val consumer: Box[Consumer] =
       // 1st try to find via UUID issued by OBP-API back end
@@ -471,6 +473,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           certificate match {
             case Some(v) => c.clientCertificate(v)
+            case None =>
+          }
+          logoUrl match {
+            case Some(v) => c.logoUrl(v)
             case None =>
           }
           consumerId match {

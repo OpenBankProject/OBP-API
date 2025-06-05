@@ -3,12 +3,11 @@ package code.bankaccountbalance
 import code.model.dataAccess.MappedBankAccount
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{BankId, AccountId}
+import com.openbankproject.commons.model.{AccountId, BalanceId, BankId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
-import com.openbankproject.commons.model.BalanceId
 
 import scala.concurrent.Future
 
@@ -31,6 +30,8 @@ object BankAccountBalanceX extends SimpleInjector {
 trait BankAccountBalanceProviderTrait {
 
   def getBankAccountBalances(accountId: AccountId): Future[Box[List[BankAccountBalance]]]
+  
+  def getBankAccountsBalances(accountIds: List[AccountId]): Future[Box[List[BankAccountBalance]]]
 
   def getBankAccountBalanceById(balanceId: BalanceId): Future[Box[BankAccountBalance]]
 
@@ -52,6 +53,13 @@ object MappedBankAccountBalanceProvider extends BankAccountBalanceProviderTrait 
       BankAccountBalance.findAll(
         By(BankAccountBalance.AccountId_,accountId.value)
     )}
+  }
+  override def getBankAccountsBalances(accountIds: List[AccountId]): Future[Box[List[BankAccountBalance]]] = Future {
+    tryo {
+      BankAccountBalance.findAll(
+        ByList(BankAccountBalance.AccountId_, accountIds.map(_.value))
+      )
+    }
   }
 
   override def getBankAccountBalanceById(balanceId: BalanceId): Future[Box[BankAccountBalance]] = Future {

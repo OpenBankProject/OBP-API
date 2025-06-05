@@ -1,14 +1,12 @@
 package code.api.util
 
+import code.accountholders.AccountHolders
 import code.api.berlin.group.ConstantsBG
-
-import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
 import code.api.util.BerlinGroupSigning.getHeaderValue
-import code.api.util.ErrorMessages.{CouldNotAssignAccountAccess, InvalidConnectorResponse, NoViewReadAccountsBerlinGroup}
+import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
 import code.api.v5_0_0.HelperInfoJson
 import code.api.{APIFailure, APIFailureNewStyle, Constant, RequestHeader}
@@ -20,7 +18,7 @@ import code.consumer.Consumers
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
-import code.scheduler.ConsentScheduler.logger
+import code.model.dataAccess.BankAccountRouting
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
@@ -28,16 +26,16 @@ import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
+import net.liftweb.common._
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
-import net.liftweb.util.{ControlHelpers, Props}
-import org.apache.commons.lang3.StringUtils
+import net.liftweb.util.Props
 import sh.ory.hydra.model.OAuth2TokenIntrospection
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
@@ -307,13 +305,13 @@ object Consent extends MdcLoggable {
               Entitlement.entitlement.vend.addEntitlement(bankId, user.userId, entitlement.role_name) match {
                 case Full(_) => (entitlement, "AddedOrExisted")
                 case _ =>
-                  (entitlement, "Cannot add the entitlement: " + entitlement)
+                  (entitlement, CannotAddEntitlement + entitlement)
               }
             case true =>
               (entitlement, "AddedOrExisted")
           }
         case false =>
-          (entitlement, "There is no entitlement's name: " + entitlement)
+          (entitlement, InvalidEntitlement + entitlement)
       }
     }
 
@@ -329,11 +327,13 @@ object Consent extends MdcLoggable {
         val failedToAdd: List[(Role, String)] = triedToAdd.filter(_._2 != "AddedOrExisted")
         failedToAdd match {
           case Nil => Full(user)
-          case _ =>
-            Failure("The entitlements cannot be added. " + failedToAdd.map(i => (i._1, i._2)).mkString(", "))
+          case _   =>
+            //Here, we do not throw an exception, just log the error.
+            logger.error(CannotAddEntitlement + failedToAdd.map(i => (i._1, i._2)).mkString(", "))
+            Full(user)
         }
       case _ =>
-        Failure("Cannot get entitlements for user id: " + user.userId)
+        Failure(CannotGetEntitlements + user.userId)
     }
 
   }
@@ -436,10 +436,10 @@ object Consent extends MdcLoggable {
             case failure@Failure(msg, exp, chain) => // Handled errors
               (Failure(msg), Some(cc))
             case _ =>
-              (Failure("Cannot add entitlements based on: " + consentAsJwt), Some(cc))
+              (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
           }
         case _ =>
-          (Failure("Cannot create or get the user based on: " + consentAsJwt), Some(cc))
+          (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
       }
     }
 
@@ -522,33 +522,38 @@ object Consent extends MdcLoggable {
             case failure@Failure(msg, exp, chain) => // Handled errors
               (Failure(msg), Some(cc))
             case _ =>
-              (Failure("Cannot add entitlements based on: " + consentId), Some(cc))
+              (Failure(CannotAddEntitlement + consentId), Some(cc))
           }
         case _ =>
-          (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
+          (Failure(CannotGetOrCreateUser + consentId), Some(cc))
       }
     }
 
     def checkFrequencyPerDay(storedConsent: consent.ConsentTrait) = {
-      def isSameDay(date1: Date, date2: Date): Boolean = {
-        val fmt = new SimpleDateFormat("yyyyMMdd")
-        fmt.format(date1).equals(fmt.format(date2))
-      }
-      var usesSoFarTodayCounter = storedConsent.usesSoFarTodayCounter
-      storedConsent.recurringIndicator match {
-        case false => // The consent is for one access to the account data
-          if(usesSoFarTodayCounter == 0) // Maximum value is "1".
-            (true, 0) // All good
-          else
-            (false, 1) // Exceeded rate limit
-        case true => // The consent is for recurring access to the account data
-          if(!isSameDay(storedConsent.usesSoFarTodayCounterUpdatedAt, new Date())) {
-            usesSoFarTodayCounter = 0 // Reset counter
-          }
-          if(usesSoFarTodayCounter < storedConsent.frequencyPerDay)
-            (true, usesSoFarTodayCounter) // All good
-          else
-            (false, storedConsent.frequencyPerDay) // Exceeded rate limit
+      if(BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
+        def isSameDay(date1: Date, date2: Date): Boolean = {
+          val fmt = new SimpleDateFormat("yyyyMMdd")
+          fmt.format(date1).equals(fmt.format(date2))
+        }
+
+        var usesSoFarTodayCounter = storedConsent.usesSoFarTodayCounter
+        storedConsent.recurringIndicator match {
+          case false => // The consent is for one access to the account data
+            if (usesSoFarTodayCounter == 0) // Maximum value is "1".
+              (true, 0) // All good
+            else
+              (false, 1) // Exceeded rate limit
+          case true => // The consent is for recurring access to the account data
+            if (!isSameDay(storedConsent.usesSoFarTodayCounterUpdatedAt, new Date())) {
+              usesSoFarTodayCounter = 0 // Reset counter
+            }
+            if (usesSoFarTodayCounter < storedConsent.frequencyPerDay)
+              (true, usesSoFarTodayCounter) // All good
+            else
+              (false, storedConsent.frequencyPerDay) // Exceeded rate limit
+        }
+      } else {
+        (true, 0) // All good
       }
     }
 
@@ -873,6 +878,66 @@ object Consent extends MdcLoggable {
       }
     }
   }
+  def updateViewsOfBerlinGroupConsentJWT(user: User,
+                                         consent: MappedConsent,
+                                         callContext: Option[CallContext]): Future[Box[MappedConsent]] = {
+    implicit val dateFormats = CustomJsonFormats.formats
+    val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken) // Payload as JSON string
+      .map(net.liftweb.json.parse(_).extract[ConsentJWT]) // Extract case class
+
+    val availableAccountsUserIbans: List[String] = payloadToUpdate match {
+      case Full(consentJwt) =>
+        val availableAccountsUserIbans: List[String] =
+          if (consentJwt.access.map(_.availableAccounts.contains("allAccounts")).isDefined) {
+            // Get all accounts held by the current user
+            val userAccounts: List[BankIdAccountId] =
+              AccountHolders.accountHolders.vend.getAccountsHeldByUser(user, Some(null)).toList
+            userAccounts.flatMap { acc =>
+              BankAccountRouting.find(
+                By(BankAccountRouting.BankId, acc.bankId.value),
+                By(BankAccountRouting.AccountId, acc.accountId.value),
+                By(BankAccountRouting.AccountRoutingScheme, "IBAN")
+              ).map(_.AccountRoutingAddress.get)
+            }
+          } else {
+            val emptyList: List[String] = Nil
+            emptyList
+          }
+        availableAccountsUserIbans
+      case _ =>
+        val emptyList: List[String] = Nil
+        emptyList
+    }
+
+
+    // 1. Add access
+    val availableAccounts: List[Future[ConsentView]] = availableAccountsUserIbans.distinct map { iban =>
+      Connector.connector.vend.getBankAccountByIban(iban, callContext) map { bankAccount =>
+        logger.debug(s"createBerlinGroupConsentJWT.accounts.bankAccount: $bankAccount")
+        val error = s"${InvalidConnectorResponse} IBAN: ${iban} ${handleBox(bankAccount._1)}"
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).openOrThrowException(error),
+          view_id = Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
+          None
+        )
+      }
+    }
+
+    Future.sequence(availableAccounts) map { views =>
+      if(views.isEmpty) {
+        Empty
+      } else {
+        val updatedPayload = payloadToUpdate.map(i =>
+          i.copy(views = views) // Update the field "views"
+        )
+        val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
+        val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+        val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
+        Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)
+      }
+    }
+  }
 
   def updateUserIdOfBerlinGroupConsentJWT(createdByUserId: String,
                                           consent: MappedConsent,
@@ -1063,9 +1128,9 @@ object Consent extends MdcLoggable {
           By(MappedConsent.mUserId, consent.userId), // for the same PSU
           By(MappedConsent.mConsumerId, consent.consumerId), // from the same TPP
         ).filterNot(_.consentId == consent.consentId) // Exclude current consent
-        .map{ c => // Set to expired
-          val changedStatus = c.mStatus(ConsentStatus.expired.toString).mLastActionDate(new Date()).save
-          if(changedStatus) logger.warn(s"|---> Changed status to ${ConsentStatus.expired.toString} for consent ID: ${c.id}")
+        .map{ c => // Set to terminatedByTpp
+          val changedStatus = c.mStatus(ConsentStatus.terminatedByTpp.toString).mLastActionDate(new Date()).save
+          if(changedStatus) logger.warn(s"|---> Changed status to ${ConsentStatus.terminatedByTpp.toString} for consent ID: ${c.id}")
           changedStatus
         }.forall(_ == true)
     } else {

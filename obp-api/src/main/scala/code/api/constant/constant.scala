@@ -175,6 +175,7 @@ object RequestHeader {
   final lazy val `If-Modified-Since` = "If-Modified-Since"
 }
 object ResponseHeader {
+  final lazy val `ASPSP-SCA-Approach` = "ASPSP-SCA-Approach" // Berlin Group
   final lazy val `Correlation-Id` = "Correlation-Id"
   final lazy val `WWW-Authenticate` = "WWW-Authenticate"
   final lazy val ETag = "ETag"

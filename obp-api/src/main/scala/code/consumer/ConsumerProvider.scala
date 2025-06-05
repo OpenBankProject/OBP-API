@@ -71,7 +71,9 @@ trait ConsumersProvider {
                           developerEmail: Option[String], 
                           redirectURL: Option[String], 
                           createdByUserId: Option[String],
-                          certificate: Option[String] = None): Box[Consumer]
+                          certificate: Option[String] = None,
+                          logoUrl: Option[String] = None
+                         ): Box[Consumer]
   def populateMissingUUIDs(): Boolean
   
 }

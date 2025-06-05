@@ -1,12 +1,10 @@
 package code.api.STET.v1_4
 
-import java.util.Date
-
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.{ModeratedBankAccount, ModeratedTransaction}
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest}
 
-import scala.collection.immutable.List
+import java.util.Date
 
 object JSONFactory_STET_1_4 extends CustomJsonFormats {
 
@@ -167,11 +165,11 @@ object JSONFactory_STET_1_4 extends CustomJsonFormats {
     )
   }
   
-  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV1 = {
+  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest] = Nil) : TransactionsJsonV1 = {
       val transactions_booked: List[TransactionJsonV1] = transactions.map(createTransactionJSON)
-      val transactions_pending: List[TransactionJsonV1] =transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON)
+     // val transactions_pending: List[TransactionJsonV1] =transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON)
     TransactionsJsonV1(
-      transactions = transactions_booked:::transactions_pending:::Nil
+      transactions = transactions_booked:::Nil //transactions_pending:::Nil
     )
   }
 

@@ -1,20 +1,17 @@
 package code.api.builder.AccountInformationServiceAISApi
 
-import java.text.SimpleDateFormat
 import code.api.APIFailureNewStyle
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
-import code.api.berlin.group.v1_3.model.{HrefType, LinksAll, ScaStatusResponse}
-import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.berlin.group.v1_3.model._
+import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
 import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
+import code.api.util._
 import code.api.util.newstyle.BalanceNewStyle
-import code.api.util.{APIUtil, ApiTag, CallContext, Consent, ExampleValue, NewStyle}
-import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.model
@@ -24,16 +21,14 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
+import net.liftweb
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
-import net.liftweb
 import net.liftweb.json
 import net.liftweb.json._
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
@@ -160,11 +155,28 @@ recurringIndicator:
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[PostConsentJson]
              }
-             _ <- Helper.booleanToFuture(failMsg = BerlinGroupConsentAccessIsEmpty, cc=callContext) {
-               consentJson.access.accounts.isDefined ||
-               consentJson.access.balances.isDefined ||
-               consentJson.access.transactions.isDefined
+
+             _ <- if (consentJson.access.availableAccounts.isDefined) {
+               for {
+                 _ <- Helper.booleanToFuture(failMsg = BerlinGroupConsentAccessAvailableAccounts, cc = callContext) {
+                   consentJson.access.availableAccounts.contains("allAccounts")
+                 }
+                 _ <- Helper.booleanToFuture(failMsg = BerlinGroupConsentAccessRecurringIndicator, cc = callContext) {
+                   !consentJson.recurringIndicator
+                 }
+                 _ <- Helper.booleanToFuture(failMsg = BerlinGroupConsentAccessFrequencyPerDay, cc = callContext) {
+                   consentJson.frequencyPerDay == 1
+                 }
+               } yield Full(())
+             } else {
+               Helper.booleanToFuture(
+                 failMsg = BerlinGroupConsentAccessIsEmpty, cc = callContext) {
+                 consentJson.access.accounts.isDefined ||
+                   consentJson.access.balances.isDefined ||
+                   consentJson.access.transactions.isDefined
+               }
              }
+
              upperLimit = APIUtil.getPropsAsIntValue("berlin_group_frequency_per_day_upper_limit", 4)
              _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayError, cc=callContext) {
                consentJson.frequencyPerDay > 0 && consentJson.frequencyPerDay <= upperLimit
@@ -246,10 +258,15 @@ recurringIndicator:
        case "consents" :: consentId :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(user), callContext) <- authenticatedAccess(cc)
+             (_, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound, 403)
+             }
+             consumerIdFromConsent = consent.mConsumerId.get
+             consumerIdFromCurrentCall = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
+             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = cc.callContext) {
+               consumerIdFromConsent == consumerIdFromCurrentCall
              }
              _ <- Future(Consents.consentProvider.vend.revokeBerlinGroupConsent(consentId)) map {
                i => connectorEmptyResponse(i, callContext)
@@ -343,13 +360,19 @@ of the PSU at this ASPSP.
                 attribute.value.equalsIgnoreCase("card")
               ).isEmpty)
 
+            (balances, callContext) <-  code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountsBalances(
+              bankAccountsFiltered.map(_.accountId),
+              callContext
+            )
+             
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(
               bankAccountsFiltered,
               canReadBalancesAccounts,
               canReadTransactionsAccounts,
               u,
-              withBalanceParam
+              withBalanceParam,
+              balances
             ), callContext)
           }
          }
@@ -591,7 +614,6 @@ Reads account data from a given card account addressed by "account-id".
                             "transactionDetails": "ICA SUPERMARKET SKOGHA"
                           }
                         ],
-                        "pending": [],
                         "_links": {
                           "cardAccount": {
                             "href": "/v1.3/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99"
@@ -617,14 +639,14 @@ Reads account data from a given card account addressed by "account-id".
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
-               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-             } map { unboxFull(_) }
+//             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
+//               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+//             } map { unboxFull(_) }
              (transactions, callContext) <- model.toBankAccountExtended(bankAccount).getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions), callContext)
            }
          }
        }
@@ -718,7 +740,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
              }
              consumerIdFromConsent = consent.mConsumerId.get
              consumerIdFromCurrentCall = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
-             _ <- Helper.booleanToFuture(failMsg = s"$ConsentNotFound $consumerIdFromConsent != $consumerIdFromCurrentCall", failCode = 403, cc = cc.callContext) {
+             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = cc.callContext) {
                consumerIdFromConsent == consumerIdFromCurrentCall
              }
            } yield {
@@ -905,21 +927,6 @@ The ASPSP might add balance information, if transaction lists without balances a
                             "remittanceInformationUnstructured": "Example 2"
                           }
                         ],
-                        "pending": [
-                          {
-                            "transactionId": "1234569",
-                            "creditorName": "Claude Renault",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014"
-                            },
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "-100.03"
-                            },
-                            "valueDate": "2017-10-26",
-                            "remittanceInformationUnstructured": "Example 3"
-                          }
-                        ],
                         "_links": {
                           "account": {
                             "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f"
@@ -945,14 +952,14 @@ The ASPSP might add balance information, if transaction lists without balances a
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+//            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
+//              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+//            } map { unboxFull(_) }
             (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             } yield {
-              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
+              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions), callContext)
             }
          }
        }

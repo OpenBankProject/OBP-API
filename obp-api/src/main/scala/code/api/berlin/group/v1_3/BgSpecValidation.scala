@@ -34,7 +34,7 @@ object BgSpecValidation {
 
       if (date.isBefore(today)) {
         Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) cannot be in the past!")
-      } else if (date.isAfter(MaxValidDays)) {
+      } else if (date.isEqual(MaxValidDays) || date.isAfter(MaxValidDays)) {
         Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) exceeds the maximum allowed period of 180 days (until $MaxValidDays).")
       } else {
         Right(date) // Valid date

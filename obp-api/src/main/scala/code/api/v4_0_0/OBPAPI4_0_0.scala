@@ -28,7 +28,7 @@ package code.api.v4_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import code.api.util.{APIUtil, VersionedOBPApis}
+import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -39,7 +39,7 @@ import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
@@ -63,6 +63,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
       nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
       nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
       nameOf(Implementations3_1_0.createAccount) ::
+      nameOf(Implementations3_1_0.revokeConsent) :://this endpoint is not restful, we do not support it in V510.
       Nil
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.

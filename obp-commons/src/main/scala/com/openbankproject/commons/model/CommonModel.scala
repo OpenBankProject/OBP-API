@@ -26,16 +26,16 @@ TESOBE (http://www.tesobe.com/)
   */
 package com.openbankproject.commons.model
 
-import java.util.Date
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ReflectUtils, optional}
 import net.liftweb.json.JsonAST.{JObject, JValue}
-import net.liftweb.json.{Formats, JInt, JString}
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.{Formats, JInt, JString}
 
 import java.lang
+import java.util.Date
 import scala.reflect.runtime.universe._
 
 
@@ -127,6 +127,14 @@ case class BankAccountCommons(
                                override val attributes : Option[List[Attribute]] = None) extends BankAccount
 
 object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
+
+case class BankAccountBalanceTraitCommons(
+  bankId :BankId,
+  accountId :AccountId,
+  balanceId :BalanceId,
+  balanceType :String,
+  balanceAmount :BigDecimal) extends BankAccountBalanceTrait
+object BankAccountBalanceTraitCommons extends Converter[BankAccountBalanceTrait, BankAccountBalanceTraitCommons]
 
 case class ProductCollectionItemCommons(
                                          collectionCode :String,

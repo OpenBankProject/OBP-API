@@ -4,7 +4,7 @@ import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
-import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.accountholders.AccountHolders
 import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -18,6 +18,7 @@ import code.api.v2_1_0._
 import code.api.v4_0_0.{AgentCashWithdrawalJson, PostSimpleCounterpartyJson400, TransactionRequestBodyAgentJsonV400, TransactionRequestBodySimpleJsonV400}
 import code.atmattribute.{AtmAttribute, AtmAttributeX}
 import code.atms.{Atms, MappedAtm}
+import code.bankaccountbalance.BankAccountBalanceX
 import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
@@ -27,13 +28,10 @@ import code.counterpartylimit.CounterpartyLimitProvider
 import code.customer._
 import code.customer.agent.AgentX
 import code.customeraccountlinks.CustomerAccountLinkX
-import com.openbankproject.commons.model.CustomerAccountLinkTrait
 import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
 import code.directdebit.DirectDebits
 import code.endpointTag.EndpointTag
-import code.bankaccountbalance.BankAccountBalanceX
-import com.openbankproject.commons.model.EndpointTagT
 import code.fx.{MappedFXRate, fx}
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
@@ -52,7 +50,6 @@ import code.productfee.ProductFeeX
 import code.products.MappedProduct
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.standingorders.StandingOrders
-import com.openbankproject.commons.model.StandingOrderTrait
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.Challenges
@@ -65,14 +62,13 @@ import code.util.Helper._
 import code.views.Views
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model.CustomerAccountLinkTrait
-import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import com.twilio.Twilio
@@ -95,7 +91,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.math.{BigDecimal, BigInt}
+import scala.math.BigDecimal
 import scala.util.{Random, Try}
 
 object LocalMappedConnector extends Connector with MdcLoggable {
@@ -129,7 +125,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
-    import org.iban4j.{IbanFormat, IbanFormatException, IbanUtil, InvalidCheckDigitException, UnsupportedCountryException}
+    import org.iban4j._
 
     if(getPropsAsBoolValue("validate_iban", false)) {
       // Validate Iban
@@ -5370,6 +5366,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = {
     BankAccountBalanceX.bankAccountBalanceProvider.vend.getBankAccountBalances(accountId).map {
+      (_, callContext)
+    }
+  }
+
+  override def getBankAccountsBalancesByAccountIds(
+    accountIds: List[AccountId],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = {
+    BankAccountBalanceX.bankAccountBalanceProvider.vend.getBankAccountsBalances(accountIds).map {
       (_, callContext)
     }
   }

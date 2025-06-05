@@ -1,0 +1,51 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE GmbH
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+-->
+<div data-lift="surround?with=default;at=content">
+    <div style="width: 90%; margin: 0 auto;" data-lift="ConsentScreen.getConsents">
+        <h2>Consents</h2>
+
+      <div id="flash-message"></div> <!-- Used to display AJAX messages -->
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Consent Reference Id</th>
+                <th>Consumer Id</th>
+                <th>Jwt Payload</th>
+                <th>Status</th>
+                <th>Api Standard</th>
+                <th scope="col">Revoke</th>
+            </tr>
+            </thead>
+            <tbody id="consent-table-body">
+            <!-- Consent rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+

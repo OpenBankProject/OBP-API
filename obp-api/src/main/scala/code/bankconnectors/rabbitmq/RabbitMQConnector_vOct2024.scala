@@ -23,7 +23,6 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.util.Date
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, _}
 import code.api.util.ErrorMessages._
@@ -33,15 +32,15 @@ import code.bankconnectors._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.{InBoundTrait, _}
+import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.model.{TopicTrait, RegulatedEntityAttributeSimple, _}
-import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.common.{Box, _}
+import com.openbankproject.commons.model.{Meta, _}
+import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
+import java.util.Date
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -68,7 +67,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2025-04-04T14:01:22Z
+// ---------- created on 2025-05-27T10:14:24Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1073,7 +1072,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       address=accountRoutingAddressExample.value)),
       balances=List( BankAccountBalance(balance= AmountOfMoney(currency=balanceCurrencyExample.value,
       amount=balanceAmountExample.value),
-      balanceType="string")),
+      balanceType=balanceTypeExample.value)),
       overallBalance= AmountOfMoney(currency=currencyExample.value,
       amount=amountExample.value),
       overallBalanceDate=toDate(overallBalanceDateExample)))
@@ -3701,7 +3700,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
       supportedLanguages=Some(supportedLanguagesExample.value.replace("[","").replace("]","").split(",").toList),
-      services=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      services=Some(servicesExample.value.replace("[","").replace("]","").split(",").toList),
       accessibilityFeatures=Some(accessibilityFeaturesExample.value.replace("[","").replace("]","").split(",").toList),
       supportedCurrencies=Some(supportedCurrenciesExample.value.replace("[","").replace("]","").split(",").toList),
       notes=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
@@ -3782,7 +3781,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       moreInfo=Some(moreInfoExample.value),
       hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
       supportedLanguages=Some(supportedLanguagesExample.value.replace("[","").replace("]","").split(",").toList),
-      services=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
+      services=Some(servicesExample.value.replace("[","").replace("]","").split(",").toList),
       accessibilityFeatures=Some(accessibilityFeaturesExample.value.replace("[","").replace("]","").split(",").toList),
       supportedCurrencies=Some(supportedCurrenciesExample.value.replace("[","").replace("]","").split(",").toList),
       notes=Some(listExample.value.replace("[","").replace("]","").split(",").toList),
@@ -7081,32 +7080,21 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetRegulatedEntities(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List(RegulatedEntityTraitCommons(entityId = "0af807d7-3c39-43ef-9712-82bcfde1b9ca",
-        certificateAuthorityCaOwnerId = "CY_CBC",
-        entityName = "EXAMPLE COMPANY LTD",
-        entityCode = "PSD_PICY_CBC!12345",
-        entityCertificatePublicKey =
-          """-----BEGIN CERTIFICATE-----MIICsjCCAZqgAwIBAgIGAYwQ62R0MA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNVBAMMD2
-            |FwcC5leGFtcGxlLmNvbTAeFw0yMzExMjcxMzE1MTFaFw0yNTExMjYxMzE1MTFaMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCASIwDQ
-            |YJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK9WIodZHWzKyCcf9YfWEhPURbfO6zKuMqzHN27GdqHsVVEGxP4F/J4mso+0ENcRr6ur4u81iRE
-            |aVdCc40rHDHVJNEtniD8Icbz7tcsqAewIVhc/q6WXGqImJpCq7hA0m247dDsaZT0lb/MVBiMoJxDEmAE/GYYnWTEn84R35WhJsMvuQ7QmLvNg6
-            |RkChY6POCT/YKe9NKwa1NqI1U+oA5RFzAaFtytvZCE3jtp+aR0brL7qaGfgxm6B7dEpGyhg0NcVCV7xMQNq2JxZTVdAr6lcsRGaAFulakmW3aN
-            |nmK+L35Wu8uW+OxNxwUuC6f3b4FVBa276FMuUTRfu7gc+k6kCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAAU5CjEyAoyTn7PgFpQD48ZNPuUsEQ
-            |19gzYgJvHMzFIoZ7jKBodjO5mCzWBcR7A4mpeAsdyiNBl2sTiZscSnNqxk61jVzP5Ba1D7XtOjjr7+3iqowrThj6BY40QqhYh/6BSY9fDzVZQi
-            |Hnvlo6ZUM5kUK6OavZOovKlp5DIl5sGqoP0qAJnpQ4nhB2WVVsKfPlOXc+2KSsbJ23g9l8zaTMr+X0umlvfEKqyEl1Fa2L1dO0y/KFQ+ILmxcZ
-            |LpRdq1hRAjd0quq9qGC8ucXhRWDgM4hslVpau0da68g0aItWNez3mc5lB82b3dcZpFMzO41bgw7gvw10AvvTfQDqEYIuQ==-----END CERTIFICATE----- """.stripMargin,
-        entityType = "PSD_PI",
-        entityAddress = "EXAMPLE COMPANY LTD, 5 SOME STREET",
-        entityTownCity = "SOME CITY",
-        entityPostCode = "1060",
-        entityCountry = "CY",
-        entityWebSite = "www.example.com",
-        services = """[{"CY":["PS_010","PS_020","PS_03C","PS_04C"]}]""",
-        attributes = Some(List(RegulatedEntityAttributeSimple(
-          attributeType=attributeTypeExample.value,
-          name=attributeNameExample.value,
-          value=attributeValueExample.value)
-        )))))
+      data=List( RegulatedEntityTraitCommons(entityId=entityIdExample.value,
+      certificateAuthorityCaOwnerId=certificateAuthorityCaOwnerIdExample.value,
+      entityName=entityNameExample.value,
+      entityCode=entityCodeExample.value,
+      entityCertificatePublicKey=entityCertificatePublicKeyExample.value,
+      entityType=entityTypeExample.value,
+      entityAddress=entityAddressExample.value,
+      entityTownCity=entityTownCityExample.value,
+      entityPostCode=entityPostCodeExample.value,
+      entityCountry=entityCountryExample.value,
+      entityWebSite=entityWebSiteExample.value,
+      services=servicesExample.value,
+      attributes=Some(List( RegulatedEntityAttributeSimple(attributeType=attributeTypeExample.value,
+      name=nameExample.value,
+      value=valueExample.value))))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7132,32 +7120,21 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetRegulatedEntityByEntityId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= RegulatedEntityTraitCommons(entityId = "0af807d7-3c39-43ef-9712-82bcfde1b9ca",
-        certificateAuthorityCaOwnerId = "CY_CBC",
-        entityName = "EXAMPLE COMPANY LTD",
-        entityCode = "PSD_PICY_CBC!12345",
-        entityCertificatePublicKey =
-          """-----BEGIN CERTIFICATE-----MIICsjCCAZqgAwIBAgIGAYwQ62R0MA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNVBAMMD2
-            |FwcC5leGFtcGxlLmNvbTAeFw0yMzExMjcxMzE1MTFaFw0yNTExMjYxMzE1MTFaMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCASIwDQ
-            |YJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK9WIodZHWzKyCcf9YfWEhPURbfO6zKuMqzHN27GdqHsVVEGxP4F/J4mso+0ENcRr6ur4u81iRE
-            |aVdCc40rHDHVJNEtniD8Icbz7tcsqAewIVhc/q6WXGqImJpCq7hA0m247dDsaZT0lb/MVBiMoJxDEmAE/GYYnWTEn84R35WhJsMvuQ7QmLvNg6
-            |RkChY6POCT/YKe9NKwa1NqI1U+oA5RFzAaFtytvZCE3jtp+aR0brL7qaGfgxm6B7dEpGyhg0NcVCV7xMQNq2JxZTVdAr6lcsRGaAFulakmW3aN
-            |nmK+L35Wu8uW+OxNxwUuC6f3b4FVBa276FMuUTRfu7gc+k6kCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAAU5CjEyAoyTn7PgFpQD48ZNPuUsEQ
-            |19gzYgJvHMzFIoZ7jKBodjO5mCzWBcR7A4mpeAsdyiNBl2sTiZscSnNqxk61jVzP5Ba1D7XtOjjr7+3iqowrThj6BY40QqhYh/6BSY9fDzVZQi
-            |Hnvlo6ZUM5kUK6OavZOovKlp5DIl5sGqoP0qAJnpQ4nhB2WVVsKfPlOXc+2KSsbJ23g9l8zaTMr+X0umlvfEKqyEl1Fa2L1dO0y/KFQ+ILmxcZ
-            |LpRdq1hRAjd0quq9qGC8ucXhRWDgM4hslVpau0da68g0aItWNez3mc5lB82b3dcZpFMzO41bgw7gvw10AvvTfQDqEYIuQ==-----END CERTIFICATE----- """.stripMargin,
-        entityType = "PSD_PI",
-        entityAddress = "EXAMPLE COMPANY LTD, 5 SOME STREET",
-        entityTownCity = "SOME CITY",
-        entityPostCode = "1060",
-        entityCountry = "CY",
-        entityWebSite = "www.example.com",
-        services = """[{"CY":["PS_010","PS_020","PS_03C","PS_04C"]}]""",
-        attributes = Some(List(RegulatedEntityAttributeSimple(
-          attributeType=attributeTypeExample.value,
-          name=attributeNameExample.value,
-          value=attributeValueExample.value)
-        ))))
+      data= RegulatedEntityTraitCommons(entityId=entityIdExample.value,
+      certificateAuthorityCaOwnerId=certificateAuthorityCaOwnerIdExample.value,
+      entityName=entityNameExample.value,
+      entityCode=entityCodeExample.value,
+      entityCertificatePublicKey=entityCertificatePublicKeyExample.value,
+      entityType=entityTypeExample.value,
+      entityAddress=entityAddressExample.value,
+      entityTownCity=entityTownCityExample.value,
+      entityPostCode=entityPostCodeExample.value,
+      entityCountry=entityCountryExample.value,
+      entityWebSite=entityWebSiteExample.value,
+      services=servicesExample.value,
+      attributes=Some(List( RegulatedEntityAttributeSimple(attributeType=attributeTypeExample.value,
+      name=nameExample.value,
+      value=valueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7169,8 +7146,158 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         response.map(convertToTuple[RegulatedEntityTraitCommons](callContext))        
   }
           
-// ---------- created on 2025-04-04T14:01:22Z
-//---------------- dynamic end ---------------------please don't modify this line                                                           
+  messageDocs += getBankAccountBalancesByAccountIdDoc
+  def getBankAccountBalancesByAccountIdDoc = MessageDoc(
+    process = "obp.getBankAccountBalancesByAccountId",
+    messageFormat = messageFormat,
+    description = "Get Bank Account Balances By Account Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetBankAccountBalancesByAccountId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      accountId=AccountId(accountIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetBankAccountBalancesByAccountId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( BankAccountBalanceTraitCommons(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      balanceId=BalanceId(balanceIdExample.value),
+      balanceType=balanceTypeExample.value,
+      balanceAmount=BigDecimal(balanceAmountExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getBankAccountBalancesByAccountId(accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountBalancesByAccountId => InBound, OutBoundGetBankAccountBalancesByAccountId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_balances_by_account_id", req, callContext)
+        response.map(convertToTuple[List[BankAccountBalanceTraitCommons]](callContext))        
+  }
+          
+  messageDocs += getBankAccountsBalancesByAccountIdsDoc
+  def getBankAccountsBalancesByAccountIdsDoc = MessageDoc(
+    process = "obp.getBankAccountsBalancesByAccountIds",
+    messageFormat = messageFormat,
+    description = "Get Bank Accounts Balances By Account Ids",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetBankAccountsBalancesByAccountIds(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      accountIds=List(AccountId(accountIdExample.value)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetBankAccountsBalancesByAccountIds(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( BankAccountBalanceTraitCommons(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      balanceId=BalanceId(balanceIdExample.value),
+      balanceType=balanceTypeExample.value,
+      balanceAmount=BigDecimal(balanceAmountExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getBankAccountsBalancesByAccountIds(accountIds: List[AccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountsBalancesByAccountIds => InBound, OutBoundGetBankAccountsBalancesByAccountIds => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountIds)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_balances_by_account_ids", req, callContext)
+        response.map(convertToTuple[List[BankAccountBalanceTraitCommons]](callContext))        
+  }
+          
+  messageDocs += getBankAccountBalanceByIdDoc
+  def getBankAccountBalanceByIdDoc = MessageDoc(
+    process = "obp.getBankAccountBalanceById",
+    messageFormat = messageFormat,
+    description = "Get Bank Account Balance By Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetBankAccountBalanceById(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      balanceId=BalanceId(balanceIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetBankAccountBalanceById(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= BankAccountBalanceTraitCommons(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      balanceId=BalanceId(balanceIdExample.value),
+      balanceType=balanceTypeExample.value,
+      balanceAmount=BigDecimal(balanceAmountExample.value)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getBankAccountBalanceById(balanceId: BalanceId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccountBalanceTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountBalanceById => InBound, OutBoundGetBankAccountBalanceById => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, balanceId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_balance_by_id", req, callContext)
+        response.map(convertToTuple[BankAccountBalanceTraitCommons](callContext))        
+  }
+          
+  messageDocs += createOrUpdateBankAccountBalanceDoc
+  def createOrUpdateBankAccountBalanceDoc = MessageDoc(
+    process = "obp.createOrUpdateBankAccountBalance",
+    messageFormat = messageFormat,
+    description = "Create Or Update Bank Account Balance",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateOrUpdateBankAccountBalance(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      balanceId=Some(BalanceId(balanceIdExample.value)),
+      balanceType=balanceTypeExample.value,
+      balanceAmount=BigDecimal(balanceAmountExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateOrUpdateBankAccountBalance(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= BankAccountBalanceTraitCommons(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      balanceId=BalanceId(balanceIdExample.value),
+      balanceType=balanceTypeExample.value,
+      balanceAmount=BigDecimal(balanceAmountExample.value)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createOrUpdateBankAccountBalance(bankId: BankId, accountId: AccountId, balanceId: Option[BalanceId], balanceType: String, balanceAmount: BigDecimal, callContext: Option[CallContext]): OBPReturnType[Box[BankAccountBalanceTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateBankAccountBalance => InBound, OutBoundCreateOrUpdateBankAccountBalance => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, balanceId, balanceType, balanceAmount)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_or_update_bank_account_balance", req, callContext)
+        response.map(convertToTuple[BankAccountBalanceTraitCommons](callContext))        
+  }
+          
+  messageDocs += deleteBankAccountBalanceDoc
+  def deleteBankAccountBalanceDoc = MessageDoc(
+    process = "obp.deleteBankAccountBalance",
+    messageFormat = messageFormat,
+    description = "Delete Bank Account Balance",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundDeleteBankAccountBalance(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      balanceId=BalanceId(balanceIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundDeleteBankAccountBalance(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=true)
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def deleteBankAccountBalance(balanceId: BalanceId, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+        import com.openbankproject.commons.dto.{InBoundDeleteBankAccountBalance => InBound, OutBoundDeleteBankAccountBalance => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, balanceId)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_delete_bank_account_balance", req, callContext)
+        response.map(convertToTuple[Boolean](callContext))        
+  }
+          
+// ---------- created on 2025-05-27T10:14:24Z
+//---------------- dynamic end ---------------------please don't modify this line                                                              
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

@@ -147,7 +147,8 @@ case class ConsentJsonV510(consent_id: String,
                            consumer_id:String)
 
 
-case class ConsentInfoJsonV510(consent_id: String,
+case class ConsentInfoJsonV510(consent_reference_id: String,
+                               consent_id: String,
                                consumer_id: String,
                                created_by_user_id: String,
                                status: String,
@@ -455,6 +456,22 @@ case class ConsumerJsonV510(consumer_id: String,
                             created_by_user: ResourceUserJSON,
                             enabled: Boolean,
                             created: Date, 
+                            logo_url: Option[String]
+                           )
+case class ConsumerJsonOnlyForPostResponseV510(consumer_id: String,
+                            consumer_key: String,
+                            consumer_secret: String,
+                            app_name: String,
+                            app_type: String,
+                            description: String,
+                            developer_email: String,
+                            company: String,
+                            redirect_url: String,
+                            certificate_pem: String,
+                            certificate_info: Option[CertificateInfoJsonV510],
+                            created_by_user: ResourceUserJSON,
+                            enabled: Boolean,
+                            created: Date,
                             logo_url: Option[String]
                            )
 
@@ -916,6 +933,7 @@ object JSONFactory510 extends CustomJsonFormats {
       consents.map { c =>
         val jwtPayload: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken).map(parse(_).extract[ConsentJWT])
         ConsentInfoJsonV510(
+          consent_reference_id = c.consentReferenceId,
           consent_id = c.consentId,
           consumer_id = c.consumerId,
           created_by_user_id = c.userId,
@@ -1078,6 +1096,37 @@ object JSONFactory510 extends CustomJsonFormats {
     ConsumerJsonV510(
       consumer_id = c.consumerId.get,
       consumer_key = c.key.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      company = c.company.get,
+      redirect_url = c.redirectURL.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get,
+      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+    )
+  }
+  def createConsumerJsonOnlyForPostResponseV510(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonOnlyForPostResponseV510 = {
+
+    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJsonOnlyForPostResponseV510(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      consumer_secret = c.secret.get,
       app_name = c.name.get,
       app_type = c.appType.toString(),
       description = c.description.get,

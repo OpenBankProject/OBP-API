@@ -301,7 +301,8 @@ object BerlinGroupSigning extends MdcLoggable {
           developerEmail = extractedEmail,
           redirectURL = None,
           createdByUserId = None,
-          certificate = None
+          certificate = None,
+          logoUrl = APIUtil.getPropsValue("consumer_default_logo_url")
         )
 
         // Set or update certificate

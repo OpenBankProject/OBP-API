@@ -14,17 +14,17 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.X509.{getCommonName, getEmailAddress, getOrganization}
 import code.api.util._
-import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
+import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle}
 import code.api.v2_0_0.AccountsHelper.{accountTypeFilterText, getFilteredCoreAccounts}
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
-import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentPhoneJsonV310}
-import code.api.v3_1_0.JSONFactory310.{createBadLoginStatusJson, createConsumerJSON, createRefreshUserJson}
+import code.api.v3_1_0.JSONFactory310.{createBadLoginStatusJson, createConsumerJSON}
+import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
-import code.api.v4_0_0.{JSONFactory400, PostAccountAccessJsonV400, PostApiCollectionJson400, PutConsentStatusJsonV400, PutConsentUserJsonV400, RevokedJsonV400}
+import code.api.v4_0_0._
 import code.api.v5_0_0.JSONFactory500
 import code.api.v5_1_0.JSONFactory510.{createConsentsInfoJsonV510, createConsentsJsonV510, createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
@@ -34,9 +34,8 @@ import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
-import code.metrics.MappedMetric.userId
-import code.model.{AppType, Consumer}
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
+import code.model.{AppType, Consumer}
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -47,7 +46,7 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AtmAttributeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
+import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
@@ -57,7 +56,6 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
-import java.text.SimpleDateFormat
 import java.time.{LocalDate, ZoneId}
 import java.util.Date
 import scala.collection.immutable.{List, Nil}
@@ -1772,8 +1770,7 @@ trait APIMethods510 {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
               unboxFullOrFail(_, cc.callContext, ConsentNotFound, 404)
             }
-            errorMessage = s" ${consent.mConsumerId.get} != ${cc.consumer.map(_.consumerId.get).getOrElse("None")}"
-            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound + errorMessage, failCode = 404, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = cc.callContext) {
               consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
             }
           } yield {
@@ -1883,7 +1880,56 @@ trait APIMethods510 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      revokeMyConsent,
+      implementedInApiVersion,
+      nameOf(revokeMyConsent),
+      "Delete",
+      "/my/consents/CONSENT_ID",
+      "Revoke My Consent",
+      s"""
+         |Revoke Consent for current user specified by CONSENT_ID
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         |
+         |Please note that this endpoint only supports the case:: "The user explicitly wishes to revoke the application’s access"
+         |
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      revokedConsentJsonV310,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
 
+    lazy val revokeMyConsent: OBPEndpoint = {
+      case  "my" :: "consents" :: consentId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              unboxFullOrFail(_, callContext, ConsentNotFound, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc=callContext) {
+              consent.mUserId == user.userId
+            }
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
     val generalObpConsentText: String =
       s"""
          |
@@ -3051,7 +3097,7 @@ trait APIMethods510 {
           |-----END CERTIFICATE-----""".stripMargin,
         Some("logoUrl")
       ),
-      consumerJsonV510,
+      consumerJsonOnlyForPostResponseV510,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -3088,7 +3134,7 @@ trait APIMethods510 {
               callContext
             )
           } yield {
-            (JSONFactory510.createConsumerJSON(consumer, None), HttpCode.`201`(callContext))
+            (JSONFactory510.createConsumerJsonOnlyForPostResponseV510(consumer, None), HttpCode.`201`(callContext))
           }
       }
     }

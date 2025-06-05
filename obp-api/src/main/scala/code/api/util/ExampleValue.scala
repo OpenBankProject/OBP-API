@@ -2,18 +2,18 @@ package code.api.util
 
 
 import code.api.Constant
-import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgo, oneYearAgoDate, parseDate}
+import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgoDate, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.apicollection.ApiCollection
-import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
+import code.dynamicEntity._
 import com.openbankproject.commons.model.CardAction
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, UserInvitationPurpose}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonDSL._
 
 case class ConnectorField(value: String, description: String) {
 
@@ -1460,7 +1460,7 @@ object ExampleValue {
   lazy val distributionChannelExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("distribution_channel", distributionChannelExample)
 
-  lazy val otherAccountRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val otherAccountRoutingSchemeExample = ConnectorField("IBAN","otherAccountRoutingScheme string, eg: IBAN")
   glossaryItems += makeGlossaryItem("other_account_routing_scheme", otherAccountRoutingSchemeExample)
 
   lazy val generateAccountantsViewExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1586,7 +1586,10 @@ object ExampleValue {
   lazy val directDebitIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("direct_debit_id", directDebitIdExample)
 
-  lazy val consentIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val consentReferenceIdExample = ConnectorField("123456" ,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("consent_id", consentReferenceIdExample)
+  
+  lazy val consentIdExample = ConnectorField("9d429899-24f5-42c8-8565-943ffa6a7947",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("consent_id", consentIdExample)
 
   lazy val basketIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1711,7 +1714,7 @@ object ExampleValue {
   lazy val canAddTransactionRequestToOwnAccountExample = ConnectorField(booleanFalse,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_add_transaction_request_to_own_account", canAddTransactionRequestToOwnAccountExample)
 
-  lazy val otherAccountRoutingAddressExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val otherAccountRoutingAddressExample = ConnectorField("DE89370400440532013000","OtherBankRoutingAddress string, eg IBAN value")
   glossaryItems += makeGlossaryItem("other_account_routing_address", otherAccountRoutingAddressExample)
 
   lazy val isFirehoseExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -2469,8 +2472,8 @@ object ExampleValue {
   // if these are duplicate with those examples, just delete the follow examples
   lazy val counterpartyOtherBankRoutingSchemeExample = ConnectorField("OBP" ,"Counterparty otherBankRoutingScheme string")
   lazy val counterpartyOtherBankRoutingAddressExample = ConnectorField("gh.29.uk", "Counterparty otherBankRoutingAddress string")
-  lazy val counterpartyOtherAccountRoutingSchemeExample = ConnectorField("OBP", "Counterparty otherAccountRoutingScheme string")
-  lazy val counterpartyOtherAccountRoutingAddressExample = ConnectorField("36f8a9e6-c2b1-407a-8bd0-421b7119307e", "Counterparty otherAccountRoutingAddress string")  
+  lazy val counterpartyOtherAccountRoutingSchemeExample = ConnectorField("IBAN", "Counterparty otherAccountRoutingScheme string")
+  lazy val counterpartyOtherAccountRoutingAddressExample = ConnectorField("DE89370400440532013000", "Counterparty otherAccountRoutingAddress string")  
   lazy val counterpartyOtherAccountSecondaryRoutingSchemeExample = ConnectorField("IBAN", "Counterparty otherAccountSecondaryRoutingScheme string")
   lazy val counterpartyOtherAccountSecondaryRoutingAddressExample = ConnectorField("DE89370400440532013000", "Counterparty otherAccountSecondaryRoutingAddress string")
   lazy val counterpartyOtherAccountProviderExample = ConnectorField("Counterparty otherAccountProvider string", "fix me")

@@ -449,8 +449,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
-      getGatewayLoginHeader(cc).list ::: 
-        getRateLimitHeadersNewStyle(cc).list ::: 
+      getGatewayLoginHeader(cc).list :::
+        getRequestHeadersBerlinGroup(cc).list :::
+        getRateLimitHeadersNewStyle(cc).list :::
         getPaginationHeadersNewStyle(cc).list ::: 
         getRequestHeadersToMirror(cc).list :::
         getRequestHeadersToEcho(cc).list
@@ -552,6 +553,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     (callContext, echoRequestHeaders) match {
       case (Some(cc), true) =>
         CustomResponseHeaders(cc.requestHeaders.map(item => (s"echo_${item.name}", item.values.head)))
+      case _ =>
+        CustomResponseHeaders(Nil)
+    }
+  }
+
+  def getRequestHeadersBerlinGroup(callContext: Option[CallContextLight]): CustomResponseHeaders = {
+    val aspspScaApproach = getPropsValue("berlin_group_aspsp_sca_approach", defaultValue = "redirect")
+    logger.debug(s"ConstantsBG.berlinGroupVersion1.urlPrefix: ${ConstantsBG.berlinGroupVersion1.urlPrefix}")
+    logger.debug(s"callContext.map(_.url): ${callContext.map(_.url)}")
+    callContext match {
+      case Some(cc) if cc.url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && cc.url.endsWith("/consents") =>
+        CustomResponseHeaders(List(
+          (ResponseHeader.`ASPSP-SCA-Approach`, aspspScaApproach)
+        ))
       case _ =>
         CustomResponseHeaders(Nil)
     }
@@ -3030,10 +3045,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             }
         }
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
-        getUserFromOAuthHeaderFuture(cc)
+        getUserFromOAuthHeaderFuture(cc.copy(consumer = consumerByCertificate))
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
-          (user, callContext) <- OAuth2Login.getUserFuture(cc)
+          (user, callContext) <- OAuth2Login.getUserFuture(cc.copy(consumer = consumerByCertificate))
         } yield {
           (user, callContext)
         }
@@ -4733,6 +4748,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     val user = AuthUser.getCurrentUser
     val result = tryo {
+      
       endpoint(newRequest)(CallContext(user = user))
     }
 

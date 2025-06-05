@@ -9,15 +9,16 @@ import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.consent.ConsentTrait
 import code.model.ModeratedTransaction
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.{JValue, parse}
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
+import scala.concurrent.Future
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
@@ -184,13 +185,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   
   case class TransactionsV13Transactions(
     booked: List[TransactionJsonV13], 
-    pending: List[TransactionJsonV13],
+    pending: Option[List[TransactionJsonV13]] = None,
     _links: TransactionsV13TransactionsLinks 
   )
 
   case class CardTransactionsV13Transactions(
     booked: List[CardTransactionJsonV13],
-    pending: List[CardTransactionJsonV13],
+    pending: Option[List[CardTransactionJsonV13]] = None,
     _links: CardTransactionsLinksV13
   )
   
@@ -310,13 +311,24 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   case class UpdatePaymentPsuDataJson(
     scaAuthenticationData: String
   )
-  
+
+
+  def flattenOBPReturnType(
+    list: List[OBPReturnType[List[BankAccountBalanceTrait]]]
+  ): OBPReturnType[List[BankAccountBalanceTrait]] = {
+    Future.sequence(list).map { results =>
+      val combinedBalances = results.flatMap(_._1) // Combine all balances
+      val callContext = results.headOption.flatMap(_._2) // Use the first CallContext
+      (combinedBalances, callContext)
+    }
+  }
   
   def createAccountListJson(bankAccounts: List[BankAccount],
                             canReadBalancesAccounts:  List[BankIdAccountId],
                             canReadTransactionsAccounts:  List[BankIdAccountId],
                             user: User,
-                            withBalanceParam:Option[Boolean]
+                            withBalanceParam:Option[Boolean],
+                            balances: List[BankAccountBalanceTrait]
   ): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(bankAccounts.map {
       x =>
@@ -327,20 +339,22 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         val transactionRef = LinkHrefJson(s"/$commonPath/transactions")
         val canReadTransactions = canReadTransactionsAccounts.map(_.accountId.value).contains(x.accountId.value)
         val accountBalances = if(withBalanceParam == Some(true)){
-          Some(List(CoreAccountBalanceJson(
-            balanceAmount = AmountOfMoneyV13(x.currency, x.balance.toString),
-            balanceType = "openingBooked")))
+          Some(balances.filter(_.accountId.equals(x.accountId)).map(balance =>(List(CoreAccountBalanceJson(
+            balanceAmount = AmountOfMoneyV13(x.currency, balance.balanceAmount.toString()),
+            balanceType = balance.balanceType)))).flatten)
         }else{
           None
         }
       
+        val cashAccountType = x.attributes.getOrElse(Nil).filter(_.name== "cashAccountType").map(_.value).headOption.getOrElse("")
+        
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
           bban = None,
           currency = x.currency,
           name = x.name,
-          cashAccountType = x.accountType,
+          cashAccountType = cashAccountType,
           product = x.accountType,
           balances = if(canReadBalances) accountBalances else None,
           _links = CoreAccountLinksJsonV13(
@@ -448,7 +462,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   def createTransactionJSON(bankAccount: BankAccount, transaction : ModeratedTransaction) : TransactionJsonV13 = {
     val bookingDate = transaction.startDate.orNull
     val valueDate = transaction.finishDate.orNull
-    val creditorName = bankAccount.label
+    val creditorName = transaction.otherBankAccount.map(_.label.display).getOrElse(null)
     TransactionJsonV13(
       transactionId = transaction.id.value,
       creditorName = creditorName,
@@ -501,7 +515,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     )
   }
 
-  def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV13 = {
+  def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest] = Nil) : TransactionsJsonV13 = {
     val accountId = bankAccount.accountId.value
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
    
@@ -513,7 +527,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       account,
       TransactionsV13Transactions(
         booked= transactions.map(transaction => createTransactionJSON(bankAccount, transaction)),
-        pending = transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest)),
+        pending = None, //transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest)),
         _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/accounts/$accountId"))
       )
     )
@@ -545,7 +559,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     )
   }
 
-  def createCardTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : CardTransactionsJsonV13 = {
+  def createCardTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest] = Nil) : CardTransactionsJsonV13 = {
     val accountId = bankAccount.accountId.value
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
     // get the latest end_date of `COMPLETED` transactionRequests
@@ -559,7 +573,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       ),
       CardTransactionsV13Transactions(
         booked= transactions.map(t => createCardTransactionJson(t)),
-        pending = Nil,
+        pending = None,
         _links = CardTransactionsLinksV13(LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/card-accounts/$accountId"))
       )
     )

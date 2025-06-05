@@ -26,9 +26,6 @@ TESOBE (http://www.tesobe.com/)
   */
 package bootstrap.liftweb
 
-import java.io.{File, FileInputStream}
-import java.util.stream.Collectors
-import java.util.{Locale, TimeZone}
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -43,8 +40,8 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
 import code.api.cache.Redis
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
 import code.api.util.ApiRole.CanCreateEntitlementAtAnyBank
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue, gitCommit}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
@@ -53,11 +50,10 @@ import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
+import code.bankaccountbalance.BankAccountBalance
 import code.bankattribute.BankAttribute
-import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
-import code.etag.MappedETag
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
@@ -79,6 +75,7 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
+import code.etag.MappedETag
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -96,9 +93,9 @@ import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.migration.MigrationScriptLog
+import code.model._
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
-import code.model._
 import code.obp.grpc.HelloWorldServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
@@ -107,10 +104,11 @@ import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
-import code.scheduler.{ConsentScheduler, DataBaseCleanerScheduler, DatabaseDriverScheduler, JobScheduler, MetricsArchiveScheduler, TransactionScheduler}
+import code.regulatedentities.attribute.RegulatedEntityAttribute
+import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.snippet.OAuthWorkedThanks
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -133,17 +131,13 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
 import code.webuiprops.WebUiProps
-import code.regulatedentities.attribute.RegulatedEntityAttribute
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-import code.bankaccountbalance.BankAccountBalance
-import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
 import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
-import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 import net.liftweb.sitemap.Loc._
@@ -152,7 +146,11 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import org.apache.commons.io.FileUtils
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.io.{File, FileInputStream}
+import java.util.stream.Collectors
+import java.util.{Locale, TimeZone}
+import javax.mail.internet.MimeMessage
+import scala.concurrent.ExecutionContext
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -566,8 +564,11 @@ class Boot extends MdcLoggable {
       Menu.i("Plain") / "plain",
       Menu.i("Static") / "static",
       Menu.i("SDKs") / "sdks",
+      Menu.i("Consents") / "consents",
       Menu.i("Debug") / "debug",
       Menu.i("debug-basic") / "debug" / "debug-basic",
+      Menu.i("debug-default-header") / "debug" / "debug-default-header",
+      Menu.i("debug-default-footer") / "debug" / "debug-default-footer",
       Menu.i("debug-localization") / "debug" / "debug-localization",
       Menu.i("debug-plain") / "debug" / "debug-plain",
       Menu.i("debug-webui") / "debug" / "debug-webui",
@@ -1010,6 +1011,8 @@ class Boot extends MdcLoggable {
     }
  
   }
+
+  LiftRules.statelessDispatch.append(aliveCheck)
   
 }
 

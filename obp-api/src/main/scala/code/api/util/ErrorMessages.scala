@@ -1,15 +1,12 @@
 package code.api.util
 
+import code.api.APIFailureNewStyle
+import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
+import com.openbankproject.commons.model.enums.TransactionRequestStatus._
+import net.liftweb.json.{Extraction, JsonAST}
+
 import java.util.Objects
 import java.util.regex.Pattern
-
-import code.api.APIFailureNewStyle
-import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import code.api.Constant._
-import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
-import code.views.system.ViewDefinition
-import net.liftweb.json.{Extraction, JsonAST}
-import net.liftweb.util.StringHelpers
 
 object ErrorMessages {
   import code.api.util.APIUtil._
@@ -244,7 +241,10 @@ object ErrorMessages {
     s"OBP-20087: The current source view.can_revoke_access_to_custom_views is false."
 
   val BerlinGroupConsentAccessIsEmpty = s"OBP-20088: An access must be requested."
-  
+  val BerlinGroupConsentAccessRecurringIndicator = s"OBP-20089: Recurring indicator must be false when availableAccounts is used."
+  val BerlinGroupConsentAccessFrequencyPerDay = s"OBP-20090: Frequency per day must be 1 when availableAccounts is used."
+  val BerlinGroupConsentAccessAvailableAccounts = s"OBP-20091: availableAccounts must be exactly 'allAccounts'."
+
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
   val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
@@ -547,6 +547,10 @@ object ErrorMessages {
   val AgentNumberAlreadyExists = "OBP-30328: Agent Number already exists. Please specify a different value for BANK_ID or AGENT_NUMBER."
   val GetAgentAccountLinksError = "OBP-30329: Could not get the agent account links."
   val AgentBeneficiaryPermit = "OBP-30330: The account can not send money to the Agent. Please set the Agent 'is_confirmed_agent' true  and `is_pending_agent` false."
+  val InvalidEntitlement = "OBP-30331: Invalid Entitlement Name. Please specify a proper name."
+  val CannotAddEntitlement = "OBP-30332: Failed to add entitlement. Please check the provided details and try again."
+  val CannotGetEntitlements = "OBP-30333: Cannot get entitlements for user id."
+  
   
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."

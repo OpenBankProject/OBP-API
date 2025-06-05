@@ -26,13 +26,11 @@ TESOBE (http://www.tesobe.com/)
   */
 package com.openbankproject.commons.model
 
-import java.util.Date
 import com.openbankproject.commons.util.{OBPRequired, optional}
 
 import java.security.AccessControlContext
+import java.util.Date
 import javax.security.auth.AuthPermission
-import scala.collection.immutable.List
-import scala.math.BigDecimal
 
 
 trait Bank {
@@ -289,9 +287,7 @@ case class Counterparty(
   val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
   @optional
   val otherBankRoutingAddress: Option[String], // The (BIC) value e.g. 67895
-  @optional
   val otherAccountRoutingScheme: String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
-  @optional
   val otherAccountRoutingAddress: Option[String], // The (IBAN) value e.g. 2349870987820374
   @optional
   val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account

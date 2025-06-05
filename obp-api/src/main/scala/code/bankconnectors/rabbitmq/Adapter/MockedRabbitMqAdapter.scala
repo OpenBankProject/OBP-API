@@ -3,6 +3,8 @@ package code.bankconnectors.rabbitmq.Adapter
 import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil
 import code.bankconnectors.rabbitmq.RabbitMQUtils
+import code.bankconnectors.rabbitmq.RabbitMQUtils._
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
@@ -13,11 +15,8 @@ import net.liftweb.json
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.Schemifier
 
-import scala.concurrent.Future
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import code.bankconnectors.rabbitmq.RabbitMQUtils._
 import java.util.Date
-import code.util.Helper.MdcLoggable
+import scala.concurrent.Future
 
 class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
 
@@ -77,7 +76,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
           ))
         }
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2025-04-07T14:53:47Z
+// ---------- created on 2025-05-27T08:15:58Z
 
       } else if (obpMessageId.contains("get_adapter_info")) {
         val outBound = json.parse(message).extract[OutBoundGetAdapterInfo]
@@ -3151,6 +3150,111 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             data = null
           ))
         }
+      } else if (obpMessageId.contains("get_bank_account_balances_by_account_id")) {
+        val outBound = json.parse(message).extract[OutBoundGetBankAccountBalancesByAccountId]
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.getBankAccountBalancesByAccountId(outBound.accountId,None).map(_._1.head)
+        
+        obpMappedResponse.map(response => InBoundGetBankAccountBalancesByAccountId(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+          status = Status("", Nil),
+          data = response
+        )).recoverWith {
+          case e: Exception => Future(InBoundGetBankAccountBalancesByAccountId(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+            status = Status(e.getMessage, Nil),
+            data = null
+          ))
+        }
+      } else if (obpMessageId.contains("get_bank_accounts_balances_by_account_ids")) {
+        val outBound = json.parse(message).extract[OutBoundGetBankAccountsBalancesByAccountIds]
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.getBankAccountsBalancesByAccountIds(outBound.accountIds,None).map(_._1.head)
+        
+        obpMappedResponse.map(response => InBoundGetBankAccountsBalancesByAccountIds(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+          status = Status("", Nil),
+          data = response
+        )).recoverWith {
+          case e: Exception => Future(InBoundGetBankAccountsBalancesByAccountIds(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+            status = Status(e.getMessage, Nil),
+            data = null
+          ))
+        }
+      } else if (obpMessageId.contains("get_bank_account_balance_by_id")) {
+        val outBound = json.parse(message).extract[OutBoundGetBankAccountBalanceById]
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.getBankAccountBalanceById(outBound.balanceId,None).map(_._1.head)
+        
+        obpMappedResponse.map(response => InBoundGetBankAccountBalanceById(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+          status = Status("", Nil),
+          data = response
+        )).recoverWith {
+          case e: Exception => Future(InBoundGetBankAccountBalanceById(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+            status = Status(e.getMessage, Nil),
+            data = null
+          ))
+        }
+      } else if (obpMessageId.contains("create_or_update_bank_account_balance")) {
+        val outBound = json.parse(message).extract[OutBoundCreateOrUpdateBankAccountBalance]
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.createOrUpdateBankAccountBalance(outBound.bankId,outBound.accountId,outBound.balanceId,outBound.balanceType,outBound.balanceAmount,None).map(_._1.head)
+        
+        obpMappedResponse.map(response => InBoundCreateOrUpdateBankAccountBalance(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+          status = Status("", Nil),
+          data = response
+        )).recoverWith {
+          case e: Exception => Future(InBoundCreateOrUpdateBankAccountBalance(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+            status = Status(e.getMessage, Nil),
+            data = null
+          ))
+        }
+      } else if (obpMessageId.contains("delete_bank_account_balance")) {
+        val outBound = json.parse(message).extract[OutBoundDeleteBankAccountBalance]
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.deleteBankAccountBalance(outBound.balanceId,None).map(_._1.head)
+        
+        obpMappedResponse.map(response => InBoundDeleteBankAccountBalance(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+          status = Status("", Nil),
+          data = response
+        )).recoverWith {
+          case e: Exception => Future(InBoundDeleteBankAccountBalance(          
+          
+          inboundAdapterCallContext = InboundAdapterCallContext(
+            correlationId = outBound.outboundAdapterCallContext.correlationId
+          ),
+            status = Status(e.getMessage, Nil),
+            data = false
+          ))
+        }
       } else if (obpMessageId.contains("dynamic_entity_process")) {
         val outBound = json.parse(message).extract[OutBoundDynamicEntityProcess]
         val obpMappedResponse = code.bankconnectors.LocalMappedConnector.dynamicEntityProcess(outBound.operation,outBound.entityName,outBound.requestBody,outBound.entityId,None,None,None,false,None).map(_._1.head)
@@ -3172,8 +3276,8 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             data = null
           ))
         }
-// ---------- created on 2025-04-07T14:53:47Z
-//---------------- dynamic end ---------------------please don't modify this line                       
+// ---------- created on 2025-05-27T08:15:58Z
+//---------------- dynamic end ---------------------please don't modify this line                        
       } else {  
         Future {
           1
