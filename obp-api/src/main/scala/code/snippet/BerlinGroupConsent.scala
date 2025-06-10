@@ -401,9 +401,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(consent) if otpValue.is == consent.challenge =>
         updateConsentUser(consent)
-        updateConsentJwt(consent) map { i =>
-          Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.rejected)
-        }
+        Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.rejected)
         S.redirectTo(
           s"$redirectUriValue?CONSENT_ID=${consentId}"
         )
@@ -421,9 +419,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(consent) if otpValue.is == consent.challenge =>
         updateConsentUser(consent)
-        updateConsentJwt(consent) map { i =>
-          Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.valid)
-        }
+        Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.valid)
         S.redirectTo(
           s"/confirm-bg-consent-request-redirect-uri?CONSENT_ID=${consentId}"
         )
@@ -437,10 +433,6 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
     Consents.consentProvider.vend.updateConsentUser(consent.consentId, loggedInUser)
     val jwt = Consent.updateUserIdOfBerlinGroupConsentJWT(loggedInUser.userId, consent, None).openOrThrowException(ErrorMessages.InvalidConnectorResponse)
     Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)
-  }
-  private def updateConsentJwt(consent: MappedConsent) = {
-    val loggedInUser = AuthUser.currentUser.flatMap(_.user.foreign).openOrThrowException(ErrorMessages.UserNotLoggedIn)
-    Consent.updateViewsOfBerlinGroupConsentJWT(loggedInUser, consent, None)
   }
 
   private def getTppRedirectUri() = {

@@ -27,21 +27,22 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
-import java.time.format.DateTimeFormatter
-import java.time.{ZoneId, ZonedDateTime}
-import java.util.Date
 import code.api.Constant
 import code.api.util.APIUtil.{DateWithMsFormat, DefaultToDate, theEpochTime, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
 import code.util.Helper.SILENCE_IS_GOLDEN
-import com.openbankproject.commons.model.UserAuthContextCommons
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.{JValue, parse}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+
+import java.time.format.DateTimeFormatter
+import java.time.{ZoneId, ZonedDateTime}
+import java.util.Date
 
 class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
@@ -840,34 +841,6 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       
     }
 
-    scenario(s"Test the ${nameOf(APIUtil.basicPasswordValidation _)} method") {
-      val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
-
-      basicPasswordValidation(firefoxStrongPasswordProposal) shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("Abc!123 xyz") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("SuperStrong#123") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("Hello World!") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation(" ") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN allow space so far
-
-      basicPasswordValidation("short💥") shouldBe (InvalidValueCharacters) // ❌ ErrorMessages.InvalidValueCharacters
-      basicPasswordValidation("a" * 513) shouldBe (InvalidValueLength) // ❌ ErrorMessages.InvalidValueLength 
-
-    }
-
-    scenario(s"Test the ${nameOf(APIUtil.fullPasswordValidation _)}  method") {
-      val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
-
-      fullPasswordValidation(firefoxStrongPasswordProposal) // ✅ true
-      fullPasswordValidation("Abc!123xyz") // ✅ true
-      fullPasswordValidation("SuperStrong#123") // ✅ true
-      fullPasswordValidation("Abcdefg!1") // ✅ true
-      fullPasswordValidation("short1!")   // ❌ false（too short）
-      fullPasswordValidation("alllowercase123!")   // ❌ false（no capital letter）
-      fullPasswordValidation("ALLUPPERCASE123!")   // ❌ false（no smaller case letter）
-      fullPasswordValidation("NoSpecialChar123")   // ❌ false（not special character）
-
-    }
-    
   }
 
   feature(s"test ${nameOf(APIUtil.basicPasswordValidation _)} and ${nameOf(APIUtil.fullPasswordValidation _)}") {
@@ -889,14 +862,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"Test the ${nameOf(APIUtil.fullPasswordValidation _)}  method") {
       val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
 
-      fullPasswordValidation(firefoxStrongPasswordProposal) // ✅ true
-      fullPasswordValidation("Abc!123xyz") // ✅ true
-      fullPasswordValidation("SuperStrong#123") // ✅ true
-      fullPasswordValidation("Abcdefg!1") // ✅ true
-      fullPasswordValidation("short1!")   // ❌ false（too short）
-      fullPasswordValidation("alllowercase123!")   // ❌ false（no capital letter）
-      fullPasswordValidation("ALLUPPERCASE123!")   // ❌ false（no smaller case letter）
-      fullPasswordValidation("NoSpecialChar123")   // ❌ false（not special character）
+      fullPasswordValidation(firefoxStrongPasswordProposal) shouldBe true// ✅ true
+      fullPasswordValidation("Abcd!123xyz") shouldBe true // ✅ true
+      fullPasswordValidation("SuperStrong#123") shouldBe true // ✅ true
+      fullPasswordValidation("Abcdefgh!1") shouldBe true // ✅ true
+      fullPasswordValidation("short1!") shouldBe false // ❌ false（too short）
+      fullPasswordValidation("alllowercase123!") shouldBe false // ❌ false（no capital letter）
+      fullPasswordValidation("ALLUPPERCASE123!") shouldBe false// ❌ false（no smaller case letter）
+      fullPasswordValidation("NoSpecialChar123") shouldBe false// ❌ false（not special character）
     }
     
   }

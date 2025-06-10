@@ -56,8 +56,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   
   case class CoreAccountBalanceJson(
     balanceAmount:AmountOfMoneyV13,// = AmountOfMoneyV13("EUR","123"),
-    balanceType: String //= "openingBooked",
-//    lastChangeDateTime: String = "2019-01-28T06:26:52.185Z",
+    balanceType: String, //= "openingBooked",
+    lastChangeDateTime: Option[String] //= "2019-01-28T06:26:52.185Z",
 //    referenceDate: String = "2020-07-02",
 //    lastCommittedTransaction: String = "string",
   )
@@ -341,7 +341,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         val accountBalances = if(withBalanceParam == Some(true)){
           Some(balances.filter(_.accountId.equals(x.accountId)).map(balance =>(List(CoreAccountBalanceJson(
             balanceAmount = AmountOfMoneyV13(x.currency, balance.balanceAmount.toString()),
-            balanceType = balance.balanceType)))).flatten)
+            balanceType = balance.balanceType,
+            lastChangeDateTime = APIUtil.dateOrNone(x.lastUpdate)
+          )))).flatten)
         }else{
           None
         }
@@ -454,7 +456,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         balanceAmount = AmountOfMoneyV13(accountBalance.balance.currency, accountBalance.balance.amount),
         balanceType = accountBalance.balanceType,
         lastChangeDateTime = APIUtil.dateOrNone(bankAccount.lastUpdate),
-        referenceDate = APIUtil.dateOrNone(bankAccount.lastUpdate),
+        referenceDate = None, //There is no referenceDate in OBP, so set it to None
       ) 
     ))
   }

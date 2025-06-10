@@ -489,10 +489,8 @@ case class CreateConsumerRequestJsonV510(
   developer_email: String,
   company: String,
   redirect_url: String,
-  created_by_user_id: String,
   enabled: Boolean,
-  created: Date,
-  client_certificate: String,
+  client_certificate: Option[String],
   logo_url: Option[String]
 )
 

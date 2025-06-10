@@ -3089,12 +3089,10 @@ trait APIMethods510 {
         "some@email.com",
         "company",
         "redirecturl",
-        "createdby",
         true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
+        Some("""-----BEGIN CERTIFICATE-----
           |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin,
+          |-----END CERTIFICATE-----""".stripMargin),
         Some("logoUrl")
       ),
       consumerJsonOnlyForPostResponseV510,
@@ -3129,7 +3127,7 @@ trait APIMethods510 {
               company = Some(postedJson.company),
               redirectURL = Some(postedJson.redirect_url),
               createdByUserId = Some(u.userId),
-              clientCertificate = Some(postedJson.client_certificate),
+              clientCertificate = postedJson.client_certificate,
               logoURL = postedJson.logo_url,
               callContext
             )

@@ -6,6 +6,8 @@
 .gitignore
 .idea
 .settings
+.metals
+.vscode
 .classpath
 .project
 .cache
