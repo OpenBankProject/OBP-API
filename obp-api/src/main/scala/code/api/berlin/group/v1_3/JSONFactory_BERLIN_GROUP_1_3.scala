@@ -186,7 +186,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   )
   
   case class TransactionsV13Transactions(
-    booked: List[TransactionJsonV13], 
+    booked: Option[List[TransactionJsonV13]], 
     pending: Option[List[TransactionJsonV13]] = None,
     _links: TransactionsV13TransactionsLinks 
   )
@@ -541,11 +541,15 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       iban = iban,
       currency = Some(bankAccount.currency)
     )
+    
+    val bookedTransactions = transactions.filter(_.status=="booked").map(transaction => createTransactionJSON(bankAccount, transaction))
+    val pendingTransactions = transactions.filter(_.status!="booked").map(transaction => createTransactionJSON(bankAccount, transaction))
+    
     TransactionsJsonV13(
       account,
       TransactionsV13Transactions(
-        booked = transactions.map(transaction => createTransactionJSON(bankAccount, transaction)),
-        pending = Some(transactions.filter(_.status!="booked" ).map(transaction => createTransactionJSON(bankAccount, transaction))), //transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest)),
+        booked = if(bookedTransactions.isEmpty) None else Some(bookedTransactions),
+        pending = if(pendingTransactions.isEmpty) None else Some(pendingTransactions),
         _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/accounts/$accountId"))
       )
     )
