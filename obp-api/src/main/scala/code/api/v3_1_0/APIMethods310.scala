@@ -1,14 +1,10 @@
 package code.api.v3_1_0
 
 import code.api.Constant
-import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
-
-import java.text.SimpleDateFormat
-import java.util.UUID
-import java.util.regex.Pattern
+import code.api.Constant.localIdentityProvider
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
-import code.api.cache.{Caching, Redis}
+import code.api.cache.Caching
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -22,23 +18,21 @@ import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
-import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
-import code.api.v3_0_0.{CreateViewJsonV300, JSONFactory300}
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
+import code.api.v3_0_0.{CreateViewJsonV300, JSONFactory300}
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.{Connector, LocalMappedConnector}
-import code.consent.{ConsentRequests, ConsentStatus, Consents, MappedConsent}
+import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
-import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingParam, MethodRoutingT}
+import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingParam}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.ratelimiting.RateLimitingDI
-import code.userlocks.{UserLocks, UserLocksProvider}
+import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.ObpS
@@ -47,29 +41,27 @@ import code.views.system.ViewDefinition
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
-import com.openbankproject.commons.model.{CreditLimit, Product, _}
-import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
-import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.S
-import net.liftweb.http.provider.HTTPParam
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json._
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.mapper.By
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer, Props, StringHelpers}
-import org.apache.commons.lang3.{StringUtils, Validate}
-
-import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
+import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
+import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
+import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.http.provider.HTTPParam
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json._
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.{Helpers, Props, StringHelpers}
+import org.apache.commons.lang3.{StringUtils, Validate}
 
+import java.text.SimpleDateFormat
+import java.util.UUID
+import java.util.regex.Pattern
+import scala.collection.immutable.{List, Nil}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import scala.util.Random
 
 trait APIMethods310 {
   self: RestHelper =>
@@ -101,7 +93,7 @@ trait APIMethods310 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {
@@ -1878,7 +1870,7 @@ trait APIMethods310 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props field `connector` not set")
+            connectorVersion = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet The missing props is 'connector'")
             starConnectorProps = APIUtil.getPropsValue("starConnector_supported_types").openOr("notfound")
             //TODO we need to decide what kind of connector should we use.
             obpApiLoopback = ObpApiLoopback(

@@ -223,10 +223,10 @@ object OAuth2Login extends RestHelper with MdcLoggable {
 
     def wellKnownOpenidConfiguration: URI
 
-    def urlOfJwkSets: Box[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+    def urlOfJwkSets: Box[String] = Constant.oauth2JwkSetUrl
 
     def checkUrlOfJwkSets(identityProvider: String) = {
-      val url: List[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url").toList
+      val url: List[String] = Constant.oauth2JwkSetUrl.toList
       val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
       val jwksUri = jwksUris.filter(_.contains(identityProvider))
       jwksUri match {
@@ -473,7 +473,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     override def wellKnownOpenidConfiguration: URI = new URI("")
 
     def isIssuer(jwt: String): Boolean = {
-      val url: List[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url").toList
+      val url: List[String] = Constant.oauth2JwkSetUrl.toList
       val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
       jwksUris.exists( url => JwtUtil.validateAccessToken(jwt, url).isDefined)
     }

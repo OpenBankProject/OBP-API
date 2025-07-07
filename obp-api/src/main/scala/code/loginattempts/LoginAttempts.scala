@@ -1,8 +1,7 @@
 package code.loginattempts
 
 import code.api.util.APIUtil
-import code.userlocks.{UserLocks, UserLocksProvider}
-import code.users.Users
+import code.userlocks.UserLocksProvider
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By

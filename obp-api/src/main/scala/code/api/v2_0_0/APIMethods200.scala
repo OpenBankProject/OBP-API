@@ -1,10 +1,7 @@
 package code.api.v2_0_0
 
-import java.util.{Calendar, Date}
-import code.api.Constant._
 import code.TransactionTypes.TransactionType
-import code.api.{APIFailure, APIFailureNewStyle}
-import code.api.Constant._
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -14,15 +11,11 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{JSONFactory => JSONFactory121}
-import code.api.v1_3_0.OBPAPI1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
-import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.meetings.Meetings
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
@@ -34,25 +27,23 @@ import code.util.Helper.{booleanToBox, booleanToFuture}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import net.liftweb.common.{Full, _}
+import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common._
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.{JValue, prettyRender}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-
-import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.util.StringHelpers
 
+import java.util.Date
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v2_0_0.AccountsHelper._
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import net.liftweb.json.Extraction
 
@@ -149,7 +140,7 @@ trait APIMethods200 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {

@@ -124,14 +124,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMinutes = "yyyy-MM-dd'T'HH:mm'Z'"
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-  val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" //?? what does this `Rollback` mean ??
+  val DateWithMsAndTimeZoneOffset = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
   val DateWithYearFormat = new SimpleDateFormat(DateWithYear)
   val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
-  val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
+  val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsAndTimeZoneOffset)
 
   val DateWithYearExampleString: String = "1100"
   val DateWithMonthExampleString: String = "1100-01"
@@ -168,7 +168,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
-  
+
 
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
@@ -180,9 +180,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
-  
+
   def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name.toLowerCase == "DirectLogin".toLowerCase()).isDefined
-  
+
   def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
@@ -198,12 +198,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
-  
+
   /**
    * The value `DAuth` is in the KEY
    * DAuth:xxxxx
-   * 
-   * Other types: the `GatewayLogin` is in the VALUE 
+   *
+   * Other types: the `GatewayLogin` is in the VALUE
    * Authorization:GatewayLogin token=xxxx
    */
   def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ ==DAuthHeaderKey)
@@ -262,7 +262,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => ""
     }
   }
-  
+
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
     getConsentJWT(requestHeaders).isDefined
   }
@@ -329,14 +329,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /**
    * Caching of unchanged resources
    *
-   * Another typical use of the ETag header is to cache resources that are unchanged. 
-   * If a user visits a given URL again (that has an ETag set), and it is stale (too old to be considered usable), 
+   * Another typical use of the ETag header is to cache resources that are unchanged.
+   * If a user visits a given URL again (that has an ETag set), and it is stale (too old to be considered usable),
    * the client will send the value of its ETag along in an If-None-Match header field:
    *
    * If-None-Match: "33a64df551425fcc55e4d42a148795d9f25f89d4"
    *
-   * The server compares the client's ETag (sent with If-None-Match) with the ETag for its current version of the resource, 
-   * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
+   * The server compares the client's ETag (sent with If-None-Match) with the ETag for its current version of the resource,
+   * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status,
    * without a body, which tells the client that the cached version of the response is still good to use (fresh).
    */
   private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
@@ -345,10 +345,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if (httpCode == 200 && hash == headerValue) 304 else httpCode
   }
 
-  
-  // The If-Modified-Since request HTTP header makes the request conditional: the server sends back the requested resource, 
-  // with a 200 status, only if it has been last modified after the given date. 
-  // If the resource has not been modified since, the response is a 304 without any body; 
+
+  // The If-Modified-Since request HTTP header makes the request conditional: the server sends back the requested resource,
+  // with a 200 status, only if it has been last modified after the given date.
+  // If the resource has not been modified since, the response is a 304 without any body;
   // the Last-Modified response header of a previous request contains the date of last modification
   private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
     def headerValueToMillis(): Long = {
@@ -363,7 +363,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
       epochTime
     }
-    
+
     def asyncUpdate(row: MappedETag, hash: String): Future[Boolean] = {
       Future { // Async update
         row
@@ -381,22 +381,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
           .save) match {
           case Full(value) => value
-          case other => 
+          case other =>
             logger.debug(s"checkIfModifiedSinceHeader.asyncCreate($cacheKey, $hash)")
             logger.debug(other)
             false
         }
       }
     }
-    
+
     val url = cc.map(_.url).getOrElse("")
-    val requestHeaders: List[HTTPParam] = 
+    val requestHeaders: List[HTTPParam] =
       cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
     val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
     val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
     val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
-    val compositeKey = 
+    val compositeKey =
       if(consumerId == "None" && userId == "None") {
         s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
       } else {
@@ -404,11 +404,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     val cacheKey = s"""$compositeKey::${hashedRequestPayload}"""
     val eTag = HashUtil.calculateETag(url, httpBody)
-    
+
     if(httpVerb.toUpperCase() == "GET" || httpVerb.toUpperCase() == "HEAD") { // If-Modified-Since can only be used with a GET or HEAD
       val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
-        case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() => 
-          val modified = row.eTagValue != eTag 
+        case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() =>
+          val modified = row.eTagValue != eTag
           if(modified) {
             asyncUpdate(row, eTag)
             false // ETAg is outdated
@@ -418,18 +418,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Empty =>
           asyncCreate(cacheKey, eTag)
           false // There is no ETAg at all
-        case _ => 
+        case _ =>
           false // In case of any issue we consider ETAg as outdated
       }
       if (validETag) // Response has not been changed since our previous call
-        304 
-      else 
+        304
+      else
         httpCode
     } else {
       httpCode
     }
   }
-  
+
   private def checkConditionalRequest(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
     requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
@@ -438,10 +438,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case None =>
         // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
         // The most common use case is to update a cached entity that has no associated ETag
-        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match { 
+        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match {
           case Some(value) => // Handle the If-Modified-Since HTTP request header
             checkIfModifiedSinceHeader(cc, httpVerb, httpCode, httpBody, value.values.mkString(""))
-          case None => 
+          case None =>
             httpCode
         }
     }
@@ -452,7 +452,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getGatewayLoginHeader(cc).list :::
         getRequestHeadersBerlinGroup(cc).list :::
         getRateLimitHeadersNewStyle(cc).list :::
-        getPaginationHeadersNewStyle(cc).list ::: 
+        getPaginationHeadersNewStyle(cc).list :::
         getRequestHeadersToMirror(cc).list :::
         getRequestHeadersToEcho(cc).list
     )
@@ -497,7 +497,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val hash = HashUtil.calculateETag(i.url, httpBody)
       CustomResponseHeaders(
         List(
-          (ResponseHeader.ETag, hash), 
+          (ResponseHeader.ETag, hash),
           // TODO Add Cache-Control Header
           // (ResponseHeader.`Cache-Control`, "No-Cache")
         )
@@ -630,7 +630,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     grantor_consumer_id: String,
     grantee_consumer_id: String
   )
-  
+
   case class EmailDomainToEntitlementMapping(
     domain: String,
     entitlements: List[CreateEntitlementJSON]
@@ -815,7 +815,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       return false
     }
 
-    // 2nd: check the password length between 17 and 512 
+    // 2nd: check the password length between 17 and 512
     if (password.length > 16 && password.length <= 512) {
       return true
     }
@@ -823,7 +823,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // 3rd: check the regular expression
     regex.pattern.matcher(password).matches()
   }
-  
+
   /** only  A-Z, a-z, 0-9,-,_,. =, & and max length <= 2048  */
   def basicUriAndQueryStringValidation(urlString: String): Boolean = {
     val regex =
@@ -876,15 +876,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def basicPasswordValidation(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~ \[\]]+)$""".r
-    
+
     if (!regex.pattern.matcher(value).matches()) {
       return ErrorMessages.InvalidValueCharacters
     }
-    
+
     if (valueLength > 512) {
       return ErrorMessages.InvalidValueLength
     }
-    
+
     SILENCE_IS_GOLDEN
   }
 
@@ -898,7 +898,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
-  
+
   /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 16  */
   def checkShortString(value:String): String ={
     val valueLength = value.length
@@ -910,8 +910,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  
-  /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 36  
+
+  /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 36
    * OBP APIUtil.generateUUID() length is 36 here.*/
   def checkObpId(value:String): String ={
     val valueLength = value.length
@@ -954,7 +954,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(date == null)
       None
     else
-      Some(APIUtil.DateWithMsRollback.format(date))
+      Some(APIUtil.DateWithMsAndTimeZoneOffset.format(date))
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
@@ -2707,7 +2707,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else
         false
     }
-    APIUtil.getPropsValue("server_mode", "apis,portal") match {
+    code.api.Constant.serverMode match {
       case mode if mode == "portal" => false
       case mode if mode == "apis" => checkVersion
       case mode if mode.contains("apis") && mode.contains("portal") => checkVersion
@@ -3003,6 +3003,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val xRequestId: Option[String] =
+      reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
+        .map(_.values.mkString(","))
     val title = s"Request Headers for verb: $verb, URL: $url"
     surroundDebugMessage(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString, title)
     val remoteIpAddress = getRemoteIpAddress()
@@ -3168,7 +3171,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     } map {
       x => (x._1, x._2.map(_.copy(url = url)))
     } map {
-      x => (x._1, x._2.map(_.copy(correlationId = correlationId)))
+      x => (x._1, x._2.map(_.copy(correlationId = xRequestId.getOrElse(correlationId))))
     } map {
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
@@ -3467,7 +3470,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                                   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
   def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
-    val connectorNameInProps = APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox)
+    val connectorNameInProps = code.api.Constant.Connector.openOrThrowException(attemptedToOpenAnEmptyBox)
     //if the connector == mapped, then the data is always over obp database
     if(connectorNameInProps == "mapped") {
       true

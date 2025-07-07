@@ -26,22 +26,19 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api
 
-import java.net.HttpURLConnection
-
 import code.api.OAuth2Login.Hydra
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, AfterApiAuth, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
-import code.model.{AppType, Consumer}
 import code.model.dataAccess.AuthUser
+import code.model.{AppType, Consumer}
 import code.snippet.OpenIDConnectSessionState
 import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
-import code.util.Helper.{MdcLoggable, ObpS}
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-import javax.net.ssl.HttpsURLConnection
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.json
@@ -49,6 +46,9 @@ import net.liftweb.json.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
+
+import java.net.HttpURLConnection
+import javax.net.ssl.HttpsURLConnection
 
 /**
   * This object provides the API calls necessary to authenticate
@@ -66,7 +66,7 @@ case class OpenIdConnectConfig(client_secret: String,
                               )
 
 object OpenIdConnectConfig {
-  lazy val openIDConnectEnabled = APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)
+  lazy val openIDConnectEnabled = code.api.Constant.openidConnectEnabled
   def getProps(props: String): String = {
     APIUtil.getPropsValue(props).getOrElse("")
   }

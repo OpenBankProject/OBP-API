@@ -42,6 +42,7 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
 import code.api.util.ApiRole.CanCreateEntitlementAtAnyBank
+import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
@@ -405,7 +406,7 @@ class Boot extends MdcLoggable {
     }
     
     // ensure our relational database's tables are created/fit the schema
-    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
@@ -470,7 +471,7 @@ class Boot extends MdcLoggable {
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
-      if (APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
+      if (code.api.Constant.openidConnectEnabled) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
     }
@@ -489,7 +490,7 @@ class Boot extends MdcLoggable {
       LiftRules.statelessDispatch.append(ImporterAPI)
     }
 
-    APIUtil.getPropsValue("server_mode", "apis,portal") match {
+    code.api.Constant.serverMode match {
       // Instance runs as the portal only
       case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
         enableOpenIdConnectApis
@@ -558,9 +559,10 @@ class Boot extends MdcLoggable {
     logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
 
     // This will work for both portal and API modes. This page is used for testing if the API is running properly.
-    val alivePage = List( Menu.i("Alive") / "alive")
+    val awakePage = List( Menu.i("awake") /"debug" / "awake")
     
     val commonMap = List(Menu.i("Home") / "index") ::: List(
+      Menu.i("index-en") / "index-en",
       Menu.i("Plain") / "plain",
       Menu.i("Static") / "static",
       Menu.i("SDKs") / "sdks",
@@ -599,12 +601,12 @@ class Boot extends MdcLoggable {
       Menu.i("confirm-bg-consent-request-redirect-uri") / "confirm-bg-consent-request-redirect-uri" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-vrp-consent-request") / "confirm-vrp-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-vrp-consent") / "confirm-vrp-consent" >> AuthUser.loginFirst //OAuth consent page
-    ) ++ accountCreation ++ Admin.menus++ alivePage
+    ) ++ accountCreation ++ Admin.menus++ awakePage
     
     // Build SiteMap
-    val sitemap = APIUtil.getPropsValue("server_mode", "apis,portal") match {
+    val sitemap = code.api.Constant.serverMode match {
       case mode if mode == "portal" => commonMap
-      case mode if mode == "apis" => alivePage
+      case mode if mode == "apis" => awakePage
       case mode if mode.contains("apis") && mode.contains("portal") => commonMap
       case _ => commonMap
     }
@@ -786,7 +788,7 @@ class Boot extends MdcLoggable {
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
       // validate whether "connector.name.export.as.endpoints" have set a correct value
-      APIUtil.getPropsValue("connector") match {
+      code.api.Constant.Connector match {
         case Full("star") =>
           val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
             .trim

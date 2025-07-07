@@ -38,9 +38,9 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
-import net.liftweb.mapper.By
 
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
@@ -95,7 +95,7 @@ trait APIMethods500 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJson400,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi  :: Nil)
 
     lazy val root: OBPEndpoint = {

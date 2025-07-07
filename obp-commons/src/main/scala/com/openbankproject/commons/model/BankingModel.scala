@@ -240,6 +240,8 @@ trait BankAccountBalanceTrait {
   def balanceId: BalanceId
   def balanceType: String
   def balanceAmount: BigDecimal
+  def lastChangeDateTime: Option[Date]
+  def referenceDate: Option[String]
 }
 
 //This class is used for propagate the BankAccount as the parameters over different methods.

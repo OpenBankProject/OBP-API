@@ -93,7 +93,10 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
                                                chargePolicy: String,
                                                paymentService: Option[String],
                                                berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
-                                               callContext: Option[CallContext]): Box[TransactionRequest] = {
+                                               apiStandard: Option[String],
+                                               apiVersion: Option[String],
+                                               callContext: Option[CallContext],
+                                              ): Box[TransactionRequest] = {
 
     val toAccountRouting = TransactionRequestTypes.withName(transactionRequestType.value) match {
       case SEPA =>
@@ -178,6 +181,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mPaymentFrequency(frequency)
       .mPaymentDayOfExecution(dayOfExecution)
       .mConsentReferenceId(consentReferenceIdOption.getOrElse(null))
+      .mApiVersion(apiVersion.getOrElse(null))
+      .mApiStandard(apiStandard.getOrElse(null))
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
@@ -285,6 +290,9 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01" 
   
   object mConsentReferenceId extends MappedString(this, 64)
+
+  object mApiStandard extends MappedString(this, 50)
+  object mApiVersion extends MappedString(this, 50)
   
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)

@@ -77,6 +77,8 @@ trait TransactionRequestProvider {
                                       chargePolicy: String,
                                       paymentService: Option[String],
                                       berlinGroupPayments: Option[BerlinGroupTransactionRequestCommonBodyJson],
+                                      apiStandard: Option[String],
+                                      apiVersion: Option[String],
                                       callContext: Option[CallContext]): Box[TransactionRequest]
   
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]

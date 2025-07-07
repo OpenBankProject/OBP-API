@@ -1,25 +1,20 @@
 package code.views
 
-import bootstrap.liftweb.ToSchemify
 import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
 import code.api.Constant._
-import code.api.util.{APIUtil, CallContext}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext}
 import code.util.Helper.MdcLoggable
 import code.views.system.ViewDefinition.create
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
-import com.openbankproject.commons.model.{UpdateViewJSON, _}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.mapper.{Ascending, By, ByList, NullRef, OrderBy, PreCache, Schemifier}
-import net.liftweb.util.Helpers._
+import net.liftweb.mapper._
 import net.liftweb.util.StringHelpers
 
-import scala.collection.immutable.List
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
-import scala.collection.immutable
 import scala.concurrent.Future
 
 
@@ -720,7 +715,7 @@ object MapperViews extends Views with MdcLoggable {
       // Get permission value
       val permissionValue = view.getClass.getMethod(permissionName).invoke(view).asInstanceOf[Boolean]
 
-      ViewPermission.findViewPermissions(view.viewId).find(_.permission.get == permissionName) match {
+      ViewPermission.findSystemViewPermissions(view.viewId).find(_.permission.get == permissionName) match {
         case Some(permission) if !permissionValue =>
           ViewPermission.delete_!(permission)
         case Some(permission) if permissionValue =>
@@ -898,6 +893,7 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherBankRoutingAddress_(true)
       .canSeeOtherAccountRoutingScheme_(true)
       .canSeeOtherAccountRoutingAddress_(true)
+      .canSeeTransactionStatus_(true)
       
       // TODO  Allow use only for certain cases
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
@@ -1073,14 +1069,14 @@ object MapperViews extends Views with MdcLoggable {
       canAddTransactionRequestToOwnAccount_(false). //added following two for payments
       canAddTransactionRequestToAnyAccount_(false).
       canAddTransactionRequestToBeneficiary_(false).
-      canAddTransactionRequestToBeneficiary_(false).
       canSeeTransactionRequests_(false).
       canSeeTransactionRequestTypes_(false).
       canUpdateBankAccountLabel_(false).
       canCreateCustomView_(false).
       canDeleteCustomView_(false).
       canUpdateCustomView_(false).
-      canGetCustomView_(false)
+      canGetCustomView_(false).
+      canSeeTransactionStatus_(true)
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

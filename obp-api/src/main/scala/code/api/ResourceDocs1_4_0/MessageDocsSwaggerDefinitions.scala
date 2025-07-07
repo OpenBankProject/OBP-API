@@ -1,15 +1,14 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.Constant
-import java.util.Date
-
 import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.CustomerAttributeType
-import com.openbankproject.commons.model.{BankAccountCommons, CustomerAttributeCommons, CustomerCommons, InboundAdapterCallContext, InboundAdapterInfoInternal, InboundStatusMessage, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
 
+import java.util.Date
 import scala.collection.immutable.{List, Nil}
 
 object MessageDocsSwaggerDefinitions
@@ -232,7 +231,8 @@ object MessageDocsSwaggerDefinitions
     description = Some(transactionDescriptionExample.value),
     startDate = DateWithDayExampleObject,
     finishDate = DateWithDayExampleObject,
-    balance  = BigDecimal(balanceAmountExample.value)
+    balance = BigDecimal(balanceAmountExample.value),
+    status = transactionStatusExample.value,
   )
   
   val accountRouting = AccountRouting("","")

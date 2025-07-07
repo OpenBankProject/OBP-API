@@ -45,6 +45,7 @@ object ErrorMessages {
   val NoValidElasticsearchIndicesConfigured = "OBP-00011: No elasticsearch indices are allowed on this instance. Please set es.warehouse.allowed.indices = index1,index2 (or = ALL for all). "
   val CustomerFirehoseNotAllowedOnThisInstance = "OBP-00012: Customer firehose is not allowed on this instance. Please set allow_customer_firehose = true in props files. "
   val ApiInstanceIdNotSpecified = "OBP-00013: 'api_instance_id' not specified. Please edit your props file."
+  val MandatoryPropertyIsNotSet = "OBP-00014: Mandatory properties must be set."
 
   // Exceptions (OBP-01XXX) ------------------------------------------------>
   val requestTimeout = "OBP-01000: Request Timeout. The OBP API decided to return a timeout. This is probably because a backend service did not respond in time. "
@@ -273,6 +274,9 @@ object ErrorMessages {
   val AuthorizationHeaderAmbiguity = "OBP-20250: Request headers used for authorization are ambiguous. "
   val MissingMandatoryBerlinGroupHeaders= "OBP-20251: Missing mandatory request headers. "
   val EmptyRequestHeaders = "OBP-20252: Empty or null headers are not allowed. "
+  val InvalidUuidValue = "OBP-20253: Invalid format. Must be a UUID."
+  val InvalidSignatureHeader = "OBP-20254: Invalid Signature header. "
+  val InvalidRequestIdValueAlreadyUsed = "OBP-20255: Request Id value already used. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."

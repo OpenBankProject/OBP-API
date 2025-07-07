@@ -282,6 +282,8 @@ trait View {
   def canSeeTransactionFinishDate: Boolean
 
   def canSeeTransactionBalance: Boolean
+  
+  def canSeeTransactionStatus: Boolean
 
   //transaction metadata
   def canSeeComments: Boolean

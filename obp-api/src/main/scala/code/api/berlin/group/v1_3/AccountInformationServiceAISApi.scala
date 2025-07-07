@@ -11,7 +11,6 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.util.newstyle.BalanceNewStyle
 import code.consent.{ConsentStatus, Consents}
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.model
@@ -423,7 +422,11 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
-            (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
+            (accountBalances, callContext) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(
+              accountId,
+              callContext
+            )
+             
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }
@@ -540,14 +543,17 @@ This account-id then can be retrieved by the
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: accountId :: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
-             (accountBalances, callContext)<- BalanceNewStyle.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
+             (accountBalances, callContext) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(
+               accountId,
+               callContext
+             )
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }
@@ -927,6 +933,21 @@ The ASPSP might add balance information, if transaction lists without balances a
                             "remittanceInformationUnstructured": "Example 2"
                           }
                         ],
+                        "pending": [
+                          {
+                            "transactionId": "1234569",
+                            "creditorName": "Claude Renault",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "-100.03"
+                            },
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 3"
+                          }
+                        ],
                         "_links": {
                           "account": {
                             "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f"
@@ -952,9 +973,6 @@ The ASPSP might add balance information, if transaction lists without balances a
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-//            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
-//              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-//            } map { unboxFull(_) }
             (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }

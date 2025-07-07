@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+25/06/2025    e49ebb4f      Added props BG_remove_sign_of_amounts, default is false.
+                            If set to true, the sign of amounts will be removed in the BGv1.3 getTransaction endpoints. 
 17/03/2025    166e4f2a      Removed Kafka commits: 166e4f2a,7f24802e,6f0a3b53,f22763c3,
                             76fd73f7,7d1db2c2,dde267b1,7f259e49,00885604,a2847ce2,89ee59ac
 17/02/2025    5877d2f2      Bootstrap Super User

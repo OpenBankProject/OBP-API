@@ -1185,7 +1185,8 @@ case class OutBoundCreateTransactionRequestv400(outboundAdapterCallContext: Outb
 case class InBoundCreateTransactionRequestv400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 case class OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(
-  outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User,
+  outboundAdapterCallContext: OutboundAdapterCallContext, 
+  initiator: Option[User],
   paymentServiceType: PaymentServiceTypes.Value,
   transactionRequestType: TransactionRequestTypes.Value,
   transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
@@ -1194,7 +1195,7 @@ case class OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(
 case class InBoundCreateTransactionRequestSepaCreditTransfersBGV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
 case class OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(
-  outboundAdapterCallContext: OutboundAdapterCallContext, initiator: User,
+  outboundAdapterCallContext: OutboundAdapterCallContext, initiator: Option[User],
   paymentServiceType: PaymentServiceTypes.Value,
   transactionRequestType: TransactionRequestTypes.Value,
   transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,

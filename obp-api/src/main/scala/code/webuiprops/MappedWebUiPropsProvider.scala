@@ -1,14 +1,14 @@
 package code.webuiprops
 
-import java.util.UUID.randomUUID
-
 import code.api.cache.Caching
-import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
 import code.api.util.APIUtil.{activeBrand, writeMetricEndpointTiming}
+import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
+
+import java.util.UUID.randomUUID
 
 /**
   * props name start with "webui_" can set in to db, this module just support the webui_ props CRUD
@@ -41,7 +41,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
     import scala.concurrent.duration._
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(webUiPropsTTL second) {
+      Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(webUiPropsTTL second) {
         // If we have an active brand, construct a target property name to look for.
         val brandSpecificPropertyName = activeBrand() match {
           case Some(brand) => s"${requestedPropertyName}_FOR_BRAND_${brand}"

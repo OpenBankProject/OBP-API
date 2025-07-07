@@ -23,16 +23,12 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.net.{ConnectException, URLEncoder, UnknownHostException}
-import java.util.Date
-import java.util.UUID.randomUUID
 import _root_.akka.stream.StreamTcpException
-import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.MockResponseHolder
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -41,29 +37,26 @@ import code.api.util.RSAUtil.{computeXSign, getPrivateKeyFromString}
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.context.UserAuthContextProvider
-import code.customer.internalMapping.MappedCustomerIdMappingProvider
-import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.AkkaHttpClient._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
-import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{JValue, _}
+import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
+import java.net.{ConnectException, URLEncoder, UnknownHostException}
 import java.time.Instant
-import scala.collection.immutable.List
+import java.util.Date
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -1506,7 +1499,8 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value))))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1639,7 +1633,8 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value)))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2516,7 +2511,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2525,7 +2520,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2565,7 +2560,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "createTransactionRequestSepaCreditTransfersBGV1"), HttpMethods.POST, req, callContext)
@@ -2581,7 +2576,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2590,7 +2585,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= PeriodicSepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2635,7 +2630,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "createTransactionRequestPeriodicSepaCreditTransfersBGV1"), HttpMethods.POST, req, callContext)
@@ -7041,7 +7036,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
                                     userId: Option[String],
                                     isPersonalEntity: Boolean,
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
-    import com.openbankproject.commons.dto.{OutBoundDynamicEntityProcess => OutBound, InBoundDynamicEntityProcess => InBound}
+    import com.openbankproject.commons.dto.{InBoundDynamicEntityProcess => InBound, OutBoundDynamicEntityProcess => OutBound}
     val url = getUrl(callContext, "dynamicEntityProcess")
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId, bankId, queryParameters, userId, isPersonalEntity)
     val result: OBPReturnType[Box[JValue]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))

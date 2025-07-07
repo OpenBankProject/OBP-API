@@ -25,11 +25,10 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import com.openbankproject.commons.model.ErrorMessage
-import code.api.util.ErrorMessages.NotImplemented
-import code.api.util.APIUtil
+import code.api.util.ErrorMessages.{MandatoryPropertyIsNotSet, NotImplemented}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
@@ -52,7 +51,7 @@ class ObpApiLoopbackTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
-      val connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+      val connectorVersion = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet The missing props is 'connector'")
       val errorMessage = s"${NotImplemented}"
       And("error should be " + errorMessage)
       response310.body.extract[ErrorMessage].message should equal (errorMessage)

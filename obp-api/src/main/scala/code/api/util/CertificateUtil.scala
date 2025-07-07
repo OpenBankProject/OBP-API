@@ -11,9 +11,9 @@ import com.nimbusds.jwt.{EncryptedJWT, JWTClaimsSet}
 import net.liftweb.util.Props
 
 import java.io.{FileInputStream, IOException}
+import java.security._
 import java.security.cert.{Certificate, CertificateException, X509Certificate}
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
-import java.security._
 
 
 object CryptoSystem extends Enumeration {
@@ -26,14 +26,18 @@ object CertificateUtil extends MdcLoggable {
 
   // your-at-least-256-bit-secret
   val sharedSecret: String = ApiPropsWithAlias.jwtTokenSecret
+  final val jkspath = APIUtil.getPropsValue("keystore.path").getOrElse("")
+  final val jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
+  final val keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd)
+  final val alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
 
   lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
       getKeyPair(
-        jkspath = APIUtil.getPropsValue("keystore.path").getOrElse(""),
-        jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd),
-        keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd),
-        alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
+        jkspath = jkspath, 
+        jkspasswd = jkspasswd, 
+        keypasswd = keypasswd, 
+        alias = alias
       )
     case false =>
       val keyPair = buildKeyPair(CryptoSystem.RSA)

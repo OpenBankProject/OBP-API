@@ -8,14 +8,12 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, NewStyle}
 import code.api.v1_2_1.JSONFactory
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ApiVersion
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
@@ -43,7 +41,7 @@ trait APIMethods130 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {

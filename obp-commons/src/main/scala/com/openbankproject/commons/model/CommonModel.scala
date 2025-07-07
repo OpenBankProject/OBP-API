@@ -133,7 +133,11 @@ case class BankAccountBalanceTraitCommons(
   accountId :AccountId,
   balanceId :BalanceId,
   balanceType :String,
-  balanceAmount :BigDecimal) extends BankAccountBalanceTrait
+  balanceAmount :BigDecimal,
+  lastChangeDateTime: Option[Date],
+  referenceDate: Option[String],
+) extends BankAccountBalanceTrait
+
 object BankAccountBalanceTraitCommons extends Converter[BankAccountBalanceTrait, BankAccountBalanceTraitCommons]
 
 case class ProductCollectionItemCommons(
@@ -1136,7 +1140,8 @@ case class Transaction(
                    // The date when the money finished changing hands
                    finishDate : Date,
                    //the new balance for the bank account
-                   balance :  BigDecimal
+                   balance :  BigDecimal,
+                   status: String
                  ) {
 
   val bankId = thisAccount.bankId

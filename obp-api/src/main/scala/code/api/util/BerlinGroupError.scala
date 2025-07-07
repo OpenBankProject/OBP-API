@@ -81,20 +81,32 @@ object BerlinGroupError {
       case "403" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"
 
       case "404" if message.contains("OBP-30076") => "RESOURCE_UNKNOWN"
+      case "404" if message.contains("OBP-40001") => "RESOURCE_UNKNOWN"
 
       case "400" if message.contains("OBP-10005") => "TIMESTAMP_INVALID"
 
       case "400" if message.contains("OBP-10001") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-10002") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-10003") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-10006") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20062") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20063") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20252") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-20253") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-20254") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-20255") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20251") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20088") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20089") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20090") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20091") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-40008") => "FORMAT_ERROR"
+
+      case "400" if message.contains("OBP-50221") => "PAYMENT_FAILED"
 
       case "429" if message.contains("OBP-10018") => "ACCESS_EXCEEDED"
+
+
       case _ => code
     }
   }

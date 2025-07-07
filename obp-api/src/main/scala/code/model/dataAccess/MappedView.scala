@@ -31,8 +31,6 @@ import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper._
 
-import scala.collection.immutable.List
-
 /**
   * This code is deprecated via a migration process.
   * Please take a look at TableViewDefinition.populate for more details.
@@ -445,6 +443,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canAddTransactionRequestToBeneficiary_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeTransactionStatus_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeBankAccountCreditLimit_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -594,6 +595,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   override def canRevokeAccessToCustomViews: Boolean = canRevokeAccessToCustomViews_.get
 
   override def canAddTransactionRequestToBeneficiary: Boolean = canAddTransactionRequestToBeneficiary_.get
+
+  override def canSeeTransactionStatus: Boolean = canSeeTransactionStatus_.get
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{

@@ -848,28 +848,28 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"Test the ${nameOf(APIUtil.basicPasswordValidation _)} method") {
       val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
 
-      basicPasswordValidation(firefoxStrongPasswordProposal) shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("Abc!123 xyz") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("SuperStrong#123") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation("Hello World!") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN
-      basicPasswordValidation(" ") shouldBe (SILENCE_IS_GOLDEN) // ✅ SILENCE_IS_GOLDEN allow space so far
+      basicPasswordValidation(firefoxStrongPasswordProposal) shouldBe (SILENCE_IS_GOLDEN) //  SILENCE_IS_GOLDEN
+      basicPasswordValidation("Abc!123 xyz") shouldBe (SILENCE_IS_GOLDEN) //  SILENCE_IS_GOLDEN
+      basicPasswordValidation("SuperStrong#123") shouldBe (SILENCE_IS_GOLDEN) //  SILENCE_IS_GOLDEN
+      basicPasswordValidation("Hello World!") shouldBe (SILENCE_IS_GOLDEN) //  SILENCE_IS_GOLDEN
+      basicPasswordValidation(" ") shouldBe (SILENCE_IS_GOLDEN) //  SILENCE_IS_GOLDEN allow space so far
 
-      basicPasswordValidation("short💥") shouldBe (InvalidValueCharacters) // ❌ ErrorMessages.InvalidValueCharacters
-      basicPasswordValidation("a" * 513) shouldBe (InvalidValueLength) // ❌ ErrorMessages.InvalidValueLength 
+      basicPasswordValidation("shortá") shouldBe (InvalidValueCharacters) //  ErrorMessages.InvalidValueCharacters
+      basicPasswordValidation("a" * 513) shouldBe (InvalidValueLength) //  ErrorMessages.InvalidValueLength 
 
     }
 
     scenario(s"Test the ${nameOf(APIUtil.fullPasswordValidation _)}  method") {
       val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
 
-      fullPasswordValidation(firefoxStrongPasswordProposal) shouldBe true// ✅ true
-      fullPasswordValidation("Abcd!123xyz") shouldBe true // ✅ true
-      fullPasswordValidation("SuperStrong#123") shouldBe true // ✅ true
-      fullPasswordValidation("Abcdefgh!1") shouldBe true // ✅ true
-      fullPasswordValidation("short1!") shouldBe false // ❌ false（too short）
-      fullPasswordValidation("alllowercase123!") shouldBe false // ❌ false（no capital letter）
-      fullPasswordValidation("ALLUPPERCASE123!") shouldBe false// ❌ false（no smaller case letter）
-      fullPasswordValidation("NoSpecialChar123") shouldBe false// ❌ false（not special character）
+      fullPasswordValidation(firefoxStrongPasswordProposal) shouldBe true//  true
+      fullPasswordValidation("Abcd!123xyz") shouldBe true //  true
+      fullPasswordValidation("SuperStrong#123") shouldBe true //  true
+      fullPasswordValidation("Abcdefgh!1") shouldBe true //  true
+      fullPasswordValidation("short1!") shouldBe false //  false（too short）
+      fullPasswordValidation("alllowercase123!") shouldBe false //  false（no capital letter）
+      fullPasswordValidation("ALLUPPERCASE123!") shouldBe false//  false（no smaller case letter）
+      fullPasswordValidation("NoSpecialChar123") shouldBe false//  false（not special character）
     }
     
   }

@@ -28,8 +28,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model
 
-import java.util.Date
-
 import code.api.util.ErrorMessages
 import code.metadata.counterparties.Counterparties
 import code.views.system.ViewDefinition
@@ -38,6 +36,8 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common._
 import net.liftweb.util.StringHelpers
+
+import java.util.Date
 
 case class ViewExtended(val view: View) {
 
@@ -167,6 +167,10 @@ case class ViewExtended(val view: View) {
         if (view.canSeeTransactionBalance && transaction.balance != null) transaction.balance.toString()
         else ""
 
+      val transactionStatus =
+        if (view.canSeeTransactionStatus) transaction.status
+        else ""
+
       new ModeratedTransaction(
         UUID = transactionUUID,
         id = transactionId,
@@ -179,7 +183,8 @@ case class ViewExtended(val view: View) {
         description = transactionDescription,
         startDate = transactionStartDate,
         finishDate = transactionFinishDate,
-        balance = transactionBalance
+        balance = transactionBalance,
+        status = transactionStatus
       )
     }
 
@@ -274,15 +279,13 @@ case class ViewExtended(val view: View) {
       view.viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
       Failure("Could not moderate transactions as they do not all belong to the same account")
     } else {
-      transactions.headOption match {
-        case Some(firstTransaction) =>
-          // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderateAccount(bank, firstTransaction.thisAccount)
-          // Moderate each *Transaction* based on the moderated Account
-          Full(transactions.flatMap(transaction => moderateTransactionUsingModeratedAccount(transaction, moderatedAccount)))
-        case None =>
-          Full(Nil)
-      }
+      Full(transactions.flatMap(
+        transaction => {
+          // for CBS mode, we can not guarantee this account is the same, each transaction this account fields maybe different, so we need to moderate each transaction using the moderated account.
+          val moderatedAccount = moderateAccount(bank, transaction.thisAccount)
+          moderateTransactionUsingModeratedAccount(transaction, moderatedAccount)
+        })
+      )
     }
   }
 
@@ -295,15 +298,14 @@ case class ViewExtended(val view: View) {
       view.viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
       Failure("Could not moderate transactions as they do not all belong to the same account")
     } else {
-      transactionsCore.headOption match {
-        case Some(firstTransaction) =>
-          // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderateAccount(bank, firstTransaction.thisAccount)
-          // Moderate each *Transaction* based on the moderated Account
-          Full(transactionsCore.flatMap(transactionCore => moderateCore(transactionCore, moderatedAccount)))
-        case None =>
-          Full(Nil)
-      }
+
+      Full(transactionsCore.flatMap(
+        transaction => {
+          // for CBS mode, we can not guarantee this account is the same, each transaction this account fields maybe different, so we need to moderate each transaction using the moderated account.
+          val moderatedAccount = moderateAccount(bank, transaction.thisAccount)
+          moderateCore(transaction, moderatedAccount)
+        })
+      )
     }
   }
 

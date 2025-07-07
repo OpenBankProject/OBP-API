@@ -1,24 +1,21 @@
 package code.api.v2_2_0
 
-import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{canCreateBranch, _}
+import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ErrorMessages, _}
+import code.api.util._
 import code.api.v1_2_1.{CreateViewJsonV121, JSONFactory, UpdateViewJsonV121}
-import code.api.v2_0_0.OBPAPI2_0_0
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
-import code.api.v3_1_0.{JSONFactory310, PostPutProductJsonV310}
-import code.api.v4_0_0.{AtmJsonV400, JSONFactory400}
+import code.api.v3_1_0.PostPutProductJsonV310
+import code.api.v4_0_0.AtmJsonV400
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
-import code.fx.{MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metrics.ConnectorMetricsProvider
 import code.model._
@@ -28,18 +25,18 @@ import code.util.Helper._
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import net.liftweb.common.{Empty, Full}
+import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
-
-import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.util.StringHelpers
 
+import java.util.Date
+import scala.collection.immutable.{List, Nil}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 
@@ -73,7 +70,7 @@ trait APIMethods220 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {

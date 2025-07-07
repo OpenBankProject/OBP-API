@@ -2218,7 +2218,7 @@ trait APIMethods400 extends MdcLoggable {
         |* Git Commit""",
       EmptyBody,
       apiInfoJson400,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi  :: Nil)
 
     lazy val root: OBPEndpoint = {
@@ -3817,7 +3817,7 @@ trait APIMethods400 extends MdcLoggable {
               BigDecimal(postJson.amount.amount)
             }
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'", cc=callContext) {
-              isValidCurrencyISOCode(postJson.amount.currency)
+              code.api.util.APIUtil.isValidCurrencyISOCode(postJson.amount.currency)
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {

@@ -30,6 +30,7 @@ import code.api.Constant
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, gitCommit, stringOrNull}
+import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
@@ -445,6 +446,22 @@ case class ConsumerPostJsonV510(app_name: Option[String],
                                )
 case class ConsumerJsonV510(consumer_id: String,
                             consumer_key: String,
+                            app_name: String,
+                            app_type: String,
+                            description: String,
+                            developer_email: String,
+                            company: String,
+                            redirect_url: String,
+                            certificate_pem: String,
+                            certificate_info: Option[CertificateInfoJsonV510],
+                            created_by_user: ResourceUserJSON,
+                            enabled: Boolean,
+                            created: Date, 
+                            logo_url: Option[String]
+                           )
+case class MyConsumerJsonV510(consumer_id: String,
+                            consumer_key: String,
+                            consumer_secret: String,
                             app_name: String,
                             app_type: String,
                             description: String,
@@ -982,7 +999,7 @@ object JSONFactory510 extends CustomJsonFormats {
     val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
     val energySource = EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
-    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
     APIInfoJsonV510(
@@ -1094,6 +1111,37 @@ object JSONFactory510 extends CustomJsonFormats {
     ConsumerJsonV510(
       consumer_id = c.consumerId.get,
       consumer_key = c.key.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      company = c.company.get,
+      redirect_url = c.redirectURL.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get,
+      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+    )
+  }
+  def createMyConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): MyConsumerJsonV510 = {
+
+    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    MyConsumerJsonV510(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      consumer_secret = c.secret.get,
       app_name = c.name.get,
       app_type = c.appType.toString(),
       description = c.description.get,

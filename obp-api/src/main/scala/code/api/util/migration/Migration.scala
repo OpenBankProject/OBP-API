@@ -1,10 +1,5 @@
 package code.api.util.migration
 
-import bootstrap.liftweb.CustomDBVendor
-
-import java.sql.{Connection, ResultSet, SQLException}
-import java.text.SimpleDateFormat
-import java.util.Date
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.v4_0_0.DatabaseInfoJson
@@ -14,10 +9,12 @@ import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.zaxxer.hikari.pool.ProxyConnection
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
-import net.liftweb.mapper.{BaseMetaMapper, DB, DefaultConnectionIdentifier, SuperConnection}
+import net.liftweb.mapper.{BaseMetaMapper, DB}
 
+import java.sql.{ResultSet, SQLException}
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
 
@@ -102,6 +99,7 @@ object Migration extends MdcLoggable {
       dropMappedBadLoginAttemptIndex()
       alterMetricColumnUrlLength()
       populateViewDefinitionCanAddTransactionRequestToBeneficiary()
+      populateViewDefinitionCanSeeTransactionStatus()
       alterCounterpartyLimitFieldType()
     }
     
@@ -136,6 +134,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateViewDefinitionCanAddTransactionRequestToBeneficiary)
       runOnce(name) {
         MigrationOfViewDefinitionCanAddTransactionRequestToBeneficiary.populateTheField(name)
+      }
+    }  
+
+    private def populateViewDefinitionCanSeeTransactionStatus(): Boolean = {
+      val name = nameOf(populateViewDefinitionCanSeeTransactionStatus)
+      runOnce(name) {
+        MigrationOfViewDefinitionCanSeeTransactionStatus.populateTheField(name)
       }
     }  
     

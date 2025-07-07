@@ -1,29 +1,30 @@
 package code.bankconnectors
 
-import code.fx.fx.TTL
 import code.api.Constant._
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.branches.MappedBranch
+import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
 import code.model.toBankAccountExtended
 import code.transaction.MappedTransaction
 import code.transactionrequests._
-import com.tesobe.CacheKeyFromArguments
 import code.util.Helper
 import code.util.Helper._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestStatus, TransactionRequestTypes}
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{NoTypeHints, Serialization}
-import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, Descending, OrderBy, QueryParam}
+import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 
 import java.util.Date
@@ -39,13 +40,17 @@ import scala.util.Random
 object LocalMappedConnectorInternal extends MdcLoggable {
   
   def createTransactionRequestBGInternal(
-    initiator: User,
+    initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
     transactionRequestType: TransactionRequestTypes,
     transactionRequestBody: BerlinGroupTransactionRequestCommonBodyJson,
     callContext: Option[CallContext]
   ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
     for {
+
+      user <- NewStyle.function.tryons(s"$UnknownError Can not get user for mapped createTransactionRequestBGInternal method  ", 400, callContext) {
+        initiator.head
+      }
       transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json ", 400, callContext) {
         write(transactionRequestBody)(Serialization.formats(NoTypeHints))
       }
@@ -61,9 +66,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
       }
       (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
+      // Removed view SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
       viewId = ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
       fromBankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-      view <- NewStyle.function.checkAccountAccessAndGetView(viewId, fromBankIdAccountId, Full(initiator), callContext)
+      view <- NewStyle.function.checkAccountAccessAndGetView(viewId, fromBankIdAccountId, Full(user), callContext)
       _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest, cc = callContext) {
         view.canAddTransactionRequestToAnyAccount
       }
@@ -74,8 +80,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         viewId.value,
         transactionRequestType.toString,
         transactionRequestBody.instructedAmount.currency,
-        initiator.userId,
-        initiator.name,
+        user.userId,
+        user.name,
         callContext
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
@@ -104,7 +110,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         viewId.value,
         transactionRequestType.toString,
         transactionRequestBody.instructedAmount.currency,
-        initiator.userId, initiator.name,
+        user.userId,
+        user.name,
         callContext
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
@@ -122,8 +129,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         BankId(fromAccount.bankId.value),
         AccountId(fromAccount.accountId.value),
         viewId,
-        initiator.userId,
-        initiator.name,
+        user.userId,
+        user.name,
         transactionRequestType.toString,
         transactionRequestBody.instructedAmount.currency,
         transactionRequestBody.instructedAmount.amount,
@@ -159,6 +166,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
           "", // chargePolicy is not used in BG so far.
           Some(paymentServiceType.toString),
           Some(transactionRequestBody),
+          Some(ConstantsBG.berlinGroupVersion1.apiStandard),
+          Some(ConstantsBG.berlinGroupVersion1.apiShortVersion),
           callContext
         )
         transactionRequest

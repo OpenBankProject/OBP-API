@@ -80,7 +80,7 @@ object Connector extends SimpleInjector {
   val connector = new Inject(buildOne _) {}
 
   def buildOne: Connector = {
-    val connectorProps = APIUtil.getPropsValue("connector").openOrThrowException("connector props field not set")
+    val connectorProps = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet The missing props is 'connector'")
     getConnectorInstance(connectorProps)
 
   }
@@ -772,7 +772,7 @@ trait Connector extends MdcLoggable {
 
 
   def createTransactionRequestSepaCreditTransfersBGV1(
-    initiator: User,
+    initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
     transactionRequestType: TransactionRequestTypes,
     transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
@@ -780,7 +780,7 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestSepaCreditTransfersBGV1 _))), callContext)}
 
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
-    initiator: User,
+    initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
     transactionRequestType: TransactionRequestTypes,
     transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,

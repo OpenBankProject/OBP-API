@@ -26,28 +26,24 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model
 
-import java.util.Date
-
 import code.accountholders.AccountHolders
-import code.api.{APIFailureNewStyle, Constant}
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToView, canGrantAccessToMultipleViews, canRevokeAccessToAllViews, canRevokeAccessToView, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToMultipleViews, canGrantAccessToView, canRevokeAccessToAllViews, canRevokeAccessToView, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.bankconnectors.{Connector, LocalMappedConnector}
+import code.bankconnectors.Connector
 import code.customer.CustomerX
-import code.model.dataAccess.MappedBankAccount
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Attribute, Bank, BankAccount, BankAccountCommons, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, BankIdAccountIdViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
 
+import java.util.Date
 import scala.collection.immutable.{List, Set}
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
 case class BankExtended(bank: Bank) {
@@ -342,6 +338,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
           x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponseForGetTransactions, 400), x._2)
         }
       } yield {
+        logger.debug(s"getModeratedTransactionsFuture.view = $view")
+        logger.debug(s"getModeratedTransactionsFuture.transactions = $transactions")
         view.moderateTransactionsWithSameAccount(bank, transactions) match {
           case Full(m) => Full((m, callContext))
           case _ => Failure("Server error - moderateTransactionsWithSameAccount")

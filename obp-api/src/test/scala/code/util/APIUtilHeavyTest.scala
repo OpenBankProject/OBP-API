@@ -187,7 +187,8 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
         "can_see_transaction_start_date",
         "can_see_transaction_finish_date",
         "can_see_bank_account_national_identifier",
-        "can_see_bank_account_swift_bic"
+        "can_see_bank_account_swift_bic",
+        "can_see_transaction_status"
       ).toSet
       val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
       val permissions = APIUtil.getViewPermissions(systemOwnerView.asInstanceOf[ViewDefinition])

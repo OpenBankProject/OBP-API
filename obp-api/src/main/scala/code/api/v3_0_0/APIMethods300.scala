@@ -1,12 +1,9 @@
 package code.api.v3_0_0
 
-import java.util.regex.Pattern
 import code.accountattribute.AccountAttributeX
-import code.accountholders.AccountHolders
-import code.api.{APIFailureNewStyle, Constant}
 import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{banksJSON, branchJsonV300, _}
 import code.api.util.APIUtil.{getGlossaryItems, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -15,8 +12,11 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.JSONFactory
-import code.api.v2_0_0.{JSONFactory200, OBPAPI2_0_0}
+import code.api.v2_0_0.AccountsHelper._
+import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
+import code.api.v4_0_0.{AtmJsonV400, JSONFactory400}
+import code.api.{APIFailureNewStyle, Constant}
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.entitlementrequest.EntitlementRequest
@@ -26,32 +26,27 @@ import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.{ObpS, booleanToBox, booleanToFuture}
+import code.util.Helper.{ObpS, booleanToFuture}
 import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.grum.geocalc.{Coordinate, EarthCalc, Point}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common._
-import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, compactRender}
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.compactRender
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.StringHelpers
 
+import java.util.regex.Pattern
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
-import code.api.v2_0_0.AccountsHelper._
-import code.api.v2_2_0.{AtmJsonV220, JSONFactory220}
-import code.api.v4_0_0.{AtmJsonV400, JSONFactory400}
-import code.model
-import com.openbankproject.commons.dto.CustomerAndAttribute
-import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.util.StringHelpers
 
 
 trait APIMethods300 {
@@ -82,7 +77,7 @@ trait APIMethods300 {
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {

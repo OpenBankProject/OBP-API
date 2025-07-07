@@ -1,0 +1,262 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Sebastian Henschel: sebastian AT tesobe DOT com
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="description" content="Webapp of the Open Bank Project API">
+	<meta name="keywords" content="OBP, Open Bank Project, API, bank, fintech">
+	<meta name="author" content="TESOBE">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+	<title data-lift="WebUI.pageTitle">Open Bank Project: </title>
+	<link href="/media/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+	<link id="favicon_link" rel="favicon icon" data-lift="WebUI.faviconLink" href="/favicon.ico" type="image/x-icon">
+	<link rel="stylesheet" href="/media/css/select2.min.css">
+	<link href="/media/css/toastr.min.css" rel="stylesheet" type="text/css" />
+	<link href="/media/css/cookies-consent.css" rel="stylesheet">
+	<link href="/media/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+	<link id="main_style_sheet" data-lift="WebUI.mainStyleSheet" href="/media/css/website.css?201707241207" rel="stylesheet" type="text/css" />
+	<link id="override_style_sheet" data-lift="WebUI.overrideStyleSheet" href="" rel="stylesheet" type="text/css" />
+	<link rel="stylesheet" href="/font-awesome/css/all.min.css">
+	
+	<script src="/media/js/jquery.min.js" type="text/javascript"></script>
+	<script src="/media/js/bootstrap.min.js" type="text/javascript"></script>
+	<script src="/media/js/select2.min.js"></script>
+	<script src="/media/js/toastr.min.js" type="text/javascript"></script>
+	<script src="/media/js/website.js" type="text/javascript"></script>
+	<script src="/media/js/cookies-consent.js"></script>
+	<script src="/media/js/moment-with-locales.min.js"></script>
+	<script src="/media/js/bootstrap-datetimepicker.min.js"></script>
+	<script src="/media/js/popper.min.js"></script>
+	<script type="module" defer src="/media/js/inactivity.js"></script> <!-- The script loads “in the background”, and then runs when the DOM is fully built. -->
+</head>
+<body id="page_init">
+	<div id="cookies-consent" data-lift="WebUI.cookieConsent">
+		<div id="cookies-consent-font"> We use cookies to support session management.</div>
+		<input id="cookies-consent-button" class="btn btn-default" type="button" value="Accept and close" onclick="removeByIdAndSaveIndicatorCookie('cookies-consent')"/>
+	</div>
+
+	<div id="toast-container" class="toast-top-right" aria-live="assertive" role="alert" aria-atomic="true" aria-relevant="additions removals"></div>
+	
+	<div class="container">
+		<header>
+			<div id="header-decoration"></div>
+
+			<div id="cookie-ipaddress-concurrent-logins" data-lift="WebUI.concurrentLoginsCookiesCheck"></div>
+
+			<div id="top-text" data-lift="WebUI.topText"></div>
+			<table id="table-header" aria-describedby="Home Page Logo">
+				<tr class="row">
+					<td>
+						<th scope="col"></th>
+					</td>
+					<td id="td-logo-left-xs">
+						<div data-lift="WebUI.headerLogoLeft">
+							<a href="/" aria-label="Home Page"><img src="" id="logo-left-xs" align="left" alt="left logo image"></a>
+						</div>
+					</td>
+					<td id="td-logo-right-xs">
+						<div data-lift="WebUI.headerLogoRight">
+							<a href="/" aria-label="Home Page"><img src="" id="logo-right-xs" align="right" alt="right logo image"></a>
+						</div>
+					</td>
+					<td></td>
+				</tr>
+			</table>
+			<div id="table-header-script" data-lift="WebUI.headerContentLoader"></div>
+			<div id="messages-container" data-lift="Msgs"></div>
+		</header>
+		<a class="sr-only sr-only-focusable" href ="#main" id="index-page">Skip to main content</a>
+		<a class="sr-only sr-only-focusable" href ="#register-consumer" id="consumer-registration-page">Skip to main content</a>
+		<a class="sr-only sr-only-focusable" href ="#api_documentation_content" id="introduction-page">Skip to main content</a>
+		<a class="sr-only sr-only-focusable" href ="#authorise" id="logon-page">Skip to main content</a>
+		<a class="sr-only sr-only-focusable" href ="#recover-password" id="lost-password-page">Skip to main content</a>
+		<a class="sr-only sr-only-focusable" href ="#signup" id="sign-up-page">Skip to main content</a>
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container">
+<!--				<div class="navbar-header">-->
+<!--					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">-->
+<!--						<span class="sr-only">Toggle navigation</span>-->
+<!--						<span class="icon-bar"></span>-->
+<!--						<span class="icon-bar"></span>-->
+<!--						<span class="icon-bar"></span>-->
+<!--					</button>-->
+<!--				</div>-->
+				<div id="navbar" class="collapse navbar-collapse">
+					<ul class="nav navbar-nav">
+						<li class="navitem" data-lift="WebUI.headerLogoLeft">
+							<a id ="navitem-logo" class="navlink " href="/" ><img src="/media/images/logo.png" alt="homepage logo"></a>
+						</li>
+						<li class="navitem">
+							<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">
+								<span class="api_explorer">API Explorer</span>
+							</a>
+						</li>
+						<li data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true" class="navitem">
+							<a id ="get-api-key-link" class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+						</li>
+						<li class="navitem">
+							<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">
+								<span class="introduction">Introduction</span>
+							</a>
+						</li>
+						<li class="navitem">
+							<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
+								<span class="support">Support</span>
+							</a>
+						</li>
+						<li class="navitem" data-lift="WebUI.subscriptionsButton" >
+							<a class="navlink subscriptions-button" href="">
+								<span class="subscriptions"><div class ="subscriptions-button-text"></div></span>
+							</a>
+						</li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<!-- login state -->
+						<li data-lift="Nav.item?name=Login" class="navitem">
+							<!-- LOGGED OUT -->
+							<p data-lift="WebUI.userIsLoggedIn">
+								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><span class="register">Register</span></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><span class="logon">Log on</span></a>
+							</p>
+						</li>
+
+						<li class="navitem" data-lift="Login.loggedIn" >
+							<!-- LOGGED IN -->
+							<p class="navbar-btn"><a href="/user-information"><span id="loggedIn-username">username</span></a><a href="#" class="btn btn-default logout">Log off <span id="countdown-timer-span" class="badge text-bg-primary"></span></a></p>
+						</li>
+					</ul>
+				</div><!--/.nav-collapse -->
+			</div>
+		</nav>
+		<div id="small-screen-navbar">
+			<button tabindex="0" id="small-nav-collapse" onclick="openNav()" aria-label ="Open Navigation" aria-hidden="false"></button>
+			<div id="small-nav-logo" data-lift="WebUI.headerLogoLeft">
+				<a href="/" aria-label="HomePage Logo"><img src="" class="logo-responsive-design-mobile" alt ="Home Page Logo"></a>
+			</div>
+			<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login"> 
+				<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
+			</div>
+		</div>
+		<div id="obp-sidebar" class="sidebar">
+			<div id="small-screen-navbar">
+				<button tabindex="0" id="small-nav-cross" onclick="closeNav()" aria-hidden="true" aria-label ="Close Navigation"></button>
+				<div id="small-nav-logo" data-lift="WebUI.headerLogoLeft">
+					<a href="/" aria-label="HomePage Logo"><img src="" class="logo-responsive-design-mobile" alt ="Home Page Logo"></a>
+				</div>
+				<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login">
+					<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
+				</div>
+			</div>
+			<ul>
+				<li>
+					<div class="navitem">
+						<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API Explorer</a>
+					</div>
+				</li>
+				<li>
+					<div class="navitem" data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true"  id="sideba-api-key-div">
+						<a id ="get-api-key-link" class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+					</div>
+				</li>
+				<li>
+					<div class="navitem">
+						<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">Introduction</a>
+					</div>
+				</li>
+				<li>
+					<div class="navitem" id="technical-faqs-anchor-nav">
+						<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
+							<span class="support">Support</span></a>
+					</div>
+				</li>
+				<li>
+					<div class="navitem" id="register-link-nav">
+						<a data-lift="WebUI.userIsLoggedIn" href="/user_mgt/sign_up" class="navbar-btn" id ="register-link">Register</a>
+						<a data-lift="Login.loggedIn" href="#" class="logout">Log off</a></p>
+					</div>
+				</li>
+			</ul>
+		</div>
+		
+		<section id="content">
+			<lift:bind name="content"/>
+			The main content gets bound here
+		</section>
+
+		<footer>
+			<div id="footer-div">
+				<ul>
+					<li>
+						<a class="termsAndConditions-link" data-lift="WebUI.termsAndConditions" href="">
+							<span class="terms_conditions">Terms and Conditions</span></a>
+					</li>
+					<li>
+						<a class="privacy-policy-link" data-lift="WebUI.privacyPolicyLink" href="https://openbankproject.com/privacy-policy">
+							<span class="privacy_policy">Privacy Policy</span></a>
+					</li>
+					<li>
+						<a id="footer-div-social" href="http://twitter.com/#!/OpenBankProject" data-lift="WebUI.footerSocialLink">Twitter</a>
+					</li>
+					<li>
+						<a href="https://github.com/OpenBankProject/OBP-API/">Github</a>
+					</li>
+					<li>
+						<a class="api-documentation-link" data-lift="WebUI.apiDocumentationLink" href="">
+							<span class="api_documentation">API Documentation</span></a>
+					</li>
+					<li>
+						<a class="sofi-link" data-lift="WebUI.sofiLink" href="">Sofit</a>
+					</li>
+					<li>
+						<a href="/user_mgt/sign_up?after-signup=link-to-customer" class="navbar-btn" id ="register-link">
+							<span class="register">On Board</span></a>
+					</li>
+					<li>
+						<a class="api-link" data-lift="WebUI.apiLinkHuman" href="">
+							<span class="api_host">This API Host</span></a>
+					</li>
+					<li>
+						<a class="commit-id-link" data-lift="WebUI.commitIdLink" href="">
+							<span class="api_host">GitHub commit</span></a>
+					</li>
+				</ul>
+				<br>
+				<div class="language-tag"  data-lift="WebUI.currentPage">
+					<span><a href="#">Language</a></span>
+					<div id="supported-language-list"></div>
+				</div>
+				<div id="copyright">
+					<a href="http://openbankproject.com"><span class="open_bank_project_is">Open Bank Project is &copy;2011 - </span> <span id="copyright-year" data-lift="WebUI.currentYearText">2018</span> </a> <a href="http://tesobe.com"><span class="and_commercial_licenses">TESOBE and distributed under the AGPL and commercial licenses. </span></a>
+				</div>
+			</div>
+		</footer>
+	</div>
+</body>
+</html>

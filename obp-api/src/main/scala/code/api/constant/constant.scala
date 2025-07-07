@@ -22,7 +22,11 @@ object Constant extends MdcLoggable {
   
   final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
-  def HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
+  final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
+  final val Connector = APIUtil.getPropsValue("connector")
+  final val openidConnectEnabled = APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)
+  
+  final val bgRemoveSignOfAmounts = APIUtil.getPropsAsBoolValue("BG_remove_sign_of_amounts", false)
   
   final val ApiInstanceId = {
     val apiInstanceIdFromProps = APIUtil.getPropsValue("api_instance_id")
@@ -37,7 +41,14 @@ object Constant extends MdcLoggable {
     }
   }
   
-  def localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
+  final val localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
+    
+  final val mailUsersUserinfoSenderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
+  
+  final val oauth2JwkSetUrl = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+
+  final val consumerDefaultLogoUrl = APIUtil.getPropsValue("consumer_default_logo_url")
+  final val serverMode = APIUtil.getPropsValue("server_mode", "apis,portal")
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)

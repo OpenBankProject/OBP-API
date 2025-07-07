@@ -6,7 +6,6 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.JSONFactory
-import code.api.v1_3_0.OBPAPI1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.atms.Atms
@@ -15,7 +14,6 @@ import code.branches.Branches
 import code.customer.CustomerX
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
-import code.views.Views
 import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
@@ -44,12 +42,10 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.crm.CrmEvent
 import code.customer.CustomerMessages
 import code.model._
 import code.products.Products
 import code.util.Helper._
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
@@ -78,7 +74,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |* Git Commit""",
       EmptyBody,
       apiInfoJSON,
-      List(UnknownError, "no connector set"),
+      List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil)
 
     lazy val root : OBPEndpoint = {

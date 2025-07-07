@@ -2,13 +2,13 @@ package code.bankaccountbalance
 
 import code.model.dataAccess.MappedBankAccount
 import code.util.{Helper, MappedUUID}
-
-import com.openbankproject.commons.model.{BankId, AccountId, BalanceId, BankAccountBalanceTrait}
+import com.openbankproject.commons.model.{AccountId, BalanceId, BankAccountBalanceTrait, BankId}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
+import java.util.Date
 
-class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String, BankAccountBalance]{
+class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String, BankAccountBalance] with CreatedUpdated {
 
   override def getSingleton = BankAccountBalance
 
@@ -21,6 +21,7 @@ class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String
   object BalanceType extends MappedString(this, 255)
   //this is the smallest unit of currency! eg. cents, yen, pence, øre, etc.
   object BalanceAmount extends MappedLong(this)
+  object ReferenceDate extends MappedDate(this)
 
   val foreignMappedBankAccountCurrency = tryo{code.model.dataAccess.MappedBankAccount
     .find(
@@ -34,6 +35,8 @@ class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String
   override def balanceId: BalanceId = BalanceId(BalanceId_.get)
   override def balanceType: String = BalanceType.get
   override def balanceAmount: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(BalanceAmount.get, foreignMappedBankAccountCurrency)
+  override def lastChangeDateTime: Option[Date] = Some(this.updatedAt.get)
+  override def referenceDate: Option[String] = Some(ReferenceDate.get.toString)
 }
 
 object BankAccountBalance extends BankAccountBalance  with KeyedMetaMapper[String, BankAccountBalance] with CreatedUpdated {}

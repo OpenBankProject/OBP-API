@@ -26,17 +26,15 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
-import java.util.UUID.randomUUID
-
-import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
+import code.api._
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil._
+import code.api.util.CommonFunctions.validUri
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
@@ -46,29 +44,26 @@ import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS}
+import code.util.HydraUtil._
 import code.views.Views
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
+import net.liftweb.http.S.fmapFunc
 import net.liftweb.http._
 import net.liftweb.mapper._
+import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
-
-import scala.collection.immutable.List
-import scala.xml.{Elem, NodeSeq, Text}
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
-import code.util.HydraUtil._
-import com.github.dwickern.macros.NameOf.nameOf
-import com.tesobe.CacheKeyFromArguments
-import sh.ory.hydra.model.AcceptLoginRequest
-import net.liftweb.http.S.fmapFunc
-import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import sh.ory.hydra.api.AdminApi
-import net.liftweb.sitemap.Loc.strToFailMsg
+import sh.ory.hydra.model.AcceptLoginRequest
 
+import java.util.UUID.randomUUID
 import scala.concurrent.Future
+import scala.xml.{Elem, NodeSeq, Text}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -424,12 +419,12 @@ import net.liftweb.util.Helpers._
   /**Marking the locked state to show different error message */
   val usernameLockedStateCode = Long.MaxValue
 
-  val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+  val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
   override def dbIndexes: List[BaseIndex[AuthUser]] = UniqueIndex(username, provider) ::super.dbIndexes
   
-  override def emailFrom = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
+  override def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output

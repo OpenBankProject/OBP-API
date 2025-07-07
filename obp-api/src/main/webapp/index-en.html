@@ -1,0 +1,349 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2021, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Sebastian Henschel: sebastian AT tesobe DOT com
+-->
+<div id="main" data-lift="surround?with=default-en;at=content" tabindex="-1">
+
+    <div id="main-about" data-lift="WebUI.aboutBackground">
+        <div id="main-about-row" class="row">
+            <div id="main-about-box">
+                <h1 id="main-about-text" data-lift="WebUI.aboutText"><span class="welcome.to">Welcome to the Open Bank Project API Sandbox test instance!</span></h1>
+                <div id="main-about-buttons">
+                    <a class="api-explorer-link btn btn-danger" data-lift="WebUI.apiExplorerLink" href="">
+                        <span class="view_api_explorer">View API Explorer</span></a>
+                    <a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">
+                        <span class="introduction">Introduction</span></a>
+<!--                    <a href="/consumer-registration" class="btn btn-default">Get API key</a>-->
+                    <!--						<a class="sofi-link btn btn-default" data-lift="WebUI.sofiLink" href="">SOFIT</a>-->
+                    <!--						<a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">INTRODUCTION</a>-->
+                    <a class="btn btn-default subscriptions-button" data-lift="WebUI.subscriptionsButton" href="">
+                        <span class="subscriptions"><div class ="subscriptions-button-text">Subscriptions</div></span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="main-get-started">
+        <h2 id="get-started-part"><span class="get_started_title">Get started</span></h2>
+        <div class="row">
+            <div class="col-md-5 main-get-started-icon">
+                <img class="create-account" src="/media/images/create_account.png" width="237" height="237" alt="create account"/>
+            </div>
+            <div class="col-md-2 main-get-started-item">
+                <img class="item-1" src="/media/images/icons/item-1.png" alt="item-1"/>
+            </div>
+            <div class="col-xs-12 col-md-5 main-get-started-text">
+                <h3><span class="get_started_create_account_title">Create an account</span></h3>
+                <p><span class="get_started_create_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage. </span><a href="/user_mgt/sign_up"><span class="register_for_an_account">Register for an account</span>
+                        </a>.</p>
+                <p data-lift="WebUI.subscriptionsInvitationText" class ="subscriptions_invitation_text"> </span>
+                        </p>
+                </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-5 main-get-started-icon">
+                <img class="connect-app" src="/media/images/connect_app.png" width="237" height="237" alt="connect app"/>
+            </div>
+            <div class="col-md-2  main-get-started-item">
+                <img class="item-2" src="/media/images/icons/item-2.png" alt="item-2"/>
+            </div>
+            <div class="col-xs-12 col-md-5 main-get-started-text">
+                <h3><span class="get_started_connect_your_app_title">Connect your app</span></h3>
+                <p><span class="get_started_connect_your_app">Use our SDKs to connect your app to the Open Bank Project APIs. You’ll need your developer key, which
+                    you should have from when you created your account. Check out all the available APIs on the API
+                    Explorer, but make sure that you’re using the correct base URL.</span></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-5 main-get-started-icon">
+                <img class="test-data" src="/media/images/test_data.png" width="237" height="237" alt="test data"alt="test data" />
+            </div>
+            <div class="col-md-2 main-get-started-item">
+                <img class="item-3" src="/media/images/icons/item-3.png" alt="item-3"/>
+            </div>
+            <div class="col-xs-12 col-md-5 main-get-started-text">
+                <h3><span class="get_started_test_your_app_title">Test your app using customer data</span></h3>
+                <p>
+                    <span class="Test_your_app_description">Once your app is connected, you can test it using test customer credentials.</span>
+
+                    <a class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
+                       href="https://github.com/OpenBankProject/OBP-API/wiki/"><span class="get_started_test_your_app_sandbox_date">View sandbox customer log ons.</span></a>
+                </p>
+            </div>
+        </div>
+        <div id="main-get-started-button">
+            <a class="btn btn-primary" href="/consumer-registration"><span class="get_api_key">Get API key</span></a>
+        </div>
+
+        <hr style="color: #D7D8D6; margin-top: 56px;margin-bottom: 72px;">
+    </div>
+
+
+    <!--
+    <div id="get-started-control" data-lift="WebUI.getStartedContentLoader">
+        <div id="override-get-started-script"></div>
+    </div>
+    -->
+
+    <div id="get-started-script" data-lift="WebUI.getStartedContentLoader"></div>
+
+    
+
+    <div id="main-apis">
+        <h2 id="explorer-apis"><span class="explore_api_title">Explore APIs</span></h2>
+        <div class="row">
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Account,Card" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-accounts" src="/media/images/icons/apis/icon-accounts.png" alt="accounts"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_accounts_title">Accounts</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="accounts chevron"/></h3>
+                    <p><span class="explore_api_accounts">Access to accounts (XS2A) and cards. Provide fine-grained access to guests (auditor, accountant or public).</span></p>
+                </div>
+
+            </a>
+
+            <a class="api-explorer-link"
+               data-lift="WebUI.apiExplorerLink?tags=Bank,Bank-Branch,Bank-ATM,Bank-Product,Bank-FX" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-entitlements"
+                         src="/media/images/icons/apis/icon-branches.png" alt="branches"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_branches_title">Branches, ATMs and Products</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Branches chevron"/></h3>
+                    <p><span class="explore_api_branches">Access and manage open data from banks including branches, ATMs, products and product attributes.</span></p>
+                </div>
+
+            </a>
+        </div>
+
+        <div class="row">
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Transaction,Transaction-Metadata"
+               href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-transactions" 
+                         src="/media/images/icons/apis/icon-transactions.png" width="100"
+                         height="100" alt="transactions icon"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_transactions_title">Transactions</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Transactions chevron"/></h3>
+                    <p><span class="explore_api_transactions">Access transaction histories, balances and metadata.</span></p>
+                </div>
+            </a>
+
+            <a class="api-explorer-link"
+               data-lift="WebUI.apiExplorerLink?tags=Transaction-Metadata,Counterparty-Metadata" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-metadata"
+                         src="/media/images/icons/apis/icon-metadata.png" width="100"
+                         height="100" alt="metadata"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_metadata_title">Metadata</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Metadata chevron"/></h3>
+                    <p><span class="explore_api_metadata">Enrich transactions and counterparties with metadata including geolocations, comments, images and tags.</span></p>
+                </div>
+            </a>
+
+
+        </div>
+
+        <div class="row">
+
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Counterparty,Counterparty-Metadata"
+               href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-counterparties"
+                         src="/media/images/icons/apis/icon-counterparties.png"
+                          alt="counterparties"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_counterparties_title">Counterparties</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Counterparties chevron"/></h3>
+                    <p><span class="explore_api_counterparties">Access the payers and beneficiaries of an account including their account routings, aliases and categories.</span></p>
+                </div>
+            </a>
+
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Webhook" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-branches"
+                         src="/media/images/icons/apis/icon-entitlements.png" alt="entitlements"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_webhooks_title">Webhooks</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Webhooks chevron"/></h3>
+                    <p><span class="explore_api_webhooks">Call external web services based on Account events.</span></p>
+                </div>
+            </a>
+        </div>
+
+        <div class="row">
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Customer,KYC,Onboarding" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-messages"
+                         src="/media/images/icons/apis/icon-messages.png" alt="messages"/>
+                </div>
+                <div id ="customer-onboarding-and-kyc-div" class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_customer_title">Customer onboarding and KYC</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Customer onboarding and KYC chevron"/></h3>
+                    <p><span class="explore_api_customer">Perform user, customer and account creation. Manage know your customer (KYC).</span></p>
+                </div>
+            </a>
+
+            <a class="api-explorer-link"
+               data-lift="WebUI.apiExplorerLink?tags=API,API-Role,API-Metrics,API-Documentation" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-security"
+                         src="/media/images/icons/apis/icon-security.png" alt="security"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text" id="api-roles-metrics-documentation">
+                    <h3><span class="explore_api_roles_title">API Roles, Metrics and Documentation</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="API Roles, Metrics and Documentation chevron"/></h3>
+                    <p><span class="explore_api_roles">Control access to endpoints, get API metrics and documentation.</span></p>
+                </div>
+            </a>
+
+
+        </div>
+        <div class="row">
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Transaction-Request" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-requests"
+                         src="/media/images/icons/apis/icon-requests.png" alt="requests"/>
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_api_payments_title">Payments & Transfers</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Payments & Transfers chevron"/></h3>
+                    <p><span class="explore_api_payments">Initiate Transaction Requests (transfers and payments). Answer strong customer authentication (SCA) challenges.</span></p>
+                </div>
+            </a>
+
+            <a class="api-explorer-link-dynamic-entity" data-lift="WebUI.dynamicEntityApiExplorerLink" href="">
+                <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
+                    <img class="icon-kyc" src="/media/images/icons/apis/icon-kyc.png" alt="kyc" />
+                </div>
+                <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
+                    <h3><span class="explore_dynamic_entity_title">Dynamic Entities and Endpoints</span><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="kyc chevron"/></h3>
+                    <p><span class="explore_dynamic_entity">Create your own Entities with persistent data and your own Endpoints.</span></p>
+                </div>
+            </a>
+        </div>
+        <div id="main-apiexplorer" class="btn btn-secondary">
+            <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href=""><span class="view_api_explorer">View API Explorer</span></a>
+        </div>
+
+    </div>
+
+
+    <div id="main-showcases">
+        <div data-lift="embed?what=sdks"></div>
+        <div id="main-showcases-external" data-lift="WebUI.featuredExternalSdksHtml"></div>
+    </div>
+
+    <div id="main-faq">
+        <div data-lift="embed?what=main-faq"></div>
+        <div id="main-faq-external" data-lift="WebUI.mainFaqExternalHtml"></div>
+    </div>
+
+
+
+    <!--	<div id="main-partners" class="lift:WebUI.createMainPartners">-->
+    <!--		<a href="">-->
+    <!--			<img src="" alt="">-->
+    <!--		</a>-->
+    <!--	</div>-->
+
+
+    <div id="main-support">
+        <h2 id="technical-support"><span class="support">Support</span></h2>
+        <div class="row">
+            <div class="col-xs-1" type="hidden"></div>
+            <div class="col-xs-2" type="hidden" id ="main-support_place_holder"></div>
+            <div class="main-support-item col-xs-3">
+                <img class="support-mail" src="/media/images/icons/support/email.svg" width="48" height="48" alt="mail"/>
+                <h3><span class="email.address">Email</span></h3>
+                <a id="webui-support-email" data-lift="WebUI.supportEmail" href="mailto:contact@openbankproject.com">contact@openbankproject.com</a>
+            </div>
+                
+            <div class="col-xs-1" type="hidden"></div>    
+            <div data-lift="WebUI.socialLink" class="main-support-item col-xs-3">
+                <img id="footer-social-logo-url" class="support-twitter" src="/media/images/icons/support/twitter.svg" width="48" height="48"
+                     alt="twitter"/>
+                <h3 id="footer-social-handle">Twitter</h3>
+                <a id="footer-social-link" href="https://twitter.com/openbankproject">@OpenBankProject</a>
+            </div>
+            
+                <div class="col-xs-1" type="hidden"></div>   
+            <div class="main-support-item col-xs-3">
+                <img class="support-Rocket-Chat" src="/media/images/icons/support/chat.svg" width="48" height="48" alt="Rocket-Chat"/>
+                <h3>Chat</h3>
+                <a class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank">Rocket-Chat
+                    channel</a>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="vendor-support"></div>
+    <div id="vendor-support-script" data-lift="WebUI.vendorSupportContentLoader"></div>
+
+    <div id="about-vendor"></div>
+    <div id="about-vendor-script" data-lift="WebUI.aboutVendorContentLoader"></div>
+
+    <!-- Testing approach for loading content. -->
+<!--    <div data-lift="lazy-load">-->
+<!--        <div id="test-div" data-lift="WebUI.aboutVendorDirectContentLoader"></div>-->
+<!--    </div>-->
+
+    <div id="main-start">
+        <div id="main-start-row"  class="row">
+            <div id="main-start_building" class="col-xs-12 col-sm-6">
+                <h2 name="get-started" data-lift="WebUI.getStartedText"><span class="get_started_building_your_application">Get started building your application</span></h2>
+                <div class="btn btn-default pull-left">
+                    <a href="/consumer-registration">
+                        <span class="get_api_key">Get API key</span></a>
+                </div>
+                <div data-lift="WebUI.subscriptionsButton"  class="btn btn-default pull-left" id ="subscriptions-button-div">
+                    <a class="subscriptions-button" href="">
+                        <span class="subscriptions"><div class ="subscriptions-button-text">Subscriptions</div></span>
+                    </a>
+                </div>
+            </div>
+    
+            <div id="for-banks" name="for-banks" data-lift="WebUI.forBanks" class="col-xs-12 col-sm-6">
+                <h2><span class="for_banks">For Banks</span></h2></h2>
+                <a class="api-manager-link btn btn-default pull-left"
+                   data-lift="WebUI.apiManagerLink" href="">
+                    <span class="api_manager">API Manager</span></a>
+                <a class="obp-cli-link btn btn-default pull-left" data-lift="WebUI.obpCliLink"
+                   href="">OBP CLI</a>
+                <a class="api-tester-link btn btn-default pull-left"
+                   data-lift="WebUI.apiTesterLink" href="">
+                    <span class="api_tester">API Tester</span></a>
+                <a class="api-hola-link btn btn-default pull-left"
+                   data-lift="WebUI.apiHolaLink" href="">Hola</a>
+            </div>
+        </div>
+    </div>
+
+</div>

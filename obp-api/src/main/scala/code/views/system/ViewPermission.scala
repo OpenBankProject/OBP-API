@@ -12,15 +12,19 @@ class ViewPermission extends LongKeyedMapper[ViewPermission] with IdPK with Crea
 }
 object ViewPermission extends ViewPermission with LongKeyedMetaMapper[ViewPermission] {
   override def dbIndexes: List[BaseIndex[ViewPermission]] = UniqueIndex(bank_id, account_id, view_id, permission) :: super.dbIndexes
-
-  // Very working progress
-  def findViewPermissions(bankId: BankId, accountId: AccountId, viewId: ViewId): List[ViewPermission] =
+//  "ReadAccountsBerlinGroup"
+  
+  
+  //Work in progress
+  def findCustomViewPermissions(bankId: BankId, accountId: AccountId, viewId: ViewId): List[ViewPermission] =
     ViewPermission.findAll(
       By(ViewPermission.bank_id, bankId.value),
       By(ViewPermission.account_id, accountId.value),
       By(ViewPermission.view_id, viewId.value)
-    )  // Very working progress
-  def findViewPermissions(viewId: ViewId): List[ViewPermission] =
+    )  
+    
+  //Work in progress
+  def findSystemViewPermissions(viewId: ViewId): List[ViewPermission] =
     ViewPermission.findAll(
       NullRef(ViewPermission.bank_id),
       NullRef(ViewPermission.account_id),

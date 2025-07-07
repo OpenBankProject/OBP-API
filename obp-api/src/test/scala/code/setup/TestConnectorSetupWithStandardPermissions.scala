@@ -132,6 +132,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
               canAddTransactionRequestToAnyAccount_(false).
               canAddTransactionRequestToBeneficiary_(false).
               canSeeBankAccountCreditLimit_(true).
+              canSeeTransactionStatus_(true).
               saveMe
           }
         }

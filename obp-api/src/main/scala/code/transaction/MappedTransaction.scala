@@ -68,6 +68,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object CPOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
   object CPOtherBankRoutingScheme extends MappedString(this, 255)
   object CPOtherBankRoutingAddress extends MappedString(this, 255)
+  object status extends MappedString(this, 20)
   
   //This is a holder for storing data from a previous model version that wasn't set correctly
   //e.g. some previous models had counterpartyAccountNumber set to a string that was clearly
@@ -154,7 +155,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
                             transactionDescription,
                             tStartDate.get,
                             tFinishDate.get,
-                            newBalance))
+                            newBalance,
+                            status.get))
     }
   }
   
@@ -216,7 +218,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   }
 
   def toTransaction : Option[Transaction] = {
-    APIUtil.getPropsValue("connector") match {
+    code.api.Constant.Connector match {
       case Full("akka_vDec2018") =>
         for {
           acc <- getBankAccountCommon(theBankId, theAccountId, None).map(_._1)

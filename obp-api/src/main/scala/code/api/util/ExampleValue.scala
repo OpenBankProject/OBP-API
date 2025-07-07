@@ -8,7 +8,7 @@ import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.apicollection.ApiCollection
 import code.dynamicEntity._
 import com.openbankproject.commons.model.CardAction
-import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, UserInvitationPurpose}
+import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionRequestStatus, UserInvitationPurpose}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
@@ -325,6 +325,7 @@ object ExampleValue {
   lazy val dateSignedExample = signedDateExample
   lazy val startDateExample = ConnectorField("2020-01-27", "The Start Date in the format: yyyy-MM-dd")
   lazy val dateStartsExample = startDateExample
+  lazy val referenceDateExample = dateExample
   lazy val finishDateExample = ConnectorField("2020-01-27", "The Finish Date in the format: yyyy-MM-dd")
   lazy val completedDateExample = finishDateExample
   lazy val insertDateExample = ConnectorField("2020-01-27", "The Insert Date in the format: yyyy-MM-dd")
@@ -757,6 +758,9 @@ object ExampleValue {
 
   lazy val statusExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("status", statusExample)
+  
+  lazy val transactionStatusExample = ConnectorField(s" ${TransactionRequestStatus.COMPLETED.toString}",s"Status of the transaction, e.g. ${TransactionRequestStatus.COMPLETED.toString}, ${TransactionRequestStatus.PENDING.toString} ..")
+  glossaryItems += makeGlossaryItem("status", transactionStatusExample)
   
   lazy val errorCodeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("errorCode", errorCodeExample)

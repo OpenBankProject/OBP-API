@@ -177,6 +177,15 @@ jwt.use.ssl=false
 ## Expire Berlin Group consents with status "valid"
 # berlin_group_expired_consents_interval_in_seconds =
 
+## This props force omitting the field "name" at endpoints:
+# /berlin-group/v1.3/accounts
+# /berlin-group/v1.3/accounts/{accountId}
+# BG_v1312_show_account_name=true
+
+# If set this to true, the Berlin Group API will not show the sign of amounts in the response.
+# BG_remove_sign_of_amounts = false
+
+
 
 ## Expire OBP consents with status "ACCEPTED"
 ## If this props is not set corresponding job is not started

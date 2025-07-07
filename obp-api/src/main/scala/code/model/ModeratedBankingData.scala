@@ -26,18 +26,16 @@ TESOBE (http://www.tesobe.com/)
   */
 
 package code.model
-import java.util.Date
+import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext}
-import code.api.util.ErrorMessages.NoViewPermission
 import code.model.Moderation.Moderated
 import code.util.Helper
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure}
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.JsonDSL._
-import code.api.util.ErrorMessages._
-import com.openbankproject.commons.model._
 
-import scala.collection.immutable.List
+import java.util.Date
 
 object Moderation {
   type Moderated[A] = Option[A]
@@ -57,11 +55,11 @@ class ModeratedTransaction(
                             val finishDate: Moderated[Date],
                             //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
                             //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
-                            val balance : String
+                            val balance : String,
+                            val status : String
 ) {
 
   def dateOption2JString(date: Option[Date]) : JString = {
-    import java.text.SimpleDateFormat
 
     val dateFormat = APIUtil.DateWithMsFormat
     JString(date.map(d => dateFormat.format(d)) getOrElse "")

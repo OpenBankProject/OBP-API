@@ -91,7 +91,6 @@ import scala.collection.immutable.{List, Nil}
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.math.BigDecimal
 import scala.util.{Random, Try}
 
 object LocalMappedConnector extends Connector with MdcLoggable {
@@ -987,7 +986,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           label = bankAccount.label,
           bankId = bankAccount.bankId.value,
           accountRoutings = bankAccount.accountRoutings.map(accountRounting => AccountRouting(accountRounting.scheme, accountRounting.address)),
-          balances = List(BankAccountBalance(AmountOfMoney(bankAccount.currency, bankAccount.balance.toString),"OpeningBooked")),
+          balances = List(BankAccountBalance(AmountOfMoney(bankAccount.currency, bankAccount.balance.toString), balanceType= "interimBooked")),
           overallBalance = AmountOfMoney(bankAccount.currency, bankAccount.balance.toString),
           overallBalanceDate = now
         )
@@ -4502,6 +4501,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           chargePolicy,
           None, 
           None,
+          None,
+          None,
           callContext
         )
       } map {
@@ -4658,6 +4659,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           chargePolicy,
           None,
           None,
+          None,
+          None,
           callContext
         )
         saveTransactionRequestReasons(reasons, transactionRequest)
@@ -4763,14 +4766,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def createTransactionRequestSepaCreditTransfersBGV1(
-    initiator: User,
+    initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
     transactionRequestType: TransactionRequestTypes,
     transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[TransactionRequestBGV1]] = {
-    LocalMappedConnectorInternal.createTransactionRequestBGInternal( 
-      initiator: User,
+    LocalMappedConnectorInternal.createTransactionRequestBGInternal(
+      initiator: Option[User],
       paymentServiceType: PaymentServiceTypes,
       transactionRequestType: TransactionRequestTypes,
       transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
@@ -4779,14 +4782,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
-    initiator: User,
+    initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
     transactionRequestType: TransactionRequestTypes,
     transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[TransactionRequestBGV1]] = {
     LocalMappedConnectorInternal.createTransactionRequestBGInternal(
-      initiator: User,
+      initiator: Option[User],
       paymentServiceType: PaymentServiceTypes,
       transactionRequestType: TransactionRequestTypes,
       transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13,
@@ -5365,8 +5368,35 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     accountId: AccountId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[BankAccountBalanceTrait]]] = {
-    BankAccountBalanceX.bankAccountBalanceProvider.vend.getBankAccountBalances(accountId).map {
+    val balancesF = BankAccountBalanceX.bankAccountBalanceProvider.vend.getBankAccountBalances(accountId).map {
       (_, callContext)
+    }
+
+    val bankId = BankId(defaultBankId)
+
+    val bankAccountBalancesF = LocalMappedConnector.getBankAccountBalances(BankIdAccountId(bankId, accountId), callContext).map {
+      response =>
+        response._1.map(_.balances.map(balance => BankAccountBalanceTraitCommons(
+          bankId = bankId,
+          accountId = accountId,
+          balanceId = BalanceId(""), // BalanceId is not used in this context, so we can set it to a dummy value.
+          balanceType = balance.balanceType,
+          balanceAmount = BigDecimal(balance.balance.amount),
+          lastChangeDateTime = None,
+          referenceDate = None,
+        )))
+
+    }
+
+    for {
+      balances <- balancesF
+      bankAccountBalances <- bankAccountBalancesF
+    } yield {
+      val merged = for {
+        b1 <- balances._1
+        b2 <- bankAccountBalances
+      } yield b1 ++ b2
+      (merged, callContext)
     }
   }
 

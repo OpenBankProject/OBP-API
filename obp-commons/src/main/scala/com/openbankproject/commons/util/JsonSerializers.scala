@@ -1,8 +1,7 @@
 package com.openbankproject.commons.util
 
-import java.lang.reflect.{Constructor, Modifier, Parameter}
-import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection}
+import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import net.liftweb.common.Box
@@ -10,10 +9,10 @@ import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-import net.liftweb.util.StringHelpers
 import net.liftweb.mapper.Mapper
+import net.liftweb.util.StringHelpers
 
-import scala.collection.immutable.List
+import java.lang.reflect.{Constructor, Modifier, Parameter}
 import scala.reflect.ManifestFactory
 import scala.reflect.runtime.{universe => ru}
 
@@ -147,7 +146,8 @@ object BigDecimalSerializer extends Serializer[BigDecimal] {
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), BigDecimal] = {
     case (TypeInfo(IntervalClass, _), json) => json match {
       case JString(s) => BigDecimal(s)
-//      case JDouble(s) => BigDecimal(s)
+//      case JDouble(s) => BigDecimal(s)// not safe,from JInt to BigDecimal, it may lose precision
+//      case JInt(s) => BigDecimal(s) // not safe,from JInt to BigDecimal, it may lose precision
       case x => throw new MappingException("Can't convert " + x + " to BigDecimal")
     }
   }

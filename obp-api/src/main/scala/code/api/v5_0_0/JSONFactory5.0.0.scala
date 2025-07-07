@@ -26,27 +26,26 @@
   */
 package code.api.v5_0_0
 
-import java.lang
-import java.util.Date
-
 import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{gitCommit, nullToString, stringOptionOrNull, stringOrNull}
+import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, JSONFactory300}
-import code.api.v3_1_0.{AccountBasicV310,PostConsentEntitlementJsonV310}
-import code.api.v4_0_0.{APIInfoJson400, BankAttributeBankResponseJsonV400, EnergySource400, HostedAt400, HostedBy400}
+import code.api.v3_1_0.{AccountBasicV310, PostConsentEntitlementJsonV310}
+import code.api.v4_0_0._
 import code.consent.ConsentRequest
-import com.openbankproject.commons.model.{CustomerAccountLinkTrait,BankAttributeTrait}
-import com.openbankproject.commons.model.{AccountAttribute, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, CreateViewJson, Customer, CustomerAttribute, InboundAdapterInfoInternal, 
-  InboundStatusMessage, PhysicalCardTrait, UpdateViewJSON, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
+
+import java.lang
+import java.util.Date
 
 case class PostBankJson500(
     id: Option[String],
@@ -560,7 +559,7 @@ object JSONFactory500 {
     val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
     val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
-    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
     APIInfoJson400(

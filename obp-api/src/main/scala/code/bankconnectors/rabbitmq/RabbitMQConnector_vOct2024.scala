@@ -67,7 +67,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2025-05-27T10:14:24Z
+// ---------- created on 2025-06-10T12:05:04Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -1551,7 +1551,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value))))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value
+      )))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1684,7 +1686,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value)))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2565,7 +2568,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2574,7 +2577,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2614,7 +2617,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_sepa_credit_transfers_bgv1", req, callContext)
@@ -2630,7 +2633,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2639,7 +2642,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= PeriodicSepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2684,7 +2687,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_periodic_sepa_credit_transfers_bgv1", req, callContext)
@@ -7164,7 +7167,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       balanceId=BalanceId(balanceIdExample.value),
       balanceType=balanceTypeExample.value,
-      balanceAmount=BigDecimal(balanceAmountExample.value))))
+      balanceAmount=BigDecimal(balanceAmountExample.value),
+      lastChangeDateTime=Some(toDate(dateExample)),
+      referenceDate=Some(referenceDateExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7194,7 +7199,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       balanceId=BalanceId(balanceIdExample.value),
       balanceType=balanceTypeExample.value,
-      balanceAmount=BigDecimal(balanceAmountExample.value))))
+      balanceAmount=BigDecimal(balanceAmountExample.value),
+      lastChangeDateTime=Some(toDate(dateExample)),
+      referenceDate=Some(referenceDateExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7224,7 +7231,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       balanceId=BalanceId(balanceIdExample.value),
       balanceType=balanceTypeExample.value,
-      balanceAmount=BigDecimal(balanceAmountExample.value)))
+      balanceAmount=BigDecimal(balanceAmountExample.value),
+      lastChangeDateTime=Some(toDate(dateExample)),
+      referenceDate=Some(referenceDateExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7258,7 +7267,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       accountId=AccountId(accountIdExample.value),
       balanceId=BalanceId(balanceIdExample.value),
       balanceType=balanceTypeExample.value,
-      balanceAmount=BigDecimal(balanceAmountExample.value)))
+      balanceAmount=BigDecimal(balanceAmountExample.value),
+      lastChangeDateTime=Some(toDate(dateExample)),
+      referenceDate=Some(referenceDateExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -7296,7 +7307,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2025-05-27T10:14:24Z
+// ---------- created on 2025-06-10T12:05:04Z
 //---------------- dynamic end ---------------------please don't modify this line                                                              
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")

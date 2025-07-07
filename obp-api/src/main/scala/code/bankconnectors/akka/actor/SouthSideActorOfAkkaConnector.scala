@@ -1,19 +1,16 @@
 package code.bankconnectors.akka.actor
 
-import java.util.Date
-
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
-import code.model.dataAccess.MappedBank
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{CreditLimit, Transaction, _}
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 
-import scala.collection.immutable.List
+import java.util.Date
 
 
 /**
@@ -148,7 +145,8 @@ object Transformer {
       description = t.description ,
       startDate = t.startDate ,
       finishDate = t.finishDate ,
-      balance = t.balance
+      balance = t.balance,
+      status = t.status
     )
   }
 }

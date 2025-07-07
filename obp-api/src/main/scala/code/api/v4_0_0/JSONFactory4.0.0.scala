@@ -26,24 +26,21 @@
   */
 package code.api.v4_0_0
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
-import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, gitCommit, stringOptionOrNull, stringOrNull}
+import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
+import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
-import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
-import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON, TransactionRequestBodyCounterpartyJSON}
+import code.api.v2_1_0._
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
 import code.api.v3_1_0.JSONFactory310.{createAccountAttributeJson, createProductAttributesJson}
-import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerJsonV310, JSONFactory310, PostHistoricalTransactionResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
+import code.api.v3_1_0._
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
@@ -53,20 +50,18 @@ import code.loginattempts.LoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
-import com.openbankproject.commons.model.StandingOrderTrait
 import code.userlocks.UserLocks
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import code.views.system.AccountAccess
-import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
+import code.webhook.{BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType
-import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
-import net.liftweb.mapper.By
 
-import scala.collection.immutable.List
-import scala.math.BigDecimal
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.util.Try
 
 case class CallLimitPostJsonV400(
@@ -1113,7 +1108,7 @@ object JSONFactory400 {
     val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
     val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
-    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
     APIInfoJson400(

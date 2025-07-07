@@ -23,30 +23,24 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.util.Date
-
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.getIbanAndBban
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext, HashUtil, OBPQueryParam}
+import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
-import code.customer.internalMapping.MappedCustomerIdMappingProvider
-import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.{InBoundTrait, _}
+import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{TopicTrait, _}
-import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.common.{Box, _}
+import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
-import scala.collection.immutable.List
+import java.util.Date
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -1486,7 +1480,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value))))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1619,7 +1614,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
       finishDate=toDate(transactionFinishDateExample),
-      balance=BigDecimal(balanceExample.value)))
+      balance=BigDecimal(balanceExample.value),
+      status=transactionStatusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2496,7 +2492,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2505,7 +2501,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2545,7 +2541,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: SepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_sepa_credit_transfers_bgv1", req, callContext)
@@ -2561,7 +2557,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2570,7 +2566,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       createdByConsentId=Some("string"),
       createdByUserInvitationId=Some("string"),
       isDeleted=Some(true),
-      lastMarketingAgreementSignedDate=Some(toDate(dateExample))),
+      lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
       paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
       transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
       transactionRequestBody= PeriodicSepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
@@ -2615,7 +2611,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: User, paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+  override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: PeriodicSepaCreditTransfersBerlinGroupV13, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
         import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => InBound, OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_periodic_sepa_credit_transfers_bgv1", req, callContext)

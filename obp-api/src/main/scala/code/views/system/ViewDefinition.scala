@@ -1,14 +1,12 @@
 package code.views.system
 
-import code.api.util.APIUtil.{isValidCustomViewId, isValidCustomViewName, isValidSystemViewId}
+import code.api.util.APIUtil.{isValidCustomViewId, isValidSystemViewId}
 import code.api.util.ErrorMessages.{CreateSystemViewError, InvalidCustomViewFormat, InvalidSystemViewFormat}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
-
-import scala.collection.immutable.List
 
 
 class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with ManyToMany with CreatedUpdated{
@@ -340,6 +338,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeViewsWithPermissionsForOneUser_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeTransactionStatus_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
@@ -455,6 +456,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canSeeAvailableViewsForBankAccount_(actions.exists(_ == "can_see_available_views_for_bank_account"))
     canSeeViewsWithPermissionsForAllUsers_(actions.exists(_ == "can_see_views_with_permissions_for_all_users")) 
     canSeeViewsWithPermissionsForOneUser_(actions.exists(_ == "can_see_views_with_permissions_for_one_user"))
+    canSeeTransactionStatus_(actions.exists(_ == "can_see_transaction_status"))
   }
 
   
@@ -514,6 +516,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeTransactionStartDate: Boolean = canSeeTransactionStartDate_.get
   def canSeeTransactionFinishDate: Boolean = canSeeTransactionFinishDate_.get
   def canSeeTransactionBalance: Boolean = canSeeTransactionBalance_.get
+  def canSeeTransactionStatus: Boolean = canSeeTransactionStatus_.get
 
   //transaction metadata
   def canSeeComments: Boolean = canSeeComments_.get

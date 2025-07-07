@@ -27,7 +27,7 @@ package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{canCreateConsumer, canGetConsumers, canUpdateConsumerCertificate, canUpdateConsumerLogoUrl, canUpdateConsumerName, canUpdateConsumerRedirectUrl}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UserNotLoggedIn}
 import code.api.v3_1_0.ConsumerJsonV310
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
@@ -54,38 +54,44 @@ class ConsumerTest extends V510ServerSetup {
   object UpdateConsumerName extends Tag(nameOf(Implementations5_1_0.updateConsumerName))
   object UpdateConsumerCertificate extends Tag(nameOf(Implementations5_1_0.updateConsumerCertificate))
   object GetConsumer extends Tag(nameOf(Implementations5_1_0.getConsumer))
+  object CreateMyConsumer extends Tag(nameOf(Implementations5_1_0.createMyConsumer))
 
   feature("Test all error cases ") {
     scenario("We test the authentication errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate,  VersionOfApi) {
       When("We make a request v5.1.0")
-      lazy val postApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400
+      lazy val createConsumerRequestJson = SwaggerDefinitionsJSON.createConsumerRequestJsonV510
       val requestApiEndpoint1 = (v5_1_0_Request / "management" / "consumers").POST
-      val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(postApiCollectionJson))
+      val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createConsumerRequestJson))
 
       val requestApiEndpoint2 = (v5_1_0_Request / "management" / "consumers").GET
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
 
       val requestApiEndpoint3= (v5_1_0_Request / "management" / "consumers" / "CONSUMER_ID" / "consumer" / "redirect_url").PUT
-      val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(postApiCollectionJson))
+      val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(createConsumerRequestJson))
 
       val requestApiEndpoint4 = (v5_1_0_Request /"management" / "consumers" / "CONSUMER_ID" / "consumer" / "logo_url").PUT
-      val responseApiEndpoint4 = makePutRequest(requestApiEndpoint4, write(postApiCollectionJson))
+      val responseApiEndpoint4 = makePutRequest(requestApiEndpoint4, write(createConsumerRequestJson))
 
       val requestApiUpdateConsumerName = (v5_1_0_Request /"management" / "consumers" / "CONSUMER_ID" / "consumer" / "name").PUT
-      val responseApiUpdateConsumerName = makePutRequest(requestApiUpdateConsumerName, write(postApiCollectionJson))
+      val responseApiUpdateConsumerName = makePutRequest(requestApiUpdateConsumerName, write(createConsumerRequestJson))
 
       val requestApiUpdateConsumerCertificate = (v5_1_0_Request /"management" / "consumers" / "CONSUMER_ID" / "consumer" / "certificate").PUT
-      val responseApiUpdateConsumerCertificate = makePutRequest(requestApiUpdateConsumerCertificate, write(postApiCollectionJson))
+      val responseApiUpdateConsumerCertificate = makePutRequest(requestApiUpdateConsumerCertificate, write(createConsumerRequestJson))
 
+      val requestApiEndpoint6 = (v5_1_0_Request / "my" / "consumers").POST
+      val responseApiEndpoint6 = makePostRequest(requestApiEndpoint6, write(createConsumerRequestJson))
+      
       Then(s"we should get the error messages")
       responseApiEndpoint1.code should equal(401)
       responseApiEndpoint2.code should equal(401)
       responseApiEndpoint3.code should equal(401)
       responseApiEndpoint4.code should equal(401)
+      responseApiEndpoint6.code should equal(401)
       responseApiEndpoint1.body.toString contains(s"$UserNotLoggedIn") should be (true)
       responseApiEndpoint2.body.toString contains(s"$UserNotLoggedIn") should be (true)
       responseApiEndpoint3.body.toString contains(s"$UserNotLoggedIn") should be (true)
       responseApiEndpoint4.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiEndpoint6.body.toString contains(s"$UserNotLoggedIn") should be (true)
 
       responseApiUpdateConsumerName.code should equal(401)
       responseApiUpdateConsumerName.body.toString contains(s"$UserNotLoggedIn") should be (true)
@@ -249,8 +255,18 @@ class ConsumerTest extends V510ServerSetup {
         val consumer = makeGetRequest(requestApiEndpoint5).body.extract[ConsumerJsonV310]
         consumer.consumer_id shouldBe consumerId
       }
-      
-     
+
+
+      val requestApiEndpoint6 = (v5_1_0_Request / "my" / "consumers").POST<@ (user1)
+      val responseApiEndpoint6 = makePostRequest(requestApiEndpoint6, write(createConsumerRequestJsonV510))
+      val consumerJson6 = responseApiEndpoint6.body.extract[ConsumerJsonOnlyForPostResponseV510]
+      consumerJson6.app_name shouldBe createConsumerRequestJsonV510.app_name
+      consumerJson6.redirect_url shouldBe createConsumerRequestJsonV510.redirect_url
+      consumerJson6.logo_url.headOption shouldBe createConsumerRequestJsonV510.logo_url.headOption
+      consumerJson6.description shouldBe createConsumerRequestJsonV510.description
+      consumerJson6.developer_email shouldBe createConsumerRequestJsonV510.developer_email
+      consumerJson6.enabled shouldBe createConsumerRequestJsonV510.enabled
+      consumerJson6.certificate_pem shouldBe createConsumerRequestJsonV510.client_certificate.head
 
     }
   }
