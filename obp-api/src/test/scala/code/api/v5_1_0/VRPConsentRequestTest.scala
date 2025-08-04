@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_1_0
 
+import code.api.RequestHeader
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121, bankRoutingJsonV121, branchRoutingJsonV141, postCounterpartyLimitV510}
 import code.api.v5_0_0.ConsentJsonV500
@@ -73,7 +74,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestCounterparty))
 
 
-
+  val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
   val createVRPConsentRequestWithoutLoginUrl = (v5_1_0_Request / "consumer" / "vrp-consent-requests")
   val createVRPConsentRequestUrl = (v5_1_0_Request / "consumer"/ "vrp-consent-requests").POST<@(user1)
@@ -180,9 +181,9 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       accountAccess.get.account_id should equal(fromAccountJson.account_routing.address)
       accountAccess.get.view_id contains("_vrp-") shouldBe( true)
       
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
       val requestWhichFails = (v5_1_0_Request / "my"/ "accounts").GET
-      val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
+      val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey)
       Then("We get 401 error")
       responseWhichFails.code should equal(401)
       responseWhichFails.body.toString contains(ConsentStatusIssue) shouldBe(true)
@@ -205,7 +206,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
 
       val requestGetMyAccounts = (v5_1_0_Request / "my"/ "accounts").GET
-      val responseGetMyAccounts = makeGetRequest(requestGetMyAccounts, List((s"Consent-JWT", consentJwt)))
+      val responseGetMyAccounts = makeGetRequest(requestGetMyAccounts, List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey)
       Then("We get 200 and proper response")
       responseGetMyAccounts.code should equal(200)
       responseGetMyAccounts.body.extract[CoreAccountsJsonV300].accounts.length > 0 shouldBe(true)
@@ -227,7 +228,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
         future_date = None,
         None,
       )
-      val response = makePostRequest(createTransReqRequest, write(transactionRequestBodyCounterparty), (s"Consent-JWT", consentJwt))
+      val response = makePostRequest(createTransReqRequest, write(transactionRequestBodyCounterparty), List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey)
       response.code shouldBe(201)
       response.body.extract[TransactionRequestWithChargeJSON400].status shouldBe("COMPLETED")
     }
@@ -262,7 +263,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       accountAccess.get.view_id contains("_vrp-") shouldBe( true)
 
 
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
       val requestWhichFails = (v5_1_0_Request / "my"/ "accounts").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
       Then("We get successful response")
@@ -338,8 +339,8 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
         future_date = None,
         None,
       )
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
-      val response = makePostRequest(createTransReqRequest, write(transactionRequestBodyCounterparty), (s"Consent-JWT", consentJwt))
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
+      val response = makePostRequest(createTransReqRequest, write(transactionRequestBodyCounterparty), List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey)
       response.code shouldBe(400)
       response.body.extract[ErrorMessage].message contains(CounterpartyLimitValidationError) shouldBe (true)
       response.body.extract[ErrorMessage].message contains("max_single_amount") shouldBe(true)
@@ -348,13 +349,13 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val response1 = makePostRequest(
         createTransReqRequest, 
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","3"))), 
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response1.code shouldBe(201)
       val response2 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","9"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt) ) ::: validHeaderConsumerKey
       )
 
       response2.body.extract[ErrorMessage].message contains(CounterpartyLimitValidationError) shouldBe (true)
@@ -364,14 +365,14 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val response3 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response3.code shouldBe(201)
       
       val response4 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response4.code shouldBe(400)
 
@@ -433,17 +434,17 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
         future_date = None,
         None,
       )
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
       val response1 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","3"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response1.code shouldBe(201)
       val response2 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","9"))),
-        (s"Consent-JWT", consentJwt)
+       List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response2.body.extract[ErrorMessage].message contains(CounterpartyLimitValidationError) shouldBe (true)
       response2.body.extract[ErrorMessage].message contains("max_yearly_amount") shouldBe(true)
@@ -452,14 +453,14 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val response3 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response3.code shouldBe(201)
 
       val response4 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response4.code shouldBe(400)
 
@@ -521,18 +522,18 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
         future_date = None,
         None
       )
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
       //("we try the max_monthly_amount limit (11 euros) . now we transfer 9 euro first. then 9 euros, we will get the error")
       val response1 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","3"))),
-        (s"Consent-JWT", consentJwt)
+        List( (s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response1.code shouldBe(201)
       val response2 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","9"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
 
       response2.body.extract[ErrorMessage].message contains(CounterpartyLimitValidationError) shouldBe (true)
@@ -542,14 +543,14 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       val response3 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response3.code shouldBe(201)
 
       val response4 = makePostRequest(
         createTransReqRequest,
         write(transactionRequestBodyCounterparty.copy(value=AmountOfMoneyJsonV121("EUR","2"))),
-        (s"Consent-JWT", consentJwt)
+        List((s"Consent-JWT", consentJwt)) ::: validHeaderConsumerKey
       )
       response4.code shouldBe(400)
 

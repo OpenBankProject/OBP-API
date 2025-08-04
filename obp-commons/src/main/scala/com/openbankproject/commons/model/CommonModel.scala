@@ -1138,7 +1138,7 @@ case class Transaction(
                    // The date the transaction was initiated
                    startDate : Date,
                    // The date when the money finished changing hands
-                   finishDate : Date,
+                   finishDate : Option[Date],
                    //the new balance for the bank account
                    balance :  BigDecimal,
                    status: String

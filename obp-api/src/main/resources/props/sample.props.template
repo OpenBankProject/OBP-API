@@ -165,6 +165,10 @@ jwt.use.ssl=false
 
 # Bypass TPP signature validation
 # bypass_tpp_signature_validation = false
+## Use TPP signature revocation list
+## - CRLs (Certificate Revocation Lists), or
+## - OCSP (Online Certificate Status Protocol).
+# use_tpp_signature_revocation_list = true
 
 ## Reject Berlin Group TRANSACTIONS with status "received" after a defined time (in seconds)
 # berlin_group_outdated_transactions_time_in_seconds = 300
@@ -364,6 +368,8 @@ BankMockKey=change_me
 
 #####################################################################################
 ## Web interface configuration
+
+## do not put sensitive information in any webui props, as these can be retrieved by a public endpoint.
 
 ## IMPLEMENTING BANK SPECIFIC BRANDING ON ONE OBP INSTANCE ########################
 # Note, you can specify bank specific branding by appending _FOR_BRAND_<BANK_ID> to the standard props names
@@ -854,8 +860,7 @@ featured_apis=elasticSearchWarehouseV300
 # use_consumer_limits=false
 # In case isn't defined default value is 60
 # user_consumer_limit_anonymous_access=100
-# redis_address=127.0.0.1
-# redis_port=6379
+# For the Rate Limiting feature we use Redis cache instance
 # In case isn't defined default value is root
 # rate_limiting.exclude_endpoints=root
 ## Default rate limiting for a new consumer

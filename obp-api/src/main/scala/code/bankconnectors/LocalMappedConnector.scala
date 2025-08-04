@@ -4719,7 +4719,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                       for (
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
-                        permission.views.exists(_.canAddTransactionRequestToAnyAccount == true) match {
+                        permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+                        match {
                           case true => Some(permission.user)
                           case _ => None
                         }

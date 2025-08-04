@@ -277,6 +277,8 @@ object ErrorMessages {
   val InvalidUuidValue = "OBP-20253: Invalid format. Must be a UUID."
   val InvalidSignatureHeader = "OBP-20254: Invalid Signature header. "
   val InvalidRequestIdValueAlreadyUsed = "OBP-20255: Request Id value already used. "
+  val InvalidConsentIdUsage = "OBP-20256: Consent-Id must not be used for this API Endpoint. "
+  val NotValidRfc7231Date = "OBP-20257: Request header Date is not in accordance with RFC 7231 "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
@@ -555,6 +557,11 @@ object ErrorMessages {
   val CannotAddEntitlement = "OBP-30332: Failed to add entitlement. Please check the provided details and try again."
   val CannotGetEntitlements = "OBP-30333: Cannot get entitlements for user id."
   
+  val ViewPermissionNameExists = "OBP-30334: View Permission name already exists. Please specify a different value."
+  val CreateViewPermissionError = "OBP-30335: Could not create the View Permission."
+  val ViewPermissionNotFound = "OBP-30336: View Permission not found by name. "
+  val InvalidViewPermissionName = "OBP-30337: The view permission name does not exist in OBP."
+  val DeleteViewPermissionError = "OBP-30338: Could not delete the View Permission."
   
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."

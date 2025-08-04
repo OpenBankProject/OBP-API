@@ -1,7 +1,7 @@
 package code.consent
 
 import java.util.Date
-import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPStatus, OBPUserId, SecureRandomUtil}
+import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
 import code.util.MappedUUID
@@ -73,7 +73,23 @@ object MappedConsentProvider extends ConsentProvider {
     val consentId = queryParams.collectFirst { case OBPConsentId(value) => By(MappedConsent.mConsentId, value) }
     val userId = queryParams.collectFirst { case OBPUserId(value) => By(MappedConsent.mUserId, value) }
     val status = queryParams.collectFirst {
-      case OBPStatus(value) => ByList(MappedConsent.mStatus, List(value.toLowerCase(), value.toUpperCase()))
+      case OBPStatus(value) =>
+        // Split the comma-separated string into a List, and trim whitespace from each element
+        val statuses: List[String] = value.split(",").toList.map(_.trim)
+
+        // For each distinct status:
+        //   - create both lowercase ancheckIsLockedd uppercase versions
+        //   - flatten the resulting list of lists into a single list
+        //   - remove duplicates from the final list
+        val distinctLowerAndUpperCaseStatuses: List[String] =
+        statuses.distinct // Remove duplicates (case-sensitive)
+          .flatMap(s => List( // For each element, generate:
+            s.toLowerCase, //   - lowercase version
+            s.toUpperCase //   - uppercase version
+          ))
+          .distinct // Remove any duplicates caused by lowercase/uppercase repetition
+
+        ByList(MappedConsent.mStatus, distinctLowerAndUpperCaseStatuses)
     }
 
     Seq(
@@ -86,14 +102,60 @@ object MappedConsentProvider extends ConsentProvider {
     ).flatten
   }
 
+  private def sortConsents(consents: List[MappedConsent], sortByParam: String): List[MappedConsent] = {
+    // Parse sort_by param like "created_date:desc,status:asc,consumer_id:asc"
+    val sortFields: List[(String, String)] = sortByParam
+      .split(",")
+      .toList
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .map { fieldSpec =>
+        val parts = fieldSpec.split(":").map(_.trim.toLowerCase)
+        val fieldName = parts(0)
+        val sortOrder = parts.lift(1).getOrElse("asc") // default to asc
+        (fieldName, sortOrder)
+      }
+
+    // Apply sorting in reverse order, so first field becomes the last sort (because sortBy is stable)
+    sortFields.reverse.foldLeft(consents) { case (acc, (fieldName, sortOrder)) =>
+      val ascending = sortOrder != "desc"
+
+      fieldName match {
+        case "created_date" =>
+          if (ascending)
+            acc.sortBy(_.createdAt.get)
+          else
+            acc.sortBy(_.createdAt.get)(Ordering[java.util.Date].reverse)
+
+        case "status" =>
+          if (ascending)
+            acc.sortBy(_.status)(Ordering[String])
+          else
+            acc.sortBy(_.status)(Ordering[String].reverse)
+
+        case "consumer_id" =>
+          if (ascending)
+            acc.sortBy(_.consumerId)(Ordering[String])
+          else
+            acc.sortBy(_.consumerId)(Ordering[String].reverse)
+
+        case _ =>
+          // Unknown field → ignore
+          acc
+      }
+    }
+  }
+
+
   override def getConsents(queryParams: List[OBPQueryParam]): List[MappedConsent] = {
     val optionalParams = getQueryParams(queryParams)
+    val sortBy: Option[String] = queryParams.collectFirst { case OBPSortBy(value) => value }
     val consents = MappedConsent.findAll(optionalParams: _*)
     val bankId: Option[String] = queryParams.collectFirst { case OBPBankId(value) => value }
     if(bankId.isDefined) {
       Consent.filterStrictlyByBank(consents, bankId.get)
     } else {
-      consents
+      sortConsents(consents, sortBy.getOrElse(""))
     }
   }
   override def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String], consumer: Option[Consumer]): Box[MappedConsent] = {
@@ -335,6 +397,7 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   object mTransactionFromDateTime extends MappedDateTime(this)
   object mTransactionToDateTime extends MappedDateTime(this)
   object mStatusUpdateDateTime extends MappedDateTime(this)
+  object mNote extends MappedText(this)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -364,6 +427,7 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   override def creationDateTime= createdAt.get    
   override def statusUpdateDateTime= mStatusUpdateDateTime.get    
   override def consentReferenceId = id.get.toString  
+  override def note = mNote.get
 
 }
 

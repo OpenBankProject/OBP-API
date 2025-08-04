@@ -57,6 +57,8 @@ class ConsentTest extends V310ServerSetup {
   object VersionOfApi2 extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint3 extends Tag(nameOf(APIMethods300.Implementations3_0_0.getUserByUserId))
 
+  val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
+
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
@@ -140,7 +142,7 @@ class ConsentTest extends V310ServerSetup {
     // Create a consent as the user1.
     // Must fail because we try to assign a role other that user already have access to the request 
     val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL").POST <@ (user1)
-    val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
+    val response400 = makePostRequest(request400, write(postConsentEmailJsonV310), validHeaderConsumerKey)
     Then("We should get a 400")
     response400.code should equal(400)
     response400.body.extract[ErrorMessage].message should equal(RolesAllowedInConsent)
@@ -148,7 +150,7 @@ class ConsentTest extends V310ServerSetup {
     Then("We grant the role and test it again")
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
     // Create a consent as the user1. The consent is in status INITIATED
-    val secondResponse400 = makePostRequest(request400, write(postConsentEmailJsonV310))
+    val secondResponse400 = makePostRequest(request400, write(postConsentEmailJsonV310), validHeaderConsumerKey)
     Then("We should get a 201")
     secondResponse400.code should equal(201)
 
@@ -158,7 +160,7 @@ class ConsentTest extends V310ServerSetup {
 
     // Make a request with the consent which is NOT in status ACCEPTED
     val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "current").GET
-    val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header)
+    val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header ::: validHeaderConsumerKey)
     APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false) match {
       case true =>
         // Due to the wrong status of the consent the request must fail
@@ -175,16 +177,15 @@ class ConsentTest extends V310ServerSetup {
         // Make a request WITHOUT the request header "Consumer-Key: SOME_VALUE"
         // Due to missing value the request must fail
         makeGetRequest(requestGetUserByUserId400, header)
-          .body.extract[ErrorMessage].message should include(ConsumerKeyHeaderMissing)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: NON_EXISTING_VALUE"
         // Due to non existing value the request must fail
         val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
         makeGetRequest(requestGetUserByUserId400, header ::: headerConsumerKey)
-          .body.extract[ErrorMessage].message should include(ConsentDoesNotMatchConsumer)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
-        val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
         val response = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
         val user =   response.body.extract[UserJsonV300]
         val assignedEntitlements: Seq[PostConsentEntitlementJsonV310] = user.entitlements.list.flatMap(
@@ -237,7 +238,7 @@ class ConsentTest extends V310ServerSetup {
 
     // Make a request with the consent which is NOT in status ACCEPTED
     val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "current").GET
-    val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header)
+    val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header ::: validHeaderConsumerKey)
     APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false) match {
       case true =>
         // Due to the wrong status of the consent the request must fail
@@ -254,13 +255,13 @@ class ConsentTest extends V310ServerSetup {
         // Make a request WITHOUT the request header "Consumer-Key: SOME_VALUE"
         // Due to missing value the request must fail
         makeGetRequest(requestGetUserByUserId400, header)
-          .body.extract[ErrorMessage].message should include(ConsumerKeyHeaderMissing)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: NON_EXISTING_VALUE"
         // Due to non existing value the request must fail
         val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
         makeGetRequest(requestGetUserByUserId400, header ::: headerConsumerKey)
-          .body.extract[ErrorMessage].message should include(ConsentDoesNotMatchConsumer)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
         val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))

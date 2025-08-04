@@ -28,14 +28,11 @@ TESOBE (http://www.tesobe.com/)
 package code.util
 
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
-import code.api.UKOpenBanking.v2_0_0.{APIMethods_UKOpenBanking_200, OBP_UKOpenBanking_200}
-import code.api.UKOpenBanking.v3_1_0.{APIMethods_AccountAccessApi, OBP_UKOpenBanking_310}
+import code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi
 import code.api.berlin.group.ConstantsBG
-import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil.OBPEndpoint
 import code.api.util._
-import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.{OBPAPI4_0_0, V400ServerSetup}
 import code.setup.PropsReset
@@ -191,7 +188,7 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
         "can_see_transaction_status"
       ).toSet
       val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-      val permissions = APIUtil.getViewPermissions(systemOwnerView.asInstanceOf[ViewDefinition])
+      val permissions = systemOwnerView.asInstanceOf[ViewDefinition].allowed_actions.toSet
 
       subList.subsetOf(permissions)
     }

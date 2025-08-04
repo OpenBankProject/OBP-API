@@ -230,7 +230,7 @@ object MessageDocsSwaggerDefinitions
     currency = currencyExample.value,
     description = Some(transactionDescriptionExample.value),
     startDate = DateWithDayExampleObject,
-    finishDate = DateWithDayExampleObject,
+    finishDate = Some(DateWithDayExampleObject),
     balance = BigDecimal(balanceAmountExample.value),
     status = transactionStatusExample.value,
   )

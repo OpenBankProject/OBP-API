@@ -419,7 +419,7 @@ import net.liftweb.util.Helpers._
   /**Marking the locked state to show different error message */
   val usernameLockedStateCode = Long.MaxValue
 
-  val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
+  val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
   override def dbIndexes: List[BaseIndex[AuthUser]] = UniqueIndex(username, provider) ::super.dbIndexes

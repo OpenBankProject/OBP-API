@@ -39,6 +39,7 @@ import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
+import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
 import code.api.util.ApiRole.CanCreateEntitlementAtAnyBank
@@ -406,7 +407,7 @@ class Boot extends MdcLoggable {
     }
     
     // ensure our relational database's tables are created/fit the schema
-    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
+    val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
@@ -722,8 +723,14 @@ class Boot extends MdcLoggable {
     }
     
     LiftRules.uriNotFound.prepend{
+      case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(errorJsonResponse(
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
+        405,
+        Some(CallContextLight(url = r.uri))
+      )
+      )
       case (r, _) => NotFoundAsResponse(errorJsonResponse(
-        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})", 
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
         404)
       )
     }
@@ -788,7 +795,7 @@ class Boot extends MdcLoggable {
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
       // validate whether "connector.name.export.as.endpoints" have set a correct value
-      code.api.Constant.Connector match {
+      code.api.Constant.CONNECTOR match {
         case Full("star") =>
           val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
             .trim

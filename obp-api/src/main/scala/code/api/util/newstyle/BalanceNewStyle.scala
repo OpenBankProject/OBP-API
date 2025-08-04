@@ -1,12 +1,14 @@
 package code.api.util.newstyle
 
+import code.api.Constant._
 import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
-import code.api.util.ErrorMessages.{InvalidConnectorResponse}
+import code.api.util.ErrorMessages.InvalidConnectorResponse
 import code.api.util.{APIUtil, CallContext}
 import code.bankconnectors.Connector
 import code.views.Views
-import com.openbankproject.commons.model.{AccountBalances, AccountsBalances, BankId, BankIdAccountId, User, ViewId}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model._
+
 import scala.concurrent.Future
 
 object BalanceNewStyle {
@@ -20,7 +22,7 @@ object BalanceNewStyle {
     Future {
       val (views, accountAccesses) = Views.views.vend.getAccountAccessAtBankThroughView(user, bankId, viewId)
       // Filter views which can read the balance
-      val canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
+      val canSeeBankAccountBalanceViews = views.filter(_.allowed_actions.exists( _ == CAN_SEE_BANK_ACCOUNT_BALANCE))
       // Filter accounts the user has permission to see balances and remove duplicates
       val allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
       allowedAccounts
@@ -35,8 +37,11 @@ object BalanceNewStyle {
     Future {
       val (views, accountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
       // Filter views which can read the balance
-      val canSeeBankAccountBalanceViews = views.filter(_.canSeeBankAccountBalance)
-      // Filter accounts the user has permission to see balances and remove duplicates
+      
+      val viewsWithActions = views.map(view => (view, view.allowed_actions))
+      val canSeeBankAccountBalanceViews = viewsWithActions.filter {
+        case (_, actions) => actions.contains(CAN_SEE_BANK_ACCOUNT_BALANCE)
+      }.map(_._1)
       val allowedAccounts = APIUtil.intersectAccountAccessAndView(accountAccesses, canSeeBankAccountBalanceViews)
       allowedAccounts
     }  map {

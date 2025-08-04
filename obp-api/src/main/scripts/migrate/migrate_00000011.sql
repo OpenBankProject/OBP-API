@@ -1,5 +1,5 @@
 update
-  viewimpl
+  viewdefinition
 set
   isFirehose_ = TRUE
 where

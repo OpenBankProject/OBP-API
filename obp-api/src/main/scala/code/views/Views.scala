@@ -1,15 +1,13 @@
 package code.views
 
-import code.api.util.{APIUtil, CallContext}
-import code.model.dataAccess.{MappedBankAccount}
+import code.api.util.CallContext
+import code.model.dataAccess.MappedBankAccount
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.{CreateViewJson, _}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.mapper.By
-import net.liftweb.util.{SimpleInjector}
-
-import scala.concurrent.Future
-import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
@@ -26,11 +24,6 @@ trait Views {
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
   def getPermissionForUser(user: User) : Box[Permission]
- /**
-    * This is for @ViewPrivileges. 
-    * It will first find the view object by `bankIdAccountIdViewId`
-    * And then, call @getOrCreateViewPrivilege(view: View, user: User) for the view and user.
-   */
   def grantAccessToCustomView(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
   def grantAccessToMultipleViews(views : List[BankIdAccountIdViewId], user : User, callContext: Option[CallContext]) : Box[List[View]]
@@ -109,10 +102,10 @@ trait Views {
 
   def getOwners(view: View): Set[User]
   
-  def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
-  def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
+  def removeAllAccountAccess(bankId: BankId, accountId: AccountId) : Boolean
+  def removeAllViewsAndVierPermissions(bankId: BankId, accountId: AccountId) : Boolean
 
-  def bulkDeleteAllPermissionsAndViews() : Boolean
+  def bulkDeleteAllViewsAndAccountAccessAndViewPermission() : Boolean
 
 }
 

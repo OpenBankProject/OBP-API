@@ -2,25 +2,96 @@ package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholders.AccountHolders
-import code.api.Constant.{CUSTOM_PUBLIC_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.Constant._
 import code.api.util.APIUtil.isValidCustomViewName
 import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._
 import code.views.MapperViews.getExistingCustomView
-import code.views.system.ViewDefinition
+import code.views.system.{ViewDefinition, ViewPermission}
 import code.views.{MapperViews, Views}
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Failure, Full, ParamFailure}
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 
-/**
- * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
- * and MappedAccountHolder
- */
+
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
+  final val SYSTEM_CUSTOM_VIEW_PERMISSION_TEST = List(
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_METADATA,
+    CAN_SEE_TRANSACTION_DESCRIPTION,
+    CAN_SEE_TRANSACTION_AMOUNT,
+    CAN_SEE_TRANSACTION_TYPE,
+    CAN_SEE_TRANSACTION_CURRENCY,
+    CAN_SEE_TRANSACTION_START_DATE,
+    CAN_SEE_TRANSACTION_FINISH_DATE,
+    CAN_SEE_TRANSACTION_BALANCE,
+    CAN_SEE_COMMENTS,
+    CAN_SEE_OWNER_COMMENT,
+    CAN_SEE_TAGS,
+    CAN_SEE_IMAGES,
+    CAN_SEE_BANK_ACCOUNT_OWNERS,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_BANK_ACCOUNT_IBAN,
+    CAN_SEE_BANK_ACCOUNT_NUMBER,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME,
+    CAN_SEE_BANK_ACCOUNT_BANK_PERMALINK,
+    CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_OTHER_ACCOUNT_IBAN,
+    CAN_SEE_OTHER_ACCOUNT_BANK_NAME,
+    CAN_SEE_OTHER_ACCOUNT_NUMBER,
+    CAN_SEE_OTHER_ACCOUNT_METADATA,
+    CAN_SEE_OTHER_ACCOUNT_KIND,
+    CAN_SEE_MORE_INFO,
+    CAN_SEE_URL,
+    CAN_SEE_IMAGE_URL,
+    CAN_SEE_OPEN_CORPORATES_URL,
+    CAN_SEE_CORPORATE_LOCATION,
+    CAN_SEE_PHYSICAL_LOCATION,
+    CAN_SEE_PUBLIC_ALIAS,
+    CAN_SEE_PRIVATE_ALIAS,
+    CAN_ADD_MORE_INFO,
+    CAN_ADD_URL,
+    CAN_ADD_IMAGE_URL,
+    CAN_ADD_OPEN_CORPORATES_URL,
+    CAN_ADD_CORPORATE_LOCATION,
+    CAN_ADD_PHYSICAL_LOCATION,
+    CAN_ADD_PUBLIC_ALIAS,
+    CAN_ADD_PRIVATE_ALIAS,
+    CAN_DELETE_CORPORATE_LOCATION,
+    CAN_DELETE_PHYSICAL_LOCATION,
+    CAN_EDIT_OWNER_COMMENT,
+    CAN_ADD_COMMENT,
+    CAN_DELETE_COMMENT,
+    CAN_ADD_TAG,
+    CAN_DELETE_TAG,
+    CAN_ADD_IMAGE,
+    CAN_DELETE_IMAGE,
+    CAN_ADD_WHERE_TAG,
+    CAN_SEE_WHERE_TAG,
+    CAN_DELETE_WHERE_TAG,
+    CAN_SEE_BANK_ROUTING_SCHEME,
+    CAN_SEE_BANK_ROUTING_ADDRESS,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,
+    CAN_SEE_OTHER_BANK_ROUTING_SCHEME,
+    CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,
+    CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,
+    CAN_SEE_TRANSACTION_STATUS
+  )
+
+  
   override protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
     AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user, BankIdAccountId(bankId, accountId))
   }
@@ -46,7 +117,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
       
       getExistingCustomView(bankId, accountId, viewId) match {
         case net.liftweb.common.Empty => {
-          tryo {
+          val view = tryo {
             ViewDefinition.create.
               isSystem_(false).
               isFirehose_(false).
@@ -60,81 +131,14 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
               usePrivateAliasIfOneExists_(false).
               usePublicAliasIfOneExists_(false).
               hideOtherAccountMetadataIfAlias_(false).
-              canSeeTransactionThisBankAccount_(true).
-              canSeeTransactionOtherBankAccount_(true).
-              canSeeTransactionMetadata_(true).
-              canSeeTransactionDescription_(true).
-              canSeeTransactionAmount_(true).
-              canSeeTransactionType_(true).
-              canSeeTransactionCurrency_(true).
-              canSeeTransactionStartDate_(true).
-              canSeeTransactionFinishDate_(true).
-              canSeeTransactionBalance_(true).
-              canSeeComments_(true).
-              canSeeOwnerComment_(true).
-              canSeeTags_(true).
-              canSeeImages_(true).
-              canSeeBankAccountOwners_(true).
-              canSeeBankAccountType_(true).
-              canSeeBankAccountBalance_(true).
-              canSeeBankAccountCurrency_(true).
-              canSeeBankAccountLabel_(true).
-              canSeeBankAccountNationalIdentifier_(true).
-              canSeeBankAccountSwift_bic_(true).
-              canSeeBankAccountIban_(true).
-              canSeeBankAccountNumber_(true).
-              canSeeBankAccountBankName_(true).
-              canSeeBankAccountBankPermalink_(true).
-              canSeeOtherAccountNationalIdentifier_(true).
-              canSeeOtherAccountSWIFT_BIC_(true).
-              canSeeOtherAccountIBAN_(true).
-              canSeeOtherAccountBankName_(true).
-              canSeeOtherAccountNumber_(true).
-              canSeeOtherAccountMetadata_(true).
-              canSeeOtherAccountKind_(true).
-              canSeeMoreInfo_(true).
-              canSeeUrl_(true).
-              canSeeImageUrl_(true).
-              canSeeOpenCorporatesUrl_(true).
-              canSeeCorporateLocation_(true).
-              canSeePhysicalLocation_(true).
-              canSeePublicAlias_(true).
-              canSeePrivateAlias_(true).
-              canAddMoreInfo_(true).
-              canAddURL_(true).
-              canAddImageURL_(true).
-              canAddOpenCorporatesUrl_(true).
-              canAddCorporateLocation_(true).
-              canAddPhysicalLocation_(true).
-              canAddPublicAlias_(true).
-              canAddPrivateAlias_(true).
-              canDeleteCorporateLocation_(true).
-              canDeletePhysicalLocation_(true).
-              canEditOwnerComment_(true).
-              canAddComment_(true).
-              canDeleteComment_(true).
-              canAddTag_(true).
-              canDeleteTag_(true).
-              canAddImage_(true).
-              canDeleteImage_(true).
-              canAddWhereTag_(true).
-              canSeeWhereTag_(true).
-              canDeleteWhereTag_(true).
-              canSeeBankRoutingScheme_(true). //added following in V300
-              canSeeBankRoutingAddress_(true).
-              canSeeBankAccountRoutingScheme_(true).
-              canSeeBankAccountRoutingAddress_(true).
-              canSeeOtherBankRoutingScheme_(true).
-              canSeeOtherBankRoutingAddress_(true).
-              canSeeOtherAccountRoutingScheme_(true).
-              canSeeOtherAccountRoutingAddress_(true).
-              canAddTransactionRequestToOwnAccount_(false). //added following two for payments
-              canAddTransactionRequestToAnyAccount_(false).
-              canAddTransactionRequestToBeneficiary_(false).
-              canSeeBankAccountCreditLimit_(true).
-              canSeeTransactionStatus_(true).
               saveMe
           }
+          view.map(ViewPermission.resetViewPermissions(
+            _,
+            SYSTEM_CUSTOM_VIEW_PERMISSION_TEST
+          ))
+
+          view
         }
         case Full(v) => Full(v)
         case Failure(msg, t, c) => Failure(msg, t, c)

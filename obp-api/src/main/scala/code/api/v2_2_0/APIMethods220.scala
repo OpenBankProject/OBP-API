@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -8,6 +9,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2_1.{CreateViewJsonV121, JSONFactory, UpdateViewJsonV121}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
@@ -23,8 +25,7 @@ import code.model.dataAccess.BankAccountCreation
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
-import code.views.system.ViewDefinition
-import com.github.dwickern.macros.NameOf.nameOf
+import code.views.system.ViewPermission
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
@@ -135,9 +136,9 @@ trait APIMethods220 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
-            anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+            anyViewContainsCanSeeAvailableViewsForBankAccountPermission =  permission.views.map(_.allowed_actions.exists(_ ==  CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)).find(true == _).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
               cc= callContext
             ){
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission
@@ -202,12 +203,13 @@ trait APIMethods220 {
               createViewJsonV121.which_alias_to_use,
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
-            ) 
-            anyViewContainsCanCreateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
-              .map(_.views.map(_.canCreateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            )
+            permission <- Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+            anyViewContainsCanCreateCustomViewPermission =  permission.views.map(_.allowed_actions.exists(_ ==CAN_CREATE_CUSTOM_VIEW)).find(_ == true).getOrElse(false)
+            
             _ <- booleanToBox(
               anyViewContainsCanCreateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canCreateCustomView_)).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views"
             )
             view <- Views.views.vend.createCustomView(BankIdAccountId(bankId, accountId), createViewJson) ?~ CreateCustomViewError
           } yield {
@@ -262,11 +264,13 @@ trait APIMethods220 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            anyViewContainsCancanUpdateCustomViewPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
-              .map(_.views.map(_.canUpdateCustomView).find(_.==(true)).getOrElse(false)).getOrElse(false)
+
+            permission <- Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+            anyViewContainsCancanUpdateCustomViewPermission =  permission.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW)).find(true == _).getOrElse(false)
+              
             _ <- booleanToBox(
               anyViewContainsCancanUpdateCustomViewPermission,
-              s"${ErrorMessages.CreateCustomViewError} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateCustomView_)).dropRight(1)}` permission on any your views"
+              s"${ErrorMessages.CreateCustomViewError} You need the `${(CAN_UPDATE_CUSTOM_VIEW)}` permission on any your views"
             )
             updatedView <- Views.views.vend.updateCustomView(BankIdAccountId(bankId, accountId), viewId, updateViewJson) ?~ CreateCustomViewError
           } yield {
@@ -365,9 +369,12 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission} can_get_counterparty", cc=callContext) {
-              view.canGetCounterparty == true
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.NoViewPermission} You need the `${(CAN_GET_COUNTERPARTY)}` permission on the View(${viewId.value} )",
+              cc = callContext
+            ) {
+              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
@@ -415,10 +422,15 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", cc=callContext) {
-              view.canGetCounterparty == true
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
+
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.NoViewPermission} You need the `${(CAN_GET_COUNTERPARTY)}` permission on the View(${viewId.value} )",
+              cc = callContext
+            ) {
+              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
             }
+            
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
             (counterparty, callContext) <- NewStyle.function.getCounterpartyTrait(bankId, accountId, counterpartyId.value, callContext)
           } yield {
@@ -1189,10 +1201,13 @@ trait APIMethods220 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, cc.callContext) {
               json.extract[PostCounterpartyJSON]
             }
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-
-            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", cc=callContext) {view.canAddCounterparty}
-
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.NoViewPermission} You need the `${(CAN_ADD_COUNTERPARTY)}` permission on the View(${viewId.value} )",
+              cc = callContext
+            ) {
+              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_ADD_COUNTERPARTY)
+            }
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
 
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",

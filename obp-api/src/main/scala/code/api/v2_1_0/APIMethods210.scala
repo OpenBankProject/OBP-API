@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import code.TransactionTypes.TransactionType
+import code.api.Constant.CAN_SEE_TRANSACTION_REQUESTS
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.util.FutureUtil.EndpointContext
@@ -24,8 +25,6 @@ import code.sandbox.SandboxData
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
-import code.views.system.ViewDefinition
-import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
@@ -744,8 +743,8 @@ trait APIMethods210 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-              _ <- Helper.booleanToBox(view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value} )")
+              _ <- Helper.booleanToBox(view.allowed_actions.exists(_ == CAN_SEE_TRANSACTION_REQUESTS), 
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${(CAN_SEE_TRANSACTION_REQUESTS)}` permission on the View(${viewId.value} )")
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {

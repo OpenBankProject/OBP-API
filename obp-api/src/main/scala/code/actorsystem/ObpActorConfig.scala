@@ -50,7 +50,6 @@ object ObpActorConfig {
         "code.api.APIFailure" = kryo,
         "com.openbankproject.commons.model.BankAccount" = kryo,
         "com.openbankproject.commons.model.View" = kryo,
-        "code.model.dataAccess.ViewImpl" = kryo,
         "com.openbankproject.commons.model.User" = kryo,
         "com.openbankproject.commons.model.ViewId" = kryo,
         "com.openbankproject.commons.model.BankIdAccountIdViewId" = kryo,

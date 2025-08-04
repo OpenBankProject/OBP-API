@@ -211,9 +211,9 @@ trait SendServerRequests {
   /**
   *this method does a POST request given a URL, a JSON
     */
-  def makePostRequest(req: Req, json: String, headers: (String, String) *): APIResponse = {
+  def makePostRequest(req: Req, json: String, headers: List[(String, String)] = Nil): APIResponse = {
     val extra_headers = Map(  "Content-Type" -> "application/json",
-                              "Accept" -> "application/json") ++ headers.toMap
+                              "Accept" -> "application/json") ++ headers
     val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
     val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)

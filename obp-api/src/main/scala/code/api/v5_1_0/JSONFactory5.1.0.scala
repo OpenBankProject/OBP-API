@@ -46,7 +46,7 @@ import code.consent.MappedConsent
 import code.metrics.APIMetric
 import code.model.Consumer
 import code.users.{UserAttribute, Users}
-import code.views.system.{AccountAccess, ViewDefinition}
+import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
@@ -57,6 +57,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import scala.util.Try
 
+
+case class WellKnownUrisJsonV510(well_known_uris: List[WellKnownUriJsonV510])
+case class WellKnownUriJsonV510(provider: String, url: String)
 
 case class RegulatedEntityAttributeRequestJsonV510(
   name: String,
@@ -175,6 +178,7 @@ case class AllConsentJsonV510(consent_reference_id: String,
                               remaining_requests: Option[Int] = None,
                               api_standard: String,
                               api_version: String,
+                              note: String,
                              )
 case class ConsentsJsonV510(consents: List[AllConsentJsonV510])
 
@@ -575,6 +579,11 @@ case class ConsentRequestToAccountJson(
   limit: PostCounterpartyLimitV510
 )
 
+case class CreateViewPermissionJson(
+  permission_name: String,
+  extra_data: Option[List[String]]
+)
+
 case class PostVRPConsentRequestJsonInternalV510(
   consent_type: String,
   from_account: ConsentRequestFromAccountJson,
@@ -661,6 +670,11 @@ case class BankAccountBalanceResponseJsonV510(
 case class BankAccountBalancesJsonV510(
   balances: List[BankAccountBalanceResponseJsonV510]
 )
+case class ViewPermissionJson(
+  view_id: String,
+  permission_name:String,
+  extra_data: Option[List[String]]
+)
 
 object JSONFactory510 extends CustomJsonFormats {
 
@@ -719,7 +733,7 @@ object JSONFactory510 extends CustomJsonFormats {
       is_public = view.isPublic,
       alias = alias,
       hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
-      allowed_permissions = APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList
+      allowed_permissions = view.asInstanceOf[ViewDefinition].allowed_actions.toList
     )
   }
   def createCustomersIds(customers :  List[Customer]): CustomersIdsJsonV510 =
@@ -978,7 +992,8 @@ object JSONFactory510 extends CustomJsonFormats {
           frequency_per_day = if(c.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) Some(c.frequencyPerDay) else None,
           remaining_requests = if(c.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) Some(c.frequencyPerDay - c.usesSoFarTodayCounter) else None,
           api_standard = c.apiStandard,
-          api_version = c.apiVersion
+          api_version = c.apiVersion,
+          note = c.note
         )
       }
     )
@@ -999,7 +1014,7 @@ object JSONFactory510 extends CustomJsonFormats {
     val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
     val energySource = EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
-    val connector = code.api.Constant.Connector.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
+    val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
     val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
     APIInfoJsonV510(
@@ -1204,6 +1219,16 @@ object JSONFactory510 extends CustomJsonFormats {
       is_pending_agent = agent.isPendingAgent
     )
   }
+
+  def createViewPermissionJson(viewPermission: ViewPermission): ViewPermissionJson = {
+    val value = viewPermission.extraData.get
+    ViewPermissionJson(
+      viewPermission.view_id.get,
+      viewPermission.permission.get,
+      if(value == null || value.isEmpty) None else Some(value.split(",").toList)
+    )
+  }
+  
   def createMinimalAgentsJson(agents: List[Agent]): MinimalAgentsJsonV510 = {
     MinimalAgentsJsonV510(
       agents

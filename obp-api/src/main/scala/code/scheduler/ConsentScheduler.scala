@@ -8,11 +8,15 @@ import com.openbankproject.commons.util.{ApiStandards, ApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.mapper.{By, By_<}
 
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import scala.util.{Failure, Success, Try}
 
 
 object ConsentScheduler extends MdcLoggable {
+  val dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH)
+  def currentDate = dateFormat.format(new Date())
 
   // Starts multiple scheduled tasks with different intervals
   def startAll(): Unit = {
@@ -61,8 +65,14 @@ object ConsentScheduler extends MdcLoggable {
 
       outdatedConsents.foreach { consent =>
         Try {
-          consent.mStatus(ConsentStatus.rejected.toString).save
-          logger.warn(s"|---> Changed status to ${ConsentStatus.rejected.toString} for consent ID: ${consent.id}")
+          val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.rejected} for consent ID: ${consent.id}"
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
+          consent
+            .mStatus(ConsentStatus.rejected.toString)
+            .mNote(newNote)
+            .mStatusUpdateDateTime(new Date())
+            .save
+          logger.warn(message)
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged
@@ -77,18 +87,32 @@ object ConsentScheduler extends MdcLoggable {
     Try {
       logger.debug("|---> Checking for expired Berlin Group consents...")
 
-      val expiredConsents = MappedConsent.findAll(
+      val expiredConsentsLowerCase: List[MappedConsent] = MappedConsent.findAll(
         By(MappedConsent.mStatus, ConsentStatus.valid.toString),
         By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard),
         By_<(MappedConsent.mValidUntil, new Date())
       )
 
+      val expiredConsentsUpperCase: List[MappedConsent] = MappedConsent.findAll(
+        By(MappedConsent.mStatus, ConsentStatus.valid.toString.toUpperCase()), // Handle uppercase as well; should appear only during the transition period
+        By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard),
+        By_<(MappedConsent.mValidUntil, new Date())
+      )
+
+      val expiredConsents = expiredConsentsLowerCase ::: expiredConsentsUpperCase
+
       logger.debug(s"|---> Found ${expiredConsents.size} expired consents")
 
       expiredConsents.foreach { consent =>
         Try {
-          consent.mStatus(ConsentStatus.expired.toString).save
-          logger.warn(s"|---> Changed status to ${ConsentStatus.expired.toString} for consent ID: ${consent.id}")
+          val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.expired} for consent ID: ${consent.id}"
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
+          consent
+            .mStatus(ConsentStatus.expired.toString)
+            .mNote(newNote)
+            .mStatusUpdateDateTime(new Date())
+            .save
+          logger.warn(message)
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged
@@ -113,8 +137,14 @@ object ConsentScheduler extends MdcLoggable {
 
       expiredConsents.foreach { consent =>
         Try {
-          consent.mStatus(ConsentStatus.EXPIRED.toString).save
-          logger.warn(s"|---> Changed status to ${ConsentStatus.EXPIRED.toString} for consent ID: ${consent.id}")
+          val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.EXPIRED.toString} for consent ID: ${consent.id}"
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
+          consent
+            .mStatus(ConsentStatus.EXPIRED.toString)
+            .mNote(newNote)
+            .mStatusUpdateDateTime(new Date())
+            .save
+          logger.warn(message)
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged

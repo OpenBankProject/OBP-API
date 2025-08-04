@@ -58,6 +58,8 @@ class ConsentObpTest extends V510ServerSetup {
   object VersionOfApi2 extends Tag(ApiVersion.v3_0_0.toString)
   object GetUserByUserId extends Tag(nameOf(APIMethods300.Implementations3_0_0.getUserByUserId))
 
+  val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
+
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
@@ -111,7 +113,7 @@ class ConsentObpTest extends V510ServerSetup {
     // Create a consent as the user1.
     // Must fail because we try to assign a role other that user already have access to the request 
     val request = (v5_1_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1)
-    val response = makePostRequest(request, write(postConsentImplicitJsonV310))
+    val response = makePostRequest(request, write(postConsentImplicitJsonV310), validHeaderConsumerKey)
     Then("We should get a 400")
     response.code should equal(400)
     response.body.extract[ErrorMessage].message should equal(RolesAllowedInConsent)
@@ -119,7 +121,7 @@ class ConsentObpTest extends V510ServerSetup {
     Then("We grant the role and test it again")
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
     // Create a consent as the user1. The consent is in status INITIATED
-    val secondResponse = makePostRequest(request, write(postConsentImplicitJsonV310))
+    val secondResponse = makePostRequest(request, write(postConsentImplicitJsonV310), validHeaderConsumerKey)
     Then("We should get a 201")
     secondResponse.code should equal(201)
 
@@ -129,7 +131,7 @@ class ConsentObpTest extends V510ServerSetup {
 
     // Make a request with the consent which is NOT in status ACCEPTED
     val requestGetUserByUserId = (v5_1_0_Request / "users" / "current").GET
-    val responseGetUserByUserId = makeGetRequest(requestGetUserByUserId, header)
+    val responseGetUserByUserId = makeGetRequest(requestGetUserByUserId, header ::: validHeaderConsumerKey)
     APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false) match {
       case true =>
         // Due to the wrong status of the consent the request must fail
@@ -146,16 +148,15 @@ class ConsentObpTest extends V510ServerSetup {
         // Make a request WITHOUT the request header "Consumer-Key: SOME_VALUE"
         // Due to missing value the request must fail
         makeGetRequest(requestGetUserByUserId, header)
-          .body.extract[ErrorMessage].message should include(ConsumerKeyHeaderMissing)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: NON_EXISTING_VALUE"
         // Due to non existing value the request must fail
         val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
         makeGetRequest(requestGetUserByUserId, header ::: headerConsumerKey)
-          .body.extract[ErrorMessage].message should include(ConsentDoesNotMatchConsumer)
+          .body.extract[ErrorMessage].message should include(ConsentNotFound)
 
         // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
-        val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
         val response2 = makeGetRequest((v5_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
         val user =   response2.body.extract[UserJsonV300]
         val assignedEntitlements: Seq[PostConsentEntitlementJsonV310] = user.entitlements.list.flatMap(

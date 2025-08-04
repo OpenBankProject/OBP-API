@@ -6,22 +6,22 @@ import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiTag, NewStyle}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.newstyle.ViewNewStyle
+import code.api.util.{ApiTag, NewStyle}
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_AISPApi extends RestHelper {
@@ -112,7 +112,7 @@ The ASPSP answers by providing a list of balances on this account.
              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
              (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+             view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
              moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
@@ -299,7 +299,7 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
             
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(accountresourceid), callContext)
             
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
             
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))

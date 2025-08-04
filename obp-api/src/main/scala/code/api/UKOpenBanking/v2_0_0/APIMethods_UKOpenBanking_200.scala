@@ -5,19 +5,17 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, _}
-import com.openbankproject.commons.util.ApiVersion
-import code.api.util.{ ErrorMessages, NewStyle}
+import code.api.util.newstyle.ViewNewStyle
+import code.api.util.{ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
 import code.model._
-import code.util.Helper
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_UKOpenBanking_200 extends RestHelper{
@@ -92,7 +90,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
             (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -181,7 +179,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
         
             moderatedAccount <- Future {account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(u), callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))

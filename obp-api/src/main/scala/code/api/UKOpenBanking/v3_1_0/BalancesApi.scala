@@ -3,21 +3,19 @@ package code.api.UKOpenBanking.v3_1_0
 import code.api.Constant
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{ApiTag, NewStyle}
-
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId, View, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object APIMethods_BalancesApi extends RestHelper {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion
@@ -117,7 +115,7 @@ object APIMethods_BalancesApi extends RestHelper {
              _ <- NewStyle.function.checkUKConsent(user, callContext)
              _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
-             view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, accountId), Full(user), callContext)
+             view: View <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, accountId), Full(user), callContext)
              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), callContext)
            } yield {
              (JSONFactory_UKOpenBanking_310.createAccountBalanceJSON(moderatedAccount), callContext)

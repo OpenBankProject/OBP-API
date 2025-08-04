@@ -14,7 +14,7 @@ object KeycloakAdmin {
   // Initialize Logback logger
   private val logger = LoggerFactory.getLogger("okhttp3")
 
-  val integrateWithKeycloak = APIUtil.getPropsAsBoolValue("integrate_with_keycloak", defaultValue = false)
+  val integrateWithKeycloak: Boolean = APIUtil.getPropsAsBoolValue("integrate_with_keycloak", defaultValue = false)
   // Define variables (replace with actual values)
   private val keycloakHost = Keycloak.keycloakHost
   private val realm = APIUtil.getPropsValue(nameOfProperty = "oauth2.keycloak.realm", "master")
@@ -30,7 +30,7 @@ object KeycloakAdmin {
     builder.build()
   }
   // Create OkHttp client with logging
-  val client = createHttpClientWithLogback()
+  val client: OkHttpClient = createHttpClientWithLogback()
 
   def createKeycloakConsumer(consumer: Consumer): Box[Boolean] = {
     val isPublic =

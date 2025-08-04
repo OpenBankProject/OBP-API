@@ -26,12 +26,13 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v1_2_1
 
-import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.isValidSystemViewId
+import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
@@ -39,7 +40,6 @@ import com.openbankproject.commons.model._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.scalatest.Tag
-import code.api.util.ErrorMessages._
 
 import scala.util.Random._
 
@@ -48,25 +48,65 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   def v1_2_1Request = baseRequest / "obp" / "v1.2.1"
 
   val viewFields = List(
-    "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
-    "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
-    "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
-    "can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments",
-    "can_see_narrative","can_see_tags","can_see_images","can_see_bank_account_owners",
-    "can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency",
-    "can_see_bank_account_label","can_see_bank_account_national_identifier",
-    "can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number",
-    "can_see_bank_account_bank_name","can_see_other_account_national_identifier",
-    "can_see_other_account_swift_bic","can_see_other_account_iban",
-    "can_see_other_account_bank_name","can_see_other_account_number",
-    "can_see_other_account_metadata","can_see_other_account_kind","can_see_more_info",
-    "can_see_url","can_see_image_url","can_see_open_corporates_url","can_see_corporate_location",
-    "can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info",
-    "can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location",
-    "can_add_physical_location","can_add_public_alias","can_add_private_alias",
-    "can_delete_corporate_location","can_delete_physical_location","can_edit_narrative",
-    "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
-    "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_METADATA,
+    CAN_SEE_TRANSACTION_DESCRIPTION,
+    CAN_SEE_TRANSACTION_AMOUNT,
+    CAN_SEE_TRANSACTION_TYPE,
+    CAN_SEE_TRANSACTION_CURRENCY,
+    CAN_SEE_TRANSACTION_START_DATE,
+    CAN_SEE_TRANSACTION_FINISH_DATE,
+    CAN_SEE_TRANSACTION_BALANCE,
+    CAN_SEE_COMMENTS,
+    CAN_SEE_OWNER_COMMENT,
+    CAN_SEE_TAGS,
+    CAN_SEE_IMAGES,
+    CAN_SEE_BANK_ACCOUNT_OWNERS,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_BANK_ACCOUNT_IBAN,
+    CAN_SEE_BANK_ACCOUNT_NUMBER,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME,
+    CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_OTHER_ACCOUNT_IBAN,
+    CAN_SEE_OTHER_ACCOUNT_BANK_NAME,
+    CAN_SEE_OTHER_ACCOUNT_NUMBER,
+    CAN_SEE_OTHER_ACCOUNT_METADATA,
+    CAN_SEE_OTHER_ACCOUNT_KIND,
+    CAN_SEE_MORE_INFO,
+    CAN_SEE_URL,
+    CAN_SEE_IMAGE_URL,
+    CAN_SEE_OPEN_CORPORATES_URL,
+    CAN_SEE_CORPORATE_LOCATION,
+    CAN_SEE_PHYSICAL_LOCATION,
+    CAN_SEE_PUBLIC_ALIAS,
+    CAN_SEE_PRIVATE_ALIAS,
+    CAN_ADD_MORE_INFO,
+    CAN_ADD_URL,
+    CAN_ADD_IMAGE_URL,
+    CAN_ADD_OPEN_CORPORATES_URL,
+    CAN_ADD_CORPORATE_LOCATION,
+    CAN_ADD_PHYSICAL_LOCATION,
+    CAN_ADD_PUBLIC_ALIAS,
+    CAN_ADD_PRIVATE_ALIAS,
+    CAN_DELETE_CORPORATE_LOCATION,
+    CAN_DELETE_PHYSICAL_LOCATION,
+    CAN_EDIT_OWNER_COMMENT,
+    CAN_ADD_COMMENT,
+    CAN_DELETE_COMMENT,
+    CAN_ADD_TAG,
+    CAN_DELETE_TAG,
+    CAN_ADD_IMAGE,
+    CAN_DELETE_IMAGE,
+    CAN_ADD_WHERE_TAG,
+    CAN_SEE_WHERE_TAG,
+    CAN_DELETE_WHERE_TAG
   )
 
   /************************* test tags ************************/
@@ -2017,8 +2057,10 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewId = SYSTEM_OWNER_VIEW_ID
       val userId1 = resourceUser2.idGivenByProvider
       val userId2 = resourceUser2.idGivenByProvider
-      grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
-      grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
+      val replyGrant1 = grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
+      replyGrant1.code should equal (201)
+      val replyGrant2 = grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
+      replyGrant2.code should equal (201)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)

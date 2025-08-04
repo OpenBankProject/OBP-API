@@ -1,35 +1,30 @@
 package code.api.v4_0_0
 
-import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util
-import java.util.{Calendar, Date}
-import code.DynamicData.{DynamicData, DynamicDataProvider}
+import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.Constant.{CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, PARAM_LOCALE, PARAM_TIMESTAMP, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
-import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
-import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper, DynamicEndpoints}
+import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper}
+import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
 import code.api.util.ErrorMessages.{BankNotFound, _}
 import code.api.util.ExampleValue._
-import code.api.util.Glossary.{getGlossaryItem, getGlossaryItemSimple}
+import code.api.util.FutureUtil.EndpointContext
+import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
-import code.api.util.NewStyle.function.{isValidCurrencyISOCode => isValidCurrencyISOCodeNS, _}
+import code.api.util.NewStyle.function._
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
-import code.api.util.newstyle.{BalanceNewStyle, UserCustomerLinkNewStyle}
 import code.api.util.newstyle.UserCustomerLinkNewStyle.getUserCustomerLinks
+import code.api.util.newstyle.{BalanceNewStyle, UserCustomerLinkNewStyle, ViewNewStyle}
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
@@ -38,21 +33,15 @@ import code.api.v2_0_0.{CreateEntitlementJSON, CreateUserCustomerLinkJson, Entit
 import code.api.v2_1_0._
 import code.api.v3_0_0.{CreateScopeJson, JSONFactory300}
 import code.api.v3_1_0._
+import code.api.v4_0_0.APIMethods400.{createTransactionRequest, transactionRequestGeneralText}
 import code.api.v4_0_0.JSONFactory400._
-import code.fx.{MappedFXRate, fx}
-import code.api.dynamic.endpoint.helper._
-import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
-import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.util.FutureUtil.EndpointContext
-import code.api.v4_0_0.APIMethods400.{createTransactionRequest, lowAmount, sharedChargePolicy, transactionRequestGeneralText}
-import code.api.v4_0_0.TransactionRequestBodyAgentJsonV400
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentRequests, ConsentStatus, Consents}
+import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -62,13 +51,11 @@ import code.fx.fx
 import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
-import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model._
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.ratelimiting.RateLimitingDI
 import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
-import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.MappedTransactionRequestProvider
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -76,41 +63,39 @@ import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
-import code.views.system.ViewDefinition
-import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
+import code.webhook.{BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.networknt.schema.ValidationMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
-import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
-import com.openbankproject.commons.model.enums.PaymentServiceTypes._
-import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
+import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import deletion._
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.lang3.StringUtils
 
-import java.time.{LocalDate, ZoneId, ZonedDateTime}
-import java.util.Date
+import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.time.{LocalDate, ZoneId}
+import java.util
+import java.util.{Calendar, Date}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
-import scala.math.BigDecimal
 import scala.xml.XML
 
 trait APIMethods400 extends MdcLoggable {
@@ -230,7 +215,7 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetCallLimits, callContext)
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", u.userId, List(canSetCallLimits), callContext)
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJsonV400 ", 400, callContext) {
               json.extract[CallLimitPostJsonV400]
             }
@@ -427,7 +412,7 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (doubleEntryTransaction, callContext) <- NewStyle.function.getBalancingTransaction(transactionId, cc.callContext)
-            _ <- NewStyle.function.checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction, cc.user, cc.callContext)
+            _ <- ViewNewStyle.checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction, cc.user, cc.callContext)
           } yield {
             (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
@@ -501,7 +486,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
             currency = createAccountJson.balance.currency
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(currency)}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){APIUtil.isValidCurrencyISOCode(currency)}
 
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext) {
@@ -1029,7 +1014,7 @@ trait APIMethods400 extends MdcLoggable {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge",
-      """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+      s"""In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
         |
         |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
         |
@@ -1066,7 +1051,7 @@ trait APIMethods400 extends MdcLoggable {
         |
         |Rule for calculating number of security challenges:
         |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
-        |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
+        |(one for every user that has a View where permission $CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT=true)
         |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
         |
       """.stripMargin,
@@ -2150,7 +2135,7 @@ trait APIMethods400 extends MdcLoggable {
               BigDecimal(initialBalanceAsString)
             }
             _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){APIUtil.isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext) {
@@ -2320,9 +2305,9 @@ trait APIMethods400 extends MdcLoggable {
               json.extract[UpdateAccountJsonV400]
             }
             anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
-              .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
+              .map(_.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_BANK_ACCOUNT_LABEL))).getOrElse(Nil).find(_.==(true)).getOrElse(false)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canUpdateBankAccountLabel_)).dropRight(1)}` permission on any your views",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${(CAN_UPDATE_BANK_ACCOUNT_LABEL)}` permission on any your views",
               cc = callContext
             ) {
               anyViewContainsCanUpdateBankAccountLabelPermission
@@ -2564,7 +2549,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)", cc=callContext) {
-              view.canAddTag
+              view.allowed_actions.exists( _ == CAN_ADD_TAG)
             }
             tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, callContext) {
               json.extract[PostTransactionTagJSON]
@@ -2608,7 +2593,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)", cc=callContext) {
-              view.canDeleteTag
+              view.allowed_actions.exists(_ ==CAN_DELETE_TAG)
             }
             deleted <- Future(Tags.tags.vend.deleteTagOnAccount(bankId, accountId)(tagId)) map {
               i => (connectorEmptyResponse(i, callContext), callContext)
@@ -2650,7 +2635,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)", cc=callContext) {
-              view.canSeeTags
+              view.allowed_actions.exists(_ ==CAN_SEE_TAGS)
             }
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
           } yield {
@@ -2696,7 +2681,7 @@ trait APIMethods400 extends MdcLoggable {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (user @Full(u), account, callContext) <- SS.userAccount
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
           } yield {
             val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
@@ -2797,7 +2782,7 @@ trait APIMethods400 extends MdcLoggable {
               postJson.account_routing.scheme, postJson.account_routing.address, cc.callContext)
 
             user @Full(u) = cc.user
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
             moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
 
             (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
@@ -2876,7 +2861,7 @@ trait APIMethods400 extends MdcLoggable {
 
             accountsJson <- Future.sequence(filteredAccountRoutings.map(accountRouting => for {
               (account, callContext) <- NewStyle.function.getBankAccount(accountRouting.bankId, accountRouting.accountId, callContext)
-              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+              view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
               moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
               (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
                 account.bankId,
@@ -2999,7 +2984,7 @@ trait APIMethods400 extends MdcLoggable {
               allowAccountFirehose
             }
             // here must be a system view, not accountIds in the URL
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, AccountId("")), Some(u), callContext)
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, AccountId("")), Some(u), callContext)
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
             }
@@ -3688,7 +3673,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)", cc=callContext) {
-              view.canCreateDirectDebit
+              view.allowed_actions.exists(_ ==CAN_CREATE_DIRECT_DEBIT)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3807,7 +3792,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)", cc=callContext) {
-              view.canCreateStandingOrder
+              view.allowed_actions.exists(_ ==CAN_CREATE_STANDING_ORDER)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3817,7 +3802,7 @@ trait APIMethods400 extends MdcLoggable {
               BigDecimal(postJson.amount.amount)
             }
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'", cc=callContext) {
-              code.api.util.APIUtil.isValidCurrencyISOCode(postJson.amount.currency)
+              APIUtil.isValidCurrencyISOCode(postJson.amount.currency)
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
@@ -3888,7 +3873,7 @@ trait APIMethods400 extends MdcLoggable {
               BigDecimal(postJson.amount.amount)
             }
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'", cc=cc.callContext) {
-              isValidCurrencyISOCode(postJson.amount.currency)
+              APIUtil.isValidCurrencyISOCode(postJson.amount.currency)
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, cc.callContext)
             _ <- Users.users.vend.getUserByUserIdFuture(postJson.user_id) map {
@@ -4074,12 +4059,12 @@ trait APIMethods400 extends MdcLoggable {
             }
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
             view <- postJson.view.is_system match {
-              case true => NewStyle.function.systemView(viewId, callContext)
-              case false => NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
+              case true => ViewNewStyle.systemView(viewId, callContext)
+              case false => ViewNewStyle.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             }
             revoked <- postJson.view.is_system match {
-              case true => NewStyle.function.revokeAccessToSystemView(bankId, accountId, view, user, callContext)
-              case false => NewStyle.function.revokeAccessToCustomView(view, user, callContext)
+              case true => ViewNewStyle.revokeAccessToSystemView(bankId, accountId, view, user, callContext)
+              case false => ViewNewStyle.revokeAccessToCustomView(view, user, callContext)
             }
           } yield {
             (RevokedJsonV400(revoked), HttpCode.`201`(callContext))
@@ -4655,7 +4640,7 @@ trait APIMethods400 extends MdcLoggable {
             }
             // Prevent default value for transaction request type (at least).
             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
-              isValidCurrencyISOCode(transDetailsJson.value.currency)
+              APIUtil.isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
@@ -4736,11 +4721,11 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
+            view <- ViewNewStyle.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeTransactionRequests_)).dropRight(1)}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${(CAN_SEE_TRANSACTION_REQUESTS)}` permission on the View(${viewId.value})",
               cc = callContext) {
-              view.canSeeTransactionRequests
+              view.allowed_actions.exists(_ ==CAN_SEE_TRANSACTION_REQUESTS)
             }
             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
           } yield {
@@ -7500,7 +7485,7 @@ trait APIMethods400 extends MdcLoggable {
             }
 
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", 403, cc=callContext) {
-              view.canAddCounterparty
+              view.allowed_actions.exists(_ ==CAN_ADD_COUNTERPARTY)
             }
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
@@ -7513,7 +7498,7 @@ trait APIMethods400 extends MdcLoggable {
               postJson.description.length <= 36
             }
             _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc=callContext) {
-              isValidCurrencyISOCode(postJson.currency)
+              APIUtil.isValidCurrencyISOCode(postJson.currency)
             }
 
             //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.
@@ -7617,7 +7602,7 @@ trait APIMethods400 extends MdcLoggable {
             _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
 
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_delete_counterparty. Please use a view with that permission or add the permission to this view.",403, cc=callContext) {
-              view.canDeleteCounterparty
+              view.allowed_actions.exists(_ ==CAN_DELETE_COUNTERPARTY)
             }
 
             (counterparty, callContext) <- NewStyle.function.deleteCounterpartyByCounterpartyId(counterpartyId, callContext)
@@ -7729,7 +7714,7 @@ trait APIMethods400 extends MdcLoggable {
             }
 
             _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc=callContext) {
-              isValidCurrencyISOCode(postJson.currency)
+              APIUtil.isValidCurrencyISOCode(postJson.currency)
             }
 
             //If other_account_routing_scheme=="OBP" or other_account_secondary_routing_address=="OBP" we will check if it is a real obp bank account.
@@ -7825,7 +7810,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
-              view.canGetCounterparty == true
+              view.allowed_actions.exists(_ ==CAN_GET_COUNTERPARTY)
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
@@ -7926,7 +7911,7 @@ trait APIMethods400 extends MdcLoggable {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
-              view.canGetCounterparty == true
+              view.allowed_actions.exists(_ ==CAN_GET_COUNTERPARTY)
             }
             (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
@@ -12307,7 +12292,7 @@ object APIMethods400 extends RestHelper with APIMethods400 {
       }
 
       _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
-        isValidCurrencyISOCode(transDetailsJson.value.currency)
+        APIUtil.isValidCurrencyISOCode(transDetailsJson.value.currency)
       }
 
       (createdTransactionRequest, callContext) <- transactionRequestTypeValue match {

@@ -173,6 +173,14 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
   object PSP_IC extends Value
   object PSP_AI extends Value
   object PSP_PI extends Value
+
+  def toBerlinGroup(role: String): String = {
+    role match {
+      case item if PSP_AI.toString == item => "AISP"
+      case item if PSP_PI.toString == item => "PISP"
+      case _ => ""
+    }
+  }
 }
 
 sealed trait UserInvitationPurpose extends EnumValue

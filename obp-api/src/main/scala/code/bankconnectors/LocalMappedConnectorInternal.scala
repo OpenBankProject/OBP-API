@@ -7,6 +7,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.util.newstyle.ViewNewStyle
 import code.branches.MappedBranch
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
@@ -69,9 +70,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
       // Removed view SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
       viewId = ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
       fromBankIdAccountId = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
-      view <- NewStyle.function.checkAccountAccessAndGetView(viewId, fromBankIdAccountId, Full(user), callContext)
+      view <- ViewNewStyle.checkAccountAccessAndGetView(viewId, fromBankIdAccountId, Full(user), callContext)
       _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest, cc = callContext) {
-        view.canAddTransactionRequestToAnyAccount
+        val allowed_actions = view.allowed_actions
+        allowed_actions.exists(_ ==CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT)
       }
 
       (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(

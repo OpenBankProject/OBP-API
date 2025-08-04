@@ -145,7 +145,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
       //compare time as a long to avoid issues comparing Dates, e.g. java.util.Date vs java.sql.Date
       t.startDate.getTime should equal(importJsonDateFormat.parse(startDate).getTime) 
-      t.finishDate.getTime should equal(importJsonDateFormat.parse(endDate).getTime)
+      t.finishDate.head.getTime should equal(importJsonDateFormat.parse(endDate).getTime)
     }
 
     scenario("Attempting to import transactions without using a secret key") {

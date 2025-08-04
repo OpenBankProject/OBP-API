@@ -26,7 +26,6 @@ TESOBE (http://www.tesobe.com/)
  */
 
 package code.api.util
-
 import bootstrap.liftweb.CustomDBVendor
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -47,8 +46,10 @@ import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.BerlinGroupSigning.getCertificateFromTppSignatureCertificate
+import code.api.util.Consent.getConsumerKey
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
@@ -67,7 +68,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
-import code.views.system.{AccountAccess, ViewDefinition}
+import code.views.system.AccountAccess
 import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
@@ -104,7 +105,7 @@ import java.security.AccessControlException
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, Date, Locale, UUID}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
@@ -132,6 +133,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsAndTimeZoneOffset)
+  val rfc7231Date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
 
   val DateWithYearExampleString: String = "1100"
   val DateWithMonthExampleString: String = "1100-01"
@@ -1138,6 +1140,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             value <- tryo(values.head.toBoolean) ?~! FilterIsDeletedFormatError
             deleted = OBPIsDeleted(value)
           } yield deleted
+        case "sort_by" => Full(OBPSortBy(values.head))
         case "status" => Full(OBPStatus(values.head))
         case "consumer_id" => Full(OBPConsumerId(values.head))
         case "azp" => Full(OBPAzp(values.head))
@@ -1180,6 +1183,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def createQueriesByHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
+      sortBy <- getHttpParamValuesByName(httpParams, "sort_by")
       sortDirection <- getSortDirection(httpParams)
       fromDate <- getFromDate(httpParams)
       toDate <- getToDate(httpParams)
@@ -1226,10 +1230,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
        *
        */
       //val sortBy = json.header("obp_sort_by")
-      val sortBy = None
-      val ordering = OBPOrdering(sortBy, sortDirection)
+      val ordering = OBPOrdering(None, sortDirection)
       //This guarantee the order 
-      List(limit, offset, ordering, fromDate, toDate,
+      List(limit, offset, ordering, sortBy, fromDate, toDate,
         anon, status, consumerId, azp, iss, consentId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
@@ -1259,6 +1262,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
     val sleep = getHttpRequestUrlParam(httpRequestUrl,"sleep")
+    val sortBy = getHttpRequestUrlParam(httpRequestUrl,"sort_by")
     val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
     val fromDate =  getHttpRequestUrlParam(httpRequestUrl,"from_date")
     val toDate =  getHttpRequestUrlParam(httpRequestUrl,"to_date")
@@ -1300,7 +1304,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
 
     Full(List(
-      HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
+      HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
       HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
@@ -3016,6 +3020,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // Identify consumer via certificate
     val consumerByCertificate = Consent.getCurrentConsumerViaTppSignatureCertOrMtls(callContext = cc)
+    val method = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
+    val consumerByConsumerKey = getConsumerKey(reqHeaders) match {
+      case Some(consumerKey) if method == "CONSUMER_KEY_VALUE" =>
+        Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey)
+      case None =>
+        Empty
+    }
 
     val res =
       if (authHeadersWithEmptyValues.nonEmpty) { // Check Authorization Headers Empty Values
@@ -3026,6 +3037,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
       } else if (authHeaders.size > 1) { // Check Authorization Headers ambiguity
         Future { (Failure(ErrorMessages.AuthorizationHeaderAmbiguity + s"${authHeaders}"), Some(cc)) }
+      } else if (BerlinGroupCheck.hasUnwantedConsentIdHeaderForBGEndpoint(url, reqHeaders)) {
+        val message = ErrorMessages.InvalidConsentIdUsage
+        Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
       } else if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerByCertificate))
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
@@ -3037,12 +3051,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               // Note: At this point we are getting the Consumer from the Consumer in the Consent.
               // This may later be cross checked via the value in consumer_validation_method_for_consent.
               // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
-              cc.copy(consumer = consumerByCertificate)
+              cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
             )
           case _ =>
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
               case true => // It's JWT obtained via "Consent-JWT" request header
-                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc.copy(consumer = consumerByCertificate))
+                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey)))
               case false => // Unrecognised consent value
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }
@@ -3395,7 +3409,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
         throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(_, _, _, failure : APIFailure) =>
-        val callContext = CallContextLight(partialFunctionName = "", directLoginToken= "", oAuthToken= "")
+        val callContext = CallContextLight()
         val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
         throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
@@ -3470,7 +3484,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                                   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
   def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
-    val connectorNameInProps = code.api.Constant.Connector.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val connectorNameInProps = code.api.Constant.CONNECTOR.openOrThrowException(attemptedToOpenAnEmptyBox)
     //if the connector == mapped, then the data is always over obp database
     if(connectorNameInProps == "mapped") {
       true
@@ -3713,9 +3727,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), callContext)
 
-    lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+    lazy val canAddTransactionRequestToAnyAccount = view.map(_.allowed_actions.exists(_ == CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT)).getOrElse(false)
 
-    lazy val canAddTransactionRequestToBeneficiary = view.map(_.canAddTransactionRequestToBeneficiary).getOrElse(false)
+    lazy val canAddTransactionRequestToBeneficiary = view.map(_.allowed_actions.exists( _ == CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY )).getOrElse(false)
     //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
     if (hasCanCreateAnyTransactionRequestRole) {
       Full(true)
@@ -3960,7 +3974,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           tpp <- BerlinGroupSigning.getTppByCertificate(certificate, cc)
         } yield {
           if (tpp.nonEmpty) {
-            val hasRole = tpp.exists(_.services.contains(serviceProvider))
+            val berlinGroupRole = PemCertificateRole.toBerlinGroup(serviceProvider)
+            val hasRole = tpp.exists(_.services.contains(berlinGroupRole))
             if (hasRole) {
               Full(true)
             } else {
@@ -4183,8 +4198,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       allCanGrantAccessToViewsPermissions.contains(targetViewId.value)
     } else{
       //2. if targetViewId is customView, we only need to check the `canGrantAccessToCustomViews`. 
-      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
-
+      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.allowed_actions.exists(_ == CAN_GRANT_ACCESS_TO_CUSTOM_VIEWS))).getOrElse(Nil)
       allCanGrantAccessToCustomViewsPermissions.contains(true)
     }
   }
@@ -4194,13 +4208,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //1st: get the view 
     val view: Box[View] = Views.views.vend.getViewByBankIdAccountIdViewIdUserPrimaryKey(bankIdAccountIdViewId, user.userPrimaryKey)
 
-    //2rd: If targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
+    //2nd: If targetViewId is systemView. we need to check `view.canGrantAccessToViews` field.
     if(isValidSystemViewId(targetViewId.value)){
       val canGrantAccessToSystemViews: Box[List[String]] = view.map(_.canGrantAccessToViews.getOrElse(Nil))
       canGrantAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else{ 
       //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
-      view.map(_.canGrantAccessToCustomViews).getOrElse(false)
+      view.map(_.allowed_actions.exists(_ == CAN_GRANT_ACCESS_TO_CUSTOM_VIEWS)).getOrElse(false)
     }
   }
 
@@ -4219,7 +4233,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //if the targetViewIds contains custom view ids, we need to check the both canGrantAccessToCustomViews and canGrantAccessToSystemViews
     if (targetViewIds.map(_.value).distinct.find(isValidCustomViewId).isDefined){
       //check if we can grant all customViews Access.
-      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canGrantAccessToCustomViews)).getOrElse(Nil)
+      val allCanGrantAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.allowed_actions.exists(_ ==CAN_GRANT_ACCESS_TO_CUSTOM_VIEWS))).getOrElse(Nil)
       val canGrantAccessToAllCustomViews = allCanGrantAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
       canGrantAllSystemViewsIdsTobeGranted && canGrantAccessToAllCustomViews
@@ -4238,7 +4252,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       canRevokeAccessToSystemViews.getOrElse(Nil).contains(targetViewId.value)
     } else {
       //3rd. if targetViewId is customView, we need to check `view.canGrantAccessToCustomViews` field. 
-      view.map(_.canRevokeAccessToCustomViews).getOrElse(false)
+      view.map(_.allowed_actions.exists(_ == CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS)).getOrElse(false)
     }
   }
   
@@ -4255,7 +4269,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       allCanRevokeAccessToSystemViews.contains(targetViewId.value)
     } else {
       //2. if targetViewId is customView, we only need to check the `canRevokeAccessToCustomViews`. 
-      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
+      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permission.map(_.views.map(_.allowed_actions.exists( _ ==CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS))).getOrElse(Nil)
 
       allCanRevokeAccessToCustomViewsPermissions.contains(true)
     }
@@ -4279,7 +4293,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //if allTargetViewIds contains customViewId,we need to check both `canRevokeAccessToCustomViews` and `canRevokeAccessToSystemViews` fields
     if (allTargetViewIds.find(isValidCustomViewId).isDefined) {
       //check if we can revoke all customViews Access
-      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.canRevokeAccessToCustomViews)).getOrElse(Nil)
+      val allCanRevokeAccessToCustomViewsPermissions: List[Boolean] = permissionBox.map(_.views.map(_.allowed_actions.exists( _ ==CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS))).getOrElse(Nil)
+        
       val canRevokeAccessToAllCustomViews = allCanRevokeAccessToCustomViewsPermissions.contains(true)
       //we need merge both system and custom access
       canRevokeAccessToAllSystemTargetViews && canRevokeAccessToAllCustomViews
@@ -4320,7 +4335,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case x => NewStyle.function.getBankAccount(x, _, _)
   }
   private val checkViewFun: PartialFunction[ViewId, (BankIdAccountId, Option[User], Option[CallContext]) => Future[View]] = {
-    case x => NewStyle.function.checkViewAccessAndReturnView(x, _, _, _)
+    case x => ViewNewStyle.checkViewAccessAndReturnView(x, _, _, _)
   }
   private val checkCounterpartyFun: PartialFunction[CounterpartyId, Option[CallContext] => OBPReturnType[CounterpartyTrait]] = {
     case x => NewStyle.function.getCounterpartyByCounterpartyId(x, _)
@@ -5052,17 +5067,5 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
       .distinct // List pairs (bank_id, account_id)
   }
-  
-  //get all the permission Pair from one record, eg:
-  //List("can_see_transaction_this_bank_account","can_see_transaction_requests"....)
-  //Note, do not contain can_revoke_access_to_views and can_grant_access_to_views permission yet.
-  def getViewPermissions(view: ViewDefinition) = view.allFields.map(x => (x.name, x.get))
-    .filter(pair =>pair._2.isInstanceOf[Boolean])
-    .filter(pair => pair._1.startsWith("can"))
-    .filter(pair => pair._2.equals(true))
-    .map(pair => 
-      StringHelpers.snakify(pair._1)
-        .dropRight(1) //Remove the "_" in the end, eg canCreateStandingOrder_ --> canCreateStandingOrder
-    ).toSet
   
 }

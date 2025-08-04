@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  obp-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      # Connect to local Postgres on the host
+      # In your config file:
+      # db.url=jdbc:postgresql://host.docker.internal:5432/YOUR_DB?user=YOUR_DB_USER&password=YOUR_DB_PASSWORD
+      - "host.docker.internal:host-gateway"

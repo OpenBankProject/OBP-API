@@ -76,10 +76,13 @@ object BerlinGroupError {
 
       case "401" if message.contains("OBP-20060") => "ROLE_INVALID"
 
+      case "400" if message.contains("OBP-10034") => "PARAMETER_NOT_CONSISTENT"
+
       case "400" if message.contains("OBP-35018") => "CONSENT_UNKNOWN"
       case "400" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"
       case "403" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"
 
+      case "400" if message.contains("OBP-50200") => "RESOURCE_UNKNOWN"
       case "404" if message.contains("OBP-30076") => "RESOURCE_UNKNOWN"
       case "404" if message.contains("OBP-40001") => "RESOURCE_UNKNOWN"
 
@@ -95,6 +98,8 @@ object BerlinGroupError {
       case "400" if message.contains("OBP-20253") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20254") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20255") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-20256") => "FORMAT_ERROR"
+      case "400" if message.contains("OBP-20257") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20251") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20088") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-20089") => "FORMAT_ERROR"
@@ -103,6 +108,8 @@ object BerlinGroupError {
       case "400" if message.contains("OBP-40008") => "FORMAT_ERROR"
 
       case "400" if message.contains("OBP-50221") => "PAYMENT_FAILED"
+
+      case "405" if message.contains("OBP-10404") => "SERVICE_INVALID"
 
       case "429" if message.contains("OBP-10018") => "ACCESS_EXCEEDED"
 

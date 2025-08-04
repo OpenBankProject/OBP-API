@@ -1,7 +1,6 @@
 package code.obp.grpc
 
-import java.util.logging.Logger
-
+import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v3_0_0.{CoreTransactionsJsonV300, ModeratedTransactionCoreWithAttributes}
 import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400, OBPAPI4_0_0}
@@ -10,6 +9,7 @@ import code.obp.grpc.api._
 import code.util.Helper
 import code.views.Views
 import com.google.protobuf.empty.Empty
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import io.grpc.{Server, ServerBuilder}
 import net.liftweb.common.Full
@@ -17,8 +17,7 @@ import net.liftweb.json.JsonAST.{JField, JObject}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{Extraction, JArray}
 
-import scala.collection.immutable.List
-import com.openbankproject.commons.ExecutionContext.Implicits.global
+import java.util.logging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -129,7 +128,7 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
         (user, _) <- NewStyle.function.findByUserId(request.userId, callContext)
         (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
         (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-        view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+        view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
         (Full(transactionsCore), callContext) <- bankAccount.getModeratedTransactionsCore(bank, Full(user), view, BankIdAccountId(bankId, accountId), Nil, callContext)
         obpCoreTransactions: CoreTransactionsJsonV300 = code.api.v3_0_0.JSONFactory300.createCoreTransactionsJSON(transactionsCore.map(ModeratedTransactionCoreWithAttributes(_)))
       } yield {

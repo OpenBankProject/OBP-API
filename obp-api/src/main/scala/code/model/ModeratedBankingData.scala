@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 
 package code.model
+import code.api.Constant._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext}
 import code.model.Moderation.Moderated
@@ -123,7 +124,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { UserNotLoggedIn}
       tagList <- Box(tags) ?~ { s"$NoViewPermission can_delete_tag. " }
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
-      deleteFunc <- if(tag.postedBy == user||view.canDeleteTag)
+      deleteFunc <- if(tag.postedBy == user||view.allowed_actions.exists(_ == CAN_DELETE_TAG))
     	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
                     else
                       Failure("deleting tags not permitted for the current user")
@@ -140,7 +141,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { UserNotLoggedIn}
       imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
-      deleteFunc <- if(image.postedBy == user || view.canDeleteImage)
+      deleteFunc <- if(image.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_IMAGE))
     	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
@@ -154,7 +155,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { UserNotLoggedIn}
       commentList <- Box(comments) ?~ { s"$NoViewPermission can_delete_comment." }
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
-      deleteFunc <- if(comment.postedBy == user || view.canDeleteComment)
+      deleteFunc <- if(comment.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_COMMENT))
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
                   else
                     Failure("Deleting comments not permitted for the current user")
@@ -168,7 +169,7 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { UserNotLoggedIn}
       whereTagOption <- Box(whereTag) ?~ { s"$NoViewPermission can_delete_where_tag. Current ViewId($viewId)" }
       whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
-      deleteFunc <- if(whereTag.postedBy == user || view.canDeleteWhereTag)
+      deleteFunc <- if(whereTag.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_WHERE_TAG))
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"
                     else
                       Failure("Deleting tags not permitted for the current user")

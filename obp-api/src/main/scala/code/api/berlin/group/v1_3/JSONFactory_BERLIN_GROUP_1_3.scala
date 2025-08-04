@@ -471,29 +471,32 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV13 = {
     val bookingDate = transaction.startDate.orNull
-    val valueDate = transaction.finishDate.orNull
+    val valueDate = if(transaction.finishDate.isDefined) Some(BgSpecValidation.formatToISODate(transaction.finishDate.orNull)) else None
     
-    val creditorName = transaction.otherBankAccount.map(_.label.display).getOrElse("")
-    val creditorAccountIban = stringOrNone(transaction.otherBankAccount.map(_.iban.getOrElse("")).getOrElse(""))
-    
-    val debtorName = stringOrNone(transaction.bankAccount.map(_.label.getOrElse("")).getOrElse(""))
-    val debtorIban  = transaction.bankAccount.map(_.accountRoutingAddress.getOrElse("")).getOrElse("")
-    val debtorAccountIdIban = stringOrNone(debtorIban)
+    val out: Boolean = transaction.amount.get.toString().startsWith("-")
+    val in: Boolean = !out
+
+    val isIban = transaction.bankAccount.flatMap(_.accountRoutingScheme.map(_.toUpperCase == "IBAN")).getOrElse(false)
+    // Creditor
+    val creditorName = if(in) transaction.otherBankAccount.map(_.label.display) else None
+    val creditorAccountIban = if(in) {
+      val creditorIban = if(isIban) transaction.otherBankAccount.map(_.iban.getOrElse("")) else Some("")
+      Some(BgTransactionAccountJson(iban = creditorIban))
+    } else None
+
+    // Debtor
+    val debtorName = if(out) transaction.bankAccount.map(_.label.getOrElse("")) else None
+    val debtorAccountIban = if(out) {
+      val debtorIban  = if(isIban) transaction.bankAccount.map(_.accountRoutingAddress.getOrElse("")) else Some("")
+      Some(BgTransactionAccountJson(iban = debtorIban))
+    } else None
     
     TransactionJsonV13(
       transactionId = transaction.id.value,
-      creditorName = stringOrNone(creditorName),
-      creditorAccount = 
-        if(creditorAccountIban.isEmpty) 
-          None 
-        else 
-          Some(BgTransactionAccountJson(iban=creditorAccountIban)),
+      creditorName = creditorName,
+      creditorAccount = creditorAccountIban,
       debtorName = debtorName,
-      debtorAccount =
-        if(debtorAccountIdIban.isEmpty) 
-          None
-        else 
-          Some(BgTransactionAccountJson(iban = debtorAccountIdIban)),
+      debtorAccount = debtorAccountIban,
       transactionAmount = AmountOfMoneyV13(
         transaction.currency.getOrElse(""),
         if(bgRemoveSignOfAmounts)
@@ -502,7 +505,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
           transaction.amount.get.toString()
       ),
       bookingDate = Some(BgSpecValidation.formatToISODate(bookingDate)) ,
-      valueDate = Some(BgSpecValidation.formatToISODate(valueDate)),
+      valueDate = valueDate,
       remittanceInformationUnstructured = transaction.description
     )
   }
@@ -553,7 +556,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 //    )
 //  }
 
-  def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest] = Nil) : TransactionsJsonV13 = {
+  def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], bookingStatus: String, transactionRequests: List[TransactionRequest] = Nil) : TransactionsJsonV13 = {
     val accountId = bankAccount.accountId.value
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
    
@@ -570,8 +573,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     TransactionsJsonV13(
       account,
       TransactionsV13Transactions(
-        booked = if(bookedTransactions.isEmpty) None else Some(bookedTransactions),
-        pending = if(pendingTransactions.isEmpty) None else Some(pendingTransactions),
+        booked = if(bookingStatus == "booked" || bookingStatus == "both") Some(bookedTransactions) else None,
+        pending = if(bookingStatus == "pending" || bookingStatus == "both") Some(pendingTransactions) else None,
         _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/accounts/$accountId"))
       )
     )

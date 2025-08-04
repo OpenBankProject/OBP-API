@@ -278,8 +278,8 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   //returns Full if deletable, Failure if not
-  def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewImpl : ViewDefinition, user : User) : Box[Unit] = {
-    if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewImpl, user)) Full(Unit)
+  def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewDefinition : ViewDefinition, user : User) : Box[Unit] = {
+    if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition, user)) Full(Unit)
     else Failure("access cannot be revoked")
   }
 
@@ -392,7 +392,7 @@ object MapperViews extends Views with MdcLoggable {
               Failure(s"$SystemViewAlreadyExistsError Current VIEW_ID($viewId)")
             case false =>
               val createdView = ViewDefinition.create.name_(view.name).view_id(viewId)
-              createdView.setFromViewData(view)
+              createdView.createViewAndPermissions(view)
               createdView.isSystem_(true)
               createdView.isPublic_(false)
               Full(createdView.saveMe)
@@ -434,7 +434,8 @@ object MapperViews extends Views with MdcLoggable {
         bank_id(bankAccountId.bankId.value).
         account_id(bankAccountId.accountId.value)
 
-      createdView.setFromViewData(view)
+      createdView.createViewAndPermissions(view)
+      
       Full(createdView.saveMe)
     }
   }
@@ -442,11 +443,10 @@ object MapperViews extends Views with MdcLoggable {
 
   /* Update the specification of the view (what data/actions are allowed) */
   def updateCustomView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
-
     for {
       view <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
     } yield {
-      view.setFromViewData(viewUpdateJson)
+      view.createViewAndPermissions(viewUpdateJson)
       view.saveMe
     }
   }
@@ -455,7 +455,7 @@ object MapperViews extends Views with MdcLoggable {
     for {
       view <- ViewDefinition.findSystemView(viewId.value)
     } yield {
-      view.setFromViewData(viewUpdateJson)
+      view.createViewAndPermissions(viewUpdateJson)
       view.saveMe
     }
   }
@@ -472,6 +472,7 @@ object MapperViews extends Views with MdcLoggable {
         case false => Full()
       }
     } yield {
+      customView.deleteViewPermissions
       customView.delete_!
     }
   }
@@ -483,6 +484,7 @@ object MapperViews extends Views with MdcLoggable {
         case false => Full()
       }
     } yield {
+      view.deleteViewPermissions
       view.delete_!
     }
   }
@@ -620,113 +622,83 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
 
-  private def migrateViewPermissions(view: View): Unit = {
-    val permissionNames = List(
-      "canSeeTransactionOtherBankAccount",
-      "canSeeTransactionMetadata",
-      "canSeeTransactionDescription",
-      "canSeeTransactionAmount",
-      "canSeeTransactionType",
-      "canSeeTransactionCurrency",
-      "canSeeTransactionStartDate",
-      "canSeeTransactionFinishDate",
-      "canSeeTransactionBalance",
-      "canSeeComments",
-      "canSeeOwnerComment",
-      "canSeeTags",
-      "canSeeImages",
-      "canSeeBankAccountOwners",
-      "canSeeBankAccountType",
-      "canSeeBankAccountBalance",
-      "canQueryAvailableFunds",
-      "canSeeBankAccountLabel",
-      "canSeeBankAccountNationalIdentifier",
-      "canSeeBankAccountSwift_bic",
-      "canSeeBankAccountIban",
-      "canSeeBankAccountNumber",
-      "canSeeBankAccountBankName",
-      "canSeeBankAccountBankPermalink",
-      "canSeeBankRoutingScheme",
-      "canSeeBankRoutingAddress",
-      "canSeeBankAccountRoutingScheme",
-      "canSeeBankAccountRoutingAddress",
-      "canSeeOtherAccountNationalIdentifier",
-      "canSeeOtherAccountSWIFT_BIC",
-      "canSeeOtherAccountIBAN",
-      "canSeeOtherAccountBankName",
-      "canSeeOtherAccountNumber",
-      "canSeeOtherAccountMetadata",
-      "canSeeOtherAccountKind",
-      "canSeeOtherBankRoutingScheme",
-      "canSeeOtherBankRoutingAddress",
-      "canSeeOtherAccountRoutingScheme",
-      "canSeeOtherAccountRoutingAddress",
-      "canSeeMoreInfo",
-      "canSeeUrl",
-      "canSeeImageUrl",
-      "canSeeOpenCorporatesUrl",
-      "canSeeCorporateLocation",
-      "canSeePhysicalLocation",
-      "canSeePublicAlias",
-      "canSeePrivateAlias",
-      "canAddMoreInfo",
-      "canAddURL",
-      "canAddImageURL",
-      "canAddOpenCorporatesUrl",
-      "canAddCorporateLocation",
-      "canAddPhysicalLocation",
-      "canAddPublicAlias",
-      "canAddPrivateAlias",
-      "canAddCounterparty",
-      "canGetCounterparty",
-      "canDeleteCounterparty",
-      "canDeleteCorporateLocation",
-      "canDeletePhysicalLocation",
-      "canEditOwnerComment",
-      "canAddComment",
-      "canDeleteComment",
-      "canAddTag",
-      "canDeleteTag",
-      "canAddImage",
-      "canDeleteImage",
-      "canAddWhereTag",
-      "canSeeWhereTag",
-      "canDeleteWhereTag",
-      "canAddTransactionRequestToOwnAccount",
-      "canAddTransactionRequestToAnyAccount",
-      "canSeeBankAccountCreditLimit",
-      "canCreateDirectDebit",
-      "canCreateStandingOrder",
-      "canRevokeAccessToCustomViews",
-      "canGrantAccessToCustomViews",
-      "canSeeTransactionRequests",
-      "canSeeTransactionRequestTypes",
-      "canSeeAvailableViewsForBankAccount",
-      "canUpdateBankAccountLabel",
-      "canCreateCustomView",
-      "canDeleteCustomView",
-      "canUpdateCustomView",
-      "canGetCustomView",
-      "canSeeViewsWithPermissionsForAllUsers",
-      "canSeeViewsWithPermissionsForOneUser"
-    )
+  /**
+   * This migrates the current View permissions to the new ViewPermission model.
+   * this will not add any new permission, it will only migrate the existing permissions.
+   * @param viewDefinition
+   */
+  def migrateViewPermissions(viewDefinition: View): Unit = {
+
+    //first, we list all the current view permissions.
+    val permissionNames: List[String] = ALL_VIEW_PERMISSION_NAMES
 
     permissionNames.foreach { permissionName =>
-      // Get permission value
-      val permissionValue = view.getClass.getMethod(permissionName).invoke(view).asInstanceOf[Boolean]
+      // CAN_REVOKE_ACCESS_TO_VIEWS and CAN_GRANT_ACCESS_TO_VIEWS are special cases, they have a list of view ids as metadata.
+      // For the rest of the permissions, they are just boolean values.
+      if (permissionName == CAN_REVOKE_ACCESS_TO_VIEWS || permissionName == CAN_GRANT_ACCESS_TO_VIEWS) {
 
-      ViewPermission.findSystemViewPermissions(view.viewId).find(_.permission.get == permissionName) match {
-        case Some(permission) if !permissionValue =>
-          ViewPermission.delete_!(permission)
-        case Some(permission) if permissionValue =>
-          // View definition is in accordance with View permission
-        case _ =>
-          ViewPermission.create
-            .bank_id(null)
-            .account_id(null)
-            .view_id(view.viewId.value)
-            .permission(permissionName)
-            .save
+        val permissionValueFromViewDefinition = viewDefinition.getClass.getMethod(StringHelpers.camelifyMethod(permissionName)).invoke(viewDefinition).asInstanceOf[Option[List[String]]]
+
+        ViewPermission.findViewPermission(viewDefinition, permissionName) match {
+          // If the permission already exists in ViewPermission, but permissionValueFromViewDefinition is empty, we delete it.
+          case Full(permission) if permissionValueFromViewDefinition.isEmpty =>
+            permission.delete_!
+          // If the permission already exists and permissionValueFromViewDefinition is defined, we update the metadata.
+          case Full(permission) if permissionValueFromViewDefinition.isDefined =>
+            permission.extraData(permissionValueFromViewDefinition.get.mkString(",")).save
+          //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --systemView
+          case Empty if (viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
+            ViewPermission.create
+              .bank_id(null)
+              .account_id(null)
+              .view_id(viewDefinition.viewId.value)
+              .permission(permissionName)
+              .extraData(permissionValueFromViewDefinition.get.mkString(","))
+              .save
+          //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --customView
+          case Empty if (!viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
+            ViewPermission.create
+              .bank_id(viewDefinition.bankId.value)
+              .account_id(viewDefinition.accountId.value)
+              .view_id(viewDefinition.viewId.value)
+              .permission(permissionName)
+              .extraData(permissionValueFromViewDefinition.get.mkString(","))
+              .save
+          case _ =>
+            // This case should not happen, but if it does, we add an error log
+            logger.error(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
+        }
+      } else {
+        // For the rest of the permissions, they are just boolean values.
+        val permissionValue = viewDefinition.getClass.getMethod(StringHelpers.camelifyMethod(permissionName)).invoke(viewDefinition).asInstanceOf[Boolean]
+
+        ViewPermission.findViewPermission(viewDefinition, permissionName) match {
+          // If the permission already exists in ViewPermission, but permissionValueFromViewdefinition is false, we delete it.
+          case Full(permission) if !permissionValue =>
+            permission.delete_!
+          // If the permission already exists in ViewPermission, but permissionValueFromViewdefinition is empty, we udpate it.
+          case Full(permission) if permissionValue =>
+            permission.permission(permissionName).save
+          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --systemView  
+          case _ if (viewDefinition.isSystem && permissionValue) =>
+            ViewPermission.create
+              .bank_id(null)
+              .account_id(null)
+              .view_id(viewDefinition.viewId.value)
+              .permission(permissionName)
+              .save
+          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --customerView   
+          case _ if (!viewDefinition.isSystem && permissionValue) =>
+            ViewPermission.create
+              .bank_id(viewDefinition.bankId.value)
+              .account_id(viewDefinition.accountId.value)
+              .view_id(viewDefinition.viewId.value)
+              .permission(permissionName)
+              .save
+          case _ =>
+            // This case should not happen, but if it does, we do nothing
+            logger.warn(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
+        }
       }
     }
   }
@@ -734,12 +706,8 @@ object MapperViews extends Views with MdcLoggable {
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
       case Empty =>
-        val view = createDefaultSystemView(viewId)
-        view.map(v => migrateViewPermissions(v))
-        view
-      case Full(v) =>
-        migrateViewPermissions(v)
-        Full(v)
+        createDefaultSystemView(viewId)
+      case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
@@ -759,8 +727,10 @@ object MapperViews extends Views with MdcLoggable {
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
-      case Empty=> createDefaultCustomPublicView(bankId, accountId, description)
-      case Full(v)=> Full(v)
+      case Empty=> 
+        createDefaultCustomPublicView(bankId, accountId, description)
+      case Full(v)=>
+        Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
@@ -789,23 +759,25 @@ object MapperViews extends Views with MdcLoggable {
     res
   }
 
-  def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
+  def removeAllAccountAccess(bankId: BankId, accountId: AccountId) : Boolean = {
     AccountAccess.bulkDelete_!!(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value)
     )
   }
 
-  def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
+  def removeAllViewsAndVierPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
     ViewDefinition.bulkDelete_!!(
       By(ViewDefinition.bank_id, bankId.value),
       By(ViewDefinition.account_id, accountId.value)
     )
+    ViewPermission.bulkDelete_!!()
   }
 
-  def bulkDeleteAllPermissionsAndViews() : Boolean = {
+  def bulkDeleteAllViewsAndAccountAccessAndViewPermission() : Boolean = {
     ViewDefinition.bulkDelete_!!()
     AccountAccess.bulkDelete_!!()
+    ViewPermission.bulkDelete_!!()
     true
   }
 
@@ -822,156 +794,71 @@ object MapperViews extends Views with MdcLoggable {
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
       .usePublicAliasIfOneExists_(false) //(default is false anyways)
       .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canAddCounterparty_(true)
-      .canGetCounterparty_(true)
-      .canDeleteCounterparty_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .canSeeBankRoutingScheme_(true) //added following in V300
-      .canSeeBankRoutingAddress_(true)
-      .canSeeBankAccountRoutingScheme_(true)
-      .canSeeBankAccountRoutingAddress_(true)
-      .canSeeOtherBankRoutingScheme_(true)
-      .canSeeOtherBankRoutingAddress_(true)
-      .canSeeOtherAccountRoutingScheme_(true)
-      .canSeeOtherAccountRoutingAddress_(true)
-      .canSeeTransactionStatus_(true)
-      
-      // TODO  Allow use only for certain cases
-      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(true)
-      .canAddTransactionRequestToBeneficiary_(true)
-      
-      .canSeeAvailableViewsForBankAccount_(false)
-      .canSeeTransactionRequests_(false)
-      .canSeeTransactionRequestTypes_(false)
-      .canUpdateBankAccountLabel_(false)
-      .canSeeViewsWithPermissionsForOneUser_(false)
-      .canSeeViewsWithPermissionsForAllUsers_(false)
-      .canRevokeAccessToCustomViews_(false)
-      .canGrantAccessToCustomViews_(false)
-      .canCreateCustomView_(false)
-      .canDeleteCustomView_(false)
-      .canUpdateCustomView_(false)
-      .canGetCustomView_(false)
-
+    
     viewId match {
-      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
-        entity // Make additional setup to the existing view
-          .canSeeAvailableViewsForBankAccount_(true)
-          .canSeeTransactionRequests_(true)
-          .canSeeTransactionRequestTypes_(true)
-          .canUpdateBankAccountLabel_(true)
-          .canSeeViewsWithPermissionsForOneUser_(true)
-          .canSeeViewsWithPermissionsForAllUsers_(true)
-          .canGrantAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
-          .canRevokeAccessToViews_(DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS.mkString(","))
-      case SYSTEM_STAGE_ONE_VIEW_ID =>
-        entity // Make additional setup to the existing view
-          .canSeeTransactionDescription_(false)
-          .canAddTransactionRequestToAnyAccount_(false)
-          .canAddTransactionRequestToBeneficiary_(false)
-      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
-        entity // Make additional setup to the existing view
-          .canRevokeAccessToCustomViews_(true)
-          .canGrantAccessToCustomViews_(true)
-          .canCreateCustomView_(true)
-          .canDeleteCustomView_(true)
-          .canUpdateCustomView_(true)
-          .canGetCustomView_(true)
-      case SYSTEM_FIREHOSE_VIEW_ID =>
+      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_OWNER_VIEW_PERMISSION_ADMIN ++SYSTEM_VIEW_PERMISSION_COMMON,
+          DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS,
+          DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS
+        )
+        entity      
+      }
+      case SYSTEM_STAGE_ONE_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_VIEW_PERMISSION_COMMON++SYSTEM_VIEW_PERMISSION_COMMON
+        )
+        entity
+      }
+      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_VIEW_PERMISSION_COMMON++SYSTEM_MANAGER_VIEW_PERMISSION
+        )
+        entity
+      } 
+      case SYSTEM_FIREHOSE_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_VIEW_PERMISSION_COMMON
+        )
         entity // Make additional setup to the existing view
           .isFirehose_(true)
+      }
       case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID | 
            SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID =>
-        create // A new one
-          .isSystem_(true)
-          .isFirehose_(false)
-          .name_(StringHelpers.capify(viewId))
-          .view_id(viewId)
-          .description_(viewId)
-      case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>
-        create // A new one
-          .isSystem_(true)
-          .isFirehose_(false)
-          .name_(StringHelpers.capify(viewId))
-          .view_id(viewId)
-          .description_(viewId)
-          .canSeeTransactionThisBankAccount_(true)
-          .canSeeTransactionOtherBankAccount_(true)
-          .canSeeTransactionAmount_(true)
-          .canSeeTransactionCurrency_(true)
-          .canSeeTransactionBalance_(true)
-          .canSeeTransactionStartDate_(true)
-          .canSeeTransactionFinishDate_(true)
-          .canSeeTransactionDescription_(true)
-      case SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID =>
-        create // A new one
-          .isSystem_(true)
-          .isFirehose_(false)
-          .name_(StringHelpers.capify(viewId))
-          .view_id(viewId)
-          .description_(viewId)
-          .canAddTransactionRequestToAnyAccount_(true)
-          .canAddTransactionRequestToBeneficiary_(true)
+        entity
+      case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_PERMISSION
+        )
+        entity
+      }
+      case SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID =>{
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_PERMISSION
+        )
+        entity
+      }
+      case SYSTEM_ACCOUNTANT_VIEW_ID |
+        SYSTEM_AUDITOR_VIEW_ID |
+        SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID |
+        SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID |
+        SYSTEM_READ_BALANCES_VIEW_ID |
+        SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID |
+        SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID |
+        SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID => {
+        
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_VIEW_PERMISSION_COMMON
+        )
+        entity
+      }
       case _ =>
         entity
     }
@@ -996,87 +883,13 @@ object MapperViews extends Views with MdcLoggable {
       account_id(accountId.value).
       usePrivateAliasIfOneExists_(false).
       usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountIBAN_(true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true)
-    entity.
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canGetCounterparty_(true).
-      canDeleteCounterparty_(false).
-      canDeleteCorporateLocation_(false).
-      canDeletePhysicalLocation_(false).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(false).
-      canAddTag_(true).
-      canDeleteTag_(false).
-      canAddImage_(true).
-      canDeleteImage_(false).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(false). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false).
-      canAddTransactionRequestToBeneficiary_(false).
-      canSeeTransactionRequests_(false).
-      canSeeTransactionRequestTypes_(false).
-      canUpdateBankAccountLabel_(false).
-      canCreateCustomView_(false).
-      canDeleteCustomView_(false).
-      canUpdateCustomView_(false).
-      canGetCustomView_(false).
-      canSeeTransactionStatus_(true)
+      hideOtherAccountMetadataIfAlias_(true)
+
+    ViewPermission.resetViewPermissions(
+      entity,
+      SYSTEM_PUBLIC_VIEW_PERMISSION
+    )
+    entity
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

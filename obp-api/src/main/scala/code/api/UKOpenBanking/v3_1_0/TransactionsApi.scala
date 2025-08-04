@@ -1,25 +1,24 @@
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.{APIFailureNewStyle, Constant}
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{ApiTag, NewStyle}
+import code.api.{APIFailureNewStyle, Constant}
 import code.bankconnectors.Connector
 import code.model._
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, ViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
 
-import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
 object APIMethods_TransactionsApi extends RestHelper {
@@ -758,7 +757,7 @@ object APIMethods_TransactionsApi extends RestHelper {
              _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              (bank, callContext) <- NewStyle.function.getBank(account.bankId, callContext)
-             view <- NewStyle.function.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), callContext)
+             view <- ViewNewStyle.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }

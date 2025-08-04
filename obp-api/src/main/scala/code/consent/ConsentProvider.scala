@@ -184,9 +184,14 @@ trait ConsentTrait {
   def transactionToDateTime: Date
 
   /**
-   * this will be a UUID later. now only use the primacyKey.toString for it.  
+   * this will be a UUID later. now only use the primacyKey.toString for it.
    */
   def consentReferenceId: String
+
+  /**
+   * Note about any important consent information.
+   */
+  def note: String
 }
 
 object ConsentStatus extends Enumeration {

@@ -10,7 +10,9 @@ import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
+import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util._
+import code.api.util.newstyle.ViewNewStyle
 import code.consent.{ConsentStatus, Consents}
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.model
@@ -24,6 +26,7 @@ import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAut
 import net.liftweb
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
@@ -341,7 +344,7 @@ of the PSU at this ASPSP.
          cc =>
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 500, callContext) {
+            withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 400, callContext) {
 
               val withBalance = APIUtil.getHttpRequestUrlParam(cc.url, "withBalance")
               
@@ -641,7 +644,7 @@ Reads account data from a given card account addressed by "account-id".
              (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
              viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
-             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
+             view <- ViewNewStyle.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
@@ -875,7 +878,7 @@ of the "Read Transaction List" call within the _links subfield.
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
-             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
+             view <- ViewNewStyle.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
              (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
                unboxFullOrFail(_, callContext, GetTransactionsException)
              }
@@ -893,7 +896,7 @@ of the "Read Transaction List" call within the _links subfield.
        "/accounts/ACCOUNT_ID/transactions",
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
-Read transaction reports or transaction lists of a given account ddressed by "account-id",
+Read transaction reports or transaction lists of a given account addressed by "account-id",
 depending on the steering parameter "bookingStatus" together with balances.
 For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo".
 The ASPSP might add balance information, if transaction lists without balances are not supported. """,
@@ -969,15 +972,22 @@ The ASPSP might add balance information, if transaction lists without balances a
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
-            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
+            view <- ViewNewStyle.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
+            bookingStatus = APIUtil.getHttpRequestUrlParam(cc.url, "bookingStatus")
+            _ <- Helper.booleanToFuture(s"$InvalidUrlParameters bookingStatus parameter must take two one of those values : booked, pending or both!", 400, callContext) {
+              bookingStatus match {
+                case "booked" | "pending" | "both" => true
+                case _ => false
+              }
+            }
             (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             } yield {
-              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions), callContext)
+              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, bookingStatus), callContext)
             }
          }
        }

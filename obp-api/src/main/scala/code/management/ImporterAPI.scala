@@ -1,8 +1,10 @@
 package code.management
 
+
 import java.util.Date
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.APIUtil.DateWithMsExampleObject
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.tesobe.ErrorMessage
 import code.util.Helper.{MdcLoggable, ObpS}
@@ -93,7 +95,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
     val detailsJson = JObject(List( JField("type_en", JString(t.transactionType)),
       JField("type", JString(t.transactionType)),
       JField("posted", JString(formatDate(t.startDate))),
-      JField("completed", JString(formatDate(t.finishDate))),
+      JField("completed", JString(formatDate(t.finishDate.getOrElse(DateWithMsExampleObject)))),
       JField("other_data", JString("")),
       JField("new_balance", JObject(List( JField("currency", JString(t.currency)),
         JField("amount", JString(t.balance.toString))))),

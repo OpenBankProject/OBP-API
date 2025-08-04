@@ -1,11 +1,11 @@
 package code.util
 
-import java.util.regex.Pattern
-
 import net.liftweb.mapper.Mapper
 import org.apache.commons.lang3.StringUtils
 import org.scalatest.Matchers._
 import org.scalatest.{FeatureSpec, Tag}
+
+import java.util.regex.Pattern
 
 /**
  * Avoid new DB entity type name start with Mapped, and field name start with m.
@@ -88,11 +88,9 @@ class MappedClassNameTest extends FeatureSpec {
       "code.scope.MappedUserScope",
       "code.context.MappedUserAuthContext",
       "code.context.MappedConsentAuthContext",
-      "code.model.dataAccess.ViewImpl",
       "code.metadata.counterparties.MappedCounterpartyMetadata",
       "code.transaction_types.MappedTransactionType",
       "code.examplething.MappedThing",
-      "code.model.dataAccess.ViewPrivileges",
       "code.scope.MappedScope",
       "code.ratelimiting.RateLimiting",
       "code.api.attributedefinition.AttributeDefinition",

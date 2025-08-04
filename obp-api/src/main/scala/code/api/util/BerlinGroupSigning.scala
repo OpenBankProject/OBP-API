@@ -1,14 +1,15 @@
 package code.api.util
 
-import code.api.RequestHeader
-import code.api.util.APIUtil.OBPReturnType
+import code.api.{APIFailureNewStyle, RequestHeader}
+import code.api.util.APIUtil.{OBPReturnType, fullBoxOrException}
+import code.api.util.ErrorUtil.apiFailure
 import code.api.util.newstyle.RegulatedEntityNewStyle.getRegulatedEntitiesNewStyle
 import code.consumer.Consumers
 import code.model.Consumer
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{RegulatedEntityTrait, User}
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers
 
@@ -181,16 +182,16 @@ object BerlinGroupSigning extends MdcLoggable {
               (isVerified, isValidated) match {
                 case (true, true) => forwardResult
                 case (true, false) if bypassValidation => forwardResult
-                case (true, false) => (Failure(ErrorMessages.X509PublicKeyCannotBeValidated), forwardResult._2)
-                case (false, _) => (Failure(ErrorMessages.X509PublicKeyCannotVerify), forwardResult._2)
+                case (true, false) => apiFailure(ErrorMessages.X509PublicKeyCannotBeValidated, 401)(forwardResult)
+                case (false, _) => apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
               }
             } else { // The two DIGEST hashes do NOT match, the integrity of the request body is NOT confirmed.
               logger.debug(s"Generated digest: $generatedDigest")
               logger.debug(s"Request header digest: $requestHeaderDigest")
-              (Failure(ErrorMessages.X509PublicKeyCannotVerify), forwardResult._2)
+              apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
             }
           case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
-          case _ => (Failure(ErrorMessages.X509GeneralError), forwardResult._2) // PEM certificate cannot be validated
+          case _ => apiFailure(ErrorMessages.X509GeneralError, 401)(forwardResult) // PEM certificate cannot be validated
         }
     }
   }

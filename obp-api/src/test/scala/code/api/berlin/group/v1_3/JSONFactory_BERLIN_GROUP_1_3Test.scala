@@ -100,10 +100,6 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
       val result = JSONFactory_BERLIN_GROUP_1_3.createTransactionJSON(transaction)
 
       result.transactionId shouldBe transaction.id.value
-      result.creditorName shouldBe None //Some("Creditor Name")
-      result.creditorAccount shouldBe None 
-      result.debtorName shouldBe None//Some(bankAccount.name)
-      result.debtorAccount shouldBe None
       
       result.transactionAmount.currency shouldBe transaction.currency.get
       result.bookingDate should not be empty
@@ -112,8 +108,8 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
 
       val jsonString: String = compactRender(Extraction.decompose(result))
 
-      jsonString.contains("creditorName") shouldBe false
-      jsonString.contains("creditorAccount") shouldBe false
+      jsonString.contains("creditorName") shouldBe true
+      jsonString.contains("creditorAccount") shouldBe true
       jsonString.contains("debtorName") shouldBe false
       jsonString.contains("debtorAccount") shouldBe false
       

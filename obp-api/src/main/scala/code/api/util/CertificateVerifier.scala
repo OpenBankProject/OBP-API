@@ -80,7 +80,11 @@ object CertificateVerifier extends MdcLoggable {
 
       // Set up PKIX parameters for validation
       val pkixParams = new PKIXParameters(trustAnchors)
-      pkixParams.setRevocationEnabled(false) // Disable CRL checks
+      if(APIUtil.getPropsAsBoolValue("use_tpp_signature_revocation_list", defaultValue = true)) {
+        pkixParams.setRevocationEnabled(true) // Enable CRL checks
+      } else {
+        pkixParams.setRevocationEnabled(false) // Disable CRL checks
+      }
 
       // Validate certificate chain
       val certPath = CertificateFactory.getInstance("X.509").generateCertPath(Collections.singletonList(certificate))

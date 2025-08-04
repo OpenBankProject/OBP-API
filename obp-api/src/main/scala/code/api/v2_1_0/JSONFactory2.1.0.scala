@@ -26,12 +26,9 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_1_0
 
-import java.lang
-import java.util.Date
-
+import code.api.Constant._
 import code.api.util.ApiRole
-import code.api.v1_2_1.{BankRoutingJsonV121}
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
+import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
@@ -40,13 +37,12 @@ import code.entitlement.Entitlement
 import code.metrics.APIMetric
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, _}
-import com.openbankproject.commons.model.Product
-import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 
-import scala.collection.immutable.List
+import java.lang
+import java.util.Date
 
 
 
@@ -797,6 +793,7 @@ object JSONFactory210{
       else
         ""
 
+    val allowed_actions = view.allowed_actions
     new ViewJSON(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
@@ -804,66 +801,66 @@ object JSONFactory210{
       is_public = view.isPublic,
       alias = alias,
       hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
-      can_add_comment = view.canAddComment,
-      can_add_corporate_location = view.canAddCorporateLocation,
-      can_add_image = view.canAddImage,
-      can_add_image_url = view.canAddImageURL,
-      can_add_more_info = view.canAddMoreInfo,
-      can_add_open_corporates_url = view.canAddOpenCorporatesUrl,
-      can_add_physical_location = view.canAddPhysicalLocation,
-      can_add_private_alias = view.canAddPrivateAlias,
-      can_add_public_alias = view.canAddPublicAlias,
-      can_add_tag = view.canAddTag,
-      can_add_url = view.canAddURL,
-      can_add_where_tag = view.canAddWhereTag,
-      can_add_counterparty = view.canAddCounterparty,
-      can_delete_comment = view.canDeleteComment,
-      can_delete_corporate_location = view.canDeleteCorporateLocation,
-      can_delete_image = view.canDeleteImage,
-      can_delete_physical_location = view.canDeletePhysicalLocation,
-      can_delete_tag = view.canDeleteTag,
-      can_delete_where_tag = view.canDeleteWhereTag,
-      can_edit_owner_comment = view.canEditOwnerComment,
-      can_see_bank_account_balance = view.canSeeBankAccountBalance,
-      can_see_bank_account_bank_name = view.canSeeBankAccountBankName,
-      can_see_bank_account_currency = view.canSeeBankAccountCurrency,
-      can_see_bank_account_iban = view.canSeeBankAccountIban,
-      can_see_bank_account_label = view.canSeeBankAccountLabel,
-      can_see_bank_account_national_identifier = view.canSeeBankAccountNationalIdentifier,
-      can_see_bank_account_number = view.canSeeBankAccountNumber,
-      can_see_bank_account_owners = view.canSeeBankAccountOwners,
-      can_see_bank_account_swift_bic = view.canSeeBankAccountSwift_bic,
-      can_see_bank_account_type = view.canSeeBankAccountType,
-      can_see_comments = view.canSeeComments,
-      can_see_corporate_location = view.canSeeCorporateLocation,
-      can_see_image_url = view.canSeeImageUrl,
-      can_see_images = view.canSeeImages,
-      can_see_more_info = view.canSeeMoreInfo,
-      can_see_open_corporates_url = view.canSeeOpenCorporatesUrl,
-      can_see_other_account_bank_name = view.canSeeOtherAccountBankName,
-      can_see_other_account_iban = view.canSeeOtherAccountIBAN,
-      can_see_other_account_kind = view.canSeeOtherAccountKind,
-      can_see_other_account_metadata = view.canSeeOtherAccountMetadata,
-      can_see_other_account_national_identifier = view.canSeeOtherAccountNationalIdentifier,
-      can_see_other_account_number = view.canSeeOtherAccountNumber,
-      can_see_other_account_swift_bic = view.canSeeOtherAccountSWIFT_BIC,
-      can_see_owner_comment = view.canSeeOwnerComment,
-      can_see_physical_location = view.canSeePhysicalLocation,
-      can_see_private_alias = view.canSeePrivateAlias,
-      can_see_public_alias = view.canSeePublicAlias,
-      can_see_tags = view.canSeeTags,
-      can_see_transaction_amount = view.canSeeTransactionAmount,
-      can_see_transaction_balance = view.canSeeTransactionBalance,
-      can_see_transaction_currency = view.canSeeTransactionCurrency,
-      can_see_transaction_description = view.canSeeTransactionDescription,
-      can_see_transaction_finish_date = view.canSeeTransactionFinishDate,
-      can_see_transaction_metadata = view.canSeeTransactionMetadata,
-      can_see_transaction_other_bank_account = view.canSeeTransactionOtherBankAccount,
-      can_see_transaction_start_date = view.canSeeTransactionStartDate,
-      can_see_transaction_this_bank_account = view.canSeeTransactionThisBankAccount,
-      can_see_transaction_type = view.canSeeTransactionType,
-      can_see_url = view.canSeeUrl,
-      can_see_where_tag = view.canSeeWhereTag
+      can_add_comment = allowed_actions.exists(_ == CAN_ADD_COMMENT),
+     can_add_corporate_location = allowed_actions.exists(_ == CAN_ADD_CORPORATE_LOCATION),
+      can_add_image = allowed_actions.exists(_ == CAN_ADD_IMAGE),
+      can_add_image_url = allowed_actions.exists(_ == CAN_ADD_IMAGE_URL),
+      can_add_more_info = allowed_actions.exists(_ == CAN_ADD_MORE_INFO),
+      can_add_open_corporates_url = allowed_actions.exists(_ == CAN_ADD_OPEN_CORPORATES_URL),
+      can_add_physical_location = allowed_actions.exists(_ == CAN_ADD_PHYSICAL_LOCATION),
+      can_add_private_alias = allowed_actions.exists(_ == CAN_ADD_PRIVATE_ALIAS),
+      can_add_public_alias = allowed_actions.exists(_ == CAN_ADD_PUBLIC_ALIAS),
+      can_add_tag = allowed_actions.exists(_ == CAN_ADD_TAG),
+      can_add_url = allowed_actions.exists(_ == CAN_ADD_URL),
+      can_add_where_tag = allowed_actions.exists(_ == CAN_ADD_WHERE_TAG),
+      can_add_counterparty = allowed_actions.exists(_ == CAN_ADD_COUNTERPARTY),
+      can_delete_comment = allowed_actions.exists(_ == CAN_DELETE_COMMENT),
+      can_delete_corporate_location = allowed_actions.exists(_ == CAN_DELETE_CORPORATE_LOCATION),
+      can_delete_image = allowed_actions.exists(_ == CAN_DELETE_IMAGE),
+      can_delete_physical_location = allowed_actions.exists(_ == CAN_DELETE_PHYSICAL_LOCATION),
+      can_delete_tag = allowed_actions.exists(_ == CAN_DELETE_TAG),
+      can_delete_where_tag = allowed_actions.exists(_ == CAN_DELETE_WHERE_TAG),
+      can_edit_owner_comment = allowed_actions.exists(_ == CAN_EDIT_OWNER_COMMENT),
+      can_see_bank_account_balance = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE),
+      can_see_bank_account_bank_name = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BANK_NAME),
+      can_see_bank_account_currency = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_CURRENCY),
+      can_see_bank_account_iban = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_IBAN),
+      can_see_bank_account_label = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_LABEL),
+      can_see_bank_account_national_identifier = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER),
+      can_see_bank_account_number = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_NUMBER),
+      can_see_bank_account_owners = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_OWNERS),
+      can_see_bank_account_swift_bic = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_SWIFT_BIC),
+      can_see_bank_account_type = allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_TYPE),
+      can_see_comments = allowed_actions.exists(_ == CAN_SEE_COMMENTS),
+      can_see_corporate_location = allowed_actions.exists(_ == CAN_SEE_CORPORATE_LOCATION),
+      can_see_image_url = allowed_actions.exists(_ == CAN_SEE_IMAGE_URL),
+      can_see_images = allowed_actions.exists(_ == CAN_SEE_IMAGES),
+      can_see_more_info = allowed_actions.exists(_ == CAN_SEE_MORE_INFO),
+      can_see_open_corporates_url = allowed_actions.exists(_ == CAN_SEE_OPEN_CORPORATES_URL),
+      can_see_other_account_bank_name = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_BANK_NAME),
+      can_see_other_account_iban = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_IBAN),
+      can_see_other_account_kind = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_KIND),
+      can_see_other_account_metadata = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_METADATA),
+      can_see_other_account_national_identifier = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER),
+      can_see_other_account_number = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_NUMBER),
+      can_see_other_account_swift_bic = allowed_actions.exists(_ == CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC),
+      can_see_owner_comment = allowed_actions.exists(_ == CAN_SEE_OWNER_COMMENT),
+      can_see_physical_location = allowed_actions.exists(_ == CAN_SEE_PHYSICAL_LOCATION),
+      can_see_private_alias = allowed_actions.exists(_ == CAN_SEE_PRIVATE_ALIAS),
+      can_see_public_alias = allowed_actions.exists(_ == CAN_SEE_PUBLIC_ALIAS),
+      can_see_tags = allowed_actions.exists(_ == CAN_SEE_TAGS),
+      can_see_transaction_amount = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_AMOUNT),
+      can_see_transaction_balance = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_BALANCE),
+      can_see_transaction_currency = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_CURRENCY),
+      can_see_transaction_description = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_DESCRIPTION),
+      can_see_transaction_finish_date = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_FINISH_DATE),
+      can_see_transaction_metadata = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_METADATA),
+      can_see_transaction_other_bank_account = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT),
+      can_see_transaction_start_date = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_START_DATE),
+      can_see_transaction_this_bank_account = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT),
+      can_see_transaction_type = allowed_actions.exists(_ == CAN_SEE_TRANSACTION_TYPE),
+      can_see_url = allowed_actions.exists(_ == CAN_SEE_URL),
+      can_see_where_tag = allowed_actions.exists(_ == CAN_SEE_WHERE_TAG)
     )
   }
 

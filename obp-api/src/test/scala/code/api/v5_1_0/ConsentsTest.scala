@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_1_0
 
-import code.api.Constant
+import code.api.{Constant, RequestHeader}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -81,11 +81,13 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
-    .copy(consumer_id=None)
+    .copy(consumer_id=Some(testConsumer.consumerId.get))
     .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
 
   lazy val consentStatus = PutConsentStatusJsonV400(status = "AUTHORISED")
+
+  val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
   val createConsentRequestWithoutLoginUrl = (v5_1_0_Request / "consumer" / "consent-requests")
   val createConsentRequestUrl = (v5_1_0_Request / "consumer"/ "consent-requests").POST<@(user1)
@@ -310,7 +312,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
       val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
       
-      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      setPropsValues("consumer_validation_method_for_consent"->"CONSUMER_KEY_VALUE")
       val requestWhichFails = (v5_1_0_Request / "users").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
       Then("We get successful response")
@@ -345,7 +347,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       
       // Test Request Header "Consent-JWT:SOME_VALUE"
       val consentRequestHeader = (s"Consent-JWT", getConsentByRequestResponseJson.jwt)
-      val responseGetUsers = makeGetRequest(requestGetUsers, List(consentRequestHeader))
+      val responseGetUsers = makeGetRequest(requestGetUsers, List(consentRequestHeader) ::: validHeaderConsumerKey)
       Then("We get successful response")
       responseGetUsers.code should equal(200)
       val users = responseGetUsers.body.extract[UsersJsonV400].users
@@ -353,7 +355,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       
       // Test Request Header "Consent-Id:SOME_VALUE"
       val consentIdRequestHeader = (s"Consent-Id", getConsentByRequestResponseJson.consent_id)
-      val responseGetUsersSecond = makeGetRequest(requestGetUsers, List(consentIdRequestHeader))
+      val responseGetUsersSecond = makeGetRequest(requestGetUsers, List(consentIdRequestHeader) ::: validHeaderConsumerKey)
       Then("We get successful response")
       responseGetUsersSecond.code should equal(200)
       val usersSecond = responseGetUsersSecond.body.extract[UsersJsonV400].users

@@ -1,11 +1,13 @@
 package code.api.berlin.group.v1_3
 
 import code.api.util.APIUtil.DateWithDayFormat
+import code.api.util.APIUtil.rfc7231Date
 import code.api.util.ErrorMessages.InvalidDateFormat
 
+import java.text.SimpleDateFormat
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.time.{LocalDate, ZoneId}
-import java.util.Date
+import java.util.{Date, Locale}
 
 object BgSpecValidation {
 

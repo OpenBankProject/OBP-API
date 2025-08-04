@@ -1,6 +1,7 @@
 package code.api.v5_0_0
 
 import code.accountattribute.AccountAttributeX
+import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -10,6 +11,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util._
+import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
@@ -27,7 +29,6 @@ import code.model.dataAccess.BankAccountCreation
 import code.util.Helper
 import code.util.Helper.{SILENCE_IS_GOLDEN, booleanToFuture}
 import code.views.Views
-import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -776,7 +777,7 @@ trait APIMethods500 {
                 val accountId = AccountId(viewsFromJwtToken.head.account_id)
                 val viewId = ViewId(viewsFromJwtToken.head.view_id)
                 val helperInfoFromJwtToken = viewsFromJwtToken.head.helper_info
-                val viewCanGetCounterparty = Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)).map(_.canGetCounterparty)
+                val viewCanGetCounterparty = Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)).map(_.allowed_actions.exists( _ == CAN_GET_COUNTERPARTY))
                 val helperInfo = if(viewCanGetCounterparty==Full(true)) helperInfoFromJwtToken else None
                 (Some(bankId), Some(accountId), Some(viewId), helperInfo)
               }else{
@@ -985,9 +986,9 @@ trait APIMethods500 {
               
               val vrpViewId = s"_vrp-${UUID.randomUUID.toString}".dropRight(5)// to make sure the length of the viewId is 36.
               val targetPermissions = List(//may need getTransactionRequest . so far only these payments.
-                "can_add_transaction_request_to_beneficiary",
-                "can_get_counterparty",
-                "can_see_transaction_requests"
+                CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY,
+                CAN_GET_COUNTERPARTY,
+                CAN_SEE_TRANSACTION_REQUESTS,
               )
               
               val targetCreateCustomViewJson = CreateCustomViewJson(
@@ -1014,7 +1015,7 @@ trait APIMethods500 {
                 //2rd: create the Custom View for the fromAccount.
                 //we do not need sourceViewId so far, we need to get all the view access for the login user, and
                 permission <- NewStyle.function.permission(fromAccount.bankId, fromAccount.accountId, user, callContext)
-                permissionsFromSource = permission.views.map(view =>APIUtil.getViewPermissions(view.asInstanceOf[ViewDefinition]).toList).flatten.toSet
+                permissionsFromSource = permission.views.map(_.allowed_actions).flatten.toSet
                 permissionsFromTarget = targetCreateCustomViewJson.allowed_permissions
 
                 //eg: permissionsFromTarget=List(1,2), permissionsFromSource = List(1,3,4) => userMissingPermissions = List(2)
@@ -1025,9 +1026,9 @@ trait APIMethods500 {
                 _ <- Helper.booleanToFuture(failMsg, cc = callContext) {
                   userMissingPermissions.isEmpty
                 }
-                (vrpView, callContext) <- NewStyle.function.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
+                (vrpView, callContext) <- ViewNewStyle.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContext)
 
-                _ <-NewStyle.function.grantAccessToCustomView(vrpView, user, callContext)
+                _ <-ViewNewStyle.grantAccessToCustomView(vrpView, user, callContext)
 
                 //3rd: Create a new counterparty on that view (_VRP-9d429899-24f5-42c8-8565-943ffa6a7945)
                 postJson = PostCounterpartyJson400(
@@ -1884,9 +1885,9 @@ trait APIMethods500 {
             for {
               (Full(u), callContext) <- SS.user
               permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
-              anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission =  permission.views.map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)).find(_.==(true)).getOrElse(false)
               _ <- Helper.booleanToFuture(
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${StringHelpers.snakify(nameOf(ViewDefinition.canSeeAvailableViewsForBankAccount_)).dropRight(1)}` permission on any your views",
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${(CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)}` permission on any your views",
                 cc = callContext
               ) {
                 anyViewContainsCanSeeAvailableViewsForBankAccountPermission
@@ -1926,8 +1927,8 @@ trait APIMethods500 {
       case "system-views" :: viewId :: Nil JsonDelete req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
-            view <- NewStyle.function.deleteSystemView(ViewId(viewId), cc.callContext)
+            _ <- ViewNewStyle.systemView(ViewId(viewId), cc.callContext)
+            view <- ViewNewStyle.deleteSystemView(ViewId(viewId), cc.callContext)
           } yield {
             (Full(view),  HttpCode.`200`(cc.callContext))
           }
@@ -2050,7 +2051,7 @@ trait APIMethods500 {
       case "system-views" :: viewId :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            view <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+            view <- ViewNewStyle.systemView(ViewId(viewId), cc.callContext)
           } yield {
             (createViewJsonV500(view), HttpCode.`200`(cc.callContext))
           }
@@ -2084,7 +2085,7 @@ trait APIMethods500 {
       case "system-views-ids" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            views <- NewStyle.function.systemViews()
+            views <- ViewNewStyle.systemViews()
           } yield {
             (createViewsIdsJsonV500(views), HttpCode.`200`(cc.callContext))
           }
@@ -2142,7 +2143,7 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat +s"Current view_name (${createViewJson.name})", cc = cc.callContext) {
               isValidSystemViewName(createViewJson.name)
             }
-            view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
+            view <- ViewNewStyle.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
           } yield {
             (createViewJsonV500(view),  HttpCode.`201`(cc.callContext))
           }
@@ -2187,8 +2188,8 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
               updateJson.is_public == false
             }
-            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
-            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, cc.callContext)
+            _ <- ViewNewStyle.systemView(ViewId(viewId), cc.callContext)
+            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, cc.callContext)
           } yield {
             (createViewJsonV500(updatedView), HttpCode.`200`(cc.callContext))
           }

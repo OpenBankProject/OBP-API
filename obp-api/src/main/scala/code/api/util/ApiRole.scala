@@ -1,14 +1,13 @@
 package code.api.util
 
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
-
-import java.util.concurrent.ConcurrentHashMap
-import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
-import net.liftweb.json.{Formats, JsonAST}
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.{Formats, JsonAST}
+
+import java.util.concurrent.ConcurrentHashMap
 
 sealed trait ApiRole extends JsonAble {
   val requiresBankId: Boolean
@@ -210,6 +209,12 @@ object ApiRole extends MdcLoggable{
 
   case class CanCreateEntitlementAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateEntitlementAtOneBank = CanCreateEntitlementAtOneBank()
+  
+  case class CanCreateSystemViewPermission(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateSystemViewPermission = CanCreateSystemViewPermission()
+  
+  case class CanDeleteSystemViewPermission(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemViewPermission = CanDeleteSystemViewPermission()
 
   case class CanDeleteEntitlementAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteEntitlementAtOneBank = CanDeleteEntitlementAtOneBank()

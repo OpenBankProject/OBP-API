@@ -541,7 +541,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         rolesToDelete.foreach( roleName =>
           Scope.scope.vend.deleteScope(scopes.find(s => s.roleName == roleName || s.consumerId == consumerId))
         )
-        logger.debug(s"Consumer ID: $consumerId # Existing roles: ${existingRoles.mkString} # Added roles: ${rolesToAdd.mkString} # Deleted roles: ${rolesToDelete.mkString}")
+        logger.debug(s"Consumer ID: $consumerId # Existing roles: ${existingRoles.mkString(",")} # Added roles: ${rolesToAdd.mkString(",")} # Deleted roles: ${rolesToDelete.mkString(",")}")
       } else {
         logger.debug(s"Adding scopes omitted due to oauth2.keycloak.source_of_truth = $sourceOfTruth # Consumer ID: $consumerId")
       }

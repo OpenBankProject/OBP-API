@@ -1550,7 +1550,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       currency=currencyExample.value,
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
-      finishDate=toDate(transactionFinishDateExample),
+      finishDate=Some(toDate(transactionFinishDateExample)),
       balance=BigDecimal(balanceExample.value),
       status=transactionStatusExample.value
       )))
@@ -1685,7 +1685,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       currency=currencyExample.value,
       description=Some(transactionDescriptionExample.value),
       startDate=toDate(transactionStartDateExample),
-      finishDate=toDate(transactionFinishDateExample),
+      finishDate=Some(toDate(transactionFinishDateExample)),
       balance=BigDecimal(balanceExample.value),
       status=transactionStatusExample.value))
     ),

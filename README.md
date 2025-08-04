@@ -497,8 +497,8 @@ In order to make it work edit your props file in next way:
 
 ```
 use_consumer_limits=false, In case isn't defined default value is "false"
-redis_address=YOUR_REDIS_URL_ADDRESS, In case isn't defined default value is 127.0.0.1
-redis_port=YOUR_REDIS_PORT, In case isn't defined default value is 6379
+cache.redis.url=YOUR_REDIS_URL_ADDRESS, In case isn't defined default value is 127.0.0.1
+cache.redis.port=YOUR_REDIS_PORT, In case isn't defined default value is 6379
 ```
 
 The next types are supported:
