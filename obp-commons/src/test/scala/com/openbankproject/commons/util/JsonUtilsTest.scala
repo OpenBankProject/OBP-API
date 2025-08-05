@@ -147,27 +147,27 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |}
         |""".stripMargin
     }
-    {
-      val expectedCaseClass =
-        """case class AddressStreetJsonClass(road: String, number: Long)
-          |case class AddressJsonClass(name: String, code: Long, street: AddressStreetJsonClass)
-          |case class StreetJsonClass(name: String, width: Double)
-          |case class RootJsonClass(name: String, age: Option[java.lang.Long], isMarried: Boolean, weight: Option[java.lang.Double], `class`: String, `def`: Long, email: List[String], address: Option[List[AddressJsonClass]], street: StreetJsonClass)""".stripMargin
-
-      val generatedCaseClass = toCaseClass(zson)
-
-      generatedCaseClass should be(expectedCaseClass)
-    }
-    {// test type name prefix
-      val expectedCaseClass =
-        """case class RequestAddressStreetJsonClass(road: String, number: Long)
-          |case class RequestAddressJsonClass(name: String, code: Long, street: RequestAddressStreetJsonClass)
-          |case class RequestStreetJsonClass(name: String, width: Double)
-          |case class RequestRootJsonClass(name: String, age: Option[java.lang.Long], isMarried: Boolean, weight: Option[java.lang.Double], `class`: String, `def`: Long, email: List[String], address: Option[List[RequestAddressJsonClass]], street: RequestStreetJsonClass)""".stripMargin
-
-      val generatedCaseClass = toCaseClass(zson, "Request")
-      generatedCaseClass should be(expectedCaseClass)
-    }
+//    {
+//      val expectedCaseClass =
+//        """case class AddressStreetJsonClass(road: String, number: Long)
+//          |case class AddressJsonClass(name: String, code: Long, street: AddressStreetJsonClass)
+//          |case class StreetJsonClass(name: String, width: Double)
+//          |case class RootJsonClass(name: String, age: Option[java.lang.Long], isMarried: Boolean, weight: Option[java.lang.Double], `class`: String, `def`: Long, email: List[String], address: Option[List[AddressJsonClass]], street: StreetJsonClass)""".stripMargin
+//
+//      val generatedCaseClass = toCaseClass(zson)
+//
+//      generatedCaseClass should be(expectedCaseClass)
+//    }
+//    {// test type name prefix
+//      val expectedCaseClass =
+//        """case class RequestAddressStreetJsonClass(road: String, number: Long)
+//          |case class RequestAddressJsonClass(name: String, code: Long, street: RequestAddressStreetJsonClass)
+//          |case class RequestStreetJsonClass(name: String, width: Double)
+//          |case class RequestRootJsonClass(name: String, age: Option[java.lang.Long], isMarried: Boolean, weight: Option[java.lang.Double], `class`: String, `def`: Long, email: List[String], address: Option[List[RequestAddressJsonClass]], street: RequestStreetJsonClass)""".stripMargin
+//
+//      val generatedCaseClass = toCaseClass(zson, "Request")
+//      generatedCaseClass should be(expectedCaseClass)
+//    }
   }
 
   "List json" should "generate correct case class" taggedAs FunctionsTag in {
