@@ -100,6 +100,7 @@ object Migration extends MdcLoggable {
 //      populateViewDefinitionCanSeeTransactionStatus()
       alterCounterpartyLimitFieldType()
       populateMigrationOfViewPermissions(startedBeforeSchemifier)
+      changeTypeOfAudFieldAtConsumerTable()
     }
     
     private def dummyScript(): Boolean = {
@@ -252,6 +253,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(populateAzpAndSubFieldsAtConsumerTable)
       runOnce(name) {
         MigrationOfConsumer.populateAzpAndSub(name)
+      }
+    }
+    private def changeTypeOfAudFieldAtConsumerTable(): Boolean = {
+      val name = nameOf(changeTypeOfAudFieldAtConsumerTable)
+      runOnce(name) {
+        MigrationOfConsumer.alterTypeofAud(name)
       }
     }
     private def alterTableMappedUserAuthContext(startedBeforeSchemifier: Boolean): Boolean = {

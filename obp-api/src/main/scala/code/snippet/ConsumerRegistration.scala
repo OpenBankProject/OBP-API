@@ -28,7 +28,7 @@ package code.snippet
 
 import java.util
 import code.api.{Constant, DirectLogin}
-import code.api.util.{APIUtil, ErrorMessages, KeycloakAdmin, X509}
+import code.api.util.{APIUtil, ErrorMessages, KeycloakAdmin, X509, CommonsEmailWrapper}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, _}
@@ -424,18 +424,19 @@ class ConsumerRegistration extends MdcLoggable {
         s"Direct Login Documentation: ${oauthDocumentationUrl} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
-      val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
-
       val webuiRegisterConsumerSuccessMssageEmail : String = getWebUiPropsValue(
         "webui_register_consumer_success_message_email", 
         "Thank you for registering to use the Open Bank Project API.") 
 
-      //this is an async call
-      Mailer.sendMail(
-        From(from),
-        Subject(webuiRegisterConsumerSuccessMssageEmail),
-        params :_*
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = from,
+        to = List(registered.developerEmail.get),
+        subject = webuiRegisterConsumerSuccessMssageEmail,
+        textContent = Some(registrationMessage)
       )
+
+      //this is an async call
+      CommonsEmailWrapper.sendTextEmail(emailContent)
     }
 
     if(mailSent.isEmpty)
@@ -445,8 +446,6 @@ class ConsumerRegistration extends MdcLoggable {
 
   // This is to let the system administrators / API managers know that someone has registered a consumer key.
   def notifyRegistrationOccurred(registered : Consumer) = {
-    import net.liftweb.util.Mailer
-    import net.liftweb.util.Mailer._
 
     val mailSent = for {
       // e.g mail.api.consumer.registered.sender.address=no-reply@example.com
@@ -465,18 +464,18 @@ class ConsumerRegistration extends MdcLoggable {
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
-      val toParams = to.map(To(_))
-      val params = PlainMailBodyType(registrationMessage) :: toParams
+
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = from,
+        to = to,
+        subject = s"New API user registered on $thisApiInstance",
+        textContent = Some(registrationMessage)
+      )
 
       //this is an async call
-      Mailer.sendMail(
-        From(from),
-        Subject(s"New API user registered on $thisApiInstance"),
-        params :_*
-      )
+      CommonsEmailWrapper.sendTextEmail(emailContent)
     }
 
-    //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
     if(mailSent.isEmpty)
       this.logger.warn(s"API consumer registration failed: $mailSent")
 

@@ -33,6 +33,7 @@ import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil._
 import code.api.util.CommonFunctions.validUri
+import code.api.util.CommonsEmailWrapper._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
@@ -55,7 +56,6 @@ import net.liftweb.http.S.fmapFunc
 import net.liftweb.http._
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc.{If, LocParam, Template}
-import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
 import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.api.AdminApi
@@ -589,24 +589,35 @@ import net.liftweb.util.Helpers._
    */
   override def sendPasswordReset(name: String) {
     findAuthUserByUsernameLocallyLegacy(name).toList ::: findUsersByEmailLocally(name) map {
-      // reason of case parameter name is "u" instead of "user": trait AuthUser have constant mumber name is "user"
-      // So if the follow case paramter name is "user" will cause compile warnings
       case u if u.validated_? =>
         u.resetUniqueId().save
-        //NOTE: here, if server_mode = portal, so we need modify the resetLink to portal_hostname, then developer can get proper response..
         val resetPasswordLinkProps = Constant.HostName
         val resetPasswordLink = APIUtil.getPropsValue("portal_hostname", resetPasswordLinkProps)+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
-        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
-          To(u.getEmail) ::
-            generateResetEmailBodies(u, resetPasswordLink) :::
-            (bccEmail.toList.map(BCC(_))) :_*)
+        // Directly generate content using JakartaMail/CommonsEmailWrapper
+        val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
+        val htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetPasswordLink'>$resetPasswordLink</a></p>")
+        val emailContent = EmailContent(
+          from = emailFrom,
+          to = List(u.getEmail),
+          bcc = bccEmail.toList,
+          subject = passwordResetEmailSubject + " - " + u.username,
+          textContent = textContent,
+          htmlContent = htmlContent
+        )
+        sendHtmlEmail(emailContent) match {
+          case Full(messageId) => 
+            logger.debug(s"Password reset email sent successfully with Message-ID: $messageId")
+            S.notice("Password reset email sent successfully. Please check your email.")
+            S.redirectTo(homePage)
+          case Empty => 
+            logger.error("Failed to send password reset email")
+            S.error("Failed to send password reset email. Please try again.")
+            S.redirectTo(homePage)
+        }
       case u =>
         sendValidationEmail(u)
     }
-    // In order to prevent any leakage of information we use the same message for all cases
-    S.notice(userNameNotFoundString)
-    S.redirectTo(homePage)
   }
 
   override def lostPasswordXhtml = {
@@ -638,17 +649,26 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
-    val resetLink = Constant.HostName+"/"+validateUserPath.mkString("/")+
-      "/"+urlEncode(user.getUniqueId())
-
+    val resetLink = Constant.HostName+"/"+validateUserPath.mkString("/")+"/"+urlEncode(user.getUniqueId())
     val email: String = user.getEmail
-
-    val msgXml = signupMailBody(user, resetLink)
-
-    Mailer.sendMail(From(emailFrom),Subject(signupMailSubject),
-      To(user.getEmail) ::
-        generateValidationEmailBodies(user, resetLink) :::
-        (bccEmail.toList.map(BCC(_))) :_* )
+    val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $resetLink")
+    val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$resetLink'>$resetLink</a></p>")
+    val emailContent = EmailContent(
+      from = emailFrom,
+      to = List(user.getEmail),
+      bcc = bccEmail.toList,
+      subject = signupMailSubject,
+      textContent = textContent,
+      htmlContent = htmlContent
+    )
+    sendHtmlEmail(emailContent) match {
+      case Full(messageId) => 
+        logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
+        S.notice("Validation email sent successfully. Please check your email.")
+      case Empty => 
+        logger.error("Failed to send validation email")
+        S.error("Failed to send validation email. Please try again.")
+    }
   }
 
    def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {

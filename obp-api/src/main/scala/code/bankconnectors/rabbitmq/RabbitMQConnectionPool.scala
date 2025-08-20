@@ -2,14 +2,11 @@ package code.bankconnectors.rabbitmq
 
 
 
-import code.api.util.APIUtil
-import com.rabbitmq.client.{Connection, ConnectionFactory}
-import org.apache.commons.pool2.impl.{GenericObjectPool, GenericObjectPoolConfig}
-import org.apache.commons.pool2.BasePooledObjectFactory
-import org.apache.commons.pool2.PooledObject
-import org.apache.commons.pool2.impl.DefaultPooledObject
+import code.api.util.{APIUtil, ErrorMessages}
 import code.bankconnectors.rabbitmq.RabbitMQUtils._
-import code.api.util.ErrorMessages
+import com.rabbitmq.client.{Connection, ConnectionFactory}
+import org.apache.commons.pool2.{BasePooledObjectFactory, PooledObject}
+import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 
 class RabbitMQConnectionFactory extends BasePooledObjectFactory[Connection] {
   
@@ -59,7 +56,7 @@ class RabbitMQConnectionFactory extends BasePooledObjectFactory[Connection] {
 
 // Pool to manage RabbitMQ connections
 object RabbitMQConnectionPool {
-  private val poolConfig = new GenericObjectPoolConfig()
+  private val poolConfig = new GenericObjectPoolConfig[Connection]()
   poolConfig.setMaxTotal(5)           // Maximum number of connections
   poolConfig.setMinIdle(2)             // Minimum number of idle connections
   poolConfig.setMaxIdle(5)             // Maximum number of idle connections

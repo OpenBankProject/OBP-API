@@ -270,20 +270,59 @@ dev.port=8080
 #Default value is obp (very highly recomended)
 apiPathZero=obp
 
-## Sending mail out
-## Not need in dev mode, but important for production
-mail.api.consumer.registered.sender.address=no-reply@example.com
-mail.api.consumer.registered.notification.addresses=you@example.com
-## Not need in dev mode, but important for production
-## We send an email after any exception
-# mail.exception.sender.address=no-reply@example.com
-# mail.exception.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
-# This property allows sending API registration data to developer's email.
-#mail.api.consumer.registered.notification.send=false
-We only send consumer keys and secret if this is true
-#mail.api.consumer.registered.notification.send.sensistive=false
+## Email Configuration (CommonsEmailWrapper)
+## ===========================================
+## 
+## This section configures email sending using CommonsEmailWrapper instead of Lift Mailer.
+## All email functionality (password reset, validation, notifications) now uses these settings.
+##
+## SMTP Server Configuration
+## -------------------------
+## Basic SMTP settings
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
+mail.smtp.auth=false
+mail.smtp.user=
+mail.smtp.password=
+
+## TLS/SSL Configuration
+## ---------------------
+## Enable STARTTLS (recommended for most SMTP servers)
+mail.smtp.starttls.enable=false
+## Enable SSL (use with port 465)
+mail.smtp.ssl.enable=false
+## TLS protocols to use (recommended: TLSv1.2)
+mail.smtp.ssl.protocols=TLSv1.2
+## Trust all certificates (for development only)
+#mail.smtp.ssl.trust=*
+
+## Debug Configuration
+## ------------------
+## Enable email debugging (shows SMTP communication)
+mail.debug=false
+
+## Email Sender Configuration
+## -------------------------
+## Default sender address for all emails
+mail.users.userinfo.sender.address=no-reply@example.com
+
+## Consumer Registration Email
+## --------------------------
+## Enable/disable consumer registration notifications
+mail.api.consumer.registered.notification.send=false
+## Sender address for consumer registration emails
+mail.api.consumer.registered.sender.address=no-reply@example.com
+## Recipient addresses for consumer registration notifications (comma-separated)
+mail.api.consumer.registered.notification.addresses=you@example.com
+## Send sensitive information (consumer keys/secrets) via email
+mail.api.consumer.registered.notification.send.sensistive=false
+
+## Exception Notification Email
+## ---------------------------
+## Sender address for exception notifications
+mail.exception.sender.address=no-reply@example.com
+## Recipient addresses for exception notifications (comma-separated)
+mail.exception.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
 
 ## Oauth token timeout
 token_expiration_weeks=4

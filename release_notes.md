@@ -3,6 +3,20 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+04/08/2025    d282d266      Enhanced Email Configuration with CommonsEmailWrapper
+                            Replaced Lift Mailer with Apache Commons Email for improved email functionality.
+                            Added comprehensive SMTP configuration options:
+                            - mail.smtp.auth (authentication support)
+                            - mail.smtp.user (SMTP username)
+                            - mail.smtp.password (SMTP password)
+                            - mail.smtp.starttls.enable (STARTTLS support)
+                            - mail.smtp.ssl.enable (SSL support)
+                            - mail.smtp.ssl.protocols (TLS protocol selection)
+                            - mail.smtp.ssl.trust (certificate trust options)
+                            - mail.debug (SMTP debugging)
+                            - mail.users.userinfo.sender.address (default sender)
+                            Added configuration examples forTesobe mail servers.
+                            All email functionality (password reset, validation, notifications) now uses CommonsEmailWrapper.
 25/06/2025    e49ebb4f      Added props BG_remove_sign_of_amounts, default is false.
                             If set to true, the sign of amounts will be removed in the BGv1.3 getTransaction endpoints. 
 17/03/2025    166e4f2a      Removed Kafka commits: 166e4f2a,7f24802e,6f0a3b53,f22763c3,

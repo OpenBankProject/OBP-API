@@ -93,6 +93,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
                              product: String,
                              cashAccountType: String,
                              name: Option[String],
+                             balances: Option[List[CoreAccountBalanceJson]] = None,
                              _links: AccountDetailsLinksJsonV13,
                            )
 
@@ -407,14 +408,18 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   def createCardAccountDetailsJson(bankAccount: BankAccount,
                                    canReadBalancesAccounts: List[BankIdAccountId],
                                    canReadTransactionsAccounts: List[BankIdAccountId],
+                                   withBalanceParam: Option[Boolean],
+                                   balances: List[BankAccountBalanceTrait],
                                    user: User): CardAccountDetailsJsonV13 = {
-    val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount, canReadBalancesAccounts, canReadTransactionsAccounts, user)
+    val accountDetailsJsonV13 = createAccountDetailsJson(bankAccount, canReadBalancesAccounts, canReadTransactionsAccounts, withBalanceParam, balances, user)
     CardAccountDetailsJsonV13(accountDetailsJsonV13.account)
   }
   
   def createAccountDetailsJson(bankAccount: BankAccount,
                                canReadBalancesAccounts: List[BankIdAccountId],
                                canReadTransactionsAccounts: List[BankIdAccountId],
+                               withBalanceParam: Option[Boolean],
+                               balances: List[BankAccountBalanceTrait],
                                user: User): AccountDetailsJsonV13 = {
     val (iBan: String, bBan: String) = getIbanAndBban(bankAccount)
     val commonPath = s"${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}"
@@ -423,7 +428,15 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     val transactionRef = LinkHrefJson(s"/$commonPath/transactions")
     val canReadTransactions = canReadTransactionsAccounts.map(_.accountId.value).contains(bankAccount.accountId.value)
     val cashAccountType = bankAccount.attributes.getOrElse(Nil).filter(_.name== "cashAccountType").map(_.value).headOption.getOrElse("")
-
+    val accountBalances = if (withBalanceParam.contains(true)) {
+      Some(balances.filter(_.accountId.equals(bankAccount.accountId)).flatMap(balance => (List(CoreAccountBalanceJson(
+        balanceAmount = AmountOfMoneyV13(bankAccount.currency, balance.balanceAmount.toString()),
+        balanceType = balance.balanceType,
+        lastChangeDateTime = balance.lastChangeDateTime.map(APIUtil.DateWithMsAndTimeZoneOffset.format(_))
+      )))))
+    } else {
+      None
+    }
 
     val account = AccountJsonV13(
       resourceId = bankAccount.accountId.value,
@@ -432,6 +445,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       name = if(APIUtil.getPropsAsBoolValue("BG_v1312_show_account_name", defaultValue = true)) Some(bankAccount.name) else None,
       cashAccountType = cashAccountType,
       product = bankAccount.accountType,
+      balances = if(canReadBalances) accountBalances else None,
       _links = AccountDetailsLinksJsonV13(
         balances = if (canReadBalances) Some(balanceRef) else None,
         transactions = if (canReadTransactions) Some(transactionRef) else None,

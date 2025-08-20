@@ -46,12 +46,13 @@ import code.consent.MappedConsent
 import code.metrics.APIMetric
 import code.model.Consumer
 import code.users.{UserAttribute, Users}
+import code.util.Helper.MdcLoggable
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
-import net.liftweb.json.{JString, JValue, parse, parseOpt}
+import net.liftweb.json.{JString, JValue, MappingException, parse, parseOpt}
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -676,7 +677,7 @@ case class ViewPermissionJson(
   extra_data: Option[List[String]]
 )
 
-object JSONFactory510 extends CustomJsonFormats {
+object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
 
   def createTransactionRequestJson(tr : TransactionRequest, transactionRequestAttributes: List[TransactionRequestAttributeTrait] ) : TransactionRequestJsonV510 = {
     TransactionRequestJsonV510(
@@ -980,7 +981,16 @@ object JSONFactory510 extends CustomJsonFormats {
   def createConsentsJsonV510(consents: List[MappedConsent]): ConsentsJsonV510 = {
     ConsentsJsonV510(
       consents.map { c =>
-        val jwtPayload = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken).map(parse(_).extract[ConsentJWT]).toOption
+        val jwtPayload = JwtUtil
+          .getSignedPayloadAsJson(c.jsonWebToken)
+          .flatMap { payload =>
+            Try(parse(payload).extract[ConsentJWT]).recover {
+              case e: MappingException =>
+                logger.warn(s"Invalid JWT payload: ${e.getMessage}")
+                null
+            }.toOption
+          }.toOption
+
         AllConsentJsonV510(
           consent_reference_id = c.consentReferenceId,
           consumer_id = c.consumerId,

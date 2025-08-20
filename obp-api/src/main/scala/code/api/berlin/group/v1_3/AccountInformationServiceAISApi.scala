@@ -1036,17 +1036,27 @@ Give detailed information about the addressed account together with balance info
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
+             withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 400, callContext) {
+               val withBalance = APIUtil.getHttpRequestUrlParam(cc.url, "withBalance")
+               if (withBalance.isEmpty) Some(false) else Some(withBalance.toBoolean)
+             }
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
              (canReadTransactionsAccounts, callContext) <- NewStyle.function.getAccountCanReadTransactionsOfBerlinGroup(u, callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+             (accountBalances, callContext) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(
+               AccountId(accountId),
+               callContext
+             )
            } yield {
              (
                JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(
                  account,
                  canReadBalancesAccounts,
                  canReadTransactionsAccounts,
+                 withBalanceParam,
+                 accountBalances,
                  u
                ),
                callContext
@@ -1105,8 +1115,23 @@ respectively the OAuth2 access token.
              (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
              (canReadTransactionsAccounts, callContext) <- NewStyle.function.getAccountCanReadTransactionsOfBerlinGroup(u, callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+             withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 400, callContext) {
+               val withBalance = APIUtil.getHttpRequestUrlParam(cc.url, "withBalance")
+               if (withBalance.isEmpty) Some(false) else Some(withBalance.toBoolean)
+             }
+             (accountBalances, callContext) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(
+               AccountId(accountId),
+               callContext
+             )
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(account, canReadBalancesAccounts, canReadTransactionsAccounts, u), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(
+               account,
+               canReadBalancesAccounts,
+               canReadTransactionsAccounts,
+               withBalanceParam,
+               accountBalances,
+               u
+             ), callContext)
            }
        }
      }

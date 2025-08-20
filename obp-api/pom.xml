@@ -179,6 +179,11 @@
       <version>4.5.13</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <version>2.11.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
       <version>${jetty.version}</version>
@@ -397,6 +402,12 @@
       <groupId>org.asynchttpclient</groupId>
       <artifactId>async-http-client</artifactId>
       <version>2.10.4</version>
+        <exclusions>
+            <exclusion>
+                <artifactId>javax.activation</artifactId>
+                <groupId>com.sun.activation</groupId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <!-- grpc related end-->
 
@@ -405,6 +416,16 @@
       <groupId>org.scalikejdbc</groupId>
       <artifactId>scalikejdbc_${scala.version}</artifactId>
       <version>3.4.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.sun.activation</groupId>
+          <artifactId>javax.activation</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.activation</groupId>
+          <artifactId>activation</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
@@ -498,6 +519,16 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+        <groupId>com.sun.mail</groupId>
+        <artifactId>jakarta.mail</artifactId>
+        <version>2.0.1</version>
+    </dependency>
+    <dependency>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>2.0.1</version>
+    </dependency>
     <dependency>
       <groupId>com.sun.activation</groupId>
       <artifactId>jakarta.activation</artifactId>
@@ -661,24 +692,25 @@
           <release>${java.version}</release>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.scalaxb</groupId>
-        <artifactId>scalaxb-maven-plugin</artifactId>
-        <version>1.7.5</version>
-        <configuration>
-          <packageName>code.adapter.soap</packageName>
-          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>
-          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>scalaxb</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!--soap related plugin begin-->
+<!--      <plugin>-->
+<!--        <groupId>org.scalaxb</groupId>-->
+<!--        <artifactId>scalaxb-maven-plugin</artifactId>-->
+<!--        <version>1.7.5</version>-->
+<!--        <configuration>-->
+<!--          <packageName>code.adapter.soap</packageName>-->
+<!--          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>-->
+<!--          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <id>scalaxb</id>-->
+<!--            <goals>-->
+<!--              <goal>generate</goal>-->
+<!--            </goals>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
       <!--grpc related plugin begin-->
       <!-- currently not need, enable this plugin when need generate new grpc code.
       <plugin>

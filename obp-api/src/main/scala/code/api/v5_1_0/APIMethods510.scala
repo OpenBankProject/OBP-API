@@ -1707,6 +1707,10 @@ trait APIMethods510 {
          |
          |7 bank_id  (ignore if omitted)
          |
+         |8 provider_provider_id  (ignore if omitted)
+         |provider and provider_id values are separated by pipe char
+         |eg: provider_provider_id=http%3A%2F%2Flocalhost%3A7070%2Frealms%2Fmaster|7837ee9c-3446-4d8c-9b90-301a52b4851d
+         |
          |eg:/management/consents?consumer_id=78&limit=10&offset=10
          |
       """.stripMargin,

@@ -1,17 +1,20 @@
 package code.consent
 
 import java.util.Date
-import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, SecureRandomUtil}
+import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
+import code.model.dataAccess.ResourceUser
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.{MappedString, _}
+import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import scala.collection.immutable.List
 
 object MappedConsentProvider extends ConsentProvider {
@@ -71,6 +74,20 @@ object MappedConsentProvider extends ConsentProvider {
     // The optional variables:
     val consumerId = queryParams.collectFirst { case OBPConsumerId(value) => By(MappedConsent.mConsumerId, value) }
     val consentId = queryParams.collectFirst { case OBPConsentId(value) => By(MappedConsent.mConsentId, value) }
+    val providerProviderId: Option[Cmp[MappedConsent, String]] = queryParams.collectFirst {
+      case ProviderProviderId(value) =>
+        val (provider, providerId) = value.split("\\|") match { // split by literal '|'
+          case Array(a, b) => (a, b)
+          case _ => ("", "") // fallback if format is unexpected
+        }
+        ResourceUser.findAll(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, providerId)) match {
+          case x :: Nil => // exactly one
+            Some(By(MappedConsent.mUserId, x.userId))
+          case _ =>
+            None
+        }
+    }.flatten
+
     val userId = queryParams.collectFirst { case OBPUserId(value) => By(MappedConsent.mUserId, value) }
     val status = queryParams.collectFirst {
       case OBPStatus(value) =>
@@ -96,7 +113,7 @@ object MappedConsentProvider extends ConsentProvider {
       offset.toSeq,
       limit.toSeq,
       status.toSeq,
-      userId.toSeq,
+      userId.orElse(providerProviderId).toSeq,
       consentId.toSeq,
       consumerId.toSeq
     ).flatten

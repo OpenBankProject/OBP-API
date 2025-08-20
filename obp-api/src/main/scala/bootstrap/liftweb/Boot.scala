@@ -46,6 +46,7 @@ import code.api.util.ApiRole.CanCreateEntitlementAtAnyBank
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
+import code.api.util.CommonsEmailWrapper
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
 import code.apicollectionendpoint.ApiCollectionEndpoint
@@ -151,7 +152,6 @@ import org.apache.commons.io.FileUtils
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-import javax.mail.internet.MimeMessage
 import scala.concurrent.ExecutionContext
 
 /**
@@ -693,10 +693,6 @@ class Boot extends MdcLoggable {
       case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
-    Mailer.devModeSend.default.set( (m : MimeMessage) => {
-      logger.info("Would have sent email if not in dev mode: " + m.getContent)
-    })
-    
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
@@ -880,7 +876,7 @@ class Boot extends MdcLoggable {
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
-    import Mailer.{From, PlainMailBodyType, Subject, To}
+    
     import net.liftweb.util.Helpers.now
 
     val outputStream = new java.io.ByteArrayOutputStream
@@ -899,18 +895,18 @@ class Boot extends MdcLoggable {
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
-      val toParams = to.map(To(_))
-      val params = PlainMailBodyType(error) :: toParams
 
-      //this is an async call
-      Mailer.sendMail(
-        From(from),
-        Subject(s"you got an exception on $host"),
-        params :_*
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = from,
+        to = to,
+        subject = s"you got an exception on $host",
+        textContent = Some(error)
       )
+
+      //this is an async call∆∆
+      CommonsEmailWrapper.sendTextEmail(emailContent)
     }
 
-    //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
     if(mailSent.isEmpty)
       logger.warn(s"Exception notification failed: $mailSent")
   }

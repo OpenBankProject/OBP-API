@@ -530,6 +530,11 @@ trait Connector extends MdcLoggable {
   
   def getBankAccountByNumber(bankId : Option[BankId], accountNumber : String, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getBankAccountByNumber _))), callContext)}
 
+  // This method handles external bank accounts that may not exist in our database.
+  // If the account is not found, we create an in-memory account using counterparty information for payment processing.
+  //TODO understand more about this method.
+  def getOtherBankAccountByNumber(bankId : Option[BankId], accountNumber : String, counterparty: Option[CounterpartyTrait], callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getOtherBankAccountByNumber _))), callContext)}
+
   def getBankAccountByRoutings(bankAccountRoutings: BankAccountRoutings, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getBankAccountByRoutings _))), callContext)}
   
   def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[Counterparty]] = Future {(Failure(setUnimplementedError(nameOf(checkBankAccountExists _))), callContext)}

@@ -476,9 +476,10 @@ object BankAccountX {
     else if (counterparty.otherAccountRoutingScheme.equalsIgnoreCase("ACCOUNT_NUMBER")|| counterparty.otherAccountRoutingScheme.equalsIgnoreCase("ACCOUNT_NO")){
       for{
         bankIdOption <- Future.successful(if(counterparty.otherBankRoutingAddress.isEmpty) None else Some(counterparty.otherBankRoutingAddress))
-        (account, callContext) <- NewStyle.function.getBankAccountByNumber(
+        (account, callContext) <- NewStyle.function.getOtherBankAccountByNumber(
           bankIdOption.map(BankId(_)),
           counterparty.otherAccountRoutingAddress,
+          Some(counterparty),
           callContext)
       } yield {
         (Full(account), callContext)

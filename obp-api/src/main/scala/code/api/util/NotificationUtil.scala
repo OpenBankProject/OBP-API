@@ -6,8 +6,7 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
-import net.liftweb.util.Mailer
-import net.liftweb.util.Mailer._
+
 
 import scala.collection.immutable.List
 
@@ -27,14 +26,14 @@ object NotificationUtil extends MdcLoggable {
                                       |
                                       |Cheers
                                       |""".stripMargin
-      val params = PlainMailBodyType(bodyOfMessage) :: List(To(user.emailAddress))
-      val subjectOfMessage = "You have been granted the role"
-      //this is an async call
-      Mailer.sendMail(
-        From(from),
-        Subject(subjectOfMessage),
-        params :_*
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = from,
+        to = List(user.emailAddress),
+        subject = s"You have been granted the role: ${entitlement.roleName}",
+        textContent = Some(bodyOfMessage)
       )
+      //this is an async call
+      CommonsEmailWrapper.sendTextEmail(emailContent)
     }
     if(mailSent.isEmpty) {
       val info =
