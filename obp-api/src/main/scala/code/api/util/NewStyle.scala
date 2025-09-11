@@ -1056,7 +1056,27 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
       }
     }
+    def createTransactionRequestMdBGV1(
+                                      initiator: Option[User],
+                                      paymentServiceType: PaymentServiceTypes,
+                                      transactionRequestType: TransactionRequestTypes,
+                                      transactionRequestBody: InstantCreditTransfersMdV1,
+                                      callContext: Option[CallContext]
+                                    ): OBPReturnType[TransactionRequestBGV1] = {
+      val response = if(paymentServiceType.equals(PaymentServiceTypes.payments)){
+        Connector.connector.vend.createTransactionRequestInstantCreditTransfersMdV1(
+          initiator: Option[User],
+          paymentServiceType: PaymentServiceTypes,
+          transactionRequestType: TransactionRequestTypes,
+          transactionRequestBody.asInstanceOf[InstantCreditTransfersMdV1],
+          callContext: Option[CallContext]
+        )
+      }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
+      response map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+      }
+    }
     def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatusValue] = {
       Connector.connector.vend.notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$TransactionRequestStatusNotInitiated Can't notify TransactionRequestId(${transactionRequest.id}) ", 400), i._2)

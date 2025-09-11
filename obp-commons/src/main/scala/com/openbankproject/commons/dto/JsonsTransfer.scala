@@ -30,6 +30,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.{JObject, JValue}
 
 import java.util.Date
@@ -1193,6 +1194,18 @@ case class OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(
 ) extends TopicTrait
 
 case class InBoundCreateTransactionRequestSepaCreditTransfersBGV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
+
+case class OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(
+                                                                    outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                                    initiator: Option[User],
+                                                                    paymentServiceType: PaymentServiceTypes.Value,
+                                                                    transactionRequestType: TransactionRequestTypes.Value,
+                                                                    transactionRequestBody: InstantCreditTransfersMdV1,
+                                                                    headers: List[HTTPParam] = Nil,
+                                                                  ) extends TopicTrait
+
+case class InBoundCreateTransactionRequestInstantCreditTransfersMdV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
+
 
 case class OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(
   outboundAdapterCallContext: OutboundAdapterCallContext, initiator: Option[User],

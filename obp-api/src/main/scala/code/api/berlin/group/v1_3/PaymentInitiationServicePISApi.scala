@@ -514,7 +514,7 @@ Check the transaction status of a payment initiation.""",
   $additionalInstructions
 
   """
-    def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
+  def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
     for {
       (u, callContext) <- applicationAccess(cc)
       _ <- passesPsd2Pisp(callContext)
@@ -523,58 +523,102 @@ Check the transaction status of a payment initiation.""",
         PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
       }
 
-      //Berlin Group PaymentProduct is OBP transaction request type
+      // Berlin Group PaymentProduct is OBP transaction request type
       transactionRequestType <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
 
-      sepaCreditTransfersBerlinGroupV13 <- if(paymentServiceType.equals(PaymentServiceTypes.payments)){
-        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
-          json.extract[SepaCreditTransfersBerlinGroupV13]
+      // --- Парсим JSON в зависимости от типа транзакции ---
+      transferRequest <- if (paymentServiceType.equals(PaymentServiceTypes.payments)) {
+        transactionRequestType match {
+          case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS =>
+            NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ",
+              400,
+              callContext
+            ) {
+              json.extract[SepaCreditTransfersBerlinGroupV13]
+            }
+
+          case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD =>
+            NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the $InstantCreditTransfersMdV1 ",
+              400,
+              callContext
+            ) {
+              json.extract[InstantCreditTransfersMdV1]
+            }
         }
-      } else if(paymentServiceType.equals(PaymentServiceTypes.periodic_payments)){
-        NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PeriodicSepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+      } else if (paymentServiceType.equals(PaymentServiceTypes.periodic_payments)) {
+        NewStyle.function.tryons(
+          s"$InvalidJsonFormat The Json body should be the $PeriodicSepaCreditTransfersBerlinGroupV13 ",
+          400,
+          callContext
+        ) {
           json.extract[PeriodicSepaCreditTransfersBerlinGroupV13]
         }
-      }else{
-        Future{throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString))}
+      } else {
+        Future { throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)) }
       }
-      isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${sepaCreditTransfersBerlinGroupV13.instructedAmount.amount} ", 400, callContext) {
-        BigDecimal(sepaCreditTransfersBerlinGroupV13.instructedAmount.amount)
+
+      // --- Проверка суммы ---
+      isValidAmountNumber <- transferRequest match {
+        case s: SepaCreditTransfersBerlinGroupV13 =>
+          NewStyle.function.tryons(s"$InvalidNumber Current input is ${s.instructedAmount.amount} ", 400, callContext) {
+            BigDecimal(s.instructedAmount.amount)
+          }
+        case m: InstantCreditTransfersMdV1 =>
+          NewStyle.function.tryons(s"$InvalidNumber Current input is ${m.instructedAmount.amount} ", 400, callContext) {
+            BigDecimal(m.instructedAmount.amount)
+          }
       }
 
       _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc = callContext) {
         isValidAmountNumber > BigDecimal("0")
       }
 
-      // Prevent default value for transaction request type (at least).
-      _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${sepaCreditTransfersBerlinGroupV13.instructedAmount.currency}'", cc = callContext) {
-        isValidCurrencyISOCode(sepaCreditTransfersBerlinGroupV13.instructedAmount.currency)
+      // --- Проверка валюты ---
+      _ <- transferRequest match {
+        case s: SepaCreditTransfersBerlinGroupV13 =>
+          Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${s.instructedAmount.currency}'", cc = callContext) {
+            isValidCurrencyISOCode(s.instructedAmount.currency)
+          }
+        case m: InstantCreditTransfersMdV1 =>
+          Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${m.instructedAmount.currency}'", cc = callContext) {
+            isValidCurrencyISOCode(m.instructedAmount.currency)
+          }
       }
 
       _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
 
-
+      // --- Вызов коннектора для создания транзакции ---
       (createdTransactionRequest, callContext) <- transactionRequestType match {
-        case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
-          for {
-            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestBGV1(
-              initiator = u,
-              paymentServiceType,
-              transactionRequestType,
-              transactionRequestBody = sepaCreditTransfersBerlinGroupV13,
-              callContext
-            )
-          } yield (createdTransactionRequest, callContext)
-        }
+        case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS =>
+          NewStyle.function.createTransactionRequestBGV1(
+            initiator = u,
+            paymentServiceType,
+            transactionRequestType,
+            transactionRequestBody = transferRequest.asInstanceOf[SepaCreditTransfersBerlinGroupV13],
+            callContext
+          )
+
+        case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD =>
+          NewStyle.function.createTransactionRequestMdBGV1(
+            initiator = u,
+            paymentServiceType,
+            transactionRequestType,
+            transactionRequestBody = transferRequest.asInstanceOf[InstantCreditTransfersMdV1],
+            callContext
+          )
       }
     } yield {
-      (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest), HttpCode.`201`(callContext))
+      (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest, transactionRequestType), HttpCode.`201`(callContext))
     }
   }
 
 
-    resourceDocs += ResourceDoc(
+
+  resourceDocs += ResourceDoc(
       initiatePayments,
       apiVersion,
       nameOf(initiatePayments),

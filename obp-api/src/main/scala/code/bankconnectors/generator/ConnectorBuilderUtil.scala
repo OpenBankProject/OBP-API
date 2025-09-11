@@ -396,6 +396,7 @@ object ConnectorBuilderUtil {
 
       "createChallenges",
       "createTransactionRequestv400",
+      "createTransactionRequestInstantCreditTransfersMdV1",
       "createTransactionRequestSepaCreditTransfersBGV1",
       "createTransactionRequestPeriodicSepaCreditTransfersBGV1",
       "getCustomersByCustomerPhoneNumber",

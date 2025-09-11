@@ -12,7 +12,7 @@ import code.model.ModeratedTransaction
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.{JValue, parse}
@@ -728,7 +728,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     )
   }
 
-  def createTransactionRequestJson(transactionRequest : TransactionRequestBGV1) : InitiatePaymentResponseJson = {
+  def createTransactionRequestJson(transactionRequest : TransactionRequestBGV1, transactionRequestType: TransactionRequestTypes) : InitiatePaymentResponseJson = {
 //    - 'ACCC': 'AcceptedSettlementCompleted' -
 //      Settlement on the creditor's account has been completed.
 //      - 'ACCP': 'AcceptedCustomerProfile' -
@@ -772,12 +772,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         scaRedirectUrlPattern.replace("PLACEHOLDER", paymentId)
       else
         s"$scaRedirectUrlPattern/${paymentId}"
+    val self =
+      if(transactionRequestType == TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD)
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId")
+      else
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId")
     InitiatePaymentResponseJson(
       transactionStatus = mapTransactionStatus(transactionRequest.status),
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
         scaRedirect = LinkHrefJson(s"$scaRedirectUrl/$paymentId"),
-        self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId"),
+        self = self,
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/status"),
         scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/authorisations/${paymentId}")
       )

@@ -775,7 +775,6 @@ trait Connector extends MdcLoggable {
                                    reasons: Option[List[TransactionRequestReason]],
                                    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestv400 _))), callContext)}
 
-
   def createTransactionRequestSepaCreditTransfersBGV1(
     initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
@@ -783,6 +782,15 @@ trait Connector extends MdcLoggable {
     transactionRequestBody: SepaCreditTransfersBerlinGroupV13,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestSepaCreditTransfersBGV1 _))), callContext)}
+
+  def createTransactionRequestInstantCreditTransfersMdV1(
+   initiator: Option[User],
+   paymentServiceType: PaymentServiceTypes,
+   transactionRequestType: TransactionRequestTypes,
+   transactionRequestBody: InstantCreditTransfersMdV1,
+   callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestInstantCreditTransfersMdV1 _))), callContext)}
+
 
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],

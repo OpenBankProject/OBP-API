@@ -986,6 +986,18 @@ case class SepaCreditTransfersBerlinGroupV13(
   requestedExecutionTime: Option[String] = None
 ) extends  BerlinGroupTransactionRequestCommonBodyJson
 
+case class InstantCreditTransfersMdV1(
+  endToEndIdentification: Option[String] = None,
+  instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
+  debtorAccount: Option[PaymentAccount] = None,         // опциональный
+  creditorAccount: PaymentAccountMd,                    // обязательный (msisdn)
+  purposeCode: Option[String] = None,
+  remittanceInformationUnstructured: Option[String] = None
+)
+
+case class PaymentAccountMd(
+ msisdn: String                                       // вместо iban — телефон
+)
 case class PeriodicSepaCreditTransfersBerlinGroupV13( 
   endToEndIdentification: Option[String] = None,
   instructionIdentification: Option[String] = None,
