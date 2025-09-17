@@ -15,7 +15,7 @@ stages:
         displayName: "Build & push"
         steps:
           - script: |
-              BASE_IMAGE="docker.io/openbankproject/maib-obp-api:latest"
+              BASE_IMAGE="docker.io/openbankproject/maib-obp-api:$(BASE_IMAGE_DIGEST)"
               docker pull $BASE_IMAGE
               DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $BASE_IMAGE | cut -d'@' -f2)
               echo "Trimmed Base Image Digest: ${DIGEST:7:12}"
