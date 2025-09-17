@@ -437,15 +437,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     } else {
       None
     }
-    val accountBalances = if (withBalanceParam.contains(true)) {
-      Some(balances.filter(_.accountId.equals(bankAccount.accountId)).flatMap(balance => (List(CoreAccountBalanceJson(
-        balanceAmount = AmountOfMoneyV13(bankAccount.currency, balance.balanceAmount.toString()),
-        balanceType = balance.balanceType,
-        lastChangeDateTime = balance.lastChangeDateTime.map(APIUtil.DateWithMsAndTimeZoneOffset.format(_))
-      )))))
-    } else {
-      None
-    }
 
     val account = AccountJsonV13(
       resourceId = bankAccount.accountId.value,
