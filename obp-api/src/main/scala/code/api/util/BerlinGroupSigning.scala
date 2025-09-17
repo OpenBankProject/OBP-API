@@ -8,7 +8,7 @@ import code.consumer.Consumers
 import code.model.Consumer
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{RegulatedEntityTrait, User}
+import com.openbankproject.commons.model.{RegulatedEntityAttributeSimple, RegulatedEntityTrait, User}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers
@@ -111,29 +111,40 @@ object BerlinGroupSigning extends MdcLoggable {
     certificate
   }
 
-  def getTppByCertificate(certificate: X509Certificate, callContext: Option[CallContext]): Future[List[RegulatedEntityTrait]] = {
-    // Use the regular expression to find the value of CN
-    val extractedCN = cnPattern.findFirstMatchIn(certificate.getIssuerDN.getName) match {
-      case Some(m) => m.group(1) // Extract the value of CN
-      case None => "CN not found"
-    }
-    val issuerCommonName = extractedCN // Certificate.caCert
+  def getRegulatedEntityByCertificate(certificate: X509Certificate, callContext: Option[CallContext]): Future[List[RegulatedEntityTrait]] = {
+    val issuerCN = cnPattern.findFirstMatchIn(certificate.getIssuerDN.getName)
+      .map(_.group(1).trim)
+      .getOrElse("CN not found")
+
     val serialNumber = certificate.getSerialNumber.toString
-    val regulatedEntities: Future[List[RegulatedEntityTrait]] = for {
+
+    for {
       (entities, _) <- getRegulatedEntitiesNewStyle(callContext)
     } yield {
-      logger.debug("Regulated Entities: " + entities)
       entities.filter { entity =>
-        val hasSerialNumber = entity.attributes.exists(_.exists(a =>
-          a.name == "CERTIFICATE_SERIAL_NUMBER" && a.value == serialNumber
-        ))
-        val hasCaName = entity.attributes.exists(_.exists(a =>
-          a.name == "CERTIFICATE_CA_NAME" && a.value == issuerCommonName
-        ))
-        hasSerialNumber && hasCaName
+        val attrs = entity.attributes.getOrElse(Nil)
+
+        // Extract serial number and CA name from attributes
+        val serialOpt = attrs.collectFirst { case a if a.name.equalsIgnoreCase("CERTIFICATE_SERIAL_NUMBER") => a.value.trim }
+        val caNameOpt = attrs.collectFirst { case a if a.name.equalsIgnoreCase("CERTIFICATE_CA_NAME") => a.value.trim }
+
+        val serialMatches = serialOpt.contains(serialNumber)
+        val caNameMatches = caNameOpt.exists(_.equalsIgnoreCase(issuerCN))
+
+        val isMatch = serialMatches && caNameMatches
+
+        // Log everything for debugging
+        val serialLog = serialOpt.getOrElse("N/A")
+        val caNameLog = caNameOpt.getOrElse("N/A")
+        val allAttrsLog = attrs.map(a => s"${a.name}='${a.value}'").mkString(", ")
+
+        if (isMatch)
+          logger.debug(s"[MATCH] Entity '${entity.entityName}' (Code: ${entity.entityCode}) matches CN='$issuerCN', Serial='$serialNumber' " +
+            s"(Attributes found: Serial='$serialLog', CA Name='$caNameLog', All Attributes: [$allAttrsLog])")
+
+        isMatch
       }
     }
-    regulatedEntities
   }
 
 
@@ -280,7 +291,7 @@ object BerlinGroupSigning extends MdcLoggable {
       }
 
       for {
-        entities <- getTppByCertificate(certificate, forwardResult._2) // Find TPP via certificate
+        entities <- getRegulatedEntityByCertificate(certificate, forwardResult._2) // Find Regulated Entity via certificate
       } yield {
         // Certificate can be changed but this value is permanent per Regulated entity
         val idno = entities.map(_.entityCode).headOption.getOrElse("")

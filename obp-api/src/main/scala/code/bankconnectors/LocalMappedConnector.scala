@@ -78,8 +78,8 @@ import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper._
-import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import org.mindrot.jbcrypt.BCrypt
 import scalikejdbc.DB.CPContext
 import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext, DB => scalikeDB, _}
@@ -163,6 +163,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
     isValidCurrencyISOCode(thresholdCurrency) match {
+      case true if((currency.toLowerCase.equals("lovelace")||(currency.toLowerCase.equals("ada")))) =>
+        (Full(AmountOfMoney(currency, "10000000000000")), callContext)
       case true =>
         fx.exchangeRate(thresholdCurrency, currency, Some(bankId), callContext) match {
           case rate@Some(_) =>

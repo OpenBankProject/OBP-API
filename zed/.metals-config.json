@@ -1,0 +1,76 @@
+{
+  "maven": {
+    "enabled": true
+  },
+  "metals": {
+    "serverVersion": "1.0.0",
+    "javaHome": "/usr/lib/jvm/java-17-openjdk-amd64",
+    "bloopVersion": "2.0.0",
+    "superMethodLensesEnabled": true,
+    "enableSemanticHighlighting": true,
+    "compileOnSave": true,
+    "testUserInterface": "Code Lenses",
+    "inlayHints": {
+      "enabled": true,
+      "hintsInPatternMatch": {
+        "enabled": true
+      },
+      "implicitArguments": {
+        "enabled": true
+      },
+      "implicitConversions": {
+        "enabled": true
+      },
+      "inferredTypes": {
+        "enabled": true
+      },
+      "typeParameters": {
+        "enabled": true
+      }
+    }
+  },
+  "buildTargets": [
+    {
+      "id": "obp-commons",
+      "displayName": "obp-commons",
+      "baseDirectory": "file:///home/marko/Tesobe/GitHub/constantine2nd/OBP-API/obp-commons/",
+      "tags": ["library"],
+      "languageIds": ["scala", "java"],
+      "dependencies": [],
+      "capabilities": {
+        "canCompile": true,
+        "canTest": true,
+        "canRun": false,
+        "canDebug": true
+      },
+      "dataKind": "scala",
+      "data": {
+        "scalaOrganization": "org.scala-lang",
+        "scalaVersion": "2.12.20",
+        "scalaBinaryVersion": "2.12",
+        "platform": "jvm"
+      }
+    },
+    {
+      "id": "obp-api",
+      "displayName": "obp-api",
+      "baseDirectory": "file:///home/marko/Tesobe/GitHub/constantine2nd/OBP-API/obp-api/",
+      "tags": ["application"],
+      "languageIds": ["scala", "java"],
+      "dependencies": ["obp-commons"],
+      "capabilities": {
+        "canCompile": true,
+        "canTest": true,
+        "canRun": true,
+        "canDebug": true
+      },
+      "dataKind": "scala",
+      "data": {
+        "scalaOrganization": "org.scala-lang",
+        "scalaVersion": "2.12.20",
+        "scalaBinaryVersion": "2.12",
+        "platform": "jvm"
+      }
+    }
+  ]
+}

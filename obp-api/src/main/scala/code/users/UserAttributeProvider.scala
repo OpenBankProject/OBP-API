@@ -1,9 +1,10 @@
 package code.users
 
+/* For UserAttribute */
 
 import code.api.util.APIUtil
-import com.openbankproject.commons.model.AccountAttribute
-import com.openbankproject.commons.model.enums.{AccountAttributeType, UserAttributeType}
+import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.enums.UserAttributeType
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -14,7 +15,7 @@ object UserAttributeProvider extends SimpleInjector {
 
   val userAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: UserAttributeProvider = MappedUserAttributeProvider 
+  def buildOne: UserAttributeProvider = MappedUserAttributeProvider
 
   // Helper to get the count out of an option
   def countOfUserAttribute(listOpt: Option[List[UserAttribute]]): Int = {
@@ -25,12 +26,9 @@ object UserAttributeProvider extends SimpleInjector {
     count
   }
 
-
 }
 
-trait UserAttributeProvider {
-
-  private val logger = Logger(classOf[UserAttributeProvider])
+trait UserAttributeProvider extends MdcLoggable {
 
   def getUserAttributesByUser(userId: String): Future[Box[List[UserAttribute]]]
   def getPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]]

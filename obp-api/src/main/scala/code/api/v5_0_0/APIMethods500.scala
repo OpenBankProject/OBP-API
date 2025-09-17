@@ -182,7 +182,7 @@ trait APIMethods500 {
             }
 
             //if postJson.id is empty, just return SILENCE_IS_GOLDEN, and will pass the guard.
-            checkShortStringValue = APIUtil.checkShortString(postJson.id.getOrElse(SILENCE_IS_GOLDEN))
+            checkShortStringValue = APIUtil.checkOptionalShortString(postJson.id.getOrElse(SILENCE_IS_GOLDEN))
             _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc = cc.callContext) {
               checkShortStringValue == SILENCE_IS_GOLDEN
             }

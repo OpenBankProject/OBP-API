@@ -14,6 +14,7 @@ import code.transactionrequests.MappedTransactionRequest
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import  com.openbankproject.commons.model.enums._
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
@@ -99,7 +100,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
   }
 
-  override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
+  override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date, isCompleted: Boolean) = {
     //ugly
     val mappedBankAccount = account.asInstanceOf[MappedBankAccount]
 
@@ -108,6 +109,13 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     val accountBalanceAfter = accountBalanceBefore + transactionAmount
 
     mappedBankAccount.accountBalance(accountBalanceAfter).save
+
+    // Determine transaction status based on isCompleted parameter
+    val transactionStatus = if (isCompleted) {
+      TransactionRequestStatus.COMPLETED.toString
+    } else {
+      TransactionRequestStatus.INITIATED.toString
+    }
 
     MappedTransaction.create
       .bank(account.bankId.value)
@@ -131,6 +139,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .CPOtherAccountSecondaryRoutingAddress(randomString(5))
       .CPOtherBankRoutingScheme(randomString(5))
       .CPOtherBankRoutingAddress(randomString(5))
+      .status(transactionStatus)  // Use determined transaction status
       .saveMe
       .toTransaction.orNull
   }

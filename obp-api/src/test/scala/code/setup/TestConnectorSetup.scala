@@ -16,7 +16,7 @@ trait TestConnectorSetup {
   //TODO: implement these right here using Connector.connector.vend and get rid of specific connector setup files
   protected def createBank(id : String) : Bank
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
-  protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
+  protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date, isCompleted: Boolean) : Transaction
   protected def createTransactionRequest(account: BankAccount): List[MappedTransactionRequest]
   protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
@@ -126,7 +126,8 @@ trait TestConnectorSetup {
       for(i <- 0 until NUM_TRANSACTIONS){
         val postedDate = InitialDateFactory.date
         val completedDate = add10Minutes(postedDate)
-        createTransaction(account, postedDate, completedDate)
+        val isCompleted = (i % 2) == 0  // Even indices (0,2,4...) are COMPLETED, odd indices (1,3,5...) are INITIATED
+        createTransaction(account, postedDate, completedDate, isCompleted)
       }
 
       //load all transactions for the account to generate the counterparty metadata
@@ -152,7 +153,7 @@ trait TestConnectorSetup {
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View
   protected def createCustomRandomView(bankId: BankId, accountId: AccountId) : View
 
-  protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId)
+  protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) : Unit
 
-  protected def wipeTestData()
+  protected def wipeTestData() : Unit
 }

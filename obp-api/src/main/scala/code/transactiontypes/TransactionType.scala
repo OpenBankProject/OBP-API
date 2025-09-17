@@ -8,6 +8,7 @@ import code.transaction_types.MappedTransactionTypeProvider
 import com.openbankproject.commons.model.{AmountOfMoney, BankId, TransactionTypeId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 
 // See http://simply.liftweb.net/index-8.2.html for info about "vend" and SimpleInjector
@@ -48,14 +49,12 @@ object TransactionType extends SimpleInjector {
       case "mapped" => MappedTransactionTypeProvider
       case ttc: String => throw new IllegalArgumentException("No such connector for Transaction Types: " + ttc)
     }
-  
+
 }
 
-trait TransactionTypeProvider {
+trait TransactionTypeProvider extends MdcLoggable {
 
   import code.TransactionTypes.TransactionType.TransactionType
-
-  private val logger = Logger(classOf[TransactionTypeProvider])
 
 
   // Transaction types for bank (we may add getTransactionTypesForBankAccount and getTransactionTypesForBankAccountView)
@@ -77,4 +76,3 @@ trait TransactionTypeProvider {
 
   protected def createOrUpdateTransactionTypeAtProvider(postedData: TransactionTypeJsonV200): Box[TransactionType]
 }
-

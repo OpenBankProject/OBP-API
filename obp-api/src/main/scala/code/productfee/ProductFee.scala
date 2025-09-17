@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import com.openbankproject.commons.model.{BankId, ProductCode, ProductFeeTrait}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -28,9 +29,7 @@ object ProductFeeX extends SimpleInjector {
 
 }
 
-trait ProductFeeProvider {
-
-  private val logger = Logger(classOf[ProductFeeProvider])
+trait ProductFeeProvider extends MdcLoggable {
 
   def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFeeTrait]]]
 
@@ -48,6 +47,6 @@ trait ProductFeeProvider {
     frequency: String,
     `type`: String
   ): Future[Box[ProductFeeTrait]]
-  
+
   def deleteProductFee(productFeeId: String): Future[Box[Boolean]]
 }

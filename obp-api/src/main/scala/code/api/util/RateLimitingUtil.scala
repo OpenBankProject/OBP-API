@@ -153,13 +153,14 @@ object RateLimitingUtil extends MdcLoggable {
 
     def getInfo(consumerKey: String, period: LimitCallPeriod): ((Option[Long], Option[Long]), LimitCallPeriod) = {
       val key = createUniqueKey(consumerKey, period)
-      val ttl =  Redis.use(JedisMethod.TTL, key).get.toLong
-      ttl match {
-        case -2 =>
-          ((None, None), period)
-        case _ =>
-          ((Redis.use(JedisMethod.TTL, key).map(_.toLong), Some(ttl)), period)
-      }
+
+      // get TTL
+      val ttlOpt: Option[Long] = Redis.use(JedisMethod.TTL, key).map(_.toLong)
+
+      // get value (assuming string storage)
+      val valueOpt: Option[Long] = Redis.use(JedisMethod.GET, key).map(_.toLong)
+
+      ((valueOpt, ttlOpt), period)
     }
 
     getInfo(consumerKey, RateLimitingPeriod.PER_SECOND) ::
@@ -167,7 +168,7 @@ object RateLimitingUtil extends MdcLoggable {
     getInfo(consumerKey, RateLimitingPeriod.PER_HOUR) ::
     getInfo(consumerKey, RateLimitingPeriod.PER_DAY) ::
     getInfo(consumerKey, RateLimitingPeriod.PER_WEEK) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_MONTH) :: 
+    getInfo(consumerKey, RateLimitingPeriod.PER_MONTH) ::
       Nil
   }
 

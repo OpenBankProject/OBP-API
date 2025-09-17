@@ -16,6 +16,7 @@ import code.api.v3_1_0._
 import code.api.v4_0_0._
 import code.api.v5_0_0._
 import code.api.v5_1_0._
+import code.api.v6_0_0._
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.ConsentStatus
@@ -28,6 +29,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType, ChallengeType, TransactionRequestStatus}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils}
+import net.liftweb.common.Full
 import net.liftweb.json
 
 import java.net.URLEncoder
@@ -4254,6 +4256,8 @@ object SwaggerDefinitionsJSON {
     consent_reference_id = consentReferenceIdExample.value,
     consumer_id = consumerIdExample.value,
     created_by_user_id = userIdExample.value,
+    provider = Some(providerValueExample.value),
+    provider_id = Some(providerIdExample.value),
     last_action_date = dateExample.value,
     last_usage_date = dateTimeExample.value,
     status = ConsentStatus.INITIATED.toString,
@@ -4281,7 +4285,7 @@ object SwaggerDefinitionsJSON {
     consents =  List(consentInfoJsonV510)
   )
   
-  lazy val consentsJsonV510 = ConsentsJsonV510(List(allConsentJsonV510))
+  lazy val consentsJsonV510 = ConsentsJsonV510(number_of_rows = 1, List(allConsentJsonV510))
 
   lazy val revokedConsentJsonV310 = ConsentJsonV310(
     consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
@@ -5697,6 +5701,47 @@ object SwaggerDefinitionsJSON {
     permission_name = CAN_GRANT_ACCESS_TO_VIEWS,
     extra_data = Some(List(SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID))
   )
+
+
+  lazy val cardanoPaymentJsonV600 = CardanoPaymentJsonV600(
+    address = "addr_test1qpv3se9ghq87ud29l0a8asy8nlqwd765e5zt4rc2z4mktqulwagn832cuzcjknfyxwzxz2p2kumx6n58tskugny6mrqs7fd12",
+    amount = CardanoAmountJsonV600(
+      quantity = 1000000,
+      unit = "lovelace"
+    ),
+    assets = Some(List(CardanoAssetJsonV600(
+      policy_id = "policy1234567890abcdef",
+      asset_name = "4f47435241",
+      quantity = 10
+    )))
+  )
+
+  // Example for Send ADA with Token only (no ADA amount)
+  lazy val cardanoPaymentTokenOnlyJsonV510 = CardanoPaymentJsonV600(
+    address = "addr_test1qpv3se9ghq87ud29l0a8asy8nlqwd765e5zt4rc2z4mktqulwagn832cuzcjknfyxwzxz2p2kumx6n58tskugny6mrqs7fd12",
+    amount = CardanoAmountJsonV600(
+      quantity = 0,
+      unit = "lovelace"
+    ),
+    assets = Some(List(CardanoAssetJsonV600(
+      policy_id = "policy1234567890abcdef",
+      asset_name = "4f47435241",
+      quantity = 10
+    )))
+  )
+
+  lazy val cardanoMetadataStringJsonV600 = CardanoMetadataStringJsonV600(
+    string = "Hello Cardano"
+  )
+
+  lazy val transactionRequestBodyCardanoJsonV600 = TransactionRequestBodyCardanoJsonV600(
+    to =  cardanoPaymentJsonV600,
+    value = amountOfMoneyJsonV121,
+    passphrase = "password1234!",
+    description = descriptionExample.value,
+    metadata = Some(Map("202507022319" -> cardanoMetadataStringJsonV600))
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

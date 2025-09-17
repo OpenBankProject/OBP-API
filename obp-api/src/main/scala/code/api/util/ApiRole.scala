@@ -107,6 +107,38 @@ object ApiRole extends MdcLoggable{
 
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()
+
+
+  // TRACE
+  case class CanGetTraceLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTraceLevelLogsAtOneBank = CanGetTraceLevelLogsAtOneBank()
+  case class CanGetTraceLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetTraceLevelLogsAtAllBanks = CanGetTraceLevelLogsAtAllBanks()
+  // DEBUG
+  case class CanGetDebugLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDebugLevelLogsAtOneBank = CanGetDebugLevelLogsAtOneBank()
+  case class CanGetDebugLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDebugLevelLogsAtAllBanks = CanGetDebugLevelLogsAtAllBanks()
+  // INFO
+  case class CanGetInfoLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetInfoLevelLogsAtOneBank = CanGetInfoLevelLogsAtOneBank()
+  case class CanGetInfoLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetInfoLevelLogsAtAllBanks = CanGetInfoLevelLogsAtAllBanks()
+  // WARNING
+  case class CanGetWarningLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetWarningLevelLogsAtOneBank = CanGetWarningLevelLogsAtOneBank()
+  case class CanGetWarningLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetWarningLevelLogsAtAllBanks = CanGetWarningLevelLogsAtAllBanks()
+  // ERROR
+  case class CanGetErrorLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetErrorLevelLogsAtOneBank = CanGetErrorLevelLogsAtOneBank()
+  case class CanGetErrorLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetErrorLevelLogsAtAllBanks = CanGetErrorLevelLogsAtAllBanks()
+  // ALL
+  case class CanGetAllLevelLogsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAllLevelLogsAtOneBank = CanGetAllLevelLogsAtOneBank()
+  case class CanGetAllLevelLogsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllLevelLogsAtAllBanks = CanGetAllLevelLogsAtAllBanks()
   
   case class CanUpdateAgentStatusAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAgentStatusAtAnyBank = CanUpdateAgentStatusAtAnyBank()

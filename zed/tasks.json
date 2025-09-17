@@ -1,0 +1,111 @@
+[
+  {
+    "label": "[1] Run OBP-API Server",
+    "command": "mvn",
+    "args": ["jetty:run", "-pl", "obp-api"],
+    "env": {
+      "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.util.stream=ALL-UNNAMED --add-opens=java.base/java.util.regex=ALL-UNNAMED"
+    }
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["run", "server"]
+  },
+  {
+    "label": "[2] Test API Root Endpoint",
+    "command": "curl",
+    "args": [
+      "-X",
+      "GET",
+      "http://localhost:8080/obp/v5.1.0/root",
+      "-H",
+      "accept: application/json"
+    ],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "tags": ["test", "api"]
+  },
+  {
+    "label": "[3] Compile Only",
+    "command": "mvn",
+    "args": ["compile", "-pl", "obp-api"],
+    "env": {
+      "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED"
+    },
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["compile", "build"]
+  },
+  {
+    "label": "[4] Build OBP-API",
+    "command": "mvn",
+    "args": [
+      "install",
+      "-pl",
+      ".,obp-commons",
+      "-am",
+      "-DskipTests",
+      "-Ddependency-check.skip=true"
+    ],
+    "env": {
+      "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED"
+    },
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["build"]
+  },
+  {
+    "label": "[5] Clean Target Folders",
+    "command": "mvn",
+    "args": ["clean"],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["clean", "build"]
+  },
+  {
+    "label": "[6] Kill OBP-APIServer on Port 8080",
+    "command": "bash",
+    "args": [
+      "-c",
+      "lsof -ti:8080 | xargs kill -9 || echo 'No process found on port 8080'"
+    ],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "tags": ["utility"]
+  },
+  {
+    "label": "[7] Run Tests",
+    "command": "mvn",
+    "args": ["test", "-pl", "obp-api"],
+    "env": {
+      "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED"
+    },
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["test"]
+  },
+  {
+    "label": "[8] Maven Validate",
+    "command": "mvn",
+    "args": ["validate"],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["validate"]
+  },
+  {
+    "label": "[9] Check Dependencies",
+    "command": "mvn",
+    "args": ["dependency:resolve"],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "tags": ["dependencies"]
+  }
+]

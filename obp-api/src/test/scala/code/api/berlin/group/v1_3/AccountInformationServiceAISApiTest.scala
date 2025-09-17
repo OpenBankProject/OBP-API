@@ -12,6 +12,7 @@ import code.consent.ConsentStatus
 import code.model.dataAccess.BankAccountRouting
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -191,10 +192,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       Then("We should get a 200 ")
       response.code should equal(200)
       response.body.extract[TransactionsJsonV13].account.iban should not be ("")
-//      response.body.extract[TransactionsJsonV13].transactions.booked.head.length >0 should be (true)
-      response.body.extract[TransactionsJsonV13].transactions.pending.head.nonEmpty should be (true)
-      response.body.extract[TransactionsJsonV13].transactions.booked.nonEmpty should be (true)
-
+      response.body.extract[TransactionsJsonV13].transactions.booked.head.length >0 should be (true)
+      response.body.extract[TransactionsJsonV13].transactions.pending.head.length >0 should be (true)
 
       val requestGet2 = (V1_3_BG / "accounts" / testAccountId1.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", "booked"))
       val response2: APIResponse = makeGetRequest(requestGet2)
@@ -211,6 +210,158 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response3.body.extract[TransactionsJsonV13].account.iban should not be ("")
       response3.body.extract[TransactionsJsonV13].transactions.pending.nonEmpty should be(true)
       response3.body.extract[TransactionsJsonV13].transactions.booked.isEmpty should be(true)
+    }
+  }
+
+  feature(s"BG v1.3 - $getTransactionList - Parameter Validation") {
+    scenario("Authentication User, test failed with invalid bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      val requestGetWithInvalidStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", "invalid"))
+      val responseInvalid: APIResponse = makeGetRequest(requestGetWithInvalidStatus)
+      Then("We should get a 400 for invalid bookingStatus")
+      responseInvalid.code should equal(400)
+      responseInvalid.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+      responseInvalid.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+    }
+
+    scenario("Authentication User, test failed with empty bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      val requestGetWithEmptyStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", ""))
+      val responseEmpty: APIResponse = makeGetRequest(requestGetWithEmptyStatus)
+      Then("We should get a 400 for empty bookingStatus")
+      responseEmpty.code should equal(400)
+      responseEmpty.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+      responseEmpty.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+    }
+
+    scenario("Authentication User, test failed with case sensitive bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      val requestGetWithUpperCaseStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", "BOOKED"))
+      val responseUpperCase: APIResponse = makeGetRequest(requestGetWithUpperCaseStatus)
+      Then("We should get a 400 for case sensitive bookingStatus")
+      responseUpperCase.code should equal(400)
+      responseUpperCase.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+      responseUpperCase.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+
+      val requestGetWithMixedCaseStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", "Booked"))
+      val responseMixedCase: APIResponse = makeGetRequest(requestGetWithMixedCaseStatus)
+      Then("We should get a 400 for mixed case bookingStatus")
+      responseMixedCase.code should equal(400)
+      responseMixedCase.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+      responseMixedCase.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+    }
+
+    scenario("Authentication User, test failed with special characters in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      val invalidBookingStatuses = List("booked!", "pending@", "both#", "booked ", " booked", "booked;", "null", "undefined")
+      
+      invalidBookingStatuses.foreach { invalidStatus =>
+        val requestGetWithSpecialChars = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", invalidStatus))
+        val responseSpecialChars: APIResponse = makeGetRequest(requestGetWithSpecialChars)
+        Then(s"We should get a 400 for bookingStatus with special characters: '$invalidStatus'")
+        responseSpecialChars.code should equal(400)
+        responseSpecialChars.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+        responseSpecialChars.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+      }
+    }
+
+    scenario("Authentication User, test missing bookingStatus parameter handling", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      // Test without bookingStatus parameter - should fail because it returns empty string which is invalid
+      val requestGetWithoutBookingStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val responseWithoutParam: APIResponse = makeGetRequest(requestGetWithoutBookingStatus)
+      Then("We should get a 400 for missing bookingStatus parameter (treated as empty string)")
+      responseWithoutParam.code should equal(400)
+      responseWithoutParam.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+      responseWithoutParam.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+    }
+
+    scenario("Authentication User, test multiple invalid bookingStatus parameters", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      // Test with multiple bookingStatus parameters - only first one should be considered
+      val requestGetWithMultipleParams = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", "invalid"), ("bookingStatus", "booked"))
+      val responseMultipleParams: APIResponse = makeGetRequest(requestGetWithMultipleParams)
+      Then("We should get a 400 because first parameter is invalid")
+      responseMultipleParams.code should equal(400)
+      responseMultipleParams.body.extract[ErrorMessage].message should include(DuplicateQueryParameters)
+    }
+
+    scenario("Authentication User, test URL encoding in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+      val testAccountId = testAccountId1
+      val bankId = APIUtil.defaultBankId
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      // Test with URL encoded values that should still be invalid
+      val encodedInvalidStatuses = List("book%65d", "pend%69ng", "bot%68")
+      
+      encodedInvalidStatuses.foreach { encodedStatus =>
+        val requestGetWithEncodedStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", encodedStatus))
+        val responseEncoded: APIResponse = makeGetRequest(requestGetWithEncodedStatus)
+        Then(s"We should get a 400 for URL encoded invalid bookingStatus: '$encodedStatus'")
+        responseEncoded.code should equal(400)
+        responseEncoded.body.extract[ErrorMessagesBG].tppMessages.head.text should include(InvalidUrlParameters)
+        responseEncoded.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
+      }
     }
   }
 
@@ -238,8 +389,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       Then("We should get a 200 ")
       response.code should equal(200)
       response.body.extract[TransactionsJsonV13].account.iban should not be ("")
-      response.body.extract[TransactionsJsonV13].transactions.pending.head.nonEmpty should be (true)
-//      response.body.extract[TransactionsJsonV13].transactions.pending.length > 0 should be (true)
+      response.body.extract[TransactionsJsonV13].transactions.pending.head.length > 0 should be (true)
       val transactionId = response.body.extract[TransactionsJsonV13].transactions.pending.head.head.transactionId
 
       val requestGet2 = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / transactionId).GET <@ (user1)

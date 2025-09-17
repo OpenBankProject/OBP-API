@@ -86,6 +86,7 @@ object Migration extends MdcLoggable {
       addFastFirehoseAccountsView(startedBeforeSchemifier)
       addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier)
       alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier)
+      alterMappedTransactionRequestFieldsLengthMigration(startedBeforeSchemifier)
       dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
       dropIndexAtUserAuthContext()
       alterWebhookColumnUrlLength()
@@ -403,6 +404,19 @@ object Migration extends MdcLoggable {
         }
       }
     }    
+    
+    private def alterMappedTransactionRequestFieldsLengthMigration(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.alterMappedTransactionRequestFieldsLengthMigration(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(alterMappedTransactionRequestFieldsLengthMigration(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfMappedTransactionRequestFieldsLength.alterMappedTransactionRequestFieldsLength(name)
+        }
+      }
+    }
+    
     private def dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
         logger.warn(s"Migration.database.dropIndexAtColumnUsernameAtTableAuthUser(true) cannot be run before Schemifier.")

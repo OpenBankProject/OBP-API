@@ -1,6 +1,7 @@
 package bootstrap.liftweb
 
 import code.api.util.APIUtil
+import code.util.Helper.MdcLoggable
 import com.zaxxer.hikari.pool.ProxyConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
@@ -21,19 +22,17 @@ import net.liftweb.util.Helpers.tryo
 class CustomDBVendor(driverName: String,
                      dbUrl: String,
                      dbUser: Box[String],
-                     dbPassword: Box[String]) extends CustomProtoDBVendor {
-
-  private val logger = Logger(classOf[CustomDBVendor])
+                     dbPassword: Box[String]) extends CustomProtoDBVendor with MdcLoggable {
 
   object HikariDatasource {
     val config = new HikariConfig()
-    
+
     val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout")
     val maximumPoolSize = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize")
     val idleTimeout = APIUtil.getPropsAsLongValue("hikari.idleTimeout")
     val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime")
     val maxLifetime = APIUtil.getPropsAsLongValue("hikari.maxLifetime")
-    
+
     if(connectionTimeout.isDefined){
       config.setConnectionTimeout(connectionTimeout.head)
     }
@@ -63,7 +62,7 @@ class CustomDBVendor(driverName: String,
       case _ =>
         config.setJdbcUrl(dbUrl)
     }
-    
+
     config.addDataSourceProperty("cachePrepStmts", "true")
     config.addDataSourceProperty("prepStmtCacheSize", "250")
     config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
@@ -79,8 +78,7 @@ class CustomDBVendor(driverName: String,
   def closeAllConnections_!(): Unit = HikariDatasource.ds.close()
 }
 
-trait CustomProtoDBVendor extends ConnectionManager {
-  private val logger = Logger(classOf[CustomProtoDBVendor])
+trait CustomProtoDBVendor extends ConnectionManager with MdcLoggable {
 
   def createOne: Box[Connection]
 

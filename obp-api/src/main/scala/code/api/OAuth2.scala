@@ -106,6 +106,9 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           Yahoo.applyIdTokenRulesFuture(value, cc)
         } else if (Azure.isIssuer(value)) {
           Azure.applyIdTokenRulesFuture(value, cc)
+        } else if (OBPOIDC.isIssuer(value)) {
+          logger.debug("getUserFuture says: I will call OBPOIDC.applyIdTokenRulesFuture")
+          OBPOIDC.applyIdTokenRulesFuture(value, cc)
         } else if (Keycloak.isIssuer(value)) {
           Keycloak.applyRulesFuture(value, cc)
         } else if (UnknownProvider.isIssuer(value)) {
@@ -228,10 +231,65 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def checkUrlOfJwkSets(identityProvider: String) = {
       val url: List[String] = Constant.oauth2JwkSetUrl.toList
       val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
-      val jwksUri = jwksUris.filter(_.contains(identityProvider))
+
+      logger.debug(s"checkUrlOfJwkSets - identityProvider: '$identityProvider'")
+      logger.debug(s"checkUrlOfJwkSets - oauth2.jwk_set.url raw value: '${Constant.oauth2JwkSetUrl}'")
+      logger.debug(s"checkUrlOfJwkSets - parsed jwksUris: $jwksUris")
+
+      // Enhanced matching for both URL-based and semantic identifiers
+      val identityProviderLower = identityProvider.toLowerCase()
+      val jwksUri = jwksUris.filter(_.contains(identityProviderLower))
+
+      logger.debug(s"checkUrlOfJwkSets - identityProviderLower: '$identityProviderLower'")
+      logger.debug(s"checkUrlOfJwkSets - filtered jwksUri: $jwksUri")
+
       jwksUri match {
-        case x :: _ => Full(x)
-        case Nil => Failure(Oauth2CannotMatchIssuerAndJwksUriException)
+        case x :: _ =>
+          logger.debug(s"checkUrlOfJwkSets - SUCCESS: Found matching JWKS URI: '$x'")
+          Full(x)
+        case Nil =>
+          logger.debug(s"checkUrlOfJwkSets - FAILURE: Cannot match issuer '$identityProvider' with any JWKS URI")
+          logger.debug(s"checkUrlOfJwkSets - Expected issuer pattern: '$identityProvider' (case-insensitive contains match)")
+          logger.debug(s"checkUrlOfJwkSets - Available JWKS URIs: $jwksUris")
+          logger.debug(s"checkUrlOfJwkSets - Identity provider (lowercase): '$identityProviderLower'")
+          logger.debug(s"checkUrlOfJwkSets - Matching logic: Looking for JWKS URIs containing '$identityProviderLower'")
+          Failure(Oauth2CannotMatchIssuerAndJwksUriException)
+      }
+    }
+
+    def checkUrlOfJwkSetsWithToken(identityProvider: String, jwtToken: String) = {
+      val actualIssuer = JwtUtil.getIssuer(jwtToken).getOrElse("NO_ISSUER_CLAIM")
+      val url: List[String] = Constant.oauth2JwkSetUrl.toList
+      val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
+
+      logger.debug(s"checkUrlOfJwkSetsWithToken - Expected identity provider: '$identityProvider'")
+      logger.debug(s"checkUrlOfJwkSetsWithToken - Actual JWT issuer claim: '$actualIssuer'")
+      logger.debug(s"checkUrlOfJwkSetsWithToken - oauth2.jwk_set.url raw value: '${Constant.oauth2JwkSetUrl}'")
+      logger.debug(s"checkUrlOfJwkSetsWithToken - parsed jwksUris: $jwksUris")
+
+      // Enhanced matching for both URL-based and semantic identifiers
+      val identityProviderLower = identityProvider.toLowerCase()
+      val jwksUri = jwksUris.filter(_.contains(identityProviderLower))
+
+      logger.debug(s"checkUrlOfJwkSetsWithToken - identityProviderLower: '$identityProviderLower'")
+      logger.debug(s"checkUrlOfJwkSetsWithToken - filtered jwksUri: $jwksUri")
+
+      jwksUri match {
+        case x :: _ =>
+          logger.debug(s"checkUrlOfJwkSetsWithToken - SUCCESS: Found matching JWKS URI: '$x'")
+          Full(x)
+        case Nil =>
+          logger.debug(s"checkUrlOfJwkSetsWithToken - FAILURE: Cannot match issuer with any JWKS URI")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - Expected identity provider: '$identityProvider'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - Actual JWT issuer claim: '$actualIssuer'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - Available JWKS URIs: $jwksUris")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - Expected pattern (lowercase): '$identityProviderLower'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - Matching logic: Looking for JWKS URIs containing '$identityProviderLower'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - TROUBLESHOOTING:")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - 1. Verify oauth2.jwk_set.url contains URL matching '$identityProvider'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - 2. Check if JWT issuer '$actualIssuer' should match identity provider '$identityProvider'")
+          logger.debug(s"checkUrlOfJwkSetsWithToken - 3. Ensure case-insensitive substring matching works: does any JWKS URI contain '$identityProviderLower'?")
+          Failure(Oauth2CannotMatchIssuerAndJwksUriException)
       }
     }
 
@@ -243,17 +301,42 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
     def isIssuer(jwtToken: String, identityProvider: String): Boolean = {
-      JwtUtil.getIssuer(jwtToken).map(_.contains(identityProvider)).getOrElse(false)
+      JwtUtil.getIssuer(jwtToken).map { issuer =>
+        // Direct match or contains match for backward compatibility
+        issuer == identityProvider || issuer.contains(identityProvider) ||
+        // For URL-based issuers, also try exact match ignoring trailing slash
+        (issuer.endsWith("/") && issuer.dropRight(1) == identityProvider) ||
+        (identityProvider.endsWith("/") && identityProvider.dropRight(1) == issuer)
+      }.getOrElse(false)
     }
     def validateIdToken(idToken: String): Box[IDTokenClaimsSet] = {
+      logger.debug(s"validateIdToken - attempting to validate ID token")
+
+      // Extract issuer for better error reporting
+      val actualIssuer = JwtUtil.getIssuer(idToken).getOrElse("NO_ISSUER_CLAIM")
+      logger.debug(s"validateIdToken - JWT issuer claim: '$actualIssuer'")
+
       urlOfJwkSets match {
         case Full(url) =>
+          logger.debug(s"validateIdToken - using JWKS URL: '$url'")
           JwtUtil.validateIdToken(idToken, url)
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          logger.debug(s"validateIdToken - ParamFailure: $a, $b, $c, $apiFailure")
+          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
           ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) =>
+          logger.debug(s"validateIdToken - Failure getting JWKS URL: $msg")
+          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
+          if (msg.contains("OBP-20208")) {
+            logger.debug("validateIdToken - OBP-20208 Error Details:")
+            logger.debug(s"validateIdToken - JWT issuer claim: '$actualIssuer'")
+            logger.debug(s"validateIdToken - oauth2.jwk_set.url value: '${Constant.oauth2JwkSetUrl}'")
+            logger.debug("validateIdToken - Check that the JWKS URL configuration matches the JWT issuer")
+          }
           Failure(msg, t, c)
         case _ =>
+          logger.debug("validateIdToken - No JWKS URL available")
+          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
           Failure(Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
@@ -315,28 +398,42 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def getOrCreateResourceUser(idToken: String): Box[User] = {
       val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken).getOrElse("")
       val provider = resolveProvider(idToken)
-      Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = uniqueIdGivenByProvider).or { // Find a user
-        Users.users.vend.createResourceUser( // Otherwise create a new one
-          provider = provider,
-          providerId = Some(uniqueIdGivenByProvider),
-          None,
-          name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
-          email = getClaim(name = "email", idToken = idToken),
-          userId = None,
-          createdByUserInvitationId = None,
-          company = None,
-          lastMarketingAgreementSignedDate = None
-        )
+      KeycloakFederatedUserReference.parse(uniqueIdGivenByProvider) match {
+        case Right(fedRef) => // Users log on via Keycloak, which uses User Federation to access the external OBP database.
+          logger.debug(s"External ID = ${fedRef.externalId}")
+          logger.debug(s"Storage Provider ID = ${fedRef.storageProviderId}")
+          Users.users.vend.getUserByResourceUserId(fedRef.externalId)
+        case Left(error) =>
+          logger.debug(s"Parse error: $error")
+          Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = uniqueIdGivenByProvider).or { // Find a user
+            Users.users.vend.createResourceUser( // Otherwise create a new one
+              provider = provider,
+              providerId = Some(uniqueIdGivenByProvider),
+              None,
+              name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
+              email = getClaim(name = "email", idToken = idToken),
+              userId = None,
+              createdByUserInvitationId = None,
+              company = None,
+              lastMarketingAgreementSignedDate = None
+            )
+          }
       }
     }
 
     def resolveProvider(idToken: String) = {
       HydraUtil.integrateWithHydra && isIssuer(jwtToken = idToken, identityProvider = hydraPublicUrl) match {
         case true if HydraUtil.hydraUsesObpUserCredentials => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
-          // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
+          logger.debug("resolveProvider says: we are in Hydra ")
+        // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
           // in order to avoid creation of a new user
           Constant.localIdentityProvider
+        // if its OBPOIDC issuer
+        case false if OBPOIDC.isIssuer(idToken) =>
+          logger.debug("resolveProvider says: we are in OBPOIDC ")
+          Constant.localIdentityProvider
         case _ => // All other cases implies a new user creation
+          logger.debug("resolveProvider says: Other cases ")
           // TODO raise exception in case of else case
           JwtUtil.getIssuer(idToken).getOrElse("")
       }
@@ -387,8 +484,15 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     }
 
     def applyIdTokenRules(token: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      logger.debug("applyIdTokenRules - starting ID token validation")
+
+      // Extract issuer from token for debugging
+      val actualIssuer = JwtUtil.getIssuer(token).getOrElse("NO_ISSUER_CLAIM")
+      logger.debug(s"applyIdTokenRules - JWT issuer claim: '$actualIssuer'")
+
       validateIdToken(token) match {
         case Full(_) =>
+          logger.debug("applyIdTokenRules - ID token validation successful")
           val user = getOrCreateResourceUser(token)
           val consumer = getOrCreateConsumer(token, user.map(_.userId), Some(OpenIdConnect.openIdConnect))
           LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
@@ -396,10 +500,26 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             case false => (user, Some(cc.copy(consumer = consumer)))
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          logger.debug(s"applyIdTokenRules - ParamFailure during token validation: $a")
+          logger.debug(s"applyIdTokenRules - JWT issuer was: '$actualIssuer'")
           (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
         case Failure(msg, t, c) =>
+          logger.debug(s"applyIdTokenRules - Failure during token validation: $msg")
+          logger.debug(s"applyIdTokenRules - JWT issuer was: '$actualIssuer'")
+          if (msg.contains("OBP-20208")) {
+            logger.debug("applyIdTokenRules - OBP-20208: JWKS URI matching failed. Diagnostic info:")
+            logger.debug(s"applyIdTokenRules - Actual JWT issuer: '$actualIssuer'")
+            logger.debug(s"applyIdTokenRules - oauth2.jwk_set.url config: '${Constant.oauth2JwkSetUrl}'")
+            logger.debug("applyIdTokenRules - Resolution steps:")
+            logger.debug("1. Verify oauth2.jwk_set.url contains URLs that match the JWT issuer")
+            logger.debug("2. Check if JWT issuer claim matches expected identity provider")
+            logger.debug("3. Ensure case-insensitive substring matching works between issuer and JWKS URLs")
+            logger.debug("4. Consider if trailing slashes or URL formatting might be causing mismatch")
+          }
           (Failure(msg, t, c), Some(cc))
         case _ =>
+          logger.debug("applyIdTokenRules - Unknown failure during token validation")
+          logger.debug(s"applyIdTokenRules - JWT issuer was: '$actualIssuer'")
           (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
       }
     }
@@ -507,7 +627,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       */
     override def wellKnownOpenidConfiguration: URI =
       new URI(
-        APIUtil.getPropsValue(nameOfProperty = "oauth2.keycloak.well_known", "http://localhost:7070/realms/master/.well-known/openid-configuration")
+        APIUtil.getPropsValue(nameOfProperty = "oauth2.keycloak.well_known", "http://localhost:8000/realms/master/.well-known/openid-configuration")
       )
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = keycloakHost)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = keycloakHost)
@@ -562,6 +682,22 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
       applyRules(value, cc)
     }
+  }
+
+  object OBPOIDC extends OAuth2Util {
+    val obpOidcHost = APIUtil.getPropsValue(nameOfProperty = "oauth2.obp_oidc.host", "http://localhost:9000")
+    val obpOidcIssuer = "obp-oidc"
+    /**
+      * OBP-OIDC (Open Bank Project OIDC Provider)
+      * OBP-OIDC exposes OpenID Connect discovery documents at /.well-known/openid-configuration
+      * This is the native OIDC provider for OBP ecosystem
+      */
+    override def wellKnownOpenidConfiguration: URI =
+      new URI(
+        APIUtil.getPropsValue(nameOfProperty = "oauth2.obp_oidc.well_known", s"$obpOidcHost/obp-oidc/.well-known/openid-configuration")
+      )
+    override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = obpOidcIssuer)
+    def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = obpOidcIssuer)
   }
 
 }

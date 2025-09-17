@@ -1,11 +1,11 @@
 package com.openbankproject.commons.model.enums
 
-import java.time.format.DateTimeFormatter
-
 import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration}
 import net.liftweb.common.Box
 import net.liftweb.json.JsonAST.{JNothing, JString}
-import net.liftweb.json.{Formats, JBool, JDouble, JInt, JValue}
+import net.liftweb.json._
+
+import java.time.format.DateTimeFormatter
 
 
 sealed trait UserAttributeType extends EnumValue
@@ -113,6 +113,7 @@ object TransactionRequestTypes extends  OBPEnumeration[TransactionRequestTypes]{
   object CROSS_BORDER_CREDIT_TRANSFERS extends Value
   object REFUND extends Value
   object AGENT_CASH_WITHDRAWAL extends Value
+  object CARDANO extends Value
   object INSTANT_CREDIT_TRANSFERS_MD extends Value
 }
 
@@ -174,14 +175,6 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
   object PSP_IC extends Value
   object PSP_AI extends Value
   object PSP_PI extends Value
-
-  def toBerlinGroup(role: String): String = {
-    role match {
-      case item if PSP_AI.toString == item => "AISP"
-      case item if PSP_PI.toString == item => "PISP"
-      case _ => ""
-    }
-  }
 }
 
 sealed trait UserInvitationPurpose extends EnumValue

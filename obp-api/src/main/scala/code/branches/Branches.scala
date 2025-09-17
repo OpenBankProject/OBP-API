@@ -7,8 +7,9 @@ package code.branches
 import code.api.util.OBPQueryParam
 
 import com.openbankproject.commons.model._
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 object Branches extends SimpleInjector {
 
@@ -207,9 +208,7 @@ object Branches extends SimpleInjector {
 
 }
 
-trait BranchesProvider {
-
-  private val logger = Logger(classOf[BranchesProvider])
+trait BranchesProvider extends MdcLoggable {
 
 
   /*
@@ -235,4 +234,3 @@ trait BranchesProvider {
 
 // End of Trait
 }
-

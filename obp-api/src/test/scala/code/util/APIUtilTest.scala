@@ -55,6 +55,15 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   val inputStringDateFormat = DateWithMsFormat
   val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
   val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
+
+  feature("Test the value of dateString formatted by DateWithMsFormat") {
+    scenario("Check the formatted dateString value") {
+      val dateString = inputStringDateFormat.format(new Date())
+//      println(s"dateString value: $dateString")
+      dateString should not be "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+    }
+  }
+  
   ZonedDateTime.now(ZoneId.of("UTC"))
 
   feature("test APIUtil.dateRangesOverlap method") {

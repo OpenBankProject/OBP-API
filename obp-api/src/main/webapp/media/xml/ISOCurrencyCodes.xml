@@ -1945,5 +1945,21 @@
       <CcyNbr>961</CcyNbr>
       <CcyMnrUnts>N.A.</CcyMnrUnts>
     </CcyNtry>
+    <!-- Cardano (ADA)  -->
+    <CcyNtry>
+      <CtryNm>Cardano_ADA</CtryNm>
+      <CcyNm>ADA</CcyNm>
+      <Ccy>ada</Ccy>
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>6</CcyMnrUnts>  <!-- 1 ADA = 10^6 Lovelace -->
+    </CcyNtry>
+    <!-- Lovelace (The smallest unit of ADA) -->
+    <CcyNtry>
+      <CtryNm>Cardano_Lovelace</CtryNm>
+      <CcyNm>Lovelace</CcyNm>
+      <Ccy>lovelace</Ccy>               
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>0</CcyMnrUnts>   <!-- Lovelace is the basic unit, no smaller subdivision -->
+    </CcyNtry>
   </CcyTbl>
 </ISO_4217>

@@ -101,6 +101,28 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
     }
     result
   }
+
+  def findMostRecentRateLimit(consumerId: String,
+                              bankId: Option[String],
+                              apiVersion: Option[String],
+                              apiName: Option[String]): Future[Option[RateLimiting]] = Future {
+    findMostRecentRateLimitCommon(consumerId, bankId, apiVersion, apiName)
+  }
+  def findMostRecentRateLimitCommon(consumerId: String,
+                                    bankId: Option[String],
+                                    apiVersion: Option[String],
+                                    apiName: Option[String]): Option[RateLimiting] = {
+    val byConsumerParam = By(RateLimiting.ConsumerId, consumerId)
+    val byBankParam = bankId.map(v => By(RateLimiting.BankId, v)).getOrElse(NullRef(RateLimiting.BankId))
+    val byApiVersionParam = apiVersion.map(v => By(RateLimiting.ApiVersion, v)).getOrElse(NullRef(RateLimiting.ApiVersion))
+    val byApiNameParam = apiName.map(v => By(RateLimiting.ApiName, v)).getOrElse(NullRef(RateLimiting.ApiName))
+
+    RateLimiting.findAll(
+      byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam,
+      OrderBy(RateLimiting.updatedAt, Descending)
+    ).headOption
+  }
+
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,
@@ -113,64 +135,40 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
                                        perDay: Option[String],
                                        perWeek: Option[String],
                                        perMonth: Option[String]): Future[Box[RateLimiting]] = Future {
-    
-    def createRateLimit(c: RateLimiting): Box[RateLimiting] = {
+
+    def createOrUpdateRateLimit(c: RateLimiting): Box[RateLimiting] = {
       tryo {
         c.FromDate(fromDate)
         c.ToDate(toDate)
-        perSecond match {
-          case Some(v) => c.PerSecondCallLimit(v.toLong)
-          case None =>
-        }
-        perMinute match {
-          case Some(v) => c.PerMinuteCallLimit(v.toLong)
-          case None =>
-        }
-        perHour match {
-          case Some(v) => c.PerHourCallLimit(v.toLong)
-          case None =>
-        }
-        perDay match {
-          case Some(v) => c.PerDayCallLimit(v.toLong)
-          case None =>
-        }
-        perWeek match {
-          case Some(v) => c.PerWeekCallLimit(v.toLong)
-          case None =>
-        }
-        perMonth match {
-          case Some(v) => c.PerMonthCallLimit(v.toLong)
-          case None =>
-        }
-        bankId match {
-          case Some(v) => c.BankId(v)
-          case None => c.BankId(null)
-        }
-        apiName match {
-          case Some(v) => c.ApiName(v)
-          case None => c.ApiName(null)
-        }
-        apiVersion match {
-          case Some(v) => c.ApiVersion(v)
-          case None => c.ApiVersion(null)
-        }
+
+        perSecond.foreach(v => c.PerSecondCallLimit(v.toLong))
+        perMinute.foreach(v => c.PerMinuteCallLimit(v.toLong))
+        perHour.foreach(v => c.PerHourCallLimit(v.toLong))
+        perDay.foreach(v => c.PerDayCallLimit(v.toLong))
+        perWeek.foreach(v => c.PerWeekCallLimit(v.toLong))
+        perMonth.foreach(v => c.PerMonthCallLimit(v.toLong))
+
+        c.BankId(bankId.orNull)
+        c.ApiName(apiName.orNull)
+        c.ApiVersion(apiVersion.orNull)
         c.ConsumerId(consumerId)
+
+        // 👇 bump timestamp for last-write-wins
+        c.updatedAt(new Date())
+
         c.saveMe()
       }
     }
-    
-    val byConsumerParam = By(RateLimiting.ConsumerId, consumerId)
-    val byBankParam =  if(bankId.isDefined) By(RateLimiting.BankId, bankId.get) else NullRef(RateLimiting.BankId)
-    val byApiVersionParam = if(apiVersion.isDefined) By(RateLimiting.ApiVersion, apiVersion.get) else NullRef(RateLimiting.ApiVersion)
-    val byApiNameParam = if(apiName.isDefined) By(RateLimiting.ApiName, apiName.get) else NullRef(RateLimiting.ApiName)
 
-    val rateLimit = RateLimiting.find(byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam)
-    val result = rateLimit match {
-      case Full(limit) => createRateLimit(limit)
-      case _ => createRateLimit(RateLimiting.create)
+    val result = findMostRecentRateLimitCommon(consumerId, bankId, apiVersion, apiName) match {
+      case Some(limit) => createOrUpdateRateLimit(limit)
+      case None => createOrUpdateRateLimit(RateLimiting.create)
     }
+
     result
   }
+
+
 }
 
 class RateLimiting extends RateLimitingTrait with LongKeyedMapper[RateLimiting] with IdPK with CreatedUpdated {

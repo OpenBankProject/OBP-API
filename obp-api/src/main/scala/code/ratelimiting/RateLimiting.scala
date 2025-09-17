@@ -17,6 +17,7 @@ trait RateLimitingProviderTrait {
   def getAll(): Future[List[RateLimiting]]
   def getAllByConsumerId(consumerId: String, date: Option[Date] = None): Future[List[RateLimiting]]
   def getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None): Future[Box[RateLimiting]]
+  def findMostRecentRateLimit(consumerId: String, bankId: Option[String], apiVersion: Option[String], apiName: Option[String]): Future[Option[RateLimiting]]
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,

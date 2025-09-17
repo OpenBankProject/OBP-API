@@ -79,7 +79,7 @@ object ErrorMessages {
   // General messages (OBP-10XXX)
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
-  val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
+  val InvalidISOCurrencyCode = """OBP-10003: Invalid Currency Value. Expected a 3-letter ISO Currency Code (e.g., 'USD', 'EUR') or 'lovelace' for Cardano transactions.""".stripMargin
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
   val InvalidCurrency = "OBP-10006: Invalid Currency Value."
@@ -127,6 +127,7 @@ object ErrorMessages {
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
 
   val createFxCurrencyIssue = "OBP-10050: Cannot create FX currency. "
+  val invalidLogLevel = "OBP-10051: Invalid log level. "
 
 
 
@@ -579,6 +580,7 @@ object ErrorMessages {
   val RegulatedEntityNotFound = "OBP-34100: Regulated Entity not found. Please specify a valid value for REGULATED_ENTITY_ID."
   val RegulatedEntityNotDeleted = "OBP-34101: Regulated Entity cannot be deleted. Please specify a valid value for REGULATED_ENTITY_ID."
   val RegulatedEntityNotFoundByCertificate = "OBP-34102: Regulated Entity cannot be found by provided certificate."
+  val RegulatedEntityAmbiguityByCertificate = "OBP-34103: More than 1 Regulated Entity found by provided certificate."
   val PostJsonIsNotSigned = "OBP-34110: JWT at the post json cannot be verified."
 
   // Consents

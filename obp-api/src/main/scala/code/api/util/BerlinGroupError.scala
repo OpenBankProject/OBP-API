@@ -46,6 +46,9 @@ object BerlinGroupError {
    */
   def translateToBerlinGroupError(code: String, message: String): String = {
     code match {
+      // If this error occurs it implies that its error handling MUST be refined in OBP code
+      case "400" if message.contains("OBP-50005") => "INTERNAL_ERROR"
+
       case "401" if message.contains("OBP-20001") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20201") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20214") => "PSU_CREDENTIALS_INVALID"

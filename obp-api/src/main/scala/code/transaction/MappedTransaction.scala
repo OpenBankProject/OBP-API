@@ -156,7 +156,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
                             tStartDate.get,
                             Some(tFinishDate.get),
                             newBalance,
-                            Some(status.get)))
+                            Option(status.get).map(_.toString)))
     }
   }
   

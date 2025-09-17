@@ -431,6 +431,10 @@ object Consent extends MdcLoggable {
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       val cc = callContext
+      if(consent.createdByUserId.nonEmpty) {
+        val onBehalfOfUser = Users.users.vend.getUserByUserId(consent.createdByUserId)
+        cc.copy(onBehalfOfUser = onBehalfOfUser.toOption)
+      }
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user), newUser) =>

@@ -1,14 +1,19 @@
 package code.bankaccountbalance
 
 import code.model.dataAccess.MappedBankAccount
+import code.util.Helper.MdcLoggable
 import code.util.{Helper, MappedUUID}
 import com.openbankproject.commons.model.{AccountId, BalanceId, BankAccountBalanceTrait, BankId}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 import java.util.Date
 
-class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String, BankAccountBalance] with CreatedUpdated {
+class BankAccountBalance extends BankAccountBalanceTrait
+  with KeyedMapper[String, BankAccountBalance]
+  with CreatedUpdated
+  with MdcLoggable {
 
   override def getSingleton = BankAccountBalance
 
@@ -36,7 +41,29 @@ class BankAccountBalance extends BankAccountBalanceTrait with KeyedMapper[String
   override def balanceType: String = BalanceType.get
   override def balanceAmount: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(BalanceAmount.get, foreignMappedBankAccountCurrency)
   override def lastChangeDateTime: Option[Date] = Some(this.updatedAt.get)
-  override def referenceDate: Option[String] = Some(ReferenceDate.get.toString)
+  override def referenceDate: Option[String] = {
+    net.liftweb.util.Helpers.tryo {
+      Option(ReferenceDate.get) match {
+        case Some(d) => Some(d.toString)
+        case None =>
+          logger.warn(s"ReferenceDate is missing for BalanceId=${BalanceId_.get}, AccountId=${AccountId_.get}, BankId=${BankId_.get}")
+          None
+      }
+    } match {
+      case Full(v) => v
+      case f: Failure =>
+        // extract throwable if present; otherwise create one from the message
+        val t = f.exception.openOr(new RuntimeException(f.msg))
+        logger.error(s"Error while retrieving referenceDate for BalanceId=${BalanceId_.get}, AccountId=${AccountId_.get}, BankId=${BankId_.get}: ${f.msg}", t)
+        None
+      case Empty =>
+        // Defensive: treat as missing
+        None
+    }
+  }
 }
 
-object BankAccountBalance extends BankAccountBalance  with KeyedMetaMapper[String, BankAccountBalance] with CreatedUpdated {}
+object BankAccountBalance
+  extends BankAccountBalance
+    with KeyedMetaMapper[String, BankAccountBalance]
+    with CreatedUpdated {}

@@ -8,6 +8,7 @@ import code.api.util.OBPQueryParam
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
 
@@ -62,7 +63,7 @@ object Atms extends SimpleInjector {
     balanceInquiryFee: Option[String] = None,
     atmType: Option[String] = None,
     phone: Option[String] = None,
-      
+
   ) extends AtmT
 
   val atmsProvider = new Inject(buildOne _) {}
@@ -81,9 +82,7 @@ object Atms extends SimpleInjector {
 
 }
 
-trait AtmsProvider {
-
-  private val logger = Logger(classOf[AtmsProvider])
+trait AtmsProvider extends MdcLoggable {
 
 
   /*
@@ -107,9 +106,3 @@ trait AtmsProvider {
   def deleteAtm(atm: AtmT): Box[Boolean]
 // End of Trait
 }
-
-
-
-
-
-

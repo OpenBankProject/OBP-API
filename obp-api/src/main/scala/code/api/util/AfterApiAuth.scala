@@ -6,7 +6,7 @@ import code.accountholders.AccountHolders
 import code.api.Constant
 import code.api.util.APIUtil.getPropsAsBoolValue
 import code.api.util.ApiRole.{CanCreateAccount, CanCreateHistoricalTransactionAtBank}
-import code.api.util.ErrorMessages.{UserIsDeleted, UsernameHasBeenLocked}
+import code.api.util.ErrorMessages.{ConsumerIsDisabled, UserIsDeleted, UsernameHasBeenLocked}
 import code.api.util.RateLimitingJson.CallLimit
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.entitlement.Entitlement
@@ -74,6 +74,18 @@ object AfterApiAuth extends MdcLoggable{
             }
           }
         case _ => // There is no user. Just forward the result.
+          (user, cc)
+      }
+    }
+  }
+  def checkConsumerIsDisabled(res: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
+    for {
+      (user: Box[User], cc) <- res
+    } yield {
+      cc.map(_.consumer) match {
+        case Some(Full(consumer)) if !consumer.isActive.get => // There is a consumer. Check it.
+          (Failure(ConsumerIsDisabled), cc) // The Consumer is DISABLED.
+        case _ => // There is no Consumer. Just forward the result.
           (user, cc)
       }
     }

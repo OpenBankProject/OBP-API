@@ -36,12 +36,11 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common._
 import net.liftweb.util.StringHelpers
+import code.util.Helper.MdcLoggable
 
 import java.util.Date
 
-case class ViewExtended(val view: View) {
-
-  val viewLogger = Logger(classOf[ViewExtended])
+case class ViewExtended(val view: View) extends MdcLoggable {
 
   def getViewPermissions: List[String] =
     if (view.isSystem) {
@@ -205,7 +204,7 @@ case class ViewExtended(val view: View) {
 
     if(!belongsToModeratedAccount) {
       val failMsg = "Attempted to moderate a transaction using the incorrect moderated account"
-      view.viewLogger.warn(failMsg)
+      logger.warn(failMsg)
       Failure(failMsg)
     } else {
       Full(moderatedTransaction)
@@ -272,7 +271,7 @@ case class ViewExtended(val view: View) {
 
     if(!belongsToModeratedAccount) {
       val failMsg = "Attempted to moderate a transaction using the incorrect moderated account"
-      view.viewLogger.warn(failMsg)
+      logger.warn(failMsg)
       Failure(failMsg)
     } else {
       Full(moderatedTransaction)
@@ -287,7 +286,7 @@ case class ViewExtended(val view: View) {
 
     // This function will only accept transactions which have the same This Account.
     if(accountUids.toSet.size > 1) {
-      view.viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
+      logger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
       Failure("Could not moderate transactions as they do not all belong to the same account")
     } else {
       Full(transactions.flatMap(
@@ -306,7 +305,7 @@ case class ViewExtended(val view: View) {
 
     // This function will only accept transactions which have the same This Account.
     if(accountUids.toSet.size > 1) {
-      view.viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
+      logger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
       Failure("Could not moderate transactions as they do not all belong to the same account")
     } else {
 

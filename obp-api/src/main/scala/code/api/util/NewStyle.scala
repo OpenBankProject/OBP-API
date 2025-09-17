@@ -769,17 +769,37 @@ object NewStyle extends MdcLoggable{
     def isEnabledTransactionRequests(callContext: Option[CallContext]): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled, cc=callContext)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
-      * Wraps a Future("try") block around the function f and
-      * @param f - the block of code to evaluate
-      * @return <ul>
-      *   <li>Future(result of the evaluation of f) if f doesn't throw any exception
-      *   <li>a Failure if f throws an exception with message = failMsg and code = failCode
-      *   </ul>
-      */
-    def tryons[T](failMsg: String, failCode: Int = 400, callContext: Option[CallContext])(f: => T)(implicit m: Manifest[T]): Future[T]= {
+     * Wraps a computation `f` in a Future, capturing exceptions and returning detailed error messages.
+     *
+     * @param failMsg     Base error message to return if the computation fails.
+     * @param failCode    HTTP status code to return on failure (default: 400).
+     * @param callContext Optional call context for logging or metadata.
+     * @param f           The computation to execute (call-by-name to defer evaluation).
+     * @param m           Implicit Manifest for type `T` (handled by Scala compiler).
+     * @return Future[T]  Success: Result of `f`; Failure: Detailed error message.
+     */
+    def tryons[T](
+      failMsg: String,
+      failCode: Int = 400,
+      callContext: Option[CallContext]
+    )(f: => T)(implicit m: Manifest[T]): Future[T] = {
       Future {
-        tryo {
-          f
+        try {
+          // Attempt to execute `f` and wrap the result in `Full` (success) or `Failure` (error)
+          tryo(f) match {
+            case Full(result) =>
+              Full(result)  // Success: Forward the result
+            case Failure(msg, _, _) =>
+              // `tryo` encountered an exception (e.g., validation error)
+              Failure(s"$failMsg. Details: $msg", Empty, Empty)
+            case Empty =>
+              // Edge case: Empty result (unlikely but handled defensively)
+              Failure(s"$failMsg. Details: Empty result", Empty, Empty)
+          }
+        } catch {
+          case e: Exception =>
+            // Directly caught exception (e.g., JSON parsing error)
+            Failure(s"$failMsg. Details: ${e.getMessage}", Full(e), Empty)
         }
       } map {
         x => unboxFullOrFail(x, callContext, failMsg, failCode)
