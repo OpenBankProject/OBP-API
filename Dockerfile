@@ -11,3 +11,10 @@ RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx3G -Xss2m" mvn install -
 FROM jetty:9.4-jdk11-alpine
 
 COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
+
+USER jetty
+ENV USE_SYSTEM_CA_CERTS=1
+WORKDIR /certificates
+COPY --chmod=777 CA-ALL-PROD.crt .
+COPY --chmod=777 CA-ALL-TEST.crt .
+RUN /bin/sh -c /__cacert_entrypoint.sh
