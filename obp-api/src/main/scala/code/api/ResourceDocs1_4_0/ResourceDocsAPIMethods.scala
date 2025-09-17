@@ -42,6 +42,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.{OBPAPI5_1_0, UserAttributeJsonV510}
+import code.api.v6_0_0.OBPAPI6_0_0
 import code.util.Helper
 
 import scala.collection.immutable.{List, Nil}
@@ -123,6 +124,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
@@ -141,6 +143,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
