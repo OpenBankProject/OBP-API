@@ -29,5 +29,5 @@ stages:
               command: 'buildAndPush'
               Dockerfile: 'Dockerfile'
               tags: |
-                $(Build.BuildId)
+                latest
                 $(BASE_IMAGE_DIGEST)
