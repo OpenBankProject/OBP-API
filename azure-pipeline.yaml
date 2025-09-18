@@ -6,28 +6,21 @@ trigger: none
 
 stages:
     
+pool:
+  name: Build
+  demands: Agent.OS -equals Linux
+
+trigger: none
+
+stages:
+    
 # Build
 # -----
   - stage: BuildStage
     displayName: Build (Docker)
+    dependsOn:
     jobs:
-      - job:
-        displayName: "Build & push"
-        steps:
-          - script: |
-              BASE_IMAGE="docker.io/openbankproject/maib-obp-api:$(BASE_IMAGE_DIGEST)"
-              docker pull $BASE_IMAGE
-              DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $BASE_IMAGE | cut -d'@' -f2)
-              echo "Trimmed Base Image Digest: ${DIGEST:7:12}"
-              echo "##vso[task.setvariable variable=BASE_IMAGE_DIGEST]${DIGEST:7:12}"
-            displayName: 'Get Base Image Digest'
-
-          - task: Docker@2
-            inputs:
-              containerRegistry: DockerRegistryServiceConnection
-              repository: 'OBP_API'
-              command: 'buildAndPush'
-              Dockerfile: 'Dockerfile'
-              tags: |
-                latest
-                $(BASE_IMAGE_DIGEST)
+    - template: ci/jobs/build-docker.yml@templates
+      parameters:
+        imageName: maib-obp-api
+        buildDir: $(Build.SourcesDirectory)/Dockerfile
