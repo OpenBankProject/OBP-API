@@ -1,19 +1,17 @@
-pool:
-  name: Build
-  demands: Agent.OS -equals Linux
+name: $(Rev:r)
 
-trigger: none
+trigger:
+  - main
+  - master
 
-stages:
-    
-pool:
-  name: Build
-  demands: Agent.OS -equals Linux
-
-trigger: none
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: DevOps/azure-templates
 
 stages:
-    
+
 # Build
 # -----
   - stage: BuildStage
