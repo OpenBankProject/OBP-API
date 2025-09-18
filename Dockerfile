@@ -5,8 +5,8 @@ RUN cp /usr/src/OBP-API/obp-api/pom.xml /tmp/pom.xml # For Packaging a local rep
 WORKDIR /usr/src/OBP-API
 RUN cp obp-api/src/main/resources/props/test.default.props.template obp-api/src/main/resources/props/test.default.props
 RUN cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/default.props
-RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx4G -Xss4m" mvn install -pl .,obp-commons
-RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx4G -Xss4m" mvn install -DskipTests -pl obp-api
+RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx6G -Xss4m" mvn install -pl .,obp-commons
+RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx6G -Xss4m" mvn install -DskipTests -pl obp-api
 
 FROM jetty:9.4-jdk11-alpine
 
