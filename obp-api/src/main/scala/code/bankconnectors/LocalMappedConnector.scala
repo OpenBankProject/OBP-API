@@ -4849,6 +4849,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def createTransactionRequestInstantCreditTransfersMdV1(
+                                                                   initiator: Option[User],
+                                                                   paymentServiceType: PaymentServiceTypes,
+                                                                   transactionRequestType: TransactionRequestTypes,
+                                                                   transactionRequestBody: InstantCreditTransfersMdV1,
+                                                                   callContext: Option[CallContext]
+                                                                 ): OBPReturnType[Box[TransactionRequestBGV1]] = {
+    Future.successful {
+      val fakeTransactionRequest = TransactionRequestBGV1(
+        id = TransactionRequestId("stub-id"),
+        status = "INITIATED"
+      )
+      (Full(fakeTransactionRequest), callContext)
+    }
+  }
+
+
   override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
