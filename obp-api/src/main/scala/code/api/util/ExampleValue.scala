@@ -95,7 +95,10 @@ object ExampleValue {
 
   lazy val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
   glossaryItems += makeGlossaryItem("Customer.consumerId", consumerIdExample)
-  
+
+  lazy val consumerNameExample = ConnectorField("TPP MD", s"A non human friendly string that identifies name of the consumer. It is the app which calls the apis")
+  glossaryItems += makeGlossaryItem("Customer.consumerName", consumerNameExample)
+
   lazy val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
   glossaryItems += makeGlossaryItem("Customer.nameSuffix", nameSuffixExample)
 

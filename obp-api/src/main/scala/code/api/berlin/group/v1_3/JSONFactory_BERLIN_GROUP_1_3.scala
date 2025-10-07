@@ -2,7 +2,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.Constant.bgRemoveSignOfAmounts
 import code.api.berlin.group.ConstantsBG
-import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
+import code.api.berlin.group.v1_3.model.TransactionStatus.{mapTransactionStatus, mapTransactionStatusMdV1}
 import code.api.berlin.group.v1_3.model._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.MissingPropsValueAtThisInstance
@@ -286,7 +286,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     self: LinkHrefJson,
     status: LinkHrefJson,
     scaStatus: LinkHrefJson
-  )  
+  )
+  case class InitiatePaymentMdV1ResponseLinks(
+    scaRedirect: LinkHrefJson,
+    self: LinkHrefJson,
+    status: LinkHrefJson,
+    scaStatus: Option[LinkHrefJson]
+  )
   case class CancelPaymentResponseLinks(
                                          self: LinkHrefJson,
                                          status: LinkHrefJson,
@@ -296,6 +302,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     transactionStatus: String,
     paymentId: String,
     _links: InitiatePaymentResponseLinks
+  )
+  case class InitiatePaymentMdV1ResponseJson(
+    transactionStatus: String,
+    paymentId: String,
+    _links: InitiatePaymentMdV1ResponseLinks
   )
   case class CancelPaymentResponseJson(
     transactionStatus: String,
@@ -728,7 +739,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     )
   }
 
-  def createTransactionRequestJson(transactionRequest : TransactionRequestBGV1, transactionRequestType: TransactionRequestTypes) : InitiatePaymentResponseJson = {
+  def createTransactionRequestJson(transactionRequest : TransactionRequestBGV1, transactionRequestType: TransactionRequestTypes) : InitiatePaymentMdV1ResponseJson = {
 //    - 'ACCC': 'AcceptedSettlementCompleted' -
 //      Settlement on the creditor's account has been completed.
 //      - 'ACCP': 'AcceptedCustomerProfile' -
@@ -777,17 +788,24 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId")
       else
         LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId")
-    InitiatePaymentResponseJson(
-      transactionStatus = mapTransactionStatus(transactionRequest.status),
+    val scaStatus =
+      if(transactionRequestType == TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD)
+        None
+      else
+        Some(LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/authorisations/$paymentId"))
+
+    InitiatePaymentMdV1ResponseJson(
+      transactionStatus = mapTransactionStatusMdV1(transactionRequest.status),
       paymentId = paymentId,
-      _links = InitiatePaymentResponseLinks(
-        scaRedirect = LinkHrefJson(s"$scaRedirectUrl/$paymentId"),
+      _links = InitiatePaymentMdV1ResponseLinks(
+        scaRedirect = LinkHrefJson(s"$scaRedirectUrl"),
         self = self,
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/status"),
-        scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/authorisations/${paymentId}")
+        scaStatus = scaStatus
       )
     )
   }
+
   def createCancellationTransactionRequestJson(transactionRequest : TransactionRequest) : CancelPaymentResponseJson = {
     val paymentId = transactionRequest.id.value
     CancelPaymentResponseJson(

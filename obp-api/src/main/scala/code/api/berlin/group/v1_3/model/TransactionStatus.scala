@@ -102,7 +102,15 @@ object TransactionStatus extends ApiModel {
       case other => other
     }
   }
-
+  def mapTransactionStatusMdV1(status: String): String = {
+    status match {
+      case "COMPLETED" => TransactionStatus.ACCC.code
+      case "INITIATED" => TransactionStatus.RCVD.code
+      case "CANCELED" => TransactionStatus.CANC.code
+      case "REJECTED" => TransactionStatus.RJCT.code
+      case other => other
+    }
+  }
 }
 
 

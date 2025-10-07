@@ -37,6 +37,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
 import net.liftweb.common._
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
@@ -2632,7 +2633,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(
+        outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
         initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
           userId=userIdExample.value,
           idGivenByProvider="string",
@@ -2650,7 +2652,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
           debtorAccount=Some(PaymentAccount("string")),
           instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value, amount=amountExample.value),
           creditorAccount=PaymentAccountMd("string"),
-          remittanceInformationUnstructured=Some("string")))
+          remittanceInformationUnstructured=Some("string")),
+        headers = List.empty[HTTPParam])
       ),
     exampleInboundMessage = (
       InBoundCreateTransactionRequestInstantCreditTransfersMdV1(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,

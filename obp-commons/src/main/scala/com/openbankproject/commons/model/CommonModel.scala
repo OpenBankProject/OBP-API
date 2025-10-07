@@ -1220,6 +1220,7 @@ case class OutboundAdapterCallContext(
   correlationId: String = "",
   sessionId: Option[String] = None, //Only this value must be used for cache key !!!
   consumerId: Option[String] = None,
+  consumerName: Option[String] = None,
   generalContext: Option[List[BasicGeneralContext]]= None,
   outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo] = None,
   outboundAdapterConsenterInfo: Option[OutboundAdapterAuthInfo] = None, //Here consentInfo object structure is the same as AuthInfo. so share the same class

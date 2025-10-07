@@ -20,6 +20,7 @@ import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
 import code.model.toBankAccountExtended
+import code.payments.MappedPayment
 import code.transaction.MappedTransaction
 import code.transactionrequests._
 import code.util.Helper
@@ -41,7 +42,7 @@ import net.liftweb.util.StringHelpers
 
 import java.time.{LocalDate, ZoneId}
 import java.util.UUID.randomUUID
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, UUID}
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -227,6 +228,98 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     }
   }
 
+  def createTransactionRequestInstantCreditTransferMd(
+                                                       initiator: Option[User],
+                                                       paymentServiceType: PaymentServiceTypes,
+                                                       transactionRequestType: TransactionRequestTypes,
+                                                       transactionRequestBody: InstantCreditTransfersMdV1, // Замените на ваш тип для InstantCreditTransferMd
+                                                       callContext: Option[CallContext]
+                                                     ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
+    for {
+      user <- NewStyle.function.tryons(s"$UnknownError Can not get user for mapped createTransactionRequestInstantCreditTransferMd method", 400, callContext) {
+        initiator.head
+      }
+
+      // сериализуем запрос
+      transDetailsSerialized <- NewStyle.function.tryons(s"$UnknownError Can not serialize in request Json", 400, callContext) {
+        write(transactionRequestBody)(Serialization.formats(NoTypeHints))
+      }
+
+      // Дебетовый и кредитовый IBAN
+      fromAccountIban = transactionRequestBody.debtorAccount.get.iban
+      toAccountIban = transactionRequestBody.creditorAccount.msisdn
+
+      // Получаем счет дебетора по IBAN
+      (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+
+      // Проверяем валидность IBAN кредитора
+      (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+      _ <- Helper.booleanToFuture(invalidIban, cc = callContext) {
+        ibanChecker.isValid == true
+      }
+
+      // Получаем счет кредитора по IBAN
+      (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
+
+      viewId = ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+
+      // Получаем лимит платежей
+      (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(
+        fromAccount.bankId.value,
+        fromAccount.accountId.value,
+        viewId.value,
+        transactionRequestType.toString,
+        transactionRequestBody.instructedAmount.currency,
+        user.userId,
+        user.name,
+        callContext
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
+      }
+
+      // Проверка суммы платежа с лимитом
+      paymentLimitAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetPaymentLimit. payment limit amount ${paymentLimit.amount} not convertible to number", 400, callContext) {
+        BigDecimal(paymentLimit.amount)
+      }
+
+      // Проверяем, что сумма транзакции не превышает лимит
+      transactionAmount = BigDecimal(transactionRequestBody.instructedAmount.amount)
+      _ <- Helper.booleanToFuture(s"$InvalidJsonValue the payment amount is over the payment limit($paymentLimit)", 400, callContext) {
+        transactionAmount <= paymentLimitAmount
+      }
+
+      // Проверяем валюту транзакции
+      _ <- Helper.booleanToFuture(s"$InvalidTransactionRequestCurrency From Account Currency is ${fromAccount.currency}, but Requested instructedAmount.currency is: ${transactionRequestBody.instructedAmount.currency}", cc = callContext) {
+        transactionRequestBody.instructedAmount.currency == fromAccount.currency
+      }
+
+      transactionRequest <- Future {
+        // Создаем новый объект MappedPayment и сохраняем его
+        val transactionRequestBox: Box[MappedPayment] = Full(
+          MappedPayment.create
+            .mEndToEndIdentification(transactionRequestBody.endToEndIdentification.getOrElse(""))
+            .mDebtorAccountIban(transactionRequestBody.debtorAccount.get.iban)
+            .mInstructedAmountCurrency(transactionRequestBody.instructedAmount.currency)
+            .mInstructedAmountAmount(transactionRequestBody.instructedAmount.amount)
+            .mCreditorAccountMsisdn(transactionRequestBody.creditorAccount.msisdn)
+            .mPurposeCode(transactionRequestBody.purposeCode.getOrElse(""))
+            .mRemittanceInformationUnstructured(transactionRequestBody.remittanceInformationUnstructured.getOrElse(""))
+            .mStatus(TransactionRequestStatus.INITIATED.toString())
+            .mType(transactionRequestType.toString)
+            .mPaymentId(randomUUID().toString())
+            .saveMe()
+        )
+        // Возвращаем Box с сохраненным объектом
+        transactionRequestBox
+      } map {
+        // Используем unboxFullOrFail для извлечения данных из Box
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210 ", 400)
+      }
+    } yield {
+      logger.debug(transactionRequest)
+      (Full(TransactionRequestBGV1(TransactionRequestId(transactionRequest.mPaymentId.toString()), transactionRequest.status)), callContext)
+    }
+  }
 
 
   /*

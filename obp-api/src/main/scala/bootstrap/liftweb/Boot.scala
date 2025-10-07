@@ -100,6 +100,7 @@ import code.model._
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.HelloWorldServer
+import code.payments.MappedPayment
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
@@ -1067,6 +1068,7 @@ object ToSchemify {
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
+    MappedPayment,
     ConsentRequest,
     MigrationScriptLog,
     MethodRouting,

@@ -1196,13 +1196,13 @@ case class OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(
 case class InBoundCreateTransactionRequestSepaCreditTransfersBGV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
 case class OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(
-                                                                    outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                                    initiator: Option[User],
-                                                                    paymentServiceType: PaymentServiceTypes.Value,
-                                                                    transactionRequestType: TransactionRequestTypes.Value,
-                                                                    transactionRequestBody: InstantCreditTransfersMdV1,
-                                                                    headers: List[HTTPParam] = Nil,
-                                                                  ) extends TopicTrait
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  initiator: Option[User],
+  paymentServiceType: PaymentServiceTypes.Value,
+  transactionRequestType: TransactionRequestTypes.Value,
+  transactionRequestBody: InstantCreditTransfersMdV1,
+  headers: List[HTTPParam] = Nil,
+) extends TopicTrait
 
 case class InBoundCreateTransactionRequestInstantCreditTransfersMdV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 

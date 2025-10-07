@@ -102,6 +102,7 @@ object MigrationOfMappedConsent {
         isSuccessful
     }
   }
+
   def alterColumnStatus(name: String): Boolean = {
     DbFunction.tableExists(MappedConsent) match {
       case true =>

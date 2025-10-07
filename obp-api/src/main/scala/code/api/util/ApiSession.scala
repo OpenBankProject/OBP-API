@@ -64,6 +64,7 @@ case class CallContext(
       username <- tryo(Some(user.name))
       currentResourceUserId <- tryo(Some(user.userId))
       consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
+      consumerName = this.consumer.map(_.name.get).openOr("")
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
@@ -92,6 +93,7 @@ case class CallContext(
         correlationId = this.correlationId,
         sessionId = this.sessionId,
         consumerId = Some(consumerId),
+        consumerName = Some(consumerName),
         generalContext = Some(generalContextFromPassThroughHeaders),
         outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
           userId = currentResourceUserId,
@@ -99,7 +101,7 @@ case class CallContext(
           linkedCustomers = likedCustomersBasic,
           userAuthContext = basicUserAuthContexts,
           if (authViews.isEmpty) None else Some(authViews))),
-        outboundAdapterConsenterInfo = 
+        outboundAdapterConsenterInfo =
           if (this.consenter.isDefined){
             Some(OutboundAdapterAuthInfo(
               username = this.consenter.toOption.map(_.name)))//TODO, here we may added more field to the consenter, at the moment only username is useful
