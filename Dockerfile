@@ -1,18 +1,19 @@
-FROM maven:3-eclipse-temurin-11 as maven
+FROM maven:3.9.6-eclipse-temurin-11 as maven
+
+# Устанавливаем необходимые пакеты
+USER root
+RUN apt-get update && apt-get install -y scala curl git
 
 # Копируем исходный код проекта
 COPY . /usr/src/OBP-API
 WORKDIR /usr/src/OBP-API
 
-# Устанавливаем Scala (если используется scala-maven-plugin)
-RUN apt-get update && apt-get install -y scala
-
 # Копируем конфигурационные файлы
 RUN cp obp-api/src/main/resources/props/test.default.props.template obp-api/src/main/resources/props/test.default.props
 RUN cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/default.props
 
-# Очищаем Maven-кэш
-RUN rm -rf ~/.m2/repository
+# Удаляем кэш Maven (без монтирования)
+RUN rm -rf /root/.m2/repository
 
 # Сборка зависимостей проекта
 RUN MAVEN_OPTS="-Xmx8G -Xss4m" mvn clean install -pl .,obp-commons -DskipTests -U -X
