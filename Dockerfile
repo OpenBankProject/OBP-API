@@ -16,10 +16,10 @@ RUN cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/r
 RUN rm -rf /root/.m2/repository
 
 # Сборка зависимостей проекта
-RUN MAVEN_OPTS="-Xmx8G -Xss4m" mvn clean install -pl .,obp-commons -DskipTests -U -X
+RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl .,obp-commons -DskipTests -U -X
 
 # Сборка основного модуля obp-api
-RUN MAVEN_OPTS="-Xmx8G -Xss4m" mvn clean install -pl obp-api -DskipTests -U -X
+RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl obp-api -DskipTests -U -X
 
 # Финальный образ на базе Jetty
 FROM jetty:9.4-jdk11-alpine
