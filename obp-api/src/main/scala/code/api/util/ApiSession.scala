@@ -111,7 +111,9 @@ case class CallContext(
       )
     }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
       this.correlationId,
-      this.sessionId))
+      this.sessionId,
+      consumerId = Some(this.consumer.map(_.consumerId.get).openOr("")),
+      consumerName = Some(this.consumer.map(_.name.get).openOr(""))))
 
   def toLight: CallContextLight = {
     CallContextLight(
