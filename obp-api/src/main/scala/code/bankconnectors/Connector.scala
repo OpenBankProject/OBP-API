@@ -10,6 +10,7 @@ import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.cardano.CardanoConnector_vJun2025
+import code.bankconnectors.ethereum.EthereumConnector_vSept2025
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -63,6 +64,7 @@ object Connector extends SimpleInjector {
     "stored_procedure_vDec2019" -> StoredProcedureConnector_vDec2019,
     "rabbitmq_vOct2024" -> RabbitMQConnector_vOct2024,
     "cardano_vJun2025" -> CardanoConnector_vJun2025,
+    "ethereum_vSept2025" -> EthereumConnector_vSept2025,
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> ConnectorUtils.proxyConnector,
     // internal is the dynamic connector, the developers can upload the source code and override connector method themselves.
@@ -529,6 +531,11 @@ trait Connector extends MdcLoggable {
   def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getBankAccountFromCounterparty _))), callContext)}
   
   def getBankAccountByNumber(bankId : Option[BankId], accountNumber : String, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getBankAccountByNumber _))), callContext)}
+
+  // This method handles external bank accounts that may not exist in our database.
+  // If the account is not found, we create an in-memory account using counterparty information for payment processing.
+  //TODO understand more about this method.
+  def getOtherBankAccountByNumber(bankId : Option[BankId], accountNumber : String, counterparty: Option[CounterpartyTrait], callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getOtherBankAccountByNumber _))), callContext)}
 
   def getBankAccountByRoutings(bankAccountRoutings: BankAccountRoutings, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError(nameOf(getBankAccountByRoutings _))), callContext)}
   

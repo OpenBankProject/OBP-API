@@ -1,24 +1,20 @@
 package code.metadata.counterparties
 
-import java.util.UUID.randomUUID
-import java.util.{Date, UUID}
-
 import code.api.cache.Caching
-import code.api.util.{APIUtil, CallContext}
-import code.api.util.APIUtil.getSecondsCache
-import code.model._
+import code.api.util.APIUtil
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util._
-import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper.{By, MappedString, _}
+import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.StringHelpers
 
+import java.util.UUID.randomUUID
+import java.util.{Date, UUID}
 import scala.concurrent.duration._
 
 // For now, there are two Counterparties: one is used for CreateCounterParty.Counterparty, the other is for getTransactions.Counterparty.
@@ -210,34 +206,34 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   currency: String,
                                   bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
+    tryo{
+      val mappedCounterparty = MappedCounterparty.create
+        .mCounterPartyId(APIUtil.createExplicitCounterpartyId) //We create the Counterparty_Id here, it means, it will be created in each connector.
+        .mName(name)
+        .mCreatedByUserId(createdByUserId)
+        .mThisBankId(thisBankId)
+        .mThisAccountId(thisAccountId)
+        .mThisViewId(thisViewId)
+        .mOtherAccountRoutingScheme(StringHelpers.snakify(otherAccountRoutingScheme).toUpperCase)
+        .mOtherAccountRoutingAddress(otherAccountRoutingAddress)
+        .mOtherBankRoutingScheme(StringHelpers.snakify(otherBankRoutingScheme).toUpperCase)
+        .mOtherBankRoutingAddress(otherBankRoutingAddress)
+        .mOtherBranchRoutingAddress(otherBranchRoutingAddress)
+        .mOtherBranchRoutingScheme(StringHelpers.snakify(otherBranchRoutingScheme).toUpperCase)
+        .mIsBeneficiary(isBeneficiary)
+        .mDescription(description)
+        .mCurrency(currency)
+        .mOtherAccountSecondaryRoutingScheme(otherAccountSecondaryRoutingScheme)
+        .mOtherAccountSecondaryRoutingAddress(otherAccountSecondaryRoutingAddress)
+        .saveMe()
     
-    val mappedCounterparty = MappedCounterparty.create
-      .mCounterPartyId(APIUtil.createExplicitCounterpartyId) //We create the Counterparty_Id here, it means, it will be create in each connector.
-      .mName(name)
-      .mCreatedByUserId(createdByUserId)
-      .mThisBankId(thisBankId)
-      .mThisAccountId(thisAccountId)
-      .mThisViewId(thisViewId)
-      .mOtherAccountRoutingScheme(StringHelpers.snakify(otherAccountRoutingScheme).toUpperCase)
-      .mOtherAccountRoutingAddress(otherAccountRoutingAddress)
-      .mOtherBankRoutingScheme(StringHelpers.snakify(otherBankRoutingScheme).toUpperCase)
-      .mOtherBankRoutingAddress(otherBankRoutingAddress)
-      .mOtherBranchRoutingAddress(otherBranchRoutingAddress)
-      .mOtherBranchRoutingScheme(StringHelpers.snakify(otherBranchRoutingScheme).toUpperCase)
-      .mIsBeneficiary(isBeneficiary)
-      .mDescription(description)
-      .mCurrency(currency)
-      .mOtherAccountSecondaryRoutingScheme(otherAccountSecondaryRoutingScheme)
-      .mOtherAccountSecondaryRoutingAddress(otherAccountSecondaryRoutingAddress)
-      .saveMe()
-  
-    // This is especially for OneToMany table, to save a List to database.
-    CounterpartyBespokes.counterpartyBespokers.vend
-      .createCounterpartyBespokes(mappedCounterparty.id.get, bespoke)
-      .map(mappedBespoke =>mappedCounterparty.mBespoke += mappedBespoke)
-    
-    Some(mappedCounterparty)
-    
+      // This is especially for OneToMany table, to save a List to database.
+      CounterpartyBespokes.counterpartyBespokers.vend
+        .createCounterpartyBespokes(mappedCounterparty.id.get, bespoke)
+        .map(mappedBespoke =>mappedCounterparty.mBespoke += mappedBespoke)
+      
+      mappedCounterparty
+    }
   }
 
  override def checkCounterpartyExists(

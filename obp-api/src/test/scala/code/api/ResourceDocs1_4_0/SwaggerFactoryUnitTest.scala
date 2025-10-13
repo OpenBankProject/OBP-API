@@ -9,6 +9,7 @@ import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
+import code.api.v6_0_0.OBPAPI6_0_0
 import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
@@ -56,7 +57,8 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
   feature("Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies and all the case classes in SwaggerDefinitionsJSON") {
     scenario("Test all the case classes") {
       val resourceDocList: ArrayBuffer[ResourceDoc] = ArrayBuffer.empty
-        OBPAPI5_1_0.allResourceDocs// ++ 
+        OBPAPI6_0_0.allResourceDocs ++
+        OBPAPI5_1_0.allResourceDocs ++ 
         OBPAPI5_0_0.allResourceDocs ++ 
         OBPAPI4_0_0.allResourceDocs ++ 
         OBPAPI3_1_0.allResourceDocs ++ 

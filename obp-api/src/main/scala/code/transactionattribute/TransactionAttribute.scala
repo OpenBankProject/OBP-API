@@ -7,6 +7,7 @@ import com.openbankproject.commons.model.enums.TransactionAttributeType
 import com.openbankproject.commons.model.{BankId, TransactionAttribute, TransactionId, ViewId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -29,9 +30,7 @@ object TransactionAttributeX extends SimpleInjector {
 
 }
 
-trait TransactionAttributeProvider {
-
-  private val logger = Logger(classOf[TransactionAttributeProvider])
+trait TransactionAttributeProvider extends MdcLoggable {
 
   def getTransactionAttributesFromProvider(transactionId: TransactionId): Future[Box[List[TransactionAttribute]]]
   def getTransactionAttributes(bankId: BankId,
@@ -45,7 +44,7 @@ trait TransactionAttributeProvider {
   def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]]
 
   def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
-  
+
   def createOrUpdateTransactionAttribute(bankId: BankId,
                                      transactionId: TransactionId,
                                      transactionAttributeId: Option[String],
@@ -56,7 +55,7 @@ trait TransactionAttributeProvider {
   def createTransactionAttributes(bankId: BankId,
                               transactionId: TransactionId,
                               transactionAttributes: List[TransactionAttribute]): Future[Box[List[TransactionAttribute]]]
-  
+
   def deleteTransactionAttribute(transactionAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }

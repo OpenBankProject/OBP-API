@@ -8,13 +8,13 @@ The Open Bank Project is an open-source API for banks that enables account holde
 
 The OBP API supports transparency options (enabling account holders to share configurable views of their transaction data with trusted individuals and even the public), data blurring (to preserve sensitive information) and data enrichment (enabling users to add tags, comments and images to transactions).
 
-The OBP API abstracts away the peculiarities of each core banking system so that a wide range of apps can interact with  multiple banks on behalf of the account holder. We want to raise the bar of financial transparency and enable a rich ecosystem of innovative financial applications and services.
+The OBP API abstracts away the peculiarities of each core banking system so that a wide range of apps can interact with multiple banks on behalf of the account holder. We want to raise the bar of financial transparency and enable a rich ecosystem of innovative financial applications and services.
 
 Our tagline is: "Bank as a Platform. Transparency as an Asset".
 
 The API supports [OAuth 1.0a](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%201.0a), [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google) and other authentication methods including [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login).
 
-## Documentation 
+## Documentation
 
 The API documentation is best viewed using the [OBP API Explorer](https://apiexplorer-ii-sandbox.openbankproject.com) or a third-party tool that has imported the OBP Swagger definitions.
 
@@ -26,15 +26,15 @@ OBP instances support multiple versions of the API simultaneously (unless they a
 To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at the root endpoint. For example, `/obp/v2.0.0/root` or `/obp/v3.0.0/root`.
 
 ```log
-24.01.2017, [V1.2.1](https://apisandbox.openbankproject.com/obp/v1.2.1/root) was marked as stable. 
-24.01.2017, [V1.3.0](https://apisandbox.openbankproject.com/obp/v1.3.0/root) was marked as stable. 
-08.06.2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable. 
-27.10.2018, [V2.1.0](https://apisandbox.openbankproject.com/obp/v2.1.0/root) was marked as stable. 
-27.10.2018, [V2.2.0](https://apisandbox.openbankproject.com/obp/v2.2.0/root) was marked as stable. 
-18.11.2020, [V3.0.0](https://apisandbox.openbankproject.com/obp/v3.0.0/root) was marked as stable. 
-18.11.2020, [V3.1.0](https://apisandbox.openbankproject.com/obp/v3.1.0/root) was marked as stable. 
-16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable. 
-16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable. 
+24.01.2017, [V1.2.1](https://apisandbox.openbankproject.com/obp/v1.2.1/root) was marked as stable.
+24.01.2017, [V1.3.0](https://apisandbox.openbankproject.com/obp/v1.3.0/root) was marked as stable.
+08.06.2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable.
+27.10.2018, [V2.1.0](https://apisandbox.openbankproject.com/obp/v2.1.0/root) was marked as stable.
+27.10.2018, [V2.2.0](https://apisandbox.openbankproject.com/obp/v2.2.0/root) was marked as stable.
+18.11.2020, [V3.0.0](https://apisandbox.openbankproject.com/obp/v3.0.0/root) was marked as stable.
+18.11.2020, [V3.1.0](https://apisandbox.openbankproject.com/obp/v3.1.0/root) was marked as stable.
+16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable.
+16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable.
 ```
 
 ## License
@@ -43,13 +43,39 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 
 ## Setup
 
+### Installing JDK
+#### With sdkman
+
+A good way to manage JDK versions and install the correct version for OBP is [sdkman](https://sdkman.io/). If you have this installed then you can install the correct JDK easily using:
+```
+sdk env install
+```
+
+#### Manually
+
+- OracleJDK: 1.8, 13
+- OpenJdk: 11
+
+OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https://jdk.java.net/archive/).
+
 The project uses Maven 3 as its build tool.
 
 To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/default.props` and execute:
+To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/`, copy `sample.props.template` to `default.props` and edit the latter. Then:
 
 ```sh
 mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 ```
+
+### ZED IDE Setup
+
+For ZED IDE users, we provide a complete development environment with Scala language server support:
+
+```bash
+./zed/setup-zed-ide.sh
+```
+
+This sets up automated build tasks, code navigation, and real-time error checking. See [`zed/README.md`](zed/README.md) for complete documentation.
 
 In case the above command fails try the next one:
 
@@ -57,46 +83,73 @@ In case the above command fails try the next one:
 export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 ```
 
+Note: depending on your Java version you might need to do this in the OBP-API directory.
+This creates a .mvn/jvm.config File
+
+```sh
+mkdir -p .mvn
+cat > .mvn/jvm.config << 'EOF'
+--add-opens java.base/java.lang=ALL-UNNAMED
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+--add-opens java.base/java.security=ALL-UNNAMED
+--add-opens java.base/java.util.jar=ALL-UNNAMED
+--add-opens java.base/sun.nio.ch=ALL-UNNAMED
+--add-opens java.base/java.nio=ALL-UNNAMED
+--add-opens java.base/java.net=ALL-UNNAMED
+--add-opens java.base/java.io=ALL-UNNAMED
+EOF
+```
+
+Then try the above command.
+
+Or use this approach:
+
+```sh
+
+export MAVEN_OPTS="-Xss128m \
+ --add-opens=java.base/java.util.jar=ALL-UNNAMED \
+ --add-opens=java.base/java.lang=ALL-UNNAMED \
+ --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+
+```
+
 [Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests
-  
-* In `obp-api/src/main/resources/props` create a `test.default.props` for tests. Set `connector=mapped`.
 
-* Run a single test. For instance, right-click on `obp-api/test/scala/code/branches/MappedBranchProviderTest` and select "Run Mapp"...
+- In `obp-api/src/main/resources/props` create a `test.default.props` for tests. Set `connector=mapped`.
 
-* Run multiple tests: Right-click on `obp-api/test/scala/code` and select Run. If need be:
+- Run a single test. For instance, right-click on `obp-api/test/scala/code/branches/MappedBranchProviderTest` and select "Run Mapp"...
 
-    Goto Run / Debug configurations
-    Test Kind: Select All in Package
-    Package: Select code
-    Add the absolute /path-to-your-OBP-API in the "working directory" field
-    You might need to assign more memory via VM Options. For example:
+- Run multiple tests: Right-click on `obp-api/test/scala/code` and select Run. If need be:
 
-    ```
-    -Xmx1512M -XX:MaxPermSize=512M
-    ```
+  Goto Run / Debug configurations
+  Test Kind: Select All in Package
+  Package: Select code
+  Add the absolute /path-to-your-OBP-API in the "working directory" field
+  You might need to assign more memory via VM Options. For example:
 
-    or
+  ```
+  -Xmx1512M -XX:MaxPermSize=512M
+  ```
 
-    ```
-    -Xmx2048m -Xms1024m -Xss2048k -XX:MaxPermSize=1024m
-    ```
-    
-    Ensure your `test.default.props` has the minimum settings (see `test.default.props.template`).
+  or
 
-    
-    Right-click `obp-api/test/scala/code` and select the Scala Tests in the code to run them all.
-    
-    Note: You may want to disable some tests not relevant to your setup e.g.:
-    set `bank_account_creation_listener=false` in `test.default.props`.
+  ```
+  -Xmx2048m -Xms1024m -Xss2048k -XX:MaxPermSize=1024m
+  ```
 
+  Ensure your `test.default.props` has the minimum settings (see `test.default.props.template`).
+
+  Right-click `obp-api/test/scala/code` and select the Scala Tests in the code to run them all.
+
+  Note: You may want to disable some tests not relevant to your setup e.g.:
+  set `bank_account_creation_listener=false` in `test.default.props`.
 
 ## Other ways to run tests
 
-* See `pom.xml` for test configuration.
-* See http://www.scalatest.org/user_guide.
-
+- See `pom.xml` for test configuration.
+- See http://www.scalatest.org/user_guide.
 
 ## From the command line
 
@@ -141,7 +194,7 @@ Props values can be set as environment variables. Props need to be prefixed with
 
 ## Databases
 
-The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache). The list of databases fully tested is: PostgreSQL, MS SQL and H2. 
+The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache). The list of databases fully tested is: PostgreSQL, MS SQL and H2.
 
 ### Notes on using H2 web console in Dev and Test mode:
 
@@ -151,7 +204,7 @@ Set DB options in the props file:
 db.driver=org.h2.Driver
 db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
 ```
-    
+
 In order to start H2 web console go to [http://127.0.0.1:8080/console](http://127.0.0.1:8080/console) and you will see a login screen.
 Please use the following values:
 Note: make sure the JDBC URL used matches your Props value!
@@ -167,26 +220,43 @@ Password:
 
 Once Postgres is installed (On macOS, use `brew`):
 
-1.   ```sh
-     psql postgres
-     ```
+1.  ```sh
+    psql postgres
+    ```
 
-1.   Create database `obpdb`; (or any other name of your choosing).
-     
-1.   Create user `obp`; (this is the user that OBP-API will use to create and access tables etc).
-     
-1.   Alter user obp with password `daniel.says`; (put this password in the OBP-API Props).
-     
-1.   Grant all on database `obpdb` to `obp`; (So OBP-API can create tables etc.)
-     
-1.   Then, set the `db.url` in your Props:
-     
-     ```
-     db.driver=org.postgresql.Driver
-     db.url=jdbc:postgresql://localhost:5432/obpdb?user=obp&password=daniel.says
-     ```
-     
-1.   Then, restart OBP-API.
+1.  Create database `obpdb`; (or any other name of your choosing).
+
+1.  Create user `obp`; (this is the user that OBP-API will use to create and access tables etc).
+
+1.  Alter user obp with password `daniel.says`; (put this password in the OBP-API Props).
+
+1.  Grant all on database `obpdb` to `obp`; (So OBP-API can create tables etc.)
+
+#### For newer versions of postgres 16 and above, you need to follow the following instructions
+
+-- Connect to the sandbox database
+\c sandbox;
+
+-- Grant schema usage and creation privileges
+GRANT USAGE ON SCHEMA public TO obp;
+GRANT CREATE ON SCHEMA public TO obp;
+
+-- Grant all privileges on existing tables (if any)
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO obp;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO obp;
+
+-- Grant privileges on future tables and sequences
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO obp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO obp;
+
+1.  Then, set the `db.url` in your Props:
+
+    ```
+    db.driver=org.postgresql.Driver
+    db.url=jdbc:postgresql://localhost:5432/obpdb?user=obp&password=daniel.says
+    ```
+
+1.  Then, restart OBP-API.
 
 ### Notes on using Postgres with SSL
 
@@ -227,31 +297,31 @@ Restart OBP-API, if you get an error, check your Java environment can connect to
 
 Note: You can copy the following example files to prepare your own configurations:
 
- - `/obp-api/src/main/resources/logback.xml.example` -> `/obp-api/src/main/resources/logback.xml` (try TRACE or DEBUG).
- - `/obp-api/src/main/resources/logback-test.xml.example` -> `/obp-api/src/main/resources/logback-test.xml` (try TRACE or DEBUG).
+- `/obp-api/src/main/resources/logback.xml.example` -> `/obp-api/src/main/resources/logback.xml` (try TRACE or DEBUG).
+- `/obp-api/src/main/resources/logback-test.xml.example` -> `/obp-api/src/main/resources/logback-test.xml` (try TRACE or DEBUG).
 
 There is a gist/tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
 
 For example:
 
-*   [https://gist.github.com/4ndrej/4547029](https://gist.github.com/4ndrej/4547029/84d3bff7bba262b3f77baa32a43873ea95993e45#file-sslpoke-java-L1-L40)
+- [https://gist.github.com/4ndrej/4547029](https://gist.github.com/4ndrej/4547029/84d3bff7bba262b3f77baa32a43873ea95993e45#file-sslpoke-java-L1-L40)
 
-    or
+  or
 
-*   ```sh
-    git clone https://github.com/MichalHecko/SSLPoke.git .
+- ```sh
+  git clone https://github.com/MichalHecko/SSLPoke.git .
 
-    gradle jar
-    cd ./build/libs/
+  gradle jar
+  cd ./build/libs/
 
-    java -jar SSLPoke-1.0.jar www.github.com 443
-    ```
-     
-    > Successfully connected
+  java -jar SSLPoke-1.0.jar www.github.com 443
+  ```
 
-    ```sh
-    java -jar SSLPoke-1.0.jar YOUR-POSTGRES-DATABASE-HOST PORT
-    ```
+  > Successfully connected
+
+  ```sh
+  java -jar SSLPoke-1.0.jar YOUR-POSTGRES-DATABASE-HOST PORT
+  ```
 
 You can add switches. For example, for debugging:
 
@@ -290,7 +360,7 @@ To populate the OBP database with sandbox data:
 
 ## Production Options
 
-* set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of `webapp/WEB-INF/web.xml`:
+- set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of `webapp/WEB-INF/web.xml`:
 
 ```XML
    <session-config>
@@ -309,7 +379,7 @@ We use 9 to run the API in production mode.
 
 2. jetty configuration
 
-* Edit the `/etc/default/jetty9` file so that it contains the following settings:
+- Edit the `/etc/default/jetty9` file so that it contains the following settings:
 
   ```
   NO_START=0
@@ -317,96 +387,95 @@ We use 9 to run the API in production mode.
   JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
   ```
 
-* In obp-api/src/main/resources/props create a `test.default.props` file for tests. Set `connector=mapped`.
+- In obp-api/src/main/resources/props create a `test.default.props` file for tests. Set `connector=mapped`.
 
-* In obp-api/src/main/resources/props create a `default.props file` for development. Set `connector=mapped`.
+- In obp-api/src/main/resources/props create a `default.props file` for development. Set `connector=mapped`.
 
-* In obp-api/src/main/resources/props create a `production.default.props` file for production. Set `connector=mapped`.
+- In obp-api/src/main/resources/props create a `production.default.props` file for production. Set `connector=mapped`.
 
-* This file could be similar to the `default.props` file created above, or it could include production settings, such as information about the Postgresql server if you are using one. For example, it could have the following line for Postgresql configuration.
+- This file could be similar to the `default.props` file created above, or it could include production settings, such as information about the Postgresql server if you are using one. For example, it could have the following line for Postgresql configuration.
 
   ```
   db.driver=org.postgresql.Driver
   db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
   ```
 
-* Now, build the application to generate `.war` file which will be deployed on the jetty server:
+- Now, build the application to generate `.war` file which will be deployed on the jetty server:
 
-   ```sh
-   cd OBP-API/
-   mvn package
-   ```
+  ```sh
+  cd OBP-API/
+  mvn package
+  ```
 
-* This will generate OBP-API-1.0.war under `OBP-API/target/`.
+- This will generate OBP-API-1.0.war under `OBP-API/target/`.
 
-* Copy OBP-API-1.0.war to `/usr/share/jetty9/webapps/` directory and rename it to root.war
+- Copy OBP-API-1.0.war to `/usr/share/jetty9/webapps/` directory and rename it to root.war
 
-* Edit the `/etc/jetty9/jetty.conf` file and comment out the lines:
+- Edit the `/etc/jetty9/jetty.conf` file and comment out the lines:
 
-   ```
-   etc/jetty-logging.xml
-   etc/jetty-started.xml
-   ```
+  ```
+  etc/jetty-logging.xml
+  etc/jetty-started.xml
+  ```
 
-* Now restart jetty9:
+- Now restart jetty9:
 
-   ```sh
-   sudo service jetty9 restart
-   ```
+  ```sh
+  sudo service jetty9 restart
+  ```
 
-* You should now be able to browse to `localhost:8080` (or `yourIPaddress:8080`).
+- You should now be able to browse to `localhost:8080` (or `yourIPaddress:8080`).
 
 ## Using OBP-API in different app modes
 
-1) `portal` => OBP-API as a portal i.e. without REST API.
-2) `apis` => OBP-API as an *APIs* app i.e. only REST APIs.
-3) `apis,portal`=> OBP-API as portal and apis i.e. REST APIs and web portal.
+1. `portal` => OBP-API as a portal i.e. without REST API.
+2. `apis` => OBP-API as an _APIs_ app i.e. only REST APIs.
+3. `apis,portal`=> OBP-API as portal and apis i.e. REST APIs and web portal.
 
-* Edit your props file(s) to contain one of the next cases:
+- Edit your props file(s) to contain one of the next cases:
+  1.  `server_mode=portal`
+  2.  `server_mode=apis`
+  3.  `server_mode=apis,portal`
 
-   1. `server_mode=portal`
-   2. `server_mode=apis`
-   3. `server_mode=apis,portal`
-  
-   In case it is not defined, the default case is the 3rd one. For example, `server_mode=apis,portal`.
+  In case it is not defined, the default case is the 3rd one. For example, `server_mode=apis,portal`.
 
 ## Using Akka remote storage
 
 Most internal OBP model data access now occurs over Akka. This is so the machine that has JDBC access to the OBP database can be physically separated from the OBP API layer. In this configuration we run two instances of OBP-API on two different machines and they communicate over Akka. Please see README.Akka.md for instructions.
 
-
 ## Using SSL Encryption with RabbitMq
 
-For SSL encryption we use JKS keystores. Note that both the keystore and the truststore (and all keys within) must have the same password for unlocking, for which the API will stop at boot up and ask for. 
+For SSL encryption we use JKS keystores. Note that both the keystore and the truststore (and all keys within) must have the same password for unlocking, for which the API will stop at boot up and ask for.
 
-* Edit your props file(s) to contain:
+- Edit your props file(s) to contain:
 
-   ```
-    rabbitmq.use.ssl=true
-    keystore.path=/path/to/api.keystore.jks
-    keystore.password=123456
-    truststore.path=/path/to/api.truststore.jks
-   ```
+  ```
+   rabbitmq.use.ssl=true
+   keystore.path=/path/to/api.keystore.jks
+   keystore.password=123456
+   truststore.path=/path/to/api.truststore.jks
+  ```
 
 ## Using SSL Encryption with props file
 
 For SSL encryption we use jks keystores.
-Note that keystore (and all keys within) must have the same password for unlocking, for which the API will stop at boot up and ask for. 
+Note that keystore (and all keys within) must have the same password for unlocking, for which the API will stop at boot up and ask for.
 
-* Edit your props file(s) to contain:
+- Edit your props file(s) to contain:
 
-   ```
-   jwt.use.ssl=true
-   keystore.path=/path/to/api.keystore.jks
-   keystore.alias=SOME_KEYSTORE_ALIAS
-   ```
-        
+  ```
+  jwt.use.ssl=true
+  keystore.path=/path/to/api.keystore.jks
+  keystore.alias=SOME_KEYSTORE_ALIAS
+  ```
+
 A props key value, XXX, is considered encrypted if has an encryption property (XXX.is_encrypted) in addition to the regular props key name in the props file e.g:
 
-   *  db.url.is_encrypted=true
-   *  db.url=BASE64URL(SOME_ENCRYPTED_VALUE)
-   
+- db.url.is_encrypted=true
+- db.url=BASE64URL(SOME_ENCRYPTED_VALUE)
+
 The Encrypt/Decrypt workflow is :
+
 1. Encrypt: Array[Byte]
 2. Helpers.base64Encode(encrypted)
 3. Props file: String
@@ -419,17 +488,17 @@ The Encrypt/Decrypt workflow is :
 
 1. Export the public certificate from the keystone:
 
-    ```sh
-    keytool -export -keystore /PATH/TO/KEYSTORE.jks -alias CERTIFICATE_ALIAS -rfc -file apipub.cert
-    ```
-   
-3. Extract the public key from the public certificate:
+   ```sh
+   keytool -export -keystore /PATH/TO/KEYSTORE.jks -alias CERTIFICATE_ALIAS -rfc -file apipub.cert
+   ```
 
-    ```sh
-    openssl x509 -pubkey -noout -in apipub.cert > PUBKEY.pub`
-    ```
-   
-4. Get the encrypted `propsvalue` like in the following bash script (usage `./scriptname.sh /PATH/TO/PUBKEY.pub propsvalue`):
+2. Extract the public key from the public certificate:
+
+   ```sh
+   openssl x509 -pubkey -noout -in apipub.cert > PUBKEY.pub`
+   ```
+
+3. Get the encrypted `propsvalue` like in the following bash script (usage `./scriptname.sh /PATH/TO/PUBKEY.pub propsvalue`):
 
    ```
    #!/bin/bash
@@ -443,9 +512,8 @@ You can obfuscate passwords in the props file the same way as for jetty:
 1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
 
 2. A props key value, XXX, is considered obfuscated if has an obfuscation property (`XXX.is_obfuscated`) in addition to the regular props key name in the props file e.g:
-
-   *  `db.url.is_obfuscated=true`
-   *  `db.url=OBF:fdsafdsakwaetcetcetc`
+   - `db.url.is_obfuscated=true`
+   - `db.url=OBF:fdsafdsakwaetcetcetc`
 
 ## Code Generation
 
@@ -462,32 +530,31 @@ You can obfuscate passwords in the props file the same way as for jetty:
 1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
 
 2. A props key value, XXX, is considered obfuscated if has an obfuscation property (XXX.is_obfuscated) in addition to the regular props key name in the props file e.g:
-
-   *  db.url.is_obfuscated=true
-   *  db.url=OBF:fdsafdsakwaetcetcetc
+   - db.url.is_obfuscated=true
+   - db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Rate Limiting
 
-We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this file: [https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala](https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala). 
+We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this file: [https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala](https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala).
 
 There are two supported modes:
 
-   *  In-Memory
-   *  Redis
-   
+- In-Memory
+- Redis
+
 It is assumed that you have some Redis instances if you want to use the functionality in multi-node architecture.
 
 We apply Rate Limiting for two types of access:
 
-   *  Authorized
-   *  Anonymous
+- Authorized
+- Anonymous
 
 To set up Rate Limiting in case of anonymous access edit your props file in the following way:
 
 ```
 user_consumer_limit_anonymous_access=100, In case isn't defined default value is 60
 ```
-   
+
 Te set up Rate Limiting in case of the authorized access use these endpoints:
 
 1. `GET ../management/consumers/CONSUMER_ID/consumer/call-limits` - Get Call Limits for a Consumer
@@ -613,24 +680,78 @@ Tested Identity providers: Google, MITREId.
 allow_oauth2_login=true
 oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs
 ```
+
+### OAuth2 JWKS URI Configuration
+
+The `oauth2.jwk_set.url` property is critical for OAuth2 JWT token validation. OBP-API uses this to verify the authenticity of JWT tokens by fetching the JSON Web Key Set (JWKS) from the specified URI(s).
+
+#### Configuration Methods
+
+The `oauth2.jwk_set.url` property is resolved in the following order of priority:
+
+1. **Environment Variable**
+
+   ```bash
+   export OBP_OAUTH2_JWK_SET_URL="https://your-oidc-server.com/jwks"
+   ```
+
+2. **Properties Files** (located in `obp-api/src/main/resources/props/`)
+   - `production.default.props` (for production deployments)
+   - `default.props` (for development)
+   - `test.default.props` (for testing)
+
+#### Supported Formats
+
+- **Single URL**: `oauth2.jwk_set.url=http://localhost:9000/obp-oidc/jwks`
+- **Multiple URLs**: `oauth2.jwk_set.url=http://localhost:8080/jwk.json,https://www.googleapis.com/oauth2/v3/certs`
+
+#### Common OAuth2 Provider Examples
+
+- **Google**: `https://www.googleapis.com/oauth2/v3/certs`
+- **OBP-OIDC**: `http://localhost:9000/obp-oidc/jwks`
+- **Keycloak**: `http://localhost:7070/realms/master/protocol/openid-connect/certs`
+- **Azure AD**: `https://login.microsoftonline.com/common/discovery/v2.0/keys`
+
+#### Troubleshooting OBP-20208 Error
+
+If you encounter the error "OBP-20208: Cannot match the issuer and JWKS URI at this server instance", check the following:
+
+1. **Verify JWT Issuer Claim**: The JWT token's `iss` (issuer) claim must match one of the configured identity providers
+2. **Check JWKS URL Configuration**: Ensure `oauth2.jwk_set.url` contains URLs that correspond to your JWT issuer
+3. **Case-Insensitive Matching**: OBP-API performs case-insensitive substring matching between the issuer and JWKS URLs
+4. **URL Format Consistency**: Check for trailing slashes or URL formatting differences
+
+**Debug Logging**: Enable debug logging to see detailed information about the matching process:
+
+```properties
+# Add to your logging configuration
+logger.code.api.OAuth2=DEBUG
+```
+
+The debug logs will show:
+
+- Expected identity provider vs actual JWT issuer claim
+- Available JWKS URIs from configuration
+- Matching logic results
+
 ---
 
 ## Frozen APIs
 
-API versions may be marked as "STABLE", if changes are made to an API which has been marked as "STABLE", then unit test `FrozenClassTest`  will fail.
+API versions may be marked as "STABLE", if changes are made to an API which has been marked as "STABLE", then unit test `FrozenClassTest` will fail.
 
-### Changes to "STABLE" API cause the tests to fail: 
+### Changes to "STABLE" API cause the tests to fail:
 
-* modify request or response body structure of APIs
-* add or delete APIs
-* change the APIS' `versionStatus` from or to "STABLE"
+- modify request or response body structure of APIs
+- add or delete APIs
+- change the APIS' `versionStatus` from or to "STABLE"
 
 If it is required for a "STABLE" api to be changed, then the class metadata must be regenerated using the FrozenClassUtil (see how to freeze an API)
 
 ### Steps to freeze an API
 
-* Run the FrozenClassUtil to regenerate persist file of frozen apis information, the file is `PROJECT_ROOT_PATH/obp-api/src/test/resources/frozen_type_meta_data`
-* push the file `frozen_type_meta_data` to github
+- Run the FrozenClassUtil to regenerate persist file of frozen apis information, the file is `PROJECT_ROOT_PATH/obp-api/src/test/resources/frozen_type_meta_data`
+- push the file `frozen_type_meta_data` to github
 
 There is a video about the detail: [demonstrate the detail of the feature](https://www.youtube.com/watch?v=m9iYCSM0bKA)
 
@@ -640,32 +761,25 @@ The same as `Frozen APIs`, if a related unit test fails, make sure whether the m
 
 ## Scala / Lift
 
-* We use scala and liftweb: [http://www.liftweb.net/](http://www.liftweb.net/).
+- We use scala and liftweb: [http://www.liftweb.net/](http://www.liftweb.net/).
 
-* Advanced architecture: [http://exploring.liftweb.net/master/index-9.html
-](http://exploring.liftweb.net/master/index-9.html).
+- Advanced architecture: [http://exploring.liftweb.net/master/index-9.html
+  ](http://exploring.liftweb.net/master/index-9.html).
 
-* A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
-
-## Supported JDK Versions
-
-* OracleJDK: 1.8, 13
-* OpenJdk: 11
-
-OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https://jdk.java.net/archive/).
+- A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
 
 ## Endpoint Request and Response Example
 
 ```log
 ResourceDoc#exampleRequestBody and ResourceDoc#successResponseBody can be the follow type
 ```
-    
-* Any Case class
-* JObject
-* Wrapper JArray: JArrayBody(jArray)
-* Wrapper String: StringBody("Hello")
-* Wrapper primary type: IntBody(1), BooleanBody(true), FloatBody(1.2F)...
-* Empty: EmptyBody
+
+- Any Case class
+- JObject
+- Wrapper JArray: JArrayBody(jArray)
+- Wrapper String: StringBody("Hello")
+- Wrapper primary type: IntBody(1), BooleanBody(true), FloatBody(1.2F)...
+- Empty: EmptyBody
 
 Example:
 
@@ -678,11 +792,14 @@ resourceDocs += ResourceDoc(
 ```
 
 ## Language support
+
 ### Add a new language
+
 An additional language can be added via props `supported_locales`
 
 Steps to add Spanish language:
-* tweak the property supported_locales = en_GB to `supported_locales = en_GB,es_ES`
-* add file `lift-core_es_ES.properties` at the folder `/resources/i18n`
+
+- tweak the property supported_locales = en_GB to `supported_locales = en_GB,es_ES`
+- add file `lift-core_es_ES.properties` at the folder `/resources/i18n`
 
 Please note that default translation file is `lift-core.properties`

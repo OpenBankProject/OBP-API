@@ -27,7 +27,7 @@ object Glossary extends MdcLoggable  {
 				s"""
 				 |<details>
 				 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
-				 |  
+				 |
 				 |  ${foundItem.htmlDescription}
 				 |</details>
 				 |
@@ -86,7 +86,7 @@ object Glossary extends MdcLoggable  {
 					s"""
 						|Example value: ${connectorField.value}
 						|
-						|Description: ${connectorField.description} 
+						|Description: ${connectorField.description}
 						|
 				""".stripMargin
 			)
@@ -99,7 +99,7 @@ object Glossary extends MdcLoggable  {
 
 			// Convert markdown to HTML
 			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
-			
+
 			// Try and generate a plain text string (requires valid HTML)
 			val textDescription: String = try {
 				scala.xml.XML.loadString(htmlDescription).text
@@ -129,12 +129,17 @@ object Glossary extends MdcLoggable  {
 	val latestConnector : String = "rest_vMar2019"
 
 	def messageDocLink(process: String) : String = {
-		s"""<a href="/message-docs?connector=$latestConnector#$process">$process</a>"""
+		s"""<a href="/message-docs/$latestConnector#$process">$process</a>"""
 	}
 
 	val latestAkkaConnector : String = "akka_vDec2018"
 	def messageDocLinkAkka(process: String) : String = {
-		s"""<a href="/message-docs?connector=$latestAkkaConnector#$process">$process</a>"""
+		s"""<a href="/message-docs/$latestAkkaConnector#$process">$process</a>"""
+	}
+
+	val latestRabbitMQConnector : String = "rabbitmq_vOct2024"
+	def messageDocLinkRabbitMQ(process: String) : String = {
+		s"""<a href="/message-docs/$latestRabbitMQConnector#$process">$process</a>"""
 	}
 
 	// Note: this doesn't get / use an OBP version
@@ -296,7 +301,7 @@ object Glossary extends MdcLoggable  {
 					|### Installation Prerequisites
 					|
 					|
-					|* You have OBP-API running and it is connected to a stored procedure related database. 
+					|* You have OBP-API running and it is connected to a stored procedure related database.
 					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
 					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
 					|"""
@@ -530,7 +535,7 @@ object Glossary extends MdcLoggable  {
 		description =
 			"""The user Age"""
 	)
-	
+
 	  glossaryItems += GlossaryItem(
 		title = "Account.account_id",
 		description =
@@ -737,7 +742,7 @@ object Glossary extends MdcLoggable  {
 		  """
 			|Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
 		  """)
-	
+
 	  glossaryItems += GlossaryItem(
 		title = "Consent",
 		description =
@@ -849,7 +854,7 @@ object Glossary extends MdcLoggable  {
 					|
 					|#### 2) Call endpoint Create Consent By CONSENT_REQUEST_ID (SMS) with logged on user
 					|
-					|Url: $getObpApiRoot/v5.0.0/consumer/consent-requests/bc0209bd-bdbe-4329-b953-d92d17d733f4/EMAIL/consents									
+					|Url: $getObpApiRoot/v5.0.0/consumer/consent-requests/bc0209bd-bdbe-4329-b953-d92d17d733f4/EMAIL/consents
 					|
 					|Output:
 					|```
@@ -861,8 +866,8 @@ object Glossary extends MdcLoggable  {
 					|}
 					|```
 					|
-					|#### 3) We receive the SCA message via SMS                    
-					|Your consent challenge : 29131491, Application: Any application		
+					|#### 3) We receive the SCA message via SMS
+					|Your consent challenge : 29131491, Application: Any application
 					|
 					|
 					|
@@ -891,7 +896,7 @@ object Glossary extends MdcLoggable  {
 					|
 					|Url: $getObpApiRoot/v5.0.0/banks/gh.29.uk.x/customers/a9c8bea0-4f03-4762-8f27-4b463bb50a93
 					|
-					|Request Header: 
+					|Request Header:
 					|```
 					|Consent-JWT:eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEN1c3RvbWVyIiwiYmFua19pZCI6ImdoLjI5LnVrLngifV0sImNyZWF0ZWRCeVVzZXJJZCI6ImFiNjUzOWE5LWIxMDUtNDQ4OS1hODgzLTBhZDhkNmM2MTY1NyIsInN1YiI6IjU3NGY4OGU5LTE5NDktNDQwNy05NTMwLTA0MzM3MTU5YzU2NiIsImF1ZCI6IjFhMTA0NjNiLTc4NTYtNDU4ZC1hZGI2LTViNTk1OGY1NmIxZiIsIm5iZiI6MTY2OTg5NDU5OSwiaXNzIjoiaHR0cDpcL1wvMTI3LjAuMC4xOjgwODAiLCJleHAiOjE2Njk4OTgxOTksImlhdCI6MTY2OTg5NDU5OSwianRpIjoiMTU1Zjg2YjItMjQ3Zi00NzAyLWE3YjItNjcxZjJjMzMwM2I2Iiwidmlld3MiOltdfQ.lLbn9BtgKvgAcb07if12SaEyPAKgXOEmr6x3Y5pU-
 					|```
@@ -1454,7 +1459,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
 			|
 			|Body:
 			|
@@ -1464,13 +1469,13 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"			
-			| 
+			|	Authorization: DirectLogin token="your-token"
+			|
 			|### 5) Grant user access to view to another user
 			|
 			|Action:
 			|
-			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant 
+			|	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
 			|
 			|Body:
 			|
@@ -1508,10 +1513,10 @@ object Glossary extends MdcLoggable  {
 			|Please note the user_id
 			|
 			|### 2) Create User Auth Context
-			| 
+			|
 			| These key value pairs will be propagated over connector to adapter and to bank. So the bank can use these key value paris
-			| to map obp user to real bank customer. 
-			| 
+			| to map obp user to real bank customer.
+			|
 			|Action:
 			|
 			|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
@@ -1543,7 +1548,7 @@ object Glossary extends MdcLoggable  {
 			|	Content-Type:  application/json
 			|
 			|	Authorization: DirectLogin token="your-token-from-direct-login"
-			| 
+			|
 			|### 4) Get Customers for Current User
 			|
 			|Action:
@@ -1628,7 +1633,7 @@ object Glossary extends MdcLoggable  {
 			| The setting of the first User Auth Context record for a User, typically involves sending an SMS to the User.
       | The phone number used for the SMS is retrieved from the bank's Core Banking System via an Account Number to Phone Number lookup.
 			| If this step succeeds we can be reasonably confident that the User who initiated it has access to a SIM card that can use the Phone Number linked to the Bank Account on the Core Banking System.
-			| 
+			|
 			|Action: Create User Auth Context Update Request
 			|
 			|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
@@ -1642,11 +1647,11 @@ object Glossary extends MdcLoggable  {
 			|	Content-Type:  application/json
 			|
 			|	$directLoginHeaderName: token="your-token-from-direct-login"
-			| 
-			| When customer get the the challenge answer from SMS, then need to call `Answer Auth Context Update Challenge` to varify the challenge. 
+			|
+			| When customer get the the challenge answer from SMS, then need to call `Answer Auth Context Update Challenge` to varify the challenge.
 			| Then the customer create the 1st `User Auth Context` successfully.
-			| 
-			| 
+			|
+			|
 			|Action: Answer Auth Context Update Challenge
 			|
 			|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
@@ -1699,7 +1704,7 @@ object Glossary extends MdcLoggable  {
 |	Content-Type:  application/json
 |
 |	$directLoginHeaderName: token="your-token-from-direct-login"
-| 
+|
 | Note! The above logic must be encoded in a dynamic connector method for the OBP internal function validateUserAuthContextUpdateRequest which is used by the endpoint Create User Auth Context Update Request See the next step.
 |
 |### 4) Create or Update Connector Method for validateUserAuthContextUpdateRequest
@@ -2179,11 +2184,11 @@ object Glossary extends MdcLoggable  {
 |In case you use Google's [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/)
 |example of an response is shown below:
 |{
-|  "access_token": "ya29.a0Adw1xeVr_WAYaipiH_6QKCFjIFsnZxW7kbxA8a2RU_uy5meEufErwPDLSHMga8IEQghNSX2GbkOfZUQb6j_fMGHL_HaW3RoULZq5AayUdEjI9bC4TMe-Nd4cZR17C0Rg3GLNzuHTXXe05UyMmNODZ6Up0aXZBBTHl-4", 
-|  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImE1NDFkNmVmMDIyZDc3YTIzMThmN2RkNjU3ZjI3NzkzMjAzYmVkNGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6ImtrcENIWUFaSTZVOFZiZEJsRHNfX1EiLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUtGMDVuQ1pyaTdmWHdkUUhuZUNwN09pTVh1WGlOMkpVQS9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTg0NTIxNDU3LCJleHAiOjE1ODQ1MjUwNTd9.LgwY-OhltYS2p91l2Lt4u5lUR5blR7L8097J0ZpK0GyxWxOlnhSouk9MRMmyfSGuYfWKBtdSUy3Esaphk2f7wpLS-wBx3KJpvrXhgbsyemt9s7eu5bAdHaCteO8MqHPjbU9tych8iH0tA1MSL_tVZ73hy56rS2irzIC33wYDoBf8C5nEOd2uzQ758ydK5QvvdFwRgkLhKDS8vq2qVJTWgtk9VVd5JwJ5OfiVimXfGUzNJmGreEJKj14iUj-78REybpUbI9mGevRhjLPhs51Uc9j-SsdRMymVbVhVxlbsWAPTpjLAJnOodeHzAvmKFkOUfahQHHctx4fl8V3PVYf1aA", 
-|  "expires_in": 3599, 
-|  "token_type": "Bearer", 
-|  "scope": "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid", 
+|  "access_token": "ya29.a0Adw1xeVr_WAYaipiH_6QKCFjIFsnZxW7kbxA8a2RU_uy5meEufErwPDLSHMga8IEQghNSX2GbkOfZUQb6j_fMGHL_HaW3RoULZq5AayUdEjI9bC4TMe-Nd4cZR17C0Rg3GLNzuHTXXe05UyMmNODZ6Up0aXZBBTHl-4",
+|  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImE1NDFkNmVmMDIyZDc3YTIzMThmN2RkNjU3ZjI3NzkzMjAzYmVkNGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6ImtrcENIWUFaSTZVOFZiZEJsRHNfX1EiLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUtGMDVuQ1pyaTdmWHdkUUhuZUNwN09pTVh1WGlOMkpVQS9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTg0NTIxNDU3LCJleHAiOjE1ODQ1MjUwNTd9.LgwY-OhltYS2p91l2Lt4u5lUR5blR7L8097J0ZpK0GyxWxOlnhSouk9MRMmyfSGuYfWKBtdSUy3Esaphk2f7wpLS-wBx3KJpvrXhgbsyemt9s7eu5bAdHaCteO8MqHPjbU9tych8iH0tA1MSL_tVZ73hy56rS2irzIC33wYDoBf8C5nEOd2uzQ758ydK5QvvdFwRgkLhKDS8vq2qVJTWgtk9VVd5JwJ5OfiVimXfGUzNJmGreEJKj14iUj-78REybpUbI9mGevRhjLPhs51Uc9j-SsdRMymVbVhVxlbsWAPTpjLAJnOodeHzAvmKFkOUfahQHHctx4fl8V3PVYf1aA",
+|  "expires_in": 3599,
+|  "token_type": "Bearer",
+|  "scope": "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid",
 |  "refresh_token": "1//04w7RCdl9ZnG-CgYIARAAGAQSNwF-L9IrNZVxs6fliP7xAlHjKcZpfpw7JoYyBsvxKMD7n0xyB74G8aRlFoBkkCbloETrWMU6yOA"
 |}
 |Note: The OAuth Playground will automatically revoke refresh tokens after 24h. You can avoid this by specifying your own application OAuth credentials using the Configuration panel.
@@ -2619,7 +2624,7 @@ object Glossary extends MdcLoggable  {
 |
 |### Under the hood
 |
-|The file, dauth.scala handles the DAuth, 
+|The file, dauth.scala handles the DAuth,
 |
 |We:
 |
@@ -3094,18 +3099,18 @@ object Glossary extends MdcLoggable  {
 		description =
 			s"""
    |
-   | Open Bank Project can have different connectors, to connect difference data sources. 
-   | We support several sources at the moment, eg: databases, rest services, stored procedures and RabbitMq. 
-   | 
+   | Open Bank Project can have different connectors, to connect difference data sources.
+   | We support several sources at the moment, eg: databases, rest services, stored procedures and RabbitMq.
+   |
    | If OBP set connector=star, then you can use this method routing to switch the sources.
    | And we also provide the fields mapping in side the endpoints. If the fields in the source are different from connector,
    | then you can map the fields yourself.
-   |  
+   |
    |  The following videos are available:
-   |  
+   |
    | *[Method Routing Endpoints](https://vimeo.com/398973130)
    | *[Method Routing Endpoints Mapping](https://vimeo.com/404983764)
-   | 
+   |
    |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -3137,11 +3142,11 @@ object Glossary extends MdcLoggable  {
 		description =
 			s"""
 			| Developers can override all the existing Connector methods.
-			| This function needs to be used together with the Method Routing. 
+			| This function needs to be used together with the Method Routing.
 			| When we set "connector = internal", then the developer can call their own method body at API level.
 			|
 			|For example, the GetBanks endpoint calls the connector "getBanks" method. Then, developers can use these endpoints to modify the business logic in the getBanks method body.
-			|  
+			|
 			|  The following videos are available:
 		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
 		  |* [Introduction 2 for Connector Method] (https://vimeo.com/712557419)
@@ -3156,13 +3161,13 @@ object Glossary extends MdcLoggable  {
 			| A MessageDoc defines the message the Connector sends to an Adapter and the response it expects from the Adapter.
 			|
 			| Using this endpoint, developers can create their own scala methods aka Connectors in OBP code.
-			| These endpoints are designed for extending the current connector methods. 
+			| These endpoints are designed for extending the current connector methods.
 			|
 			| When you call the Dynamic Resource Doc endpoints, sometimes you need to call internal Scala methods which
 			|don't yet exist in the OBP code. In this case you can use these endpoints to create your own internal Scala methods.
-      | 
+      |
       |You can also use these endpoints to create your own helper methods in OBP code.
-			|  
+			|
 			| This feature is somewhat work in progress (WIP).
 |
 		  |The following videos are available:
@@ -3506,6 +3511,169 @@ object Glossary extends MdcLoggable  {
 					 |
 					 |""".stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "Regulated-Entities",
+		description =
+			s"""
+				 |In the context of the Open Bank Project (OBP), a "Regulated Entity" refers to organizations that are recognized and authorized to provide financial services under regulatory frameworks. These entities are overseen by regulatory authorities to ensure compliance with financial regulations and standards.
+				 |
+				 |## Key Points About Regulated Entities in OBP:
+				 |
+				 |**Endpoint for Retrieval**: You can retrieve information about regulated entities using the ${getApiExplorerLink("Get Regulated Entities", "OBPv5.1.0-regulatedEntities")} endpoint. This does not require authentication and provides data on various regulated entities, including their services, entity details, and more.
+				 |
+				 |**Creating a Regulated Entity**: The API also allows for the creation of a regulated entity using the ${getApiExplorerLink("Create Regulated Entity", "OBPv5.1.0-createRegulatedEntity")} endpoint. User authentication is required for this operation.
+				 |
+				 |**Retrieving Specific Entity Details**: To get details of a specific regulated entity, you can use the ${getApiExplorerLink("Get Regulated Entity by Id", "OBPv5.1.0-getRegulatedEntityById")} endpoint, where you need to specify the entity ID. No authentication is needed.
+				 |
+				 |**Deleting a Regulated Entity**: If you need to remove a regulated entity, the ${getApiExplorerLink("Delete Regulated Entity", "OBPv5.1.0-deleteRegulatedEntity")} endpoint is available, but it requires authentication.
+				 |
+				 |## Entity Information:
+				 |
+				 |Each regulated entity has several attributes, including:
+				 |
+				 |* **Entity Code**: A unique identifier for the entity
+				 |* **Website**: The entitys official website URL
+				 |* **Country and Address Details**: Location information for the entity
+				 |* **Certificate Public Key**: Public key used for digital certificates
+				 |* **Entity Type and Name**: Classification and official name of the entity
+				 |* **Services offered**: List of financial services provided by the entity
+				 |
+				 |Regulated entities play a crucial role in maintaining trust and compliance within the financial ecosystem managed through the OBP platform.
+				 |
+				 |## Configuration Properties:
+				 |
+				 |Regulated entities functionality is supported by several configuration properties in OBP:
+				 |
+				 |**Certificate and Signature Verification** (for Berlin Group/PSD2 TPP authentication):
+				 |
+				 |* `truststore.path.tpp_signature` - Path to the truststore containing TPP certificates
+				 |* `truststore.password.tpp_signature` - Password for the TPP signature truststore
+				 |* `truststore.alias.tpp_signature` - Alias for the TPP signature certificate
+				 |
+				 |**Fallback Certificate Configuration**:
+				 |
+				 |* `truststore.path` - General truststore path (fallback if TPP-specific not set)
+				 |* `keystore.path` - Path to the keystore for certificate operations
+				 |* `keystore.password` - Password for the keystore
+				 |* `keystore.passphrase` - Passphrase for keystore private keys
+				 |* `keystore.alias` - Alias for certificate entries in keystore
+				 |
+				 |These properties are used for TPP (Third Party Provider) certificate validation in PSD2/Berlin Group implementations, where regulated entities authenticate using QWAC (Qualified Website Authentication Certificate) or other qualified certificates.
+				 |
+				 |## Internal Usage by OBP:
+				 |
+				 |OBP internally uses regulated entities for several authentication and authorization functions:
+				 |
+				 |**Certificate-Based Authentication**: When the property `requirePsd2Certificates=ONLINE` is set, OBP automatically validates incoming API requests against registered regulated entities using their certificate information.
+				 |
+				 |**Automatic Consumer Creation**: For Berlin Group/PSD2 compliance, OBP automatically creates API consumers for TPPs based on their regulated entity registration and certificate validation.
+				 |
+				 |**Service Provider Authorization**: OBP checks if regulated entities have the required service provider roles (PSP_AI, PSP_PI, PSP_IC, PSP_AS) before granting access to specific API endpoints.
+				 |
+				 |**Berlin Group/UK Open Banking Integration**: Many Berlin Group (v1.3) and UK Open Banking (v3.1.0) API endpoints automatically call `passesPsd2Aisp()` and related functions to validate regulated entity certificates.
+				 |
+				 |This integration ensures that only properly registered and certificated Third Party Providers can access sensitive banking data and payment initiation services in compliance with PSD2 regulations.
+				 |
+				 |## Real-Time Entity / Certificate Retrieval:
+				 |
+				 |Regulated Entities can be retrieved in real time from the National Authority / National Bank through the following data flow patterns:
+				 |
+				 |**Direct National Authority Connection**:
+				 |
+				 |`OBP BG API instance -> getRegulatedEntities -> Connector -> National Authority`
+				 |
+				 |**Via OBP Regulated Entities API Instance**:
+				 |
+				 |`OBP BG API instance -> getRegulatedEntities -> Connector -> OBP Regulated Entities API instance -> Connector -> National Authority`
+				 |
+				 |This real-time integration ensures that regulated entity information is always current and reflects the latest regulatory status and certifications from official national sources.
+				 |
+				 |
+				 |**RabbitMQ Message Documentation** (other connectors are also available):
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.getRegulatedEntities")} - Retrieve all regulated entities
+				 |* ${messageDocLinkRabbitMQ("obp.getRegulatedEntityByEntityId")} - Retrieve a specific regulated entity by ID
+					| For instance, a National Authority might publish:
+					|{
+|  "comercialName": "BANK_X_TPP_AISP",
+|  "idno": "1234567890123",
+|  "licenseNumber": "123456_bank_x",
+|  "roles": [
+|    "PISP"
+|  ],
+|  "certificate": {
+|    "snCert": "117",
+|    "caCert": "Bank (test)"
+|  }
+|}
+|
+|
+|and the Bank's OBP Adapter converts this and returns it to the connector like so:
+|
+|{
+|  "inboundAdapterCallContext": {
+|    "correlationId": "f347feb7-0c25-4a2f-8a40-d853917d0ccd"
+|  },
+|  "status": {
+|    "errorCode": "",
+|    "backendMessages": []
+|  },
+|  "data": [
+|    {
+|      "entityName": "BANCA COM S.A.",
+|      "entityCode": "198762948",
+|      "attributes": [
+|        {
+|          "attributeType": "STRING",
+|          "name": "CERTIFICATE_SERIAL_NUMBER",
+|          "value": "1082"
+|        },
+|        {
+|          "attributeType": "STRING",
+|          "name": "CERTIFICATE_CA_NAME",
+|          "value": "BANK CA (test)"
+|        }
+|      ],
+|      "services": [
+|        {
+|          "roles": [
+|            "PSP_PI",
+|            "PSP_AI"
+|          ]
+|        }
+|      ]
+|    },
+|    {
+|      "entityName": "Bank Y S.A.",
+|      "entityCode": "1029876963",
+|      "attributes": [
+|        {
+|          "attributeType": "STRING",
+|          "name": "CERTIFICATE_SERIAL_NUMBER",
+|          "value": "1135"
+|        },
+|        {
+|          "attributeType": "STRING",
+|          "name": "CERTIFICATE_CA_NAME",
+|          "value": "BANK CA (test)"
+|        }
+|      ],
+|      "services": [
+|        {
+|          "roles": [
+|            "PSP_PI",
+|            "PSP_AI"
+|          ]
+|        }
+|      ]
+|    }
+|  ]
+|}
+|
+| Note the use of Regulated Entity Attribute Names to handle different data types from the national authority.
+				|
+				 |Note: You can / should run a separate instance of OBP for surfacing the Regulated Entities endpoints.
+				 |""".stripMargin)
 
 
 	private def getContentFromMarkdownFile(path: String): String = {
@@ -3535,7 +3703,7 @@ object Glossary extends MdcLoggable  {
       List.empty[File]
     }
   }
-	
+
 	// Append all files from /OBP-API/docs/glossary as items
 	// File name is used as a title
 	// File content is used as a description
@@ -3547,7 +3715,7 @@ object Glossary extends MdcLoggable  {
 			)
 		)
 	)
-	
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

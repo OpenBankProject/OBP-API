@@ -4,6 +4,7 @@ import code.TransactionTypes.TransactionTypeProvider
 import code.model._
 import code.TransactionTypes.TransactionType._
 import code.util.{MediumString, UUIDString}
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.mapper._
 import code.api.util.ErrorMessages
@@ -61,9 +62,7 @@ object MappedTransactionTypeProvider extends TransactionTypeProvider {
   }
 
 }
-class MappedTransactionType extends LongKeyedMapper[MappedTransactionType] with IdPK with CreatedUpdated {
-
-  private val logger = Logger(classOf[MappedTransactionType])
+class MappedTransactionType extends LongKeyedMapper[MappedTransactionType] with IdPK with CreatedUpdated with MdcLoggable {
 
   override def getSingleton = MappedTransactionType
 

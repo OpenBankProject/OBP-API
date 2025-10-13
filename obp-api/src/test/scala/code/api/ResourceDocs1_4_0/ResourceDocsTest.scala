@@ -2,15 +2,13 @@ package code.api.ResourceDocs1_4_0
 
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.APIUtil.OAuth._
-
-import java.util
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.setup.{DefaultUsers, PropsReset}
-import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
@@ -75,6 +73,24 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
   
   
   feature(s"test ${ApiEndpoint1.name} ") {
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v6.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv6.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV6_0Request / "resource-docs" / "OBPv6.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
     scenario(s"We will test ${ApiEndpoint1.name} Api -v5.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "v5.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
@@ -351,6 +367,24 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
   }
 
   feature(s"test ${ApiEndpoint2.name} ") {
+    scenario(s"We will test ${ApiEndpoint2.name} Api -v6.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / "v6.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    scenario(s"We will test ${ApiEndpoint2.name} Api -OBPv6.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / "OBPv6.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
     scenario(s"We will test ${ApiEndpoint2.name} Api -v5.0.0/v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / "v5.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)

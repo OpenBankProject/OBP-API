@@ -6,6 +6,7 @@ import com.openbankproject.commons.model.{AtmId, BankId}
 import com.openbankproject.commons.model.enums.AtmAttributeType
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
 
@@ -27,9 +28,7 @@ object AtmAttributeX extends SimpleInjector {
 
 }
 
-trait AtmAttributeProviderTrait {
-
-  private val logger = Logger(classOf[AtmAttributeProviderTrait])
+trait AtmAttributeProviderTrait extends MdcLoggable {
 
   def getAtmAttributesFromProvider(bankId: BankId, atmId: AtmId): Future[Box[List[AtmAttribute]]]
 
@@ -40,10 +39,10 @@ trait AtmAttributeProviderTrait {
                                  AtmAttributeId: Option[String],
                                  name: String,
                                  attributeType: AtmAttributeType.Value,
-                                 value: String, 
+                                 value: String,
                                  isActive: Option[Boolean]): Future[Box[AtmAttribute]]
   def deleteAtmAttribute(AtmAttributeId: String): Future[Box[Boolean]]
-  
+
   def deleteAtmAttributesByAtmId(atmId: AtmId): Future[Box[Boolean]]
   // End of Trait
 }

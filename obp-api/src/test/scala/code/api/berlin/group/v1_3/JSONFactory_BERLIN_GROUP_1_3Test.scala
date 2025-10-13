@@ -91,7 +91,7 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
           startDate = Some(new java.util.Date()),
           finishDate = Some(new java.util.Date()),
           balance = "900.00",
-          status = "booked"
+          status = Some("booked")
         )
       }
       
@@ -108,10 +108,10 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
 
       val jsonString: String = compactRender(Extraction.decompose(result))
 
-      jsonString.contains("creditorName") shouldBe true
-      jsonString.contains("creditorAccount") shouldBe true
-      jsonString.contains("debtorName") shouldBe false
-      jsonString.contains("debtorAccount") shouldBe false
+      jsonString.contains("creditorName") shouldBe false 
+      jsonString.contains("creditorAccount") shouldBe false 
+      jsonString.contains("debtorName") shouldBe true
+      jsonString.contains("debtorAccount") shouldBe true
       
       println(jsonString)
     }

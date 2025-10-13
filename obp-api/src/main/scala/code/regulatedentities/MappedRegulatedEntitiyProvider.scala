@@ -1,7 +1,8 @@
 package code.regulatedentities
 
+import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.util.MappedUUID
-import com.openbankproject.commons.model.{RegulatedEntityTrait,RegulatedEntityAttributeSimple}
+import com.openbankproject.commons.model.{RegulatedEntityAttributeSimple, RegulatedEntityTrait}
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
@@ -120,20 +121,13 @@ class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[Ma
   override def entityCountry: String = EntityCountry.get
   override def entityWebSite: String = EntityWebSite.get
   override def services: String = Services.get
-  override def attributes: Option[List[RegulatedEntityAttributeSimple]] = Some(
-    List(
-      RegulatedEntityAttributeSimple(
-        attributeType="STRING",
-        name="CERTIFICATE_SERIAL_NUMBER",
-        value="1082"
-      ),
-      RegulatedEntityAttributeSimple(
-        attributeType="STRING",
-        name="CERTIFICATE_CA_NAME",
-        value="BNM CA (test)"
-      ),
-  ))
-//  override def attributes: Option[List[RegulatedEntityAttributeSimple]] = None //not for mapped mode yet, will add it later.
+  override def attributes: Option[List[RegulatedEntityAttributeSimple]] = {
+    Some(
+      RegulatedEntityAttribute.findAll(
+        By(RegulatedEntityAttribute.RegulatedEntityId_, EntityId.get)
+      ).map(i => RegulatedEntityAttributeSimple(i.attributeType.toString, i.name, i.value))
+    )
+  }
 
 }
 

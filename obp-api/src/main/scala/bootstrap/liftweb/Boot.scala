@@ -35,7 +35,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510}
+import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510, ResourceDocs600}
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
@@ -151,8 +151,12 @@ import org.apache.commons.io.FileUtils
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-import javax.mail.internet.MimeMessage
 import scala.concurrent.ExecutionContext
+
+// So we can print the version used.
+import org.eclipse.jetty.util.Jetty
+
+
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -236,10 +240,11 @@ class Boot extends MdcLoggable {
   def boot {
     implicit val formats = CustomJsonFormats.formats
 
-    logger.info("Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
+    logger.info("Boot says: Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
 
-      
-    logger.debug("Using database driver: " + APIUtil.driver)
+    logger.info(s"Boot says: Jetty Version: ${Jetty.VERSION}")
+
+    logger.debug("Boot says:Using database driver: " + APIUtil.driver)
 
     DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
 
@@ -253,9 +258,9 @@ class Boot extends MdcLoggable {
      * In case of PostgreSQL it works
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
-    
+
     schemifyAll()
-    
+
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
     DbFunction.tableExists(ResourceUser) match {
@@ -269,7 +274,7 @@ class Boot extends MdcLoggable {
     }
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-    
+
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
@@ -290,11 +295,11 @@ class Boot extends MdcLoggable {
         case Full(value) =>
           val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
           val additionalSystemViews = List(
-            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, 
+            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
             SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
-            SYSTEM_READ_BALANCES_VIEW_ID, 
+            SYSTEM_READ_BALANCES_VIEW_ID,
             SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, 
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID,
             SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
             SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
             SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID,
@@ -318,9 +323,9 @@ class Boot extends MdcLoggable {
 
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
-    
+
     createBootstrapSuperUser()
-    
+
     //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
     DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
 
@@ -343,11 +348,11 @@ class Boot extends MdcLoggable {
      }
     }
 
-    // start RabbitMq Adapter(using mapped connector as mockded CBS)  
+    // start RabbitMq Adapter(using mapped connector as mockded CBS)
     if (APIUtil.getPropsAsBoolValue("rabbitmq.adapter.enabled", false)) {
       code.bankconnectors.rabbitmq.Adapter.startRabbitMqAdapter.main(Array(""))
     }
-    
+
 
     // Database query timeout
 //    APIUtil.getPropsValue("database_query_timeout_in_seconds").map { timeoutInSeconds =>
@@ -383,7 +388,7 @@ class Boot extends MdcLoggable {
 
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
-      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`: 
+      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`:
       LiftRules.getResource("/").map { url =>
         // this following will get the path of `OBP-API/obp-api/src/main/resources/custom_webapp`
         val source = if (getClass().getClassLoader().getResource("custom_webapp") == null)
@@ -405,10 +410,10 @@ class Boot extends MdcLoggable {
         FileUtils.copyDirectory(srcDir, destDir)
       }
     }
-    
+
     // ensure our relational database's tables are created/fit the schema
     val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
-    
+
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
       case Props.RunModes.Staging => "Staging mode"
@@ -431,11 +436,11 @@ class Boot extends MdcLoggable {
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
     }
-    
+
     // where to search snippets
     LiftRules.addToPackages("code")
 
-    
+
     // H2 web console
     // Help accessing H2 from outside Lift, and be able to run any queries against it.
     // It's enabled only in Dev and Test mode
@@ -467,6 +472,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.v5_1_0)
+    enableVersionIfAllowed(ApiVersion.v6_0_0)
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
@@ -485,7 +491,7 @@ class Boot extends MdcLoggable {
       if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
         LiftRules.statelessDispatch.append(DirectLogin)
       }
-      
+
       // TODO Wrap these with enableVersionIfAllowed as well
       //add management apis
       LiftRules.statelessDispatch.append(ImporterAPI)
@@ -496,18 +502,18 @@ class Boot extends MdcLoggable {
       case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
         enableOpenIdConnectApis
       // Instance runs as the APIs only
-      case mode if mode == "apis" => 
+      case mode if mode == "apis" =>
         enableAPIs
       // Instance runs as the portal and APIs as well
       // This is default mode
-      case mode if mode.contains("apis") && mode.contains("portal") => 
+      case mode if mode.contains("apis") && mode.contains("portal") =>
         enableAPIs
         enableOpenIdConnectApis
       // Failure
       case _ =>
         throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
     }
-    
+
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
 
@@ -525,6 +531,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(ResourceDocs400)
     LiftRules.statelessDispatch.append(ResourceDocs500)
     LiftRules.statelessDispatch.append(ResourceDocs510)
+    LiftRules.statelessDispatch.append(ResourceDocs600)
     ////////////////////////////////////////////////////
 
 
@@ -538,7 +545,7 @@ class Boot extends MdcLoggable {
         Nil
       }
     }
-    
+
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
@@ -561,7 +568,7 @@ class Boot extends MdcLoggable {
 
     // This will work for both portal and API modes. This page is used for testing if the API is running properly.
     val awakePage = List( Menu.i("awake") /"debug" / "awake")
-    
+
     val commonMap = List(Menu.i("Home") / "index") ::: List(
       Menu.i("index-en") / "index-en",
       Menu.i("Plain") / "plain",
@@ -580,7 +587,7 @@ class Boot extends MdcLoggable {
       Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
       Menu("Consent Screen", Helper.i18n("consent.screen")) / "consent-screen" >> AuthUser.loginFirst,
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
-    
+
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
       Menu("User Information", "User Information") / "user-information",
       Menu("User Invitation", "User Invitation") / "user-invitation",
@@ -603,7 +610,7 @@ class Boot extends MdcLoggable {
       Menu.i("confirm-vrp-consent-request") / "confirm-vrp-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-vrp-consent") / "confirm-vrp-consent" >> AuthUser.loginFirst //OAuth consent page
     ) ++ accountCreation ++ Admin.menus++ awakePage
-    
+
     // Build SiteMap
     val sitemap = code.api.Constant.serverMode match {
       case mode if mode == "portal" => commonMap
@@ -646,19 +653,19 @@ class Boot extends MdcLoggable {
     val locale = I18NUtil.getDefaultLocale()
     // Locale.setDefault(locale) // TODO Explain why this line of code introduce weird side effects
     logger.info("Default Project Locale is :" + locale)
-    
+
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
     LiftRules.localeCalculator = {
       case fullReq @ Full(req) => {
-        // Check against a set cookie, or the locale sent in the request 
+        // Check against a set cookie, or the locale sent in the request
         def currentLocale : Locale = {
           S.findCookie(localeCookieName).flatMap {
             cookie => cookie.value.map(I18NUtil.computeLocale)
           } openOr locale
         }
 
-        // Check to see if the user explicitly requests a new locale 
+        // Check to see if the user explicitly requests a new locale
         // In case it's true we use that value to set up a new cookie value
         ObpS.param(PARAM_LOCALE) match {
           case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale)==SILENCE_IS_GOLDEN => {
@@ -680,7 +687,7 @@ class Boot extends MdcLoggable {
       ("X-Frame-Options", "DENY") ::
         Nil
     )
-    
+
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
     logger.info("Note: We added S.addAround(DB.buildLoanWrapper) so each HTTP request uses ONE database transaction.")
@@ -693,10 +700,6 @@ class Boot extends MdcLoggable {
       case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
-    Mailer.devModeSend.default.set( (m : MimeMessage) => {
-      logger.info("Would have sent email if not in dev mode: " + m.getContent)
-    })
-    
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
@@ -721,7 +724,7 @@ class Boot extends MdcLoggable {
         )
       }
     }
-    
+
     LiftRules.uriNotFound.prepend{
       case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(errorJsonResponse(
         s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
@@ -746,7 +749,7 @@ class Boot extends MdcLoggable {
     ConsentScheduler.startAll()
     TransactionScheduler.startAll()
 
-    
+
     APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true) match {
       case true =>
         val interval =
@@ -775,7 +778,7 @@ class Boot extends MdcLoggable {
         AuthUser.currentUser match {
           case Full(user) =>
             LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
-              case true => 
+              case true =>
                 AuthUser.logoutCurrentUser
                 logger.warn(s"checkIsLocked says: User ${user.username.get} has been logged out because it is locked.")
               case false => // Do nothing
@@ -789,7 +792,7 @@ class Boot extends MdcLoggable {
     LiftSession.onBeginServicing = UsernameLockedChecker.onBeginServicing _ :: LiftSession.onBeginServicing
     LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
     LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
-    
+
     // Sanity check for incompatible Props values for Scopes.
     sanityCheckOPropertiesRegardingScopes()
     // export one Connector's methods as endpoints, it is just for develop
@@ -818,14 +821,14 @@ class Boot extends MdcLoggable {
     if(HydraUtil.integrateWithHydra && HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
     }
-    
+
     Props.get("session_inactivity_timeout_in_seconds") match {
       case Full(x) if tryo(x.toLong).isDefined =>
         LiftRules.sessionInactivityTimeout.default.set(Full((x.toLong.minutes): Long))
       case _ =>
       // Do not change default value
     }
-    
+
   }
 
   private def sanityCheckOPropertiesRegardingScopes() = {
@@ -880,7 +883,7 @@ class Boot extends MdcLoggable {
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
-    import Mailer.{From, PlainMailBodyType, Subject, To}
+
     import net.liftweb.util.Helpers.now
 
     val outputStream = new java.io.ByteArrayOutputStream
@@ -899,33 +902,33 @@ class Boot extends MdcLoggable {
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
-      val toParams = to.map(To(_))
-      val params = PlainMailBodyType(error) :: toParams
 
-      //this is an async call
-      Mailer.sendMail(
-        From(from),
-        Subject(s"you got an exception on $host"),
-        params :_*
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = from,
+        to = to,
+        subject = s"you got an exception on $host",
+        textContent = Some(error)
       )
+
+      //this is an async call∆∆
+      CommonsEmailWrapper.sendTextEmail(emailContent)
     }
 
-    //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
     if(mailSent.isEmpty)
       logger.warn(s"Exception notification failed: $mailSent")
   }
-  
+
   /**
-   *  there will be a default bank and two default accounts in obp mapped mode.                                               
-   *  These bank and accounts will be used for the payments.                                                                  
-   *  when we create transaction request over counterparty and if the counterparty do not link to an existing obp account     
-   *  then we will use the default accounts (incoming and outgoing) to keep the money.                                        
+   *  there will be a default bank and two default accounts in obp mapped mode.
+   *  These bank and accounts will be used for the payments.
+   *  when we create transaction request over counterparty and if the counterparty do not link to an existing obp account
+   *  then we will use the default accounts (incoming and outgoing) to keep the money.
    */
   private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
     val defaultBankId= APIUtil.defaultBankId
     val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
     val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
-    
+
     MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
       case Full(b) =>
         logger.debug(s"Bank(${defaultBankId}) is found.")
@@ -940,7 +943,7 @@ class Boot extends MdcLoggable {
           .logoURL("")
           .websiteURL("")
           .saveMe()
-        logger.debug(s"creating Bank(${defaultBankId})")   
+        logger.debug(s"creating Bank(${defaultBankId})")
     }
 
     MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
@@ -954,7 +957,7 @@ class Boot extends MdcLoggable {
           .saveMe()
         logger.debug(s"creating BankAccount(${defaultBankId}, $incomingAccountId).")
     }
-    
+
     MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, outgoingAccountId)) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $outgoingAccountId) is found.")
@@ -967,9 +970,9 @@ class Boot extends MdcLoggable {
         logger.debug(s"creating BankAccount(${defaultBankId}, $outgoingAccountId).")
     }
   }
-  
-  
-  /**    
+
+
+  /**
    * Bootstrap Super User
    * Given the following credentials, OBP will create a user *if it does not exist already*.
    * This user's password will be valid for a limited amount of time.
@@ -977,7 +980,7 @@ class Boot extends MdcLoggable {
    * This feature can also be used in a "Break Glass scenario"
    */
   private def createBootstrapSuperUser() ={
-    
+
     val superAdminUsername = APIUtil.getPropsValue("super_admin_username","")
     val superAdminInitalPassword = APIUtil.getPropsValue("super_admin_inital_password","")
     val superAdminEmail = APIUtil.getPropsValue("super_admin_email","")
@@ -986,7 +989,7 @@ class Boot extends MdcLoggable {
 
     //This is the logic to check if an AuthUser exists for the `create sandbox` endpoint, AfterApiAuth, OpenIdConnect ,,,
     val existingAuthUser = AuthUser.find(By(AuthUser.username, superAdminUsername))
-    
+
     if(isPropsNotSetProperly) {
       //Nothing happens, props is not set
     }else if(existingAuthUser.isDefined) {
@@ -1009,20 +1012,20 @@ class Boot extends MdcLoggable {
         Full(authUser.save()) //this will create/update the resourceUser.
 
         val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
-  
+
         val resultBox = userBox.map(user => Entitlement.entitlement.vend.addEntitlement("", user.userId, CanCreateEntitlementAtAnyBank.toString))
-        
+
         if(resultBox.isEmpty){
           logger.error(s"createBootstrapSuperUser- Errors: ${resultBox}")
         }
       }
 
     }
- 
+
   }
 
   LiftRules.statelessDispatch.append(aliveCheck)
-  
+
 }
 
 object ToSchemify {
@@ -1152,6 +1155,6 @@ object ToSchemify {
     val server = new HelloWorldServer(ExecutionContext.global)
     server.start()
     LiftRules.unloadHooks.append(server.stop)
-  } 
-  
+  }
+
 }

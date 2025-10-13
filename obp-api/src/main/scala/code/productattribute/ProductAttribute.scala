@@ -8,6 +8,7 @@ import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
 
@@ -29,9 +30,7 @@ object ProductAttributeX extends SimpleInjector {
 
 }
 
-trait ProductAttributeProvider {
-
-  private val logger = Logger(classOf[ProductAttributeProvider])
+trait ProductAttributeProvider extends MdcLoggable {
 
   def getProductAttributesFromProvider(bank: BankId, productCode: ProductCode): Future[Box[List[ProductAttribute]]]
 
@@ -42,7 +41,7 @@ trait ProductAttributeProvider {
                                      productAttributeId: Option[String],
                                      name: String,
                                      attributeType: ProductAttributeType.Value,
-                                     value: String, 
+                                     value: String,
                                      isActive: Option[Boolean]): Future[Box[ProductAttribute]]
   def deleteProductAttribute(productAttributeId: String): Future[Box[Boolean]]
   // End of Trait

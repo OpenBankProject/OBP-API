@@ -10,6 +10,7 @@ import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Logger
 import net.liftweb.util
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 import java.util.Date
 
 import com.openbankproject.commons.model.{BankId, MetaT}
@@ -48,9 +49,7 @@ object CrmEvent extends util.SimpleInjector {
 
 }
 
-trait CrmEventProvider {
-
-  private val logger = Logger(classOf[CrmEventProvider])
+trait CrmEventProvider extends MdcLoggable {
 
 
   /*

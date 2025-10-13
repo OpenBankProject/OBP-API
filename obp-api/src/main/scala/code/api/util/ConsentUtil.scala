@@ -238,6 +238,7 @@ object Consent extends MdcLoggable {
 
   private def tppIsConsentHolder(consumerIdFromConsent: String, callContext: CallContext): Boolean = {
     val consumerIdFromCurrentCall = callContext.consumer.map(_.consumerId.get).orNull
+    logger.debug(s"consumerIdFromConsent == consumerIdFromCurrentCall ($consumerIdFromConsent == $consumerIdFromCurrentCall)")
     consumerIdFromConsent == consumerIdFromCurrentCall
   }
 
@@ -429,32 +430,49 @@ object Consent extends MdcLoggable {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext
-      // 1. Get or Create a User
-      getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
-        case (Full(user), newUser) =>
-          // 2. Assign entitlements to the User
-          addEntitlements(user, consent) match {
-            case (Full(user)) =>
-              // 3. Copy Auth Context to the User
-              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
-                case Full(_) =>
-                  // 4. Assign views to the User
-                  (grantAccessToViews(user, consent), Some(cc))
-                case failure@Failure(_, _, _) => // Handled errors
-                  (failure, Some(callContext))
-                case _ =>
-                  (Failure(ErrorMessages.UnknownError), Some(cc))
-              }
-            case failure@Failure(msg, exp, chain) => // Handled errors
-              (Failure(msg), Some(cc))
-            case _ =>
-              (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
-          }
-        case _ =>
-          (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
+      val temp = callContext
+      // updated context if createdByUserId is present
+      val cc = if (consent.createdByUserId.nonEmpty) {
+        val onBehalfOfUser = Users.users.vend.getUserByUserId(consent.createdByUserId)
+        temp.copy(onBehalfOfUser = onBehalfOfUser.toOption)
+      } else {
+        temp
+      }
+      if (cc.onBehalfOfUser.nonEmpty &&
+        APIUtil.getPropsAsBoolValue(nameOfProperty = "experimental_become_user_that_created_consent", defaultValue = false)) {
+        logger.info("experimental_become_user_that_created_consent = true")
+        logger.info(s"${cc.onBehalfOfUser.map(_.userId).getOrElse("")} is logged on instead of Consent user")
+        Future(cc.onBehalfOfUser, Some(cc)) // Just propagate on behalf of user back
+      } else {
+        logger.info("experimental_become_user_that_created_consent = false")
+        logger.info(s"Getting Consent user (consent.sub: ${consent.sub}, consent.iss: ${consent.iss})")
+        // 1. Get or Create a User
+        getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
+          case (Full(user), newUser) =>
+            // 2. Assign entitlements to the User
+            addEntitlements(user, consent) match {
+              case Full(user) =>
+                // 3. Copy Auth Context to the User
+                copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
+                  case Full(_) =>
+                    // 4. Assign views to the User
+                    (grantAccessToViews(user, consent), Some(cc))
+                  case failure@Failure(_, _, _) => // Handled errors
+                    (failure, Some(cc))
+                  case _ =>
+                    (Failure(ErrorMessages.UnknownError), Some(cc))
+                }
+              case failure@Failure(msg, exp, chain) => // Handled errors
+                (Failure(msg), Some(cc))
+              case _ =>
+                (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
+            }
+          case _ =>
+            (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
+        }
       }
     }
+
 
     JwtUtil.getSignedPayloadAsJson(consentAsJwt) match {
       case Full(jsonAsString) =>

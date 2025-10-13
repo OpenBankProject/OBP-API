@@ -31,6 +31,7 @@ case class OBPAzp(value: String) extends OBPQueryParam
 case class OBPIss(value: String) extends OBPQueryParam
 case class OBPConsentId(value: String) extends OBPQueryParam
 case class OBPUserId(value: String) extends OBPQueryParam
+case class ProviderProviderId(value: String) extends OBPQueryParam
 case class OBPStatus(value: String) extends OBPQueryParam
 case class OBPBankId(value: String) extends OBPQueryParam
 case class OBPAccountId(value: String) extends OBPQueryParam

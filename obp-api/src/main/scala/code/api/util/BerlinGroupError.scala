@@ -46,6 +46,9 @@ object BerlinGroupError {
    */
   def translateToBerlinGroupError(code: String, message: String): String = {
     code match {
+      // If this error occurs it implies that its error handling MUST be refined in OBP code
+      case "400" if message.contains("OBP-50005") => "INTERNAL_ERROR"
+
       case "401" if message.contains("OBP-20001") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20201") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20214") => "PSU_CREDENTIALS_INVALID"
@@ -70,11 +73,14 @@ object BerlinGroupError {
       case "401" if message.contains("OBP-35005") => "CONSENT_INVALID"
 
       case "401" if message.contains("OBP-20300") => "CERTIFICATE_BLOCKED"
+      case "401" if message.contains("OBP-34102") => "CERTIFICATE_BLOCKED"
+      case "401" if message.contains("OBP-34103") => "CERTIFICATE_BLOCKED"
+
       case "401" if message.contains("OBP-20312") => "CERTIFICATE_INVALID"
-      case "401" if message.contains("OBP-20300") => "CERTIFICATE_INVALID"
       case "401" if message.contains("OBP-20310") => "SIGNATURE_INVALID"
 
-      case "401" if message.contains("OBP-20060") => "ROLE_INVALID"
+      case "403" if message.contains("OBP-20307") => "ROLE_INVALID"
+      case "403" if message.contains("OBP-20060") => "ROLE_INVALID"
 
       case "400" if message.contains("OBP-10034") => "PARAMETER_NOT_CONSISTENT"
 

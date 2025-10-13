@@ -1,9 +1,8 @@
 package com.openbankproject.commons.util
 
-import com.openbankproject.commons.util.ApiShortVersions.Value
+import net.liftweb.json._
 
 import java.util.concurrent.ConcurrentHashMap
-import net.liftweb.json.{Formats, JField, JObject, JString, JsonAST}
 
 object ApiStandards extends Enumeration {
   type ApiStandards = Value
@@ -23,6 +22,7 @@ object ApiShortVersions extends Enumeration {
   val `v4.0.0` = Value("v4.0.0")
   val `v5.0.0` = Value("v5.0.0")
   val `v5.1.0` = Value("v5.1.0")
+  val `v6.0.0` = Value("v6.0.0")
   val `dynamic-endpoint` = Value("dynamic-endpoint")
   val `dynamic-entity` = Value("dynamic-entity")
 }
@@ -113,6 +113,7 @@ object ApiVersion {
   val v4_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
   val v5_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v5.0.0`.toString)
   val v5_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v5.1.0`.toString)
+  val v6_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v6.0.0`.toString)
   val `dynamic-endpoint` = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`dynamic-endpoint`.toString)
   val `dynamic-entity` = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`dynamic-entity`.toString)
   
@@ -129,6 +130,7 @@ object ApiVersion {
       v4_0_0 :: 
       v5_0_0 :: 
       v5_1_0 :: 
+      v6_0_0 :: 
       `dynamic-endpoint` :: 
       `dynamic-entity`::
       Nil

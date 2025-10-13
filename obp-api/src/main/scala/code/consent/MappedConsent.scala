@@ -1,17 +1,20 @@
 package code.consent
 
 import java.util.Date
-import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, SecureRandomUtil}
+import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
+import code.model.dataAccess.ResourceUser
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.{MappedString, _}
+import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 import org.mindrot.jbcrypt.BCrypt
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import scala.collection.immutable.List
 
 object MappedConsentProvider extends ConsentProvider {
@@ -65,42 +68,63 @@ object MappedConsentProvider extends ConsentProvider {
   }
 
 
-  private def getQueryParams(queryParams: List[OBPQueryParam]) = {
-    val limit = queryParams.collectFirst { case OBPLimit(value) => MaxRows[MappedConsent](value) }
-    val offset = queryParams.collectFirst { case OBPOffset(value) => StartAt[MappedConsent](value) }
-    // The optional variables:
+
+  private def getPagedConsents(queryParams: List[OBPQueryParam]): (List[MappedConsent], Long) = {
+    // Extract pagination params
+    val limitOpt = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offsetOpt = queryParams.collectFirst { case OBPOffset(value) => value }
+
+    // Extract filters (exclude limit/offset)
     val consumerId = queryParams.collectFirst { case OBPConsumerId(value) => By(MappedConsent.mConsumerId, value) }
     val consentId = queryParams.collectFirst { case OBPConsentId(value) => By(MappedConsent.mConsentId, value) }
+    val providerProviderId: Option[Cmp[MappedConsent, String]] = queryParams.collectFirst {
+      case ProviderProviderId(value) =>
+        val (provider, providerId) = value.split("\\|") match {
+          case Array(a, b) => (a, b)
+          case _ => ("", "")
+        }
+        ResourceUser.findAll(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, providerId)) match {
+          case x :: Nil => Some(By(MappedConsent.mUserId, x.userId))
+          case _ => None
+        }
+    }.flatten
     val userId = queryParams.collectFirst { case OBPUserId(value) => By(MappedConsent.mUserId, value) }
+
     val status = queryParams.collectFirst {
       case OBPStatus(value) =>
-        // Split the comma-separated string into a List, and trim whitespace from each element
-        val statuses: List[String] = value.split(",").toList.map(_.trim)
-
-        // For each distinct status:
-        //   - create both lowercase ancheckIsLockedd uppercase versions
-        //   - flatten the resulting list of lists into a single list
-        //   - remove duplicates from the final list
-        val distinctLowerAndUpperCaseStatuses: List[String] =
-        statuses.distinct // Remove duplicates (case-sensitive)
-          .flatMap(s => List( // For each element, generate:
-            s.toLowerCase, //   - lowercase version
-            s.toUpperCase //   - uppercase version
-          ))
-          .distinct // Remove any duplicates caused by lowercase/uppercase repetition
-
+        val statuses = value.split(",").toList.map(_.trim)
+        val distinctLowerAndUpperCaseStatuses =
+          statuses.distinct.flatMap(s => List(s.toLowerCase, s.toUpperCase)).distinct
         ByList(MappedConsent.mStatus, distinctLowerAndUpperCaseStatuses)
     }
 
-    Seq(
-      offset.toSeq,
-      limit.toSeq,
+    // Build filters (without limit/offset)
+    val filters = Seq(
       status.toSeq,
-      userId.toSeq,
+      userId.orElse(providerProviderId).toSeq,
       consentId.toSeq,
       consumerId.toSeq
     ).flatten
+
+    // Total count for pagination
+    val totalCount = MappedConsent.count(filters: _*)
+
+    // Apply limit/offset if provided
+    val pageData = (limitOpt, offsetOpt) match {
+      case (Some(limit), Some(offset)) => MappedConsent.findAll(filters: _*).drop(offset).take(limit)
+      case (Some(limit), None) => MappedConsent.findAll(filters: _*).take(limit)
+      case _ => MappedConsent.findAll(filters: _*)
+    }
+
+    // Compute number of pages
+    val totalPages = limitOpt match {
+      case Some(limit) if limit > 0 => Math.ceil(totalCount.toDouble / limit).toInt
+      case _ => 1
+    }
+
+    (pageData, totalCount)
   }
+
 
   private def sortConsents(consents: List[MappedConsent], sortByParam: String): List[MappedConsent] = {
     // Parse sort_by param like "created_date:desc,status:asc,consumer_id:asc"
@@ -147,17 +171,20 @@ object MappedConsentProvider extends ConsentProvider {
   }
 
 
-  override def getConsents(queryParams: List[OBPQueryParam]): List[MappedConsent] = {
-    val optionalParams = getQueryParams(queryParams)
+  override def getConsents(queryParams: List[OBPQueryParam]): (List[MappedConsent], Long) = {
     val sortBy: Option[String] = queryParams.collectFirst { case OBPSortBy(value) => value }
-    val consents = MappedConsent.findAll(optionalParams: _*)
+    val (consents, totalCount) = getPagedConsents(queryParams)
     val bankId: Option[String] = queryParams.collectFirst { case OBPBankId(value) => value }
     if(bankId.isDefined) {
-      Consent.filterStrictlyByBank(consents, bankId.get)
+      (Consent.filterStrictlyByBank(consents, bankId.get), totalCount)
     } else {
-      sortConsents(consents, sortBy.getOrElse(""))
+      (sortConsents(consents, sortBy.getOrElse("")), totalCount)
     }
   }
+
+
+
+
   override def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String], consumer: Option[Consumer]): Box[MappedConsent] = {
     tryo {
       val salt = BCrypt.gensalt()

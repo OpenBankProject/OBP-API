@@ -1945,5 +1945,37 @@
       <CcyNbr>961</CcyNbr>
       <CcyMnrUnts>N.A.</CcyMnrUnts>
     </CcyNtry>
+    <!-- Cardano (ADA)  -->
+    <CcyNtry>
+      <CtryNm>Cardano_ADA</CtryNm>
+      <CcyNm>ADA</CcyNm>
+      <Ccy>ada</Ccy>
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>6</CcyMnrUnts>  <!-- 1 ADA = 10^6 Lovelace -->
+    </CcyNtry>
+    <!-- Lovelace (The smallest unit of ADA) -->
+    <CcyNtry>
+      <CtryNm>Cardano_Lovelace</CtryNm>
+      <CcyNm>Lovelace</CcyNm>
+      <Ccy>lovelace</Ccy>               
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>0</CcyMnrUnts>   <!-- Lovelace is the basic unit, no smaller subdivision -->
+    </CcyNtry>
+    <!-- Ethereum (ETH) -->
+    <CcyNtry>
+      <CtryNm>Ethereum_ETH</CtryNm>
+      <CcyNm>ETH</CcyNm>
+      <Ccy>ETH</Ccy>
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>18</CcyMnrUnts> <!-- 1 ETH = 10^18 wei -->
+    </CcyNtry>
+    <!-- Wei (the smallest unit of ETH) -->
+    <CcyNtry>
+      <CtryNm>Ethereum_wei</CtryNm>
+      <CcyNm>wei</CcyNm>
+      <Ccy>wei</Ccy>
+      <CcyNbr>null</CcyNbr>
+      <CcyMnrUnts>0</CcyMnrUnts>  <!-- wei is base unit -->
+    </CcyNtry>
   </CcyTbl>
 </ISO_4217>

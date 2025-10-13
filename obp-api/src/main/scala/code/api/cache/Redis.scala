@@ -57,6 +57,22 @@ object Redis extends MdcLoggable {
 
   def jedisPoolDestroy: Unit = jedisPool.destroy()
 
+  def isRedisReady: Boolean = {
+    var jedisConnection: Option[Jedis] = None
+    try {
+      jedisConnection = Some(jedisPool.getResource)
+      val pong = jedisConnection.get.ping() // sends PING command
+      pong == "PONG"
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Redis is not ready: ${e.getMessage}")
+        false
+    } finally {
+      jedisConnection.foreach(_.close())
+    }
+  }
+
+
   private def configureSslContext(): SSLContext = {
 
     // Load the CA certificate

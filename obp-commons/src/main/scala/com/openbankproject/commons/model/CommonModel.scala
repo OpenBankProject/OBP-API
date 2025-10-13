@@ -1141,7 +1141,7 @@ case class Transaction(
                    finishDate : Option[Date],
                    //the new balance for the bank account
                    balance :  BigDecimal,
-                   status: String
+                   status : Option[String]
                  ) {
 
   val bankId = thisAccount.bankId

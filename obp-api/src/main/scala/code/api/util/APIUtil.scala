@@ -71,7 +71,6 @@ import code.util.{Helper, JsonSchemaUtil}
 import code.views.system.AccountAccess
 import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
-import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -81,7 +80,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
 import dispatch.url
 import javassist.expr.{ExprEditor, MethodCall}
-import javassist.{ClassPool, LoaderClassPath}
+import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
 import net.liftweb.common._
 import net.liftweb.http._
@@ -131,8 +130,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
-  val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+  // If you need UTC Z format, please continue to use DateWithMsFormat. eg: 2025-01-01T01:01:01.000Z
+  val DateWithMsFormat = new SimpleDateFormat(DateWithMs) 
+  // If you need a format with timezone offset (+0000), please use DateWithMsRollbackFormat, eg: 2025-01-01T01:01:01.000+0000
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsAndTimeZoneOffset)
+  
   val rfc7231Date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
 
   val DateWithYearExampleString: String = "1100"
@@ -901,7 +903,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 16  */
+  /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 16. NOTE: This function requires at least ONE character (+ in the regx). If you want to accept zero characters use checkOptionalShortString.  */
   def checkShortString(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._]+)$""".r
@@ -911,6 +913,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
+
+  /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 16, allows empty string  */
+  def checkOptionalShortString(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9\-._]*)$""".r
+    value match {
+      case regex(e) if(valueLength <= 16) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 16) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
 
 
   /** only  A-Z, a-z, 0-9, -, _, ., and max length <= 36
@@ -956,7 +970,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(date == null)
       None
     else
-      Some(APIUtil.DateWithMsAndTimeZoneOffset.format(date))
+      Some(APIUtil.DateWithMsRollbackFormat.format(date))
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
@@ -1147,6 +1161,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "iss" => Full(OBPIss(values.head))
         case "consent_id" => Full(OBPConsentId(values.head))
         case "user_id" => Full(OBPUserId(values.head))
+        case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
         case "account_id" => Full(OBPAccountId(values.head))
         case "url" => Full(OBPUrl(values.head))
@@ -1198,6 +1213,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       iss <- getHttpParamValuesByName(httpParams,"iss")
       consentId <- getHttpParamValuesByName(httpParams,"consent_id")
       userId <- getHttpParamValuesByName(httpParams, "user_id")
+      providerProviderId <- getHttpParamValuesByName(httpParams, "provider_provider_id")
       bankId <- getHttpParamValuesByName(httpParams, "bank_id")
       accountId <- getHttpParamValuesByName(httpParams, "account_id")
       url <- getHttpParamValuesByName(httpParams, "url")
@@ -1231,9 +1247,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
        */
       //val sortBy = json.header("obp_sort_by")
       val ordering = OBPOrdering(None, sortDirection)
-      //This guarantee the order 
+      //This guarantee the order
       List(limit, offset, ordering, sortBy, fromDate, toDate,
-        anon, status, consumerId, azp, iss, consentId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
+        anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
         connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
@@ -1276,6 +1292,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val azp =  getHttpRequestUrlParam(httpRequestUrl,"azp")
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
+    val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
     val accountId =  getHttpRequestUrlParam(httpRequestUrl, "account_id")
     val url =  getHttpRequestUrlParam(httpRequestUrl, "url")
@@ -1305,7 +1322,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 
@@ -2744,6 +2761,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
         case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
         case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
+        case ApiVersion.v6_0_0 => LiftRules.statelessDispatch.append(v6_0_0.OBPAPI6_0_0)
         case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
         case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
@@ -2934,8 +2952,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorResponse = getFilteredOrFullErrorMessage(e)
           Full(reply.apply(errorResponse))
         case Failure(msg, e, _) =>
-          surroundErrorMessage(msg)
-          e.foreach(logger.debug("", _))
+          e.foreach(logger.error(msg, _))
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
@@ -2993,6 +3010,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   /**
+   * TODO: Update this Doc string:
    * This function is planed to be used at an endpoint in order to get a User based on Authorization Header data
    * It has to do the same thing as function OBPRestHelper.failIfBadAuthorizationHeader does
    * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
@@ -3010,23 +3028,49 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val xRequestId: Option[String] =
       reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
         .map(_.values.mkString(","))
-    val title = s"Request Headers for verb: $verb, URL: $url"
-    surroundDebugMessage(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString, title)
+    logger.debug(s"Request Headers for verb: $verb, URL: $url")
+    logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
     val remoteIpAddress = getRemoteIpAddress()
 
     val authHeaders = AuthorisationUtil.getAuthorisationHeaders(reqHeaders)
     val authHeadersWithEmptyValues = RequestHeadersUtil.checkEmptyRequestHeaderValues(reqHeaders)
     val authHeadersWithEmptyNames = RequestHeadersUtil.checkEmptyRequestHeaderNames(reqHeaders)
 
-    // Identify consumer via certificate
+    // CONSUMER VALIDATION LOGIC
+    // OBP-API supports two methods for identifying/validating API consumers (applications):
+    // 1. CONSUMER_CERTIFICATE - Uses mTLS certificates or certificate headers (more secure, PSD2 compliant)
+    // 2. CONSUMER_KEY_VALUE - Uses traditional API keys in request headers (simpler for dev/test)
+    
+    // Step 1: Always attempt to identify consumer via certificate/mTLS
+    // This looks for TPP-Signature-Certificate or PSD2-CERT headers, or mTLS client certificates
     val consumerByCertificate = Consent.getCurrentConsumerViaTppSignatureCertOrMtls(callContext = cc)
+    logger.debug(s"getUserAndSessionContextFuture says consumerByCertificate is: $consumerByCertificate")
+    
+    // Step 2: Check which validation method is configured for consent requests
+    // Default is CONSUMER_CERTIFICATE (certificate-based validation)
+    // Alternative is CONSUMER_KEY_VALUE (consumer key-based validation)
     val method = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
+    
+    // Step 3: Conditionally attempt to identify consumer via consumer key (only if method allows it)
     val consumerByConsumerKey = getConsumerKey(reqHeaders) match {
       case Some(consumerKey) if method == "CONSUMER_KEY_VALUE" =>
+        // Consumer key found AND system is configured to use consumer key validation
+        // Look up the consumer by their API key
         Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey)
+        
+      case Some(_) =>
+        // Consumer key found BUT system is configured for certificate validation
+        // Ignore the consumer key and return Empty (will rely on certificate validation instead)
+        // This prevents MatchError when consumer key is present but method != "CONSUMER_KEY_VALUE"
+        logger.warn(s"Consumer key provided in request but OBP is configured for certificate validation (method=$method). Ignoring consumer key and using certificate validation instead.")
+        Empty
+        
       case None =>
+        // No consumer key found in request headers
+        // This is normal for certificate-based validation or anonymous requests
         Empty
     }
+    logger.debug(s"getUserAndSessionContextFuture says consumerByConsumerKey is: $consumerByConsumerKey")
 
     val res =
       if (authHeadersWithEmptyValues.nonEmpty) { // Check Authorization Headers Empty Values
@@ -3070,11 +3114,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           (user, callContext)
         }
       } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
-      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders)) {
+      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders) && !url.contains("/my/logins/direct")) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
       } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
-      else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
+      else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField) && !url.contains("/my/logins/direct")) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      } else if (getPropsAsBoolValue("allow_direct_login", true) &&
+        (has2021DirectLoginHeader(cc.requestHeaders) || hasDirectLoginHeader(cc.authReqHeaderField)) &&
+        url.contains("/my/logins/direct")) {
+        Future{(Empty, Some(cc))}
       } // Gateway Login
       else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
@@ -3168,8 +3216,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // COMMON POST AUTHENTICATION CODE GOES BELOW
 
+    // Check is it Consumer disabled
+    val consumerIsDisabled: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkConsumerIsDisabled(res)
     // Check is it a user deleted or locked
-    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(res)
+    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(consumerIsDisabled)
     // Check Rate Limiting
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
     // User init actions
@@ -3971,18 +4021,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
         val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
         for {
-          tpp <- BerlinGroupSigning.getTppByCertificate(certificate, cc)
+          tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
         } yield {
-          if (tpp.nonEmpty) {
-            val berlinGroupRole = PemCertificateRole.toBerlinGroup(serviceProvider)
-            val hasRole = tpp.exists(_.services.contains(berlinGroupRole))
-            if (hasRole) {
-              Full(true)
-            } else {
-              Failure(X509ActionIsNotAllowed)
-            }
-          } else {
-            Failure("No valid Tpp")
+          tpps match {
+            case Nil =>
+              ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
+            case single :: Nil =>
+              logger.debug(s"Regulated entity by certificate: $single")
+              // Only one match, proceed to role check
+              if (single.services.contains(serviceProvider)) {
+                logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
+                Full(true)
+              } else {
+                ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+              }
+            case multiple =>
+              // Ambiguity detected: more than one TPP matches the certificate
+              val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+              ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
           }
         }
       case value if value.toUpperCase == "CERTIFICATE" => Future {

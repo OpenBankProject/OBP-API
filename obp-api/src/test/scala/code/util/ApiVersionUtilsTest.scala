@@ -20,6 +20,6 @@ class ApiVersionUtilsTest extends V400ServerSetup {
     versions.map(version => ApiVersionUtils.valueOf(version.fullyQualifiedVersion))
 
     //NOTE, when we added the new version, better fix this number manually. and also check the versions
-    versions.length shouldBe(23)
+    versions.length shouldBe(24)
   }}
 }

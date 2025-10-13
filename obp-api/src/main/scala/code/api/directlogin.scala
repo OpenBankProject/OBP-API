@@ -224,7 +224,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
   }
   //return a Map containing the directLogin parameters : prameter -> value
-  private def getAllParameters: Map[String, String] = {
+  def getAllParameters: Map[String, String] = {
     def toMap(parametersList: String) = {
       //transform the string "directLogin_prameter="value""
       //to a tuple (directLogin_parameter,Decoded(value))

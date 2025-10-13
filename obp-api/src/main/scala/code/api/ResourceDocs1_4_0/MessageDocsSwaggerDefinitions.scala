@@ -232,7 +232,7 @@ object MessageDocsSwaggerDefinitions
     startDate = DateWithDayExampleObject,
     finishDate = Some(DateWithDayExampleObject),
     balance = BigDecimal(balanceAmountExample.value),
-    status = transactionStatusExample.value,
+    status = Some(transactionStatusExample.value),
   )
   
   val accountRouting = AccountRouting("","")

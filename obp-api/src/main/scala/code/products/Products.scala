@@ -7,6 +7,7 @@ package code.products
 import com.openbankproject.commons.model.{BankId, ProductCode}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.Product
 
 object Products extends SimpleInjector {
@@ -27,9 +28,7 @@ object Products extends SimpleInjector {
 
 }
 
-trait ProductsProvider {
-
-  private val logger = Logger(classOf[ProductsProvider])
+trait ProductsProvider extends MdcLoggable {
 
 
   /*
@@ -38,7 +37,7 @@ trait ProductsProvider {
    */
   final def getProducts(bankId : BankId, adminView: Boolean = false) : Option[List[Product]] = {
     logger.info(s"Hello from getProducts bankId is: $bankId")
-    getProductsFromProvider(bankId) 
+    getProductsFromProvider(bankId)
   }
 
   /*
@@ -53,9 +52,3 @@ trait ProductsProvider {
 
 // End of Trait
 }
-
-
-
-
-
-

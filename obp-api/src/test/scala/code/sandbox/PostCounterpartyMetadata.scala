@@ -83,7 +83,10 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
 
     // This contains a list of counterparty lists. one list for each region
-    val counerpartyListData = JsonParser.parse(Source.fromFile(counterpartyDataPath).mkString)
+    val counerpartyListData = {
+      val source = Source.fromFile(counterpartyDataPath)
+      try JsonParser.parse(source.mkString) finally source.close()
+    }
     var counterparties = ListBuffer[CounterpartyJSONRecord]()
 
     // Loop through the lists
@@ -122,7 +125,10 @@ object PostCounterpartyMetadata extends SendServerRequests {
     val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/May_2018_ABN_Netherlands_extra/loaded_01/OBP_sandbox_pretty.json"
 
 
-    val mainData = JsonParser.parse(Source.fromFile(mainDataPath).mkString)
+    val mainData = {
+      val source = Source.fromFile(mainDataPath)
+      try JsonParser.parse(source.mkString) finally source.close()
+    }
     val users = (mainData \ "users").children
     println("got " + users.length + " users")
 

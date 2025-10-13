@@ -29,6 +29,16 @@
         <dependency>
             <groupId>net.liftweb</groupId>
             <artifactId>lift-util_${scala.version}</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.activation</groupId>
+                    <artifactId>activation</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.mail</groupId>
+                    <artifactId>mail</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>net.liftweb</groupId>

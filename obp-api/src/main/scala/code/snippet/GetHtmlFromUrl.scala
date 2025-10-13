@@ -44,7 +44,9 @@ object GetHtmlFromUrl extends MdcLoggable {
 
       def vendorSupportHtml = tryo(scala.io.Source.fromURL(vendorSupportHtmlUrl))
       logger.debug("vendorSupportHtml: " + vendorSupportHtml)
-      def vendorSupportHtmlScript = vendorSupportHtml.map(_.mkString).getOrElse("")
+      def vendorSupportHtmlScript = vendorSupportHtml.map { source =>
+        try source.mkString finally source.close()
+      }.getOrElse("")
       logger.debug("vendorSupportHtmlScript: " + vendorSupportHtmlScript)
       val jsVendorSupportHtml: NodeSeq = vendorSupportHtmlScript match {
         case "" => <script></script>

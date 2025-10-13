@@ -220,11 +220,26 @@
             </execution>
           </executions>
         </plugin>
-        <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <version>6.1.26</version>
-        </plugin>
+<plugin>
+  <groupId>org.eclipse.jetty</groupId>
+  <artifactId>jetty-maven-plugin</artifactId>
+  <version>${jetty.version}</version>
+  <configuration>
+    <httpConnector>
+      <port>8080</port>
+    </httpConnector>
+    <systemProperties>
+      <systemProperty>
+        <name>org.eclipse.jetty.server.HttpConfiguration.requestHeaderSize</name>
+        <value>32768</value>
+      </systemProperty>
+      <systemProperty>
+        <name>org.eclipse.jetty.server.HttpConfiguration.responseHeaderSize</name>
+        <value>32768</value>
+      </systemProperty>
+    </systemProperties>
+  </configuration>
+</plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-idea-plugin</artifactId>
@@ -276,7 +291,7 @@
         <artifactId>maven-site-plugin</artifactId>
         <version>3.7.1</version>
       </plugin>
-      
+
       </plugins>
   </build>
   <reporting>

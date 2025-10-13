@@ -92,7 +92,8 @@ object RSAUtil  extends MdcLoggable {
   }
   
   def main(args: Array[String]): Unit = {
-    val randomString = """G!y"k9GHD$D"""
+    // Use props configuration or generate random password to avoid hard-coded credentials
+    val randomString = APIUtil.getPropsValue("DEMO_DB_PASSWORD", net.liftweb.util.Helpers.randomString(16) + "!A1")
     val db = "jdbc:postgresql://localhost:5432/obp_mapped?user=obp&password=%s".format(randomString)
     val res = encrypt(db)
     println("db.url: " + db)

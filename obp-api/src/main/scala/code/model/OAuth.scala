@@ -541,7 +541,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     // because different databases treat unique indexes on NULL values differently.
     override def defaultValue = APIUtil.generateUUID() 
   }
-  object aud extends MappedString(this, 250) {
+  object aud extends MappedText(this) {
     override def defaultValue = null
   }  
   object iss extends MappedString(this, 250) {

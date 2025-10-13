@@ -27,8 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
-import java.net.URI
-
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.APIUtil._
@@ -51,11 +49,11 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("dauth.host" -> "127.0.0.1")
   setPropsValues("jwt_token_secret"->"your-at-least-256-bit-secret-token")
   setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
-  setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
+  setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
   setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
   setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
   setPropsValues("api_instance_id" -> "1_final")
-  setPropsValues("starConnector_supported_types" -> "mapped,internal")
+  setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
   setPropsValues("connector" -> "star")
 
   // Berlin Group

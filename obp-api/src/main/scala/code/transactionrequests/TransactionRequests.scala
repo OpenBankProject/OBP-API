@@ -5,6 +5,7 @@ import code.api.util.{APIUtil, CallContext}
 import com.openbankproject.commons.model.{TransactionRequest, TransactionRequestChallenge, TransactionRequestCharge, _}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 object TransactionRequests extends SimpleInjector {
 
@@ -29,9 +30,7 @@ object TransactionRequests extends SimpleInjector {
 
 }
 
-trait TransactionRequestProvider {
-
-  private val logger = Logger(classOf[TransactionRequestProvider])
+trait TransactionRequestProvider extends MdcLoggable {
 
   final def getTransactionRequest(transactionRequestId : TransactionRequestId) : Box[TransactionRequest] = {
     getTransactionRequestFromProvider(transactionRequestId)
@@ -80,7 +79,7 @@ trait TransactionRequestProvider {
                                       apiStandard: Option[String],
                                       apiVersion: Option[String],
                                       callContext: Option[CallContext]): Box[TransactionRequest]
-  
+
   def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
   def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
@@ -88,5 +87,3 @@ trait TransactionRequestProvider {
   def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean
   def bulkDeleteTransactionRequests(): Boolean
 }
-
-

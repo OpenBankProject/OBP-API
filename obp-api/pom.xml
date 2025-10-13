@@ -179,6 +179,11 @@
       <version>4.5.13</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <version>2.11.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
       <version>${jetty.version}</version>
@@ -324,6 +329,12 @@
       <artifactId>flexmark-util-options</artifactId>
       <version>0.64.0</version>
     </dependency>
+      <!-- https://mvnrepository.com/artifact/org.web3j/core -->
+      <dependency>
+          <groupId>org.web3j</groupId>
+          <artifactId>core</artifactId>
+          <version>4.9.8</version>
+      </dependency>
     <dependency>
       <groupId>com.zaxxer</groupId>
       <artifactId>HikariCP</artifactId>
@@ -397,6 +408,12 @@
       <groupId>org.asynchttpclient</groupId>
       <artifactId>async-http-client</artifactId>
       <version>2.10.4</version>
+        <exclusions>
+            <exclusion>
+                <artifactId>javax.activation</artifactId>
+                <groupId>com.sun.activation</groupId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <!-- grpc related end-->
 
@@ -405,6 +422,16 @@
       <groupId>org.scalikejdbc</groupId>
       <artifactId>scalikejdbc_${scala.version}</artifactId>
       <version>3.4.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.sun.activation</groupId>
+          <artifactId>javax.activation</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.activation</groupId>
+          <artifactId>activation</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
@@ -457,9 +484,9 @@
       <artifactId>java-scriptengine</artifactId>
       <version>2.0.0</version>
     </dependency>
-    <!-- 
+    <!--
     Java Client for ORY Hydra
-    https://github.com/ory/hydra-client-java 
+    https://github.com/ory/hydra-client-java
     -->
     <dependency>
       <groupId>sh.ory.hydra</groupId>
@@ -498,6 +525,16 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+        <groupId>com.sun.mail</groupId>
+        <artifactId>jakarta.mail</artifactId>
+        <version>2.0.1</version>
+    </dependency>
+    <dependency>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>2.0.1</version>
+    </dependency>
     <dependency>
       <groupId>com.sun.activation</groupId>
       <artifactId>jakarta.activation</artifactId>
@@ -601,14 +638,28 @@
             </execution>
           </executions>
         </plugin>
-        <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <configuration>
-            <contextPath>/</contextPath>
-            <scanIntervalSeconds>5</scanIntervalSeconds>
-          </configuration>
-        </plugin>
+<plugin>
+  <groupId>org.eclipse.jetty</groupId>
+  <artifactId>jetty-maven-plugin</artifactId>
+  <version>${jetty.version}</version>
+  <configuration>
+    <contextPath>/</contextPath>
+    <scanIntervalSeconds>5</scanIntervalSeconds>
+    <httpConnector>
+      <port>8080</port>
+    </httpConnector>
+    <systemProperties>
+      <systemProperty>
+        <name>org.eclipse.jetty.server.HttpConfiguration.requestHeaderSize</name>
+        <value>32768</value>
+      </systemProperty>
+      <systemProperty>
+        <name>org.eclipse.jetty.server.HttpConfiguration.responseHeaderSize</name>
+        <value>32768</value>
+      </systemProperty>
+    </systemProperties>
+  </configuration>
+</plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-idea-plugin</artifactId>
@@ -661,24 +712,25 @@
           <release>${java.version}</release>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.scalaxb</groupId>
-        <artifactId>scalaxb-maven-plugin</artifactId>
-        <version>1.7.5</version>
-        <configuration>
-          <packageName>code.adapter.soap</packageName>
-          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>
-          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>scalaxb</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!--soap related plugin begin-->
+<!--      <plugin>-->
+<!--        <groupId>org.scalaxb</groupId>-->
+<!--        <artifactId>scalaxb-maven-plugin</artifactId>-->
+<!--        <version>1.7.5</version>-->
+<!--        <configuration>-->
+<!--          <packageName>code.adapter.soap</packageName>-->
+<!--          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>-->
+<!--          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <id>scalaxb</id>-->
+<!--            <goals>-->
+<!--              <goal>generate</goal>-->
+<!--            </goals>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
       <!--grpc related plugin begin-->
       <!-- currently not need, enable this plugin when need generate new grpc code.
       <plugin>

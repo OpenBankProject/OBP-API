@@ -36,10 +36,10 @@ object BgSpecValidation {
 
       if (date.isBefore(today)) {
         Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) cannot be in the past!")
-      } else if (date.isEqual(MaxValidDays) || date.isAfter(MaxValidDays)) {
+      } else if (date.isAfter(MaxValidDays)) {
         Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) exceeds the maximum allowed period of 180 days (until $MaxValidDays).")
       } else {
-        Right(date) // Valid date
+        Right(date) // Valid date (inclusive of 180 days)
       }
     } catch {
       case _: DateTimeParseException =>
@@ -55,23 +55,4 @@ object BgSpecValidation {
     }
   }
 
-  // Example usage
-  def main(args: Array[String]): Unit = {
-    val testDates = Seq(
-      "2025-05-10",  // More than 180 days ahead
-      "9999-12-31",  // Exceeds max allowed
-      "2015-01-01",  // In the past
-      "invalid-date", // Invalid format
-      LocalDate.now().plusDays(90).toString,  // Valid (within 180 days)
-      LocalDate.now().plusDays(180).toString, // Valid (exactly 180 days)
-      LocalDate.now().plusDays(181).toString  // More than 180 days
-    )
-
-    testDates.foreach { date =>
-      validateValidUntil(date) match {
-        case Right(validDate) => println(s"Valid date: $validDate")
-        case Left(error)      => println(s"Error: $error")
-      }
-    }
-  }
 }

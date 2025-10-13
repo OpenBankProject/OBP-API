@@ -1,8 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.OBPRestHelper
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
 
 object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
@@ -123,6 +123,22 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   
   object ResourceDocs510 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
     val version: ApiVersion = ApiVersion.v5_1_0 
+    val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
+    val routes = List(
+      ImplementationsResourceDocs.getResourceDocsObpV400,
+      ImplementationsResourceDocs.getResourceDocsSwagger,
+      ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
+//      ImplementationsResourceDocs.getStaticResourceDocsObp
+    )
+    routes.foreach(route => {
+      oauthServe(apiPrefix {
+        route
+      })
+    })
+  }
+  
+  object ResourceDocs600 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
+    val version: ApiVersion = ApiVersion.v6_0_0 
     val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
     val routes = List(
       ImplementationsResourceDocs.getResourceDocsObpV400,

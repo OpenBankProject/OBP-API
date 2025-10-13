@@ -90,6 +90,12 @@ object NewStyle extends MdcLoggable{
     def `204`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(204)))
     }
+    def `400`(callContext: CallContext): Option[CallContext] = {
+      Some(callContext.copy(httpCode = Some(400)))
+    }
+    def `400`(callContext: Option[CallContext]): Option[CallContext] = {
+      callContext.map(_.copy(httpCode = Some(400)))
+    }
     def `404`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(404)))
     }
@@ -450,6 +456,13 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountNumber is $accountNumber", 404), i._2)
       }
 
+    // This method handles external bank accounts that may not exist in our database.
+    // If the account is not found, we create an in-memory account using counterparty information for payment processing.
+    def getOtherBankAccountByNumber(bankId : Option[BankId], accountNumber : String, counterparty: Option[CounterpartyTrait], callContext: Option[CallContext]) : OBPReturnType[(BankAccount)] = {
+      Connector.connector.vend.getOtherBankAccountByNumber(bankId, accountNumber, counterparty, callContext) } map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountNumber is $accountNumber", 404), i._2)
+      }
+
     def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[BankAccount]] = {
       Connector.connector.vend.getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankNotFound Current BankId is $bankId", 404 ), i._2)
@@ -762,20 +775,41 @@ object NewStyle extends MdcLoggable{
     def isEnabledTransactionRequests(callContext: Option[CallContext]): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled, cc=callContext)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
-      * Wraps a Future("try") block around the function f and
-      * @param f - the block of code to evaluate
-      * @return <ul>
-      *   <li>Future(result of the evaluation of f) if f doesn't throw any exception
-      *   <li>a Failure if f throws an exception with message = failMsg and code = failCode
-      *   </ul>
-      */
-    def tryons[T](failMsg: String, failCode: Int = 400, callContext: Option[CallContext])(f: => T)(implicit m: Manifest[T]): Future[T]= {
+     * Wraps a computation `f` in a Future, capturing exceptions and returning detailed error messages.
+     *
+     * @param failMsg     Base error message to return if the computation fails.
+     * @param failCode    HTTP status code to return on failure (default: 400).
+     * @param callContext Optional call context for logging or metadata.
+     * @param f           The computation to execute (call-by-name to defer evaluation).
+     * @param m           Implicit Manifest for type `T` (handled by Scala compiler).
+     * @return Future[T]  Success: Result of `f`; Failure: Detailed error message.
+     */
+    def tryons[T](
+      failMsg: String,
+      failCode: Int = 400,
+      callContext: Option[CallContext]
+    )(f: => T)(implicit m: Manifest[T]): Future[T] = {
       Future {
-        tryo {
-          f
+        try {
+          // Attempt to execute `f` and wrap the result in `Full` (success) or `Failure` (error)
+          tryo(f) match {
+            case Full(result) =>
+              Full(result)  // Success: Forward the result
+            case Failure(msg, _, _) =>
+              // `tryo` encountered an exception (e.g., validation error)
+              Failure(s"$failMsg. Details: $msg", Empty, Empty)
+            case Empty =>
+              // Edge case: Empty result (unlikely but handled defensively)
+              Failure(s"$failMsg. Details: Empty result", Empty, Empty)
+          }
+        } catch {
+          case e: Exception =>
+            // Directly caught exception (e.g., JSON parsing error)
+            Failure(s"$failMsg. Details: ${e.getMessage}", Full(e), Empty)
         }
       } map {
-        x => unboxFullOrFail(x, callContext, failMsg, failCode)
+        x => 
+          unboxFullOrFail(x, callContext, failMsg, failCode)
       }
     }
 

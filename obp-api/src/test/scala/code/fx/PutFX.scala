@@ -139,7 +139,10 @@ object PutFX extends SendServerRequests {
       println(s"fxDataPath is $fxDataPath")
 
       // This contains a list of fx rates.
-      val fxListData = JsonParser.parse(Source.fromFile(fxDataPath.getOrElse("ERROR")).mkString)
+      val fxListData = {
+        val source = Source.fromFile(fxDataPath.getOrElse("ERROR"))
+        try JsonParser.parse(source.mkString) finally source.close()
+      }
 
       var fxrates = ListBuffer[FxJson]()
 

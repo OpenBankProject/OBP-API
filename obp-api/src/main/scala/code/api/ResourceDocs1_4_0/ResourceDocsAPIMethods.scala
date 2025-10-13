@@ -1,18 +1,14 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, PARAM_LOCALE}
-import java.util.UUID.randomUUID
-
 import code.api.OBPRestHelper
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomersJson
 import code.api.cache.Caching
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
-import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
+import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
 import code.api.util.ApiTag._
-import code.api.util.DynamicUtil.{dynamicCompileResult, logger}
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
+import code.api.util.FutureUtil.EndpointContext
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -20,35 +16,30 @@ import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
+import code.api.v5_0_0.OBPAPI5_0_0
+import code.api.v5_1_0.OBPAPI5_1_0
+import code.api.v6_0_0.OBPAPI6_0_0
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{BankId, ListResult, User}
-import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 import com.openbankproject.commons.model.enums.ContentParam
+import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
+import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.{JsonResponse, LiftRules, S}
+import net.liftweb.http.LiftRules
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
+
 import java.util.concurrent.ConcurrentHashMap
-
-import code.api.util.FutureUtil.EndpointContext
-import code.api.util.NewStyle.HttpCode
-import code.api.v5_0_0.OBPAPI5_0_0
-import code.api.v5_1_0.{OBPAPI5_1_0, UserAttributeJsonV510}
-import code.util.Helper
-
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 // JObject creation
-import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
+import code.api.v1_2_1.{APIMethods121, OBPAPI1_2_1}
 import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
 import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
 import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
@@ -58,9 +49,6 @@ import scala.collection.mutable.ArrayBuffer
 // So we can include resource docs from future versions
 import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
-
-import scala.concurrent.duration._
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 
@@ -123,6 +111,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
@@ -141,6 +130,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes

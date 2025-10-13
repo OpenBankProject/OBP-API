@@ -11,8 +11,9 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200}
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CreateAccountResponseJsonV310, CustomerJsonV310}
-import code.api.v4_0_0.{AtmJsonV400, BanksJson400, PostAccountAccessJsonV400, PostViewJsonV400, TransactionRequestWithChargeJSON400}
+import code.api.v4_0_0.{AtmJsonV400, BanksJson400, CallLimitPostJsonV400, PostAccountAccessJsonV400, PostViewJsonV400, TransactionRequestWithChargeJSON400}
 import code.api.v5_0_0.PostCustomerJsonV500
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, CreateViewJson}
@@ -31,6 +32,15 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def v5_1_0_Request: Req = baseRequest / "obp" / "v5.1.0"
   def dynamicEndpoint_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
   def dynamicEntity_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
+
+
+  def setRateLimiting(consumerAndToken: Option[(Consumer, Token)], putJson: CallLimitPostJsonV400): APIResponse = {
+    val Some((c, _)) = consumerAndToken
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimits.toString)
+    val request400 = (v4_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@ (consumerAndToken)
+    makePutRequest(request400, write(putJson))
+  }
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {

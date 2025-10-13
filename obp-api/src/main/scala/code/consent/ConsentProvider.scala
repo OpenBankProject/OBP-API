@@ -17,7 +17,7 @@ object Consents extends SimpleInjector {
 }
 
 trait ConsentProvider {
-  def getConsents(queryParams: List[OBPQueryParam]): List[MappedConsent]
+  def getConsents(queryParams: List[OBPQueryParam]): (List[MappedConsent], Long)
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
   def getConsentByConsentRequestId(consentRequestId: String): Box[MappedConsent]
   def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent]

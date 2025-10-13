@@ -16,6 +16,7 @@ import code.api.v3_1_0._
 import code.api.v4_0_0._
 import code.api.v5_0_0._
 import code.api.v5_1_0._
+import code.api.v6_0_0._
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.ConsentStatus
@@ -1063,6 +1064,15 @@ object SwaggerDefinitionsJSON {
   
   lazy val postBankJson500 = PostBankJson500(
     id = Some(bankIdExample.value),
+    bank_code = bankCodeExample.value,
+    full_name = Some(fullNameExample.value),
+    logo = Some(logoExample.value),
+    website = Some(websiteExample.value),
+    bank_routings = Some(List(bankRoutingJsonV121))
+  )
+
+  lazy val postBankJson600 = PostBankJson600(
+    bank_id = bankIdExample.value,
     bank_code = bankCodeExample.value,
     full_name = Some(fullNameExample.value),
     logo = Some(logoExample.value),
@@ -3945,6 +3955,66 @@ object SwaggerDefinitionsJSON {
     Some(redisCallLimitJson)
   )
 
+  lazy val callLimitsJson510Example: CallLimitsJson510 = CallLimitsJson510(
+    limits = List(
+      CallLimitJson510(
+        rate_limiting_id = "80e1e0b2-d8bf-4f85-a579-e69ef36e3305",
+        from_date = DateWithDayExampleObject,
+        to_date = DateWithDayExampleObject,
+        per_second_call_limit = "100",
+        per_minute_call_limit = "100",
+        per_hour_call_limit = "-1",
+        per_day_call_limit = "-1",
+        per_week_call_limit = "-1",
+        per_month_call_limit = "-1",
+        created_at = DateWithDayExampleObject,
+        updated_at = DateWithDayExampleObject
+      )
+    )
+  )
+
+  lazy val callLimitPostJsonV600 = CallLimitPostJsonV600(
+    from_date = DateWithDayExampleObject,
+    to_date = DateWithDayExampleObject,
+    api_version = Some("v6.0.0"),
+    api_name = Some("getConsumerCallLimits"),
+    bank_id = None,
+    per_second_call_limit = "100",
+    per_minute_call_limit = "1000",
+    per_hour_call_limit = "-1",
+    per_day_call_limit = "-1",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1"
+  )
+
+  lazy val callLimitJsonV600 = CallLimitJsonV600(
+    rate_limiting_id = "80e1e0b2-d8bf-4f85-a579-e69ef36e3305",
+    from_date = DateWithDayExampleObject,
+    to_date = DateWithDayExampleObject,
+    api_version = Some("v6.0.0"),
+    api_name = Some("getConsumerCallLimits"),
+    bank_id = None,
+    per_second_call_limit = "100",
+    per_minute_call_limit = "1000",
+    per_hour_call_limit = "-1",
+    per_day_call_limit = "-1",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1",
+    created_at = DateWithDayExampleObject,
+    updated_at = DateWithDayExampleObject
+  )
+
+  lazy val activeCallLimitsJsonV600 = ActiveCallLimitsJsonV600(
+    call_limits = List(callLimitJsonV600),
+    active_at_date = DateWithDayExampleObject,
+    total_per_second_call_limit = 100,
+    total_per_minute_call_limit = 1000,
+    total_per_hour_call_limit = -1,
+    total_per_day_call_limit = -1,
+    total_per_week_call_limit = -1,
+    total_per_month_call_limit = -1
+  )
+
   lazy val accountWebhookPostJson = AccountWebhookPostJson(
     account_id =accountIdExample.value,
     trigger_name = ApiTrigger.onBalanceChange.toString(),
@@ -4254,6 +4324,8 @@ object SwaggerDefinitionsJSON {
     consent_reference_id = consentReferenceIdExample.value,
     consumer_id = consumerIdExample.value,
     created_by_user_id = userIdExample.value,
+    provider = Some(providerValueExample.value),
+    provider_id = Some(providerIdExample.value),
     last_action_date = dateExample.value,
     last_usage_date = dateTimeExample.value,
     status = ConsentStatus.INITIATED.toString,
@@ -4281,7 +4353,7 @@ object SwaggerDefinitionsJSON {
     consents =  List(consentInfoJsonV510)
   )
   
-  lazy val consentsJsonV510 = ConsentsJsonV510(List(allConsentJsonV510))
+  lazy val consentsJsonV510 = ConsentsJsonV510(number_of_rows = 1, List(allConsentJsonV510))
 
   lazy val revokedConsentJsonV310 = ConsentJsonV310(
     consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
@@ -5697,6 +5769,57 @@ object SwaggerDefinitionsJSON {
     permission_name = CAN_GRANT_ACCESS_TO_VIEWS,
     extra_data = Some(List(SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID))
   )
+
+
+  lazy val cardanoPaymentJsonV600 = CardanoPaymentJsonV600(
+    address = "addr_test1qpv3se9ghq87ud29l0a8asy8nlqwd765e5zt4rc2z4mktqulwagn832cuzcjknfyxwzxz2p2kumx6n58tskugny6mrqs7fd12",
+    amount = CardanoAmountJsonV600(
+      quantity = 1000000,
+      unit = "lovelace"
+    ),
+    assets = Some(List(CardanoAssetJsonV600(
+      policy_id = "policy1234567890abcdef",
+      asset_name = "4f47435241",
+      quantity = 10
+    )))
+  )
+
+  // Example for Send ADA with Token only (no ADA amount)
+  lazy val cardanoPaymentTokenOnlyJsonV510 = CardanoPaymentJsonV600(
+    address = "addr_test1qpv3se9ghq87ud29l0a8asy8nlqwd765e5zt4rc2z4mktqulwagn832cuzcjknfyxwzxz2p2kumx6n58tskugny6mrqs7fd12",
+    amount = CardanoAmountJsonV600(
+      quantity = 0,
+      unit = "lovelace"
+    ),
+    assets = Some(List(CardanoAssetJsonV600(
+      policy_id = "policy1234567890abcdef",
+      asset_name = "4f47435241",
+      quantity = 10
+    )))
+  )
+
+  lazy val cardanoMetadataStringJsonV600 = CardanoMetadataStringJsonV600(
+    string = "Hello Cardano"
+  )
+
+  lazy val transactionRequestBodyCardanoJsonV600 = TransactionRequestBodyCardanoJsonV600(
+    to =  cardanoPaymentJsonV600,
+    value = amountOfMoneyJsonV121,
+    passphrase = "password1234!",
+    description = descriptionExample.value,
+    metadata = Some(Map("202507022319" -> cardanoMetadataStringJsonV600))
+  )
+
+  lazy val transactionRequestBodyEthereumJsonV600 = TransactionRequestBodyEthereumJsonV600(
+    to = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    value = AmountOfMoneyJsonV121("ETH", "0.01"),
+    description = descriptionExample.value
+  )
+  lazy val transactionRequestBodyEthSendRawTransactionJsonV600 = TransactionRequestBodyEthSendRawTransactionJsonV600(
+    params = "0xf86b018203e882520894627306090abab3a6e1400e9345bc60c78a8bef57880de0b6b3a764000080820ff6a0d0367709eee090a6ebd74c63db7329372db1966e76d28ce219d1e105c47bcba7a0042d52f7d2436ad96e8714bf0309adaf870ad6fb68cfe53ce958792b3da36c12",
+    description = descriptionExample.value
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

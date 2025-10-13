@@ -13,5 +13,6 @@ trait ResourceDocsV140ServerSetup extends ServerSetupWithTestData {
   def ResourceDocsV4_0Request = baseRequest / "obp" / "v4.0.0"
   def ResourceDocsV5_0Request = baseRequest / "obp" / "v5.0.0"
   def ResourceDocsV5_1Request = baseRequest / "obp" / "v5.1.0"
+  def ResourceDocsV6_0Request = baseRequest / "obp" / "v6.0.0"
 
 }

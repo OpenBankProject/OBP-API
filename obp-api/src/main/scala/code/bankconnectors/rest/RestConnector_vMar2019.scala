@@ -1500,7 +1500,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       startDate=toDate(transactionStartDateExample),
       finishDate=Some(toDate(transactionFinishDateExample)),
       balance=BigDecimal(balanceExample.value),
-      status=transactionStatusExample.value)))
+      status=Some(transactionStatusExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1634,7 +1634,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       startDate=toDate(transactionStartDateExample),
       finishDate=Some(toDate(transactionFinishDateExample)),
       balance=BigDecimal(balanceExample.value),
-      status=transactionStatusExample.value))
+      status=Some(transactionStatusExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

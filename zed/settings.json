@@ -1,0 +1,80 @@
+{
+  "format_on_save": "off",
+  "tab_size": 2,
+  "terminal": {
+    "env": {
+      "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util.jar=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+    }
+  },
+  "project_panel": {
+    "dock": "left",
+    "default_width": 300
+  },
+  "outline_panel": {
+    "dock": "right"
+  },
+  "theme": "One Dark",
+  "ui_font_size": 14,
+  "buffer_font_size": 14,
+  "soft_wrap": "editor_width",
+  "show_whitespaces": "selection",
+  "tabs": {
+    "git_status": true,
+    "file_icons": true
+  },
+  "gutter": {
+    "line_numbers": true
+  },
+  "scrollbar": {
+    "show": "auto"
+  },
+  "indent_guides": {
+    "enabled": true
+  },
+  "lsp": {
+    "metals": {
+      "initialization_options": {
+        "compileOnSave": true,
+        "debuggingProvider": true,
+        "decorationProvider": true,
+        "didFocusProvider": true,
+        "doctorProvider": "html",
+        "executeClientCommandProvider": true,
+        "inputBoxProvider": true,
+        "quickPickProvider": true,
+        "renameProvider": true,
+        "statusBarProvider": "on",
+        "treeViewProvider": true,
+        "buildTool": "maven"
+      },
+      "settings": {
+        "metals.ammoniteJvmProperties": ["-Xmx1G"],
+        "metals.buildServer.version": "2.0.0",
+        "metals.javaFormat.eclipseConfigPath": "",
+        "metals.javaFormat.eclipseProfile": "",
+        "metals.superMethodLensesEnabled": true,
+        "metals.testUserInterface": "Code Lenses",
+        "metals.bloopSbtAlreadyInstalled": true,
+        "metals.gradleScript": "",
+        "metals.mavenScript": "",
+        "metals.millScript": "",
+        "metals.sbtScript": "",
+        "metals.scalafmtConfigPath": ".scalafmt.conf",
+        "metals.enableSemanticHighlighting": true,
+        "metals.allowMultilineStringFormatting": true,
+        "metals.inlayHints.enabled": true,
+        "metals.inlayHints.hintsInPatternMatch.enabled": true,
+        "metals.inlayHints.implicitArguments.enabled": true,
+        "metals.inlayHints.implicitConversions.enabled": true,
+        "metals.inlayHints.inferredTypes.enabled": true,
+        "metals.inlayHints.typeParameters.enabled": true
+      }
+    }
+  },
+  "languages": {
+    "Scala": {
+      "language_servers": ["metals"],
+      "format_on_save": "off"
+    }
+  }
+}

@@ -1,28 +1,24 @@
 package code.transactionrequests
 
-import code.api.util.APIUtil.{DateWithMsFormat}
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
+import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
 import code.api.v2_1_0.TransactionRequestBodyCounterpartyJSON
 import code.bankconnectors.LocalMappedConnectorInternal
 import code.consent.Consents
 import code.model._
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus}
-import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import com.openbankproject.commons.model.enums.TransactionRequestTypes.{COUNTERPARTY, SEPA}
+import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.{Box, Failure, Full, Logger}
+import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
-import java.text.SimpleDateFormat
-
-object MappedTransactionRequestProvider extends TransactionRequestProvider {
-
-  private val logger = Logger(classOf[TransactionRequestProvider])
+object MappedTransactionRequestProvider extends TransactionRequestProvider with MdcLoggable {
 
   override def getMappedTransactionRequest(transactionRequestId: TransactionRequestId): Box[MappedTransactionRequest] =
     MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
@@ -54,7 +50,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       By(MappedTransactionRequest.mTransactionIDs, transactionId.value)
     )
   }
-  
+
   override def bulkDeleteTransactionRequests(): Boolean = {
     MappedTransactionRequest.bulkDelete_!!()
   }
@@ -104,7 +100,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
           .orElse(toAccount.accountRoutings.headOption)
       case _ => toAccount.accountRoutings.headOption
     }
-    
+
     val counterpartyIdOption = TransactionRequestTypes.withName(transactionRequestType.value) match {
       case COUNTERPARTY  => Some(transactionRequestCommonBody.asInstanceOf[TransactionRequestBodyCounterpartyJSON].to.counterparty_id)
       case _ => None
@@ -112,10 +108,10 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
     val (paymentStartDate, paymentEndDate, executionRule, frequency, dayOfExecution) = if(paymentService == Some("periodic-payments")){
       val paymentFields = berlinGroupPayments.asInstanceOf[Option[PeriodicSepaCreditTransfersBerlinGroupV13]]
-      
+
       val paymentStartDate = paymentFields.map(_.startDate).map(DateWithMsFormat.parse).orNull
       val paymentEndDate = paymentFields.flatMap(_.endDate).map(DateWithMsFormat.parse).orNull
-      
+
       val executionRule = paymentFields.flatMap(_.executionRule).orNull
       val frequency = paymentFields.map(_.frequency).orNull
       val dayOfExecution = paymentFields.flatMap(_.dayOfExecution).orNull
@@ -128,7 +124,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     val consentIdOption = callContext.map(_.requestHeaders).map(APIUtil.getConsentIdRequestHeaderValue).flatten
     val consentOption = consentIdOption.map(consentId =>Consents.consentProvider.vend.getConsentByConsentId(consentId).toOption).flatten
     val consentReferenceIdOption = consentOption.map(_.consentReferenceId)
-    
+
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
 
@@ -161,9 +157,9 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mOtherBankRoutingAddress(toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_ADDRESS")
         .map(_.value)).getOrElse(toAccount.bankRoutingScheme))
       // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill the following fields .
-      //.mThisBankId(toAccount.bankId.value) 
+      //.mThisBankId(toAccount.bankId.value)
       //.mThisAccountId(toAccount.accountId.value)
-      //.mThisViewId(toAccount.v) 
+      //.mThisViewId(toAccount.v)
       .mCounterpartyId(counterpartyIdOption.getOrElse(null))
       //.mIsBeneficiary(toAccount.isBeneficiary)
 
@@ -172,7 +168,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
       .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
       .mBody_Description(transactionRequestCommonBody.description)
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
-      
+
       .mDetails(details) // This is the details / body of the request (contains all fields in the body)
 
       .mPaymentStartDate(paymentStartDate)
@@ -229,9 +225,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
 }
 
-class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats {
-
-  private val logger = Logger(classOf[MappedTransactionRequest])
+class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats with MdcLoggable {
 
   override def getSingleton = MappedTransactionRequest
 
@@ -249,11 +243,11 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mChallenge_ChallengeType extends MappedString(this, 100)
   object mCharge_Summary  extends MappedString(this, 64)
   object mCharge_Amount  extends MappedString(this, 32)
-  object mCharge_Currency  extends MappedString(this, 3)
+  object mCharge_Currency  extends MappedString(this, 16)
   object mcharge_Policy  extends MappedString(this, 32)
 
   //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
-  object mBody_Value_Currency extends MappedString(this, 3)
+  object mBody_Value_Currency extends MappedString(this, 16)
   object mBody_Value_Amount extends MappedString(this, 32)
   object mBody_Description extends MappedString(this, 2000)
   // This is the details / body of the request (contains all fields in the body)
@@ -268,7 +262,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   @deprecated("use mOtherBankRoutingAddress instead","2017-12-25")
   object mTo_BankId extends UUIDString(this)
   @deprecated("use mOtherAccountRoutingAddress instead","2017-12-25")
-  object mTo_AccountId extends AccountIdString(this)
+  object mTo_AccountId extends MappedString(this, 128)
 
   //toCounterparty fields
   object mName extends MappedString(this, 64)
@@ -277,60 +271,60 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mThisViewId extends UUIDString(this)
   object mCounterpartyId extends UUIDString(this)
   object mOtherAccountRoutingScheme extends MappedString(this, 32) // TODO Add class for Scheme and Address
-  object mOtherAccountRoutingAddress extends MappedString(this, 64)
+  object mOtherAccountRoutingAddress extends MappedString(this, 128)
   object mOtherBankRoutingScheme extends MappedString(this, 32)
   object mOtherBankRoutingAddress extends MappedString(this, 64)
   object mIsBeneficiary extends MappedBoolean(this)
-  
-  //Here are for Berlin Group V1.3 
+
+  //Here are for Berlin Group V1.3
   object mPaymentStartDate extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2024-08-12"
   object mPaymentEndDate	 extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2025-08-01"
-  object mPaymentExecutionRule extends MappedString(this, 64) //BGv1.3 Open API Document example value: "executionRule":"preceding" 
-  object mPaymentFrequency extends MappedString(this, 64)     //BGv1.3 Open API Document example value: "frequency":"Monthly", 
-  object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01" 
-  
+  object mPaymentExecutionRule extends MappedString(this, 64) //BGv1.3 Open API Document example value: "executionRule":"preceding"
+  object mPaymentFrequency extends MappedString(this, 64)     //BGv1.3 Open API Document example value: "frequency":"Monthly",
+  object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01"
+
   object mConsentReferenceId extends MappedString(this, 64)
 
   object mApiStandard extends MappedString(this, 50)
   object mApiVersion extends MappedString(this, 50)
-  
+
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)
   }
 
   def toTransactionRequest : Option[TransactionRequest] = {
-  
+
     val details = mDetails.toString
-  
+
     val parsedDetails = json.parse(details)
-  
+
     val transactionType = mType.get
-    
+
     val t_amount = AmountOfMoney (
       currency = mBody_Value_Currency.get,
       amount = mBody_Value_Amount.get
     )
-    
+
     val t_to_sandbox_tan = if (
-      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN || 
-      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT_OTP || 
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN ||
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT_OTP ||
       TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT)
       Some(TransactionRequestAccount (bank_id = mTo_BankId.get, account_id = mTo_AccountId.get))
     else
       None
-  
+
     val t_to_sepa = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA){
       val ibanList: List[String] = for {
         JObject(child) <- parsedDetails
         JField("iban", JString(iban)) <- child
       } yield
         iban
-      val ibanValue = if (ibanList.isEmpty) "" else ibanList.head      
+      val ibanValue = if (ibanList.isEmpty) "" else ibanList.head
       Some(TransactionRequestIban(iban = ibanValue))
     }
     else
       None
-    
+
     val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY ||
       TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.CARD){
       val counterpartyIdList: List[String] = for {
@@ -366,29 +360,29 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         otherAccountSecondaryRoutingScheme,
         otherAccountSecondaryRoutingAddress
       )
-      if(transactionRequestSimples.isEmpty) 
-        Some(TransactionRequestSimple("","","","","","","","")) 
-      else 
+      if(transactionRequestSimples.isEmpty)
+        Some(TransactionRequestSimple("","","","","","","",""))
+      else
         Some(transactionRequestSimples.head)
     }
     else
       None
-      
+
     val t_to_transfer_to_phone = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_PHONE && details.nonEmpty)
       Some(parsedDetails.extract[TransactionRequestTransferToPhone])
     else
       None
 
-    val t_to_transfer_to_atm = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ATM && details.nonEmpty) 
+    val t_to_transfer_to_atm = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ATM && details.nonEmpty)
       Some(parsedDetails.extract[TransactionRequestTransferToAtm])
     else
       None
-    
+
     val t_to_transfer_to_account = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ACCOUNT && details.nonEmpty)
       Some(parsedDetails.extract[TransactionRequestTransferToAccount])
     else
       None
-    
+
     val t_to_agent = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.AGENT_CASH_WITHDRAWAL && details.nonEmpty) {
       val agentNumberList: List[String] = for {
         JObject(child) <- parsedDetails
@@ -409,20 +403,20 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     }
     else
       None
-      
-    
+
+
     //This is Berlin Group Types:
     val t_to_sepa_credit_transfers = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SEPA_CREDIT_TRANSFERS && details.nonEmpty)
       Some(parsedDetails.extract[SepaCreditTransfers]) //TODO, here may need a internal case class, but for now, we used it from request json body.
     else
       None
-    
+
     val t_body = TransactionRequestBodyAllTypes(
       to_sandbox_tan = t_to_sandbox_tan,
       to_sepa = t_to_sepa,
       to_counterparty = t_to_counterparty,
       to_simple = t_to_simple,
-      to_transfer_to_phone = t_to_transfer_to_phone, 
+      to_transfer_to_phone = t_to_transfer_to_phone,
       to_transfer_to_atm = t_to_transfer_to_atm,
       to_transfer_to_account = t_to_transfer_to_account,
       to_sepa_credit_transfers = t_to_sepa_credit_transfers,

@@ -60,6 +60,7 @@ import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model._
@@ -78,9 +79,8 @@ import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer}
 import org.mindrot.jbcrypt.BCrypt
 import scalikejdbc.DB.CPContext
 import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext, DB => scalikeDB, _}
@@ -164,6 +164,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
     isValidCurrencyISOCode(thresholdCurrency) match {
+      case true if((currency.toLowerCase.equals("lovelace")||(currency.toLowerCase.equals("ada")))) =>
+        (Full(AmountOfMoney(currency, "10000000000000")), callContext)
+      case true if(currency.equalsIgnoreCase("ETH")) =>
+        // For ETH, skip FX conversion and return a large threshold in wei-equivalent semantic (string value).
+        // Here we use a high number to effectively avoid challenge for typical dev/testing amounts.
+        (Full(AmountOfMoney("ETH", "10000")), callContext)
       case true =>
         fx.exchangeRate(thresholdCurrency, currency, Some(bankId), callContext) match {
           case rate@Some(_) =>
@@ -381,8 +387,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         val hashedPassword = createHashedPassword(challengeAnswer)
         APIUtil.getEmailsByUserId(userId) map {
           pair =>
-            val params = PlainMailBodyType(s"Your OTP challenge : ${challengeAnswer}") :: List(To(pair._2))
-            Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge"), params: _*)
+            val emailContent = CommonsEmailWrapper.EmailContent(
+              from = mailUsersUserinfoSenderAddress,
+              to = List(pair._2),
+              subject = "Challenge",
+              textContent = Some(s"Your OTP challenge : ${challengeAnswer}")
+            )
+            CommonsEmailWrapper.sendTextEmail(emailContent)
         }
         hashedPassword
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
@@ -1022,14 +1033,75 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         else
           s"$AccountNumberNotUniqueError, current BankId is ${bankId.head.value}, AccountNumber is $accountNumber"
           
-      if(bankAccounts.length > 1){
+      if(bankAccounts.length > 1){ // If the account number is not unique, return the error message
         (Failure(errorMessage), callContext)
-      }else if (bankAccounts.length == 1){
+      }else if (bankAccounts.length == 1){  // If the account number is unique, return the account
         (Full(bankAccounts.head), callContext)
-      }else{
-        (Failure(errorMessage), callContext)
+      }else{ // If the account number is not found, return the error message
+        (Failure(s"$InvalidAccountNumber, current AccountNumber is $accountNumber"), callContext)
       }
     }
+
+  // This method handles external bank accounts that may not exist in our database.
+  // If the account is not found, we create an in-memory account using counterparty information for payment processing.
+  override def getOtherBankAccountByNumber(bankId : Option[BankId], accountNumber : String, counterparty: Option[CounterpartyTrait], callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = {
+    
+    for {
+      (existingAccountBox, updatedCallContext) <- getBankAccountByNumber(bankId, accountNumber, callContext)
+      (finalAccountBox, finalCallContext) <- existingAccountBox match {
+        case Full(account) => 
+          // If account found in database, return it
+          Future.successful((Full(account), updatedCallContext))
+        case _ => 
+          // If account not found, check if we can create in-memory account
+          counterparty match {
+            case Some(cp) =>
+              // Create in-memory account using counterparty information
+              Future {
+                val accountRouting1 =
+                  if (cp.otherAccountRoutingScheme.isEmpty) Nil
+                  else List(AccountRouting(cp.otherAccountRoutingScheme, cp.otherAccountRoutingAddress))
+                val accountRouting2 =
+                  if (cp.otherAccountSecondaryRoutingScheme.isEmpty) Nil
+                  else List(AccountRouting(cp.otherAccountSecondaryRoutingScheme, cp.otherAccountSecondaryRoutingAddress))
+
+                // Due to the new field in the database, old counterparty have void currency, so by default, we set it to EUR
+                val counterpartyCurrency = if (cp.currency.nonEmpty) cp.currency else "EUR"
+
+                val inMemoryAccount = BankAccountCommons(
+                  AccountId(if (cp.otherAccountSecondaryRoutingAddress.nonEmpty) cp.otherAccountSecondaryRoutingAddress else accountNumber), 
+                  "", 0,
+                  currency = counterpartyCurrency,
+                  name = cp.name,
+                  "", accountNumber, 
+                  BankId(cp.otherBankRoutingAddress), 
+                  new Date(), "",
+                  accountRoutings = accountRouting1 ++ accountRouting2,
+                  List.empty, 
+                  accountHolder = cp.name,
+                  Some(List(Attribute(
+                    name = "BANK_ROUTING_SCHEME",
+                    `type` = "STRING",
+                    value = cp.otherBankRoutingScheme
+                  ),
+                    Attribute(
+                      name = "BANK_ROUTING_ADDRESS",
+                      `type` = "STRING",
+                      value = cp.otherBankRoutingAddress
+                    ),
+                  ))
+                )
+                (Full(inMemoryAccount), updatedCallContext)
+              }
+            case None =>
+              // No counterparty provided, return failure
+              Future.successful((Failure(s"$InvalidAccountNumber, current AccountNumber is $accountNumber and no counterparty provided for creating in-memory account"), updatedCallContext))
+          }
+      }
+    } yield {
+      (finalAccountBox, finalCallContext)
+    }
+  }
 
   override def getBankAccountByRoutings(
     bankAccountRoutings: BankAccountRoutings,
@@ -4472,7 +4544,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       
       // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - ${nameOf(getChallengeThreshold _)}", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
@@ -4613,7 +4685,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       
       // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - ${nameOf(getChallengeThreshold _)}", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
@@ -5183,12 +5255,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       _ <- Future{
         scaMethod match {
           case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-            val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
-            Mailer.sendMail(
-            From("challenge@tesobe.com"),
-            Subject("Challenge request"),
-            params :_*
+            val emailContent = CommonsEmailWrapper.EmailContent(
+              from = mailUsersUserinfoSenderAddress,
+              to = List(customer.email),
+              subject = "Challenge request",
+              textContent = Some(userAuthContextUpdate.challenge)
             )
+            CommonsEmailWrapper.sendTextEmail(emailContent)
           case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
           case _ => // Not handled
         }
@@ -5209,8 +5282,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[String]] = {
     if (scaMethod == StrongCustomerAuthentication.EMAIL){ // Send the email
-      val params = PlainMailBodyType(message) :: List(To(recipient))
-      Mailer.sendMail(From("challenge@tesobe.com"), Subject("OBP Consent Challenge"), params :_*)
+      val emailContent = CommonsEmailWrapper.EmailContent(
+        from = mailUsersUserinfoSenderAddress,
+        to = List(recipient),
+        subject = "OBP Consent Challenge",
+        textContent = Some(message)
+      )
+      CommonsEmailWrapper.sendTextEmail(emailContent)
       Future{(Full("Success"), callContext)}
     } else if (scaMethod == StrongCustomerAuthentication.SMS){ // Send the SMS
       for {

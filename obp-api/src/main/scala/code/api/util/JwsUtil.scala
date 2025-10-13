@@ -1,9 +1,5 @@
 package code.api.util
 
-import java.security.interfaces.RSAPublicKey
-import java.time.format.DateTimeFormatter
-import java.time.{Duration, ZoneOffset, ZonedDateTime}
-import java.util
 import code.api.{CertificateConstants, Constant}
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
@@ -16,6 +12,10 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
 
+import java.security.interfaces.RSAPublicKey
+import java.time.format.DateTimeFormatter
+import java.time.{Duration, ZoneOffset, ZonedDateTime}
+import java.util
 import scala.collection.immutable.{HashMap, List}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
@@ -147,6 +147,7 @@ object JwsUtil extends MdcLoggable {
       "BGv1.3"->"berlin-group/v1.3", 
       "OBPv4.0.0"->"obp/v4.0.0", 
       "OBPv5.0.0"->"obp/v5.0.0", 
+      "OBPv6.0.0"->"obp/v6.0.0", 
       "OBPv3.1.0"->"obp/v3.1.0", 
       "UKv1.3"->"open-banking/v3.1"
     ).withDefaultValue("{Not found any standard to match}")

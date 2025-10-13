@@ -3,16 +3,13 @@ package code.api.util
 
 import code.api.OAuth2Login.Keycloak
 import code.model.{AppType, Consumer}
+import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Failure, Full}
 import okhttp3._
 import okhttp3.logging.HttpLoggingInterceptor
-import org.slf4j.LoggerFactory
 
 
-object KeycloakAdmin {
-
-  // Initialize Logback logger
-  private val logger = LoggerFactory.getLogger("okhttp3")
+object KeycloakAdmin extends MdcLoggable {
 
   val integrateWithKeycloak: Boolean = APIUtil.getPropsAsBoolValue("integrate_with_keycloak", defaultValue = false)
   // Define variables (replace with actual values)

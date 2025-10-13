@@ -5,10 +5,9 @@ import code.util.{TwentyFourHourClockString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Logger
 import net.liftweb.mapper.{By, _}
+import code.util.Helper.MdcLoggable
 
-object MappedBranchesProvider extends BranchesProvider {
-
-  private val logger = Logger(classOf[BranchesProvider])
+object MappedBranchesProvider extends BranchesProvider with MdcLoggable {
 
   override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] =
     MappedBranch.find(
@@ -18,15 +17,15 @@ object MappedBranchesProvider extends BranchesProvider {
 
   override protected def getBranchesFromProvider(bankId: BankId, queryParams: List[OBPQueryParam]): Option[List[BranchT]] = {
     logger.debug(s"getBranchesFromProvider says bankId is $bankId")
-  
+
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedBranch](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedBranch](value) }.headOption
-    
+
     val optionalParams : Seq[QueryParam[MappedBranch]] = Seq(limit.toSeq, offset.toSeq).flatten
     val mapperParams = Seq(By(MappedBranch.mBankId, bankId.value), By(MappedBranch.mIsDeleted, false)) ++ optionalParams
-    
+
     val branches: Option[List[BranchT]] = Some(MappedBranch.findAll(mapperParams:_*))
-  
+
     branches
   }
 }

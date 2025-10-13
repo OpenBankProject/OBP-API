@@ -8,6 +8,9 @@
 .settings
 .metals
 .vscode
+*.code-workspace
+.zed
+.cursor
 .classpath
 .project
 .cache
@@ -25,3 +28,13 @@ obp-api/src/main/scala/code/api/v3_0_0/custom/
 /obp-api2/
 /.java-version
 .scannerwork
+
+# Marketing diagram generation outputs
+marketing_diagram_generation/outputs/*
+
+.bloop
+!.bloop/*.json
+.bsp
+.specstory
+project/project
+coursier

@@ -174,7 +174,8 @@ class WebUI extends MdcLoggable{
   val sdksExternalHtmlLink = getWebUiPropsValue("webui_featured_sdks_external_link","")
   
   val sdksExternalHtmlContent = try {
-      Source.fromURL(sdksExternalHtmlLink, "UTF-8").mkString
+      val source = Source.fromURL(sdksExternalHtmlLink, "UTF-8")
+      try source.mkString finally source.close()
   } catch {
     case _ : Throwable => "<h1>SDK Showcases is wrong, please check the props `webui_featured_sdks_external_link` </h1>"
   }
@@ -199,7 +200,8 @@ class WebUI extends MdcLoggable{
   val mainFaqHtmlLink = getWebUiPropsValue("webui_main_faq_external_link","")
   
   val mainFaqExternalHtmlContent = try {
-    Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
+    val source = Source.fromURL(mainFaqHtmlLink, "UTF-8")
+    try source.mkString finally source.close()
   } catch {
     case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
   }
@@ -618,7 +620,9 @@ class WebUI extends MdcLoggable{
     logger.info("htmlTry: " + htmlTry)
 
     // Convert to a string
-    val htmlString = htmlTry.map(_.mkString).getOrElse("")
+    val htmlString = htmlTry.map { source =>
+      try source.mkString finally source.close()
+    }.getOrElse("")
     logger.info("htmlString: " + htmlString)
 
     // Create an HTML object

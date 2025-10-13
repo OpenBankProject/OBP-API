@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
+import code.util.Helper.MdcLoggable
 
 object Thing extends SimpleInjector {
 
@@ -45,9 +46,7 @@ A trait that defines interfaces to Thing
 i.e. a ThingProvider should provide these:
  */
 
-trait ThingProvider {
-
-  private val logger = Logger(classOf[ThingProvider])
+trait ThingProvider extends MdcLoggable {
 
 
   /*
@@ -79,4 +78,3 @@ trait ThingProvider {
   protected def getThingsFromProvider(bank : BankId) : Option[List[Thing]]
 
 }
-

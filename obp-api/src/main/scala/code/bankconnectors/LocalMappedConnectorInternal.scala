@@ -1,14 +1,22 @@
 package code.bankconnectors
 
+import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.newstyle.ViewNewStyle
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v2_1_0._
+import code.api.v4_0_0._
+import code.api.v6_0_0.{TransactionRequestBodyCardanoJsonV600, TransactionRequestBodyEthSendRawTransactionJsonV600, TransactionRequestBodyEthereumJsonV600}
+import code.bankconnectors.ethereum.DecodeRawTx
 import code.branches.MappedBranch
+import code.fx.fx
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
@@ -16,25 +24,30 @@ import code.model.toBankAccountExtended
 import code.transaction.MappedTransaction
 import code.transactionrequests._
 import code.util.Helper
-import code.util.Helper._
+import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestStatus, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
+import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{NoTypeHints, Serialization}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.StringHelpers
 
-import java.util.Date
+import java.time.{LocalDate, ZoneId}
 import java.util.UUID.randomUUID
-import scala.concurrent._
+import java.util.{Calendar, Date}
+import scala.collection.immutable.{List, Nil}
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.util.Random
-
 
 
 //Try to keep LocalMappedConnector smaller, so put OBP internal code here. these methods will not be exposed to CBS side.
@@ -116,7 +129,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         user.name,
         callContext
       ) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - ${nameOf(Connector.connector.vend.getChallengeThreshold _)}", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
@@ -638,6 +651,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
         .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
         .chargePolicy(chargePolicy)
+        .status(com.openbankproject.commons.model.enums.TransactionRequestStatus.COMPLETED.toString)
         .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
     } yield {
       mappedTransaction.theTransactionId
@@ -671,5 +685,880 @@ object LocalMappedConnectorInternal extends MdcLoggable {
   }
   
   def getTransactionRequestStatuses() : Box[TransactionRequestStatus] = Failure(NotImplemented + nameOf(getTransactionRequestStatuses _))
+
+
+
+
+  // This text is used in the various Create Transaction Request resource docs
+  val transactionRequestGeneralText =
+    s"""
+       |
+       |For an introduction to Transaction Requests, see: ${Glossary.getGlossaryItemLink("Transaction-Request-Introduction")}
+       |
+       |""".stripMargin
+
+  val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
+
+  val sharedChargePolicy = ChargePolicy.withName("SHARED")
+  
+  def createTransactionRequest(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType, json: JValue): Future[(TransactionRequestWithChargeJSON400, Option[CallContext])] = {
+    for {
+      (Full(u), callContext) <- SS.user
+
+      transactionRequestTypeValue <- NewStyle.function.tryons(s"$InvalidTransactionRequestType: '${transactionRequestType.value}'. OBP does not support it.", 400, callContext) {
+        TransactionRequestTypes.withName(transactionRequestType.value)
+      }
+
+      (fromAccount, callContext) <- transactionRequestTypeValue match {
+        case CARD =>
+          for{
+            transactionRequestBodyCard <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $CARD json format", 400, callContext) {
+              json.extract[TransactionRequestBodyCardJsonV400]
+            }
+            //   1.1 get Card from card_number
+            (cardFromCbs,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
+
+            // 1.2 check card name/expire month. year.
+            calendar = Calendar.getInstance
+            _ = calendar.setTime(cardFromCbs.expires)
+            yearFromCbs = calendar.get(Calendar.YEAR).toString
+            monthFromCbs = calendar.get(Calendar.MONTH).toString
+            nameOnCardFromCbs= cardFromCbs.nameOnCard
+            cvvFromCbs= cardFromCbs.cvv.getOrElse("")
+            brandFromCbs= cardFromCbs.brand.getOrElse("")
+
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue brand is not matched", cc=callContext) {
+              transactionRequestBodyCard.card.brand.equalsIgnoreCase(brandFromCbs)
+            }
+
+            dateFromJsonBody <- NewStyle.function.tryons(s"$InvalidDateFormat year should be 'yyyy', " +
+              s"eg: 2023, but current expiry_year(${transactionRequestBodyCard.card.expiry_year}), " +
+              s"month should be 'xx', eg: 02, but current expiry_month(${transactionRequestBodyCard.card.expiry_month})", 400, callContext) {
+              DateWithMonthFormat.parse(s"${transactionRequestBodyCard.card.expiry_year}-${transactionRequestBodyCard.card.expiry_month}")
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue your credit card is expired.", cc=callContext) {
+              org.apache.commons.lang3.time.DateUtils.addMonths(new Date(), 1).before(dateFromJsonBody)
+            }
+
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_year is not matched", cc=callContext) {
+              transactionRequestBodyCard.card.expiry_year.equalsIgnoreCase(yearFromCbs)
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_month is not matched", cc=callContext) {
+              transactionRequestBodyCard.card.expiry_month.toInt.equals(monthFromCbs.toInt+1)
+            }
+
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue name_on_card is not matched", cc=callContext) {
+              transactionRequestBodyCard.card.name_on_card.equalsIgnoreCase(nameOnCardFromCbs)
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue cvv is not matched", cc=callContext) {
+              HashUtil.Sha256Hash(transactionRequestBodyCard.card.cvv).equals(cvvFromCbs)
+            }
+
+          } yield{
+            (cardFromCbs.account, callContext)
+          }
+        case _ => NewStyle.function.getBankAccount(bankId,accountId, callContext)
+      }
+      _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+      _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
+        isValidID(fromAccount.accountId.value)
+      }
+      _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {
+        isValidID(fromAccount.bankId.value)
+      }
+
+      _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), u, callContext)
+
+      _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'. Current Sandbox does not support it. ", cc=callContext) {
+        APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+      }
+
+      // Check the input JSON format, here is just check the common parts of all four types
+      transDetailsJson <- transactionRequestTypeValue match {
+        case ETH_SEND_RAW_TRANSACTION => for {
+          // Parse raw transaction JSON
+          transactionRequestBodyEthSendRawTransactionJsonV600 <- NewStyle.function.tryons(
+            s"$InvalidJsonFormat It should be $TransactionRequestBodyEthSendRawTransactionJsonV600  json format",
+            400,
+            callContext
+          ) {
+            json.extract[TransactionRequestBodyEthSendRawTransactionJsonV600]
+          }
+          // Decode raw transaction to extract 'from' address
+          decodedTx = DecodeRawTx.decodeRawTxToJson(transactionRequestBodyEthSendRawTransactionJsonV600.params)
+          from = decodedTx.from
+          _ <- Helper.booleanToFuture(
+            s"$BankAccountNotFoundByAccountId Ethereum 'from' address must be the same as the accountId",
+            cc = callContext
+          ) {
+            from.getOrElse("") == accountId.value
+          }
+          // Construct TransactionRequestBodyEthereumJsonV600 for downstream processing
+          transactionRequestBodyEthereum = TransactionRequestBodyEthereumJsonV600(
+            params = Some(transactionRequestBodyEthSendRawTransactionJsonV600.params),
+            to = decodedTx.to.getOrElse(""),
+            value = AmountOfMoneyJsonV121("ETH", decodedTx.value.getOrElse("0")),
+            description = transactionRequestBodyEthSendRawTransactionJsonV600.description
+          )
+        } yield (transactionRequestBodyEthereum)
+        case _ =>
+          NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $TransactionRequestBodyCommonJSON ", 400, callContext) {
+            json.extract[TransactionRequestBodyCommonJSON]
+          }
+      }
+
+      transactionAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.value.amount} ", 400, callContext) {
+        BigDecimal(transDetailsJson.value.amount)
+      }
+
+      _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionAmountNumber}'", cc=callContext) {
+        transactionAmountNumber > BigDecimal("0")
+      }
+
+      _ <- (transactionRequestTypeValue match {
+        case ETH_SEND_RAW_TRANSACTION | ETH_SEND_TRANSACTION => Future.successful(true) // Allow ETH (non-ISO) for Ethereum requests
+        case _ => Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
+          APIUtil.isValidCurrencyISOCode(transDetailsJson.value.currency)
+        }
+      })
+
+      (createdTransactionRequest, callContext) <- transactionRequestTypeValue match {
+        case REFUND => {
+          for {
+            transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
+              json.extract[TransactionRequestBodyRefundJsonV400]
+            }
+
+            transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
+
+            (fromAccount, toAccount, transaction, callContext) <- transactionRequestBodyRefundJson.to match {
+              case Some(refundRequestTo) if refundRequestTo.account_id.isDefined && refundRequestTo.bank_id.isDefined =>
+                val toBankId = BankId(refundRequestTo.bank_id.get)
+                val toAccountId = AccountId(refundRequestTo.account_id.get)
+                for {
+                  (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, callContext)
+                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
+                } yield (fromAccount, toAccount, transaction, callContext)
+
+              case Some(refundRequestTo) if refundRequestTo.counterparty_id.isDefined =>
+                val toCounterpartyId = CounterpartyId(refundRequestTo.counterparty_id.get)
+                for {
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, callContext)
+                  (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+                    toCounterparty.isBeneficiary
+                  }
+                  (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, callContext)
+                } yield (fromAccount, toAccount, transaction, callContext)
+
+              case None if transactionRequestBodyRefundJson.from.isDefined =>
+                val fromCounterpartyId = CounterpartyId(transactionRequestBodyRefundJson.from.get.counterparty_id)
+                val toAccount = fromAccount
+                for {
+                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, callContext)
+                  (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+                    fromCounterparty.isBeneficiary
+                  }
+                  (transaction, callContext) <- NewStyle.function.getTransaction(toAccount.bankId, toAccount.accountId, transactionId, callContext)
+                } yield (fromAccount, toAccount, transaction, callContext)
+            }
+
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
+            }
+
+            _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})", cc=callContext) {
+              (transaction.amount).abs  >= transactionAmountNumber
+            }
+            //TODO, we need additional field to guarantee the transaction is refunded...
+            //                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
+            //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
+            //                  }
+
+            //we add the extra info (counterparty name + transaction_id) for this special Refund endpoint.
+            newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
+
+            //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
+            refundToAccount = fromAccount
+            //This is the refund endpoint, the original toAccount is the `fromAccount` which will lose money.
+            refundFromAccount = toAccount
+
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              refundFromAccount,
+              refundToAccount,
+              transactionRequestType,
+              transactionRequestBodyRefundJson.copy(description = newDescription),
+              transDetailsSerialized,
+              sharedChargePolicy.toString,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+
+            _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+              bankId = bankId,
+              transactionRequestId = createdTransactionRequest.id,
+              transactionRequestAttributeId = None,
+              name = "original_transaction_id",
+              attributeType = TransactionRequestAttributeType.withName("STRING"),
+              value = transactionId.value,
+              callContext = callContext
+            )
+
+            refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
+            _ <- if (refundReasonCode.nonEmpty) {
+              NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                bankId = bankId,
+                transactionRequestId = createdTransactionRequest.id,
+                transactionRequestAttributeId = None,
+                name = "refund_reason_code",
+                attributeType = TransactionRequestAttributeType.withName("STRING"),
+                value = refundReasonCode,
+                callContext = callContext)
+            } else Future.successful()
+
+            (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(refundFromAccount, refundToAccount, createdTransactionRequest, callContext)
+            _ <- NewStyle.function.saveTransactionRequestStatusImpl(createdTransactionRequest.id, newTransactionRequestStatus.toString, callContext)
+            createdTransactionRequest <- Future(createdTransactionRequest.copy(status = newTransactionRequestStatus.toString))
+
+          } yield (createdTransactionRequest, callContext)
+        }
+        case ACCOUNT | SANDBOX_TAN => {
+          for {
+            transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
+              json.extract[TransactionRequestBodySandBoxTanJSON]
+            }
+
+            toBankId = BankId(transactionRequestBodySandboxTan.to.bank_id)
+            toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
+            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
+
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
+            }
+
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodySandboxTan,
+              transDetailsSerialized,
+              sharedChargePolicy.toString,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+          } yield (createdTransactionRequest, callContext)
+        }
+        case ACCOUNT_OTP => {
+          for {
+            transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
+              json.extract[TransactionRequestBodySandBoxTanJSON]
+            }
+
+            toBankId = BankId(transactionRequestBodySandboxTan.to.bank_id)
+            toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
+            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
+
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))
+            }
+
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodySandboxTan,
+              transDetailsSerialized,
+              sharedChargePolicy.toString,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+          } yield (createdTransactionRequest, callContext)
+        }
+        case COUNTERPARTY => {
+          for {
+            _ <- Future { logger.debug(s"Before extracting counterparty id") }
+            //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
+            transactionRequestBodyCounterparty <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $COUNTERPARTY json format", 400, callContext) {
+              json.extract[TransactionRequestBodyCounterpartyJSON]
+            }
+            toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
+            _ <- Future { logger.debug(s"After extracting counterparty id: $toCounterpartyId") }
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+
+            transactionRequestAttributes <- if(transactionRequestBodyCounterparty.attributes.isDefined && transactionRequestBodyCounterparty.attributes.head.length > 0 ) {
+
+              val attributes = transactionRequestBodyCounterparty.attributes.head
+
+              val failMsg = s"$InvalidJsonFormat The attribute `type` field can only accept the following field: " +
+                s"${TransactionRequestAttributeType.DOUBLE}(12.1234)," +
+                s" ${TransactionRequestAttributeType.STRING}(TAX_NUMBER), " +
+                s"${TransactionRequestAttributeType.INTEGER}(123) and " +
+                s"${TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)"
+
+              for{
+                _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                  attributes.map(attribute => TransactionRequestAttributeType.withName(attribute.attribute_type))
+                }
+              }yield{
+                attributes
+              }
+
+            } else {
+              Future.successful(List.empty[TransactionRequestAttributeJsonV400])
+            }
+
+            (counterpartyLimitBox, callContext) <- Connector.connector.vend.getCounterpartyLimit(
+              bankId.value,
+              accountId.value,
+              viewId.value,
+              toCounterpartyId,
+              callContext
+            )
+            _<- if(counterpartyLimitBox.isDefined){
+              for{
+                counterpartyLimit <- Future.successful(counterpartyLimitBox.head)
+                maxSingleAmount = counterpartyLimit.maxSingleAmount
+                maxMonthlyAmount = counterpartyLimit.maxMonthlyAmount
+                maxNumberOfMonthlyTransactions = counterpartyLimit.maxNumberOfMonthlyTransactions
+                maxYearlyAmount = counterpartyLimit.maxYearlyAmount
+                maxNumberOfYearlyTransactions = counterpartyLimit.maxNumberOfYearlyTransactions
+                maxTotalAmount = counterpartyLimit.maxTotalAmount
+                maxNumberOfTransactions = counterpartyLimit.maxNumberOfTransactions
+
+                // Get the first day of the current month
+                firstDayOfMonth: LocalDate = LocalDate.now().withDayOfMonth(1)
+
+                // Get the last day of the current month
+                lastDayOfMonth: LocalDate = LocalDate.now().withDayOfMonth(
+                  LocalDate.now().lengthOfMonth()
+                )
+                // Get the first day of the current year
+                firstDayOfYear: LocalDate = LocalDate.now().withDayOfYear(1)
+
+                // Get the last day of the current year
+                lastDayOfYear: LocalDate = LocalDate.now().withDayOfYear(
+                  LocalDate.now().lengthOfYear()
+                )
+
+                // Convert LocalDate to Date
+                zoneId: ZoneId = ZoneId.systemDefault()
+                firstCurrentMonthDate: Date = Date.from(firstDayOfMonth.atStartOfDay(zoneId).toInstant)
+                // Adjust to include 23:59:59.999
+                lastCurrentMonthDate: Date = Date.from(
+                  lastDayOfMonth
+                    .atTime(23, 59, 59, 999000000)
+                    .atZone(zoneId)
+                    .toInstant
+                )
+
+                firstCurrentYearDate: Date = Date.from(firstDayOfYear.atStartOfDay(zoneId).toInstant)
+                // Adjust to include 23:59:59.999
+                lastCurrentYearDate: Date = Date.from(
+                  lastDayOfYear
+                    .atTime(23, 59, 59, 999000000)
+                    .atZone(zoneId)
+                    .toInstant
+                )
+
+                defaultFromDate: Date = theEpochTime
+                defaultToDate: Date = APIUtil.ToDateInFuture
+
+                (sumOfTransactionsFromAccountToCounterpartyMonthly, callContext) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  firstCurrentMonthDate: Date,
+                  lastCurrentMonthDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+                (countOfTransactionsFromAccountToCounterpartyMonthly, callContext) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  firstCurrentMonthDate: Date,
+                  lastCurrentMonthDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+                (sumOfTransactionsFromAccountToCounterpartyYearly, callContext) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  firstCurrentYearDate: Date,
+                  lastCurrentYearDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+                (countOfTransactionsFromAccountToCounterpartyYearly, callContext) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  firstCurrentYearDate: Date,
+                  lastCurrentYearDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+                (sumOfAllTransactionsFromAccountToCounterparty, callContext) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  defaultFromDate: Date,
+                  defaultToDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+                (countOfAllTransactionsFromAccountToCounterparty, callContext) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+                  fromAccount.bankId: BankId,
+                  fromAccount.accountId: AccountId,
+                  CounterpartyId(toCounterpartyId): CounterpartyId,
+                  defaultFromDate: Date,
+                  defaultToDate: Date,
+                  callContext: Option[CallContext]
+                )
+
+
+                currentTransactionAmountWithFxApplied <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $COUNTERPARTY json format", 400, callContext) {
+                  val fromAccountCurrency = fromAccount.currency //eg: if from account currency is EUR
+                  val transferCurrency = transactionRequestBodyCounterparty.value.currency //eg: if the payment json body currency is GBP.
+                  val transferAmount = BigDecimal(transactionRequestBodyCounterparty.value.amount) //eg: if the payment json body amount is 1.
+                  val debitRate = fx.exchangeRate(transferCurrency, fromAccountCurrency, Some(fromAccount.bankId.value), callContext) //eg: the rate here is 1.16278.
+                  fx.convert(transferAmount, debitRate) // 1.16278 Euro
+                }
+
+                _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_single_amount is $maxSingleAmount ${fromAccount.currency}, " +
+                  s"but current transaction body amount is ${transactionRequestBodyCounterparty.value.amount} ${transactionRequestBodyCounterparty.value.currency}, " +
+                  s"which is $currentTransactionAmountWithFxApplied ${fromAccount.currency}. ", cc = callContext) {
+                  maxSingleAmount >= currentTransactionAmountWithFxApplied
+                }
+                _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_monthly_amount is $maxMonthlyAmount, but current monthly amount is ${BigDecimal(sumOfTransactionsFromAccountToCounterpartyMonthly.amount)+currentTransactionAmountWithFxApplied}", cc = callContext) {
+                  maxMonthlyAmount >= BigDecimal(sumOfTransactionsFromAccountToCounterpartyMonthly.amount)+currentTransactionAmountWithFxApplied
+                }
+                _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_number_of_monthly_transactions is $maxNumberOfMonthlyTransactions, but current count of monthly transactions is  ${countOfTransactionsFromAccountToCounterpartyMonthly+1}", cc = callContext) {
+                  maxNumberOfMonthlyTransactions >= countOfTransactionsFromAccountToCounterpartyMonthly+1
+                }
+                _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_yearly_amount is $maxYearlyAmount, but current yearly amount is ${BigDecimal(sumOfTransactionsFromAccountToCounterpartyYearly.amount)+currentTransactionAmountWithFxApplied}", cc = callContext) {
+                  maxYearlyAmount >= BigDecimal(sumOfTransactionsFromAccountToCounterpartyYearly.amount)+currentTransactionAmountWithFxApplied
+                }
+                result <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_number_of_yearly_transactions is $maxNumberOfYearlyTransactions, but current count of yearly transaction is  ${countOfTransactionsFromAccountToCounterpartyYearly+1}", cc = callContext) {
+                  maxNumberOfYearlyTransactions >= countOfTransactionsFromAccountToCounterpartyYearly+1
+                }
+                _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_total_amount is $maxTotalAmount, but current amount is ${BigDecimal(sumOfAllTransactionsFromAccountToCounterparty.amount)+currentTransactionAmountWithFxApplied}", cc = callContext) {
+                  maxTotalAmount >= BigDecimal(sumOfAllTransactionsFromAccountToCounterparty.amount)+currentTransactionAmountWithFxApplied
+                }
+                result <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_number_of_transactions is $maxNumberOfTransactions, but current count of all transactions is  ${countOfAllTransactionsFromAccountToCounterparty+1}", cc = callContext) {
+                  maxNumberOfTransactions >= countOfAllTransactionsFromAccountToCounterparty+1
+                }
+              }yield{
+                result
+              }
+            }
+            else {
+              Future.successful(true)
+            }
+
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            // Check we can send money to it.
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+              toCounterparty.isBeneficiary
+            }
+            chargePolicy = transactionRequestBodyCounterparty.charge_policy
+            _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
+              ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+            }
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodyCounterparty,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+
+            _ <- NewStyle.function.createTransactionRequestAttributes(
+              bankId: BankId,
+              createdTransactionRequest.id,
+              transactionRequestAttributes,
+              true,
+              callContext: Option[CallContext]
+            )
+          } yield (createdTransactionRequest, callContext)
+        }
+        case AGENT_CASH_WITHDRAWAL => {
+          for {
+            //For Agent, Use the agentId to find the agent and set up the toAccount
+            transactionRequestBodyAgent <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $AGENT_CASH_WITHDRAWAL json format", 400, callContext) {
+              json.extract[TransactionRequestBodyAgentJsonV400]
+            }
+            (agent, callContext) <- NewStyle.function.getAgentByAgentNumber(BankId(transactionRequestBodyAgent.to.bank_id),transactionRequestBodyAgent.to.agent_number, callContext)
+            (agentAccountLinks, callContext) <-  NewStyle.function.getAgentAccountLinksByAgentId(agent.agentId, callContext)
+            agentAccountLink <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, callContext) {
+              agentAccountLinks.head
+            }
+            // Check we can send money to it.
+            _ <- Helper.booleanToFuture(s"$AgentBeneficiaryPermit", cc=callContext) {
+              !agent.isPendingAgent && agent.isConfirmedAgent
+            }
+            (toAccount, callContext) <- NewStyle.function.getBankAccount(BankId(agentAccountLink.bankId), AccountId(agentAccountLink.accountId), callContext)
+            chargePolicy = transactionRequestBodyAgent.charge_policy
+            _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
+              ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+            }
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyAgent)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodyAgent,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+        }
+        case CARD => {
+          for {
+            //2rd: get toAccount from counterpartyId
+            transactionRequestBodyCard <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $CARD json format", 400, callContext) {
+              json.extract[TransactionRequestBodyCardJsonV400]
+            }
+            toCounterpartyId = transactionRequestBodyCard.to.counterparty_id
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            // Check we can send money to it.
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+              toCounterparty.isBeneficiary
+            }
+            chargePolicy = ChargePolicy.RECEIVER.toString
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyCard)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodyCard,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+
+        }
+        case SIMPLE => {
+          for {
+            //For SAMPLE, we will create/get toCounterparty on site and set up the toAccount
+            transactionRequestBodySimple <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SIMPLE json format", 400, callContext) {
+              json.extract[TransactionRequestBodySimpleJsonV400]
+            }
+            (toCounterparty, callContext) <- NewStyle.function.getOrCreateCounterparty(
+              name = transactionRequestBodySimple.to.name,
+              description = transactionRequestBodySimple.to.description,
+              currency = transactionRequestBodySimple.value.currency,
+              createdByUserId = u.userId,
+              thisBankId = bankId.value,
+              thisAccountId = accountId.value,
+              thisViewId = viewId.value,
+              otherBankRoutingScheme = StringHelpers.snakify(transactionRequestBodySimple.to.other_bank_routing_scheme).toUpperCase,
+              otherBankRoutingAddress = transactionRequestBodySimple.to.other_bank_routing_address,
+              otherBranchRoutingScheme = StringHelpers.snakify(transactionRequestBodySimple.to.other_branch_routing_scheme).toUpperCase,
+              otherBranchRoutingAddress = transactionRequestBodySimple.to.other_branch_routing_address,
+              otherAccountRoutingScheme = StringHelpers.snakify(transactionRequestBodySimple.to.other_account_routing_scheme).toUpperCase,
+              otherAccountRoutingAddress = transactionRequestBodySimple.to.other_account_routing_address,
+              otherAccountSecondaryRoutingScheme = StringHelpers.snakify(transactionRequestBodySimple.to.other_account_secondary_routing_scheme).toUpperCase,
+              otherAccountSecondaryRoutingAddress = transactionRequestBodySimple.to.other_account_secondary_routing_address,
+              callContext: Option[CallContext],
+            )
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            // Check we can send money to it.
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+              toCounterparty.isBeneficiary
+            }
+            chargePolicy = transactionRequestBodySimple.charge_policy
+            _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
+              ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+            }
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodySimple)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodySimple,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+
+        }
+        case SEPA => {
+          for {
+            //For SEPA, Use the IBAN to find the toCounterparty and set up the toAccount
+            transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, callContext) {
+              json.extract[TransactionRequestBodySEPAJsonV400]
+            }
+            toIban = transDetailsSEPAJson.to.iban
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toIban, fromAccount.bankId, fromAccount.accountId, callContext)
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+              toCounterparty.isBeneficiary
+            }
+            chargePolicy = transDetailsSEPAJson.charge_policy
+            _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
+              ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+            }
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transDetailsSEPAJson,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              transDetailsSEPAJson.reasons.map(_.map(_.transform)),
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+        }
+        case FREE_FORM => {
+          for {
+            transactionRequestBodyFreeForm <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $FREE_FORM json format", 400, callContext) {
+              json.extract[TransactionRequestBodyFreeFormJSON]
+            }
+            // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
+            transactionRequestAccountJSON = TransactionRequestAccountJsonV140(bankId.value, accountId.value)
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              fromAccount,
+              transactionRequestType,
+              transactionRequestBodyFreeForm,
+              transDetailsSerialized,
+              sharedChargePolicy.toString,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield
+            (createdTransactionRequest, callContext)
+        }
+        case CARDANO => {
+          for {
+            //For CARDANO, we will create/get toCounterparty on site and set up the toAccount, fromAccount we need to prepare before .
+            transactionRequestBodyCardano <- NewStyle.function.tryons(s"${InvalidJsonFormat} It should be $TransactionRequestBodyCardanoJsonV600 json format", 400, callContext) {
+              json.extract[TransactionRequestBodyCardanoJsonV600]
+            }
+            
+            // Validate Cardano specific fields
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Cardano payment address is required", cc=callContext) {
+              transactionRequestBodyCardano.to.address.nonEmpty
+            }
+            
+            // Validate Cardano address format (basic validation)
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Cardano address format is invalid", cc=callContext) {
+              transactionRequestBodyCardano.to.address.startsWith("addr_") || 
+              transactionRequestBodyCardano.to.address.startsWith("addr_test") ||
+              transactionRequestBodyCardano.to.address.startsWith("addr_main")
+            }
+            
+           
+            
+            // Validate amount quantity is non-negative
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Cardano amount quantity must be non-negative", cc=callContext) {
+              transactionRequestBodyCardano.to.amount.quantity >= 0
+            }
+            
+            // Validate amount unit must be 'lovelace' (case insensitive)
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Cardano amount unit must be 'lovelace'", cc=callContext) {
+              transactionRequestBodyCardano.to.amount.unit.toLowerCase == "lovelace"
+            }
+            
+            // Validate assets if provided
+            _ <- transactionRequestBodyCardano.to.assets match {
+              case Some(assets) => Helper.booleanToFuture(s"$InvalidJsonValue Cardano assets must have valid policy_id and asset_name", cc=callContext) {
+                assets.forall(asset => asset.policy_id.nonEmpty && asset.asset_name.nonEmpty && asset.quantity > 0)
+              }
+              case None => Future.successful(true)
+            }
+            
+            // Validate that if amount is 0, there must be assets (token-only transfer)
+            _ <- (transactionRequestBodyCardano.to.amount, transactionRequestBodyCardano.to.assets) match {
+              case (amount, Some(assets)) if amount.quantity == 0 => Helper.booleanToFuture(s"$InvalidJsonValue Cardano token-only transfer must have assets", cc=callContext) {
+                assets.nonEmpty
+              }
+              case (amount, None) if amount.quantity == 0 => Helper.booleanToFuture(s"$InvalidJsonValue Cardano transfer with zero amount must include assets", cc=callContext) {
+                false
+              }
+              case _ => Future.successful(true)
+            }
+            
+            // Validate metadata if provided
+            _ <- transactionRequestBodyCardano.metadata match {
+              case Some(metadata) => Helper.booleanToFuture(s"$InvalidJsonValue Cardano metadata must have valid structure", cc=callContext) {
+                metadata.forall { case (label, metadataObj) =>
+                  label.nonEmpty && metadataObj.string.nonEmpty
+                }
+              }
+              case None => Future.successful(true)
+            }
+            
+            (toCounterparty, callContext) <- NewStyle.function.getOrCreateCounterparty(
+              name = "cardano-"+transactionRequestBodyCardano.to.address.take(27),
+              description = transactionRequestBodyCardano.description,
+              currency = transactionRequestBodyCardano.value.currency,
+              createdByUserId = u.userId,
+              thisBankId = bankId.value,
+              thisAccountId = accountId.value,
+              thisViewId = viewId.value,
+              otherBankRoutingScheme = CARDANO.toString,
+              otherBankRoutingAddress = transactionRequestBodyCardano.to.address,
+              otherBranchRoutingScheme = CARDANO.toString,
+              otherBranchRoutingAddress = transactionRequestBodyCardano.to.address,
+              otherAccountRoutingScheme = CARDANO.toString,
+              otherAccountRoutingAddress = transactionRequestBodyCardano.to.address,
+              otherAccountSecondaryRoutingScheme = "cardano",
+              otherAccountSecondaryRoutingAddress = transactionRequestBodyCardano.to.address,
+              callContext = callContext
+            )
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            // Check we can send money to it.
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+              toCounterparty.isBeneficiary
+            }
+            chargePolicy = sharedChargePolicy.toString
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyCardano)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodyCardano,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+        }
+        case ETH_SEND_RAW_TRANSACTION | ETH_SEND_TRANSACTION => {
+          for {
+            // Handle ETH_SEND_RAW_TRANSACTION and ETH_SEND_TRANSACTION types with proper extraction and validation
+            (transactionRequestBodyEthereum, scheme) <-
+              if (transactionRequestTypeValue == ETH_SEND_RAW_TRANSACTION) {
+                Future.successful{(transDetailsJson.asInstanceOf[TransactionRequestBodyEthereumJsonV600], ETH_SEND_RAW_TRANSACTION.toString)}
+              } else {
+                for {
+                  transactionRequestBodyEthereum <- NewStyle.function.tryons(
+                    s"$InvalidJsonFormat It should be $TransactionRequestBodyEthereumJsonV600 json format",
+                    400,
+                    callContext
+                  ) {
+                    json.extract[TransactionRequestBodyEthereumJsonV600]
+                  }
+                } yield (transactionRequestBodyEthereum, ETH_SEND_TRANSACTION.toString)
+              } 
+            
+            // Basic validations
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Ethereum 'to' address is required", cc=callContext) {
+              Option(transactionRequestBodyEthereum.to).exists(_.nonEmpty)
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonValue Ethereum 'to' address must start with 0x and be 42 chars", cc=callContext) {
+              val toBody = transactionRequestBodyEthereum.to
+              toBody.startsWith("0x") && toBody.length == 42
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidTransactionRequestCurrency Currency must be 'ETH'", cc=callContext) {
+              transactionRequestBodyEthereum.value.currency.equalsIgnoreCase("ETH")
+            }
+
+            // Create or get counterparty using the Ethereum address as secondary routing
+            (toCounterparty, callContext) <- NewStyle.function.getOrCreateCounterparty(
+              name = "ethereum-" + transactionRequestBodyEthereum.to.take(27),
+              description = transactionRequestBodyEthereum.description,
+              currency = transactionRequestBodyEthereum.value.currency,
+              createdByUserId = u.userId,
+              thisBankId = bankId.value,
+              thisAccountId = accountId.value,
+              thisViewId = viewId.value,
+              otherBankRoutingScheme = scheme,
+              otherBankRoutingAddress = transactionRequestBodyEthereum.to,
+              otherBranchRoutingScheme = scheme,
+              otherBranchRoutingAddress = transactionRequestBodyEthereum.to,
+              otherAccountRoutingScheme = scheme,
+              otherAccountRoutingAddress = transactionRequestBodyEthereum.to,
+              otherAccountSecondaryRoutingScheme = scheme,
+              otherAccountSecondaryRoutingAddress = transactionRequestBodyEthereum.to,
+              callContext = callContext
+            )
+
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) { toCounterparty.isBeneficiary }
+
+            chargePolicy = sharedChargePolicy.toString
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(transactionRequestBodyEthereum)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+              viewId,
+              fromAccount,
+              toAccount,
+              transactionRequestType,
+              transactionRequestBodyEthereum,
+              transDetailsSerialized,
+              chargePolicy,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+        }
+      }
+      (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(createdTransactionRequest.id.value, callContext)
+      (transactionRequestAttributes, callContext) <- NewStyle.function.getTransactionRequestAttributes(
+        bankId,
+        createdTransactionRequest.id,
+        callContext
+      )
+    } yield {
+      (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges, transactionRequestAttributes), HttpCode.`201`(callContext))
+    }
+  }
+
 
 }
