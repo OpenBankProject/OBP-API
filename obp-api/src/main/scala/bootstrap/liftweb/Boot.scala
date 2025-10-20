@@ -603,6 +603,9 @@ class Boot extends MdcLoggable {
       Menu.i("confirm-bg-consent-request") / "confirm-bg-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-bg-consent-request-sca") / "confirm-bg-consent-request-sca" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-bg-consent-request-redirect-uri") / "confirm-bg-consent-request-redirect-uri" >> AuthUser.loginFirst,//OAuth consent page,
+      Menu.i("confirm-bg-payment-request") / "confirm-bg-payment-request" >> AuthUser.loginFirst,//OAuth consent page,
+      Menu.i("confirm-bg-payment-request-sca") / "confirm-bg-payment-request-sca" >> AuthUser.loginFirst,//OAuth consent page,
+      Menu.i("confirm-bg-payment-request-redirect-uri") / "confirm-bg-payment-request-redirect-uri" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-vrp-consent-request") / "confirm-vrp-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
       Menu.i("confirm-vrp-consent") / "confirm-vrp-consent" >> AuthUser.loginFirst //OAuth consent page
     ) ++ accountCreation ++ Admin.menus++ awakePage

@@ -222,6 +222,8 @@ object Helper extends Loggable {
       "/terms-and-conditions", "/privacy-policy",
       "/confirm-bg-consent-request",
       "/confirm-bg-consent-request-sca",
+      "/confirm-bg-payment-request",
+      "/confirm-bg-payment-request-sca",
       "/confirm-vrp-consent-request",
       "/confirm-vrp-consent",
       "/consent-screen",
