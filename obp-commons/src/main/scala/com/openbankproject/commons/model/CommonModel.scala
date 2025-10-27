@@ -1118,6 +1118,18 @@ case class TransactionRequestBGV1(
   status: String,
 )
 
+case class InstantPaymentInformation(
+                                      paymentId: String,
+                                      instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
+                                      debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                      creditorAccount: PaymentAccountMd,
+                                      remittanceInformationUnstructured: Option[String] = None,
+                                      transactionStatus: String
+                                 )
+case class InstantPaymentStatus(
+                                 transactionStatus: String
+                               )
+
 case class TransactionRequestBody (
                                     val to: TransactionRequestAccount,
                                     val value : AmountOfMoney,

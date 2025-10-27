@@ -1206,6 +1206,18 @@ case class OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(
 
 case class InBoundCreateTransactionRequestInstantCreditTransfersMdV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
+case class OutBoundGetInstantPaymentInformationMdV1(
+                                                     outboundAdapterCallContext: OutboundAdapterCallContext,  // Контекст вызова
+                                                     paymentId: String,  // ID платежа, который необходимо получить
+                                                     headers: List[HTTPParam] = Nil  // Дополнительные заголовки, если необходимы
+                                                   ) extends TopicTrait
+
+case class InBoundGetInstantPaymentInformationMdV1(
+                                                    inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
+                                                    status: Status,  // Статус ответа (например, SUCCESS, ERROR)
+                                                    data: InstantPaymentInformation  // Данные о платеже, которые были получены
+                                                  ) extends InBoundTrait[InstantPaymentInformation]
+
 
 case class OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(
   outboundAdapterCallContext: OutboundAdapterCallContext, initiator: Option[User],

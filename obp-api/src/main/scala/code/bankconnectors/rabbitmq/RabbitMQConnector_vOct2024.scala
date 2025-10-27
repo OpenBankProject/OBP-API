@@ -2664,6 +2664,60 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
+  // -------- MessageDoc --------
+  messageDocs += getInstantPaymentInformationMdV1Doc
+  def getInstantPaymentInformationMdV1Doc = MessageDoc(
+    process = "obp.getInstantPaymentInformationMdV1",
+    messageFormat = messageFormat,
+    description = "Get Instant Payment Information MD V1",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetInstantPaymentInformationMdV1(
+        outboundAdapterCallContext = MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+        paymentId = "MD123456789",
+        headers = List.empty[HTTPParam]
+      )
+      ),
+    exampleInboundMessage = (
+      InBoundGetInstantPaymentInformationMdV1(
+        inboundAdapterCallContext = MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+        status = MessageDocsSwaggerDefinitions.inboundStatus,
+        data = InstantPaymentInformation(
+          paymentId = "MD123456789",
+          instructedAmount = AmountOfMoneyJsonV121(currency = currencyExample.value, amount = amountExample.value),
+          debtorAccount = Some(PaymentAccount("MD12AA000001100032130935")),
+          creditorAccount = PaymentAccountMd("37399000000"),
+          remittanceInformationUnstructured = Some("Plata P2P"),
+          transactionStatus = statusExample.value
+        )
+      )
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+  // -------- Реализация коннектора через sendRequest --------
+  override def getInstantPaymentInformationMdV1(
+                                                 paymentId: String,
+                                                 callContext: Option[CallContext]
+                                               ): OBPReturnType[Box[InstantPaymentInformation]] = {
+    import com.openbankproject.commons.dto.{
+      InBoundGetInstantPaymentInformationMdV1 => InBound,
+      OutBoundGetInstantPaymentInformationMdV1 => OutBound
+    }
+
+    val req = OutBound(
+      outboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull,
+      paymentId = paymentId,
+      headers = callContext.get.requestHeaders
+    )
+
+    val response: Future[Box[InBound]] =
+      sendRequest[InBound]("obp_get_instant_payment_information_mdv1", req, callContext)
+
+    response.map(convertToTuple[InstantPaymentInformation](callContext))
+  }
+
+
   override def createTransactionRequestInstantCreditTransfersMdV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: InstantCreditTransfersMdV1, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
     import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestInstantCreditTransfersMdV1 => InBound, OutBoundCreateTransactionRequestInstantCreditTransfersMdV1 => OutBound}
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody, callContext.get.requestHeaders)
@@ -2671,6 +2725,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     response.map(convertToTuple[TransactionRequestBGV1](callContext))
   }
   messageDocs += createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc
+
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc = MessageDoc(
     process = "obp.createTransactionRequestPeriodicSepaCreditTransfersBGV1",
     messageFormat = messageFormat,

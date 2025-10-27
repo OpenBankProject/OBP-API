@@ -1097,6 +1097,30 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
       }
     }
+
+    def getInstantPaymentInformationMdBGV1(
+                                            paymentId: String,
+                                            callContext: Option[CallContext]
+                                          ): OBPReturnType[InstantPaymentInformation] = {
+
+      // Получаем ответ от коннектора
+      val response = Connector.connector.vend.getInstantPaymentInformationMdV1(
+        paymentId = paymentId,
+        callContext = callContext
+      )
+
+      // Обрабатываем ответ
+      response map { i =>
+        // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
+        val instantPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetInstantPaymentInformation", 400)
+
+        // Возвращаем успешный результат с данными
+        (instantPaymentInformation, i._2)
+      }
+    }
+
+
+
     def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatusValue] = {
       Connector.connector.vend.notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$TransactionRequestStatusNotInitiated Can't notify TransactionRequestId(${transactionRequest.id}) ", 400), i._2)

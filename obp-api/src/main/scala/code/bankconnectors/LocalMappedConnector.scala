@@ -4865,6 +4865,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def getInstantPaymentInformationMdV1(
+                                                 paymentId: String,
+                                                 callContext: Option[CallContext]
+                                               ): OBPReturnType[Box[InstantPaymentInformation]] = {
+
+    // Замоканная реализация
+    Future.successful(
+      // Мокаем InstantPaymentInformation, возвращая фиктивные данные
+      (Full(InstantPaymentInformation(
+        paymentId = paymentId,
+        instructedAmount = AmountOfMoneyJsonV121(currency = "MDL", amount = "1000.00"),  // Пример суммы и валюты
+        debtorAccount = Some(PaymentAccount("MD12AA000001100032130935")),  // Пример IBAN плательщика
+        creditorAccount = PaymentAccountMd("37399000000"),  // Пример MSISDN получателя
+        remittanceInformationUnstructured = Some("Plata P2P"),  // Пример информации о переводе
+        transactionStatus = "RCVD"  // Статус транзакции
+      )), callContext)
+    )
+  }
 
   override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],

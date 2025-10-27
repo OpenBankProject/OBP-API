@@ -770,7 +770,9 @@ object ErrorMessages {
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
-  
+
+  ///Validation Error
+  val ValidationError = "OBP-90001: Validation error."
   ///////////
 
   private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
