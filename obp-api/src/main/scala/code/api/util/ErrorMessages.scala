@@ -773,6 +773,8 @@ object ErrorMessages {
 
   ///Validation Error
   val ValidationError = "OBP-90001: Validation error."
+  val PaymentNotFoundById = "OBP-90002: Payment not found by id."
+
   ///////////
 
   private val ObpErrorMsgPattern = Pattern.compile("OBP-\\d+:.+")
@@ -848,6 +850,7 @@ object ErrorMessages {
     CounterpartyNotFoundByIban -> 404,
     BankAccountNotFound -> 404,
     ConsumerNotFoundByConsumerId -> 404,
+    PaymentNotFoundById -> 404,
 //    TransactionNotFound -> 404, // or 400
     BankAccountNotFoundByAccountRouting -> 404,
     BankAccountNotFoundByIban -> 404,

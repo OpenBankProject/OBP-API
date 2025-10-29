@@ -5,7 +5,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentRes
 import code.api.berlin.group.v1_3.model.TransactionStatus.{mapTransactionStatus, mapTransactionStatusMdV1}
 import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{applicationAccess, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
@@ -317,7 +317,7 @@ Returns the content of a payment object""",
   def getInstantPaymentInformationImplementation(paymentProduct: String, paymentId: String, getStatus: Boolean, cc: CallContext) = {
     for {
       // Проверяем доступ пользователя
-      (Full(u), callContext) <- authenticatedAccess(cc)
+      (Full(u), callContext) <- applicationAccess(cc)
       _ <- passesPsd2Pisp(callContext)
 
       // Проверка типа платёжного продукта

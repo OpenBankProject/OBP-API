@@ -138,13 +138,13 @@ class ConfirmPaymentRequest {
           <strong>Type:</strong> <span class="value">{payment.map(_.transactionType).openOr("")}</span>
         </div>
         <div class="data-row">
-          <strong>Commission (3%):</strong> <span class="value">{commission}</span>
+          <strong>Commission:</strong> <span class="value">0 {payment.map(_.mInstructedAmountCurrency.get).openOr("")}</span>
         </div>
         <div class="data-row">
           <strong>Remittance Info:</strong> <span class="value">{payment.map(_.mRemittanceInformationUnstructured.get).openOr("")}</span>
         </div>
         <div class="data-row">
-          <strong>Total Amount:</strong> <span class="value">{totalAmount}</span>
+          <strong>Total Amount:</strong> <span class="value">{totalAmount} {payment.map(_.mInstructedAmountCurrency.get).openOr("")}</span>
         </div>
 
         {debtorIbanHtml}
@@ -184,13 +184,13 @@ class ConfirmPaymentRequest {
           <strong>Type:</strong> <span class="value">{payment.map(_.transactionType).openOr("")}</span>
         </div>
         <div class="data-row">
-          <strong>Commission (3%):</strong> <span class="value">{commission}</span>
+          <strong>Commission:</strong> <span class="value">0 {payment.map(_.mInstructedAmountCurrency.get).openOr("")}</span>
         </div>
         <div class="data-row">
           <strong>Remittance Info:</strong> <span class="value">{payment.map(_.mRemittanceInformationUnstructured.get).openOr("")}</span>
         </div>
         <div class="data-row">
-          <strong>Total Amount:</strong> <span class="value">{totalAmount}</span>
+          <strong>Total Amount:</strong> <span class="value">{totalAmount} {payment.map(_.mInstructedAmountCurrency.get).openOr("")}</span>
         </div>
 
         {debtorIbanHtml}

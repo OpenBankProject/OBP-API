@@ -42,6 +42,7 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.AuthUser.findAuthUserByUsernameLocallyLegacy
 import code.model.dataAccess._
+import code.payments.MappedPaymentProvider
 import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
@@ -75,6 +76,7 @@ import com.twilio.Twilio
 import com.twilio.`type`.PhoneNumber
 import com.twilio.rest.api.v2010.account.Message
 import net.liftweb.common._
+import net.liftweb.http.S
 import net.liftweb.json
 import net.liftweb.json.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper._
@@ -4865,23 +4867,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getInstantPaymentInformationMdV1(
-                                                 paymentId: String,
-                                                 callContext: Option[CallContext]
-                                               ): OBPReturnType[Box[InstantPaymentInformation]] = {
+  override def getInstantPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[InstantPaymentInformation]] = {
+    val notFound: Failure =
+      Failure(ErrorMessages.PaymentNotFoundById)
 
-    // Замоканная реализация
-    Future.successful(
-      // Мокаем InstantPaymentInformation, возвращая фиктивные данные
-      (Full(InstantPaymentInformation(
-        paymentId = paymentId,
-        instructedAmount = AmountOfMoneyJsonV121(currency = "MDL", amount = "1000.00"),  // Пример суммы и валюты
-        debtorAccount = Some(PaymentAccount("MD12AA000001100032130935")),  // Пример IBAN плательщика
-        creditorAccount = PaymentAccountMd("37399000000"),  // Пример MSISDN получателя
-        remittanceInformationUnstructured = Some("Plata P2P"),  // Пример информации о переводе
-        transactionStatus = "RCVD"  // Статус транзакции
-      )), callContext)
-    )
+    MappedPaymentProvider.getPaymentById(paymentId) match {
+      case Full(p) =>
+        val info = InstantPaymentInformation(
+          paymentId = Option(p.mPaymentId.get).getOrElse(paymentId),
+          instructedAmount = AmountOfMoneyJsonV121(currency = p.mInstructedAmountCurrency.get, amount = p.mInstructedAmountAmount.get),
+          debtorAccount = Option(p.mDebtorAccountIban.get).filter(_ != null).map(PaymentAccount.apply),
+          creditorAccount = PaymentAccountMd(p.mCreditorAccountMsisdn.get),
+          remittanceInformationUnstructured = Option(p.mRemittanceInformationUnstructured.get).filter(s => s != null && s.nonEmpty),
+          transactionStatus = p.status
+        )
+        Future.successful((Full(info), callContext))
+
+      case Empty =>
+        Future.successful((notFound, callContext))
+    }
   }
 
   override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
