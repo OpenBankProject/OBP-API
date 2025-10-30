@@ -25,6 +25,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
+import code.payments.{MappedPayment, MappedPaymentProvider}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -678,6 +679,10 @@ Check the transaction status of a payment initiation.""",
       _ <- transferRequest match {
         case m: InstantCreditTransfersMdV1 =>
           for {
+            _ <- assertF(s"$ValidationError Msisdn is required", 400, callContext)(
+              m.creditorAccount != null &&
+                Option(m.creditorAccount.msisdn).exists(_.nonEmpty)
+            )
             _ <- assertF(s"$ValidationError Msisdn. Telephone number format is not correct", 400, callContext)(
               Option(m.creditorAccount.msisdn).exists(_.matches("^373\\d{8}$"))
             )
@@ -685,14 +690,31 @@ Check the transaction status of a payment initiation.""",
               m.remittanceInformationUnstructured.forall(_.length <= 200)
             )
             _ <- assertF(s"$ValidationError Iban. Invalid format", 400, callContext)(
-              m.debtorAccount.forall(a => Option(a.iban).exists(_.matches("^[A-Za-z0-9]{1,24}$")))
+              m.debtorAccount.forall { a =>
+                val iban = Option(a.iban).getOrElse("")
+                iban.isEmpty || iban.matches("^[A-Za-z0-9]{1,24}$")
+              }
             )
-            _ <- assertF(s"$ValidationError PurposeCode. Must be exactly 201", 400, callContext)(
-              m.purposeCode.forall(_ == "201")
+            _ <- assertF(s"$ValidationError PurposeCode is required", 400, callContext)(
+              m.purposeCode.isDefined
+            )
+            _ <- assertF(s"$ValidationError PurposeCode must be exactly 201", 400, callContext)(
+              m.purposeCode.contains("201")
+            )
+            _ <- assertF(s"$ValidationError EndToEndIdentification is required", 400, callContext)(
+              m.endToEndIdentification.isDefined
+            )
+
+            val existingPayment = MappedPaymentProvider.getPaymentByEndToEndIdentification(m.endToEndIdentification.getOrElse(""))
+
+            _ <- assertF(s"$ValidationError EndToEndIdentification must be unique", 400, callContext)(
+              existingPayment.isEmpty
             )
           } yield ()
         case _ => Future.unit
       }
+
+
 
       isValidAmountNumber <- transferRequest match {
         case s: SepaCreditTransfersBerlinGroupV13 => NewStyle.function.tryons(s"$InvalidNumber Current input is ${s.instructedAmount.amount} ", 400, callContext){ BigDecimal(s.instructedAmount.amount) }

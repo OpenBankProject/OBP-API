@@ -14,7 +14,7 @@ class MappedPayment extends LongKeyedMapper[MappedPayment] with IdPK with Create
   object mInstructedAmountAmount extends MappedString(this, 20)
   object mCreditorAccountMsisdn extends MappedString(this, 50)
   object mPurposeCode extends MappedString(this, 10)
-  object mRemittanceInformationUnstructured extends MappedString(this, 50)
+  object mRemittanceInformationUnstructured extends MappedString(this, 200)
 
   // Статус с дефолтным значением
   object mStatus extends MappedString(this, 10) { override def defaultValue = "RCVD" } // Default status "RCVD"

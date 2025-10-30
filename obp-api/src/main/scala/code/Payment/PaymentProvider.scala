@@ -14,7 +14,9 @@ import net.liftweb.mapper._
 trait PaymentProvider {
   protected val redirectUriValue: String = "confirm-bg-payment-request"
   def approvePaymentRequestProcess(paymentId: String, debtorIban: String): Unit
+  def cancelPaymentRequestProcess(paymentId: String): Unit
   def getPaymentById(paymentId: String): Box[MappedPayment]
+  def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment]
   def getPayments(queryParams: List[OBPQueryParam] = Nil): List[MappedPayment]
   def createPayment(
                      endToEndIdentification: String,
@@ -34,6 +36,9 @@ object MappedPaymentProvider extends PaymentProvider {
 
   override def getPaymentById(paymentId: String): Box[MappedPayment] =
     MappedPayment.find(By(MappedPayment.mPaymentId, paymentId))
+
+  override def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment] =
+    MappedPayment.find(By(MappedPayment.mEndToEndIdentification, endToEndIdentification))
 
   override def getPayments(queryParams: List[OBPQueryParam] = Nil): List[MappedPayment] = {
     // Можно добавить фильтры по статусу / типу из queryParams, если нужно
@@ -70,7 +75,7 @@ object MappedPaymentProvider extends PaymentProvider {
     }
   }
 
-  override def updatePayment(paymentId: String, status: Option[TransactionStatus] = None, paymentType: Option[TransactionRequestTypes] = None, debtorAccountIban: Option[String]): Box[MappedPayment] = {
+  override def updatePayment(paymentId: String, status: Option[TransactionStatus] = None, paymentType: Option[TransactionRequestTypes] = None, debtorAccountIban: Option[String] = None): Box[MappedPayment] = {
     getPaymentById(paymentId) match {
       case Full(payment) =>
         try {
@@ -103,4 +108,20 @@ object MappedPaymentProvider extends PaymentProvider {
     }
   }
 
+  def cancelPaymentRequestProcess(paymentId: String): Unit = {
+    // Ищем платеж в базе
+    MappedPaymentProvider.getPaymentById(paymentId) match {
+      case Full(payment) =>
+        // Обновляем IBAN платежа и статус
+        MappedPaymentProvider.updatePayment(paymentId, Some(TransactionStatus.CANC)) match {
+          case Full(updatedPayment) =>
+            // Перенаправляем пользователя на страницу с подтверждением
+            S.redirectTo(s"$redirectUriValue?PAYMENT_ID=${paymentId}")
+          case _ =>
+            S.error("Failed to update payment status")
+        }
+      case _ =>
+        S.error("Payment not found")
+    }
+  }
 }

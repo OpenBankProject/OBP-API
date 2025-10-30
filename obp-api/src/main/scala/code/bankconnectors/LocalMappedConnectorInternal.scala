@@ -3,6 +3,7 @@ package code.bankconnectors
 import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.berlin.group.ConstantsBG
+import code.api.berlin.group.v1_3.model.TransactionStatus
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -270,7 +271,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             .mRemittanceInformationUnstructured(
               transactionRequestBody.remittanceInformationUnstructured.getOrElse("")
             )
-            .mStatus(TransactionRequestStatus.INITIATED.toString)
+            .mStatus(TransactionStatus.RCVD.toString)
             .mType(transactionRequestType.toString)
             .mPaymentId(randomUUID().toString)
             .saveMe()
