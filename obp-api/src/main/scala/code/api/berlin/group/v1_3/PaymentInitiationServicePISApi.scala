@@ -50,7 +50,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
       getPaymentCancellationScaStatus ::
 /*      getPaymentInformation ::*/
       getInstantPaymentInformation ::
-      getInstantPaymentInitiationStatus ::
+      getInstantPaymentInformationStatus ::
       getPaymentInitiationAuthorisation ::
       getPaymentInitiationCancellationAuthorisationInformation ::
       getPaymentInitiationScaStatus ::
@@ -289,12 +289,12 @@ Returns the content of a payment object""",
     }
   }
   resourceDocs += ResourceDoc(
-    getInstantPaymentInitiationStatus,
+    getInstantPaymentInformationStatus,
     apiVersion,
-    nameOf(getInstantPaymentInitiationStatus),
+    nameOf(getInstantPaymentInformationStatus),
     "GET",
     "/payments/PAYMENT_PRODUCT/PAYMENTID/status",
-    "Get Payment Information",
+    "Get Payment Satus Information",
     s"""${mockedDataText(false)}
     Returns the content of a payment object""",
     EmptyBody,
@@ -305,8 +305,8 @@ Returns the content of a payment object""",
     ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
   )
 
-  lazy val getInstantPaymentInitiationStatus: OBPEndpoint = {
-    case "payments" :: paymentProduct :: paymentId :: Nil JsonGet _ => {
+  lazy val getInstantPaymentInformationStatus: OBPEndpoint = {
+    case "payments" :: paymentProduct :: paymentId :: "status" :: Nil JsonGet _ => {
       cc =>
         // Вызов метода длѝ получениѝ информации о платёжной транзакции
         getInstantPaymentInformationImplementation(paymentProduct, paymentId, true, cc)
