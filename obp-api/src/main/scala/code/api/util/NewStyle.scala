@@ -1114,8 +1114,11 @@ object NewStyle extends MdcLoggable{
         // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
         val instantPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetInstantPaymentInformation", 400)
 
-        // Возвращаем успешный результат с данными
-        (instantPaymentInformation, i._2)
+        val normalized = instantPaymentInformation.copy(
+          debtorAccount = Some(instantPaymentInformation.debtorAccount.getOrElse(PaymentAccount(null)))
+        )
+
+        (normalized, i._2)
       }
     }
 

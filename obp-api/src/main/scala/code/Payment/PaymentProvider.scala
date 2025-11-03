@@ -2,10 +2,6 @@ package code.payments
 
 import code.api.berlin.group.v1_3.model.TransactionStatus
 import net.liftweb.http.S
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js.JE._
-import net.liftweb.common._
-import net.liftweb.util.Helpers._
 import code.api.util.OBPQueryParam
 import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import net.liftweb.common.{Box, Empty, Failure, Full}

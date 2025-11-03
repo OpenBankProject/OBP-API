@@ -67,6 +67,7 @@ object Migration extends MdcLoggable {
       updateTableViewDefinition()
       bankAccountHoldersAndOwnerViewAccessInfo(startedBeforeSchemifier)
       alterTableMappedPayment()
+      alterColumnRemittanceInformationUnstructuredAtTableMappedConsent()
       alterTableMappedConsent()
       alterColumnChallengeAtTableMappedConsent()
       alterTableOpenIDConnectToken()
@@ -241,12 +242,20 @@ object Migration extends MdcLoggable {
       }
     }
 
+    private def alterColumnRemittanceInformationUnstructuredAtTableMappedConsent(): Boolean = {
+      val name = nameOf(alterColumnRemittanceInformationUnstructuredAtTableMappedConsent)
+      runOnce(name) {
+        MigrationOfMappedPayment.alterColumnRemittanceInformationUnstructured(name)
+      }
+    }
+
     private def alterColumnChallengeAtTableMappedConsent(): Boolean = {
       val name = nameOf(alterColumnChallengeAtTableMappedConsent)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnChallenge(name)
       }
     }
+
     private def alterTableOpenIDConnectToken(): Boolean = {
       val name = nameOf(alterTableOpenIDConnectToken)
       runOnce(name) {

@@ -56,4 +56,44 @@ object MigrationOfMappedPayment {
     }
   }
 
+  def alterColumnRemittanceInformationUnstructured(name: String): Boolean = {
+    DbFunction.tableExists(MappedPayment) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+            APIUtil.getPropsValue("db.driver") match {
+              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """ALTER TABLE mappedpayment ALTER COLUMN mremittanceinformationunstructured varchar(200);"""
+              case _ =>
+                () =>
+                  """ALTER TABLE mappedpayment ALTER COLUMN mremittanceinformationunstructured type varchar(200);"""
+            }
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Executed SQL:
+             |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${MappedPayment._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
+
 }
