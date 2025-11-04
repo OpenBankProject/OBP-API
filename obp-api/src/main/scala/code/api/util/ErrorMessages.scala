@@ -774,6 +774,7 @@ object ErrorMessages {
   ///Validation Error
   val ValidationError = "OBP-90001: Validation error."
   val PaymentNotFoundById = "OBP-90002: Payment not found by id."
+  val MandatoryError = "OBP-90003: Validation error."
 
   ///////////
 

@@ -679,7 +679,7 @@ Check the transaction status of a payment initiation.""",
       _ <- transferRequest match {
         case m: InstantCreditTransfersMdV1 =>
           for {
-            _ <- assertF(s"$ValidationError Msisdn is required", 400, callContext)(
+            _ <- assertF(s"$MandatoryError Msisdn is required", 400, callContext)(
               m.creditorAccount != null &&
                 Option(m.creditorAccount.msisdn).exists(_.nonEmpty)
             )
@@ -695,13 +695,13 @@ Check the transaction status of a payment initiation.""",
                 iban.isEmpty || iban.matches("^[A-Za-z0-9]{1,24}$")
               }
             )
-            _ <- assertF(s"$ValidationError PurposeCode is required", 400, callContext)(
+            _ <- assertF(s"$MandatoryError PurposeCode is required", 400, callContext)(
               m.purposeCode.isDefined
             )
             _ <- assertF(s"$ValidationError PurposeCode must be exactly 201", 400, callContext)(
               m.purposeCode.contains("201")
             )
-            _ <- assertF(s"$ValidationError EndToEndIdentification is required", 400, callContext)(
+            _ <- assertF(s"$MandatoryError EndToEndIdentification is required", 400, callContext)(
               m.endToEndIdentification.isDefined
             )
 
