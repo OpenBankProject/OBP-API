@@ -995,6 +995,18 @@ case class InstantCreditTransfersMdV1(
   remittanceInformationUnstructured: Option[String] = None
 )
 
+case class DomesticCreditTransfersMdV1(
+   endToEndIdentification: Option[String] = None,
+   instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
+   debtorAccount: Option[PaymentAccount] = None,         // опциональный
+   creditorAccount: PaymentAccount,                    // обязательный (msisdn)
+   instructionPriority: String,
+   remittanceInformationUnstructured: Option[String] = None,
+   creditorName: String,
+   creditorCtryOfRes: String,
+   creditorId: String,
+ )
+
 case class PaymentAccountMd(
  msisdn: String                                       // вместо iban — телефон
 )

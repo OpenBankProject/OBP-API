@@ -784,17 +784,26 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestSepaCreditTransfersBGV1 _))), callContext)}
 
   def createTransactionRequestInstantCreditTransfersMdV1(
-                                                          initiator: Option[User],
-                                                          paymentServiceType: PaymentServiceTypes,
-                                                          transactionRequestType: TransactionRequestTypes,
-                                                          transactionRequestBody: InstantCreditTransfersMdV1,
-                                                          callContext: Option[CallContext]
-                                                        ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestInstantCreditTransfersMdV1 _))), callContext)}
+    initiator: Option[User],
+    paymentServiceType: PaymentServiceTypes,
+    transactionRequestType: TransactionRequestTypes,
+    transactionRequestBody: InstantCreditTransfersMdV1,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestInstantCreditTransfersMdV1 _))), callContext)}
+
+  def createTransactionRequestDomesticCreditTransfersMdV1(
+    initiator: Option[User],
+    paymentServiceType: PaymentServiceTypes,
+    transactionRequestType: TransactionRequestTypes,
+    transactionRequestBody: DomesticCreditTransfersMdV1,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionRequestBGV1]] = Future{(Failure(setUnimplementedError(nameOf(createTransactionRequestDomesticCreditTransfersMdV1 _))), callContext)}
+
 
   def getInstantPaymentInformationMdV1(
-                                        paymentId: String,
-                                        callContext: Option[CallContext]
-                                      ): OBPReturnType[Box[InstantPaymentInformation]] = Future{(Failure(setUnimplementedError(nameOf(getInstantPaymentInformationMdV1 _))), callContext)}
+    paymentId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[InstantPaymentInformation]] = Future{(Failure(setUnimplementedError(nameOf(getInstantPaymentInformationMdV1 _))), callContext)}
 
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],

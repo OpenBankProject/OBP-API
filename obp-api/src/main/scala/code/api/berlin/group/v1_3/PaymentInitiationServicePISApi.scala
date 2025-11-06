@@ -26,6 +26,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
 import code.payments.{MappedPayment, MappedPaymentProvider}
+import com.openbankproject.adapter.akka.commons.actor.toOption
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -623,16 +624,22 @@ Check the transaction status of a payment initiation.""",
     generalPaymentSummary(false),
     json.parse(s"""{
                       "debtorAccount": {
-                          "iban": "DE123456987480123"
+                          "iban": "MD12AG00000002233445566",
+                          "msisdn" : "373690178437"
                       },
                       "instructedAmount": {
                           "currency": "EUR",
                           "amount": "100"
                       },
                       "creditorAccount": {
-                          "iban": "UK12 1234 5123 4517 2948 6166 077"
+                          "iban": "MD12AG00000002233445567"
                       },
-                      "creditorName": "70charname"
+                      "creditorName": "Comerciant X",
+                      "creditorId": "2002002002002",
+                      "instructionPriority": "NORM",
+                      "creditorCtryOfRes": "MD",
+                      "remittanceInformationUnstructured": "Plata facturii",
+                      "endToEndIdentification": "d14c3e75-8a2f-4e93-b3ca-ec4fd7128133"
                   }"""),
     json.parse(s"""{
                     "transactionStatus": "${TransactionStatus.RCVD.code}",
@@ -640,7 +647,7 @@ Check the transaction status of a payment initiation.""",
                     "_links":
                       {
                       "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
-                      "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
+                      "self": {"href": "/v1.3/payments/PAYMENT_PRODUCT/1234-wertiq-983"},
                       "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
                       "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                       }
@@ -671,6 +678,8 @@ Check the transaction status of a payment initiation.""",
             NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SepaCreditTransfersBerlinGroupV13].getSimpleName}", 400, callContext){ json.extract[SepaCreditTransfersBerlinGroupV13] }
           case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD =>
             NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[InstantCreditTransfersMdV1].getSimpleName}", 400, callContext){ json.extract[InstantCreditTransfersMdV1] }
+          case TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD =>
+            NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DomesticCreditTransfersMdV1].getSimpleName}", 400, callContext){ json.extract[DomesticCreditTransfersMdV1] }
         }
         else if (paymentServiceType == PaymentServiceTypes.periodic_payments)
           NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[PeriodicSepaCreditTransfersBerlinGroupV13].getSimpleName}", 400, callContext){ json.extract[PeriodicSepaCreditTransfersBerlinGroupV13] }
@@ -679,60 +688,101 @@ Check the transaction status of a payment initiation.""",
       _ <- transferRequest match {
         case m: InstantCreditTransfersMdV1 =>
           for {
-            _ <- assertF(s"$MandatoryError Msisdn is required", 400, callContext)(
-              m.creditorAccount != null &&
-                Option(m.creditorAccount.msisdn).exists(_.nonEmpty)
-            )
-            _ <- assertF(s"$ValidationError Msisdn. Telephone number format is not correct", 400, callContext)(
-              Option(m.creditorAccount.msisdn).exists(_.matches("^373\\d{8}$"))
-            )
-            _ <- assertF(s"$ValidationError RemittanceInformationUnstructured. Must be ≤ 200 characters", 400, callContext)(
-              m.remittanceInformationUnstructured.forall(_.length <= 200)
-            )
-            _ <- assertF(s"$ValidationError Iban. Invalid format", 400, callContext)(
-              m.debtorAccount.forall { a =>
-                val iban = Option(a.iban).getOrElse("")
-                iban.isEmpty || iban.matches("^[A-Za-z0-9]{1,24}$")
-              }
-            )
-            _ <- assertF(s"$MandatoryError PurposeCode is required", 400, callContext)(
-              m.purposeCode.isDefined
-            )
-            _ <- assertF(s"$ValidationError PurposeCode must be exactly 201", 400, callContext)(
-              m.purposeCode.contains("201")
-            )
-            _ <- assertF(s"$MandatoryError EndToEndIdentification is required", 400, callContext)(
-              m.endToEndIdentification.isDefined
-            )
-
-            val existingPayment = MappedPaymentProvider.getPaymentByEndToEndIdentification(m.endToEndIdentification.getOrElse(""))
-
-            _ <- assertF(s"$ValidationError EndToEndIdentification must be unique", 400, callContext)(
-              existingPayment.isEmpty
-            )
+            _ <- validateInstantOnly(m, callContext)
           } yield ()
-        case _ => Future.unit
+        case m: DomesticCreditTransfersMdV1 =>
+          for {
+            _ <- validateDomesticOnly(m, callContext)
+          } yield ()
+        case _ =>
+          Future.unit
       }
-
-
 
       isValidAmountNumber <- transferRequest match {
         case s: SepaCreditTransfersBerlinGroupV13 => NewStyle.function.tryons(s"$InvalidNumber Current input is ${s.instructedAmount.amount} ", 400, callContext){ BigDecimal(s.instructedAmount.amount) }
         case m: InstantCreditTransfersMdV1        => NewStyle.function.tryons(s"$InvalidNumber Current input is ${m.instructedAmount.amount} ", 400, callContext){ BigDecimal(m.instructedAmount.amount) }
+        case m: DomesticCreditTransfersMdV1       => NewStyle.function.tryons(s"$InvalidNumber Current input is ${m.instructedAmount.amount} ", 400, callContext){ BigDecimal(m.instructedAmount.amount) }
         case _                                    => NewStyle.function.tryons(s"$InvalidNumber", 400, callContext){ BigDecimal(0) }
       }
       _ <- Helper.booleanToFuture(s"$NotPositiveAmount Current input is: '$isValidAmountNumber'", cc = callContext)(isValidAmountNumber > BigDecimal("0")).map(_ => ())
       _ <- transferRequest match {
         case s: SepaCreditTransfersBerlinGroupV13 => Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${s.instructedAmount.currency}'", cc = callContext)(isValidCurrencyISOCode(s.instructedAmount.currency)).map(_ => ())
         case m: InstantCreditTransfersMdV1        => Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${m.instructedAmount.currency}'", cc = callContext)(isValidCurrencyISOCode(m.instructedAmount.currency)).map(_ => ())
+        case m: DomesticCreditTransfersMdV1       => Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${m.instructedAmount.currency}'", cc = callContext)(isValidCurrencyISOCode(m.instructedAmount.currency)).map(_ => ())
         case _                                    => Future.unit
       }
       _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
       (createdTransactionRequest, callContext) <- transactionRequestType match {
-        case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS     => NewStyle.function.createTransactionRequestBGV1(u, paymentServiceType, transactionRequestType, transferRequest.asInstanceOf[SepaCreditTransfersBerlinGroupV13], callContext)
-        case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD => NewStyle.function.createTransactionRequestMdBGV1(u, paymentServiceType, transactionRequestType, transferRequest.asInstanceOf[InstantCreditTransfersMdV1], callContext)
+        case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS        => NewStyle.function.createTransactionRequestBGV1(u, paymentServiceType, transactionRequestType, transferRequest.asInstanceOf[SepaCreditTransfersBerlinGroupV13], callContext)
+        case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD  => NewStyle.function.createInstantTransactionRequestMdBGV1(u, paymentServiceType, transactionRequestType, transferRequest.asInstanceOf[InstantCreditTransfersMdV1], callContext)
+        case TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD => NewStyle.function.createDomesticTransactionRequestMdBGV1(u, paymentServiceType, transactionRequestType, transferRequest.asInstanceOf[DomesticCreditTransfersMdV1], callContext)
       }
     } yield (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest, transactionRequestType), HttpCode.`201`(callContext))
+  }
+
+
+  // 2) Специфичные проверки для InstantCreditTransfersMdV1
+  private def validateInstantOnly(m: InstantCreditTransfersMdV1, cc: Option[CallContext]): Future[Unit] = {
+    for {
+      _ <- assertF(s"$MandatoryError Msisdn is required", 400, cc)(
+        m.creditorAccount != null &&
+          Option(m.creditorAccount.msisdn).exists(_.nonEmpty))
+      _ <- assertF(s"$ValidationError Msisdn. Telephone number format is not correct", 400, cc)(
+        Option(m.creditorAccount.msisdn).exists(_.matches("^373\\d{8}$")))
+      _ <- assertF(s"$ValidationError RemittanceInformationUnstructured. Must be ≤ 200 characters", 400, cc)(
+        m.remittanceInformationUnstructured.forall(_.length <= 200))
+      _ <- assertF(s"$ValidationError Iban. Invalid format", 400, cc)(
+        m.debtorAccount.forall { a =>
+          val iban = Option(a.iban).getOrElse("")
+          iban.isEmpty || iban.matches("^[A-Za-z0-9]{1,24}$")
+        })
+      _ <- assertF(s"$MandatoryError PurposeCode is required", 400, cc)(
+        m.purposeCode.isDefined)
+      _ <- assertF(s"$ValidationError PurposeCode must be exactly 201", 400, cc)(
+        m.purposeCode.contains("201"))
+      _ <- assertF(s"$MandatoryError EndToEndIdentification is required", 400, cc)(
+        m.endToEndIdentification.isDefined)
+      existingPayment = MappedPaymentProvider.getPaymentByEndToEndIdentification(m.endToEndIdentification.getOrElse(""))
+      _ <- assertF(s"$ValidationError EndToEndIdentification must be unique", 400, cc)(
+        existingPayment.isEmpty)
+    } yield ()
+  }
+
+  // 3) Специфичные проверки для DomesticCreditTransfersMdV1
+  private def validateDomesticOnly(m: DomesticCreditTransfersMdV1, cc: Option[CallContext]): Future[Unit] = {
+    for {
+      _ <- assertF(s"$MandatoryError Iban is required", 400, cc)(
+        m.creditorAccount != null &&
+          Option(m.creditorAccount.iban).exists(_.nonEmpty))
+      _ <- assertF(s"$ValidationError Creditor.Iban. Invalid format", 400, cc)(
+        Option(m.creditorAccount.iban).exists(_.matches("^[A-Za-z0-9]{1,24}$")))
+      _ <- assertF(s"$ValidationError RemittanceInformationUnstructured. Must be ≤ 200 characters", 400, cc)(
+        m.remittanceInformationUnstructured.forall(_.length <= 200))
+      _ <- assertF(s"$ValidationError Iban. Invalid format", 400, cc)(
+        m.debtorAccount.forall { a =>
+          val iban = Option(a.iban).getOrElse("")
+          iban.isEmpty || iban.matches("^[A-Za-z0-9]{1,24}$")
+        })
+      _ <- assertF(s"$MandatoryError CreditorName is required", 400, cc)(
+        m.creditorName.isDefined)
+      _ <- assertF(s"$MandatoryError CreditorId is required", 400, cc)(
+        m.creditorId.isDefined)
+      _ <- assertF(s"$MandatoryError CreditorCtryOfRes is required", 400, cc)(
+        m.creditorCtryOfRes.isDefined)
+      _ <- assertF(s"$MandatoryError Creditor country code is required", 400, cc)(
+        m.creditorCtryOfRes != null && m.creditorCtryOfRes.nonEmpty)
+      _ <- assertF(s"$ValidationError Invalid creditor country code format", 400, cc)(
+        m.creditorCtryOfRes.matches("^[A-Z]{2}$")) // ISO 3166-1 country code (2 uppercase letters)
+      _ <- assertF(s"$ValidationError InstructionPriority must be either 'NORM' or 'URGT'", 400, cc)(
+        Option(m.instructionPriority).map(_.trim.toUpperCase(java.util.Locale.ROOT)).exists(p => p == "NORM" || p == "URGT"))
+      _ <- assertF(s"$MandatoryError EndToEndIdentification is required", 400, cc)(
+        m.endToEndIdentification.isDefined
+      )
+      existingPayment = MappedPaymentProvider.getPaymentByEndToEndIdentification(m.endToEndIdentification.getOrElse(""))
+      _ <- assertF(s"$ValidationError EndToEndIdentification must be unique", 400, cc)(
+        existingPayment.isEmpty
+      )
+    } yield ()
   }
 
   resourceDocs += ResourceDoc(

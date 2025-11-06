@@ -295,7 +295,74 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     }
   }
 
+  def createTransactionRequestDomesticCreditTransferMd(
+     initiator: Option[User],
+     paymentServiceType: PaymentServiceTypes,
+     transactionRequestType: TransactionRequestTypes,
+     transactionRequestBody: DomesticCreditTransfersMdV1,
+     callContext: Option[CallContext]
+   ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
 
+    for {
+      // 2. Сериализуем тело запроса
+      transDetailsSerialized <- NewStyle.function.tryons(
+        s"$UnknownError Can not serialize in request Json",
+        400,
+        callContext
+      ) {
+        write(transactionRequestBody)(Serialization.formats(NoTypeHints))
+      }
+
+      // 3. Извлекаем дебетовый IBAN (если есть)
+      transactionRequest <- {
+        val fromAccountIbanOpt: Option[String] =
+          for {
+            acc  <- transactionRequestBody.debtorAccount
+            iban <- Option(acc.iban).map(_.trim.take(50)).filter(_.nonEmpty)
+          } yield iban
+
+        Future {
+          val payment = MappedPayment.create
+            .mEndToEndIdentification(transactionRequestBody.endToEndIdentification.getOrElse(""))
+            .mInstructedAmountCurrency(transactionRequestBody.instructedAmount.currency)
+            .mInstructedAmountAmount(transactionRequestBody.instructedAmount.amount)
+
+          // Устанавливаем IBAN, если есть
+          fromAccountIbanOpt.foreach(payment.mDebtorAccountIban(_))
+
+          // Остальные поля + сохранение
+          val savedPayment = payment
+            .mCreditorAccountIban(transactionRequestBody.creditorAccount.iban)
+            .mCreditorName(transactionRequestBody.creditorName)
+            .mCreditorId(transactionRequestBody.creditorId)
+            .mCreditorCtryOfRes(transactionRequestBody.creditorCtryOfRes)
+            .mInstructionPriority(transactionRequestBody.instructionPriority)
+            .mRemittanceInformationUnstructured(
+              transactionRequestBody.remittanceInformationUnstructured.getOrElse("")
+            )
+            .mStatus(TransactionStatus.RCVD.toString)
+            .mType(transactionRequestType.toString)
+            .mPaymentId(randomUUID().toString)
+            .saveMe()
+
+          Full(savedPayment)
+        }.map { box =>
+          unboxFullOrFail(box, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210 ", 400)
+        }
+      }
+    } yield {
+      logger.debug(transactionRequest)
+      (
+        Full(
+          TransactionRequestBGV1(
+            TransactionRequestId(transactionRequest.mPaymentId.toString),
+            transactionRequest.status
+          )
+        ),
+        callContext
+      )
+    }
+  }
 
   /*
     Bank account creation

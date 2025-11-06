@@ -115,6 +115,7 @@ object TransactionRequestTypes extends  OBPEnumeration[TransactionRequestTypes]{
   object AGENT_CASH_WITHDRAWAL extends Value
   object CARDANO extends Value
   object INSTANT_CREDIT_TRANSFERS_MD extends Value
+  object DOMESTIC_CREDIT_TRANSFERS_MD extends Value
 }
 
 sealed trait StrongCustomerAuthentication extends EnumValue

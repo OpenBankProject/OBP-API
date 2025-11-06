@@ -4867,6 +4867,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def createTransactionRequestDomesticCreditTransfersMdV1(
+     initiator: Option[User],
+     paymentServiceType: PaymentServiceTypes,
+     transactionRequestType: TransactionRequestTypes,
+     transactionRequestBody: DomesticCreditTransfersMdV1,
+     callContext: Option[CallContext]
+   ): OBPReturnType[Box[TransactionRequestBGV1]] = {
+    LocalMappedConnectorInternal.createTransactionRequestDomesticCreditTransferMd(
+      initiator: Option[User],
+      paymentServiceType: PaymentServiceTypes,
+      transactionRequestType: TransactionRequestTypes,
+      transactionRequestBody: DomesticCreditTransfersMdV1,
+      callContext: Option[CallContext]
+    )
+  }
+
   override def getInstantPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[InstantPaymentInformation]] = {
     val notFound: Failure =
       Failure(ErrorMessages.PaymentNotFoundById)

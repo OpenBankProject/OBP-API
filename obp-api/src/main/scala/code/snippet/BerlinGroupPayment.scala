@@ -4,8 +4,9 @@ import code.accountholders.AccountHolders
 import code.api.util.ErrorMessages
 import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.bankaccountbalance.BankAccountBalanceX
+import code.payments.MappedPaymentProvider.PurposeType
 import net.liftweb.common._
-import net.liftweb.http.{S, SHtml}
+import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.mapper.By
 import code.payments.{MappedPayment, MappedPaymentProvider}
 import com.openbankproject.commons.model.BankIdAccountId
@@ -34,6 +35,7 @@ class ConfirmPaymentRequest {
   var payment: Box[MappedPayment] = Empty
   var alreadyApproved: Boolean = false
   var alreadyCanceled: Boolean = false
+  var isDomestic: Boolean = false
 
   def render: NodeSeq = {
     val paymentId = S.param("PAYMENT_ID") openOr ""
@@ -46,6 +48,8 @@ class ConfirmPaymentRequest {
       p.status == "CANC" || p.status == "CANCELED"
     )
 
+    isDomestic = payment.exists(p=> p.transactionType == "DOMESTIC_CREDIT_TRANSFERS_MD")
+
     val debtorIban = payment.map(_.mDebtorAccountIban.get).openOr("")
 
     // Получаем балансы для всех счетов юзера
@@ -55,6 +59,18 @@ class ConfirmPaymentRequest {
       balanceList.map(b => acc.accountId.value -> (BigDecimal(b.BalanceAmount.get), b.BalanceType.get))
     }.toMap
 
+    val purposeSelect: NodeSeq = {
+      if (alreadyApproved || alreadyCanceled) {
+        <span class="value">{payment.map(_.mPurposeType.get).openOr("")}</span>
+      } else {
+        SHtml.select(
+          PurposeType.values.toList.map(v => (v.toString, v.toString)),
+          Full(PurposeType.PaymentsToBudget.toString), // значение по умолчанию
+          _ => (), // обработчик можно опустить, если читаешь через S.param
+          ("name", "purposeType"), ("id", "purposeType"), ("class", "form-control")
+        )
+      }
+    }
 
     // Формируем HTML для Debtor IBAN
     val debtorIbanHtml: NodeSeq =
@@ -118,6 +134,13 @@ class ConfirmPaymentRequest {
               <div class="toggle-container">
                 {radioButtons}
               </div>
+              {
+                if(isDomestic)
+                  <div class="data-row">
+                    <strong>Purpose Type:</strong>
+                    {purposeSelect}
+                  </div>
+              }
               <div class="button-container">
                 <div class="row">
                   <input id="confirm-bg-payment-request-deny-submit-button" class="btn btn-warning" name="action" type="submit" value="Deny" tabindex="0"/>
@@ -128,7 +151,16 @@ class ConfirmPaymentRequest {
           } else NodeSeq.Empty
         }
       } else {
-        debtorIbanHtml
+        debtorIbanHtml ++ {
+          if(isDomestic) {
+            <div class="data-row">
+              <strong>Purpose Type:</strong>
+              {purposeSelect}
+            </div>
+          }
+          else NodeSeq.Empty
+        }
+
       }
     }
     // Вычисление комиссии и общего количества
@@ -141,6 +173,7 @@ class ConfirmPaymentRequest {
         case Full("Confirm") =>
           val ibanFromForm = S.param("ibanChoice").openOr("").trim
           val selectedIban = if (debtorIban != null && debtorIban.trim.nonEmpty) debtorIban else ibanFromForm
+          val purposeType = S.param("purposeType").openOr("").trim
 
           if (selectedIban.nonEmpty) {
             val hasEnoughBalance = balancesMap.exists {
@@ -152,7 +185,7 @@ class ConfirmPaymentRequest {
             }
 
             if (hasEnoughBalance) {
-              MappedPaymentProvider.approvePaymentRequestProcess(paymentId, selectedIban)
+              MappedPaymentProvider.approvePaymentRequestProcess(paymentId, selectedIban, purposeType)
             } else {
               S.error(s"Insufficient funds on account $selectedIban. Required: $totalAmount MDL")
             }
@@ -175,11 +208,30 @@ class ConfirmPaymentRequest {
 
     <div class="payment-details">
       <h2 class="transaction-title">Transaction Confirmation</h2>
+      {
+        if(isDomestic)
+          <div class="data-row">
+            <strong>Creditor Iban:</strong> <span class="value">{payment.map(_.mCreditorAccountIban.get).openOr("")}</span>
+          </div>
+          <div class="data-row">
+            <strong>Creditor Name:</strong> <span class="value">{payment.map(_.mCreditorName.get).openOr("")}</span>
+          </div>
+          <div class="data-row">
+            <strong>Creditor Id:</strong> <span class="value">{payment.map(_.mCreditorId.get).openOr("")}</span>
+          </div>
+          <div class="data-row">
+            <strong>Creditor Contry Of Res:</strong> <span class="value">{payment.map(_.mCreditorCtryOfRes.get).openOr("")}</span>
+          </div>
+          <div class="data-row">
+            <strong>Instruction Priority:</strong> <span class="value">{payment.map(_.mInstructionPriority.get).openOr("")}</span>
+          </div>
+        else
+          <div class="data-row">
+            <strong>Creditor MSISDN:</strong> <span class="value">{payment.map(_.mCreditorAccountMsisdn.get).openOr("")}</span>
+          </div>
+      }
       <div class="data-row">
-        <strong>Creditor MSISDN:</strong> <span class="value">{payment.map(_.mCreditorAccountMsisdn.get).openOr("")}</span>
-      </div>
-      <div class="data-row">
-        <strong>Amount:</strong> <span class="value">{payment.map(_.mInstructedAmountAmount.get).openOr("")} {payment.map(_.mInstructedAmountCurrency.get).openOr("")}</span>
+        <strong>Amount:</strong> <span class="value">{payment.map(_.mInstructedAmountAmount.get).openOr("")}</span>
       </div>
       <div class="data-row">
         <strong>Status:</strong> <span class="value">{payment.map(_.status).openOr("")}</span>

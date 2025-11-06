@@ -1076,7 +1076,7 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
       }
     }
-    def createTransactionRequestMdBGV1(
+    def createInstantTransactionRequestMdBGV1(
                                       initiator: Option[User],
                                       paymentServiceType: PaymentServiceTypes,
                                       transactionRequestType: TransactionRequestTypes,
@@ -1089,6 +1089,28 @@ object NewStyle extends MdcLoggable{
           paymentServiceType: PaymentServiceTypes,
           transactionRequestType: TransactionRequestTypes,
           transactionRequestBody.asInstanceOf[InstantCreditTransfersMdV1],
+          callContext: Option[CallContext]
+        )
+      }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
+
+      response map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+      }
+    }
+
+    def createDomesticTransactionRequestMdBGV1(
+                                        initiator: Option[User],
+                                        paymentServiceType: PaymentServiceTypes,
+                                        transactionRequestType: TransactionRequestTypes,
+                                        transactionRequestBody: DomesticCreditTransfersMdV1,
+                                        callContext: Option[CallContext]
+                                      ): OBPReturnType[TransactionRequestBGV1] = {
+      val response = if(paymentServiceType.equals(PaymentServiceTypes.payments)){
+        Connector.connector.vend.createTransactionRequestDomesticCreditTransfersMdV1(
+          initiator: Option[User],
+          paymentServiceType: PaymentServiceTypes,
+          transactionRequestType: TransactionRequestTypes,
+          transactionRequestBody.asInstanceOf[DomesticCreditTransfersMdV1],
           callContext: Option[CallContext]
         )
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))

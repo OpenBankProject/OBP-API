@@ -9,7 +9,7 @@ import net.liftweb.mapper._
 
 trait PaymentProvider {
   protected val redirectUriValue: String = "confirm-bg-payment-request"
-  def approvePaymentRequestProcess(paymentId: String, debtorIban: String): Unit
+  def approvePaymentRequestProcess(paymentId: String, debtorIban: String, purposeType: String): Unit
   def cancelPaymentRequestProcess(paymentId: String): Unit
   def getPaymentById(paymentId: String): Box[MappedPayment]
   def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment]
@@ -25,7 +25,13 @@ trait PaymentProvider {
                      status: TransactionStatus = TransactionStatus.RCVD,
                      paymentType: TransactionRequestTypes = TransactionRequestTypes.SANDBOX_TAN
                    ): Box[MappedPayment]
-  def updatePayment(paymentId: String, status: Option[TransactionStatus] = None, paymentType: Option[TransactionRequestTypes] = None, debtorAccountIban: Option[String]): Box[MappedPayment]
+  def updatePayment(
+                     paymentId: String,
+                     status: Option[TransactionStatus] = None,
+                     paymentType: Option[TransactionRequestTypes] = None,
+                     debtorAccountIban: Option[String],
+                     purposeType: Option[String] = None
+                   ): Box[MappedPayment]
 }
 
 object MappedPaymentProvider extends PaymentProvider {
@@ -71,13 +77,20 @@ object MappedPaymentProvider extends PaymentProvider {
     }
   }
 
-  override def updatePayment(paymentId: String, status: Option[TransactionStatus] = None, paymentType: Option[TransactionRequestTypes] = None, debtorAccountIban: Option[String] = None): Box[MappedPayment] = {
+  override def updatePayment(
+                              paymentId: String,
+                              status: Option[TransactionStatus] = None,
+                              paymentType: Option[TransactionRequestTypes] = None,
+                              debtorAccountIban: Option[String] = None,
+                              purposeType: Option[String] = None
+                            ): Box[MappedPayment] = {
     getPaymentById(paymentId) match {
       case Full(payment) =>
         try {
           status.foreach(s => payment.mStatus(s.code))
           debtorAccountIban.foreach(iban => payment.mDebtorAccountIban(iban))
           paymentType.foreach(t => payment.mType(t.toString()))
+          purposeType.foreach(p => payment.mPurposeType(p.toString()))
           Full(payment.saveMe())
         } catch {
           case e: Exception => Failure(e.getMessage)
@@ -87,12 +100,12 @@ object MappedPaymentProvider extends PaymentProvider {
     }
   }
 
-  def approvePaymentRequestProcess(paymentId: String, debtorIban: String): Unit = {
+  def approvePaymentRequestProcess(paymentId: String, debtorIban: String, purposeType: String): Unit = {
     // Ищем платеж в базе
     MappedPaymentProvider.getPaymentById(paymentId) match {
       case Full(payment) =>
         // Обновляем IBAN платежа и статус
-        MappedPaymentProvider.updatePayment(paymentId, Some(TransactionStatus.ACCP), debtorAccountIban = Some(debtorIban)) match {
+        MappedPaymentProvider.updatePayment(paymentId, Some(TransactionStatus.ACCP), debtorAccountIban = Some(debtorIban), purposeType = Some(purposeType)) match {
           case Full(updatedPayment) =>
             // Перенаправляем пользователя на страницу с подтверждением
             S.redirectTo(s"$redirectUriValue?PAYMENT_ID=${paymentId}")
@@ -118,6 +131,28 @@ object MappedPaymentProvider extends PaymentProvider {
         }
       case _ =>
         S.error("Payment not found")
+    }
+  }
+
+  object PurposeType extends Enumeration {
+    type PurposeType = Value
+
+    // Перечисление значений
+    val RefundOfErroneousPayment = Value("RefundOfErroneousPayment")
+    val LoanOrFinancialHelp = Value("LoanOrFinancialHelp")
+    val LoanOrFinancialHelpReimbursement = Value("LoanOrFinancialHelpReimbursement")
+    val TransferInPersonalAccount = Value("TransferInPersonalAccount")
+    val PersonalTransferFamilyExpenses = Value("PersonalTransferFamilyExpenses")
+    val PaymentsToBudget = Value("PaymentsToBudget")
+
+    // Маппинг на описание
+    def description(purpose: PurposeType): String = purpose match {
+      case RefundOfErroneousPayment => "Refund of erroneous payment (Возврат неверно зачисленного платежа)"
+      case LoanOrFinancialHelp => "Loan / Financial help (Ссуда / Финансовая помощь)"
+      case LoanOrFinancialHelpReimbursement => "Loan / financial help reimbursement (Возврат займа / финансовой помощи)"
+      case TransferInPersonalAccount => "Transfer in one's own account (Перевод на свой счет в другом банке)"
+      case PersonalTransferFamilyExpenses => "Personal transfer – family expenses (Семейные расходы)"
+      case PaymentsToBudget => "Payments to the budget (Платежи в бюджет)"
     }
   }
 }
