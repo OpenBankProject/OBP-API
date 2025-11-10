@@ -65,7 +65,7 @@ class ConfirmPaymentRequest {
       } else {
         SHtml.select(
           PurposeType.values.toList.map(v => (v.toString, v.toString)),
-          Full(PurposeType.PaymentsToBudget.toString), // значение по умолчанию
+          Full(PurposeType.Donation.toString), // значение по умолчанию
           _ => (), // обработчик можно опустить, если читаешь через S.param
           ("name", "purposeType"), ("id", "purposeType"), ("class", "form-control")
         )
@@ -267,7 +267,7 @@ class ConfirmPaymentRequest {
             <div class="button-container">
               <div class="row">
                 <button id="redirect-button" class="btn btn-success" onclick="window.location.href='https://www.google.md';">
-                  Redirect
+                  Ok
                 </button>
               </div>
             </div>

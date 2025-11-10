@@ -805,6 +805,12 @@ trait Connector extends MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[InstantPaymentInformation]] = Future{(Failure(setUnimplementedError(nameOf(getInstantPaymentInformationMdV1 _))), callContext)}
 
+  def getDomesticPaymentInformationMdV1(
+    paymentId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[DomesticPaymentInformation]] = Future{(Failure(setUnimplementedError(nameOf(getDomesticPaymentInformationMdV1 _))), callContext)}
+
+
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,

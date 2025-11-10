@@ -1144,6 +1144,30 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    def getDomesticPaymentInformationMdBGV1(
+                                            paymentId: String,
+                                            callContext: Option[CallContext]
+                                          ): OBPReturnType[DomesticPaymentInformation] = {
+
+      // Получаем ответ от коннектора
+      val response = Connector.connector.vend.getDomesticPaymentInformationMdV1(
+        paymentId = paymentId,
+        callContext = callContext
+      )
+
+      // Обрабатываем ответ
+      response map { i =>
+        // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
+        val domesticPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetInstantPaymentInformation", 400)
+
+        val normalized = domesticPaymentInformation.copy(
+          debtorAccount = Some(domesticPaymentInformation.debtorAccount.getOrElse(PaymentAccount(null)))
+        )
+
+        (normalized, i._2)
+      }
+    }
+
 
 
     def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequestStatusValue] = {

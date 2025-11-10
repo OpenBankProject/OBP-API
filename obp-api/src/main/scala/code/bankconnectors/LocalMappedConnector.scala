@@ -4904,6 +4904,32 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getDomesticPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[DomesticPaymentInformation]] = {
+    val notFound: Failure =
+      Failure(ErrorMessages.PaymentNotFoundById)
+
+    MappedPaymentProvider.getPaymentById(paymentId) match {
+      case Full(p) =>
+        val info = DomesticPaymentInformation(
+          paymentId = Option(p.mPaymentId.get).getOrElse(paymentId),
+          instructedAmount = AmountOfMoneyJsonV121(currency = p.mInstructedAmountCurrency.get, amount = p.mInstructedAmountAmount.get),
+          debtorAccount = Option(p.mDebtorAccountIban.get).filter(_ != null).map(PaymentAccount.apply),
+          creditorAccount = PaymentAccount(p.mCreditorAccountIban.get),
+          remittanceInformationUnstructured = Option(p.mRemittanceInformationUnstructured.get).filter(s => s != null && s.nonEmpty),
+          transactionStatus = p.status,
+          creditorName =  Option(p.mCreditorName.get).getOrElse(""),
+          creditorId = Option(p.mCreditorId.get).getOrElse(""),
+          instructionPriority = Option(p.mInstructionPriority.get).getOrElse(""),
+          creditorCtryOfRes =Option(p.mCreditorCtryOfRes.get).getOrElse(""),
+          purposeType = Option(p.mPurposeType.get).getOrElse(""),
+        )
+        Future.successful((Full(info), callContext))
+
+      case Empty =>
+        Future.successful((notFound, callContext))
+    }
+  }
+
   override def createTransactionRequestPeriodicSepaCreditTransfersBGV1(
     initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,

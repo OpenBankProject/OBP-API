@@ -331,17 +331,34 @@ Returns the content of a payment object""",
             paymentId = paymentId,
             callContext = callContext
           )
+        case TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD =>
+          NewStyle.function.getDomesticPaymentInformationMdBGV1(
+            paymentId = paymentId,
+            callContext = callContext
+          )
         case _ =>
           Future.failed(new RuntimeException("Unsupported transaction type"))
       }
 
-      // Определѝем тело ответа в завиѝимоѝти от значениѝ getStatus
+      // Определяем тело ответа в зависимости от значения getStatus
       paymentResponseBody = if (getStatus) {
-        InstantPaymentStatus(mapTransactionStatusMdV1(paymentResponse.transactionStatus))
+        paymentResponse match {
+          case instantPayment: InstantPaymentInformation =>
+            // Обрабатываем статус для InstantPaymentInformation
+            InstantPaymentStatus(mapTransactionStatusMdV1(instantPayment.transactionStatus))  // Используем transactionStatus для Instant
+
+          case domesticPayment: DomesticPaymentInformation =>
+            // Обрабатываем статус для DomesticPaymentInformation
+            InstantPaymentStatus(mapTransactionStatusMdV1(domesticPayment.transactionStatus))  // Используем transactionStatus для Domestic
+
+          case _ =>
+            // Обработка неподдерживаемого типа
+            InstantPaymentStatus("Unsupported payment response type")
+        }
       } else {
+        // Если getStatus = false, возвращаем саму транзакцию
         paymentResponse
       }
-
     } yield {
       // Возвращаем данные транзакции в формате JSON
       (paymentResponseBody, callContext)

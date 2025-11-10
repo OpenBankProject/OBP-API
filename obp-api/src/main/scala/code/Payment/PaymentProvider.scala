@@ -138,15 +138,17 @@ object MappedPaymentProvider extends PaymentProvider {
     type PurposeType = Value
 
     // Перечисление значений
-    val RefundOfErroneousPayment = Value("RefundOfErroneousPayment")
-    val LoanOrFinancialHelp = Value("LoanOrFinancialHelp")
-    val LoanOrFinancialHelpReimbursement = Value("LoanOrFinancialHelpReimbursement")
-    val TransferInPersonalAccount = Value("TransferInPersonalAccount")
-    val PersonalTransferFamilyExpenses = Value("PersonalTransferFamilyExpenses")
-    val PaymentsToBudget = Value("PaymentsToBudget")
+    val Donation = Value("Donation/Free help")
+    val RefundOfErroneousPayment = Value("Refund of erroneous payment")
+    val LoanOrFinancialHelp = Value("Loan/Financial help")
+    val LoanOrFinancialHelpReimbursement = Value("Loan/financial help reimbursement")
+    val TransferInPersonalAccount = Value("Transfer in one's own account")
+    val PersonalTransferFamilyExpenses = Value("Personal transfer-family expenses")
+    val PaymentsToBudget = Value("Payments to the budget")
 
     // Маппинг на описание
     def description(purpose: PurposeType): String = purpose match {
+      case Donation => "Donation/Free help (Дарение/Безвозмездная помощь)"
       case RefundOfErroneousPayment => "Refund of erroneous payment (Возврат неверно зачисленного платежа)"
       case LoanOrFinancialHelp => "Loan / Financial help (Ссуда / Финансовая помощь)"
       case LoanOrFinancialHelpReimbursement => "Loan / financial help reimbursement (Возврат займа / финансовой помощи)"

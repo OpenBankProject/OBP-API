@@ -1138,6 +1138,21 @@ case class InstantPaymentInformation(
                                       remittanceInformationUnstructured: Option[String] = None,
                                       transactionStatus: String
                                  )
+
+case class DomesticPaymentInformation(
+                                      paymentId: String,
+                                      instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
+                                      debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                      creditorAccount: PaymentAccount,
+                                      remittanceInformationUnstructured: Option[String] = None,
+                                      transactionStatus: String,                  // обязательный (msisdn)
+                                      instructionPriority: String,
+                                      creditorName: String,
+                                      creditorCtryOfRes: String,
+                                      creditorId: String,
+                                      purposeType: String
+                                    )
+
 case class InstantPaymentStatus(
                                  transactionStatus: String
                                )

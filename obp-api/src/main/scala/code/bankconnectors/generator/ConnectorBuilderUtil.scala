@@ -397,6 +397,7 @@ object ConnectorBuilderUtil {
       "createChallenges",
       "createTransactionRequestv400",
       "getInstantPaymentInformationMdV1",
+      "getDomesticPaymentInformationMdV1",
       "createTransactionRequestInstantCreditTransfersMdV1",
       "createTransactionRequestSepaCreditTransfersBGV1",
       "createTransactionRequestPeriodicSepaCreditTransfersBGV1",
