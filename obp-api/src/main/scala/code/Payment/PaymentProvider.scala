@@ -12,6 +12,7 @@ trait PaymentProvider {
   def approvePaymentRequestProcess(paymentId: String, debtorIban: String, purposeType: String): Unit
   def cancelPaymentRequestProcess(paymentId: String): Unit
   def getPaymentById(paymentId: String): Box[MappedPayment]
+  def getPaymentByIdAndType(paymentId: String, paymentType: String): Box[MappedPayment]
   def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment]
   def getPayments(queryParams: List[OBPQueryParam] = Nil): List[MappedPayment]
   def createPayment(
@@ -23,7 +24,7 @@ trait PaymentProvider {
                      purposeCode: String,
                      remittanceInformationUnstructured: String,
                      status: TransactionStatus = TransactionStatus.RCVD,
-                     paymentType: TransactionRequestTypes = TransactionRequestTypes.SANDBOX_TAN
+                     paymentType: TransactionRequestTypes = TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD
                    ): Box[MappedPayment]
   def updatePayment(
                      paymentId: String,
@@ -38,6 +39,12 @@ object MappedPaymentProvider extends PaymentProvider {
 
   override def getPaymentById(paymentId: String): Box[MappedPayment] =
     MappedPayment.find(By(MappedPayment.mPaymentId, paymentId))
+
+  override def getPaymentByIdAndType(paymentId: String, paymentType: String): Box[MappedPayment] =
+    MappedPayment.find(
+      By(MappedPayment.mPaymentId, paymentId) ::
+        By(MappedPayment.mType, paymentType) :: Nil
+    )
 
   override def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment] =
     MappedPayment.find(By(MappedPayment.mEndToEndIdentification, endToEndIdentification))

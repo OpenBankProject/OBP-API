@@ -1213,10 +1213,37 @@ case class OutBoundGetInstantPaymentInformationMdV1(
                                                    ) extends TopicTrait
 
 case class InBoundGetInstantPaymentInformationMdV1(
-                                                    inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
-                                                    status: Status,  // Статус ответа (например, SUCCESS, ERROR)
-                                                    data: InstantPaymentInformation  // Данные о платеже, которые были получены
-                                                  ) extends InBoundTrait[InstantPaymentInformation]
+  inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
+  status: Status,  // Статус ответа (например, SUCCESS, ERROR)
+  data: InstantPaymentInformation  // Данные о платеже, которые были получены
+) extends InBoundTrait[InstantPaymentInformation]
+
+//////////Domestic/////////
+case class OutBoundCreateTransactionRequestDomesticCreditTransfersMdV1(
+   outboundAdapterCallContext: OutboundAdapterCallContext,
+   initiator: Option[User],
+   paymentServiceType: PaymentServiceTypes.Value,
+   transactionRequestType: TransactionRequestTypes.Value,
+   transactionRequestBody: DomesticCreditTransfersMdV1,
+   headers: List[HTTPParam] = Nil,
+ ) extends TopicTrait
+
+case class InBoundCreateTransactionRequestDomesticCreditTransfersMdV1(
+ inboundAdapterCallContext: InboundAdapterCallContext,
+ status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
+
+case class OutBoundGetDomesticPaymentInformationMdV1(
+   outboundAdapterCallContext: OutboundAdapterCallContext,  // Контекст вызова
+   paymentId: String,  // ID платежа, который необходимо получить
+   headers: List[HTTPParam] = Nil  // Дополнительные заголовки, если необходимы
+ ) extends TopicTrait
+
+case class InBoundGetDomesticPaymentInformationMdV1(
+  inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
+  status: Status,  // Статус ответа (например, SUCCESS, ERROR)
+  data: DomesticPaymentInformation  // Данные о платеже, которые были получены
+) extends InBoundTrait[DomesticPaymentInformation]
+
 
 
 case class OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(

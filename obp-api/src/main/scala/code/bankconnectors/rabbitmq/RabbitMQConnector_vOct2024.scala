@@ -2664,6 +2664,50 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
+  messageDocs += createTransactionRequestDomesticCreditTransfersMdV1Doc
+  def createTransactionRequestDomesticCreditTransfersMdV1Doc = MessageDoc(
+    process = "obp.createTransactionRequestDomesticCreditTransfersMdV1Doc",
+    messageFormat = messageFormat,
+    description = "Create Transaction Request Sepa Credit Transfers BG V1",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateTransactionRequestDomesticCreditTransfersMdV1(
+        outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+        initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
+          userId=userIdExample.value,
+          idGivenByProvider="string",
+          provider=providerExample.value,
+          emailAddress=emailAddressExample.value,
+          name=userNameExample.value,
+          createdByConsentId=Some("string"),
+          createdByUserInvitationId=Some("string"),
+          isDeleted=Some(true),
+          lastMarketingAgreementSignedDate=Some(toDate(dateExample)))),
+        paymentServiceType=com.openbankproject.commons.model.enums.PaymentServiceTypes.example,
+        transactionRequestType=com.openbankproject.commons.model.enums.TransactionRequestTypes.example,
+        transactionRequestBody= DomesticCreditTransfersMdV1(
+          endToEndIdentification=Some("string"),
+          debtorAccount=Some(PaymentAccount("string")),
+          instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value, amount=amountExample.value),
+          creditorAccount=PaymentAccount("string"),
+          remittanceInformationUnstructured=Some("string"),
+          instructionPriority="string",
+          creditorName="string",
+          creditorCtryOfRes="string",
+          creditorId="string"),
+        headers = List.empty[HTTPParam])
+      ),
+    exampleInboundMessage = (
+      InBoundCreateTransactionRequestDomesticCreditTransfersMdV1(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+        status=MessageDocsSwaggerDefinitions.inboundStatus,
+        data= TransactionRequestBGV1(id=TransactionRequestId(idExample.value),
+          status=statusExample.value))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+
   // -------- MessageDoc --------
   messageDocs += getInstantPaymentInformationMdV1Doc
   def getInstantPaymentInformationMdV1Doc = MessageDoc(
@@ -2695,15 +2739,9 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  // -------- Реализация коннектора через sendRequest --------
-  override def getInstantPaymentInformationMdV1(
-                                                 paymentId: String,
-                                                 callContext: Option[CallContext]
-                                               ): OBPReturnType[Box[InstantPaymentInformation]] = {
-    import com.openbankproject.commons.dto.{
-      InBoundGetInstantPaymentInformationMdV1 => InBound,
-      OutBoundGetInstantPaymentInformationMdV1 => OutBound
-    }
+  // -------- Instant--------------////////////
+  override def getInstantPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[InstantPaymentInformation]] = {
+    import com.openbankproject.commons.dto.{InBoundGetInstantPaymentInformationMdV1 => InBound, OutBoundGetInstantPaymentInformationMdV1 => OutBound}
 
     val req = OutBound(
       outboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull,
@@ -2724,6 +2762,38 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_instant_credit_transfers_mdv1", req, callContext)
     response.map(convertToTuple[TransactionRequestBGV1](callContext))
   }
+
+  // -------- Domestic--------------////////////
+  override def getDomesticPaymentInformationMdV1(
+                                                 paymentId: String,
+                                                 callContext: Option[CallContext]
+                                               ): OBPReturnType[Box[DomesticPaymentInformation]] = {
+    import com.openbankproject.commons.dto.{
+      InBoundGetDomesticPaymentInformationMdV1 => InBound,
+      OutBoundGetDomesticPaymentInformationMdV1 => OutBound
+    }
+
+    val req = OutBound(
+      outboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull,
+      paymentId = paymentId,
+      headers = callContext.get.requestHeaders
+    )
+
+    val response: Future[Box[InBound]] =
+      sendRequest[InBound]("obp_get_domestic_payment_information_mdv1", req, callContext)
+
+    response.map(convertToTuple[DomesticPaymentInformation](callContext))
+  }
+
+
+  override def createTransactionRequestDomesticCreditTransfersMdV1(initiator: Option[User], paymentServiceType: PaymentServiceTypes, transactionRequestType: TransactionRequestTypes, transactionRequestBody: DomesticCreditTransfersMdV1, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestBGV1]] = {
+    import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestDomesticCreditTransfersMdV1 => InBound, OutBoundCreateTransactionRequestDomesticCreditTransfersMdV1 => OutBound}
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, paymentServiceType, transactionRequestType, transactionRequestBody, callContext.get.requestHeaders)
+    val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_transaction_request_domestic_credit_transfers_mdv1", req, callContext)
+    response.map(convertToTuple[TransactionRequestBGV1](callContext))
+  }
+
+  ////////////////////////
   messageDocs += createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc
 
   def createTransactionRequestPeriodicSepaCreditTransfersBGV1Doc = MessageDoc(

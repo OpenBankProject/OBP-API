@@ -51,8 +51,8 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
     cancelPayment ::
       getPaymentCancellationScaStatus ::
 /*      getPaymentInformation ::*/
-      getInstantPaymentInformation ::
-      getInstantPaymentInformationStatus ::
+      getPaymentInformationMD ::
+      getPaymentInformationStatusMD ::
       getPaymentInitiationAuthorisation ::
       getPaymentInitiationCancellationAuthorisationInformation ::
       getPaymentInitiationScaStatus ::
@@ -255,9 +255,9 @@ Returns the content of a payment object""",
   }
 
   resourceDocs += ResourceDoc(
-    getInstantPaymentInformation,
+    getPaymentInformationMD,
     apiVersion,
-    nameOf(getInstantPaymentInformation),
+    nameOf(getPaymentInformationMD),
     "GET",
     "/payments/PAYMENT_PRODUCT/PAYMENTID",
     "Get Payment Information",
@@ -283,17 +283,17 @@ Returns the content of a payment object""",
     ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
   )
 
-  lazy val getInstantPaymentInformation: OBPEndpoint = {
+  lazy val getPaymentInformationMD: OBPEndpoint = {
     case "payments" :: paymentProduct :: paymentId :: Nil JsonGet _ => {
       cc =>
         // Вызов метода длѝ получениѝ информации о платёжной транзакции
-        getInstantPaymentInformationImplementation(paymentProduct, paymentId, false, cc)
+        getPaymentInformationImplementationMD(paymentProduct, paymentId, false, cc)
     }
   }
   resourceDocs += ResourceDoc(
-    getInstantPaymentInformationStatus,
+    getPaymentInformationStatusMD,
     apiVersion,
-    nameOf(getInstantPaymentInformationStatus),
+    nameOf(getPaymentInformationStatusMD),
     "GET",
     "/payments/PAYMENT_PRODUCT/PAYMENTID/status",
     "Get Payment Satus Information",
@@ -307,16 +307,16 @@ Returns the content of a payment object""",
     ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
   )
 
-  lazy val getInstantPaymentInformationStatus: OBPEndpoint = {
+  lazy val getPaymentInformationStatusMD: OBPEndpoint = {
     case "payments" :: paymentProduct :: paymentId :: "status" :: Nil JsonGet _ => {
       cc =>
         // Вызов метода длѝ получениѝ информации о платёжной транзакции
-        getInstantPaymentInformationImplementation(paymentProduct, paymentId, true, cc)
+        getPaymentInformationImplementationMD(paymentProduct, paymentId, true, cc)
     }
   }
 
 
-  def getInstantPaymentInformationImplementation(paymentProduct: String, paymentId: String, getStatus: Boolean, cc: CallContext) = {
+  def getPaymentInformationImplementationMD(paymentProduct: String, paymentId: String, getStatus: Boolean, cc: CallContext) = {
     for {
       (u, callContext) <- applicationAccess(cc); _ <- passesPsd2Pisp(callContext)
       // Проверка типа платёжного продукта

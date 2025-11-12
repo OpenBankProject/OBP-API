@@ -1158,7 +1158,7 @@ object NewStyle extends MdcLoggable{
       // Обрабатываем ответ
       response map { i =>
         // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
-        val domesticPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetInstantPaymentInformation", 400)
+        val domesticPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetDomesticPaymentInformation", 400)
 
         val normalized = domesticPaymentInformation.copy(
           debtorAccount = Some(domesticPaymentInformation.debtorAccount.getOrElse(PaymentAccount(null)))

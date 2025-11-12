@@ -4887,7 +4887,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val notFound: Failure =
       Failure(ErrorMessages.PaymentNotFoundById)
 
-    MappedPaymentProvider.getPaymentById(paymentId) match {
+    MappedPaymentProvider.getPaymentByIdAndType(paymentId, TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD.toString()) match {
       case Full(p) =>
         val info = InstantPaymentInformation(
           paymentId = Option(p.mPaymentId.get).getOrElse(paymentId),
@@ -4908,7 +4908,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val notFound: Failure =
       Failure(ErrorMessages.PaymentNotFoundById)
 
-    MappedPaymentProvider.getPaymentById(paymentId) match {
+    MappedPaymentProvider.getPaymentByIdAndType(paymentId, TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD.toString()) match {
       case Full(p) =>
         val info = DomesticPaymentInformation(
           paymentId = Option(p.mPaymentId.get).getOrElse(paymentId),

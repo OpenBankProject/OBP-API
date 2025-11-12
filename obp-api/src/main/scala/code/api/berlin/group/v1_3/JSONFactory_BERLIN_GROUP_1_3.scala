@@ -2,6 +2,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.Constant.bgRemoveSignOfAmounts
 import code.api.berlin.group.ConstantsBG
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.LinkHrefJson
 import code.api.berlin.group.v1_3.model.TransactionStatus.{mapTransactionStatus, mapTransactionStatusMdV1}
 import code.api.berlin.group.v1_3.model._
 import code.api.util.APIUtil._
@@ -784,9 +785,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       else
         s"$scaRedirectUrlPattern/${paymentId}"
     val self =
-      if(transactionRequestType == TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD
-        || transactionRequestType == TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD)
-        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId")
+      if(transactionRequestType == TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD)
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/instant-credit-transfers/$paymentId")
+      else if (transactionRequestType == TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD)
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/domestic-credit-transfers/$paymentId")
       else
         LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId")
     val scaStatus =
@@ -802,7 +804,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       _links = InitiatePaymentMdV1ResponseLinks(
         scaRedirect = LinkHrefJson(s"$scaRedirectUrl"),
         self = self,
-        status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/status"),
+        status = LinkHrefJson(s"/$self/status"),
         scaStatus = scaStatus
       )
     )
