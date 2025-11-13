@@ -42,8 +42,8 @@ object MappedPaymentProvider extends PaymentProvider {
 
   override def getPaymentByIdAndType(paymentId: String, paymentType: String): Box[MappedPayment] =
     MappedPayment.find(
-      By(MappedPayment.mPaymentId, paymentId) ::
-        By(MappedPayment.mType, paymentType) :: Nil
+      By(MappedPayment.mPaymentId, paymentId),
+      By(MappedPayment.mType, paymentType)
     )
 
   override def getPaymentByEndToEndIdentification(endToEndIdentification: String): Box[MappedPayment] =

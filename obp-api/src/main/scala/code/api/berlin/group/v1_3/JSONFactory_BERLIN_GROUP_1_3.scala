@@ -804,7 +804,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       _links = InitiatePaymentMdV1ResponseLinks(
         scaRedirect = LinkHrefJson(s"$scaRedirectUrl"),
         self = self,
-        status = LinkHrefJson(s"/$self/status"),
+        status = LinkHrefJson(s"${self.href}/status"),
         scaStatus = scaStatus
       )
     )
