@@ -786,9 +786,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
         s"$scaRedirectUrlPattern/${paymentId}"
     val self =
       if(transactionRequestType == TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD)
-        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/instant-credit-transfers/$paymentId")
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/instant-credit-transfers-md/$paymentId")
       else if (transactionRequestType == TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD)
-        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/domestic-credit-transfers/$paymentId")
+        LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/domestic-credit-transfers-md/$paymentId")
       else
         LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId")
     val scaStatus =
