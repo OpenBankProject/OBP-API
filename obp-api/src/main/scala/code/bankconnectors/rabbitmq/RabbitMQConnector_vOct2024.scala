@@ -2767,7 +2767,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   override def getDomesticPaymentInformationMdV1(
                                                  paymentId: String,
                                                  callContext: Option[CallContext]
-                                               ): OBPReturnType[Box[DomesticPaymentInformation]] = {
+                                               ): OBPReturnType[Box[DomesticPaymentInformationResponse]] = {
     import com.openbankproject.commons.dto.{
       InBoundGetDomesticPaymentInformationMdV1 => InBound,
       OutBoundGetDomesticPaymentInformationMdV1 => OutBound
@@ -2782,7 +2782,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
     val response: Future[Box[InBound]] =
       sendRequest[InBound]("obp_get_domestic_payment_information_mdv1", req, callContext)
 
-    response.map(convertToTuple[DomesticPaymentInformation](callContext))
+    response.map(convertToTuple[DomesticPaymentInformationResponse](callContext))
   }
 
 

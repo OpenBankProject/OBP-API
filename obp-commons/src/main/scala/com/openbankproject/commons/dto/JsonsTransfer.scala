@@ -1241,8 +1241,8 @@ case class OutBoundGetDomesticPaymentInformationMdV1(
 case class InBoundGetDomesticPaymentInformationMdV1(
   inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
   status: Status,  // Статус ответа (например, SUCCESS, ERROR)
-  data: DomesticPaymentInformation  // Данные о платеже, которые были получены
-) extends InBoundTrait[DomesticPaymentInformation]
+  data: DomesticPaymentInformationResponse  // Данные о платеже, которые были получены
+) extends InBoundTrait[DomesticPaymentInformationResponse]
 
 
 

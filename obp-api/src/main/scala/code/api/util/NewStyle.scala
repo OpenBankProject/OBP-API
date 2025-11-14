@@ -1147,7 +1147,7 @@ object NewStyle extends MdcLoggable{
     def getDomesticPaymentInformationMdBGV1(
                                             paymentId: String,
                                             callContext: Option[CallContext]
-                                          ): OBPReturnType[DomesticPaymentInformation] = {
+                                          ): OBPReturnType[DomesticPaymentInformationResponse] = {
 
       // Получаем ответ от коннектора
       val response = Connector.connector.vend.getDomesticPaymentInformationMdV1(

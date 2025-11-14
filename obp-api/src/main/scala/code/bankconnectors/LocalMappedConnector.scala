@@ -4904,13 +4904,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getDomesticPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[DomesticPaymentInformation]] = {
+  override def getDomesticPaymentInformationMdV1(paymentId: String, callContext: Option[CallContext]): OBPReturnType[Box[DomesticPaymentInformationResponse]] = {
     val notFound: Failure =
       Failure(ErrorMessages.PaymentNotFoundById)
 
     MappedPaymentProvider.getPaymentByIdAndType(paymentId, TransactionRequestTypes.DOMESTIC_CREDIT_TRANSFERS_MD.toString()) match {
       case Full(p) =>
-        val info = DomesticPaymentInformation(
+        val info = DomesticPaymentInformationResponse(
           paymentId = Option(p.mPaymentId.get).getOrElse(paymentId),
           instructedAmount = AmountOfMoneyJsonV121(currency = p.mInstructedAmountCurrency.get, amount = p.mInstructedAmountAmount.get),
           debtorAccount = Option(p.mDebtorAccountIban.get).filter(_ != null).map(PaymentAccount.apply),
@@ -4918,10 +4918,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           remittanceInformationUnstructured = Option(p.mRemittanceInformationUnstructured.get).filter(s => s != null && s.nonEmpty),
           transactionStatus = p.status,
           creditorName =  Option(p.mCreditorName.get).getOrElse(""),
-          creditorId = Option(p.mCreditorId.get).getOrElse(""),
-          instructionPriority = Option(p.mInstructionPriority.get).getOrElse(""),
-          creditorCtryOfRes =Option(p.mCreditorCtryOfRes.get).getOrElse(""),
-          purposeType = Option(p.mPurposeType.get).getOrElse(""),
+          transactionFees= AmountOfMoneyJsonV121(currency = "MDL", amount = "0"),
         )
         Future.successful((Full(info), callContext))
 

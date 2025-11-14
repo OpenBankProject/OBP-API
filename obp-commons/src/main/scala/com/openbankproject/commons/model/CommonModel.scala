@@ -1153,6 +1153,17 @@ case class DomesticPaymentInformation(
                                       purposeType: String
                                     )
 
+case class DomesticPaymentInformationResponse(
+                                       paymentId: String,
+                                       instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
+                                       debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                       creditorAccount: PaymentAccount,
+                                       remittanceInformationUnstructured: Option[String] = None,
+                                       transactionStatus: String,
+                                       creditorName: String,
+                                       transactionFees: AmountOfMoneyJsonV121
+                                     )
+
 case class InstantPaymentStatus(
                                  transactionStatus: String
                                )
