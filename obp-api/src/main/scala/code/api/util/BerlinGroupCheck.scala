@@ -29,6 +29,10 @@ object BerlinGroupCheck extends MdcLoggable {
     .split(",")
     .map(_.trim.toLowerCase)
     .toList.filterNot(_.isEmpty)
+  private val berlinGroupMandatoryHeaderPyment = APIUtil.getPropsValue("berlin_group_mandatory_header_payment", defaultValue = "TPP-Redirect-URI,PSU-Geo-Location")
+    .split(",")
+    .map(_.trim.toLowerCase)
+    .toList.filterNot(_.isEmpty)
 
   def hasUnwantedConsentIdHeaderForBGEndpoint(path: String, reqHeaders: List[HTTPParam]): Boolean = {
     val headerMap: Map[String, HTTPParam] = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
@@ -59,6 +63,9 @@ object BerlinGroupCheck extends MdcLoggable {
     val missingHeaders: List[String] = {
       if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && url.endsWith("/consents"))
         (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(headerMap.contains)
+      else if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix)
+        && (url.endsWith("payments/instant-credit-transfers-md") || url.endsWith("payments/domestic-credit-transfers-md")))
+        (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderPyment).filterNot(headerMap.contains)
       else
         berlinGroupMandatoryHeaders.filterNot(headerMap.contains)
     }

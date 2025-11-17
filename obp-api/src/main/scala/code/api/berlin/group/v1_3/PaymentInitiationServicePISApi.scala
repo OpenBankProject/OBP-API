@@ -347,7 +347,7 @@ Returns the content of a payment object""",
             // Обрабатываем статус для InstantPaymentInformation
             InstantPaymentStatus(mapTransactionStatusMdV1(instantPayment.transactionStatus))  // Используем transactionStatus для Instant
 
-          case domesticPayment: DomesticPaymentInformation =>
+          case domesticPayment: DomesticPaymentInformationResponse =>
             // Обрабатываем статус для DomesticPaymentInformation
             InstantPaymentStatus(mapTransactionStatusMdV1(domesticPayment.transactionStatus))  // Используем transactionStatus для Domestic
 
@@ -687,6 +687,8 @@ Check the transaction status of a payment initiation.""",
   def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
     for {
       (u, callContext) <- applicationAccess(cc); _ <- passesPsd2Pisp(callContext)
+
+      //val psuGeoLocation = headers.find(_.name == RequestHeader.`PSU-Geo-Location`)
       paymentServiceType <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 404, callContext){ PaymentServiceTypes.withName(paymentService.replaceAll("-", "_")) }
       transactionRequestType <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext){ TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase) }
       transferRequest <- {
