@@ -70,6 +70,51 @@ object BerlinGroupCheck extends MdcLoggable {
         berlinGroupMandatoryHeaders.filterNot(headerMap.contains)
     }
 
+    object GeoLocationUtil {
+
+      private val pattern =
+        """^GEO\s*:\s*([-+]?\d{1,2}(?:\.\d+)?);([-+]?\d{1,3}(?:\.\d+)?)$""".r
+
+      def isValidPsuGeoLocation(value: String): Boolean = {
+        import scala.util.Try
+
+        value match {
+          case pattern(latStr, lonStr) =>
+            val latOpt = Try(latStr.toDouble).toOption
+            val lonOpt = Try(lonStr.toDouble).toOption
+
+            (for {
+              lat <- latOpt
+              lon <- lonOpt
+            } yield lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+              ).getOrElse(false)
+
+          case _ =>
+            false
+        }
+      }
+    }
+
+    val resultWithWrongPsuGeoLocationHeaderCheck: Option[(Box[User], Option[CallContext])] = {
+      val geoLocationHeaderName = "psu-geo-location" // либо константа RequestHeader.PSU_GEO_LOCATION.toLowerCase
+      val geoLocation: Option[String] =
+        headerMap.get(geoLocationHeaderName).flatMap(_.values.headOption)
+
+      if (geoLocation.isDefined && !GeoLocationUtil.isValidPsuGeoLocation(geoLocation.get)) {
+        val message = ErrorMessages.NotValidPsuGeoLocation // добавь свою константу в ErrorMessages
+        Some(
+          (
+            fullBoxOrException(
+              Empty ~> APIFailureNewStyle(message, 400, forwardResult._2.map(_.toLight))
+            ),
+            forwardResult._2
+          )
+        )
+      } else {
+        None
+      }
+    }
+
     val resultWithWrongDateHeaderCheck: Option[(Box[User], Option[CallContext])] = {
       val date: Option[String] = headerMap.get(RequestHeader.Date.toLowerCase).flatMap(_.values.headOption)
       if (date.isDefined && !DateTimeUtil.isValidRfc7231Date(date.get)) {
@@ -195,6 +240,7 @@ object BerlinGroupCheck extends MdcLoggable {
     // Chain validation steps
     resultWithMissingHeaderCheck
       .orElse(resultWithWrongDateHeaderCheck)
+      .orElse(resultWithWrongPsuGeoLocationHeaderCheck)
       .orElse(resultWithInvalidRequestIdCheck)
       .orElse(resultWithRequestIdUsedTwiceCheck)
       .orElse(resultWithInvalidSignatureHeaderCheck)
