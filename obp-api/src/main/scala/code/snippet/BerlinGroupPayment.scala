@@ -36,6 +36,9 @@ class ConfirmPaymentRequest {
   var alreadyApproved: Boolean = false
   var alreadyCanceled: Boolean = false
   var isDomestic: Boolean = false
+  var tppRedirectUri: String = ""
+  var tppNokRedirectUri: String = ""
+  var redirectUri: String = ""
 
   def render: NodeSeq = {
     val paymentId = S.param("PAYMENT_ID") openOr ""
@@ -49,6 +52,15 @@ class ConfirmPaymentRequest {
     )
 
     isDomestic = payment.exists(p=> p.transactionType == "DOMESTIC_CREDIT_TRANSFERS_MD")
+    tppRedirectUri = payment.map(_.mTppRedirectUri.get).openOr("")
+    tppNokRedirectUri = payment.map(_.mTppNokRedirectUri.get).openOr("")
+
+    if(alreadyApproved){
+      redirectUri = tppRedirectUri;
+    }
+    if(alreadyCanceled){
+      redirectUri = if (tppNokRedirectUri.nonEmpty) tppNokRedirectUri else tppRedirectUri
+    }
 
     val debtorIban = payment.map(_.mDebtorAccountIban.get).openOr("")
 
@@ -266,9 +278,10 @@ class ConfirmPaymentRequest {
           if (alreadyCanceled || alreadyApproved) {
             <div class="button-container">
               <div class="row">
-                <button id="redirect-button" class="btn btn-success" onclick="window.location.href='https://www.google.md';">
+                <button id="redirect-button" class="btn btn-success" onclick={s"window.location.href='${redirectUri}';"}>
                   Ok
                 </button>
+
               </div>
             </div>
 

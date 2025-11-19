@@ -686,6 +686,10 @@ class Boot extends MdcLoggable {
       ("X-Frame-Options", "DENY") ::
         Nil
     )
+    LiftRules.supplementalHeaders.default.set(
+      ("ASPSP-SCA-Approach", "REDIRECT") ::
+        Nil
+    )
     
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)

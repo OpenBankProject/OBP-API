@@ -1,6 +1,6 @@
 package code.bankconnectors
 
-import code.api.ChargePolicy
+import code.api.{ChargePolicy, RequestHeader}
 import code.api.Constant._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.model.TransactionStatus
@@ -237,6 +237,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
      callContext: Option[CallContext]
    ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
 
+    val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
+    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
+
     for {
       // 2. Сериализуем тело запроса
       transDetailsSerialized <- NewStyle.function.tryons(
@@ -274,6 +278,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             .mStatus(TransactionStatus.RCVD.toString)
             .mType(transactionRequestType.toString)
             .mPaymentId(randomUUID().toString)
+            .mTppRedirectUri(tppRedirectUri.flatMap(_.values.headOption).getOrElse(""))
+            .mTppNokRedirectUri(tppNokRedirectUri.flatMap(_.values.headOption).getOrElse(""))
             .saveMe()
 
           Full(savedPayment)
@@ -302,6 +308,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
      transactionRequestBody: DomesticCreditTransfersMdV1,
      callContext: Option[CallContext]
    ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
+
+    val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
+    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
 
     for {
       // 2. Сериализуем тело запроса
@@ -343,6 +353,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             .mStatus(TransactionStatus.RCVD.toString)
             .mType(transactionRequestType.toString)
             .mPaymentId(randomUUID().toString)
+            .mTppRedirectUri(tppRedirectUri.flatMap(_.values.headOption).getOrElse(""))
+            .mTppNokRedirectUri(tppNokRedirectUri.flatMap(_.values.headOption).getOrElse(""))
             .saveMe()
 
           Full(savedPayment)
