@@ -6,7 +6,7 @@ cd /sql/OIDC/
 
 psql
 
-\i /give_read_access_to_users.sql
+\i give_read_access_to_users.sql
 
 # For read access to Clients. (e.g. OBP-OIDC)
 
@@ -22,7 +22,7 @@ cd /sql/OIDC/
 
 psql
 
-\i give_admin_access_to_clients.sql
+\i give_admin_access_to_consumers.sql
 
 # Postgres Notes
 

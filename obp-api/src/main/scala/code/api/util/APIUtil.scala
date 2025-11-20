@@ -3119,7 +3119,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
       else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField) && !url.contains("/my/logins/direct")) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-      } else if (getPropsAsBoolValue("allow_direct_login", true) &&
+      }
+      // Endpoint /my/logins/direct is onboarding endpoint for Direct Login Flow authentication
+      // You POST your credentials (username, password, and consumer key) to the DirectLogin endpoint and receive a token in return.
+      else if (getPropsAsBoolValue("allow_direct_login", true) &&
         (has2021DirectLoginHeader(cc.requestHeaders) || hasDirectLoginHeader(cc.authReqHeaderField)) &&
         url.contains("/my/logins/direct")) {
         Future{(Empty, Some(cc))}

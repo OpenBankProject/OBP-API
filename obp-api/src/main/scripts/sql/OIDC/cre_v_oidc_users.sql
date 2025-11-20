@@ -37,3 +37,7 @@ COMMENT ON VIEW v_oidc_users IS 'Read-only view of authuser and resourceuser tab
 GRANT SELECT ON v_oidc_users TO :OIDC_USER;
 
 \echo 'OIDC users view created successfully.'
+
+
+-- TODO
+-- CREATE INDEX idx_authuser_username_lower_provider ON authuser (LOWER(username), provider);

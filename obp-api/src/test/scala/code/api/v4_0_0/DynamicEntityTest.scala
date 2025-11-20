@@ -160,6 +160,59 @@ class DynamicEntityTest extends V400ServerSetup {
       |}
       |""".stripMargin)
 
+  val wrongRootEntity = parse(
+    """
+      |{
+      |"EntityName": "Dog",
+      |    "FooBar": {
+      |       "description": "description of this entity, can be markdown text.",
+      |        "required": [
+      |            "name"
+      |        ],
+      |        "properties": {
+      |            "name": {
+      |                "type": "string",
+      |                "maxLength": 20,
+      |                "minLength": 3,
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
+      |            },
+      |            "number": {
+      |                "type": "integer",
+      |                "example": 69876172
+      |            }
+      |        }
+      |    }
+      |    
+      |}
+      |""".stripMargin)
+  
+  val wrongRootEntity2 = parse(
+    """
+      |{
+      |    "FooBar": {
+      |       "description": "description of this entity, can be markdown text.",
+      |        "required": [
+      |            "name"
+      |        ],
+      |        "properties": {
+      |            "name": {
+      |                "type": "string",
+      |                "maxLength": 20,
+      |                "minLength": 3,
+      |                "example": "James Brown",
+      |                "description":"description of **name** field, can be markdown text."
+      |            },
+      |            "number": {
+      |                "type": "integer",
+      |                "example": 69876172
+      |            }
+      |        }
+      |    },
+      |    "EntityName": "Dog",
+      |}
+      |""".stripMargin)    
+
   val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
   
   val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
@@ -263,6 +316,32 @@ class DynamicEntityTest extends V400ServerSetup {
       response400User2.code should equal(400)
       val errorMessage = response400User2.body.extract[ErrorMessage].message
       errorMessage contains DynamicEntityNameAlreadyExists should be (true)
+    }
+    
+    scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity ", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
+
+      val request400User2 = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
+      val response400User2 = makePostRequest(request400User2, write(wrongRootEntity))
+      Then("We should get a 400")
+      response400User2.code should equal(400)
+      val errorMessage = response400User2.body.extract[ErrorMessage].message
+      errorMessage contains DynamicEntityInstanceValidateFail should be (true)
+      errorMessage contains "The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects:" should be (true)
+    }
+    
+    scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity, test2 ", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
+
+      val request400User2 = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
+      val response400User2 = makePostRequest(request400User2, write(wrongRootEntity2))
+      Then("We should get a 400")
+      response400User2.code should equal(400)
+      val errorMessage = response400User2.body.extract[ErrorMessage].message
+      errorMessage contains DynamicEntityInstanceValidateFail should be (true)
+      errorMessage contains "The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects:" should be (true)
     }
 
     scenario("We will test the successful cases " , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {

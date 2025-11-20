@@ -37,6 +37,9 @@ object SecureLogging {
       conditionalPattern("securelogging_mask_client_secret") {
         (Pattern.compile("(?i)(client_secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_client_secret") {
+        (Pattern.compile("(?i)(client_secret\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
 
       // Authorization / Tokens
       conditionalPattern("securelogging_mask_authorization") {
@@ -45,30 +48,54 @@ object SecureLogging {
       conditionalPattern("securelogging_mask_access_token") {
         (Pattern.compile("(?i)(access_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_access_token") {
+        (Pattern.compile("(?i)(access_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
       conditionalPattern("securelogging_mask_refresh_token") {
         (Pattern.compile("(?i)(refresh_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+      },
+      conditionalPattern("securelogging_mask_refresh_token") {
+        (Pattern.compile("(?i)(refresh_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
       },
       conditionalPattern("securelogging_mask_id_token") {
         (Pattern.compile("(?i)(id_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_id_token") {
+        (Pattern.compile("(?i)(id_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
       conditionalPattern("securelogging_mask_token") {
         (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+      },
+      conditionalPattern("securelogging_mask_token") {
+        (Pattern.compile("(?i)(token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
       },
 
       // Passwords
       conditionalPattern("securelogging_mask_password") {
         (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_password") {
+        (Pattern.compile("(?i)(password\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
 
       // API keys
       conditionalPattern("securelogging_mask_api_key") {
         (Pattern.compile("(?i)(api_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_api_key") {
+        (Pattern.compile("(?i)(api_key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
       conditionalPattern("securelogging_mask_key") {
         (Pattern.compile("(?i)(key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
       },
+      conditionalPattern("securelogging_mask_key") {
+        (Pattern.compile("(?i)(key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+      },
       conditionalPattern("securelogging_mask_private_key") {
         (Pattern.compile("(?i)(private_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+      },
+      conditionalPattern("securelogging_mask_private_key") {
+        (Pattern.compile("(?i)(private_key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
       },
 
       // Database
@@ -158,7 +185,14 @@ object SecureLogging {
       "api_key=sk_test_1234567890abcdef",
       "Error connecting to jdbc:mysql://localhost:3306/obp?user=admin:secretpassword@dbhost",
       "Credit card: 4532-1234-5678-9012 was processed",
-      "User email: sensitive@example.com in auth context"
+      "User email: sensitive@example.com in auth context",
+      "Map(client_secret -> my_client_secret, token -> secret_token)",
+      "Map(client_secret->my_client_secret, access_token->oauth_token_123)",
+      "directLoginParams=Map(password -> secret123, api_key -> sk_live_key)",
+      "client_secret -> my_client_secret",
+      "client_secret->my_client_secret",
+      "CallContext(oAuthParams=Map(access_token -> bearer_token, client_secret->sensitive_key))",
+      "Map(token->private_token, password -> supersecret, api_key->sk_live_123)"
     )
     testMessages.map(msg => (msg, maskSensitive(msg)))
   }

@@ -137,7 +137,7 @@ class CustomerAddressTest extends V310ServerSetup {
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomerAddress.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomerAddress.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteCustomerAddress.toString)

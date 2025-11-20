@@ -62,7 +62,7 @@ trait APIMethods200 {
   private def publicBankAccountBasicList(bankAccounts: List[BankAccount], publicViews : List[View]): List[BasicAccountJSON] = {
     publicBasicBankAccountList(bankAccounts, publicViews)
   }
-  
+
   // Shows accounts without view
   private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, user: User, bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View], callContext: Option[CallContext]): JValue = {
     Extraction.decompose(coreBankAccountList(callerContext, codeContext, user, bankAccounts, privateViewsUserCanAccess, callContext))
@@ -79,7 +79,7 @@ trait APIMethods200 {
     })
     accJson
   }
-  
+
   private def publicBasicBankAccountList(bankAccounts: List[BankAccount], publicViews: List[View]): List[BasicAccountJSON] = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
       val viewsAvailable : List[BasicViewJson] =
@@ -118,7 +118,7 @@ trait APIMethods200 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    
+
     val apiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -153,7 +153,7 @@ trait APIMethods200 {
           }
       }
     }
-    
+
 
 
     resourceDocs += ResourceDoc(
@@ -843,8 +843,8 @@ trait APIMethods200 {
       successMessage,
       List(
         UserNotLoggedIn,
-        InvalidJsonFormat, 
-        InvalidBankIdFormat, 
+        InvalidJsonFormat,
+        InvalidBankIdFormat,
         UserHasMissingRoles,
         CustomerNotFoundByCustomerId,
         UnknownError),
@@ -903,7 +903,7 @@ trait APIMethods200 {
         |
         |
         |${userAuthenticationMessage(true)}
-        |      
+        |
         |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountJSON,
@@ -951,9 +951,9 @@ trait APIMethods200 {
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle))
-    
+
     //Note: we already have the method: getTransactionsForBankAccount in V121.
-    //The only difference here is "Core implies 'owner' view" 
+    //The only difference here is "Core implies 'owner' view"
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       //get transactions
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet req => {
@@ -1094,7 +1094,7 @@ trait APIMethods200 {
             loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
             anyViewContainsCanSeePermissionForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.allowed_actions.exists( _ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
               .getOrElse(Nil).find(_.==(true)).getOrElse(false)
-            
+
             _ <- booleanToBox(
               anyViewContainsCanSeePermissionForOneUserPermission,
               s"${ErrorMessages.CreateCustomViewError} You need the `${(CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)}` permission on any your views"
@@ -1295,15 +1295,25 @@ trait APIMethods200 {
       "/users",
       "Create User",
       s"""Creates OBP user.
-        | No authorisation (currently) required.
+        | No authorisation required.
         |
         | Mimics current webform to Register.
         |
-        | Requires username(email) and password.
+        | Requires username(email), password, first_name, last_name, and email.
         |
-        | Returns 409 error if username not unique.
+        | Validation checks performed:
+        | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)
+        | - Username must be unique (409 error if username already exists)
+        | - All required fields must be present in valid JSON format
         |
-        | May require validation of email address.
+        | Email validation behavior:
+        | - Controlled by property 'authUser.skipEmailValidation' (default: false)
+        | - When false: User is created with validated=false and a validation email is sent to the user's email address
+        | - When true: User is created with validated=true and no validation email is sent
+        | - Default entitlements are granted immediately regardless of validation status
+        |
+        | Note: If email validation is required (skipEmailValidation=false), the user must click the validation link
+        | in the email before they can log in, even though entitlements are already granted.
         |
         |""",
       createUserJson,
@@ -1343,6 +1353,12 @@ trait APIMethods200 {
               userCreated.saved_?
             }
           } yield {
+            // Send validation email if skipEmailValidation is false
+            val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+            if (!skipEmailValidation) {
+              AuthUser.sendValidationEmail(savedUser)
+            }
+            // Grant default entitlements regardless of validation status
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
             val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
             (json, HttpCode.`201`(cc.callContext))
@@ -1493,11 +1509,11 @@ trait APIMethods200 {
 //      EmptyBody,
 //      meetingJson,
 //      List(
-//        UserNotLoggedIn, 
-//        BankNotFound, 
+//        UserNotLoggedIn,
+//        BankNotFound,
 //        MeetingApiKeyNotConfigured,
-//        MeetingApiSecretNotConfigured, 
-//        MeetingNotFound, 
+//        MeetingApiSecretNotConfigured,
+//        MeetingNotFound,
 //        MeetingsNotSupported,
 //        UnknownError
 //      ),
@@ -1709,12 +1725,12 @@ trait APIMethods200 {
       userCustomerLinkJson,
       List(
         UserNotLoggedIn,
-        InvalidBankIdFormat, 
-        BankNotFound, 
+        InvalidBankIdFormat,
+        BankNotFound,
         InvalidJsonFormat,
-        CustomerNotFoundByCustomerId, 
+        CustomerNotFoundByCustomerId,
         UserHasMissingRoles,
-        CustomerAlreadyExistsForUser, 
+        CustomerAlreadyExistsForUser,
         CreateUserCustomerLinksError,
         UnknownError
       ),
@@ -1752,9 +1768,9 @@ trait APIMethods200 {
             } map {
               x => unboxFullOrFail(x, callContext, CreateUserCustomerLinksError, 400)
             }
-            
+
             _ <- AuthUser.refreshUser(user, callContext)
-            
+
           } yield {
             (JSONFactory200.createUserCustomerLinkJSON(userCustomerLink),HttpCode.`200`(callContext))
           }
@@ -1785,7 +1801,7 @@ trait APIMethods200 {
         UserNotSuperAdmin,
         InvalidJsonFormat,
         IncorrectRoleName,
-        EntitlementIsBankRole, 
+        EntitlementIsBankRole,
         EntitlementIsSystemRole,
         EntitlementAlreadyExists,
         UnknownError

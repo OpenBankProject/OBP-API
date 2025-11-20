@@ -2507,6 +2507,77 @@ object SwaggerDefinitionsJSON {
     name_suffix = ExampleValue.nameSuffixExample.value
   )
 
+  lazy val postCustomerJsonV600 =
+    PostCustomerJsonV600(
+      legal_name = ExampleValue.legalNameExample.value,
+      customer_number = Some(ExampleValue.customerNumberExample.value),
+      mobile_phone_number = ExampleValue.mobilePhoneNumberExample.value,
+      email = Some(ExampleValue.emailExample.value),
+      face_image = Some(customerFaceImageJson),
+      date_of_birth = Some("1990-05-15"),
+      relationship_status = Some(ExampleValue.relationshipStatusExample.value),
+      dependants = Some(ExampleValue.dependantsExample.value.toInt),
+      dob_of_dependants = Some(List("2015-03-20", "2018-07-10")),
+      credit_rating = Some(customerCreditRatingJSON),
+      credit_limit = Some(amountOfMoneyJsonV121),
+      highest_education_attained = Some(ExampleValue.highestEducationAttainedExample.value),
+      employment_status = Some(ExampleValue.employmentStatusExample.value),
+      kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
+      last_ok_date = Some(oneYearAgoDate),
+      title  = Some(ExampleValue.titleExample.value),
+      branch_id = Some(ExampleValue.branchIdExample.value),
+      name_suffix = Some(ExampleValue.nameSuffixExample.value)
+    )
+  
+  lazy val customerJsonV600 = CustomerJsonV600(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = "1990-05-15",
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependantsExample.value.toInt,
+    dob_of_dependants = List("2015-03-20", "2018-07-10"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = oneYearAgoDate,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value
+  )
+
+  lazy val customerJSONsV600 = CustomerJSONsV600(List(customerJsonV600))
+
+  lazy val customerWithAttributesJsonV600 = CustomerWithAttributesJsonV600(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = "1990-05-15",
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependantsExample.value.toInt,
+    dob_of_dependants = List("2015-03-20", "2018-07-10"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = oneYearAgoDate,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson)
+  )
+
   lazy val customerAttributeResponseJson = CustomerAttributeResponseJsonV300 (
     customer_attribute_id = customerAttributeIdExample.value,
     name = customerAttributeNameExample.value,
@@ -4364,7 +4435,7 @@ object SwaggerDefinitionsJSON {
   lazy val postConsentEmailJsonV310 = PostConsentEmailJsonV310(
     everything = false,
     views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
-    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer")),
+    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomersAtOneBank")),
     consumer_id = Some(consumerIdExample.value),
     email = emailExample.value,
     valid_from = Some(new Date()),
@@ -4374,7 +4445,7 @@ object SwaggerDefinitionsJSON {
   lazy val postConsentPhoneJsonV310 = PostConsentPhoneJsonV310(
     everything = false,
     views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
-    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer")),
+    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomersAtOneBank")),
     consumer_id = Some(consumerIdExample.value),
     phone_number = mobileNumberExample.value,
     valid_from = Some(new Date()),
@@ -4384,7 +4455,7 @@ object SwaggerDefinitionsJSON {
   lazy val postConsentImplicitJsonV310 = PostConsentImplicitJsonV310(
     everything = false,
     views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
-    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer")),
+    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomersAtOneBank")),
     consumer_id = Some(consumerIdExample.value),
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
@@ -4585,7 +4656,7 @@ object SwaggerDefinitionsJSON {
     bank_id =  bankIdExample.value
   )
 
-  lazy val canGetCustomersJson = ApiRole.canGetCustomers
+  lazy val canGetCustomersJson = ApiRole.canGetCustomersAtOneBank
   
   lazy val cardAttributeCommons = CardAttributeCommons(
     bankId = Some(BankId(bankIdExample.value)),
@@ -5377,7 +5448,7 @@ object SwaggerDefinitionsJSON {
       account_routing = accountRoutingJsonV121,
       view_id = viewIdExample.value
       )),
-    entitlements = Some(List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer"))),
+    entitlements = Some(List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomersAtOneBank"))),
     consumer_id = Some(consumerIdExample.value),
     phone_number = Some(mobileNumberExample.value),
     email =  Some(emailExample.value),
@@ -5817,6 +5888,12 @@ object SwaggerDefinitionsJSON {
   )
   lazy val transactionRequestBodyEthSendRawTransactionJsonV600 = TransactionRequestBodyEthSendRawTransactionJsonV600(
     params = "0xf86b018203e882520894627306090abab3a6e1400e9345bc60c78a8bef57880de0b6b3a764000080820ff6a0d0367709eee090a6ebd74c63db7329372db1966e76d28ce219d1e105c47bcba7a0042d52f7d2436ad96e8714bf0309adaf870ad6fb68cfe53ce958792b3da36c12",
+    description = descriptionExample.value
+  )
+  
+  // HOLD sample (V600)
+  lazy val transactionRequestBodyHoldJsonV600 = TransactionRequestBodyHoldJsonV600(
+    value = amountOfMoneyJsonV121,
     description = descriptionExample.value
   )
   

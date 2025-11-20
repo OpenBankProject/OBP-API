@@ -37,7 +37,7 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def setRateLimiting(consumerAndToken: Option[(Consumer, Token)], putJson: CallLimitPostJsonV400): APIResponse = {
     val Some((c, _)) = consumerAndToken
     val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimits.toString)
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
     val request400 = (v4_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@ (consumerAndToken)
     makePutRequest(request400, write(putJson))
   }

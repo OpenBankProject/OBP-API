@@ -61,7 +61,7 @@ class ScopesTest extends V400ServerSetup {
   /**
    * Those tests needs to check the app behaviour regarding next properties:
    * - require_scopes_for_all_roles=false
-   * - require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
+   * - require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomersAtOneBank
    * - allow_entitlements_or_scopes=false
    * 
    */

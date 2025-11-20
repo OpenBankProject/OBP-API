@@ -3,6 +3,7 @@ package code.api.util.migration
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
+import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
@@ -57,6 +58,45 @@ object MigrationOfAuthUser {
         val comment: String =
           s"""Executed SQL: 
              |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${AuthUser._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
+
+  def populateMissingProviderWithLocalIdentity(name: String): Boolean = {
+    DbFunction.tableExists(AuthUser) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        // Make back up
+        DbFunction.makeBackUpOfTable(AuthUser)
+
+        val updatedRows =
+          for {
+            user <- AuthUser.findAll()
+            providerValue = Option(user.provider.get).map(_.trim).getOrElse("") if providerValue.isEmpty
+          } yield {
+            user.provider(Constant.localIdentityProvider).saveMe()
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Updated number of rows: 
+             |${updatedRows.size}
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

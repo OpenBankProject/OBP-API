@@ -189,6 +189,37 @@ object Glossary extends MdcLoggable  {
 
 
 
+	glossaryItems += GlossaryItem(
+    title = "API-Explorer-II-Help",
+    description = s"""
+			 |## API Explorer II - How to Use
+			 |
+			 |API Explorer II is an interactive Swagger/OpenAPI interface for discovering and testing OBP and other standard endpoints.
+			 |
+			 |### Key Features
+			 |
+			 |* Browse and search all available API endpoints
+			 |* Execute API calls directly from your browser
+			 |* View request and response examples
+			 |* Test authentication and authorization flows
+			 |
+			 |### Finding Dynamic Entities
+			 |
+			 |Dynamic Entities can be found under the **More** list of API Versions. Look for versions starting with `OBPdynamic-entity` or similar in the version selector.
+			 |
+			 |For more information about Dynamic Entities see ${getGlossaryItemLink("Dynamic-Entities")}
+			 |
+			|### Creating Favorites
+		|
+		|If you click the star icon next to an endpoint, it will be added to your favorites list.
+		|
+		|Favorites appear in the Collections section in the left panel interface.
+		|
+		|Note: Favorites are a special type of collection. You can create other collections using endpoints.
+"""
+  )
+
+
 
 	glossaryItems += GlossaryItem(
 		title = "Adapter.Akka.Intro",
@@ -825,7 +856,7 @@ object Glossary extends MdcLoggable  {
 					|  "entitlements": [
 					|    {
 					|      "bank_id": "gh.29.uk.x",
-					|      "role_name": "CanGetCustomer"
+					|      "role_name": "CanGetCustomersAtOneBank"
 					|    }
 					|  ],
 					|  "email": "marko@tesobe.com"
@@ -841,7 +872,7 @@ object Glossary extends MdcLoggable  {
 					|    "account_access":[],
 					|    "entitlements":[{
 					|      "bank_id":"gh.29.uk.x",
-					|      "role_name":"CanGetCustomer"
+					|      "role_name":"CanGetCustomersAtOneBank"
 					|    }],
 					|    "email":"marko@tesobe.com"
 					|  },
@@ -1740,7 +1771,7 @@ object Glossary extends MdcLoggable  {
 |
 |Body:
 |
-|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":${Constant.SYSTEM_OWNER_VIEW_ID}],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomer"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
+|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":${Constant.SYSTEM_OWNER_VIEW_ID}],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomersAtOneBank"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
 |
 |Headers:
 |
@@ -2826,7 +2857,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Dynamic Entity Manage",
+		title = "Dynamic-Entity-Intro",
 		description =
 			s"""
 |
@@ -2873,6 +2904,188 @@ object Glossary extends MdcLoggable  {
 |
 |	* [Introduction to Dynamic Entities](https://vimeo.com/426524451)
 |	* [Features of Dynamic Entities](https://vimeo.com/446465797)
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic-Entities",
+		description =
+			s"""
+|
+|Dynamic Entities allow you to create custom data structures and their corresponding CRUD endpoints at runtime without writing code or restarting the OBP-API instance.
+|
+|**Overview:**
+|
+|Dynamic Entities enable you to define custom business objects (entities) with their fields, types, and validation rules via API calls. Once created, OBP automatically generates fully functional REST API endpoints for Create, Read, Update, and Delete operations.
+|
+|**Types of Dynamic Entities:**
+|
+|1. **System Level Dynamic Entities** - Available across the entire OBP instance
+|2. **Bank Level Dynamic Entities** - Scoped to a specific bank
+|
+|**Creating a Dynamic Entity:**
+|
+|```json
+|POST /management/system-dynamic-entities
+|{
+|  "hasPersonalEntity": true,
+|  "CustomerPreferences": {
+|    "description": "Customer preferences and settings",
+|    "required": ["theme"],
+|    "properties": {
+|      "theme": {
+|        "type": "string",
+|        "example": "dark"
+|      },
+|      "language": {
+|        "type": "string",
+|        "example": "en"
+|      },
+|      "notifications_enabled": {
+|        "type": "boolean",
+|        "example": true
+|      }
+|    }
+|  }
+|}
+|```
+|
+|**Supported field types:**
+|
+|STRING, INTEGER, DOUBLE, BOOLEAN, DATE_WITH_DAY (format: yyyy-MM-dd), and reference types (foreign keys)
+|
+|**The hasPersonalEntity flag:**
+|
+|When **hasPersonalEntity = true** (default):
+|
+|OBP generates TWO sets of endpoints:
+|
+|1. **Regular endpoints** - Access all entities (requires specific roles)
+|   * POST /CustomerPreferences
+|   * GET /CustomerPreferences
+|   * GET /CustomerPreferences/ID
+|   * PUT /CustomerPreferences/ID
+|   * DELETE /CustomerPreferences/ID
+|
+|2. **Personal 'my' endpoints** - User-scoped access (see ${getGlossaryItemLink("My-Dynamic-Entities")})
+|   * POST /my/CustomerPreferences
+|   * GET /my/CustomerPreferences
+|   * GET /my/CustomerPreferences/ID
+|   * PUT /my/CustomerPreferences/ID
+|   * DELETE /my/CustomerPreferences/ID
+|
+|When **hasPersonalEntity = false**:
+|
+|OBP generates ONLY the regular endpoints. No 'my' endpoints are created. Use this when the entity represents shared data that should not be user-scoped.
+|
+|**For bank-level entities**, endpoints include the bank ID:
+|
+|* POST /banks/BANK_ID/CustomerPreferences
+|* POST /banks/BANK_ID/my/CustomerPreferences (if hasPersonalEntity = true)
+|
+|**Auto-generated roles:**
+|
+|When you create a Dynamic Entity named 'FooBar', OBP automatically creates these roles:
+|
+|* CanCreateDynamicEntity_FooBar
+|* CanUpdateDynamicEntity_FooBar
+|* CanGetDynamicEntity_FooBar
+|* CanDeleteDynamicEntity_FooBar
+|
+|**Management endpoints:**
+|
+|* POST /management/system-dynamic-entities - Create system level entity
+|* POST /management/banks/BANK_ID/dynamic-entities - Create bank level entity
+|* GET /management/system-dynamic-entities - List all system level entities
+|* GET /management/banks/BANK_ID/dynamic-entities - List bank level entities
+|* PUT /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Update entity definition
+|* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete entity (and all its data)
+|
+|**Required roles to manage Dynamic Entities:**
+|
+|* CanCreateSystemLevelDynamicEntity
+|* CanCreateBankLevelDynamicEntity
+|
+|**Use cases:**
+|
+|* Customer preferences and settings
+|* Custom metadata for accounts or transactions
+|* Business-specific data structures
+|* Rapid prototyping of new features
+|* Extension of core banking data model
+|
+|For user-scoped Dynamic Entities, see ${getGlossaryItemLink("My-Dynamic-Entities")}
+|
+|For more detailed information about managing Dynamic Entities, see ${getGlossaryItemLink("Dynamic-Entity-Intro")}
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "My-Dynamic-Entities",
+		description =
+			s"""
+|
+|My Dynamic Entities are user-scoped endpoints that are automatically generated when you create a Dynamic Entity with hasPersonalEntity set to true (which is the default).
+|
+|**How it works:**
+|
+|1. Create a Dynamic Entity definition (System or Bank Level) with hasPersonalEntity = true
+|2. OBP automatically generates both regular CRUD endpoints AND 'my' endpoints
+|3. The 'my' endpoints only return data created by the authenticated user
+|
+|**Example workflow:**
+|
+|**Step 1:** Create a Dynamic Entity definition
+|
+|```json
+|POST /management/system-dynamic-entities
+|{
+|  "hasPersonalEntity": true,
+|  "CustomerPreferences": {
+|    "description": "User preferences",
+|    "required": ["theme"],
+|    "properties": {
+|      "theme": {"type": "string"},
+|      "language": {"type": "string"}
+|    }
+|  }
+|}
+|```
+|
+|**Step 2:** Use the auto-generated 'my' endpoints:
+|
+|* POST /my/CustomerPreferences - Create my preference
+|* GET /my/CustomerPreferences - Get all my preferences
+|* GET /my/CustomerPreferences/ID - Get one of my preferences
+|* PUT /my/CustomerPreferences/ID - Update my preference
+|* DELETE /my/CustomerPreferences/ID - Delete my preference
+|
+|**For bank-level entities:**
+|
+|* POST /banks/BANK_ID/my/CustomerPreferences
+|* GET /banks/BANK_ID/my/CustomerPreferences
+|* GET /banks/BANK_ID/my/CustomerPreferences/ID
+|* PUT /banks/BANK_ID/my/CustomerPreferences/ID
+|* DELETE /banks/BANK_ID/my/CustomerPreferences/ID
+|
+|**Key differences:**
+|
+|* **Regular endpoints** (e.g., /CustomerPreferences): Access ALL entities (requires roles)
+|* **My endpoints** (e.g., /my/CustomerPreferences): Access only your own entities (user-scoped)
+|
+|**Note:** If hasPersonalEntity is set to false, no 'my' endpoints are generated.
+|
+|**Management endpoints for Dynamic Entity definitions:**
+|
+|* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
+|* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
+|
+|**Required roles:**
+|
+|* CanCreateSystemLevelDynamicEntity - To create system level dynamic entities
+|* CanCreateBankLevelDynamicEntity - To create bank level dynamic entities
+|
+|For general information about Dynamic Entities, see ${getGlossaryItemLink("Dynamic-Entities")}
 |
 """.stripMargin)
 

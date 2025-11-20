@@ -5,7 +5,7 @@
     "args": ["jetty:run", "-pl", "obp-api"],
     "env": {
       "MAVEN_OPTS": "-Xss128m --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.util.stream=ALL-UNNAMED --add-opens=java.base/java.util.regex=ALL-UNNAMED"
-    }
+    },
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always",

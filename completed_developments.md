@@ -137,7 +137,7 @@ Consent
 
 Consumer
 
-    Get Call Limits for a Consumer
+    Get Rate Limits for a Consumer
     Get Consumer
     Get Consumers
     Get Consumers (logged in User)

@@ -4,15 +4,15 @@ import java.util.UUID
 import scala.util.Try
 
 final case class KeycloakFederatedUserReference(
-                                         prefix: Char,
-                                         storageProviderId: UUID,   // Keycloak component UUID
-                                         externalId: Long           // autoincrement PK in external DB
-                                       )
+                                                 prefix: Char,
+                                                 storageProviderId: UUID,   // Keycloak component UUID
+                                                 externalId: UUID           // unique user id in external DB
+                                               )
 
 object KeycloakFederatedUserReference {
   // Pattern: f:<storageProviderId>:<externalId>
   private val Pattern =
-    "^([A-Za-z]):([0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{12}):(\\d+)$".r
+    "^([A-Za-z]):([0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{12}):([0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{12})$".r
 
   /** Safe parser */
   def parse(s: String): Either[String, KeycloakFederatedUserReference] =
@@ -21,7 +21,7 @@ object KeycloakFederatedUserReference {
         for {
           providerId <- Try(UUID.fromString(providerIdStr))
             .toEither.left.map(_ => s"Invalid storageProviderId: $providerIdStr")
-          externalId <- Try(externalIdStr.toLong)
+          externalId <- Try(UUID.fromString(externalIdStr))
             .toEither.left.map(_ => s"Invalid externalId: $externalIdStr")
         } yield KeycloakFederatedUserReference('f', providerId, externalId)
 

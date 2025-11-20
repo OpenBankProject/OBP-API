@@ -2090,7 +2090,7 @@ trait APIMethods510 {
          |  "entitlements": [
          |    {
          |      "bank_id": "GENODEM1GLS",
-         |      "role_name": "CanGetCustomer"
+         |      "role_name": "CanGetCustomersAtOneBank"
          |    }
          |  ],
          |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
@@ -2159,7 +2159,7 @@ trait APIMethods510 {
          |  "entitlements": [
          |    {
          |      "bank_id": "GENODEM1GLS",
-         |      "role_name": "CanGetCustomer"
+         |      "role_name": "CanGetCustomersAtOneBank"
          |    }
          |  ],
          |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
@@ -2469,9 +2469,25 @@ trait APIMethods510 {
       "Get User by USERNAME",
       s"""Get user by PROVIDER and USERNAME
          |
+         |Get a User by their authentication provider and username.
+         |
+         |**URL Parameters:**
+         |
+         |* PROVIDER - The authentication provider (e.g., http://127.0.0.1:8080, google.com, OBP)
+         |* USERNAME - The username at that provider (e.g., obpstripe, john.doe)
+         |
+         |**Important:** The PROVIDER parameter can contain special characters like slashes and colons.
+         |For example, if the provider is "http://127.0.0.1:8080", the full URL would be:
+         |
+         |`GET /obp/v5.1.0/users/provider/http://127.0.0.1:8080/username/obpstripe`
+         |
+         |The API will correctly parse the provider value even with these special characters.
+         |
+         |**To find valid providers**, use the GET /obp/v6.0.0/providers endpoint (available in API version 6.0.0).
+         |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetAnyUser entitlement is required,
+         |CanGetAnyUser entitlement is required.
          |
       """.stripMargin,
       EmptyBody,
@@ -2886,7 +2902,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagKyc),
-      Some(List(canGetCustomer))
+      Some(List(canGetCustomersAtOneBank))
     )
 
     lazy val getCustomersByLegalName: OBPEndpoint = {
@@ -2896,7 +2912,7 @@ trait APIMethods510 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomersAtOneBank, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerLegalNameJsonV510 "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerLegalNameJsonV510]
@@ -3329,8 +3345,8 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(getCallsLimit),
       "GET",
-      "/management/consumers/CONSUMER_ID/consumer/call-limits",
-      "Get Call Limits for a Consumer",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits",
+      "Get Rate Limits for a Consumer",
       s"""
          |Get Calls limits per Consumer.
          |${userAuthenticationMessage(true)}
@@ -3352,7 +3368,7 @@ trait APIMethods510 {
 
 
     lazy val getCallsLimit: OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonGet _ =>
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "rate-limits" :: Nil JsonGet _ =>
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {

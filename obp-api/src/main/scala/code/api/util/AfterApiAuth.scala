@@ -96,38 +96,47 @@ object AfterApiAuth extends MdcLoggable{
    * Please note that first source is the table RateLimiting and second is the table Consumer
    */
   def checkRateLimiting(userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
-    def getRateLimiting(consumerId: String, version: String, name: String): Future[Box[RateLimiting]] = {
+    def getActiveRateLimitings(consumerId: String): Future[List[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, version, name, Some(new Date()))
-        case false => Future(Empty)
+        case true => RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, new Date())
+        case false => Future(List.empty)
       }
     }
+    
+    def aggregateLimits(limits: List[RateLimiting], consumerId: String): CallLimit = {
+      def sumLimits(values: List[Long]): Long = {
+        val positiveValues = values.filter(_ > 0)
+        if (positiveValues.isEmpty) -1 else positiveValues.sum
+      }
+      
+      if (limits.nonEmpty) {
+        CallLimit(
+          consumerId,
+          limits.find(_.apiName.isDefined).flatMap(_.apiName),
+          limits.find(_.apiVersion.isDefined).flatMap(_.apiVersion),
+          limits.find(_.bankId.isDefined).flatMap(_.bankId),
+          sumLimits(limits.map(_.perSecondCallLimit)),
+          sumLimits(limits.map(_.perMinuteCallLimit)),
+          sumLimits(limits.map(_.perHourCallLimit)),
+          sumLimits(limits.map(_.perDayCallLimit)),
+          sumLimits(limits.map(_.perWeekCallLimit)),
+          sumLimits(limits.map(_.perMonthCallLimit))
+        )
+      } else {
+        CallLimit(consumerId, None, None, None, -1, -1, -1, -1, -1, -1)
+      }
+    }
+    
     for {
       (user, cc) <- userIsLockedOrDeleted
       consumer = cc.flatMap(_.consumer)
-      version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
-      operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints
-      // Calculate apiName in case of Rate Limiting
-      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)) // 1st try: function name at resource doc
-        .orElse(operationId) // 2nd try: In case of Dynamic Endpoint we can only use operationId
-        .getOrElse("None") // Not found any unique identifier
-      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
+      consumerId = consumer.map(_.consumerId.get).getOrElse("")
+      rateLimitings <- getActiveRateLimitings(consumerId)
     } yield {
-      val limit: Option[CallLimit] = rateLimiting match {
-        case Full(rl) => Some(CallLimit(
-          rl.consumerId,
-          rl.apiName,
-          rl.apiVersion,
-          rl.bankId,
-          rl.perSecondCallLimit,
-          rl.perMinuteCallLimit,
-          rl.perHourCallLimit,
-          rl.perDayCallLimit,
-          rl.perWeekCallLimit,
-          rl.perMonthCallLimit))
-        case Empty =>
+      val limit: Option[CallLimit] = rateLimitings match {
+        case Nil => // No rate limiting records found, use consumer defaults
           Some(CallLimit(
-            consumer.map(_.consumerId.get).getOrElse(""),
+            consumerId,
             None,
             None,
             None,
@@ -138,7 +147,8 @@ object AfterApiAuth extends MdcLoggable{
             consumer.map(_.perWeekCallLimit.get).getOrElse(-1),
             consumer.map(_.perMonthCallLimit.get).getOrElse(-1)
           ))
-        case _ => None
+        case activeLimits => // Aggregate multiple rate limiting records
+          Some(aggregateLimits(activeLimits, consumerId))
       }
       (user, cc.map(_.copy(rateLimiting = limit)))
     }

@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postCustomerLegalNameJsonV510
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetCustomer
+import code.api.util.ApiRole.CanGetCustomersAtOneBank
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.CustomerJSONsV300
 import code.api.v3_1_0.CustomerJsonV310
@@ -116,15 +116,15 @@ class CustomerTest extends V510ServerSetup {
       val request = (v5_1_0_Request / "banks" / bankId / "customers" / "legal-name").POST <@(user1)
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
       Then("We should get a 403")
-      Then("error should be " + UserHasMissingRoles + CanGetCustomer)
+      Then("error should be " + UserHasMissingRoles + CanGetCustomersAtOneBank)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetCustomer)
+      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetCustomersAtOneBank)
     }
   }
   feature(s"$ApiEndpoint2 $VersionOfApi - Authorized access with proper role") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "customers" / "legal-name").POST <@(user1)
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
       Then("We should get a 200")

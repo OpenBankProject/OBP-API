@@ -557,8 +557,8 @@ user_consumer_limit_anonymous_access=100, In case isn't defined default value is
 
 Te set up Rate Limiting in case of the authorized access use these endpoints:
 
-1. `GET ../management/consumers/CONSUMER_ID/consumer/call-limits` - Get Call Limits for a Consumer
-2. `PUT ../management/consumers/CONSUMER_ID/consumer/call-limits` - Set Call Limits for a Consumer
+1. `GET ../management/consumers/CONSUMER_ID/consumer/rate-limits` - Get Rate Limits for a Consumer
+2. `PUT ../management/consumers/CONSUMER_ID/consumer/rate-limits` - Set Rate Limits for a Consumer
 
 In order to make it work edit your props file in next way:
 

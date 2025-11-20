@@ -12,6 +12,7 @@ import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.model.{Consumer, _}
 import code.util.Helper.MdcLoggable
+import code.util.SecureLogging
 import code.views.Views
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
@@ -56,7 +57,9 @@ case class CallContext(
                         paginationOffset : Option[String] = None,
                         paginationLimit : Option[String] = None
                       ) extends MdcLoggable {
-  
+  override def toString: String = SecureLogging.maskSensitive(
+    s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
+  )
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
     for{

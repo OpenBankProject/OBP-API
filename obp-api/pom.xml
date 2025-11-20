@@ -638,6 +638,7 @@
             </execution>
           </executions>
         </plugin>
+
 <plugin>
   <groupId>org.eclipse.jetty</groupId>
   <artifactId>jetty-maven-plugin</artifactId>
@@ -645,21 +646,14 @@
   <configuration>
     <contextPath>/</contextPath>
     <scanIntervalSeconds>5</scanIntervalSeconds>
-    <httpConnector>
-      <port>8080</port>
-    </httpConnector>
-    <systemProperties>
-      <systemProperty>
-        <name>org.eclipse.jetty.server.HttpConfiguration.requestHeaderSize</name>
-        <value>32768</value>
-      </systemProperty>
-      <systemProperty>
-        <name>org.eclipse.jetty.server.HttpConfiguration.responseHeaderSize</name>
-        <value>32768</value>
-      </systemProperty>
-    </systemProperties>
+    <port>8080</port>
+
+    <!-- Jetty 9.4 plugin settings for max header size -->
+    <requestHeaderSize>32768</requestHeaderSize>
+    <responseHeaderSize>32768</responseHeaderSize>
   </configuration>
 </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-idea-plugin</artifactId>

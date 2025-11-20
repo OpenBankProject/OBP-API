@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanDeleteBankCascade, canGetCustomersMinimalAtAnyBank}
+import code.api.util.ApiRole.{CanDeleteBankCascade, canGetCustomersMinimalAtAllBanks}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
@@ -121,7 +121,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(404)
 
       // Bnam customers must be deleted as well
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAllBanks.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers-minimal").GET <@(user1)
       val response = makeGetRequest(request)

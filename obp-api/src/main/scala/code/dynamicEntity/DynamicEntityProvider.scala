@@ -409,11 +409,20 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     val fields = jsonObject.obj
 
-    // validate whether json is object and have a single field, currently support one entity definition
-    checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
-    checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and hasPersonalEntity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
+    // validate root object fields: allowed sizes are 1 or 2, order agnostic
+    val fieldsSize = fields.size
+    // Check whether the hasPersonalEntity field exists in the root object (does not check its value)
+    val hasPersonalEntityField = fields.exists(_.name == "hasPersonalEntity")
+    // Determine the value of hasPersonalEntity; use the field's boolean value if provided, otherwise default to true
+    val hasPersonalEntityValue: Boolean = fields.filter(_.name == "hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
     
-    val hasPersonalEntity: Boolean = fields.filter(_.name=="hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
+    checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
+    checkFormat(fieldsSize <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should have at most two fields: entity and hasPersonalEntity, but current root objects: ${fields.map(_.name).mkString(",  ")}")
+    checkFormat(
+      (fieldsSize == 1 && fields(0).name != "hasPersonalEntity") ||
+      (fieldsSize == 2 && hasPersonalEntityField),
+      s"$DynamicEntityInstanceValidateFail The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects: ${fields.map(_.name).mkString(",  ")}"
+    )
     
     val JField(entityName, metadataJson) = fields.filter(_.name!="hasPersonalEntity").head
     
@@ -520,7 +529,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntity)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames

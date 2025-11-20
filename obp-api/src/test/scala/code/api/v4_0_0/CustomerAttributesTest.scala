@@ -323,7 +323,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
 
       Then("We grant the role to the user1")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
 
       Then(s"We can the $ApiEndpoint5")
 
@@ -347,7 +347,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
 
       Then("We grant the role to the user1")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
 
       Then(s"We can the $ApiEndpoint5 with proper parameters")
       val requestGetCustomersByAttributesWithParameter = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER", "123456789")))

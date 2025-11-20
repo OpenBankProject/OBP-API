@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateUserCustomerLink, CanGetAccountsMinimalForCustomerAtAnyBank, canGetCustomersMinimalAtAnyBank}
+import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateUserCustomerLink, CanGetAccountsMinimalForCustomerAtAnyBank, canGetCustomersMinimalAtAllBanks}
 import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v2_0_0.BasicAccountJSON

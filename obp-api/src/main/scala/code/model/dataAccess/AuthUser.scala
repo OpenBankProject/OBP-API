@@ -653,11 +653,12 @@ import net.liftweb.util.Helpers._
     val email: String = user.getEmail
     val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $resetLink")
     val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$resetLink'>$resetLink</a></p>")
+    val subjectContent = "Sign up confirmation"
     val emailContent = EmailContent(
       from = emailFrom,
       to = List(user.getEmail),
       bcc = bccEmail.toList,
-      subject = signupMailSubject,
+      subject = subjectContent,
       textContent = textContent,
       htmlContent = htmlContent
     )

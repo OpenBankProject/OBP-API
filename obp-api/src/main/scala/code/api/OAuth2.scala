@@ -402,7 +402,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Right(fedRef) => // Users log on via Keycloak, which uses User Federation to access the external OBP database.
           logger.debug(s"External ID = ${fedRef.externalId}")
           logger.debug(s"Storage Provider ID = ${fedRef.storageProviderId}")
-          Users.users.vend.getUserByResourceUserId(fedRef.externalId)
+          Users.users.vend.getUserByUserId(fedRef.externalId.toString)
         case Left(error) =>
           logger.debug(s"Parse error: $error")
           Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = uniqueIdGivenByProvider).or { // Find a user

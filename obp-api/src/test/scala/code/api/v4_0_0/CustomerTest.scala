@@ -91,14 +91,14 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canGetCustomersAtAnyBank
+      val errorMsg = UserHasMissingRoles + canGetCustomersAtAllBanks
       And("error should be " + errorMsg)
       val errorMessage = response.body.extract[ErrorMessage].message
       errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (canGetCustomersAtAnyBank.toString()) should be (true)
+      errorMessage contains (canGetCustomersAtAllBanks.toString()) should be (true)
     }
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomersAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomersAtAllBanks.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers").GET <@(user1)
       val response = makeGetRequest(request)
@@ -126,14 +126,14 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canGetCustomersMinimalAtAnyBank
+      val errorMsg = UserHasMissingRoles + canGetCustomersMinimalAtAllBanks
       And("error should be " + errorMsg)
       val errorMessage = response.body.extract[ErrorMessage].message
       errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (canGetCustomersMinimalAtAnyBank.toString()) should be (true)
+      errorMessage contains (canGetCustomersMinimalAtAllBanks.toString()) should be (true)
     }
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAllBanks.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers-minimal").GET <@(user1)
       val response = makeGetRequest(request)
@@ -179,7 +179,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val infoPost = response.body.extract[CustomerJsonV310]
 
       When("We make the request: Get Customer specified by CUSTOMER_ID")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val requestGet = (v4_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
@@ -209,15 +209,15 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val request = (v4_0_0_Request / "banks" / bankId / "search" /"customers" / "mobile-phone-number").POST <@ (user1)
       val response = makePostRequest(request, write(postCustomerPhoneNumberJsonV400))
       Then("We should get a 403")
-      Then("error should be " + UserHasMissingRoles + CanGetCustomer)
+      Then("error should be " + UserHasMissingRoles + CanGetCustomersAtOneBank)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetCustomer)
+      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetCustomersAtOneBank)
     }
   }
   feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access with proper role") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val request = (v4_0_0_Request / "banks" / bankId / "search" / "customers" / "mobile-phone-number").POST <@ (user1)
       val response = makePostRequest(request, write(postCustomerPhoneNumberJsonV400))
       Then("We should get a 200")

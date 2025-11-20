@@ -56,4 +56,30 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
       callContextUpdated.get.sessionId should be (Some("12345"))
     }
   }
+  
+  feature("test CallContext toString secure logging masking") 
+  {
+    scenario("toString should mask sensitive data") 
+    {
+      val callContextWithSensitiveData = CallContext(
+        directLoginParams = Map("password" -> "supersecret"),
+        oAuthParams = Map("client_secret" -> "my_client_secret")
+      )
+      
+      val toStringResult = callContextWithSensitiveData.toString
+      
+      // Verify that sensitive data is masked - should NOT contain the actual sensitive values
+      toStringResult should not contain "supersecret"
+      toStringResult should not contain "my_client_secret"
+      
+      // Verify that the result contains the case class structure (not just object reference)
+      toStringResult should include("CallContext")
+      
+      // Verify that masking occurs by checking for masked patterns or lack of sensitive data
+      val containsActualSensitiveData = toStringResult.contains("supersecret") ||
+                                       toStringResult.contains("my_client_secret")
+      
+      containsActualSensitiveData should be (false)
+    }
+  }
 }

@@ -1495,7 +1495,28 @@ object ExampleValue {
   lazy val dateActivatedExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("date_activated", dateActivatedExample)
 
-  lazy val webuiPropsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val webuiPropsExample = ConnectorField(
+    "webui_api_explorer_url",
+    """WebUI Props are properties that configure the Web UI behavior and appearance. Properties with names starting with 'webui_' can be stored in the database and managed via API.
+      |
+      |Data Sources:
+      |1. Explicit WebUiProps (Database): Custom values created/updated via the POST /management/webui_props API endpoint and stored in the database. These take highest precedence.
+      |2. Implicit WebUiProps (Configuration File): Default values defined in the sample.props.template configuration file located at obp-api/src/main/resources/props/sample.props.template.
+      |
+      |To set config file defaults, edit sample.props.template and add or modify properties starting with 'webui_'. Both commented (#webui_) and uncommented (webui_) properties are parsed, with the # automatically stripped.
+      |
+      |When calling GET /management/webui_props:
+      |- Without 'active' parameter or active=false: Returns only explicit props from the database
+      |- With active=true: Returns explicit props + implicit (default) props from configuration file. When both sources have the same property name, the database value takes precedence. Implicit props are marked with webUiPropsId = 'default'.
+      |
+      |Precedence order (highest to lowest):
+      |1. Database WebUI Props (set via POST /management/webui_props)
+      |2. Props files (default.props, etc.) - standard application config
+      |3. sample.props.template - returned as defaults when active=true
+      |4. Environment variables can also override props
+      |
+      |Examples of webui props include: webui_header_logo_left_url, webui_api_explorer_url, webui_api_manager_url, webui_sandbox_introduction, etc.""".stripMargin
+  )
   glossaryItems += makeGlossaryItem("webui_props", webuiPropsExample)
 
   lazy val userCustomerLinksExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

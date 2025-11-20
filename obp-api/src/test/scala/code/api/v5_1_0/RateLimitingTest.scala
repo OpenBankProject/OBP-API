@@ -91,7 +91,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       When(s"We make a request $ApiVersion510")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET
+      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
@@ -102,7 +102,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@ (user1)
+      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET <@ (user1)
       val response510 = makeGetRequest(request510)
       Then("We should get a 403")
       response510.code should equal(403)
@@ -111,7 +111,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
     }
     scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
 
-      When("We make a request v5.1.0 with a Role " + ApiRole.canSetCallLimits)
+      When("We make a request v5.1.0 with a Role " + ApiRole.canUpdateRateLimits)
       val response01 = setRateLimiting(user1, callLimitJsonMonth)
       Then("We should get a 200")
       response01.code should equal(200)
@@ -120,7 +120,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanReadCallLimits.toString)
-      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@ (user1)
+      val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET <@ (user1)
       val response510 = makeGetRequest(request510)
       Then("We should get a 200")
       response510.code should equal(200)

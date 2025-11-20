@@ -131,7 +131,7 @@ class CustomerTest extends V500ServerSetupAsync {
       responseApiEndpoint2.code should equal(200)
       responseApiEndpoint2.body.extract[CustomerJSONs].customers.length == 1 should be (true)
       
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomers.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       Then(s"We test $ApiEndpoint3")
       val requestApiEndpoint3 = (v5_0_0_Request / "banks"/ bankId /"customers").GET <@(user1)
       val responseApiEndpoint3 = makeGetRequest(requestApiEndpoint3)
@@ -139,7 +139,7 @@ class CustomerTest extends V500ServerSetupAsync {
       responseApiEndpoint3.code should equal(200)
       responseApiEndpoint3.body.extract[CustomerJSONsV300].customers.length == 2 should be (true) 
       
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersMinimal.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersMinimalAtOneBank.toString)
       Then(s"We test $ApiEndpoint4")
       val requestApiEndpoint4 = (v5_0_0_Request / "banks"/ bankId /"customers-minimal").GET <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
@@ -187,7 +187,7 @@ class CustomerTest extends V500ServerSetupAsync {
       responseApiEndpoint3.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetUserAuthContext)
       responseApiEndpoint3.body.extract[ErrorMessage].message contains (UserHasMissingRoles ) should be (true)
-      responseApiEndpoint3.body.extract[ErrorMessage].message contains (CanGetCustomers.toString()) should be (true)
+      responseApiEndpoint3.body.extract[ErrorMessage].message contains (CanGetCustomersAtOneBank.toString()) should be (true)
     }
 
     scenario(s"$ApiEndpoint4 without a user credentials", ApiEndpoint4, VersionOfApi) {
@@ -208,7 +208,7 @@ class CustomerTest extends V500ServerSetupAsync {
       responseApiEndpoint4.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetUserAuthContext)
       responseApiEndpoint4.body.extract[ErrorMessage].message contains (UserHasMissingRoles ) should be (true)
-      responseApiEndpoint4.body.extract[ErrorMessage].message contains (CanGetCustomersMinimal.toString()) should be (true)
+      responseApiEndpoint4.body.extract[ErrorMessage].message contains (CanGetCustomersMinimalAtOneBank.toString()) should be (true)
     }
   }
 
@@ -248,7 +248,7 @@ class CustomerTest extends V500ServerSetupAsync {
       val infoPost = response.body.extract[CustomerJsonV310]
 
       When("We make the request: Get Customer specified by CUSTOMER_ID")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val requestGet = (v5_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
@@ -268,7 +268,7 @@ class CustomerTest extends V500ServerSetupAsync {
       val infoPost = response.body.extract[CustomerJsonV310]
 
       When("We make the request: Get Customer specified by CUSTOMER_ID")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val requestGet = (v5_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")

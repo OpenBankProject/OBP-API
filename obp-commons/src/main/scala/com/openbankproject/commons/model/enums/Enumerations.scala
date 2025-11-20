@@ -102,6 +102,7 @@ object TransactionRequestTypes extends  OBPEnumeration[TransactionRequestTypes]{
   object SEPA extends Value
   object FREE_FORM extends Value
   object SIMPLE extends Value
+  object HOLD extends Value
   object CARD extends Value
   object TRANSFER_TO_PHONE extends Value
   object TRANSFER_TO_ATM extends Value
@@ -193,7 +194,17 @@ sealed trait DynamicEntityFieldType extends EnumValue {
 object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
   object number  extends Value{val jValueType = classOf[JDouble]}
   object integer extends Value{val jValueType = classOf[JInt]}
-  object boolean extends Value{val jValueType = classOf[JBool]}
+  object boolean extends Value {
+    val jValueType = classOf[JString]
+    override def isJValueValid(jValue: JValue): Boolean = {
+      super.isJValueValid(jValue) && {
+        val value = jValue.asInstanceOf[JString].s
+        val lowerValue = value.toLowerCase
+        lowerValue == "true" || lowerValue == "false"
+      }
+    }
+    override def wrongTypeMsg: String = s"""the value's type should be string "true" or "false"."""
+  }
   object string  extends Value{
     val jValueType = classOf[JString]
 

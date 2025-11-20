@@ -91,30 +91,7 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>7.1.1</version>
-                <configuration>
-                    <name>notifier-dependency-check</name>
-                    <format>HTML</format>
-                    <failBuildOnCVSS>10</failBuildOnCVSS>
-                    <failOnError>false</failOnError>
-                    <skipProvidedScope>true</skipProvidedScope>
-                    <!--skip artifacts not bundled in distribution (Provided and Runtime scope).-->
-                    <skipRuntimeScope>true</skipRuntimeScope>
-                    <skipTestScope>true</skipTestScope>
-                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
-                    <skipArtifactType>pom</skipArtifactType>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>aggregate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -178,4 +155,61 @@
             
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>dependency-check</id>
+            <!-- ✅ Activates only if NVD_API_KEY is defined in environment -->
+            <activation>
+                <property>
+                    <name>env.NVD_API_KEY</name>
+                </property>
+            </activation>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>8.4.3</version>
+                        <configuration>
+                            <!-- Use NVD API 2.0 key from environment -->
+                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                            <nvdApiServicesEnabled>true</nvdApiServicesEnabled>
+                            <nvdDatafeedEnabled>false</nvdDatafeedEnabled>
+                            <autoUpdate>true</autoUpdate>
+
+                            <name>notifier-dependency-check</name>
+                            <format>HTML</format>
+                            <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+                            <failBuildOnCVSS>10</failBuildOnCVSS>
+                            <failOnError>false</failOnError>
+                            <skipProvidedScope>true</skipProvidedScope>
+                            <skipRuntimeScope>true</skipRuntimeScope>
+                            <skipTestScope>true</skipTestScope>
+                            <skipArtifactType>pom</skipArtifactType>
+
+                            <!-- Disable unnecessary analyzers -->
+                            <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                            <nexusAnalyzerEnabled>false</nexusAnalyzerEnabled>
+                            <centralAnalyzerEnabled>false</centralAnalyzerEnabled>
+                            <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                            <knownExploitedEnabled>false</knownExploitedEnabled>
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                        </configuration>
+
+                        <executions>
+                            <execution>
+                                <id>dependency-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

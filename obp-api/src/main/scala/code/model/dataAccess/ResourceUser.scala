@@ -33,6 +33,7 @@ import code.api.util.APIUtil
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.mapper._
+import net.liftweb.mapper.DB
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -122,6 +123,12 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     override def dbIndexes = UniqueIndex(provider_, providerId) ::super.dbIndexes
+  
+  def getDistinctProviders: List[String] = {
+    val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
+    val (_, rows) = DB.runQuery(sql, List())
+    rows.flatten
+  }
 }
 
 case class ResourceUserCaseClass(

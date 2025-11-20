@@ -59,7 +59,9 @@ class GetScannedApiVersionsTest extends V400ServerSetup {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList
+      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+        version.urlPrefix.trim.nonEmpty
+      }
 
       responseApiVersions should equal(scannedApiVersions)
 

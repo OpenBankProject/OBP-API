@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanDeleteRateLimiting, CanReadCallLimits, CanSetCallLimits}
+import code.api.util.ApiRole.{CanDeleteRateLimiting, CanReadCallLimits, CanCreateRateLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import code.consumer.Consumers
@@ -46,6 +46,7 @@ class CallLimitsTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.createCallLimits))
   object ApiEndpoint2 extends Tag(nameOf(Implementations6_0_0.deleteCallLimits))
+  object UpdateRateLimits extends Tag(nameOf(Implementations6_0_0.updateRateLimits))
   object ApiEndpoint3 extends Tag(nameOf(Implementations6_0_0.getActiveCallLimitsAtDate))
 
   lazy val postCallLimitJsonV600 = CallLimitPostJsonV600(
@@ -75,7 +76,7 @@ class CallLimitsTest extends V600ServerSetup {
       When("We make a request v6.0.0 without user credentials")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 401")
       response600.code should equal(401)
@@ -89,20 +90,20 @@ class CallLimitsTest extends V600ServerSetup {
       When("We make a request v6.0.0 without a proper role")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST <@ (user1)
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 403")
       response600.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanSetCallLimits)
-      response600.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanSetCallLimits)
+      And("error should be " + UserHasMissingRoles + CanCreateRateLimits)
+      response600.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateRateLimits)
     }
 
     scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 with a proper role")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSetCallLimits.toString)
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST <@ (user1)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 201")
       response600.code should equal(201)
@@ -119,15 +120,15 @@ class CallLimitsTest extends V600ServerSetup {
       Given("We create a call limit first")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSetCallLimits.toString)
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST <@ (user1)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
       createResponse.code should equal(201)
       val createdCallLimit = createResponse.body.extract[CallLimitJsonV600]
 
       When("We delete the call limit")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteRateLimiting.toString)
-      val deleteRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits" / createdCallLimit.rate_limiting_id).DELETE <@ (user1)
+      val deleteRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / createdCallLimit.rate_limiting_id).DELETE <@ (user1)
       val deleteResponse = makeDeleteRequest(deleteRequest)
       
       Then("We should get a 204")
@@ -138,14 +139,14 @@ class CallLimitsTest extends V600ServerSetup {
       Given("We create a call limit first")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSetCallLimits.toString)
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST <@ (user1)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
       createResponse.code should equal(201)
       val createdCallLimit = createResponse.body.extract[CallLimitJsonV600]
 
       When("We try to delete without proper role")
-      val deleteRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits" / createdCallLimit.rate_limiting_id).DELETE <@ (user1)
+      val deleteRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / createdCallLimit.rate_limiting_id).DELETE <@ (user1)
       val deleteResponse = makeDeleteRequest(deleteRequest)
       
       Then("We should get a 403")
@@ -160,8 +161,8 @@ class CallLimitsTest extends V600ServerSetup {
       Given("We create a call limit first")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanSetCallLimits.toString)
-      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").POST <@ (user1)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
       createResponse.code should equal(201)
 
@@ -170,15 +171,15 @@ class CallLimitsTest extends V600ServerSetup {
       val currentDateString = ZonedDateTime
         .now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
-      val getRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits" / "active-at-date" / currentDateString).GET <@ (user1)
+      val getRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / "active-at-date" / currentDateString).GET <@ (user1)
       val getResponse = makeGetRequest(getRequest)
       
       Then("We should get a 200")
       getResponse.code should equal(200)
       And("we should get the active call limits response")
       val activeCallLimits = getResponse.body.extract[ActiveCallLimitsJsonV600]
-      activeCallLimits.call_limits should not be empty
-      activeCallLimits.total_per_second_call_limit should be > 0L
+      activeCallLimits.call_limits.size == 0
+      activeCallLimits.total_per_second_call_limit == 0L
     }
 
     scenario("We will try to get active call limits without proper role", ApiEndpoint3, VersionOfApi) {
@@ -188,7 +189,7 @@ class CallLimitsTest extends V600ServerSetup {
       val currentDateString = ZonedDateTime
         .now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
-      val getRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits" / "active-at-date" / currentDateString).GET <@ (user1)
+      val getRequest = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / "active-at-date" / currentDateString).GET <@ (user1)
       val getResponse = makeGetRequest(getRequest)
       
       Then("We should get a 403")

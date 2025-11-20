@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.berlin.group.ConstantsBG
@@ -13,7 +14,7 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0._
-import code.api.v6_0_0.{TransactionRequestBodyCardanoJsonV600, TransactionRequestBodyEthSendRawTransactionJsonV600, TransactionRequestBodyEthereumJsonV600}
+import code.api.v6_0_0.{TransactionRequestBodyCardanoJsonV600, TransactionRequestBodyEthSendRawTransactionJsonV600, TransactionRequestBodyEthereumJsonV600, TransactionRequestBodyHoldJsonV600}
 import code.bankconnectors.ethereum.DecodeRawTx
 import code.branches.MappedBranch
 import code.fx.fx
@@ -801,6 +802,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             description = transactionRequestBodyEthSendRawTransactionJsonV600.description
           )
         } yield (transactionRequestBodyEthereum)
+        case HOLD =>
+          NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $TransactionRequestBodyHoldJsonV600 ", 400, callContext) {
+            json.extract[TransactionRequestBodyHoldJsonV600]
+          }
         case _ =>
           NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $TransactionRequestBodyCommonJSON ", 400, callContext) {
             json.extract[TransactionRequestBodyCommonJSON]
@@ -823,6 +828,31 @@ object LocalMappedConnectorInternal extends MdcLoggable {
       })
 
       (createdTransactionRequest, callContext) <- transactionRequestTypeValue match {
+        case HOLD => {
+          for {
+            holdBody <- NewStyle.function.tryons(s"$InvalidJsonFormat It should be $TransactionRequestBodyHoldJsonV600 json format", 400, callContext) {
+              json.extract[TransactionRequestBodyHoldJsonV600]
+            }
+            releaserAccount = fromAccount
+            (holdingAccount, callContext) <- getOrCreateHoldingAccount(bankId, releaserAccount, callContext)
+            transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+              write(holdBody)(Serialization.formats(NoTypeHints))
+            }
+            (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(
+              u,
+              viewId,
+              releaserAccount,
+              holdingAccount,
+              transactionRequestType,
+              holdBody,
+              transDetailsSerialized,
+              sharedChargePolicy.toString,
+              Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+              getScaMethodAtInstance(transactionRequestType.value).toOption,
+              None,
+              callContext)
+          } yield (createdTransactionRequest, callContext)
+        }
         case REFUND => {
           for {
             transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
@@ -1558,6 +1588,84 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     } yield {
       (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges, transactionRequestAttributes), HttpCode.`201`(callContext))
     }
+  }
+
+  /**
+    * Find or create a Holding Account for the given releaser account and link via account attributes.
+    * Rules:
+    * - Holding account uses the same currency as releaser.
+    * - Holding account type: "HOLDING".
+   * - Attributes on holding: ACCOUNT_ROLE=HOLDING, RELEASER_ACCOUNT_ID=releaserAccountId
+    * - Optional reverse link on releaser: HOLDING_ACCOUNT_ID=holdingAccountId
+    */
+  private def getOrCreateHoldingAccount(
+    bankId: BankId,
+    releaserAccount: BankAccount,
+    callContext: Option[CallContext]
+  ): Future[(BankAccount, Option[CallContext])] = {
+    val params = Map("RELEASER_ACCOUNT_ID" -> List(releaserAccount.accountId.value))
+    for {
+      // Query by attribute to find accounts that link to the releaser
+      accountIdsBox <- AccountAttributeX.accountAttributeProvider.vend.getAccountIdsByParams(bankId, params)
+      accountIds = accountIdsBox.getOrElse(Nil).map(id => AccountId(id))
+      // Try to find an existing holding account among them
+      existingOpt <- {
+        def firstHolding(ids: List[AccountId]): Future[Option[(BankAccount, Option[CallContext])]] = ids match {
+          case Nil => Future.successful(None)
+          case id :: tail =>
+            NewStyle.function.getBankAccount(bankId, id, callContext).flatMap { case (acc, cc) =>
+              if (acc.accountType == "HOLDING") Future.successful(Some((acc, cc)))
+              else firstHolding(tail)
+            }
+        }
+        firstHolding(accountIds)
+      }
+      result <- existingOpt match {
+        case Some((acc, cc)) => Future.successful((acc, cc))
+        case None =>
+          val newAccountId = AccountId(APIUtil.generateUUID())
+          for {
+            // Create holding account with same currency and zero balance
+            (holding, cc) <- NewStyle.function.createBankAccount(
+              bankId = bankId,
+              accountId = newAccountId,
+              accountType = "HOLDING",
+              accountLabel = s"Holding account for ${releaserAccount.accountId.value}",
+              currency = releaserAccount.currency,
+              initialBalance = BigDecimal(0),
+              accountHolderName = Option(releaserAccount.accountHolder).getOrElse(""),
+              branchId = releaserAccount.branchId,
+              accountRoutings = Nil,
+              callContext = callContext
+            )
+            _ <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, newAccountId, cc.get.user.head, callContext)
+            // create attribute on holding account to link to releaser account
+            _ <- NewStyle.function.createOrUpdateAccountAttribute(
+              bankId = bankId,
+              accountId = holding.accountId,
+              productCode = ProductCode("HOLDING"),
+              accountAttributeId = None,
+              name = "RELEASER_ACCOUNT_ID",
+              attributeType = AccountAttributeType.STRING,
+              value = releaserAccount.accountId.value,
+              productInstanceCode = None,
+              callContext = cc
+            )
+            // create attribute on releaser account to link to holding account
+            _ <- NewStyle.function.createOrUpdateAccountAttribute(
+              bankId = bankId,
+              accountId = releaserAccount.accountId,
+              productCode = ProductCode(releaserAccount.accountType),
+              accountAttributeId = None,
+              name = "HOLDING_ACCOUNT_ID",
+              attributeType = AccountAttributeType.STRING,
+              value = holding.accountId.value,
+              productInstanceCode = None,
+              callContext = cc
+            )
+          } yield (holding, cc)
+      }
+    } yield result
   }
 
 
