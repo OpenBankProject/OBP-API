@@ -1098,7 +1098,7 @@ object NewStyle extends MdcLoggable{
 
         // Проверка errorCode через booleanToFuture
         Helper.booleanToFuture(
-          failMsg  = trx.backendMessages.getOrElse("Unknown error"),
+          failMsg  = trx.backendMessage.getOrElse("Unknown error"),
           failCode = trx.errorCode.map(_.toInt).getOrElse(400),
           cc       = callContext
         )(
@@ -1129,7 +1129,7 @@ object NewStyle extends MdcLoggable{
 
         // Проверка errorCode через booleanToFuture
         Helper.booleanToFuture(
-          failMsg  = trx.backendMessages.getOrElse("Unknown error"),
+          failMsg  = trx.backendMessage.getOrElse("Unknown error"),
           failCode = trx.errorCode.map(_.toInt).getOrElse(400),
           cc       = callContext
         )(
