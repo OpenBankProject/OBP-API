@@ -1093,8 +1093,16 @@ object NewStyle extends MdcLoggable{
         )
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
-      response map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+      response.flatMap { i =>
+        val trx = unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400)
+
+        // Проверка errorCode через booleanToFuture
+        Helper.booleanToFuture(
+            failMsg   = trx.backendMessages.getOrElse("Unknown error"),
+            failCode  = trx.errorCode.map(_.toInt).getOrElse(400),
+            cc        = callContext
+          )(trx.errorCode.contains("200") || trx.errorCode.contains("201"))
+          .map(_ => (trx, i._2))
       }
     }
 
@@ -1115,8 +1123,16 @@ object NewStyle extends MdcLoggable{
         )
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
-      response map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+      response.flatMap { i =>
+        val trx = unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400)
+
+        // Проверка errorCode через booleanToFuture
+        Helper.booleanToFuture(
+          failMsg   = trx.backendMessages.getOrElse("Unknown error"),
+          failCode  = trx.errorCode.map(_.toInt).getOrElse(400),
+          cc        = callContext
+        )(trx.errorCode.contains("200") || trx.errorCode.contains("201"))
+          .map(_ => (trx, i._2))
       }
     }
 
