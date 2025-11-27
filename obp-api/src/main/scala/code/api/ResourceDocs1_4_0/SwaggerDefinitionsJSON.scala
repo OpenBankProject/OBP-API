@@ -2707,6 +2707,7 @@ object SwaggerDefinitionsJSON {
     consumer_id = consumerIdExample.value,
     consumer_key = consumerKeyExample.value,
     app_name = appNameExample.value,
+    app_alias = appNameExample.value,
     app_type = appTypeExample.value,
     description = descriptionExample.value,
     developer_email = emailExample.value,
