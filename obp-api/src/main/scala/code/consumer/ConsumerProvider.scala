@@ -50,6 +50,7 @@ trait ConsumersProvider {
                      name: Option[String] = None,
                      alias: Option[String] = None,
                      appType: Option[AppType] = None,
+                     company: Option[String] = None,
                      description: Option[String] = None,
                      developerEmail: Option[String] = None,
                      redirectURL: Option[String] = None,

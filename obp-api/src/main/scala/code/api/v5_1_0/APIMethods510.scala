@@ -3544,8 +3544,10 @@ trait APIMethods510 {
                                    alias: Option[String],
                                    description: Option[String],
                                    redirect_url: Option[String],
-                                   logo_url: Option[String]
+                                   logo_url: Option[String],
+                                   company: Option[String],
                                  )
+
 
     val updateConsumerJsonExample = UpdateConsumerJson(
       is_active    = Some(true),
@@ -3553,13 +3555,14 @@ trait APIMethods510 {
       alias         = Some("My Short App Name"),
       description  = Some("My App Description"),
       redirect_url = Some("https://example.com/callback"),
-      logo_url     = Some("https://example.com/logo.png")
+      logo_url     = Some("https://example.com/logo.png"),
+      company      = Some("company name")
     )
 
     staticResourceDocs += ResourceDoc(
-      updateConsumerEndpoint,
+      updateConsumer,
       implementedInApiVersion,
-      nameOf(updateConsumerEndpoint),
+      nameOf(updateConsumer),
       "PUT",
       "/management/consumers/CONSUMER_ID",
       "Update Consumer",
@@ -3582,8 +3585,8 @@ trait APIMethods510 {
       Some(List(canCreateConsumer)) // на апдей2т возможно создадим новую роль
     )
 
-    lazy val updateConsumerEndpoint: OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: Nil JsonPut json -> _ => {
+    lazy val updateConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonPut json -> _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
@@ -3603,6 +3606,7 @@ trait APIMethods510 {
               description   = postJson.description,
               redirectURL   = postJson.redirect_url,
               logoURL       = postJson.logo_url,
+              company       = postJson.company,
               callContext   = callContext
             )
           } yield {

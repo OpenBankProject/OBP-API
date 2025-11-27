@@ -235,6 +235,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               name: Option[String],
                               alias: Option[String] = None,
                               appType: Option[AppType],
+                              company: Option[String],
                               description: Option[String],
                               developerEmail: Option[String],
                               redirectURL: Option[String],
@@ -268,6 +269,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         certificate match {
           case Some(v) => c.clientCertificate(v)
+          case None =>
+        }
+        company match {
+          case Some(v) => c.company(v)
           case None =>
         }
         appType match {
