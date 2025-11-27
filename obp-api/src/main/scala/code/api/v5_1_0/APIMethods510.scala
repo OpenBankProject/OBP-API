@@ -3441,6 +3441,7 @@ trait APIMethods510 {
           }
       }
     }
+
     staticResourceDocs += ResourceDoc(
       updateConsumerCertificate,
       implementedInApiVersion,
@@ -3535,6 +3536,81 @@ trait APIMethods510 {
           }
       }
     }
+
+
+    case class UpdateConsumerJson(
+                                   is_active: Option[Boolean],
+                                   name: Option[String],
+                                   alias: Option[String],
+                                   description: Option[String],
+                                   redirect_url: Option[String],
+                                   logo_url: Option[String]
+                                 )
+
+    val updateConsumerJsonExample = UpdateConsumerJson(
+      is_active    = Some(true),
+      name         = Some("My App Name"),
+      alias         = Some("My Short App Name"),
+      description  = Some("My App Description"),
+      redirect_url = Some("https://example.com/callback"),
+      logo_url     = Some("https://example.com/logo.png")
+    )
+
+    staticResourceDocs += ResourceDoc(
+      updateConsumerEndpoint,
+      implementedInApiVersion,
+      nameOf(updateConsumerEndpoint),
+      "PUT",
+      "/management/consumers/CONSUMER_ID",
+      "Update Consumer",
+      s"""Update existing Consumer fields (is_active, name, alias, description, redirect_url, logo_url)
+         |for a Consumer specified by CONSUMER_ID.
+         |
+         |${consumerDisabledText()}
+         |
+         |CONSUMER_ID can be obtained after you register the application,
+         |or use the endpoint 'Get Consumers' to get it.
+         |""".stripMargin,
+      updateConsumerJsonExample,
+      consumerJsonV510,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConsumer),
+      Some(List(canCreateConsumer)) // на апдей2т возможно создадим новую роль
+    )
+
+    lazy val updateConsumerEndpoint: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: Nil JsonPut json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) {
+              json.extract[UpdateConsumerJson]
+            }
+
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id            = consumer.id.get,
+              isActive      = postJson.is_active,
+              name          = postJson.name,
+              alias         = postJson.alias,
+              description   = postJson.description,
+              redirectURL   = postJson.redirect_url,
+              logoURL       = postJson.logo_url,
+              callContext   = callContext
+            )
+          } yield {
+            (JSONFactory510.createConsumerJSON(updatedConsumer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
 
     staticResourceDocs += ResourceDoc(

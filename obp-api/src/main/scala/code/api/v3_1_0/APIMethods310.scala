@@ -5992,7 +5992,7 @@ trait APIMethods310 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             updatedConsumer <- Future {
-              Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None,None, None, None) ?~! "Cannot update Consumer"
+              Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None,None, None, None) ?~! "Cannot update Consumer"
             }
           } yield {
             // Format the data as json

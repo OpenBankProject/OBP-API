@@ -48,6 +48,7 @@ trait ConsumersProvider {
                      secret: Option[String] = None,
                      isActive: Option[Boolean] = None,
                      name: Option[String] = None,
+                     alias: Option[String] = None,
                      appType: Option[AppType] = None,
                      description: Option[String] = None,
                      developerEmail: Option[String] = None,

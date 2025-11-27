@@ -233,6 +233,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               secret: Option[String],
                               isActive: Option[Boolean],
                               name: Option[String],
+                              alias: Option[String] = None,
                               appType: Option[AppType],
                               description: Option[String],
                               developerEmail: Option[String],
@@ -259,6 +260,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         name match {
           case Some(v) => c.name(v)
+          case None =>
+        }
+        alias match {
+          case Some(v) => c.alias(v)
           case None =>
         }
         certificate match {
@@ -558,6 +563,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def validations = minLength3(this) _ :: uniqueName(this) _ :: super.validations
     override def dbIndexed_? = true
     override def displayName = "Application name:"
+  }
+  object alias extends MappedString(this, 100){
+    override def displayName = "Alias:"
   }
   object appType extends MappedString(this, 20) {
     override def displayName = "Application type:"
