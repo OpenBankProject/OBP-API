@@ -238,8 +238,11 @@ object LocalMappedConnectorInternal extends MdcLoggable {
    ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
 
     val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
-    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
-    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
+    def findHeader(name: String) =
+      headers.find(h => h.name.equalsIgnoreCase(name))
+
+    val tppRedirectUri    = findHeader(RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = findHeader(RequestHeader.`TPP-Nok-Redirect-URI`)
 
     for {
       // 2. Сериализуем тело запроса
@@ -310,8 +313,12 @@ object LocalMappedConnectorInternal extends MdcLoggable {
    ): Future[(Full[TransactionRequestBGV1], Option[CallContext])] = {
 
     val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
-    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
-    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
+
+    def findHeader(name: String) =
+      headers.find(h => h.name.equalsIgnoreCase(name))
+
+    val tppRedirectUri    = findHeader(RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = findHeader(RequestHeader.`TPP-Nok-Redirect-URI`)
 
     for {
       // 2. Сериализуем тело запроса

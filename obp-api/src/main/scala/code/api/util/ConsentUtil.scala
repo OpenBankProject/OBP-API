@@ -795,12 +795,15 @@ object Consent extends MdcLoggable {
 
     // Collect optional headers
     val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
-    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
-    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
-    val xRequestId = headers.find(_.name == RequestHeader.`X-Request-ID`)
-    val psuDeviceId = headers.find(_.name == RequestHeader.`PSU-Device-ID`)
-    val psuIpAddress = headers.find(_.name == RequestHeader.`PSU-IP-Address`)
-    val psuGeoLocation = headers.find(_.name == RequestHeader.`PSU-Geo-Location`)
+    def findHeader(name: String) =
+      headers.find(h => h.name.equalsIgnoreCase(name))
+
+    val tppRedirectUri    = findHeader(RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = findHeader(RequestHeader.`TPP-Nok-Redirect-URI`)
+    val xRequestId = findHeader(RequestHeader.`X-Request-ID`)
+    val psuDeviceId = findHeader(RequestHeader.`PSU-Device-ID`)
+    val psuIpAddress = findHeader(RequestHeader.`PSU-IP-Address`)
+    val psuGeoLocation = findHeader(RequestHeader.`PSU-Geo-Location`)
 
     def sequenceBoxes[A](boxes: List[Box[A]]): Box[List[A]] = {
       boxes.foldRight(Full(Nil): Box[List[A]]) { (box, acc) =>
