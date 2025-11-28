@@ -65,6 +65,16 @@ import scala.util.Try
 case class WellKnownUrisJsonV510(well_known_uris: List[WellKnownUriJsonV510])
 case class WellKnownUriJsonV510(provider: String, url: String)
 
+case class UpdateConsumerJson(
+                               is_active: Option[Boolean],
+                               name: Option[String],
+                               alias: Option[String],
+                               description: Option[String],
+                               redirect_url: Option[String],
+                               logo_url: Option[String],
+                               company: Option[String],
+                             )
+
 case class RegulatedEntityAttributeRequestJsonV510(
   name: String,
   attribute_type: String,

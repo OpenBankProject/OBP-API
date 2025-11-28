@@ -82,8 +82,6 @@ trait APIMethods510 {
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
 
-
-
     staticResourceDocs += ResourceDoc(
       root,
       implementedInApiVersion,
@@ -3536,18 +3534,6 @@ trait APIMethods510 {
           }
       }
     }
-
-
-    case class UpdateConsumerJson(
-                                   is_active: Option[Boolean],
-                                   name: Option[String],
-                                   alias: Option[String],
-                                   description: Option[String],
-                                   redirect_url: Option[String],
-                                   logo_url: Option[String],
-                                   company: Option[String],
-                                 )
-
 
     val updateConsumerJsonExample = UpdateConsumerJson(
       is_active    = Some(true),
