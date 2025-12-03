@@ -745,7 +745,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
              (_, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)", 403)
              }
              consumerIdFromConsent = consent.mConsumerId.get
              consumerIdFromCurrentCall = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
