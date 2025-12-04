@@ -481,6 +481,7 @@ case class ConsumerJsonV510(consumer_id: String,
                             created_by_user: ResourceUserJSON,
                             enabled: Boolean,
                             created: Date,
+                            updated: Date,
                             logo_url: Option[String]
                            )
 case class MyConsumerJsonV510(consumer_id: String,
@@ -1198,6 +1199,7 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
       created_by_user = resourceUserJSON,
       enabled = c.isActive.get,
       created = c.createdAt.get,
+      updated = c.updatedAt.get,
       logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
     )
   }
