@@ -2718,6 +2718,7 @@ object SwaggerDefinitionsJSON {
     created_by_user = resourceUserJSON,
     enabled = true,
     created = DateWithDayExampleObject,
+    updated = DateWithDayExampleObject,
     logo_url = Some(logoURLExample.value)
   )
   lazy val consumerJsonOnlyForPostResponseV510: ConsumerJsonOnlyForPostResponseV510 = ConsumerJsonOnlyForPostResponseV510(
