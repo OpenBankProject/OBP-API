@@ -65,6 +65,7 @@ case class CallContext(
       currentResourceUserId <- tryo(Some(user.userId))
       consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
       consumerName = this.consumer.map(_.name.get).openOr("")
+      consumerAlias = this.consumer.map(_.alias.get).openOr("")
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
@@ -94,6 +95,7 @@ case class CallContext(
         sessionId = this.sessionId,
         consumerId = Some(consumerId),
         consumerName = Some(consumerName),
+        consumerAlias = Some(consumerAlias),
         generalContext = Some(generalContextFromPassThroughHeaders),
         outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
           userId = currentResourceUserId,
@@ -113,7 +115,9 @@ case class CallContext(
       this.correlationId,
       this.sessionId,
       consumerId = Some(this.consumer.map(_.consumerId.get).openOr("")),
-      consumerName = Some(this.consumer.map(_.name.get).openOr(""))))
+      consumerName = Some(this.consumer.map(_.name.get).openOr("")),
+      consumerAlias = Some(this.consumer.map(_.alias.get).openOr(""))))
+
 
   def toLight: CallContextLight = {
     CallContextLight(

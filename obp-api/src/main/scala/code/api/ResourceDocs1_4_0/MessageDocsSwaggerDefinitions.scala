@@ -114,6 +114,7 @@ object MessageDocsSwaggerDefinitions
       Some(sessionIdExample.value),
       Some(consumerIdExample.value),
       Some(consumerNameExample.value),
+      Some(consumerNameExample.value),
       generalContext = Some(List(BasicGeneralContext(keyExample.value,valueExample.value))), 
       Some(outboundAdapterAuthInfo),
       Some(outboundAdapterConsenterInfo)
