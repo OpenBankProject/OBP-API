@@ -138,6 +138,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+import io.prometheus.client.hotspot.DefaultExports
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
 import net.liftweb.http.LiftRules.DispatchPF
@@ -471,6 +472,20 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v6_0_0)
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
+    DefaultExports.initialize()
+    //enable metrics
+    LiftRules.dispatch.append {
+      case Req("metrics" :: Nil, _, GetRequest) =>
+        () => {
+          val writer = new java.io.StringWriter()
+          io.prometheus.client.exporter.common.TextFormat.write004(
+            writer,
+            io.prometheus.client.CollectorRegistry.defaultRegistry.metricFamilySamples()
+          )
+          Full(PlainTextResponse(writer.toString))
+        }
+    }
+
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
