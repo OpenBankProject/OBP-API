@@ -33,12 +33,18 @@ For more detailed information or the sources of truths, please refer to the indi
 6. [Migration Scripts and Migration Script Logs](#migration-scripts-and-migration-script-logs)
 7. [Authentication and Security](#authentication-and-security)
 8. [Access Control and Security Mechanisms](#access-control-and-security-mechanisms)
-9. [Monitoring, Logging, and Troubleshooting](#monitoring-logging-and-troubleshooting)
-10. [API Documentation and Service Guides](#api-documentation-and-service-guides)
-11. [Deployment Workflows](#deployment-workflows)
-12. [Development Guide](#development-guide)
-13. [Roadmap and Future Development](#roadmap-and-future-development)
-14. [Appendices](#appendices)
+   - 8.1 [Role-Based Access Control (RBAC)](#81-role-based-access-control-rbac)
+   - 8.2 [Consent Management](#82-consent-management)
+   - 8.3 [Views System](#83-views-system)
+   - 8.4 [Rate Limiting](#84-rate-limiting)
+   - 8.5 [Security Best Practices](#85-security-best-practices)
+9. [Use Cases](#use-cases)
+10. [Monitoring, Logging, and Troubleshooting](#monitoring-logging-and-troubleshooting)
+11. [API Documentation and Service Guides](#api-documentation-and-service-guides)
+12. [Deployment Workflows](#deployment-workflows)
+13. [Development Guide](#development-guide)
+14. [Roadmap and Future Development](#roadmap-and-future-development)
+15. [Appendices](#appendices)
 
 ---
 
@@ -1339,7 +1345,7 @@ GET /v1/funds-confirmations
 - Payment Initiation API
 - Confirmation of Funds API
 - Event Notification API
-- Variable Recurring Payments (VRP)
+- Variable Recurring Payments (VRP) - See [use_cases.md](use_cases.md#1-variable-recurring-payments-vrp) for details
 
 **API Version:** UK 3.1
 
@@ -2688,7 +2694,7 @@ Authorization: DirectLogin token="TOKEN"
 - Account Information (AIS)
 - Payment Initiation (PIS)
 - Confirmation of Funds (CoF)
-- Variable Recurring Payments (VRP)
+- Variable Recurring Payments (VRP) - See [use_cases.md](use_cases.md#1-variable-recurring-payments-vrp) for comprehensive VRP documentation
 
 **Consent Lifecycle:**
 
@@ -2867,9 +2873,29 @@ db.password=OBF:1v2j1uum1xtv1zej1zer1xtn1uvk1v1v
 
 ---
 
-## 9. Monitoring, Logging, and Troubleshooting
+## 9. Use Cases
 
-### 9.1 Logging Configuration
+This section provides references to detailed use case documentation.
+
+For comprehensive use case examples and implementation guides, see the dedicated [Use Cases Documentation](use_cases.md).
+
+### Available Use Cases
+
+- **Variable Recurring Payments (VRP)** - Enable authorized applications to make multiple payments to a beneficiary over time with varying amounts, subject to pre-defined limits. See [use_cases.md](use_cases.md#1-variable-recurring-payments-vrp) for full details.
+
+**Coming Soon:**
+- Account Aggregation
+- Payment Initiation Services (PIS)
+- Account Information Services (AIS)
+- Confirmation of Funds (CoF)
+- Dynamic Consent Management
+- Multi-Bank Operations
+
+---
+
+## 10. Monitoring, Logging, and Troubleshooting
+
+### 10.1 Logging Configuration
 
 **Logback Configuration (`logback.xml`):**
 
@@ -2917,7 +2943,7 @@ db.password=OBF:1v2j1uum1xtv1zej1zer1xtn1uvk1v1v
 <logger name="code.api.util.RateLimiting" level="DEBUG"/>
 ```
 
-### 9.2 API Metrics
+### 10.2 API Metrics
 
 **Metrics Endpoint:**
 
@@ -2967,7 +2993,7 @@ es.metrics.index=obp-metrics
 POST /obp/v5.1.0/search/metrics
 ```
 
-### 9.3 Monitoring Endpoints
+### 10.3 Monitoring Endpoints
 
 **Health Check:**
 
@@ -3016,9 +3042,9 @@ GET /obp/v5.1.0/rate-limiting
 }
 ```
 
-### 9.4 Common Issues and Troubleshooting
+### 10.4 Common Issues and Troubleshooting
 
-#### 9.4.1 Authentication Issues
+#### 10.4.1 Authentication Issues
 
 **Problem:** OBP-20208: Cannot match the issuer and JWKS URI
 
@@ -3045,7 +3071,7 @@ curl -X GET http://localhost:8080/obp/v5.1.0/users/current \
 - Ensure timestamp is current
 - Verify signature base string construction
 
-#### 9.4.2 Database Connection Issues
+#### 10.4.2 Database Connection Issues
 
 **Problem:** Connection timeout to PostgreSQL
 
@@ -3076,7 +3102,7 @@ db.url=jdbc:postgresql://localhost:5432/obpdb?...&maxPoolSize=50
 tail -f logs/obp-api.log | grep -i migration
 ```
 
-#### 9.4.3 Redis Connection Issues
+#### 10.4.3 Redis Connection Issues
 
 **Problem:** Rate limiting not working
 
@@ -3097,7 +3123,7 @@ cache.redis.port=6379
 use_consumer_limits=true
 ```
 
-#### 9.4.4 Memory Issues
+#### 10.4.4 Memory Issues
 
 **Problem:** OutOfMemoryError
 
@@ -3114,7 +3140,7 @@ JAVA_OPTIONS="-Xmx4096m -Xms2048m"
 jconsole  # Connect to JVM process
 ```
 
-#### 9.4.5 Performance Issues
+#### 10.4.5 Performance Issues
 
 **Problem:** Slow API responses
 
@@ -3141,7 +3167,7 @@ GET /obp/v5.1.0/management/metrics?
 - Use Akka remote for distributed setup
 - Enable HTTP/2
 
-### 9.5 Debug Tools
+### 10.5 Debug Tools
 
 **API Call Context:**
 
@@ -3170,9 +3196,9 @@ GET /obp/v5.1.0/rate-limiting
 
 ---
 
-## 10. API Documentation and Service Guides
+## 11. API Documentation and Service Guides
 
-### 10.1 API Explorer Usage
+### 11.1 API Explorer Usage
 
 **Accessing API Explorer:**
 
@@ -3198,7 +3224,7 @@ https://apiexplorer.yourdomain.com  # Production
 4. Grant permissions
 5. Redirected back with access token
 
-### 10.2 API Versioning
+### 11.2 API Versioning
 
 **Accessing Different Versions:**
 
@@ -3223,7 +3249,7 @@ GET /obp/v5.1.0/root
 }
 ```
 
-### 10.3 API Documentation Formats
+### 11.3 API Documentation Formats
 
 **Resource Docs (OBP Native Format):**
 
@@ -3273,7 +3299,7 @@ GET /obp/v5.1.0/resource-docs/UKv3.1/swagger
 
 **Note:** The Swagger format is generated from Resource Docs. Resource Docs contain additional information not available in Swagger format.
 
-### 10.4 Common API Workflows
+### 11.4 Common API Workflows
 
 #### Workflow 1: Account Information Retrieval
 
@@ -3359,9 +3385,9 @@ GET /obp/v5.1.0/management/metrics?consumer_id=CONSUMER_ID
 
 ---
 
-## 11. Deployment Workflows
+## 12. Deployment Workflows
 
-### 11.1 Development Workflow
+### 12.1 Development Workflow
 
 ```bash
 # 1. Clone and setup
@@ -3385,7 +3411,7 @@ mvn jetty:run -pl obp-api
 # API Explorer: http://localhost:5173 (separate repo)
 ```
 
-### 11.2 Staging Deployment
+### 12.2 Staging Deployment
 
 ```bash
 # 1. Setup PostgreSQL
@@ -3415,7 +3441,7 @@ npm run build
 # Deploy dist/ to web server
 ```
 
-### 11.3 Production Deployment (High Availability)
+### 12.3 Production Deployment (High Availability)
 
 **Architecture:**
 
@@ -3513,7 +3539,7 @@ done
 watch -n 5 'curl -s http://lb-endpoint/obp/v5.1.0/root | jq .version'
 ```
 
-### 11.4 Docker/Kubernetes Deployment
+### 12.4 Docker/Kubernetes Deployment
 
 **Kubernetes Manifests:**
 
@@ -3592,7 +3618,7 @@ kubectl create secret generic obp-secrets \
   --from-literal=oauth-consumer-secret='secret'
 ```
 
-### 11.5 Backup and Disaster Recovery
+### 12.5 Backup and Disaster Recovery
 
 **Database Backup:**
 
@@ -3636,9 +3662,9 @@ sudo systemctl start jetty9
 
 ---
 
-## 12. Development Guide
+## 13. Development Guide
 
-### 12.1 Setting Up Development Environment
+### 13.1 Setting Up Development Environment
 
 **Prerequisites:**
 
@@ -3691,7 +3717,7 @@ mvn -DwildcardSuites=code.api.directloginTest test
 mvn -Pdev clean install
 ```
 
-### 12.2 Running Tests
+### 13.2 Running Tests
 
 **Unit Tests:**
 
@@ -3748,7 +3774,7 @@ class AccountTest extends ServerSetup {
 }
 ```
 
-### 12.3 Creating Custom Connectors
+### 13.3 Creating Custom Connectors
 
 **Connector Structure:**
 
@@ -3787,7 +3813,7 @@ object CustomConnector extends Connector {
 connector=custom_connector_2024
 ```
 
-### 12.4 Creating Dynamic Endpoints
+### 13.4 Creating Dynamic Endpoints
 
 **Define Dynamic Endpoint:**
 
@@ -3826,7 +3852,7 @@ POST /obp/v5.1.0/management/dynamic-entities
 }
 ```
 
-### 12.5 Code Style and Conventions
+### 13.5 Code Style and Conventions
 
 **Scala Code Style:**
 
@@ -3865,7 +3891,7 @@ class AccountService {
 }
 ```
 
-### 12.6 Contributing to OBP
+### 13.6 Contributing to OBP
 
 **Contribution Workflow:**
 
@@ -3895,13 +3921,13 @@ class AccountService {
 
 ---
 
-## 13. Roadmap and Future Development
+## 14. Roadmap and Future Development
 
-### 13.1 Overview
+### 14.1 Overview
 
 The Open Bank Project follows an agile roadmap that evolves based on feedback from banks, regulators, developers, and the community. This section outlines current and future developments across the OBP ecosystem.
 
-### 13.2 OBP-API-II (Next Generation API)
+### 14.2 OBP-API-II (Next Generation API)
 
 **Status:** Experimental
 
@@ -3915,7 +3941,7 @@ The Open Bank Project follows an agile roadmap that evolves based on feedback fr
 
 - Scala 2.13/3.x (upgraded from 2.12)
 
-### 13.3 OBP-Dispatch (Request Router)
+### 14.3 OBP-Dispatch (Request Router)
 
 **Status:** In Development
 
@@ -3967,7 +3993,9 @@ docker run -p 8080:8080 \
     └─────────┘         └─────────┘        └─────────┘
 ```
 
-### 14.1 Glossary
+## 15. Appendices
+
+### 15.1 Glossary
 
 **Account:** Bank account holding funds
 
@@ -4007,7 +4035,7 @@ docker run -p 8080:8080 \
 
 See the OBP Glossary for a full list of terms.
 
-### 14.2 Environment Variables Reference
+### 15.2 Environment Variables Reference
 
 **OBP-API Environment Variables:**
 
@@ -4061,7 +4089,7 @@ LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=lsv2_pt_...
 ```
 
-### 14.3 OBP API props examples
+### 15.3 OBP API props examples
 
 see sample.props.template for comprehensive list of props
 
@@ -4138,7 +4166,7 @@ allow_cors=true
 allowed_origins=http://localhost:5173
 ```
 
-### 14.4 Complete Error Codes Reference
+### 15.4 Complete Error Codes Reference
 
 #### Infrastructure / Config Level (OBP-00XXX)
 
@@ -4588,7 +4616,7 @@ allowed_origins=http://localhost:5173
 
 | OBP-
 
-### 14.5 Useful API Endpoints Reference
+### 15.5 Useful API Endpoints Reference
 
 **System Information:**
 
@@ -4632,7 +4660,7 @@ POST /obp/v5.1.0/users/USER_ID/entitlements   # Grant role
 GET  /obp/v5.1.0/users                         # List users
 ```
 
-### 14.8 Resources and Links
+### 15.8 Resources and Links
 
 **Official Resources:**
 
@@ -4660,7 +4688,7 @@ GET  /obp/v5.1.0/users                         # List users
 - Email: contact@tesobe.com
 - Commercial Support: https://www.tesobe.com
 
-### 14.9 Version History
+### 15.9 Version History
 
 **Major Releases:**
 

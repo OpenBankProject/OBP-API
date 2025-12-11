@@ -1634,7 +1634,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       EmptyBody,
-      entitlementJSONs,
+      entitlementJSonsV310,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement))
 

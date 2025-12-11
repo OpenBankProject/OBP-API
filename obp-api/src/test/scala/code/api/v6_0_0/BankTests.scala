@@ -1,6 +1,6 @@
 package code.api.v6_0_0
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postBankJson500
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postBankJson600
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateBank
 import code.api.util.ErrorMessages
@@ -15,11 +15,11 @@ import org.scalatest.Tag
 
 class BankTests extends V600ServerSetup with DefaultUsers {
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 
@@ -38,7 +38,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
     scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v6_0_0_Request / "banks").POST
-      val response = makePostRequest(request, write(postBankJson500))
+      val response = makePostRequest(request, write(postBankJson600))
       Then("We should get a 401")
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
       response.code should equal(401)
@@ -48,7 +48,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
     scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v6_0_0_Request / "banks").POST <@ (user1)
-      val response = makePostRequest(request, write(postBankJson500))
+      val response = makePostRequest(request, write(postBankJson600))
       Then("We should get a 403")
       And("We should get a message: " + s"$CanCreateBank entitlement required")
       response.code should equal(403)

@@ -355,8 +355,8 @@ object DynamicEndpointHelper extends RestHelper {
           s"$roleNamePrefix$prettySummary${entitlementSuffix(path)}"
         }
         // substring role name to avoid it have over the maximum length of db column.
-        if(roleName.size > 64) {
-          roleName = StringUtils.substring(roleName, 0, 53) + roleName.hashCode()
+        if(roleName.size > 255) {
+          roleName = StringUtils.substring(roleName, 0, 244) + roleName.hashCode()
         }
         Some(List(
           ApiRole.getOrCreateDynamicApiRole(roleName, bankId.isDefined)

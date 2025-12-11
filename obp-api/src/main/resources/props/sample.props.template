@@ -227,6 +227,29 @@ write_connector_metrics=false
 #es.metrics.port.http=9200
 
 
+## Metrics Cache Configuration - Smart Two-Tier Caching
+## Metrics older than the stable boundary are immutable and can be cached longer
+# Short TTL for recent/changing data
+MappedMetrics.cache.ttl.seconds.getAllMetrics=7
+
+# 24 hours - Long TTL for stable/old data
+MappedMetrics.cache.ttl.seconds.getStableMetrics=86400
+
+
+# 10 minutes - Metrics older than this are considered stable
+MappedMetrics.stable.boundary.seconds=600
+
+## Provider List Cache Configuration
+# Cache TTL for GET /providers endpoint (list of authentication providers)
+# Default: 3600 seconds (1 hour) - Provider list changes infrequently
+getDistinctProviders.cache.ttl.seconds=3600
+
+## Connector Method Names Cache Configuration
+# Cache TTL for GET /devops/connector-method-names endpoint (list of connector methods)
+# Default: 3600 seconds (1 hour) - Connector methods only change on deployment
+getConnectorMethodNames.cache.ttl.seconds=3600
+
+
 ## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 # See the README for how to use the H2 browser / console.
 db.driver=org.h2.Driver
@@ -275,6 +298,14 @@ apiPathZero=obp
 ##
 ## This section configures email sending using CommonsEmailWrapper instead of Lift Mailer.
 ## All email functionality (password reset, validation, notifications) now uses these settings.
+##
+## Local Host Development Email Test Mode
+## ---------------------------------------
+## Enable test mode to log emails instead of sending them via SMTP.
+## Perfect for localhost development and testing user invitations without an SMTP server.
+## When enabled, full email content (from, to, subject, body) is logged to console.
+## Default: false (emails are sent normally via SMTP)
+#mail.test.mode=true
 ##
 ## SMTP Server Configuration
 ## -------------------------

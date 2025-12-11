@@ -1080,6 +1080,16 @@ object SwaggerDefinitionsJSON {
     bank_routings = Some(List(bankRoutingJsonV121))
   )
 
+  lazy val bankJson600 = BankJson600(
+    bank_id = bankIdExample.value,
+    bank_code = bankCodeExample.value,
+    full_name = bankFullNameExample.value,
+    logo = bankLogoUrlExample.value,
+    website = bankLogoUrlExample.value,
+    bank_routings = List(bankRoutingJsonV121),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
+  )
+
   lazy val banksJSON400 = BanksJson400(
     banks = List(bankJson400)
   )
@@ -1923,6 +1933,19 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJSON)
   )
 
+  lazy val entitlementJsonV310 =
+    code.api.v3_1_0.EntitlementJsonV310(
+      entitlement_id = "6fb17583-1e49-4435-bb74-a14fe0996723",
+      role_name = "CanGetCustomersAtOneBank",
+      bank_id = bankIdExample.value,
+      user_id = ExampleValue.userIdExample.value,
+      username = usernameExample.value
+    )
+    
+  lazy val entitlementJSonsV310 = EntitlementJSonsV310(
+    list = List(entitlementJsonV310)
+  )
+
   lazy val userJsonV200 = UserJsonV200(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
@@ -2104,6 +2127,16 @@ object SwaggerDefinitionsJSON {
   lazy val createUserJSONs = CreateUsersJson(
     users = List(createUserJson)
   )
+
+  lazy val createUserJsonV600 = CreateUserJsonV600(
+    email = emailExample.value,
+    username = usernameExample.value,
+    password = "String",
+    first_name = "Simon",
+    last_name = "Redfern",
+    validating_application = Some("OBP-Portal")
+  )
+
 
   lazy val createMeetingJson = CreateMeetingJson(
     provider_id = providerIdValueExample.value,
@@ -2553,6 +2586,43 @@ object SwaggerDefinitionsJSON {
   )
 
   lazy val customerJSONsV600 = CustomerJSONsV600(List(customerJsonV600))
+
+  lazy val userInfoJsonV600 = UserInfoJsonV600(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    entitlements = entitlementJSONs,
+    views = Some(viewsJSON300),
+    agreements = Some(List(userAgreementJson)),
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false,
+    last_activity_date = Some(DateWithDayExampleObject),
+    recent_operation_ids = List("obp.getBank", "obp.getAccounts", "obp.getTransactions", "obp.getUser", "obp.getCustomer")
+  )
+
+  lazy val usersInfoJsonV600 = UsersInfoJsonV600(
+    users = List(userInfoJsonV600)
+  )
+
+  lazy val migrationScriptLogJsonV600 = MigrationScriptLogJsonV600(
+    migration_script_log_id = "550e8400-e29b-41d4-a716-446655440000",
+    name = "addUniqueIndexOnResourceUserUserId",
+    commit_id = "abc123def456",
+    is_successful = true,
+    start_date = 1640000000000L,
+    end_date = 1640000005000L,
+    duration_in_ms = 5000L,
+    remark = "Added UNIQUE index on resourceuser.userid_ field",
+    created_at = DateWithDayExampleObject,
+    updated_at = DateWithDayExampleObject
+  )
+
+  lazy val migrationScriptLogsJsonV600 = MigrationScriptLogsJsonV600(
+    migration_script_logs = List(migrationScriptLogJsonV600)
+  )
 
   lazy val customerWithAttributesJsonV600 = CustomerWithAttributesJsonV600(
     bank_id = bankIdExample.value,

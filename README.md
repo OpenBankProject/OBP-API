@@ -603,6 +603,26 @@ Please note that first will be checked `per second` call limit then `per minute`
 
 Info about rate limiting availability at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/rate-limiting. The response we are interested in looks like this:
 
+### OpenAPI Server Configuration
+
+The OpenAPI documentation endpoint (`/resource-docs/VERSION/openapi`) now dynamically uses the configured `hostname` property instead of hardcoded values.
+
+The `hostname` property is required for the API to start and must contain the full URL:
+
+```properties
+# This property is required and must contain the full URL
+hostname=https://your-api-server.com
+```
+
+If not configured, the application will fail to start with error "OBP-00001: Hostname not specified".
+
+The OpenAPI documentation will show a single server entry using the configured hostname:
+```json
+"servers": [
+  {"url": "https://your-api-server.com", "description": "Back-end server"}
+]
+```
+
 ```JSON
 {
   "enabled": false,

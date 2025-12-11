@@ -1,3 +1,71 @@
+# Configuration files - exclude potentially sensitive props but allow templates and default configs
 obp-api/src/main/resources/props/*
 !obp-api/src/main/resources/props/sample.props.template
 !obp-api/src/main/resources/props/test.default.props.template
+!obp-api/src/main/resources/props/test.default.props
+!obp-api/src/main/resources/props/default.props
+!obp-api/src/main/resources/props/development.default.props
+
+# IDE and editor files
+.idea/
+.vscode/
+.metals/
+.bloop/
+.run/
+.zed/
+zed/
+
+# Build artifacts and caches
+target/
+cache/
+~/.m2/
+
+# Git and version control
+.git/
+.gitignore
+
+# Environment and secret files
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+*secret*
+*password*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Documentation and non-essential files (keep essential ones)
+README.md
+*.md
+!NOTICE
+!GNU_AFFERO_GPL_V3_19_Nov_1997.txt
+!Harmony_Individual_Contributor_Assignment_Agreement.txt
+
+# Docker files themselves (avoid recursive copies)
+Dockerfile
+development/docker/
+!development/docker/entrypoint.sh
+
+# Test and development files
+ideas/
+resourcedoc/

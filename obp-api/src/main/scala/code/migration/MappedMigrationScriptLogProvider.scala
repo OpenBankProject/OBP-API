@@ -2,7 +2,7 @@ package code.migration
 
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, OrderBy, Descending}
 
 object MappedMigrationScriptLogProvider extends MigrationScriptLogProvider with MdcLoggable {
   override def saveLog(name: String, commitId: String, isSuccessful: Boolean, startDate: Long, endDate: Long, comment: String): Boolean = {
@@ -33,6 +33,10 @@ object MappedMigrationScriptLogProvider extends MigrationScriptLogProvider with 
       By(MigrationScriptLog.Name, name),
       By(MigrationScriptLog.IsSuccessful, true)
     ).isDefined
+  }
+
+  override def getMigrationScriptLogs(): List[MigrationScriptLogTrait] = {
+    MigrationScriptLog.findAll(OrderBy(MigrationScriptLog.createdAt, Descending))
   }
 }
 

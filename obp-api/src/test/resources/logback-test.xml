@@ -1,0 +1,24 @@
+<configuration>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Suppress verbose HtmlUnit JavaScript execution logs -->
+  <logger name="com.gargoylesoftware.htmlunit" level="WARN"/>
+  <logger name="com.gargoylesoftware.htmlunit.javascript" level="WARN"/>
+  <logger name="com.gargoylesoftware.htmlunit.javascript.background" level="WARN"/>
+  <logger name="com.gargoylesoftware.htmlunit.javascript.background.JavaScriptJobManagerImpl" level="WARN"/>
+  <logger name="com.gargoylesoftware.htmlunit.javascript.background.JavaScriptExecutionJob" level="WARN"/>
+  
+  <!-- Suppress other potentially noisy libraries -->
+  <logger name="org.apache.http" level="WARN"/>
+  <logger name="org.apache.http.wire" level="WARN"/>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+
+</configuration>

@@ -79,6 +79,7 @@ import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
 import code.etag.MappedETag
 import code.fx.{MappedCurrency, MappedFXRate}
+import code.group.Group
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -1147,7 +1148,8 @@ object ToSchemify {
     CustomerAccountLink,
     TransactionIdMapping,
     RegulatedEntityAttribute,
-    BankAccountBalance
+    BankAccountBalance,
+    Group
   )
 
   // start grpc server

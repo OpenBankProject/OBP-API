@@ -58,7 +58,7 @@ object WriteMetricUtil extends MdcLoggable {
 
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
-            val consumerId = cc.consumerId.getOrElse(-1)
+            val consumerId = cc.consumerId.orNull
             val appName = cc.appName.orNull
             val developerEmail = cc.developerEmail.orNull
 
@@ -70,7 +70,7 @@ object WriteMetricUtil extends MdcLoggable {
               userName,
               appName,
               developerEmail,
-              consumerId.toString,
+              consumerId,
               implementedByPartialFunction,
               cc.implementedInVersion,
               cc.verb,
@@ -142,7 +142,7 @@ object WriteMetricUtil extends MdcLoggable {
 
       val c: Consumer = consumer.orNull
       //The consumerId, not key
-      val consumerId = if (u != null) c.id.toString() else "null"
+      val consumerId = if (c != null) c.consumerId.get else "null"
       var appName = if (u != null) c.name.toString() else "null"
       var developerEmail = if (u != null) c.developerEmail.toString() else "null"
       val implementedByPartialFunction = rd match {

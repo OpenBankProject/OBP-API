@@ -263,6 +263,9 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteEntitlementAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEntitlementAtAnyBank = CanDeleteEntitlementAtAnyBank()
 
+  case class CanGetRolesWithEntitlementCountsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetRolesWithEntitlementCountsAtAllBanks = CanGetRolesWithEntitlementCountsAtAllBanks()
+
   case class CanGetConsumers(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConsumers = CanGetConsumers()
 
@@ -416,6 +419,9 @@ object ApiRole extends MdcLoggable{
   
   case class CanGetDatabaseInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDatabaseInfo = CanGetDatabaseInfo()
+  
+  case class CanGetMigrations(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetMigrations = CanGetMigrations()
   
   case class CanGetCallContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCallContext = CanGetCallContext()
@@ -618,8 +624,16 @@ object ApiRole extends MdcLoggable{
   lazy val canUpdateSystemView = CanUpdateSystemView()
   case class CanGetSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemView = CanGetSystemView()
+  case class CanGetSystemViews(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemViews = CanGetSystemViews()
   case class CanDeleteSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteSystemView = CanDeleteSystemView()
+
+  case class CanGetCustomViews(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCustomViews = CanGetCustomViews()
+
+  case class CanCreateCustomView(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateCustomView = CanCreateCustomView()
 
   case class CanGetRegulatedEntityAttribute(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetRegulatedEntityAttribute = CanGetRegulatedEntityAttribute()
@@ -678,6 +692,9 @@ object ApiRole extends MdcLoggable{
 
   case class CanDeleteSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteSystemLevelDynamicEntity = CanDeleteSystemLevelDynamicEntity()
+
+  case class CanDeleteCascadeSystemDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteCascadeSystemDynamicEntity = CanDeleteCascadeSystemDynamicEntity()
 
   case class CanDeleteBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteBankLevelDynamicEntity = CanDeleteBankLevelDynamicEntity()
@@ -1104,6 +1121,43 @@ object ApiRole extends MdcLoggable{
   lazy val canGetSystemIntegrity = CanGetSystemIntegrity()
   case class CanGetProviders(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetProviders = CanGetProviders()
+
+  // Group management roles
+  case class CanCreateGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateGroupAtAllBanks = CanCreateGroupAtAllBanks()
+  case class CanCreateGroupAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateGroupAtOneBank = CanCreateGroupAtOneBank()
+  
+  case class CanUpdateGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateGroupAtAllBanks = CanUpdateGroupAtAllBanks()
+  case class CanUpdateGroupAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateGroupAtOneBank = CanUpdateGroupAtOneBank()
+  
+  case class CanDeleteGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteGroupAtAllBanks = CanDeleteGroupAtAllBanks()
+  case class CanDeleteGroupAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteGroupAtOneBank = CanDeleteGroupAtOneBank()
+  
+  case class CanGetGroupsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetGroupsAtAllBanks = CanGetGroupsAtAllBanks()
+  case class CanGetGroupsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetGroupsAtOneBank = CanGetGroupsAtOneBank()
+
+  // Group membership management roles
+  case class CanAddUserToGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canAddUserToGroupAtAllBanks = CanAddUserToGroupAtAllBanks()
+  case class CanAddUserToGroupAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddUserToGroupAtOneBank = CanAddUserToGroupAtOneBank()
+  
+  case class CanRemoveUserFromGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canRemoveUserFromGroupAtAllBanks = CanRemoveUserFromGroupAtAllBanks()
+  case class CanRemoveUserFromGroupAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canRemoveUserFromGroupAtOneBank = CanRemoveUserFromGroupAtOneBank()
+  
+  case class CanGetUserGroupMembershipsAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetUserGroupMembershipsAtAllBanks = CanGetUserGroupMembershipsAtAllBanks()
+  case class CanGetUserGroupMembershipsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetUserGroupMembershipsAtOneBank = CanGetUserGroupMembershipsAtOneBank()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

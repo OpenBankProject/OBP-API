@@ -2538,6 +2538,14 @@ object ExampleValue {
     |               "type": "integer",
     |               "example": "698761728934",
     |               "description": "description of **number** field, can be markdown text."
+    |           },
+    |           "metadata": {
+    |               "type": "json",
+    |               "example": {
+    |                   "tags": ["important", "verified"],
+    |                   "settings": {"color": "blue", "priority": 1}
+    |               },
+    |               "description": "description of **metadata** field (JSON object or array), can be markdown text."
     |           }
     |       }
     |   }

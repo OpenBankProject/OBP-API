@@ -105,11 +105,12 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     }
   }
 
-  override def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String ="manual", grantorUserId: Option[String]=None): Box[Entitlement] = {
+  override def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String ="manual", grantorUserId: Option[String]=None, groupId: Option[String]=None, process: Option[String]=None): Box[Entitlement] = {
     def addEntitlementToUser(): Full[MappedEntitlement] = {
-      val addEntitlement: MappedEntitlement = 
-        MappedEntitlement.create.mBankId(bankId).mUserId(userId).mRoleName(roleName).mCreatedByProcess(createdByProcess)
-        .saveMe()
+      val entitlement = MappedEntitlement.create.mBankId(bankId).mUserId(userId).mRoleName(roleName).mCreatedByProcess(createdByProcess)
+      groupId.foreach(gid => entitlement.mGroupId(gid))
+      process.foreach(p => entitlement.mProcess(p))
+      val addEntitlement = entitlement.saveMe()
       // When a role is Granted, we should send an email to the Recipient telling them they have been granted the role.
       NotificationUtil.sendEmailRegardingAssignedRole(userId: String, addEntitlement: Entitlement)
       Full(addEntitlement)
@@ -138,8 +139,23 @@ class MappedEntitlement extends Entitlement
   object mEntitlementId extends MappedUUID(this)
   object mBankId extends UUIDString(this)
   object mUserId extends UUIDString(this)
-  object mRoleName extends MappedString(this, 64)
+  object mRoleName extends MappedString(this, 255)
   object mCreatedByProcess extends MappedString(this, 255)
+  
+  object mGroupId extends MappedString(this, 255) {
+    override def dbColumnName = "group_id"
+    override def defaultValue = ""
+  }
+  
+  object mProcess extends MappedString(this, 255) {
+    override def dbColumnName = "process"
+    override def defaultValue = ""
+  }
+  
+  object entitlement_request_id extends MappedUUID(this) {
+    override def dbColumnName = "entitlement_request_id"
+    override def defaultValue = null
+  }
 
   override def entitlementId: String = mEntitlementId.get.toString
   override def bankId: String = mBankId.get
@@ -147,6 +163,22 @@ class MappedEntitlement extends Entitlement
   override def roleName: String = mRoleName.get
   override def createdByProcess: String = 
     if(mCreatedByProcess.get == null || mCreatedByProcess.get.isEmpty) "manual" else mCreatedByProcess.get
+  override def groupId: Option[String] = {
+    val gid = mGroupId.get
+    if(gid == null || gid.isEmpty) None else Some(gid)
+  }
+  override def process: Option[String] = {
+    val p = mProcess.get
+    if(p == null || p.isEmpty) None else Some(p)
+  }
+  override def entitlementRequestId: Option[String] = {
+    entitlement_request_id.get match {
+      case uuid if uuid.toString.nonEmpty && uuid.toString != "00000000-0000-0000-0000-000000000000" => 
+        Some(uuid.toString)
+      case _ => 
+        None
+    }
+  }
 }
 
 

@@ -57,16 +57,60 @@ object CommonsEmailWrapper extends MdcLoggable {
     )
   }
 
+  def isTestMode: Boolean = APIUtil.getPropsValue("mail.test.mode", "false").toBoolean
+
+  private def logEmailInTestMode(content: EmailContent): Box[String] = {
+    logger.info("=" * 80)
+    logger.info("EMAIL TEST MODE - Email would be sent with the following content:")
+    logger.info("=" * 80)
+    logger.info(s"From: ${content.from}")
+    logger.info(s"To: ${content.to.mkString(", ")}")
+    if (content.cc.nonEmpty) logger.info(s"CC: ${content.cc.mkString(", ")}")
+    if (content.bcc.nonEmpty) logger.info(s"BCC: ${content.bcc.mkString(", ")}")
+    logger.info(s"Subject: ${content.subject}")
+    logger.info("-" * 80)
+    content.textContent.foreach { text =>
+      logger.info("TEXT CONTENT:")
+      logger.info(text)
+      logger.info("-" * 80)
+    }
+    content.htmlContent.foreach { html =>
+      logger.info("HTML CONTENT:")
+      logger.info(html)
+      logger.info("-" * 80)
+    }
+    if (content.attachments.nonEmpty) {
+      logger.info(s"ATTACHMENTS: ${content.attachments.length}")
+      content.attachments.foreach { att =>
+        logger.info(s"  - ${att.name.getOrElse("unnamed")} (${att.filePath.orElse(att.url).getOrElse("unknown source")})")
+      }
+    }
+    logger.info("=" * 80)
+    Full("test-mode-message-id-" + System.currentTimeMillis())
+  }
+
   def sendTextEmail(content: EmailContent): Box[String] = {
-    sendTextEmail(getDefaultEmailConfig(), content)
+    if (isTestMode) {
+      logEmailInTestMode(content)
+    } else {
+      sendTextEmail(getDefaultEmailConfig(), content)
+    }
   }
 
   def sendHtmlEmail(content: EmailContent): Box[String] = {
-    sendHtmlEmail(getDefaultEmailConfig(), content)
+    if (isTestMode) {
+      logEmailInTestMode(content)
+    } else {
+      sendHtmlEmail(getDefaultEmailConfig(), content)
+    }
   }
 
   def sendEmailWithAttachments(content: EmailContent): Box[String] = {
-    sendEmailWithAttachments(getDefaultEmailConfig(), content)
+    if (isTestMode) {
+      logEmailInTestMode(content)
+    } else {
+      sendEmailWithAttachments(getDefaultEmailConfig(), content)
+    }
   }
 
   def sendTextEmail(config: EmailConfig, content: EmailContent): Box[String] = {

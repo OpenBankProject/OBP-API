@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 
 import code.api.util.ErrorMessages.DynamicEntityInstanceValidateFail
 import code.api.util.{APIUtil, CallContext, NewStyle}
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.model._
@@ -97,7 +98,19 @@ trait DynamicEntityT {
         case (_, _, JNothing | JNull)                             => Future.successful("") // required properties already checked.
 
         case (_, Some(typeEnum), v) if !typeEnum.isJValueValid(v) =>
-          Future.successful(s"The value of '$propertyName' is wrong, ${typeEnum.wrongTypeMsg}")
+          val receivedType = v.getClass.getSimpleName
+          val receivedValue = v match {
+            case JString(s) => s""""$s""""
+            case JInt(i) => i.toString
+            case JDouble(d) => d.toString
+            case JBool(b) => b.toString
+            case JArray(arr) => s"[array with ${arr.length} elements]"
+            case JObject(obj) => s"{object with ${obj.length} fields}"
+            case JNull => "null"
+            case JNothing => "nothing"
+            case other => other.toString
+          }
+          Future.successful(s"The value of '$propertyName' is wrong, ${typeEnum.wrongTypeMsg} Received: $receivedValue (type: $receivedType)")
 
         case (t, None, v)  if t.startsWith("reference:") && !v.isInstanceOf[JString] =>
           val errorMsg = s"The type of '$propertyName' is 'reference', value should be a string that represent reference entity's Id"
@@ -132,7 +145,7 @@ trait DynamicEntityT {
   }
 }
 
-object ReferenceType {
+object ReferenceType extends MdcLoggable {
 
   private def recoverFn(fieldName: String, value: String, entityName: String): PartialFunction[Throwable, String] = {
       case _: Throwable => s"entity '$entityName' not found by the value '$value', the field name is '$fieldName'."
@@ -348,14 +361,18 @@ object ReferenceType {
     } else {
       val dynamicEntityName = typeName.replace("reference:", "")
       val errorMsg = s"""$dynamicEntityName not found by the id value '$value', propertyName is '$propertyName'"""
-      NewStyle.function.invokeDynamicConnector(DynamicEntityOperation.GET_ONE,dynamicEntityName, None, Some(value), None, None, None, false,callContext)
-        .recover {
-          case _: Throwable => errorMsg
+      logger.info(s"========== Validating reference field: propertyName='$propertyName', typeName='$typeName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
+      
+      Future {
+        val exists = code.DynamicData.MappedDynamicDataProvider.existsById(dynamicEntityName, value)
+        if (exists) {
+          logger.info(s"========== Reference validation SUCCESS: propertyName='$propertyName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
+          ""
+        } else {
+          logger.warn(s"========== Reference validation FAILED: propertyName='$propertyName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
+          errorMsg
         }
-        .map {
-          case (Full(_), _) => ""
-          case _ => errorMsg
-        }
+      }
     }
   }
 }
@@ -480,7 +497,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       val fieldType = value \ "type"
       val fieldTypeName = fieldType.asInstanceOf[JString].s
 
-      checkFormat(fieldType.isInstanceOf[JString] && fieldTypeName.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be exists and type is json string")
+      checkFormat(fieldType.isInstanceOf[JString] && fieldTypeName.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should exist and be a json string")
       checkFormat(allowedFieldType.contains(fieldTypeName), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be one of these string value: ${allowedFieldType.mkString(", ")}")
 
       val fieldTypeOp: Option[DynamicEntityFieldType] = DynamicEntityFieldType.withNameOption(fieldTypeName)
@@ -505,7 +522,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
       // example is exists
       val fieldExample = value \ "example"
-      checkFormat(fieldExample != JNothing, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be exists")
+      checkFormat(fieldExample != JNothing, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should exist")
       // example type is correct
       if(fieldTypeOp.isDefined) {
         val Some(dEntityFieldType: DynamicEntityFieldType) = fieldTypeOp

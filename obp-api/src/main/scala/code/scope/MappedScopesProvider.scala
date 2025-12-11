@@ -85,7 +85,7 @@ class MappedScope extends Scope
   object mScopeId extends MappedUUID(this)
   object mBankId extends UUIDString(this)
   object mConsumerId extends UUIDString(this)
-  object mRoleName extends MappedString(this, 64)
+  object mRoleName extends MappedString(this, 255)
 
   override def scopeId: String = mScopeId.get.toString
   override def bankId: String = mBankId.get

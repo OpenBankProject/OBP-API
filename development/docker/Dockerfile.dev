@@ -1,0 +1,28 @@
+FROM maven:3.9.6-eclipse-temurin-17
+
+WORKDIR /app
+
+# Copy Maven configuration files
+COPY pom.xml .
+COPY build.sbt .
+
+# Copy source code and necessary project files
+COPY obp-api/ ./obp-api/
+COPY obp-commons/ ./obp-commons/
+COPY project/ ./project/
+
+# Copy other necessary files for the build
+COPY jitpack.yml .
+COPY web-app_2_3.dtd .
+
+EXPOSE 8080
+
+# Build the project, skip tests to speed up
+RUN mvn install -pl .,obp-commons -am -DskipTests
+
+# Copy entrypoint script that runs mvn with needed JVM flags
+COPY development/docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Use script as entrypoint
+CMD ["/app/entrypoint.sh"]

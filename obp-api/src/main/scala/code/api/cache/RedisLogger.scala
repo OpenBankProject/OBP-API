@@ -301,6 +301,24 @@ object RedisLogger {
   }
 
   /**
+   * Read latest messages from Redis FIFO queue with pagination support.
+   */
+  def getLogTail(level: LogLevel.LogLevel, limit: Option[Int], offset: Option[Int]): LogTail = {
+    val fullLogTail = getLogTail(level)
+    val entries = fullLogTail.entries
+
+    // Apply pagination
+    val paginatedEntries = (offset, limit) match {
+      case (Some(off), Some(lim)) => entries.drop(off).take(lim)
+      case (Some(off), None) => entries.drop(off)
+      case (None, Some(lim)) => entries.take(lim)
+      case (None, None) => entries
+    }
+
+    LogTail(paginatedEntries)
+  }
+
+  /**
    * Get Redis logging statistics
    */
   def getStats: Map[String, Any] = Map(

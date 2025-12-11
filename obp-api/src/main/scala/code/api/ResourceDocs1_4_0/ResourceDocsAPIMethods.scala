@@ -1,6 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, PARAM_LOCALE}
+import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, PARAM_LOCALE, HostName}
 import code.api.OBPRestHelper
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -19,6 +19,8 @@ import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
+import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -50,6 +52,9 @@ import scala.collection.mutable.ArrayBuffer
 import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
+
+
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -123,6 +128,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
+        case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
+        case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
         case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).allResourceDocs
         case _ => ArrayBuffer.empty[ResourceDoc]
       }
@@ -142,6 +149,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
         case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
+        case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
+        case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
         case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).routes
         case _                 => Nil
       }
@@ -246,11 +255,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val requestedApiVersion = ApiVersionUtils.valueOf(requestedApiVersionString)
 
       val dynamicDocs = allDynamicResourceDocs
-        .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
         .map(it => it.specifiedUrl match {
           case Some(_) => it
           case _ =>
-            it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+            it.specifiedUrl = if (it.partialFunctionName.startsWith("dynamicEntity")) Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
             it
         })
 
@@ -716,6 +724,119 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
+    localResourceDocs += ResourceDoc(
+      getResourceDocsOpenAPI31,
+      implementedInApiVersion,
+      "getResourceDocsOpenAPI31",
+      "GET",
+      "/resource-docs/API_VERSION/openapi",
+      "Get OpenAPI 3.1 documentation",
+      s"""Returns documentation about the RESTful resources on this server in OpenAPI 3.1 format.
+         |
+         |API_VERSION is the version you want documentation about e.g. v6.0.0
+         |
+         |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
+         |
+         |(All endpoints are given one or more tags which for used in grouping)
+         |
+         |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
+         |
+         |(Each endpoint is implemented in the OBP Scala code by a 'function')
+         |
+         |This endpoint generates OpenAPI 3.1 compliant documentation with modern JSON Schema support.
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         | Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |Following are more examples:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?functions=getBanks,bankById
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank,PSD2&functions=getBanks,bankById
+         |
+      """,
+      EmptyBody,
+      EmptyBody,
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi)
+    )
+
+    def getResourceDocsOpenAPI31 : OBPEndpoint = {
+      case "resource-docs" :: requestedApiVersionString :: "openapi" :: Nil JsonGet _ => {
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          val (resourceDocTags, partialFunctions, locale, contentParam,  apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+          for {
+            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
+              ApiVersionUtils.valueOf(requestedApiVersionString)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
+              versionIsAllowed(requestedApiVersion)
+            }
+            _ <- if (locale.isDefined) {
+              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+              }
+            } else {
+              Future.successful(true)
+            }
+            isVersion4OrHigher = true
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              Some("openapi31"),
+              requestedApiVersionString,
+              resourceDocTags,
+              partialFunctions,
+              locale,
+              contentParam,
+              apiCollectionIdParam,
+              Some(isVersion4OrHigher)
+            )
+            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+            
+            openApiJValue <- if (cacheValueFromRedis.isDefined) {
+              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file from cache.", 400, cc.callContext) {json.parse(cacheValueFromRedis.get)}
+            } else {
+              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file.", 400, cc.callContext) {
+                val resourceDocsJsonFiltered = locale match {
+                  case _ if (apiCollectionIdParam.isDefined) =>
+                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale)
+                    resourceDocsJson.resource_docs
+                  case _ =>
+                    contentParam match {
+                      case Some(DYNAMIC) =>
+                        getResourceDocsObpDynamicCached(resourceDocTags, partialFunctions, locale, None, isVersion4OrHigher).head.resource_docs
+                      case Some(STATIC) => {
+                        getStaticResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, isVersion4OrHigher).head.resource_docs
+                      }
+                      case _ => {
+                        getAllResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, contentParam, isVersion4OrHigher).head.resource_docs
+                      }
+                    }
+                }
+                convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+              }
+            }
+          } yield {
+            (openApiJValue, HttpCode.`200`(cc.callContext))
+          }
+        }
+      }
+    }
+
+    private def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+      logger.debug(s"Generating OpenAPI 3.1-convertResourceDocsToOpenAPI31JvalueAndSetCache requestedApiVersion is $requestedApiVersionString")
+      val hostname = HostName
+      val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(resourceDocsJson, requestedApiVersionString, hostname)
+      val openApiJValue = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.OpenAPI31JsonFormats.toJValue(openApiDoc)
+
+      val jsonString = json.compactRender(openApiJValue)
+      Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+
+      openApiJValue
+    }
 
     private def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
       logger.debug(s"Generating Swagger-getResourceDocsSwaggerAndSetCache requestedApiVersion is $requestedApiVersionString")

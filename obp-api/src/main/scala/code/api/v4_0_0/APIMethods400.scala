@@ -14,7 +14,7 @@ import code.api.dynamic.endpoint.helper.practise.{
   PractiseEndpoint
 }
 import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper}
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -123,6 +123,72 @@ trait APIMethods400 extends MdcLoggable {
   class Implementations400 {
 
     val implementedInApiVersion = ApiVersion.v4_0_0
+
+    // DRY constants for dynamic entity documentation
+    private val dynamicEntityNamingExplanation = 
+      """**IMPORTANT: Entity Naming**
+         |In the examples below, "AgentConversation" and "AgentMessage" are example entity names. You should replace these with your own entity name (e.g., "Event", "Price", "Order", "Invoice"). The entity name you choose will become the API endpoint name and must be a valid identifier.""".stripMargin
+    
+    private val dynamicEntityImportantNotes = 
+      """**Important Notes:**
+         |- **Entity name is your choice**: "AgentConversation", "FooBar", etc. are just examples. Replace with YOUR entity name (e.g., "Event", "Price", "Invoice")
+         |- **Entity name becomes the endpoint**: If you create an entity called "Invoice", OBP will generate endpoints like `/obp/dynamic-entity/Invoice`, `POST /obp/dynamic-entity/Invoice`, etc.
+         |- The entity name (e.g., "AgentConversation") MUST be a direct top-level key in the JSON root object
+         |- Do NOT wrap the entity in an "entity" field - this is a common mistake
+         |- Do NOT include "entityName" as a separate field
+         |- The JSON root can contain at most TWO fields: your entity name and optionally "hasPersonalEntity"
+         |- The "properties" object contains all field definitions
+         |- Each property must have "type" and "example" fields. The "description" field is optional
+         |- For boolean fields, the example must be the STRING "true" or "false" (not boolean values)
+         |- The "hasPersonalEntity" field is optional (defaults to true) and goes at the root level""".stripMargin
+    
+    private val dynamicEntityGeneratedTags = 
+      """**Tags Generated for CRUD Endpoints:**
+         |When you create a dynamic entity, the resulting CRUD endpoints (GET all, GET one, POST, PUT, DELETE) will automatically be tagged with THREE tags:
+         |1. **Entity-specific tag** - Based on your entity name (e.g., "Piano", "Invoice", "AgentConversation")
+         |2. **"Dynamic-Entity"** - Groups all dynamic entity endpoints together
+         |3. **"Dynamic"** - Groups all dynamic endpoints (both entities and endpoints)
+         |
+         |These tags help organize and filter endpoints in the API Explorer.""".stripMargin
+    
+    private val dynamicEntityPianoExample = 
+      """
+         |**Example 3: Piano Entity Demonstrating Different Field Types**
+         |```json
+         |{
+         |  "Piano": {
+         |    "description": "Piano entity with make, year, number of keys, and type",
+         |    "required": ["make", "year", "number_of_keys", "is_grand", "date_purchased", "weight_in_kg"],
+         |    "properties": {
+         |      "make": {
+         |        "type": "string",
+         |        "example": "Steinway"
+         |      },
+         |      "year": {
+         |        "type": "string",
+         |        "example": "2023"
+         |      },
+         |      "number_of_keys": {
+         |        "type": "integer",
+         |        "example": 88
+         |      },
+         |      "is_grand": {
+         |        "type": "boolean",
+         |        "example": "true"
+         |      },
+         |      "date_purchased": {
+         |        "type": "DATE_WITH_DAY",
+         |        "example": "2023-06-15"
+         |      },
+         |      "weight_in_kg": {
+         |        "type": "number",
+         |        "example": 480.5
+         |      }
+         |    }
+         |  },
+         |  "hasPersonalEntity": true
+         |}
+         |```""".stripMargin
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     // createDynamicEntityDoc and updateDynamicEntityDoc are dynamic, So here dynamic create resourceDocs
@@ -2192,6 +2258,8 @@ trait APIMethods400 extends MdcLoggable {
          |
          |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
+         |**Important:** Each property MUST include an `example` field with a valid example value. This is required for API documentation and validation.
+         |
          |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity.
          |
          |To see the complete list of available reference types and their correct formats, call:
@@ -2200,6 +2268,8 @@ trait APIMethods400 extends MdcLoggable {
          |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
          |
          |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |
+         |$dynamicEntityNamingExplanation
          |
          |**Example Request Body 1:**
          |```json
@@ -2251,6 +2321,17 @@ trait APIMethods400 extends MdcLoggable {
          |      "summary": {
          |        "type": "string",
          |        "example": "User received 'No such price' error using Stripe API"
+         |      },
+         |      "custom_metadata": {
+         |        "type": "json",
+         |        "example": {
+         |          "priority": "high",
+         |          "tags": ["support", "billing"],
+         |          "context": {
+         |            "page": "checkout",
+         |            "step": 3
+         |          }
+         |        }
          |      }
          |    }
          |  },
@@ -2304,13 +2385,28 @@ trait APIMethods400 extends MdcLoggable {
          |}
          |```
          |
-         |**Important Notes:**
-         |- The entity name (e.g., "AgentConversation") is the top-level key in the JSON
-         |- Do NOT include "entityName" as a separate field
-         |- The "properties" object contains all field definitions
-         |- Each property must have "type" and "example" fields. The "description" field is optional
-         |- For boolean fields, the example must be the STRING "true" or "false" (not boolean values)
-         |- The "hasPersonalEntity" field is optional (defaults to true) and goes at the root level
+         |$dynamicEntityImportantNotes
+         |
+         |$dynamicEntityGeneratedTags
+         |
+         |$dynamicEntityPianoExample
+         |
+         |**WRONG (will fail validation):**
+         |```json
+         |{
+         |  "entity": {
+         |    "AgentConversation": { ... }
+         |  }
+         |}
+         |```
+         |
+         |**CORRECT:**
+         |```json
+         |{
+         |  "AgentConversation": { ... },
+         |  "hasPersonalEntity": true
+         |}
+         |```
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample.copy(bankId = None),
@@ -2365,10 +2461,155 @@ trait APIMethods400 extends MdcLoggable {
          |
          |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |To see all available reference types and their correct formats, call:
+         |**Important:** Each property MUST include an `example` field with a valid example value. This is required for API documentation and validation.
+         |
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity.
+         |
+         |To see the complete list of available reference types and their correct formats, call:
          |**GET /obp/v6.0.0/management/dynamic-entities/reference-types**
          |
+         |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
+         |
          |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |
+         |$dynamicEntityNamingExplanation
+         |
+         |**Example Request Body 1:**
+         |```json
+         |{
+         |  "AgentConversation": {
+         |    "description": "Stores conversation metadata between users and agents",
+         |    "required": ["conversation_id", "user_id"],
+         |    "properties": {
+         |      "conversation_id": {
+         |        "type": "string",
+         |        "example": "conv_3f8a7b29c91d4a93b0e0f5b1c9a4b2d1"
+         |      },
+         |      "user_id": {
+         |        "type": "string",
+         |        "example": "user_47b2de93a3b14f3db6f5aa1e1c892a9a"
+         |      },
+         |      "title": {
+         |        "type": "string",
+         |        "example": "Stripe price ID error"
+         |      },
+         |      "created_at": {
+         |        "type": "string",
+         |        "example": "2025-01-07T14:30:00.000Z"
+         |      },
+         |      "model": {
+         |        "type": "string",
+         |        "example": "gpt-5"
+         |      },
+         |      "language": {
+         |        "type": "string",
+         |        "example": "en"
+         |      },
+         |      "metadata_platform": {
+         |        "type": "string",
+         |        "example": "web"
+         |      },
+         |      "metadata_browser": {
+         |        "type": "string",
+         |        "example": "Firefox 144.0"
+         |      },
+         |      "metadata_os": {
+         |        "type": "string",
+         |        "example": "Ubuntu 22.04"
+         |      },
+         |      "tags": {
+         |        "type": "string",
+         |        "example": "stripe,api,error"
+         |      },
+         |      "summary": {
+         |        "type": "string",
+         |        "example": "User received 'No such price' error using Stripe API"
+         |      },
+         |      "custom_metadata": {
+         |        "type": "json",
+         |        "example": {
+         |          "priority": "high",
+         |          "tags": ["support", "billing"],
+         |          "context": {
+         |            "page": "checkout",
+         |            "step": 3
+         |          }
+         |        }
+         |      }
+         |    }
+         |  },
+         |  "hasPersonalEntity": true
+         |}
+         |```
+         |
+         |
+         |**Example 2: AgentMessage Entity with Reference to the above Entity**
+         |```json
+         |{
+         |  "hasPersonalEntity": true,
+         |  "AgentMessage": {
+         |    "description": "Stores individual messages within agent conversations",
+         |    "required": [
+         |      "message_id",
+         |      "conversation_id",
+         |      "role"
+         |    ],
+         |    "properties": {
+         |      "message_id": {
+         |        "type": "string",
+         |        "example": "msg_8a2f3c6c44514c4ea92d4f7b91b6f002"
+         |      },
+         |      "conversation_id": {
+         |        "type": "reference:AgentConversation",
+         |        "example": "a8770fca-3d1d-47af-b6d0-7a6c3f124388"
+         |      },
+         |      "role": {
+         |        "type": "string",
+         |        "example": "user"
+         |      },
+         |      "content_text": {
+         |        "type": "string",
+         |        "example": "I'm using Stripe for the first time and getting an error..."
+         |      },
+         |      "timestamp": {
+         |        "type": "string",
+         |        "example": "2025-01-07T14:30:15.000Z"
+         |      },
+         |      "token_count": {
+         |        "type": "integer",
+         |        "example": 150
+         |      },
+         |      "model_used": {
+         |        "type": "string",
+         |        "example": "gpt-5"
+         |      }
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |$dynamicEntityImportantNotes
+         |
+         |$dynamicEntityGeneratedTags
+         |
+         |$dynamicEntityPianoExample
+         |
+         |**WRONG (will fail validation):**
+         |```json
+         |{
+         |  "entity": {
+         |    "AgentConversation": { ... }
+         |  }
+         |}
+         |```
+         |
+         |**CORRECT:**
+         |```json
+         |{
+         |  "AgentConversation": { ... },
+         |  "hasPersonalEntity": true
+         |}
+         |```
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
@@ -2475,6 +2716,8 @@ trait APIMethods400 extends MdcLoggable {
          |
          |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
+         |**Important:** Each property MUST include an `example` field with a valid example value. This is required for API documentation and validation.
+         |
          |To see all available reference types and their correct formats, call:
          |**GET /obp/v6.0.0/management/dynamic-entities/reference-types**
          |""",
@@ -2522,6 +2765,8 @@ trait APIMethods400 extends MdcLoggable {
           .mkString("[", ", ", ", reference]")}
          |
          |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |**Important:** Each property MUST include an `example` field with a valid example value. This is required for API documentation and validation.
          |
          |To see all available reference types and their correct formats, call:
          |**GET /obp/v6.0.0/management/dynamic-entities/reference-types**
@@ -2577,6 +2822,8 @@ trait APIMethods400 extends MdcLoggable {
           deleteDynamicEntityMethod(None, dynamicEntityId, cc)
       }
     }
+
+
 
     private def deleteDynamicEntityMethod(
         bankId: Option[String],
@@ -2719,6 +2966,8 @@ trait APIMethods400 extends MdcLoggable {
           .mkString("[", ", ", ", reference]")}
          |
          |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |**Important:** Each property MUST include an `example` field with a valid example value. This is required for API documentation and validation.
          |
          |To see all available reference types and their correct formats, call:
          |**GET /obp/v6.0.0/management/dynamic-entities/reference-types**
@@ -4143,25 +4392,25 @@ trait APIMethods400 extends MdcLoggable {
       "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
       "Get Firehose Accounts at Bank",
       s"""
-         |Get Accounts which have a firehose view assigned to them.
+         |Get all Accounts at a Bank.
          |
-         |This endpoint allows bulk access to accounts.
+         |This endpoint allows bulk access to all accounts at the specified bank.
          |
-         |Requires the CanUseFirehoseAtAnyBank Role
+         |Requires the CanUseFirehoseAtAnyBank Role or CanUseAccountFirehose Role
          |
-         |To be shown on the list, each Account must have a firehose View linked to it.
+         |Returns all accounts at the bank. The VIEW_ID parameter determines what account data fields are visible according to the view's permissions.
          |
-         |A firehose view has is_firehose = true
+         |The view specified must have is_firehose = true
          |
-         |For VIEW_ID try 'owner'
+         |For VIEW_ID try 'owner' or 'firehose'
          |
-         |optional request parameters for filter with attributes
+         |Optional request parameters for filtering by account attributes:
          |URL params example:
-         |  /banks/some-bank-id/firehose/accounts/views/owner?&limit=50&offset=1
+         |  /banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1
          |
-         |to invalid Browser cache, add timestamp query parameter as follow, the parameter name must be `_timestamp_`
+         |To invalidate browser cache, add timestamp query parameter as follows (the parameter name must be `_timestamp_`):
          |URL params example:
-         |  `/banks/some-bank-id/firehose/accounts/views/owner?&limit=50&offset=1&_timestamp_=1596762180358`
+         |  `/banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1&_timestamp_=1596762180358`
          |
          |${userAuthenticationMessage(true)}
          |

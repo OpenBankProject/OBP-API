@@ -192,18 +192,30 @@ sealed trait DynamicEntityFieldType extends EnumValue {
   def wrongTypeMsg = s"the value's type should be $this."
 }
 object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
-  object number  extends Value{val jValueType = classOf[JDouble]}
-  object integer extends Value{val jValueType = classOf[JInt]}
-  object boolean extends Value {
-    val jValueType = classOf[JString]
+  object number  extends Value{
+    val jValueType = classOf[JDouble]
     override def isJValueValid(jValue: JValue): Boolean = {
-      super.isJValueValid(jValue) && {
-        val value = jValue.asInstanceOf[JString].s
-        val lowerValue = value.toLowerCase
-        lowerValue == "true" || lowerValue == "false"
+      jValue match {
+        case _: JDouble => true
+        case _: JInt => true
+        case _ => false
       }
     }
-    override def wrongTypeMsg: String = s"""the value's type should be string "true" or "false"."""
+    override def wrongTypeMsg: String = s"""the value's type should be number (decimal or integer)."""
+  }
+  object integer extends Value{val jValueType = classOf[JInt]}
+  object boolean extends Value {
+    val jValueType = classOf[JValue]
+    override def isJValueValid(jValue: JValue): Boolean = {
+      jValue match {
+        case JBool(_) => true
+        case JString(s) => 
+          val lowerValue = s.toLowerCase
+          lowerValue == "true" || lowerValue == "false"
+        case _ => false
+      }
+    }
+    override def wrongTypeMsg: String = s"""the value's type should be boolean (true/false) or string ("true"/"false")."""
   }
   object string  extends Value{
     val jValueType = classOf[JString]
@@ -236,6 +248,17 @@ object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
    }
 
    override def wrongTypeMsg: String = s"the value's type should be $this, format is $dateFormat."
+ }
+ object json extends Value {
+   val jValueType = classOf[JValue]
+   override def isJValueValid(jValue: JValue): Boolean = {
+     jValue match {
+       case _: JObject => true
+       case _: JArray => true
+       case _ => false
+     }
+   }
+   override def wrongTypeMsg: String = "the value's type should be a JSON object or array."
  }
  //object array extends Value{val jValueType = classOf[JArray]}
  //object `object` extends Value{val jValueType = classOf[JObject]} //TODO in the future, we consider support nested type

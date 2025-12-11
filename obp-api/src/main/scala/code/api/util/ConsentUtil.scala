@@ -249,6 +249,13 @@ object Consent extends MdcLoggable {
     val result = consentBox match {
       case Full(c) =>
         if (!tppIsConsentHolder(c.mConsumerId.get, callContext)) { // Always check TPP first
+          val consentConsumerId = c.mConsumerId.get
+          val requestConsumerId = callContext.consumer.map(_.consumerId.get).getOrElse("NONE")
+          val consumerValidationMethodForConsent = APIUtil.getPropsValue("consumer_validation_method_for_consent").openOr("")
+          if(requestConsumerId == "NONE" || consumerValidationMethodForConsent.isEmpty) {
+            logger.warn(s"consumer_validation_method_for_consent is empty while request consumer_id=NONE - consent_id=${consent.jti}, aud=${consent.aud}")
+          }
+          logger.debug(s"ConsentNotFound: TPP/Consumer mismatch. Consent holder consumer_id=$consentConsumerId, Request consumer_id=$requestConsumerId, consent_id=${consent.jti}")
           ErrorUtil.apiFailureToBox(ErrorMessages.ConsentNotFound, 401)(Some(callContext))
         } else if (!verifyHmacSignedJwt(consentIdAsJwt, c)) { // verify signature
           Failure(ErrorMessages.ConsentVerificationIssue)
@@ -275,7 +282,14 @@ object Consent extends MdcLoggable {
             }
           }
         }
+      case Empty =>
+        logger.info(s"ConsentNotFound: Consent does not exist in database. consent_id=${consent.jti}")
+        Failure(ErrorMessages.ConsentNotFound)
+      case Failure(msg, _, _) =>
+        logger.info(s"ConsentNotFound: Failed to retrieve consent from database. consent_id=${consent.jti}, error=$msg")
+        Failure(ErrorMessages.ConsentNotFound)
       case _ =>
+        logger.info(s"ConsentNotFound: Unexpected error retrieving consent. consent_id=${consent.jti}")
         Failure(ErrorMessages.ConsentNotFound)
     }
     logger.debug(s"code.api.util.Consent.checkConsent.result: result($result)")

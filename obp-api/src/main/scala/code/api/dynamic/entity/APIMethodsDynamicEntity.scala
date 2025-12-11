@@ -134,7 +134,11 @@ trait APIMethodsDynamicEntity {
             Some(cc)
           )
 
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
+          _ <- Helper.booleanToFuture(
+            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '${id}'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""), 
+            404, 
+            cc = callContext
+          ) {
             box.isDefined
           }
         } yield {
@@ -274,7 +278,11 @@ trait APIMethodsDynamicEntity {
             Some(u.userId),
             isPersonalEntity,
             Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
+          _ <- Helper.booleanToFuture(
+            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""), 
+            404, 
+            cc = callContext
+          ) {
             box.isDefined
           }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None,
@@ -345,7 +353,11 @@ trait APIMethodsDynamicEntity {
             isPersonalEntity,
             Some(cc)
           )
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
+          _ <- Helper.booleanToFuture(
+            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""), 
+            404, 
+            cc = callContext
+          ) {
             box.isDefined
           }
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None,

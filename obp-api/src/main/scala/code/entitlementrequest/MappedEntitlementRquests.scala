@@ -87,7 +87,7 @@ class MappedEntitlementRequest extends EntitlementRequest
 
   object mUserId extends UUIDString(this)
 
-  object mRoleName extends MappedString(this, 64)
+  object mRoleName extends MappedString(this, 255)
 
   override def entitlementRequestId: String = mEntitlementRequestId.get.toString
 

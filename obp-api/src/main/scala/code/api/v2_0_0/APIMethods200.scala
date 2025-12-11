@@ -1318,7 +1318,7 @@ trait APIMethods200 {
         |""",
       createUserJson,
       userJsonV200,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat ,"Error occurred during user creation.", "User with the same username already exists." , UnknownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, "Error occurred during user creation.", UnknownError),
       List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {
@@ -1331,7 +1331,7 @@ trait APIMethods200 {
             _ <- Helper.booleanToFuture(ErrorMessages.InvalidStrongPasswordFormat, 400, cc.callContext) {
               fullPasswordValidation(postedData.password)
             }
-            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat User with the same username already exists.", 409, cc.callContext) {
+            _ <- Helper.booleanToFuture(ErrorMessages.DuplicateUsername, 409, cc.callContext) {
               AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty
             }
             userCreated <- Future {
@@ -1906,7 +1906,8 @@ trait APIMethods200 {
       EmptyBody,
       EmptyBody,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      List(apiTagRole, apiTagUser, apiTagEntitlement))
+      List(apiTagRole, apiTagUser, apiTagEntitlement),
+      Some(List(canDeleteEntitlementAtAnyBank)))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
@@ -1944,7 +1945,8 @@ trait APIMethods200 {
       EmptyBody,
       entitlementJSONs,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagRole, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
 
 
     lazy val getAllEntitlements: OBPEndpoint = {

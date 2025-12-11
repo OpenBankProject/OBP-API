@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  redis:
+    container_name: obp-api-redis
+    image: redis:7-alpine
+    ports:
+      - "${OBP_CACHE_REDIS_PORT:-6380}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - obp-network
+
+  obp-api:
+    container_name: obp-api-app
+    build:
+      context: ../..
+      dockerfile: development/docker/Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      # Set Lift props location to find your props files
+      - props.resource.dir=/app/props/
+      - JAVA_OPTS=-Drun.mode=production -Dprops.resource.dir=/app/props/
+      # Override Redis settings via environment variables (OBP-API system)
+      # cache.redis.url -> OBP_CACHE_REDIS_URL
+      # cache.redis.port -> OBP_CACHE_REDIS_PORT
+      - OBP_CACHE_REDIS_URL=redis
+      - OBP_CACHE_REDIS_PORT=6379
+      # Override database URL via environment variable (OBP-API system)
+      # db.url -> OBP_DB_URL
+      - OBP_DB_URL=${OBP_DB_URL:-jdbc:postgresql://host.docker.internal:5432/obp_mapped?user=obp&password=f}
+    volumes:
+      # Mount the props directory so the container uses your local props files
+      - ../../obp-api/src/main/resources/props:/app/props
+    extra_hosts:
+      # Connect to local Postgres on the host
+      # In your config file:
+      # db.url=jdbc:postgresql://host.docker.internal:5432/YOUR_DB?user=YOUR_DB_USER&password=YOUR_DB_PASSWORD
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+    networks:
+      - obp-network
+
+volumes:
+  redis_data:
+    name: obp-api-redis-data
+
+networks:
+  obp-network:
+    name: obp-api-network
+    driver: bridge

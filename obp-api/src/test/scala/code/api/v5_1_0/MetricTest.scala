@@ -178,7 +178,7 @@ class MetricTest extends V510ServerSetup {
       
       {
         Then("we test the consumer_id params")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer3.id.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer3.consumerId.get}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -189,7 +189,7 @@ class MetricTest extends V510ServerSetup {
 
       {
         Then("we test the consumer_id params")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer2.id.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer2.consumerId.get}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -338,7 +338,7 @@ class MetricTest extends V510ServerSetup {
       {
         Then("we test all params")
         val params = List(
-          ("consumer_id", s"${testConsumer.id.get}"),
+          ("consumer_id", s"${testConsumer.consumerId.get}"),
           ("user_id", s"${resourceUser1.userId}"),
           ("anon", "false"),
           ("url", "/obp/v5.1.0/banks"),

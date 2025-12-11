@@ -1695,4 +1695,27 @@ def restoreSomeSessions(): Unit = {
     }
   }
   
+  /**
+   * Find a user by their unique validation token.
+   * This is a public wrapper for the protected findUserByUniqueId method.
+   * 
+   * @param token The unique validation token (UUID string)
+   * @return Box containing the AuthUser if found, Empty if not found, or Failure on error
+   */
+  def findUserByValidationToken(token: String): Box[AuthUser] = {
+    findUserByUniqueId(token)
+  }
+  
+  /**
+   * Validate a user and reset their unique ID token.
+   * This is a public wrapper that combines validation and token reset.
+   * 
+   * @param user The AuthUser to validate
+   * @return The validated AuthUser with reset unique ID
+   */
+  def validateAndResetToken(user: AuthUser): AuthUser = {
+    user.validated(true).resetUniqueId().save
+    user
+  }
+  
 }

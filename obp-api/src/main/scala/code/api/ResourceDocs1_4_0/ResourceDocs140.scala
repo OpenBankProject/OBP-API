@@ -143,6 +143,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     val routes = List(
       ImplementationsResourceDocs.getResourceDocsObpV400,
       ImplementationsResourceDocs.getResourceDocsSwagger,
+      ImplementationsResourceDocs.getResourceDocsOpenAPI31,
       ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
 //      ImplementationsResourceDocs.getStaticResourceDocsObp
     )

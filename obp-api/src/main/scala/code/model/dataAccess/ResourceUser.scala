@@ -27,13 +27,18 @@ TESOBE (http://www.tesobe.com/)
 package code.model.dataAccess
 
 import java.util.Date
+import java.util.UUID.randomUUID
 
 import code.api.Constant
+import code.api.cache.Caching
 import code.api.util.APIUtil
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.mapper._
 import net.liftweb.mapper.DB
+
+import scala.concurrent.duration._
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -125,9 +130,21 @@ object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     override def dbIndexes = UniqueIndex(provider_, providerId) ::super.dbIndexes
   
   def getDistinctProviders: List[String] = {
-    val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
-    val (_, rows) = DB.runQuery(sql, List())
-    rows.flatten
+    /**
+     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+     * is just a temporary value field with UUID values in order to prevent any ambiguity.
+     * The real value will be assigned by Macro during compile time at this line of a code:
+     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+     */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    val cacheTTL = APIUtil.getPropsAsIntValue("getDistinctProviders.cache.ttl.seconds", 3600)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds) {
+        val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
+        val (_, rows) = DB.runQuery(sql, List())
+        rows.flatten
+      }
+    }
   }
 }
 

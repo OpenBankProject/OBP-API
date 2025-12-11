@@ -45,6 +45,7 @@ case class OBPVerb(value: String) extends OBPQueryParam
 case class OBPAnon(value: Boolean) extends OBPQueryParam
 case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
+case class OBPHttpStatusCode(value: Int) extends OBPQueryParam
 case class OBPExcludeUrlPatterns(values: List[String]) extends OBPQueryParam
 case class OBPIncludeUrlPatterns(values: List[String]) extends OBPQueryParam
 case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam

@@ -68,6 +68,7 @@ object ApiTag {
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagSystemIntegrity = ResourceDocTag("System-Integrity")
   val apiTagBalance = ResourceDocTag("Balance")
+  val apiTagGroup = ResourceDocTag("Group")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
@@ -76,6 +77,8 @@ object ApiTag {
   val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping")
   val apiTagRateLimits = ResourceDocTag("Rate-Limits")
   val apiTagCounterpartyLimits = ResourceDocTag("Counterparty-Limits")
+  val apiTagDevOps = ResourceDocTag("DevOps")
+  val apiTagSystem = ResourceDocTag("System")
 
   val apiTagApiCollection = ResourceDocTag("Api-Collection")
   

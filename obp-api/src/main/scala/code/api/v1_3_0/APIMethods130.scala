@@ -6,6 +6,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
+import code.api.util.ApiRole._
 import code.api.util.{ApiRole, NewStyle}
 import code.api.v1_2_1.JSONFactory
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -95,7 +96,8 @@ trait APIMethods130 {
       EmptyBody,
       physicalCardsJSON,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
-      List(apiTagCard))
+      List(apiTagCard),
+      Some(List(canGetCardsForBank)))
 
     lazy val getCardsForBank : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {

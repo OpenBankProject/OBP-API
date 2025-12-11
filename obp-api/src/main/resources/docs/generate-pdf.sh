@@ -91,9 +91,6 @@ generate_pdf() {
     pandoc "$INPUT_FILE" \
       -o "$OUTPUT_FILE" \
       --pdf-engine=xelatex \
-      --toc \
-      --toc-depth=3 \
-      --number-sections \
       --highlight-style=tango \
       -V geometry:margin=1in \
       -V fontsize=11pt \
@@ -106,7 +103,7 @@ generate_pdf() {
       -V header-includes="$LATEX_HEADER" \
       --metadata title="$DOC_TITLE" \
       --metadata author="TESOBE GmbH" \
-      --metadata date="$(date +%Y-%m-%d)" \
+      --metadata date="Generated: $(date '+%Y-%m-%d %H:%M:%S %Z')" \
       2>&1 | grep -v "^$" || true
 
     if [ -f "$OUTPUT_FILE" ]; then
@@ -181,7 +178,7 @@ if [ $# -eq 0 ]; then
     echo "    * Headers: Dark Green (#$OBP_DARK_GREEN)"
     echo "    * Accents: Light Green (#$OBP_LIGHT_GREEN)"
     echo "  - Table of contents: 3 levels"
-    echo "  - Section numbering: Enabled"
+    echo "  - Section numbering: From source markdown"
     echo "  - Headers/footers: OBP branded"
     echo ""
 

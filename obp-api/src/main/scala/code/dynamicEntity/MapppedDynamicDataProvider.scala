@@ -25,6 +25,17 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     saveOrUpdate(bankId, entityName, requestBody, userId, isPersonalEntity, dynamicData)
   }
 
+  // Separate method for reference validation - only checks ID and entity name exist
+  def existsById(entityName: String, id: String): Boolean = {
+    println(s"========== Reference validation: checking if DynamicDataId='$id' exists for DynamicEntityName='$entityName' ==========")
+    val exists = DynamicData.count(
+      By(DynamicData.DynamicDataId, id),
+      By(DynamicData.DynamicEntityName, entityName)
+    ) > 0
+    println(s"========== Reference validation result: exists=$exists ==========")
+    exists
+  }
+
   override def get(bankId: Option[String],entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     if(bankId.isEmpty && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
       //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.

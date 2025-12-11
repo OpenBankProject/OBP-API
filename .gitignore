@@ -19,6 +19,7 @@ obp-api/src/main/resources/*
 !obp-api/src/main/resources/docs/
 obp-api/src/test/resources/**
 !obp-api/src/test/resources/frozen_type_meta_data
+!obp-api/src/test/resources/logback-test.xml
 *.iml
 obp-api/src/main/resources/log4j.properties
 obp-api/src/main/scripts/kafka/kafka_*

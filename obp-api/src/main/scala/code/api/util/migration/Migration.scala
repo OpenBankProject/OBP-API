@@ -104,6 +104,9 @@ object Migration extends MdcLoggable {
       populateMigrationOfViewPermissions(startedBeforeSchemifier)
       changeTypeOfAudFieldAtConsumerTable()
       renameCustomerRoleNames()
+      addUniqueIndexOnResourceUserUserId()
+      addIndexOnMappedMetricUserId()
+      alterRoleNameLength()
     }
     
     private def dummyScript(): Boolean = {
@@ -527,6 +530,27 @@ object Migration extends MdcLoggable {
       val name = nameOf(renameCustomerRoleNames)
       runOnce(name) {
         MigrationOfCustomerRoleNames.renameCustomerRoles(name)
+      }
+    }
+
+    private def addUniqueIndexOnResourceUserUserId(): Boolean = {
+      val name = nameOf(addUniqueIndexOnResourceUserUserId)
+      runOnce(name) {
+        MigrationOfUserIdIndexes.addUniqueIndexOnResourceUserUserId(name)
+      }
+    }
+
+    private def addIndexOnMappedMetricUserId(): Boolean = {
+      val name = nameOf(addIndexOnMappedMetricUserId)
+      runOnce(name) {
+        MigrationOfUserIdIndexes.addIndexOnMappedMetricUserId(name)
+      }
+    }
+    
+    private def alterRoleNameLength(): Boolean = {
+      val name = nameOf(alterRoleNameLength)
+      runOnce(name) {
+        MigrationOfRoleNameFieldLength.alterRoleNameLength(name)
       }
     }
   }

@@ -26,7 +26,7 @@ trait EntitlementProvider {
   def getEntitlementsByRole(roleName: String): Box[List[Entitlement]]
   def getEntitlementsFuture() : Future[Box[List[Entitlement]]]
   def getEntitlementsByRoleFuture(roleName: String) : Future[Box[List[Entitlement]]]
-  def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String="manual", grantorUserId: Option[String]=None) : Box[Entitlement]
+  def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String="manual", grantorUserId: Option[String]=None, groupId: Option[String]=None, process: Option[String]=None) : Box[Entitlement]
   def deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String]) : Box[Boolean]
   def deleteEntitlements(entityNames: List[String]) : Box[Boolean]
 }
@@ -37,4 +37,7 @@ trait Entitlement {
   def userId : String
   def roleName : String
   def createdByProcess : String
+  def entitlementRequestId: Option[String]
+  def groupId: Option[String]
+  def process: Option[String]
 }

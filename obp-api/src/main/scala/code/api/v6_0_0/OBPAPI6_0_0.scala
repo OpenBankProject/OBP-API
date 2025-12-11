@@ -73,6 +73,9 @@ object OBPAPI6_0_0 extends OBPRestHelper
   // Possible Endpoints from 5.1.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   lazy val endpointsOf6_0_0 = getEndpoints(Implementations6_0_0)
+  
+  // Exclude v5.1.0 root endpoint since v6.0.0 has its own
+  lazy val endpointsOf5_1_0_without_root = OBPAPI5_1_0.routes.filterNot(_ == Implementations5_1_0.root)
 
   lazy val excludeEndpoints = 
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V600.
@@ -91,11 +94,13 @@ object OBPAPI6_0_0 extends OBPRestHelper
     Implementations6_0_0.resourceDocs
   ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
-  // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI5_1_0.routes ++ endpointsOf6_0_0
+  // all endpoints - v6.0.0 endpoints first so they take precedence over v5.1.0
+  private val endpoints: List[OBPEndpoint] = endpointsOf6_0_0.toList ++ endpointsOf5_1_0_without_root
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] =  getAllowedEndpoints(endpoints, allResourceDocs)
+  // Make root endpoint mandatory (prepend it)
+  val routes : List[OBPEndpoint] = Implementations6_0_0.root :: 
+    getAllowedEndpoints(endpoints, allResourceDocs)
 
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
