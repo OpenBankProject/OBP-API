@@ -823,3 +823,6 @@ Steps to add Spanish language:
 - add file `lift-core_es_ES.properties` at the folder `/resources/i18n`
 
 Please note that default translation file is `lift-core.properties`
+
+
+Test in VS Code Workspace
