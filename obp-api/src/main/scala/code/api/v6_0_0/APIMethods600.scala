@@ -40,7 +40,7 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
 import code.views.system.ViewDefinition
-import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
 import code.dynamicEntity.DynamicEntityCommons
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -3630,6 +3630,181 @@ trait APIMethods600 {
             }
             logger.info(s"========== END GET /obp/v6.0.0/webui-props ==========")
             (ListResult("webui_props", result), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createOrUpdateWebUiProps,
+      implementedInApiVersion,
+      nameOf(createOrUpdateWebUiProps),
+      "PUT",
+      "/management/webui_props/WEBUI_PROP_NAME",
+      "Create or Update WebUiProps",
+      s"""Create or Update a WebUiProps.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |This endpoint is idempotent - it will create the property if it doesn't exist, or update it if it does.
+         |The property is identified by WEBUI_PROP_NAME in the URL path.
+         |
+         |Explanation of Fields:
+         |
+         |* WEBUI_PROP_NAME in URL path (must start with `webui_`, contain only alphanumeric characters, underscore, and dot, not exceed 255 characters, and will be converted to lowercase)
+         |* value is required String value in request body
+         |
+         |The line break and double quotations should be escaped, example:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value
+         |have "line break" and double quotations."}
+         |
+         |```
+         |should be escaped like this:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value\\nhave \\"line break\\" and double quotations."}
+         |
+         |```
+         |
+         |Insert image examples:
+         |
+         |```
+         |// set width=100 and height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =100x50)"}
+         |
+         |// only set height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =x50)"}
+         |
+         |// only width=20%
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =20%x)"}
+         |
+         |```
+         |
+         |""",
+      WebUiPropsPutJsonV600("https://apiexplorer.openbankproject.com"),
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        InvalidWebUiProps,
+        UnknownError
+      ),
+      List(apiTagWebUiProps),
+      Some(List(canCreateWebUiProps))
+    )
+
+    lazy val createOrUpdateWebUiProps: OBPEndpoint = {
+      case "management" :: "webui_props" :: webUiPropName :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateWebUiProps, callContext)
+            // Convert name to lowercase
+            webUiPropNameLower = webUiPropName.toLowerCase
+            invalidMsg = s"""$InvalidWebUiProps name must start with webui_, but current name is: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              require(webUiPropNameLower.startsWith("webui_"))
+            }
+            invalidCharsMsg = s"""$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidCharsMsg, 400, callContext) {
+              require(webUiPropNameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            invalidLengthMsg = s"""$InvalidWebUiProps name must not exceed 255 characters. Current length: ${webUiPropNameLower.length} """
+            _ <- NewStyle.function.tryons(invalidLengthMsg, 400, callContext) {
+              require(webUiPropNameLower.length <= 255)
+            }
+            // Check if resource already exists to determine status code
+            existingProp <- Future { MappedWebUiPropsProvider.getByName(webUiPropNameLower) }
+            resourceExists = existingProp.isDefined
+            failMsg = s"$InvalidJsonFormat The Json body should contain a value field"
+            valueJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[WebUiPropsPutJsonV600]
+            }
+            webUiPropsData = WebUiPropsCommons(webUiPropNameLower, valueJson.value)
+            Full(webUiProps) <- Future { MappedWebUiPropsProvider.createOrUpdate(webUiPropsData) }
+          } yield {
+            val commonsData: WebUiPropsCommons = webUiProps
+            val statusCode = if (resourceExists) HttpCode.`200`(callContext) else HttpCode.`201`(callContext)
+            (commonsData, statusCode)
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteWebUiProps,
+      implementedInApiVersion,
+      nameOf(deleteWebUiProps),
+      "DELETE",
+      "/management/webui_props/WEBUI_PROP_NAME",
+      "Delete WebUiProps",
+      s"""Delete a WebUiProps specified by WEBUI_PROP_NAME.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |The property name will be converted to lowercase before deletion.
+         |
+         |Returns 204 No Content on successful deletion.
+         |
+         |This endpoint is idempotent - if the property does not exist, it still returns 204 No Content.
+         |
+         |Requires the $canDeleteWebUiProps role.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidWebUiProps,
+        UnknownError
+      ),
+      List(apiTagWebUiProps),
+      Some(List(canDeleteWebUiProps))
+    )
+
+    lazy val deleteWebUiProps: OBPEndpoint = {
+      case "management" :: "webui_props" :: webUiPropName :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteWebUiProps, callContext)
+            // Convert name to lowercase
+            webUiPropNameLower = webUiPropName.toLowerCase
+            invalidMsg = s"""$InvalidWebUiProps name must start with webui_, but current name is: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              require(webUiPropNameLower.startsWith("webui_"))
+            }
+            invalidCharsMsg = s"""$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidCharsMsg, 400, callContext) {
+              require(webUiPropNameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            invalidLengthMsg = s"""$InvalidWebUiProps name must not exceed 255 characters. Current length: ${webUiPropNameLower.length} """
+            _ <- NewStyle.function.tryons(invalidLengthMsg, 400, callContext) {
+              require(webUiPropNameLower.length <= 255)
+            }
+            // Check if resource exists
+            existingProp <- Future { MappedWebUiPropsProvider.getByName(webUiPropNameLower) }
+            _ <- existingProp match {
+              case Full(prop) =>
+                // Property exists - delete it
+                Future { MappedWebUiPropsProvider.delete(prop.webUiPropsId.getOrElse("")) } map {
+                  case Full(true) => Full(())
+                  case Full(false) => ObpApiFailure(s"$UnknownError Cannot delete WebUI prop", 500, callContext)
+                  case Empty => ObpApiFailure(s"$UnknownError Cannot delete WebUI prop", 500, callContext)
+                  case Failure(msg, _, _) => ObpApiFailure(msg, 500, callContext)
+                }
+              case Empty =>
+                // Property not found - idempotent delete returns success
+                Future.successful(Full(()))
+              case Failure(msg, _, _) =>
+                Future.failed(new Exception(msg))
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
           }
       }
     }

@@ -19,6 +19,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
 
   override def getAll(): List[WebUiPropsT] =  WebUiProps.findAll()
 
+  override def getByName(name: String): Box[WebUiPropsT] = WebUiProps.find(By(WebUiProps.Name, name))
 
   override def createOrUpdate(webUiProps: WebUiPropsT): Box[WebUiPropsT] = {
       WebUiProps.find(By(WebUiProps.Name, webUiProps.name))
