@@ -19,8 +19,12 @@ case class WebUiPropsCommons(name: String,
 
 object WebUiPropsCommons extends Converter[WebUiPropsT, WebUiPropsCommons]
 
+case class WebUiPropsPutJsonV600(value: String) extends JsonFieldReName
+
 trait WebUiPropsProvider {
   def getAll(): List[WebUiPropsT]
+
+  def getByName(name: String): Box[WebUiPropsT]
 
   def createOrUpdate(webUiProps: WebUiPropsT): Box[WebUiPropsT]
 

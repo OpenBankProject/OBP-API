@@ -824,5 +824,4 @@ Steps to add Spanish language:
 
 Please note that default translation file is `lift-core.properties`
 
-
-Test in VS Code Workspace
+Testing VS Code Workspace Web
