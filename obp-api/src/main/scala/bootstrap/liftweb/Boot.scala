@@ -94,7 +94,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
-import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
+import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive, PrometheusMetrics}
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
@@ -143,6 +143,7 @@ import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
 import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
+import net.liftweb.http.provider.servlet.HTTPRequestServlet
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 import net.liftweb.sitemap.Loc._
@@ -472,20 +473,8 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v6_0_0)
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
-    DefaultExports.initialize()
-    //enable metrics
-    LiftRules.dispatch.append {
-      case Req("metrics" :: Nil, _, GetRequest) =>
-        () => {
-          val writer = new java.io.StringWriter()
-          io.prometheus.client.exporter.common.TextFormat.write004(
-            writer,
-            io.prometheus.client.CollectorRegistry.defaultRegistry.metricFamilySamples()
-          )
-          Full(PlainTextResponse(writer.toString))
-        }
-    }
 
+    PrometheusMetrics.init()
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
@@ -705,10 +694,68 @@ class Boot extends MdcLoggable {
       ("ASPSP-SCA-Approach", "REDIRECT") ::
         Nil
     )
-    
+
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
     logger.info("Note: We added S.addAround(DB.buildLoanWrapper) so each HTTP request uses ONE database transaction.")
+
+    S.addAround(new LoanWrapper {
+      override def apply[T](f: => T): T = {
+        val maybeReq = S.request
+
+        val isApiCall = maybeReq.exists { r =>
+          val headLower = r.path.partPath.headOption.map(_.toLowerCase)
+
+          val apiPrefix         = ApiPathZero.stripPrefix("/").toLowerCase // обычно "obp"
+          val berlinPrefix      = "berlin-group"
+          val berlinPrefixSmall = "bg"
+
+          val isApiPrefix =
+            headLower.exists { h =>
+              h == apiPrefix ||
+                h == berlinPrefix ||
+                h == berlinPrefixSmall
+            }
+
+          val isMetrics = headLower.contains("metrics")
+          isApiPrefix && !isMetrics
+        }
+        if (!isApiCall) {
+          f
+        } else {
+          val req = maybeReq.openOrThrowException("Request is expected here")
+          val tppCertificate = req.request.headers.find(_.name == "TPP-Signature-Certificate")
+          val tppId = tppCertificate.flatMap { cert =>
+            try {
+              val certificate = BerlinGroupSigning.getCertificateFromTppSignatureCertificate(req.request.headers.toList)
+              val subjectDN = certificate.getSubjectDN.getName
+              val cn = BerlinGroupSigning.cnPattern.findFirstMatchIn(subjectDN)
+              cn.map(_.group(1).trim)
+            } catch {
+              case _: Exception => None
+            }
+          }.getOrElse("user)")
+
+          val start = System.nanoTime()
+          try {
+            val res = f
+            res match {
+              case lr: LiftResponse =>
+                val code = lr.toResponse.code
+                PrometheusMetrics.recordApiRequest(req.request.method, req.uri, tppId, code)
+              case _ =>
+            }
+
+            res
+          } finally {
+            val elapsedSeconds = (System.nanoTime() - start) / 1e9
+            PrometheusMetrics.recordApiLatency(elapsedSeconds)
+            PrometheusMetrics.recordApiLatencyByEndpoint(elapsedSeconds, req.uri)
+          }
+        }
+      }
+    })
+
 
     try {
       val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)
