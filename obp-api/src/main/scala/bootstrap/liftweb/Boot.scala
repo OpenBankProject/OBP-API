@@ -720,12 +720,18 @@ class Boot extends MdcLoggable {
           val isMetrics = headLower.contains("metrics")
           isApiPrefix && !isMetrics
         }
+
         if (!isApiCall) {
           f
         } else {
           val req = maybeReq.openOrThrowException("Request is expected here")
+
+          var url = req.uri
+          url = url.replaceAll("/[a-f0-9-]+", "/uid")
+          url = url.replaceAll("\\?.*", "?query")
+
           val tppCertificate = req.request.headers.find(_.name == "TPP-Signature-Certificate")
-          val tppId = tppCertificate.flatMap { cert =>
+          val tpp = tppCertificate.flatMap { cert =>
             try {
               val certificate = BerlinGroupSigning.getCertificateFromTppSignatureCertificate(req.request.headers.toList)
               val subjectDN = certificate.getSubjectDN.getName
@@ -734,7 +740,7 @@ class Boot extends MdcLoggable {
             } catch {
               case _: Exception => None
             }
-          }.getOrElse("user)")
+          }.getOrElse("user")
 
           val start = System.nanoTime()
           try {
@@ -742,7 +748,8 @@ class Boot extends MdcLoggable {
             res match {
               case lr: LiftResponse =>
                 val code = lr.toResponse.code
-                PrometheusMetrics.recordApiRequest(req.request.method, req.uri, tppId, code)
+                PrometheusMetrics.recordApiRequest(req.request.method, url, code)
+                PrometheusMetrics.recordApiActiveTpp(tpp)
               case _ =>
             }
 
@@ -750,7 +757,7 @@ class Boot extends MdcLoggable {
           } finally {
             val elapsedSeconds = (System.nanoTime() - start) / 1e9
             PrometheusMetrics.recordApiLatency(elapsedSeconds)
-            PrometheusMetrics.recordApiLatencyByEndpoint(elapsedSeconds, req.uri)
+            PrometheusMetrics.recordApiLatencyByEndpoint(elapsedSeconds, url)
           }
         }
       }

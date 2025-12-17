@@ -7,7 +7,6 @@ import net.liftweb.http.{GetRequest, LiftRules, PlainTextResponse, Req}
 import net.liftweb.common.Full
 
 object PrometheusMetrics {
-  // Инициализация дефолтных метрик JVM
   def init(): Unit = {
     DefaultExports.initialize()
     registerMetricsEndpoint()
@@ -16,7 +15,13 @@ object PrometheusMetrics {
   val apiRequests: Counter = Counter.build()
     .name("api_requests_total")
     .help("Total API requests")
-    .labelNames("method", "endpoint", "tpp", "code")
+    .labelNames("method", "endpoint", "code")
+    .register()
+
+  val apiActiveTpp: Counter = Counter.build()
+    .name("api_active_tpp")
+    .help("Active TPP requests")
+    .labelNames("tpp")
     .register()
 
   val apiLatency: Summary = Summary.build()
@@ -45,8 +50,12 @@ object PrometheusMetrics {
     }
   }
 
-  def recordApiRequest(method: String, endpoint: String, tpp: String, code: Int): Unit = {
-    apiRequests.labels(method, endpoint, tpp, code.toString()).inc()
+  def recordApiRequest(method: String, endpoint: String, code: Int): Unit = {
+    apiRequests.labels(method, endpoint, code.toString()).inc()
+  }
+
+  def recordApiActiveTpp(tpp: String): Unit = {
+    apiActiveTpp.labels(tpp).inc()
   }
 
   def recordApiLatency(seconds: Double): Unit = {
