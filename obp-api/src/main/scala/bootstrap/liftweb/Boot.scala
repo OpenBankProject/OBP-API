@@ -727,7 +727,7 @@ class Boot extends MdcLoggable {
           val req = maybeReq.openOrThrowException("Request is expected here")
 
           var url = req.uri
-          url = url.replaceAll("/[a-f0-9-]+", "/uid")
+          url = url.replaceAll("/[0-9a-fA-F-]{36}", "/uid")
           url = url.replaceAll("\\?.*", "?query")
 
           val tppCertificate = req.request.headers.find(_.name == "TPP-Signature-Certificate")
