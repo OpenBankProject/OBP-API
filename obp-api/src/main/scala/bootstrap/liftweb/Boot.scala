@@ -728,6 +728,8 @@ class Boot extends MdcLoggable {
 
           var url = req.uri
           url = url.replaceAll("/[0-9a-fA-F-]{36}", "/uid")
+          url = url.replaceAll("/[A-Z]{2}[0-9A-Z]{10,32}", "/iban")
+          url = url.replaceAll("/[0-9]{5,30}", "/number")
           url = url.replaceAll("\\?.*", "?query")
 
           val tppCertificate = req.request.headers.find(_.name == "TPP-Signature-Certificate")
