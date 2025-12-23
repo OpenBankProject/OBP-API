@@ -4,6 +4,9 @@ trigger:
   - main
   - master
 
+variables:
+- group: common
+
 resources:
   repositories:
     - repository: templates
