@@ -1,10 +1,10 @@
+FROM registry.maib.md/maven:3.9.6-eclipse-temurin-11 as maven
+
 ARG NUGET_MAIB_USER
 ARG NUGET_MAIB_PASS
 
-FROM registry.maib.md/maven:3.9.6-eclipse-temurin-11 as maven
-
 # Устанавливаем необходимые пакеты
-#USER root
+USER root
 #RUN apt-get update && apt-get install -y scala curl git
 
 # Копируем исходный код проекта
