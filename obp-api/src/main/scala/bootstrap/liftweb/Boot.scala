@@ -727,39 +727,41 @@ class Boot extends MdcLoggable {
           val req = maybeReq.openOrThrowException("Request is expected here")
 
           var url = req.uri
-          url = url.replaceAll("/[0-9a-fA-F-]{36}", "/uid")
+          url = url.replaceAll("/[0-9a-fA-F-]{20,36}", "/uid")
           url = url.replaceAll("/[A-Z]{2}[0-9A-Z]{10,32}", "/iban")
-          url = url.replaceAll("/[0-9]{5,30}", "/number")
+          url = url.replaceAll("/[0-9]{5,33}", "/number")
           url = url.replaceAll("\\?.*", "?query")
 
           val tppCertificate = req.request.headers.find(_.name == "TPP-Signature-Certificate")
-          val tpp = tppCertificate.flatMap { cert =>
+          val tpp = tppCertificate.flatMap { _ =>
             try {
               val certificate = BerlinGroupSigning.getCertificateFromTppSignatureCertificate(req.request.headers.toList)
-              val subjectDN = certificate.getSubjectDN.getName
-              val cn = BerlinGroupSigning.cnPattern.findFirstMatchIn(subjectDN)
-              cn.map(_.group(1).trim)
+              val subjectDN   = certificate.getSubjectDN.getName
+              BerlinGroupSigning.cnPattern.findFirstMatchIn(subjectDN).map(_.group(1).trim)
             } catch {
               case _: Exception => None
             }
-          }.getOrElse("user")
+          }.getOrElse("default")
 
-          val start = System.nanoTime()
-          try {
-            val res = f
-            res match {
-              case lr: LiftResponse =>
-                val code = lr.toResponse.code
-                PrometheusMetrics.recordApiRequest(req.request.method, url, code)
-                PrometheusMetrics.recordApiActiveTpp(tpp)
-              case _ =>
+          if (tpp == "default") {
+            f
+          } else {
+            val start = System.nanoTime()
+            try {
+              val res = f
+              res match {
+                case lr: LiftResponse =>
+                  val code = lr.toResponse.code
+                  PrometheusMetrics.recordApiRequest(req.request.method, url, code)
+                  PrometheusMetrics.recordApiActiveTpp(tpp)
+                case _ =>
+              }
+              res
+            } finally {
+              val elapsedSeconds = (System.nanoTime() - start) / 1e9
+              PrometheusMetrics.recordApiLatency(elapsedSeconds)
+              PrometheusMetrics.recordApiLatencyByEndpoint(elapsedSeconds, url)
             }
-
-            res
-          } finally {
-            val elapsedSeconds = (System.nanoTime() - start) / 1e9
-            PrometheusMetrics.recordApiLatency(elapsedSeconds)
-            PrometheusMetrics.recordApiLatencyByEndpoint(elapsedSeconds, url)
           }
         }
       }
