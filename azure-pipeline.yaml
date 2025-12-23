@@ -25,4 +25,4 @@ stages:
       parameters:
         imageName: maib-obp-api
         buildDir: $(Build.SourcesDirectory)/Dockerfile
-        buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASSWORD)
+        # buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASSWORD)
