@@ -21,8 +21,21 @@ stages:
     displayName: Build (Docker)
     dependsOn:
     jobs:
-    - template: ci/jobs/build-docker-with-args.yml@templates
-      parameters:
-        imageName: maib-obp-api
-        buildDir: $(Build.SourcesDirectory)/Dockerfile
-        buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASSWORD)
+      - job: NexusLogin
+        displayName: Login to Nexus Docker Registry
+        steps:
+          - script: |
+              echo "$(NEXUS_PASSWORD)" | docker login registry.maib.md \
+                --username "$(NEXUS_USER)" \
+                --password-stdin
+            displayName: Docker login to registry.maib.md
+
+      - job: BuildDocker
+        displayName: Docker Build
+        dependsOn: NexusLogin
+        steps:
+          - template: ci/jobs/build-docker-with-args.yml@templates
+            parameters:
+              imageName: maib-obp-api
+              buildDir: $(Build.SourcesDirectory)/Dockerfile
+              buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASSWORD)
