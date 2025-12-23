@@ -22,7 +22,7 @@ RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl .,obp-commons -DskipTests -
 RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl obp-api -DskipTests -U -X
 
 # Финальный образ на базе Jetty
-FROM jetty:9.4-jdk11-alpine
+FROM registry.maib.md/jetty:9.4-jdk11-alpine
 
 # Копируем собранный WAR-файл
 COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
