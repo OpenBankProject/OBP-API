@@ -706,13 +706,11 @@ class Boot extends MdcLoggable {
         val isApiCall = maybeReq.exists { r =>
           val headLower = r.path.partPath.headOption.map(_.toLowerCase)
 
-          val apiPrefix         = ApiPathZero.stripPrefix("/").toLowerCase // обычно "obp"
-          val berlinPrefix      = "berlin-group"
-          val berlinPrefixSmall = "bg"
+          val berlinPrefix      = "/berlin-group/"
+          val berlinPrefixSmall = "/bg/"
 
           val isApiPrefix =
             headLower.exists { h =>
-              h == apiPrefix ||
                 h == berlinPrefix ||
                 h == berlinPrefixSmall
             }
