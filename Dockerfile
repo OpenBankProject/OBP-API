@@ -1,7 +1,7 @@
 FROM registry.maib.md/maven:3.9.6-eclipse-temurin-11 as maven
 
-ARG NUGET_MAIB_USER
-ARG NUGET_MAIB_PASS
+ARG NEXUS_USER
+ARG NEXUS_PASS
 
 # Устанавливаем необходимые пакеты
 USER root

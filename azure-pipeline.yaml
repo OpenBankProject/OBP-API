@@ -25,4 +25,4 @@ stages:
       parameters:
         imageName: maib-obp-api
         buildDir: $(Build.SourcesDirectory)/Dockerfile
-        buildArgs: --build-arg NUGET_MAIB_USR=$(NUGET_USER) --build-arg NUGET_MAIB_PASS=$(NUGET_PASS)
+        buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASS)
