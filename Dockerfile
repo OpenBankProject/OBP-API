@@ -5,6 +5,7 @@ ARG NEXUS_PASS
 
 # Устанавливаем необходимые пакеты
 USER root
+COPY settings.xml /root/.m2/settings.xml
 #RUN apt-get update && apt-get install -y scala curl git
 
 # Копируем исходный код проекта
