@@ -1,8 +1,11 @@
-FROM maven:3.9.6-eclipse-temurin-11 as maven
+FROM registry.maib.md/maven:3.9.6-eclipse-temurin-11 as maven
+
+ARG NEXUS_USER
+ARG NEXUS_PASS
 
 # Устанавливаем необходимые пакеты
 USER root
-RUN apt-get update && apt-get install -y scala curl git
+#RUN apt-get update && apt-get install -y scala curl git
 
 # Копируем исходный код проекта
 COPY . /usr/src/OBP-API
@@ -22,7 +25,7 @@ RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl .,obp-commons -DskipTests -
 RUN MAVEN_OPTS="-Xmx4G -Xss4m" mvn clean install -pl obp-api -DskipTests -U -X
 
 # Финальный образ на базе Jetty
-FROM jetty:9.4-jdk11-alpine
+FROM registry.maib.md/jetty:9.4-jdk11-alpine
 
 # Копируем собранный WAR-файл
 COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war

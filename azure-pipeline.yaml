@@ -4,6 +4,9 @@ trigger:
   - main
   - master
 
+variables:
+- group: common
+
 resources:
   repositories:
     - repository: templates
@@ -18,7 +21,8 @@ stages:
     displayName: Build (Docker)
     dependsOn:
     jobs:
-    - template: ci/jobs/build-docker.yml@templates
+    - template: ci/jobs/build-docker-for-java.yaml@templates
       parameters:
         imageName: maib-obp-api
         buildDir: $(Build.SourcesDirectory)/Dockerfile
+        # buildArgs: --build-arg NEXUS_USER=$(NEXUS_USER) --build-arg NEXUS_PASS=$(NEXUS_PASSWORD)
