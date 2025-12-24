@@ -21,7 +21,7 @@ stages:
     displayName: Build (Docker)
     dependsOn:
     jobs:
-    - template: ci/jobs/build-docker-for-java.yaml@templates
+    - template: ci/jobs/build-docker-with-args.yml@templates
       parameters:
         imageName: maib-obp-api
         buildDir: $(Build.SourcesDirectory)/Dockerfile
