@@ -5,7 +5,7 @@
         <server>
             <id>nexus</id>
             <username>${env.NEXUS_USER}</username>
-            <password>${env.NEXUS_PASSWORD}</password>
+            <password>${env.NEXUS_PASS}</password>
         </server>
     </servers>
 
