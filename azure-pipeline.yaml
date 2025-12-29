@@ -42,7 +42,7 @@ stages:
             displayName: Build - Image
             env:
               NEXUS_USER: $(NEXUS_USER)
-              NEXUS_PASSWORD: $(NEXUS_PASSWORD)
+              NEXUS_PASS: $(NEXUS_PASS)
 
           - task: CmdLine@2
             condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
