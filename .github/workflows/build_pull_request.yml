@@ -74,6 +74,28 @@ jobs:
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
 
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          if-no-files-found: ignore
+          path: |
+            obp-api/target/surefire-reports/**
+            obp-commons/target/surefire-reports/**
+
+      - name: Test report summary
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: ScalaTest
+          path: |
+            obp-api/target/surefire-reports/*.xml
+            obp-commons/target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
+          fail-on-empty: false
+
       - name: Save .war artifact
         run: |
           mkdir -p ./pull
