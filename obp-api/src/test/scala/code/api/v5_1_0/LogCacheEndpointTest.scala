@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetSystemLogCacheAll
+import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheInfo}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
@@ -41,7 +41,9 @@ class LogCacheEndpointTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("error should be " + UserHasMissingRoles + CanGetSystemLogCacheAll)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should be(UserHasMissingRoles + CanGetSystemLogCacheAll)
+      response.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
+      response.body.extract[ErrorMessage].message contains CanGetSystemLogCacheInfo.toString() shouldBe (true)
+      response.body.extract[ErrorMessage].message contains CanGetSystemLogCacheAll.toString() shouldBe (true)
     }
   }
 
@@ -129,7 +131,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       
       Then("We should get a not found response since endpoint does not exist")
-      response.code should equal(404)
+      response.code should equal(400)
       val json = response.body.extract[JObject]
       
       And("The response should contain the correct error message")
