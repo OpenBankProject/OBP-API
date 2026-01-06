@@ -41,6 +41,7 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: |
+          set -o pipefail
           cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
@@ -76,7 +77,42 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
-          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
+          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod 2>&1 | tee maven-build.log
+
+      - name: Report failing tests (if any)
+        if: always()
+        run: |
+          echo "Checking build log for failing tests via grep..."
+          if [ ! -f maven-build.log ]; then
+            echo "No maven-build.log found; skipping failure scan."
+            exit 0
+          fi
+          if grep -n "\*\*\* FAILED \*\*\*" maven-build.log; then
+            echo "Failing tests detected above."
+            exit 1
+          else
+            echo "No failing tests detected in maven-build.log."
+          fi
+
+      - name: Upload Maven build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build-log
+          if-no-files-found: ignore
+          path: |
+            maven-build.log
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          if-no-files-found: ignore
+          path: |
+            obp-api/target/surefire-reports/**
+            obp-commons/target/surefire-reports/**
+            **/target/scalatest-reports/**
 
       - name: Save .war artifact
         run: |

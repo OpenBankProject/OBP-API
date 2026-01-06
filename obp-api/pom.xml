@@ -584,8 +584,11 @@
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
             <forkMode>once</forkMode>
-            <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
+            <arguments>
+              <argument>-h</argument>
+              <argument>${project.build.directory}/scalatest-html</argument>
+            </arguments>
             <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=512m -Xms512m -Xmx512m --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
             <tagsToExclude>code.external</tagsToExclude>
         </configuration>
