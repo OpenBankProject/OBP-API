@@ -76,7 +76,15 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
-          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
+          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod | tee mvn.log
+          echo "========== FAILED markers =========="
+          grep -n -E "\*\*\* FAILED \*\*\*|=> FAIL|^\[error\].*(FAILED|Error)|AssertionError|Exception in thread|Caused by:" mvn.log || true
+          
+          echo "========== ScalaTest FAILED blocks (with context) =========="
+          grep -n -B 3 -A 20 "\*\*\* FAILED \*\*\*" mvn.log || true
+          
+          echo "========== sbt-style [error] blocks (with context) =========="
+          grep -n -B 2 -A 20 "^\[error\]" mvn.log || true
 
       - name: Save .war artifact
         run: |
