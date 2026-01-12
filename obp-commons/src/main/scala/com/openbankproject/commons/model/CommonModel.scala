@@ -1127,9 +1127,7 @@ case class TransactionRequest (
 
 case class TransactionRequestBGV1(
   id: TransactionRequestId,
-  status: String,
-  errorCode: Option[String] = None,
-  backendMessage: Option[String] = None
+  status: String
 )
 
 case class InstantPaymentInformation(

@@ -272,6 +272,28 @@ trait Connector extends MdcLoggable {
     (boxedResult, callContext)
   }
 
+  protected def convertToTupleSimple[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
+    val boxedResult = inbound match {
+      case Full(in) if (in.status.hasNoError) => Full(in.data)
+      case Full(inbound) if (inbound.status.hasError) => {
+        // Извлекаем только errorCode и backendMessages
+        val errorCode: Int = try {
+          inbound.status.errorCode.toInt
+        } catch {
+          case _: Throwable => 400
+        }
+        val errorMessage = inbound.status.backendMessages.mkString(", ")
+
+        val simplifiedErrorMessage = s"$errorCode: $errorMessage"
+
+        ParamFailure(simplifiedErrorMessage, Empty, Empty, APIFailure(simplifiedErrorMessage, errorCode))
+      }
+      case failureOrEmpty: Failure => failureOrEmpty
+    }
+
+    (boxedResult, callContext)
+  }
+
 
   private def setUnimplementedError(methodName:String) : String = {
     NotImplemented + methodName + s" Please check `Get Message Docs`endpoint and implement the process `obp.$methodName` in Adapter side."
