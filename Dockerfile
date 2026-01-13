@@ -2,6 +2,9 @@ FROM registry.maib.md/maven:3.9.6-eclipse-temurin-11 as maven
 
 ARG NEXUS_USER
 ARG NEXUS_PASS
+ENV NEXUS_USER=$NEXUS_USER
+ENV NEXUS_PASS=$NEXUS_PASS
+
 
 # Устанавливаем необходимые пакеты
 USER root
