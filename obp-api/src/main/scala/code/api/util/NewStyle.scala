@@ -1096,7 +1096,7 @@ object NewStyle extends MdcLoggable{
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
       response map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+        (unboxFullOrFailSimple(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
       }
     }
 

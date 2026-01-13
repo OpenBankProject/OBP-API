@@ -3270,6 +3270,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  def unboxFullOrFailSimple[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): T = {
+    unboxFull {
+      fullBoxOrExceptionSimple(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
+    }
+  }
+
   def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
     unboxFullOrFail(box, cc, s"$InvalidConnectorResponse ${nameOf(connectorEmptyResponse _)}" , 400)
   }
@@ -3465,6 +3471,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         throw new Exception(failuresMsg)
       case _ =>
         throw new Exception(UnknownError)
+    }
+  }
+  def fullBoxOrExceptionSimple[T](box: Box[T]) : Box[T] = {
+    box match {
+      case Full(v) => Full(v)  // Просто передаем данные, если ошибок нет
+      case Empty =>
+        throw new Exception("Empty Box not allowed")  // Обрабатываем случай пустого Box
+      case obj1@ParamFailure(m, e, c, af: APIFailureNewStyle) =>
+        // Формируем ошибку с упрощенным сообщением
+        val failuresMsg = af.failMsg
+        throw new Exception(failuresMsg)  // Возвращаем только failMsg из APIFailureNewStyle
+      case ParamFailure(_, _, _, failure: APIFailure) =>
+        val failureMsg = failure.msg
+        throw new Exception(failureMsg)  // Формируем исключение с сообщением ошибки
+      case ParamFailure(msg, _, _, _) =>
+        throw new Exception(msg)  // В случае невалидной ошибки
+      case obj@Failure(_, _, _) =>
+        val failuresMsg = filterMessage(obj)  // Отфильтровываем ошибку
+        throw new Exception(failuresMsg)  // Выбрасываем ошибку с сообщением
+      case _ =>
+        throw new Exception(UnknownError)  // Если ошибка неизвестного типа
     }
   }
 
