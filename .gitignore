@@ -1,3 +1,4 @@
+.github/*
 *.class
 *.db
 .DS_Store
