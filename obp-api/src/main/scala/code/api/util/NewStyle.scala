@@ -1097,7 +1097,7 @@ object NewStyle extends MdcLoggable{
 
       response map { i =>
         //(unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
-        (unboxFullOrFail(i._1, callContext, "", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, null, 400), i._2)
 
       }
     }
