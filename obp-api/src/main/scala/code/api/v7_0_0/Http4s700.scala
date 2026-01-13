@@ -18,6 +18,7 @@ import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import org.http4s._
 import org.http4s.dsl.io._
+import org.http4s.headers._
 import org.typelevel.vault.Key
 
 import scala.collection.mutable.ArrayBuffer
@@ -54,6 +55,7 @@ object Http4s700 {
 
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
+    private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
 
     resourceDocs += ResourceDoc(
@@ -88,7 +90,7 @@ object Http4s700 {
               JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello, ${callContext.userId}! Your request ID is ${callContext.requestId}.")
             )
           }
-        )))
+        ))).map(_.withContentType(jsonContentType))
     }
 
     resourceDocs += ResourceDoc(
@@ -123,7 +125,7 @@ object Http4s700 {
           } yield {
             convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
           }
-        )))
+        ))).map(_.withContentType(jsonContentType))
     }
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -143,7 +145,7 @@ object Http4s700 {
           filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
           resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
         } yield convertAnyToJsonString(resourceDocsJson)
-        Ok(IO.fromFuture(IO(logic)))
+        Ok(IO.fromFuture(IO(logic))).map(_.withContentType(jsonContentType))
     }
 
     // All routes combined
