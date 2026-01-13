@@ -3264,23 +3264,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
   }
 
-  def unboxFullOrFail[T](
-                          box: Box[T],
-                          cc: Option[CallContext],
-                          emptyBoxErrorMsg: String = "",
-                          emptyBoxErrorCode: Int = 400
-                        )(implicit m: Manifest[T]): T = {
-    val processedBox =
-      if (emptyBoxErrorMsg.nonEmpty)
-        box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight))
-      else
-        box
-
+  def unboxFullOrFail[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): T = {
     unboxFull {
-      fullBoxOrException(processedBox)
+      fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
-
 
   def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
     unboxFullOrFail(box, cc, s"$InvalidConnectorResponse ${nameOf(connectorEmptyResponse _)}" , 400)
@@ -3426,21 +3414,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (x.msg != null) true else { logger.info("Failure: " + obj); false }
     }
 
-    // Remove duplicated content, because in the process of box, the FailBox will be wrapped may multiple times, and message is same.
     getPropsAsBoolValue("display_internal_errors", false) match {
-      case true => // Show all error in a chain
+      case true =>
         obj.rootExceptionCause match {
-          case Full(cause) => obj.messageChain.split(" <- ").distinct.mkString(" <- ") + " <- " + cause
-          case _ => obj.messageChain.split(" <- ").distinct.mkString(" <- ")
+          case Full(cause) =>
+            val chain = obj.messageChain.split(" <- ").distinct.filter(_.nonEmpty)
+            if (chain.isEmpty) cause.getMessage
+            else chain.mkString(" <- ") + " <- " + cause.getMessage
+          case _ =>
+            obj.messageChain.split(" <- ").distinct.filter(_.nonEmpty).mkString(" <- ")
         }
-      case false => // Do not display internal errors
+      case false =>
         val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
-          case _ => obpFailures.map(_.msg).distinct.mkString(" <- ")
+          case _ =>
+            val msgs = obpFailures.map(_.msg).distinct.filter(_.nonEmpty)
+            msgs.mkString(" <- ")
         }
     }
-
   }
 
   /**
