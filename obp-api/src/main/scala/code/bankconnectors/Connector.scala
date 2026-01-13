@@ -282,11 +282,13 @@ trait Connector extends MdcLoggable {
         } catch {
           case _: Throwable => 400
         }
-        val errorMessage = inbound.status.backendMessages.mkString(", ")
+        // Получаем первый элемент из backendMessages и извлекаем его поле text
+        val firstErrorMessage = inbound.status.backendMessages.headOption.map(_.text).getOrElse("No error message available")
 
+        val errorMessage = inbound.status.backendMessages.mkString(", ")
         val simplifiedErrorMessage = s"$errorCode: $errorMessage"
 
-        ParamFailure(simplifiedErrorMessage, Empty, Empty, APIFailure(simplifiedErrorMessage, errorCode))
+        ParamFailure(firstErrorMessage, Empty, Empty, APIFailure(firstErrorMessage, errorCode))
       }
       case failureOrEmpty: Failure => failureOrEmpty
     }
