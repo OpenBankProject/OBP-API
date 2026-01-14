@@ -1096,9 +1096,7 @@ object NewStyle extends MdcLoggable{
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
       response map { i =>
-        //(unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
         (unboxFullOrFail(i._1, callContext, "", 400), i._2)
-
       }
     }
 
@@ -1120,7 +1118,7 @@ object NewStyle extends MdcLoggable{
       }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
 
       response map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, "", 400), i._2)
       }
     }
 
@@ -1129,21 +1127,15 @@ object NewStyle extends MdcLoggable{
                                             callContext: Option[CallContext]
                                           ): OBPReturnType[InstantPaymentInformation] = {
 
-      // Получаем ответ от коннектора
       val response = Connector.connector.vend.getInstantPaymentInformationMdV1(
         paymentId = paymentId,
         callContext = callContext
       )
-
-      // Обрабатываем ответ
       response map { i =>
-        // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
-        val instantPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetInstantPaymentInformation", 400)
-
+        val instantPaymentInformation = unboxFullOrFail(i._1, callContext, "", 400)
         val normalized = instantPaymentInformation.copy(
           debtorAccount = Some(instantPaymentInformation.debtorAccount.getOrElse(PaymentAccount(null)))
         )
-
         (normalized, i._2)
       }
     }
@@ -1153,21 +1145,16 @@ object NewStyle extends MdcLoggable{
                                             callContext: Option[CallContext]
                                           ): OBPReturnType[DomesticPaymentInformationResponse] = {
 
-      // Получаем ответ от коннектора
       val response = Connector.connector.vend.getDomesticPaymentInformationMdV1(
         paymentId = paymentId,
         callContext = callContext
       )
 
-      // Обрабатываем ответ
       response map { i =>
-        // Проверяем ответ от коннектора, чтобы убедиться, что он валиден
-        val domesticPaymentInformation = unboxFullOrFail(i._1, callContext, s"InvalidConnectorResponseForGetDomesticPaymentInformation", 400)
-
+        val domesticPaymentInformation = unboxFullOrFail(i._1, callContext, "", 400)
         val normalized = domesticPaymentInformation.copy(
           debtorAccount = Some(domesticPaymentInformation.debtorAccount.getOrElse(PaymentAccount(null)))
         )
-
         (normalized, i._2)
       }
     }

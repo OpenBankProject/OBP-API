@@ -272,7 +272,7 @@ trait Connector extends MdcLoggable {
     (boxedResult, callContext)
   }
 
-  protected def convertToTupleSimple[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
+  protected def convertToTupleFirstError[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {
     val boxedResult = inbound match {
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) => {
