@@ -586,15 +586,9 @@
             <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <!-- Increased memory for faster test execution -->
-            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1G -Xms2G -Xmx4G -XX:+UseG1GC -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseStringDeduplication --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
+            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=512m -Xms512m -Xmx512m --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
             <tagsToExclude>code.external</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
-            <!-- Disable parallel test execution to avoid shared database state issues -->
-            <!-- Tests share an in-memory H2 database which causes conflicts when run in parallel -->
-<!--            <parallel>true</parallel>-->
-<!--            <threadCount>4</threadCount>-->
-            <parallel>false</parallel>
         </configuration>
         <executions>
           <execution>
