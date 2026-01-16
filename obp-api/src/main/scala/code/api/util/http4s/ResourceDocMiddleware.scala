@@ -85,8 +85,12 @@ object ResourceDocMiddleware {
     import com.openbankproject.commons.ExecutionContext.Implicits.global
     
     // Step 1: Authentication
+    val needsAuth = needsAuthentication(resourceDoc)
+    println(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
+    println(s"[ResourceDocMiddleware] errorResponseBodies: ${resourceDoc.errorResponseBodies}")
+    
     val authResult: IO[Either[Response[IO], (Box[User], SharedCallContext)]] = 
-      if (needsAuthentication(resourceDoc)) {
+      if (needsAuth) {
         IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.flatMap {
           case Right((boxUser, optCC)) => 
             val updatedCC = optCC.getOrElse(cc)
@@ -116,10 +120,20 @@ object ResourceDocMiddleware {
             ErrorResponseConverter.createErrorResponse(code, msg, cc).map(Left(_))
         }
       } else {
-        IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.map {
-          case Right((boxUser, Some(updatedCC))) => Right((boxUser, updatedCC))
-          case Right((boxUser, None)) => Right((boxUser, cc))
-          case Left(_) => Right((Empty, cc))
+        // Anonymous access - no authentication required
+        // Still call anonymousAccess for rate limiting and other checks, but don't fail on auth errors
+        IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.flatMap {
+          case Right((boxUser, Some(updatedCC))) => 
+            println(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser")
+            IO.pure(Right((boxUser, updatedCC)))
+          case Right((boxUser, None)) => 
+            println(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser (no updated CC)")
+            IO.pure(Right((boxUser, cc)))
+          case Left(e) => 
+            // For anonymous access, we don't fail on auth errors - just continue with Empty user
+            // This allows endpoints without $UserNotLoggedIn to work without authentication
+            println(s"[ResourceDocMiddleware] anonymousAccess threw exception (ignoring for anonymous): ${e.getClass.getName}: ${e.getMessage.take(100)}")
+            IO.pure(Right((Empty, cc)))
         }
       }
 
