@@ -673,26 +673,15 @@
           <version>4.8.1</version>
           <configuration>
             <fork>true</fork>
-            <recompileMode>incremental</recompileMode>
-            <useZincServer>true</useZincServer>
             <jvmArgs>
               <jvmArg>-Xms4G</jvmArg>
               <jvmArg>-Xmx12G</jvmArg>
-              <jvmArg>-Xss4m</jvmArg>
               <jvmArg>-XX:MaxMetaspaceSize=4G</jvmArg>
               <jvmArg>-XX:+UseG1GC</jvmArg>
-              <jvmArg>-XX:+TieredCompilation</jvmArg>
-              <jvmArg>-XX:TieredStopAtLevel=1</jvmArg>
             </jvmArgs>
             <args>
               <arg>-deprecation</arg>
               <arg>-feature</arg>
-              <!-- Enable language features to suppress warnings -->
-              <arg>-language:implicitConversions</arg>
-              <arg>-language:reflectiveCalls</arg>
-              <arg>-language:postfixOps</arg>
-              <!-- Suppress auto-application deprecation warning -->
-              <arg>-Wconf:cat=deprecation&amp;msg=auto-application:s</arg>
             </args>
           </configuration>
         </plugin>
