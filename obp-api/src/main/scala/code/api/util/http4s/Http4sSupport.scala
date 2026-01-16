@@ -202,6 +202,9 @@ object Http4sCallContextBuilder {
  */
 object ResourceDocMatcher {
   
+  // API prefix pattern: /obp/vX.X.X
+  private val apiPrefixPattern = """^/obp/v\d+\.\d+\.\d+""".r
+  
   /**
    * Find ResourceDoc matching the given verb and path
    * 
@@ -216,8 +219,10 @@ object ResourceDocMatcher {
     resourceDocs: ArrayBuffer[ResourceDoc]
   ): Option[ResourceDoc] = {
     val pathString = path.renderString
+    // Strip the API prefix (/obp/vX.X.X) from the path for matching
+    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
     resourceDocs.find { doc =>
-      doc.requestVerb.equalsIgnoreCase(verb) && matchesUrlTemplate(pathString, doc.requestUrl)
+      doc.requestVerb.equalsIgnoreCase(verb) && matchesUrlTemplate(strippedPath, doc.requestUrl)
     }
   }
   
@@ -258,7 +263,9 @@ object ResourceDocMatcher {
     resourceDoc: ResourceDoc
   ): Map[String, String] = {
     val pathString = path.renderString
-    val pathSegments = pathString.split("/").filter(_.nonEmpty)
+    // Strip the API prefix (/obp/vX.X.X) from the path for matching
+    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
+    val pathSegments = strippedPath.split("/").filter(_.nonEmpty)
     val templateSegments = resourceDoc.requestUrl.split("/").filter(_.nonEmpty)
     
     if (pathSegments.length != templateSegments.length) {

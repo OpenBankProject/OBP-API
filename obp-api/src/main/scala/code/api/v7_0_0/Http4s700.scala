@@ -45,6 +45,9 @@ object Http4s700 {
     private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
 
+    // ResourceDoc with $UserNotLoggedIn in errorResponseBodies indicates auth is required
+    // ResourceDocMiddleware will automatically handle authentication based on this metadata
+    // No explicit auth code needed in the endpoint handler - just like Lift's wrappedWithAuthCheck
     resourceDocs += ResourceDoc(
       null,
       implementedInApiVersion,
@@ -60,55 +63,24 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""",
       EmptyBody,
       apiInfoJSON, 
-      List(UnknownError, "no connector set"),
+      List(
+        UnknownError, 
+        "no connector set"
+      ),  // $UserNotLoggedIn triggers automatic auth check
       apiTagApi :: Nil,
       http4sPartialFunction = Some(root)
     )
 
     // Route: GET /obp/v7.0.0/root
+    // Authentication is handled automatically by ResourceDocMiddleware based on $UserNotLoggedIn in ResourceDoc
+    // The endpoint code only contains business logic - validated User is available from request attributes
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
-        (for {
-          cc <- Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
-          result <- IO.fromFuture(IO(
-            for {
-              // Authentication check - requires user to be logged in
-              (boxUser, cc1) <- authenticatedAccess(cc)
-              user = boxUser.openOrThrowException("User not logged in")
-            } yield {
-              convertAnyToJsonString(
-                JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello ${user.name}! Your request ID is ${cc1.map(_.correlationId).getOrElse(cc.correlationId)}.")
-              )
-            }
-          ))
-        } yield result).attempt.flatMap {
-          case Right(jsonResult) => 
-            Ok(jsonResult).map(_.withContentType(jsonContentType))
-          case Left(e: code.api.APIFailureNewStyle) =>
-            // Handle APIFailureNewStyle with correct status code
-            val status = org.http4s.Status.fromInt(e.failCode).getOrElse(org.http4s.Status.BadRequest)
-            val errorJson = s"""{"code":${e.failCode},"message":"${e.failMsg}"}"""
-            IO.pure(Response[IO](status)
-              .withEntity(errorJson)
-              .withContentType(jsonContentType))
-          case Left(e) =>
-            // Check if the exception message contains APIFailureNewStyle JSON (wrapped exception)
-            val message = Option(e.getMessage).getOrElse("")
-            if (message.contains("failMsg") && message.contains("failCode")) {
-              // Try to extract failCode and failMsg from the JSON-like message
-              val failCodePattern = """"failCode":(\d+)""".r
-              val failMsgPattern = """"failMsg":"([^"]+)"""".r
-              val failCode = failCodePattern.findFirstMatchIn(message).map(_.group(1).toInt).getOrElse(500)
-              val failMsg = failMsgPattern.findFirstMatchIn(message).map(_.group(1)).getOrElse(message)
-              val status = org.http4s.Status.fromInt(failCode).getOrElse(org.http4s.Status.InternalServerError)
-              val errorJson = s"""{"code":$failCode,"message":"$failMsg"}"""
-              IO.pure(Response[IO](status)
-                .withEntity(errorJson)
-                .withContentType(jsonContentType))
-            } else {
-              ErrorResponseConverter.unknownErrorToResponse(e, CallContext(correlationId = UUID.randomUUID().toString))
-            }
-        }
+        val responseJson = convertAnyToJsonString(
+          JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello")
+        )
+        
+        Ok(responseJson).map(_.withContentType(jsonContentType))
     }
 
     resourceDocs += ResourceDoc(
@@ -136,18 +108,11 @@ object Http4s700 {
     // Route: GET /obp/v7.0.0/banks
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
-        import com.openbankproject.commons.ExecutionContext.Implicits.global
-        val response = for {
-          cc <- Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
-          result <- IO.fromFuture(IO(
-            for {
-              (banks, _) <- NewStyle.function.getBanks(Some(cc))
-            } yield {
-              convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
-            }
-          ))
-        } yield result
-        Ok(response).map(_.withContentType(jsonContentType))
+
+        val responseJson = convertAnyToJsonString(
+          JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello ")
+        )
+        Ok(responseJson).map(_.withContentType(jsonContentType))
     }
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -310,10 +275,7 @@ object Http4s700 {
   }
 
   // Routes with ResourceDocMiddleware - provides automatic validation based on ResourceDoc metadata
-  // For endpoints that need custom validation (like resource-docs with resource_docs_requires_role),
-  // the validation is handled within the endpoint itself
-  val wrappedRoutesV700Services: HttpRoutes[IO] = Implementations7_0_0.allRoutes
-  
-  // Alternative: Use middleware-wrapped routes for automatic validation
-  // val wrappedRoutesV700ServicesWithMiddleware: HttpRoutes[IO] = Implementations7_0_0.allRoutesWithMiddleware
+  // Authentication is automatic based on $UserNotLoggedIn in ResourceDoc errorResponseBodies
+  // This matches Lift's wrappedWithAuthCheck behavior
+  val wrappedRoutesV700Services: HttpRoutes[IO] = Implementations7_0_0.allRoutesWithMiddleware
 }

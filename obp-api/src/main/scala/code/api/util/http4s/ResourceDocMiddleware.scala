@@ -43,13 +43,10 @@ object ResourceDocMiddleware {
   
   /**
    * Create middleware that applies ResourceDoc-driven validation
-   * 
-   * @param resourceDocs Collection of ResourceDoc entries for matching
-   * @return Middleware that wraps routes with validation
    */
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): Middleware[IO] = { routes =>
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      OptionT.liftF(validateAndRoute(req, routes, resourceDocs))
+      OptionT(validateAndRoute(req, routes, resourceDocs).map(Option(_)))
     }
   }
   
@@ -62,26 +59,15 @@ object ResourceDocMiddleware {
     resourceDocs: ArrayBuffer[ResourceDoc]
   ): IO[Response[IO]] = {
     for {
-      // Build CallContext from request
       cc <- Http4sCallContextBuilder.fromRequest(req, "v7.0.0")
-      
-      // Match ResourceDoc
       resourceDocOpt = ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocs)
-      
       response <- resourceDocOpt match {
         case Some(resourceDoc) =>
-          // Attach ResourceDoc to CallContext for metrics/rate limiting
           val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
           val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-          
-          // Run validation chain
           runValidationChain(req, resourceDoc, ccWithDoc, pathParams, routes)
-          
         case None =>
-          // No matching ResourceDoc - pass through to routes
-          routes.run(req).getOrElseF(
-            IO.pure(Response[IO](org.http4s.Status.NotFound))
-          )
+          routes.run(req).getOrElseF(IO.pure(Response[IO](org.http4s.Status.NotFound)))
       }
     } yield response
   }
@@ -101,17 +87,33 @@ object ResourceDocMiddleware {
     // Step 1: Authentication
     val authResult: IO[Either[Response[IO], (Box[User], SharedCallContext)]] = 
       if (needsAuthentication(resourceDoc)) {
-        IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.map {
-          case Right((boxUser, Some(updatedCC))) => 
+        IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.flatMap {
+          case Right((boxUser, optCC)) => 
+            val updatedCC = optCC.getOrElse(cc)
             boxUser match {
-              case Full(_) => Right((boxUser, updatedCC))
-              case Empty => Left(Response[IO](org.http4s.Status.Unauthorized))
-              case LiftFailure(_, _, _) => Left(Response[IO](org.http4s.Status.Unauthorized))
+              case Full(user) => 
+                IO.pure(Right((boxUser, updatedCC)))
+              case Empty => 
+                ErrorResponseConverter.createErrorResponse(401, $UserNotLoggedIn, updatedCC).map(Left(_))
+              case LiftFailure(msg, _, _) => 
+                ErrorResponseConverter.createErrorResponse(401, msg, updatedCC).map(Left(_))
             }
-          case Right((boxUser, None)) => Right((boxUser, cc))
           case Left(e: APIFailureNewStyle) => 
-            Left(Response[IO](org.http4s.Status.fromInt(e.failCode).getOrElse(org.http4s.Status.Unauthorized)))
-          case Left(_) => Left(Response[IO](org.http4s.Status.Unauthorized))
+            ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, cc).map(Left(_))
+          case Left(e) => 
+            // authenticatedAccess throws Exception with JSON message containing APIFailureNewStyle
+            // Try to parse the JSON to extract failCode and failMsg
+            val (code, msg) = try {
+              import net.liftweb.json._
+              implicit val formats = net.liftweb.json.DefaultFormats
+              val json = parse(e.getMessage)
+              val failCode = (json \ "failCode").extractOpt[Int].getOrElse(401)
+              val failMsg = (json \ "failMsg").extractOpt[String].getOrElse($UserNotLoggedIn)
+              (failCode, failMsg)
+            } catch {
+              case _: Exception => (401, $UserNotLoggedIn)
+            }
+            ErrorResponseConverter.createErrorResponse(code, msg, cc).map(Left(_))
         }
       } else {
         IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.map {
@@ -120,6 +122,7 @@ object ResourceDocMiddleware {
           case Left(_) => Right((Empty, cc))
         }
       }
+
     
     authResult.flatMap {
       case Left(errorResponse) => IO.pure(errorResponse)
@@ -128,12 +131,13 @@ object ResourceDocMiddleware {
         val bankResult: IO[Either[Response[IO], (Option[Bank], SharedCallContext)]] = 
           pathParams.get("BANK_ID") match {
             case Some(bankIdStr) =>
-              IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankIdStr), Some(cc1)))).attempt.map {
-                case Right((bank, Some(updatedCC))) => Right((Some(bank), updatedCC))
-                case Right((bank, None)) => Right((Some(bank), cc1))
-                case Left(_: APIFailureNewStyle) => 
-                  Left(Response[IO](org.http4s.Status.NotFound))
-                case Left(_) => Left(Response[IO](org.http4s.Status.NotFound))
+              IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankIdStr), Some(cc1)))).attempt.flatMap {
+                case Right((bank, Some(updatedCC))) => IO.pure(Right((Some(bank), updatedCC)))
+                case Right((bank, None)) => IO.pure(Right((Some(bank), cc1)))
+                case Left(e: APIFailureNewStyle) => 
+                  ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, cc1).map(Left(_))
+                case Left(e) => 
+                  ErrorResponseConverter.createErrorResponse(404, BankNotFound + ": " + bankIdStr, cc1).map(Left(_))
               }
             case None => IO.pure(Right((None, cc1)))
           }
@@ -147,18 +151,12 @@ object ResourceDocMiddleware {
                 case Some(roles) if roles.nonEmpty && boxUser.isDefined =>
                   val userId = boxUser.map(_.userId).getOrElse("")
                   val bankId = bankOpt.map(_.bankId.value).getOrElse("")
-                  
-                  // Check if user has at least one of the required roles
                   val hasRole = roles.exists { role =>
                     val checkBankId = if (role.requiresBankId) bankId else ""
                     APIUtil.hasEntitlement(checkBankId, userId, role)
                   }
-                  
-                  if (hasRole) {
-                    IO.pure(Right(cc2))
-                  } else {
-                    IO.pure(Left(Response[IO](org.http4s.Status.Forbidden)))
-                  }
+                  if (hasRole) IO.pure(Right(cc2)) 
+                  else ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), cc2).map(Left(_))
                 case _ => IO.pure(Right(cc2))
               }
             
@@ -169,15 +167,17 @@ object ResourceDocMiddleware {
                 val accountResult: IO[Either[Response[IO], (Option[BankAccount], SharedCallContext)]] = 
                   (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
                     case (Some(bankIdStr), Some(accountIdStr)) =>
-                      IO.fromFuture(IO(
-                        NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc3))
-                      )).attempt.map {
-                        case Right((account, Some(updatedCC))) => Right((Some(account), updatedCC))
-                        case Right((account, None)) => Right((Some(account), cc3))
-                        case Left(_) => Left(Response[IO](org.http4s.Status.NotFound))
+                      IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc3)))).attempt.flatMap {
+                        case Right((account, Some(updatedCC))) => IO.pure(Right((Some(account), updatedCC)))
+                        case Right((account, None)) => IO.pure(Right((Some(account), cc3)))
+                        case Left(e: APIFailureNewStyle) => 
+                          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, cc3).map(Left(_))
+                        case Left(e) => 
+                          ErrorResponseConverter.createErrorResponse(404, BankAccountNotFound + s": bankId=$bankIdStr, accountId=$accountIdStr", cc3).map(Left(_))
                       }
                     case _ => IO.pure(Right((None, cc3)))
                   }
+
                 
                 accountResult.flatMap {
                   case Left(errorResponse) => IO.pure(errorResponse)
@@ -187,16 +187,12 @@ object ResourceDocMiddleware {
                       (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
                         case (Some(bankIdStr), Some(accountIdStr), Some(viewIdStr)) =>
                           val bankIdAccountId = BankIdAccountId(BankId(bankIdStr), AccountId(accountIdStr))
-                          IO.fromFuture(IO(
-                            ViewNewStyle.checkViewAccessAndReturnView(
-                              ViewId(viewIdStr), 
-                              bankIdAccountId, 
-                              boxUser.toOption, 
-                              Some(cc4)
-                            )
-                          )).attempt.map {
-                            case Right(view) => Right((Some(view), cc4))
-                            case Left(_) => Left(Response[IO](org.http4s.Status.Forbidden))
+                          IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewIdStr), bankIdAccountId, boxUser.toOption, Some(cc4)))).attempt.flatMap {
+                            case Right(view) => IO.pure(Right((Some(view), cc4)))
+                            case Left(e: APIFailureNewStyle) => 
+                              ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, cc4).map(Left(_))
+                            case Left(e) => 
+                              ErrorResponseConverter.createErrorResponse(403, UserNoPermissionAccessView + s": viewId=$viewIdStr", cc4).map(Left(_))
                           }
                         case _ => IO.pure(Right((None, cc4)))
                       }
@@ -207,9 +203,7 @@ object ResourceDocMiddleware {
                         // Step 6: Counterparty validation (if COUNTERPARTY_ID in path)
                         val counterpartyResult: IO[Either[Response[IO], (Option[CounterpartyTrait], SharedCallContext)]] = 
                           pathParams.get("COUNTERPARTY_ID") match {
-                            case Some(_) =>
-                              // For now, skip counterparty validation - can be added later
-                              IO.pure(Right((None, cc5)))
+                            case Some(_) => IO.pure(Right((None, cc5)))
                             case None => IO.pure(Right((None, cc5)))
                           }
                         
@@ -217,37 +211,13 @@ object ResourceDocMiddleware {
                           case Left(errorResponse) => IO.pure(errorResponse)
                           case Right((counterpartyOpt, finalCC)) =>
                             // All validations passed - store validated context and invoke route
-                            val validatedContext = ValidatedContext(
-                              user = boxUser.toOption,
-                              bank = bankOpt,
-                              bankAccount = accountOpt,
-                              view = viewOpt,
-                              counterparty = counterpartyOpt,
-                              callContext = finalCC
-                            )
-                            
-                            // Store validated objects in request attributes
                             var updatedReq = req.withAttribute(Http4sVaultKeys.callContextKey, finalCC)
-                            boxUser.toOption.foreach { user =>
-                              updatedReq = updatedReq.withAttribute(Http4sVaultKeys.userKey, user)
-                            }
-                            bankOpt.foreach { bank =>
-                              updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankKey, bank)
-                            }
-                            accountOpt.foreach { account =>
-                              updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankAccountKey, account)
-                            }
-                            viewOpt.foreach { view =>
-                              updatedReq = updatedReq.withAttribute(Http4sVaultKeys.viewKey, view)
-                            }
-                            counterpartyOpt.foreach { counterparty =>
-                              updatedReq = updatedReq.withAttribute(Http4sVaultKeys.counterpartyKey, counterparty)
-                            }
-                            
-                            // Invoke the original route
-                            routes.run(updatedReq).getOrElseF(
-                              IO.pure(Response[IO](org.http4s.Status.NotFound))
-                            )
+                            boxUser.toOption.foreach { user => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.userKey, user) }
+                            bankOpt.foreach { bank => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankKey, bank) }
+                            accountOpt.foreach { account => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankAccountKey, account) }
+                            viewOpt.foreach { view => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.viewKey, view) }
+                            counterpartyOpt.foreach { counterparty => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.counterpartyKey, counterparty) }
+                            routes.run(updatedReq).getOrElseF(IO.pure(Response[IO](org.http4s.Status.NotFound)))
                         }
                     }
                 }
