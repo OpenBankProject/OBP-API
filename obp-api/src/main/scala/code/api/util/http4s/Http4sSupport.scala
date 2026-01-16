@@ -149,22 +149,50 @@ object Http4sCallContextBuilder {
   
   /**
    * Extract DirectLogin header parameters if present
-   * DirectLogin header format: DirectLogin token="xxx"
+   * Supports two formats:
+   * 1. New format (2021): DirectLogin: token=xxx
+   * 2. Old format (deprecated): Authorization: DirectLogin token=xxx
    */
   private def extractDirectLoginParams(request: Request[IO]): Map[String, String] = {
+    // Try new format first: DirectLogin header
     request.headers.get(CIString("DirectLogin"))
       .map(h => parseDirectLoginHeader(h.head.value))
-      .getOrElse(Map.empty)
+      .getOrElse {
+        // Fall back to old format: Authorization: DirectLogin token=xxx
+        request.headers.get(CIString("Authorization"))
+          .filter(_.head.value.contains("DirectLogin"))
+          .map(h => parseDirectLoginHeader(h.head.value))
+          .getOrElse(Map.empty)
+      }
   }
   
   /**
    * Parse DirectLogin header value into parameter map
-   * Format: DirectLogin token="xxx", username="yyy"
+   * Matches Lift's parsing logic in directlogin.scala getAllParameters
+   * Supports formats:
+   * - DirectLogin token="xxx"
+   * - DirectLogin token=xxx
+   * - token="xxx", username="yyy"
    */
   private def parseDirectLoginHeader(headerValue: String): Map[String, String] = {
-    val pattern = """(\w+)="([^"]*)"""".r
-    pattern.findAllMatchIn(headerValue).map { m =>
-      m.group(1) -> m.group(2)
+    val directLoginPossibleParameters = List("consumer_key", "token", "username", "password")
+    
+    // Strip "DirectLogin" prefix and split by comma, then trim each part (matches Lift logic)
+    val cleanedParameterList = headerValue.stripPrefix("DirectLogin").split(",").map(_.trim).toList
+    
+    cleanedParameterList.flatMap { input =>
+      if (input.contains("=")) {
+        val split = input.split("=", 2)
+        val paramName = split(0).trim
+        // Remove surrounding quotes if present
+        val paramValue = split(1).replaceAll("^\"|\"$", "").trim
+        if (directLoginPossibleParameters.contains(paramName) && paramValue.nonEmpty)
+          Some(paramName -> paramValue)
+        else
+          None
+      } else {
+        None
+      }
     }.toMap
   }
   

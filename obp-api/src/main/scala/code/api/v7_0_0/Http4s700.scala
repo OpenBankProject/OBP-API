@@ -63,11 +63,11 @@ object Http4s700 {
       EmptyBody,
       apiInfoJSON, 
       List(
-        $UserNotLoggedIn,
         UnknownError, 
         "no connector set"
       ),
       apiTagApi :: Nil,
+      Some(List(code.api.util.ApiRole.canGetRateLimits)),
       http4sPartialFunction = Some(root)
     )
 
