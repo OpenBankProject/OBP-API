@@ -59,8 +59,7 @@ object Http4s700 {
         |
         |* API version
         |* Hosted by information
-        |* Git Commit
-        |${userAuthenticationMessage(false)}""",
+        |* Git Commit""",
       EmptyBody,
       apiInfoJSON, 
       List(
