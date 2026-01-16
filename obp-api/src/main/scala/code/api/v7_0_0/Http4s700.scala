@@ -10,6 +10,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole.canReadResourceDoc
+import code.api.util.http4s.{Http4sCallContextBuilder, Http4sVaultKeys, ResourceDocMiddleware, ErrorResponseConverter}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
 import com.github.dwickern.macros.NameOf.nameOf
