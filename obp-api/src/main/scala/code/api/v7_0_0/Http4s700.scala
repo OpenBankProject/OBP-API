@@ -64,6 +64,7 @@ object Http4s700 {
       EmptyBody,
       apiInfoJSON, 
       List(
+        $UserNotLoggedIn,
         UnknownError, 
         "no connector set"
       ),
