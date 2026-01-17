@@ -458,7 +458,7 @@ trait APIMethods220 {
       EmptyBody,
       messageDocsJson,
       List(InvalidConnector, UnknownError),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {

@@ -73,6 +73,7 @@ object ApiTag {
   val apiTagFx = ResourceDocTag("FX")
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("Metric")
+  val apiTagMessageDoc = ResourceDocTag("Message-Doc")
   val apiTagDocumentation = ResourceDocTag("Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")

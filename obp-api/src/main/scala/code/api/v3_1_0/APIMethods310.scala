@@ -3157,7 +3157,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(UnknownError),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {

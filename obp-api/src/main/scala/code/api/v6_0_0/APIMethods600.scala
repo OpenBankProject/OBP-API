@@ -6365,7 +6365,7 @@ trait APIMethods600 {
         InvalidConnector,
         UnknownError
       ),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocsJsonSchema: OBPEndpoint = {
