@@ -13,8 +13,10 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
+import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, RateLimitingUtil}
+import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v3_0_0.JSONFactory300
@@ -52,7 +54,8 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.UserAttributeType
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -5531,7 +5534,7 @@ trait APIMethods600 {
             validateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
               json.extract[ValidateAbacRuleJsonV600]
             }
-            _ <- NewStyle.function.tryons(s"Rule code must not be empty", 400, callContext) {
+            _ <- NewStyle.function.tryons(s"$AbacRuleCodeEmpty", 400, callContext) {
               validateJson.rule_code.trim.nonEmpty
             }
             validationResult <- Future {
@@ -5544,28 +5547,40 @@ trait APIMethods600 {
                 case Failure(errorMsg, _, _) =>
                   // Extract error details from the error message
                   val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "").replace("Failed to compile ABAC rule: ", "")
+
+                  // Determine the proper OBP error message and error type
+                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
+                    (AbacRuleTypeMismatch, "TypeError")
+                  } else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse")) {
+                    (AbacRuleSyntaxError, "SyntaxError")
+                  } else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member")) {
+                    (AbacRuleFieldReferenceError, "FieldReferenceError")
+                  } else if (cleanError.toLowerCase.contains("compilation failed") || cleanError.toLowerCase.contains("reflective compilation has failed")) {
+                    (AbacRuleCompilationFailed, "CompilationError")
+                  } else {
+                    (AbacRuleValidationFailed, "ValidationError")
+                  }
+
                   Full(ValidateAbacRuleFailureJsonV600(
                     valid = false,
                     error = cleanError,
-                    message = "Rule validation failed",
+                    message = obpErrorMessage,
                     details = ValidateAbacRuleErrorDetailsJsonV600(
-                      error_type = if (cleanError.toLowerCase.contains("syntax")) "SyntaxError"
-                                   else if (cleanError.toLowerCase.contains("type")) "TypeError"
-                                   else "CompilationError"
+                      error_type = errorType
                     )
                   ))
                 case Empty =>
                   Full(ValidateAbacRuleFailureJsonV600(
                     valid = false,
                     error = "Unknown validation error",
-                    message = "Rule validation failed",
+                    message = AbacRuleValidationFailed,
                     details = ValidateAbacRuleErrorDetailsJsonV600(
                       error_type = "UnknownError"
                     )
                   ))
               }
             } map {
-              unboxFullOrFail(_, callContext, "Validation failed", 400)
+              unboxFullOrFail(_, callContext, AbacRuleValidationFailed, 400)
             }
           } yield {
             (validationResult, HttpCode.`200`(callContext))
@@ -6290,6 +6305,102 @@ trait APIMethods600 {
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMessageDocsJsonSchema,
+      implementedInApiVersion,
+      nameOf(getMessageDocsJsonSchema),
+      "GET",
+      "/message-docs/CONNECTOR/json-schema",
+      "Get Message Docs as JSON Schema",
+      """Returns message documentation as JSON Schema format for code generation in any language.
+        |
+        |This endpoint provides machine-readable schemas instead of just examples, making it ideal for:
+        |- AI-powered code generation
+        |- Automatic adapter creation in multiple languages
+        |- Type-safe client generation with tools like quicktype
+        |
+        |**Supported Connectors:**
+        |- rabbitmq_vOct2024 - RabbitMQ connector message schemas
+        |- rest_vMar2019 - REST connector message schemas
+        |- akka_vDec2018 - Akka connector message schemas
+        |- kafka_vMay2019 - Kafka connector message schemas (if available)
+        |
+        |**Code Generation Examples:**
+        |
+        |Generate Scala code with Circe:
+        |```bash
+        |curl https://api.../message-docs/rabbitmq_vOct2024/json-schema > schemas.json
+        |quicktype -s schema schemas.json -o Messages.scala --framework circe
+        |```
+        |
+        |Generate Python code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.py --lang python
+        |```
+        |
+        |Generate TypeScript code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.ts --lang typescript
+        |```
+        |
+        |**Schema Structure:**
+        |Each message includes:
+        |- `process` - The connector method name (e.g., "obp.getAdapterInfo")
+        |- `description` - Human-readable description of what the message does
+        |- `outbound_schema` - JSON Schema for request messages (OBP-API -> Adapter)
+        |- `inbound_schema` - JSON Schema for response messages (Adapter -> OBP-API)
+        |
+        |All nested type definitions are included in the `definitions` section for reuse.
+        |
+        |**Authentication:**
+        |This endpoint is publicly accessible (no authentication required) to facilitate adapter development.
+        |
+        |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        InvalidConnector,
+        UnknownError
+      ),
+      List(apiTagDocumentation, apiTagApi)
+    )
+
+    lazy val getMessageDocsJsonSchema: OBPEndpoint = {
+      case "message-docs" :: connector :: "json-schema" :: Nil JsonGet _ => {
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            cacheKey = s"message-docs-json-schema-$connector"
+            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+            jsonSchema <- if (cacheValueFromRedis.isDefined) {
+              NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, callContext) {
+                json.parse(cacheValueFromRedis.get).asInstanceOf[JObject]
+              }
+            } else {
+              NewStyle.function.tryons(s"$UnknownError Cannot generate JSON Schema.", 400, callContext) {
+                val connectorObjectBox = tryo{Connector.getConnectorInstance(connector)}
+                val connectorObject = unboxFullOrFail(
+                  connectorObjectBox,
+                  callContext,
+                  s"$InvalidConnector Current input is: $connector. Valid connectors include: rabbitmq_vOct2024, rest_vMar2019, akka_vDec2018"
+                )
+                val schema = JsonSchemaGenerator.messageDocsToJsonSchema(
+                  connectorObject.messageDocs.toList,
+                  connector
+                )
+                val schemaString = json.compactRender(schema)
+                Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                schema
+              }
+            }
+          } yield {
+            (jsonSchema, HttpCode.`200`(callContext))
+          }
+        }
       }
     }
 
