@@ -5610,7 +5610,7 @@ trait APIMethods600 {
         result = true
       ),
       List(
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5640,21 +5640,19 @@ trait APIMethods600 {
             // userId: the target user being evaluated (defaults to authenticated user)
             effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
 
-            result <- Future {
-              val resultBox = AbacRuleEngine.executeRule(
-                ruleId = ruleId,
-                authenticatedUserId = effectiveAuthenticatedUserId,
-                onBehalfOfUserId = execJson.on_behalf_of_user_id,
-                userId = execJson.user_id,
-                callContext = callContext.getOrElse(cc),
-                bankId = execJson.bank_id,
-                accountId = execJson.account_id,
-                viewId = execJson.view_id,
-                transactionId = execJson.transaction_id,
-                transactionRequestId = execJson.transaction_request_id,
-                customerId = execJson.customer_id
-              )
-
+            result <- AbacRuleEngine.executeRule(
+              ruleId = ruleId,
+              authenticatedUserId = effectiveAuthenticatedUserId,
+              onBehalfOfUserId = execJson.on_behalf_of_user_id,
+              userId = execJson.user_id,
+              callContext = callContext.getOrElse(cc),
+              bankId = execJson.bank_id,
+              accountId = execJson.account_id,
+              viewId = execJson.view_id,
+              transactionId = execJson.transaction_id,
+              transactionRequestId = execJson.transaction_request_id,
+              customerId = execJson.customer_id
+            ).map { resultBox =>
               resultBox match {
                 case Full(allowed) =>
                   AbacRuleResultJsonV600(result = allowed)
@@ -5746,21 +5744,19 @@ trait APIMethods600 {
             // userId: the target user being evaluated (defaults to authenticated user)
             effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
 
-            result <- Future {
-              val resultBox = AbacRuleEngine.executeRulesByPolicy(
-                policy = policy,
-                authenticatedUserId = effectiveAuthenticatedUserId,
-                onBehalfOfUserId = execJson.on_behalf_of_user_id,
-                userId = execJson.user_id,
-                callContext = callContext.getOrElse(cc),
-                bankId = execJson.bank_id,
-                accountId = execJson.account_id,
-                viewId = execJson.view_id,
-                transactionId = execJson.transaction_id,
-                transactionRequestId = execJson.transaction_request_id,
-                customerId = execJson.customer_id
-              )
-
+            result <- AbacRuleEngine.executeRulesByPolicy(
+              policy = policy,
+              authenticatedUserId = effectiveAuthenticatedUserId,
+              onBehalfOfUserId = execJson.on_behalf_of_user_id,
+              userId = execJson.user_id,
+              callContext = callContext.getOrElse(cc),
+              bankId = execJson.bank_id,
+              accountId = execJson.account_id,
+              viewId = execJson.view_id,
+              transactionId = execJson.transaction_id,
+              transactionRequestId = execJson.transaction_request_id,
+              customerId = execJson.customer_id
+            ).map { resultBox =>
               resultBox match {
                 case Full(allowed) =>
                   AbacRuleResultJsonV600(result = allowed)
