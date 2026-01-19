@@ -3,6 +3,7 @@ package code.api.util.http4s
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.APIFailureNewStyle
+import code.util.Helper.MdcLoggable
 import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
@@ -29,7 +30,7 @@ import scala.language.higherKinds
  * 
  * Validation order matches Lift: auth → bank → roles → account → view → counterparty
  */
-object ResourceDocMiddleware {
+object ResourceDocMiddleware extends MdcLoggable{
   
   type HttpF[A] = OptionT[IO, A]
   type Middleware[F[_]] = HttpRoutes[F] => HttpRoutes[F]
@@ -38,7 +39,8 @@ object ResourceDocMiddleware {
    * Check if ResourceDoc requires authentication based on errorResponseBodies
    */
   private def needsAuthentication(resourceDoc: ResourceDoc): Boolean = {
-    resourceDoc.errorResponseBodies.contains($UserNotLoggedIn)
+    // Roles always require an authenticated user to validate entitlements
+    resourceDoc.errorResponseBodies.contains($UserNotLoggedIn) || resourceDoc.roles.exists(_.nonEmpty)
   }
   
   /**
@@ -86,8 +88,8 @@ object ResourceDocMiddleware {
     
     // Step 1: Authentication
     val needsAuth = needsAuthentication(resourceDoc)
-    println(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
-    println(s"[ResourceDocMiddleware] errorResponseBodies: ${resourceDoc.errorResponseBodies}")
+    logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
+    logger.debug(s"[ResourceDocMiddleware] errorResponseBodies: ${resourceDoc.errorResponseBodies}")
     
     val authResult: IO[Either[Response[IO], (Box[User], SharedCallContext)]] = 
       if (needsAuth) {
@@ -124,15 +126,15 @@ object ResourceDocMiddleware {
         // Still call anonymousAccess for rate limiting and other checks, but don't fail on auth errors
         IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.flatMap {
           case Right((boxUser, Some(updatedCC))) => 
-            println(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser")
+            logger.debug(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser")
             IO.pure(Right((boxUser, updatedCC)))
           case Right((boxUser, None)) => 
-            println(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser (no updated CC)")
+            logger.debug(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser (no updated CC)")
             IO.pure(Right((boxUser, cc)))
           case Left(e) => 
             // For anonymous access, we don't fail on auth errors - just continue with Empty user
             // This allows endpoints without $UserNotLoggedIn to work without authentication
-            println(s"[ResourceDocMiddleware] anonymousAccess threw exception (ignoring for anonymous): ${e.getClass.getName}: ${e.getMessage.take(100)}")
+            logger.debug(s"[ResourceDocMiddleware] anonymousAccess threw exception (ignoring for anonymous): ${e.getClass.getName}: ${e.getMessage.take(100)}")
             IO.pure(Right((Empty, cc)))
         }
       }
@@ -162,15 +164,20 @@ object ResourceDocMiddleware {
             // Step 3: Role authorization (if roles specified)
             val rolesResult: IO[Either[Response[IO], SharedCallContext]] = 
               resourceDoc.roles match {
-                case Some(roles) if roles.nonEmpty && boxUser.isDefined =>
-                  val userId = boxUser.map(_.userId).getOrElse("")
-                  val bankId = bankOpt.map(_.bankId.value).getOrElse("")
-                  val hasRole = roles.exists { role =>
-                    val checkBankId = if (role.requiresBankId) bankId else ""
-                    APIUtil.hasEntitlement(checkBankId, userId, role)
+                case Some(roles) if roles.nonEmpty =>
+                  boxUser match {
+                    case Full(user) =>
+                      val userId = user.userId
+                      val bankId = bankOpt.map(_.bankId.value).getOrElse("")
+                      val hasRole = roles.exists { role =>
+                        val checkBankId = if (role.requiresBankId) bankId else ""
+                        APIUtil.hasEntitlement(checkBankId, userId, role)
+                      }
+                      if (hasRole) IO.pure(Right(cc2)) 
+                      else ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), cc2).map(Left(_))
+                    case _ =>
+                      ErrorResponseConverter.createErrorResponse(401, $UserNotLoggedIn, cc2).map(Left(_))
                   }
-                  if (hasRole) IO.pure(Right(cc2)) 
-                  else ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), cc2).map(Left(_))
                 case _ => IO.pure(Right(cc2))
               }
             

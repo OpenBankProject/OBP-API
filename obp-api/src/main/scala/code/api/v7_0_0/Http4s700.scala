@@ -59,7 +59,8 @@ object Http4s700 {
         |
         |* API version
         |* Hosted by information
-        |* Git Commit""",
+        |* Git Commit
+        """,
       EmptyBody,
       apiInfoJSON, 
       List(
@@ -67,7 +68,6 @@ object Http4s700 {
         "no connector set"
       ),
       apiTagApi :: Nil,
-      Some(List(code.api.util.ApiRole.canGetRateLimits)),
       http4sPartialFunction = Some(root)
     )
 
@@ -96,11 +96,12 @@ object Http4s700 {
         |* ID used as parameter in URLs
         |* Short and full name of bank
         |* Logo URL
-        |* Website
-        |${userAuthenticationMessage(false)}""",
+        |* Website""",
       EmptyBody,
       banksJSON,
-      List(UnknownError),
+      List(
+        UnknownError
+      ),
       apiTagBank :: Nil,
       http4sPartialFunction = Some(getBanks)
     )
