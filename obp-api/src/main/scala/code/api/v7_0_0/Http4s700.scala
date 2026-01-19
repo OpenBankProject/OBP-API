@@ -189,76 +189,14 @@ object Http4s700 {
     // When used with ResourceDocMiddleware, validation is automatic
     val getAccountByIdWithMiddleware: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "account" =>
-        import com.openbankproject.commons.ExecutionContext.Implicits.global
-        
-        // When using middleware, validated objects are available in request attributes
-        val userOpt = Http4sVaultKeys.getUser(req)
-        val bankOpt = Http4sVaultKeys.getBank(req)
-        val accountOpt = Http4sVaultKeys.getBankAccount(req)
-        val viewOpt = Http4sVaultKeys.getView(req)
-        val ccOpt = Http4sVaultKeys.getCallContext(req)
-        
-        val response = for {
-          // If middleware was used, objects are already validated and available
-          // If not using middleware, we need to build CallContext and validate manually
-          cc <- ccOpt match {
-            case Some(existingCC) => IO.pure(existingCC)
-            case None => Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
-          }
-          
-          result <- IO.fromFuture(IO {
-            for {
-              // If middleware was used, these are already validated
-              // If not, we need to validate manually
-              (boxUser, cc1) <- if (userOpt.isDefined) {
-                Future.successful((net.liftweb.common.Full(userOpt.get), Some(cc)))
-              } else {
-                authenticatedAccess(cc)
-              }
-              
-              (bank, cc2) <- if (bankOpt.isDefined) {
-                Future.successful((bankOpt.get, cc1))
-              } else {
-                NewStyle.function.getBank(com.openbankproject.commons.model.BankId(bankId), cc1)
-              }
-              
-              (account, cc3) <- if (accountOpt.isDefined) {
-                Future.successful((accountOpt.get, cc2))
-              } else {
-                NewStyle.function.getBankAccount(
-                  com.openbankproject.commons.model.BankId(bankId), 
-                  com.openbankproject.commons.model.AccountId(accountId), 
-                  cc2
-                )
-              }
-              
-              (view, cc4) <- if (viewOpt.isDefined) {
-                Future.successful((viewOpt.get, cc3))
-              } else {
-                code.api.util.newstyle.ViewNewStyle.checkViewAccessAndReturnView(
-                  com.openbankproject.commons.model.ViewId(viewId),
-                  com.openbankproject.commons.model.BankIdAccountId(
-                    com.openbankproject.commons.model.BankId(bankId),
-                    com.openbankproject.commons.model.AccountId(accountId)
-                  ),
-                  boxUser.toOption,
-                  cc3
-                ).map(v => (v, cc3))
-              }
-              
-              // Create simple account response (avoiding complex moderated account dependencies)
-              accountResponse = Map(
-                "bank_id" -> bankId,
-                "account_id" -> accountId,
-                "view_id" -> viewId,
-                "label" -> account.label,
-                "bank_name" -> bank.fullName
-              )
-            } yield convertAnyToJsonString(accountResponse)
-          })
-        } yield result
-        
-        Ok(response).map(_.withContentType(jsonContentType))
+        val responseJson = convertAnyToJsonString(
+          Map(
+            "bank_id" -> bankId,
+            "account_id" -> accountId,
+            "view_id" -> viewId
+          )
+        )
+        Ok(responseJson).map(_.withContentType(jsonContentType))
     }
 
     // All routes combined (without middleware - for direct use)
