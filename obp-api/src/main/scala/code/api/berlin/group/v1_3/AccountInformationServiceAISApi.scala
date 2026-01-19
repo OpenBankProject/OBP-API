@@ -343,7 +343,7 @@ of the PSU at this ASPSP.
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             //_ <- passesPsd2Aisp(Some(cc))
+             _ <- passesPsd2Aisp(Some(cc.copy()))
             (Full(u), callContext) <- authenticatedAccess(cc)
             withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 400, callContext) {
 
