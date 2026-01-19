@@ -220,9 +220,17 @@ object ResourceDocMiddleware extends MdcLoggable{
                       case Right((viewOpt, cc5)) =>
                         // Step 6: Counterparty validation (if COUNTERPARTY_ID in path)
                         val counterpartyResult: IO[Either[Response[IO], (Option[CounterpartyTrait], SharedCallContext)]] = 
-                          pathParams.get("COUNTERPARTY_ID") match {
-                            case Some(_) => IO.pure(Right((None, cc5)))
-                            case None => IO.pure(Right((None, cc5)))
+                          (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
+                            case (Some(bankIdStr), Some(accountIdStr), Some(counterpartyIdStr)) =>
+                              IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankIdStr), AccountId(accountIdStr), counterpartyIdStr, Some(cc5)))).attempt.flatMap {
+                                case Right((counterparty, Some(updatedCC))) => IO.pure(Right((Some(counterparty), updatedCC)))
+                                case Right((counterparty, None)) => IO.pure(Right((Some(counterparty), cc5)))
+                                case Left(e: APIFailureNewStyle) => 
+                                  ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, cc5).map(Left(_))
+                                case Left(e) => 
+                                  ErrorResponseConverter.createErrorResponse(404, CounterpartyNotFound + s": counterpartyId=$counterpartyIdStr", cc5).map(Left(_))
+                              }
+                            case _ => IO.pure(Right((None, cc5)))
                           }
                         
                         counterpartyResult.flatMap {
