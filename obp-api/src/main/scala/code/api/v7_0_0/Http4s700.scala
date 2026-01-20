@@ -109,11 +109,15 @@ object Http4s700 {
     // Route: GET /obp/v7.0.0/banks
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
-
-        val responseJson = convertAnyToJsonString(
-          JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
-        )
-        Ok(responseJson).map(_.withContentType(jsonContentType))
+        val response = for {
+          cc <- Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
+          result <- IO.fromFuture(IO {
+            for {
+              (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+            } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
+          })
+        } yield result
+        Ok(response).map(_.withContentType(jsonContentType))
     }
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
