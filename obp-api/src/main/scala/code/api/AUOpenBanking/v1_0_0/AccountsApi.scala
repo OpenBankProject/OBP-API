@@ -310,7 +310,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //    "first" : "first"
 //  }
 //}"""),
-//       List(UserNotLoggedIn, UnknownError),
+//       List(AuthenticatedUserIsRequired, UnknownError),
 //      
 //       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
 //     )
@@ -319,7 +319,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //       case "banking":: "accounts" :: Nil JsonGet _ => {
 //         cc =>
 //           for {
-//             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+//             (Full(u), callContext) <- authorizedAccess(cc, AuthenticatedUserIsRequired)
 //             } yield {
 //            (json.parse("""{
 //  "data" : {
@@ -394,7 +394,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //    "self" : "self"
 //  }
 //}"""),
-//       List(UserNotLoggedIn, UnknownError),
+//       List(AuthenticatedUserIsRequired, UnknownError),
 //      
 //       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
 //     )
@@ -403,7 +403,7 @@ Some general notes that apply to all end points that retrieve transactions:
 //       case "banking":: "accounts" :: accountId:: "balance" :: Nil JsonGet _ => {
 //         cc =>
 //           for {
-//             (Full(u), callContext) <- authorizedAccess(cc, UserNotLoggedIn)
+//             (Full(u), callContext) <- authorizedAccess(cc, AuthenticatedUserIsRequired)
 //             } yield {
 //            (json.parse("""{
 //  "data" : {

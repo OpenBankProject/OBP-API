@@ -138,7 +138,7 @@ object ResourceDocMiddleware extends MdcLoggable{
             IO.pure(Right((boxUser, cc)))
           case Left(e) => 
             // For anonymous access, we don't fail on auth errors - just continue with Empty user
-            // This allows endpoints without $UserNotLoggedIn to work without authentication
+            // This allows endpoints without $AuthenticatedUserIsRequired to work without authentication
             logger.debug(s"[ResourceDocMiddleware] anonymousAccess threw exception (ignoring for anonymous): ${e.getClass.getName}: ${e.getMessage.take(100)}")
             IO.pure(Right((Empty, cc)))
         }

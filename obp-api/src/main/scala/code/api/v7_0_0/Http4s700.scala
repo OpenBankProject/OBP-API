@@ -41,7 +41,7 @@ object Http4s700 {
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
-    // ResourceDoc with $UserNotLoggedIn in errorResponseBodies indicates auth is required
+    // ResourceDoc with $AuthenticatedUserIsRequired in errorResponseBodies indicates auth is required
     // ResourceDocMiddleware will automatically handle authentication based on this metadata
     // No explicit auth code needed in the endpoint handler - just like Lift's wrappedWithAuthCheck
     resourceDocs += ResourceDoc(
@@ -68,7 +68,7 @@ object Http4s700 {
     )
 
     // Route: GET /obp/v7.0.0/root
-    // Authentication is handled automatically by ResourceDocMiddleware based on $UserNotLoggedIn in ResourceDoc
+    // Authentication is handled automatically by ResourceDocMiddleware based on $AuthenticatedUserIsRequired in ResourceDoc
     // The endpoint code only contains business logic - validated User is available from request attributes
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
@@ -115,6 +115,38 @@ object Http4s700 {
         } yield result
         Ok(response)
     }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getResourceDocsObpV700),
+      "GET",
+      "/resource-docs/API_VERSION/obp",
+      "Get Resource Docs",
+      s"""Get documentation about the RESTful resources on this server including example body payloads.
+        |
+        |* API_VERSION: The version of the API for which you want documentation
+        |
+        |Returns JSON containing information about the endpoints including:
+        |* Method (GET, POST, etc.)
+        |* URL path
+        |* Summary and description
+        |* Example request and response bodies
+        |* Required roles and permissions
+        |
+        |Optional query parameters:
+        |* tags - filter by API tags
+        |* functions - filter by function names
+        |* locale - specify language for descriptions
+        |* content - filter by content type""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        UnknownError
+      ),
+      List(apiTagDocumentation, apiTagApi),
+      http4sPartialFunction = Some(getResourceDocsObpV700)
+    )
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
@@ -254,7 +286,7 @@ object Http4s700 {
   }
 
   // Routes with ResourceDocMiddleware - provides automatic validation based on ResourceDoc metadata
-  // Authentication is automatic based on $UserNotLoggedIn in ResourceDoc errorResponseBodies
+  // Authentication is automatic based on $AuthenticatedUserIsRequired in ResourceDoc errorResponseBodies
   // This matches Lift's wrappedWithAuthCheck behavior
   val wrappedRoutesV700Services: HttpRoutes[IO] = Implementations7_0_0.allRoutesWithMiddleware
 }

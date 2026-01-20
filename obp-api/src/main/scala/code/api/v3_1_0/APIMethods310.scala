@@ -2989,7 +2989,7 @@ trait APIMethods310 {
             //           These following are only for `tokbox` stuff, for now, just ignore it.
             //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
             //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
-            //            u <- cc.user ?~! UserNotLoggedIn
+            //            u <- cc.user ?~! AuthenticatedUserIsRequired
             //            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             //            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             //            postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat

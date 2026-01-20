@@ -3766,7 +3766,7 @@ trait APIMethods600 {
 //        )
 //      ),
 //      List(
-//        UserNotLoggedIn,
+//        AuthenticatedUserIsRequired,
 //        UserHasMissingRoles,
 //        SystemViewNotFound,
 //        UnknownError
@@ -4968,7 +4968,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5446,7 +5446,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5710,7 +5710,7 @@ trait APIMethods600 {
         result = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError

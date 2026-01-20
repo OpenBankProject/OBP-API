@@ -1673,7 +1673,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         errorResponseBodies ?+= AuthenticatedUserIsRequired
         errorResponseBodies ?+= UserHasMissingRoles
       }
-      // if authentication is required, add UserNotLoggedIn to errorResponseBodies
+      // if authentication is required, add AuthenticatedUserIsRequired to errorResponseBodies
       if (description.contains(authenticationIsRequired)) {
         errorResponseBodies ?+= AuthenticatedUserIsRequired
       } else if (description.contains(authenticationIsOptional) && rolesIsEmpty) {
@@ -1791,7 +1791,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }.toMap
 
     /**
-     * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
+     * According errorResponseBodies whether contains AuthenticatedUserIsRequired and UserHasMissingRoles do validation.
      * So can avoid duplicate code in endpoint body for expression do check.
      * Note: maybe this will be misused, So currently just comment out.
      */

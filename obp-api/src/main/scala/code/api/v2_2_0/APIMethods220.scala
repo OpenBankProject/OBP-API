@@ -1300,7 +1300,7 @@ trait APIMethods220 {
       EmptyBody,
       customerViewsJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         AccountNotFound,
         ViewNotFound
@@ -1336,7 +1336,7 @@ trait APIMethods220 {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
         cc =>{
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.AuthenticatedUserIsRequired
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
                      } yield {

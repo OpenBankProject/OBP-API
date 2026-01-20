@@ -1395,7 +1395,7 @@ trait APIMethods200 {
 //      CreateMeetingJson("tokbox", "onboarding"),
 //      meetingJson,
 //      List(
-//        UserNotLoggedIn,
+//        AuthenticatedUserIsRequired,
 //        MeetingApiKeyNotConfigured,
 //        MeetingApiSecretNotConfigured,
 //        InvalidBankIdFormat,
@@ -1415,7 +1415,7 @@ trait APIMethods200 {
 //              // TODO use these keys to get session and tokens from tokbox
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
-//              u <- cc.user ?~! UserNotLoggedIn
+//              u <- cc.user ?~! AuthenticatedUserIsRequired
 //              _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
 //              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
 //              postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
@@ -1455,7 +1455,7 @@ trait APIMethods200 {
 //      EmptyBody,
 //      meetingsJson,
 //      List(
-//        UserNotLoggedIn,
+//        AuthenticatedUserIsRequired,
 //        MeetingApiKeyNotConfigured,
 //        MeetingApiSecretNotConfigured,
 //        BankNotFound,
@@ -1469,11 +1469,11 @@ trait APIMethods200 {
 //        cc =>
 //          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
 //            for {
-//              _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+//              _ <- cc.user ?~! ErrorMessages.AuthenticatedUserIsRequired
 //              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-//              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+//              u <- cc.user ?~! ErrorMessages.AuthenticatedUserIsRequired
 //              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
 //              // now = Calendar.getInstance().getTime()
 //              meetings <- Meetings.meetingProvider.vend.getMeetings(bank.bankId, u)
@@ -1510,7 +1510,7 @@ trait APIMethods200 {
 //      EmptyBody,
 //      meetingJson,
 //      List(
-//        UserNotLoggedIn,
+//        AuthenticatedUserIsRequired,
 //        BankNotFound,
 //        MeetingApiKeyNotConfigured,
 //        MeetingApiSecretNotConfigured,
@@ -1526,7 +1526,7 @@ trait APIMethods200 {
 //        cc =>
 //          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
 //            for {
-//              u <- cc.user ?~! UserNotLoggedIn
+//              u <- cc.user ?~! AuthenticatedUserIsRequired
 //              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
 //              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
