@@ -66,7 +66,7 @@ object fx extends MdcLoggable {
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL.seconds) {
         getFallbackExchangeRate(fromCurrency, toCurrency)
       }
     }

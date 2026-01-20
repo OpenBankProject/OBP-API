@@ -23,6 +23,7 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
+import scala.language.implicitConversions
 import _root_.org.apache.pekko.stream.StreamTcpException
 import org.apache.pekko.http.scaladsl.model._
 import org.apache.pekko.http.scaladsl.model.headers.RawHeader

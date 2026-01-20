@@ -39,6 +39,7 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
@@ -471,7 +472,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
           }
           _ <- resourceDocsRequireRole match {
-            case false => Future()
+            case false => Future(())
             case true => // If set resource_docs_requires_role=true, we need check the roles as well
                 NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
           }
@@ -595,7 +596,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             }
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Option(cc))
             _ <- resourceDocsRequireRole match {
-              case false => Future()
+              case false => Future(())
               case true => // If set resource_docs_requires_role=true, we need check the the roles as well
                 NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + ApiRole.canReadDynamicResourceDocsAtOneBank.toString)(
                   bankId, u.map(_.userId).getOrElse(""), ApiRole.canReadDynamicResourceDocsAtOneBank::Nil, cc.callContext
@@ -1256,3 +1257,4 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
 }
+

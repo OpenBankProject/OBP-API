@@ -3,15 +3,15 @@ name: Build on Pull Request
 on:
   pull_request:
     branches:
-      - '**'
+      - "**"
 env:
   ## Sets environment variable
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.repository == 'OpenBankProject/OBP-API'
     services:
       # Label used to access the service container
       redis:
@@ -31,8 +31,8 @@ jobs:
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          java-version: "11"
+          distribution: "adopt"
           cache: maven
       - name: Build with Maven
         run: |
@@ -119,6 +119,3 @@ jobs:
         with:
           name: ${{ github.sha }}
           path: pull/
-
-
-

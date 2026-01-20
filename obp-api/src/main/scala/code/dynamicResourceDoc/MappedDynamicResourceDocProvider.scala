@@ -50,7 +50,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
   
   override def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T] = {
     val cacheKey = (bankId.toString+transform.toString()).intern()
-    Caching.memoizeSyncWithImMemory(Some(cacheKey))(getDynamicResourceDocTTL seconds){
+    Caching.memoizeSyncWithImMemory(Some(cacheKey))(getDynamicResourceDocTTL.seconds){
         if(bankId.isEmpty){
           DynamicResourceDoc.findAll()
             .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))

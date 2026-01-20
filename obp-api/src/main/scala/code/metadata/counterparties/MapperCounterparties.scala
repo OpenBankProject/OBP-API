@@ -35,7 +35,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(MetadataTTL second) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(MetadataTTL.second) {
 
         /**
           * Generates a new alias name that is guaranteed not to collide with any existing public alias names

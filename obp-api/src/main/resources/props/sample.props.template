@@ -624,6 +624,14 @@ webui_agree_terms_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
 #webui_post_consumer_registration_submit_button_value=Register consumer
 
+# OBP Portal URL - base URL for the OBP Portal service
+webui_obp_portal_url = http://localhost:5174
+
+# External Consumer Registration URL - used to redirect "Get API Key" links to an external service
+# If not set, defaults to webui_obp_portal_url + "/consumer-registration"
+# Set this to redirect to a custom URL for consumer registration
+webui_external_consumer_registration_url = http://localhost:5174/consumer-registration
+
 
 ## Display For Banks section
 webui_display_for_banks_section = true

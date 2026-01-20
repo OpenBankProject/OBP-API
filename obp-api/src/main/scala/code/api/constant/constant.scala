@@ -266,6 +266,19 @@ object Constant extends MdcLoggable {
   // ABAC Cache Prefixes (with global namespace and versioning)
   def ABAC_RULE_PREFIX: String = getVersionedCachePrefix(ABAC_RULE_NAMESPACE)
 
+  // ABAC Policy Constants
+  final val ABAC_POLICY_ACCOUNT_ACCESS = "account-access"
+
+  // List of all ABAC Policies
+  final val ABAC_POLICIES: List[String] = List(
+    ABAC_POLICY_ACCOUNT_ACCESS
+  )
+
+  // Map of ABAC Policies to their descriptions
+  final val ABAC_POLICY_DESCRIPTIONS: Map[String, String] = Map(
+    ABAC_POLICY_ACCOUNT_ACCESS -> "Rules for controlling access to account information and account-related operations"
+  )
+
   final val CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT = "can_see_transaction_other_bank_account"
   final val CAN_SEE_TRANSACTION_METADATA = "can_see_transaction_metadata"
   final val CAN_SEE_TRANSACTION_DESCRIPTION = "can_see_transaction_description"

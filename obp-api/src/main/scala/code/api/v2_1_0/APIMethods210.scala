@@ -1,5 +1,6 @@
 package code.api.v2_1_0
 
+import scala.language.reflectiveCalls
 import code.TransactionTypes.TransactionType
 import code.api.Constant.CAN_SEE_TRANSACTION_REQUESTS
 import code.api.util.ApiTag._
@@ -91,7 +92,7 @@ trait APIMethods210 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI2_1_0.version, OBPAPI2_1_0.versionStatus), HttpCode.`200`(cc.callContext))
           }

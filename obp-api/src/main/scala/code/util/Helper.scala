@@ -89,14 +89,14 @@ object Helper extends Loggable {
    */
   def booleanToBox(statement: => Boolean, msg: String): Box[Unit] = {
     if(statement)
-      Full()
+      Full(())
     else
       Failure(msg)
   }
 
   def booleanToBox(statement: => Boolean): Box[Unit] = {
     if(statement)
-      Full()
+      Full(())
     else
       Empty
   }
@@ -450,7 +450,7 @@ object Helper extends Loggable {
   def getRequiredFieldInfo(tpe: Type): RequiredInfo = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000 days) {
+      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
 
         RequiredFieldValidation.getRequiredInfo(tpe)
 

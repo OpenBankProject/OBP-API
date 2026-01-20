@@ -1,5 +1,7 @@
 package code.api.AUOpenBanking.v1_0_0
 
+import scala.language.reflectiveCalls
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag

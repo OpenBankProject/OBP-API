@@ -530,7 +530,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
     val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher".intern()
-    Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL seconds) {
+    Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
           || resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")

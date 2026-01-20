@@ -76,7 +76,7 @@ trait APIMethods121 {
 
   def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
     if(scala.math.abs(lat) <= 90 & scala.math.abs(lon) <= 180)
-      Full()
+      Full(())
     else
       Failure("Coordinates not possible")
   }
@@ -132,7 +132,7 @@ trait APIMethods121 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
           }

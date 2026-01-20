@@ -241,19 +241,19 @@ object InternalConnector {
     val dynamicMethods: Map[String, MethodSymbol] = ConnectorMethodProvider.provider.vend.getAll().map {
       case JsonConnectorMethod(_, methodName, _, _) =>
         methodName -> Box(methodNameToSymbols.get(methodName)).openOrThrowException(s"method name $methodName does not exist in the Connector")
-    } toMap
+    }.toMap
 
     dynamicMethods
   }
 
-  private lazy val methodNameToSymbols: Map[String, MethodSymbol] = typeOf[Connector].decls collect {
+  private lazy val methodNameToSymbols: Map[String, MethodSymbol] = typeOf[Connector].decls.collect {
     case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar =>
       val methodName = t.name.decodedName.toString.trim
       val method = t.asMethod
       methodName -> method
-  } toMap
+  }.toMap
 
-  lazy val methodNameToSignature: Map[String, String] = methodNameToSymbols map {
+  lazy val methodNameToSignature: Map[String, String] = methodNameToSymbols.map {
     case (methodName, methodSymbol) =>
       val signature = methodSymbol.typeSignature.toString
       val returnType = methodSymbol.returnType.toString

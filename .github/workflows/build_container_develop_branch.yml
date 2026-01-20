@@ -13,7 +13,6 @@ env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,8 +35,8 @@ jobs:
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          java-version: "11"
+          distribution: "adopt"
           cache: maven
       - name: Build with Maven
         run: |
@@ -126,6 +125,7 @@ jobs:
           path: push/
 
       - name: Build the Docker image
+        if: github.repository == 'OpenBankProject/OBP-API'
         run: |
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
           docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
@@ -136,9 +136,11 @@ jobs:
       - uses: sigstore/cosign-installer@4d14d7f17e7112af04ea6108fbb4bfc714c00390
 
       - name: Write signing key to disk (only needed for `cosign sign --key`)
+        if: github.repository == 'OpenBankProject/OBP-API'
         run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
 
       - name: Sign container image
+        if: github.repository == 'OpenBankProject/OBP-API'
         run: |
           cosign sign -y --key cosign.key \
             docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
@@ -152,5 +154,3 @@ jobs:
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC
         env:
           COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"
-
-

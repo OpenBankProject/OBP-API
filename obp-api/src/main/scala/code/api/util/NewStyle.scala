@@ -3160,7 +3160,7 @@ object NewStyle extends MdcLoggable{
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL.second) {
           MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
         }
       }
@@ -3213,7 +3213,7 @@ object NewStyle extends MdcLoggable{
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL second) {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
           {(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
         }
       }
@@ -3327,7 +3327,7 @@ object NewStyle extends MdcLoggable{
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
           DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId, returnBothBankAndSystemLevel)
         }
       }
@@ -3338,7 +3338,7 @@ object NewStyle extends MdcLoggable{
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
           DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByUserId(userId: String)
         }
       }

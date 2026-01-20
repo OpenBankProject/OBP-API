@@ -124,7 +124,7 @@ object ApiRole extends MdcLoggable{
   // ALL
   case class CanGetSystemLogCacheAll(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemLogCacheAll = CanGetSystemLogCacheAll()
-  
+
   case class CanUpdateAgentStatusAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAgentStatusAtAnyBank = CanUpdateAgentStatusAtAnyBank()
   
@@ -1002,6 +1002,9 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetAllConnectorMethods(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllConnectorMethods = CanGetAllConnectorMethods()
+
+  case class CanGetSystemConnectorMethodNames(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemConnectorMethodNames = CanGetSystemConnectorMethodNames()
 
   case class CanCreateDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateDynamicResourceDoc = CanCreateDynamicResourceDoc()

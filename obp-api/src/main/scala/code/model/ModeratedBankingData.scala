@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 
 package code.model
+
+import scala.language.implicitConversions
 import code.api.Constant._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext}
@@ -182,6 +184,7 @@ class ModeratedTransactionMetadata(
 
 
 object ModeratedTransactionMetadata {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedTransactionMetadata2Json(mTransactionMeta: ModeratedTransactionMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)
@@ -256,6 +259,7 @@ object ModeratedBankAccount {
     	("name" -> bankName))
   }
 
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
     val holderName = mBankAccount.owners match{
@@ -318,6 +322,7 @@ case class ModeratedOtherBankAccountCore(
 }
 
 object ModeratedOtherBankAccount {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
     val holderName = mOtherBank.label.display
@@ -353,6 +358,7 @@ class ModeratedOtherBankAccountMetadata(
 )
 
 object ModeratedOtherBankAccountMetadata {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedOtherBankAccountMetadata2Json(mOtherBankMeta: ModeratedOtherBankAccountMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)

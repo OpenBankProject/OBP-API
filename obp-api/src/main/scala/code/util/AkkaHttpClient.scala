@@ -52,7 +52,7 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   private lazy val connectionPoolSettings: ConnectionPoolSettings = {
     val systemConfig = ConnectionPoolSettings(system.settings.config)
     //Note: get the timeout setting from here:  https://github.com/akka/akka-http/issues/742
-    val clientSettings = systemConfig.connectionSettings.withIdleTimeout(httpRequestTimeout seconds)
+    val clientSettings = systemConfig.connectionSettings.withIdleTimeout(httpRequestTimeout.seconds)
     // reset some settings value
     systemConfig.copy(
       /*

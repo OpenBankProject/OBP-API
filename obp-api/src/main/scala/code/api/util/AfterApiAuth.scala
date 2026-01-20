@@ -32,11 +32,12 @@ object AfterApiAuth extends MdcLoggable{
    */
   def innerLoginUserInitAction(authUser: Box[AuthUser]) = {
     authUser.map { u => // Init actions
-      logger.info("AfterApiAuth.innerLoginUserInitAction started successfully")
+      logger.debug("AfterApiAuth.innerLoginUserInitAction started successfully")
       sofitInitAction(u)
     } match {
-        case Full(_) => logger.warn("AfterApiAuth.innerLoginUserInitAction completed successfully")
-        case userInitActionFailure => logger.warn("AfterApiAuth.innerLoginUserInitAction: " + userInitActionFailure)
+        case Full(_) => logger.debug("AfterApiAuth.innerLoginUserInitAction completed successfully")
+        case Empty => // Init actions are not started at all
+        case userInitActionFailure => logger.error("AfterApiAuth.innerLoginUserInitAction: " + userInitActionFailure)
     }
   }
   /**

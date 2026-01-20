@@ -18,6 +18,8 @@ object ApiTag {
   val apiTagTransactionRequestAttribute = ResourceDocTag("Transaction-Request-Attribute")
   val apiTagVrp = ResourceDocTag("VRP")
   val apiTagApi = ResourceDocTag("API")
+  val apiTagOAuth = ResourceDocTag("OAuth")
+  val apiTagOIDC = ResourceDocTag("OIDC")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagBankAttribute = ResourceDocTag("Bank-Attribute")
   val apiTagAccount = ResourceDocTag("Account")

@@ -1,5 +1,6 @@
 package code.api.AUOpenBanking.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.ApiTag._

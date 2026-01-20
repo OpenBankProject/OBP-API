@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import scala.language.reflectiveCalls
 import code.api.Constant._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -84,7 +85,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI1_4_0.version, OBPAPI1_4_0.versionStatus), HttpCode.`200`(cc.callContext))
           }

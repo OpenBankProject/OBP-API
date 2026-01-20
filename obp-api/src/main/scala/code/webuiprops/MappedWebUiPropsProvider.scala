@@ -42,7 +42,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
     import scala.concurrent.duration._
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(webUiPropsTTL second) {
+      Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(webUiPropsTTL.second) {
         // If we have an active brand, construct a target property name to look for.
         val brandSpecificPropertyName = activeBrand() match {
           case Some(brand) => s"${requestedPropertyName}_FOR_BRAND_${brand}"

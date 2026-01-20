@@ -1,5 +1,6 @@
 package code.api.builder.SigningBasketsApi
 
+import scala.language.implicitConversions
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostSigningBasketJsonV13, UpdatePaymentPsuDataJson, createSigningBasketResponseJson, createStartSigningBasketAuthorisationJson, getSigningBasketResponseJson, getSigningBasketStatusResponseJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}

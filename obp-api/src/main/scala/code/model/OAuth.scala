@@ -299,7 +299,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         if(integrateWithHydra && isActive.isDefined) {
           val clientId = c.key.get
           val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
-            .filter(null !=)
+            .filter(null.!=)
           // TODO Involve Hydra ORY version with working update mechanism
           if (isActive == Some(false) && existsOAuth2Client.isDefined) {
               existsOAuth2Client
@@ -956,7 +956,7 @@ class Token extends LongKeyedMapper[Token]{
   }
 
   def generateThirdPartyApplicationSecret: String = {
-    if(thirdPartyApplicationSecret.get isEmpty){
+    if(thirdPartyApplicationSecret.get.isEmpty){
       def r() = randomInt(9).toString //from zero to 9
       val generatedSecret = (1 to 10).map(x => r()).foldLeft("")(_ + _)
       thirdPartyApplicationSecret(generatedSecret).save

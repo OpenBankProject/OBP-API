@@ -1,5 +1,6 @@
 package code.api.STET.v1_4
 
+import scala.language.implicitConversions
 import code.api.APIFailureNewStyle
 import code.api.STET.v1_4.JSONFactory_STET_1_4._
 import code.api.berlin.group.v1_3.JvalueCaseClass

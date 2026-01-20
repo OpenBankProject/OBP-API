@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import scala.language.implicitConversions
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -220,7 +221,7 @@ trait Connector extends MdcLoggable {
   protected implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] =
     value map tupleToBoxTuple
 
-  private val futureTimeOut: Duration = 20 seconds
+  private val futureTimeOut: Duration = 20.seconds
   /**
     * convert OBPReturnType return type to Tuple type
     *
@@ -240,7 +241,7 @@ trait Connector extends MdcLoggable {
     */
   protected implicit def OBPReturnTypeToBoxTuple[T](value: OBPReturnType[Box[T]]):  Box[(T, Option[CallContext])] =
     Await.result(
-      OBPReturnTypeToFutureReturnType(value), 30 seconds
+      OBPReturnTypeToFutureReturnType(value), 30.seconds
     )
 
   /**
@@ -253,7 +254,7 @@ trait Connector extends MdcLoggable {
   protected implicit def OBPReturnTypeToBox[T](value: OBPReturnType[Box[T]]): Box[T] =
     Await.result(
       value.map(_._1),
-      30 seconds
+      30.seconds
     )
 
   protected def convertToTuple[T](callContext: Option[CallContext])(inbound: Box[InBoundTrait[T]]): (Box[T], Option[CallContext]) = {

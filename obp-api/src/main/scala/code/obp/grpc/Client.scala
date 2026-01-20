@@ -1,5 +1,6 @@
 package code.obp.grpc
 
+import scala.language.existentials
 import code.obp.grpc.api._
 import com.google.protobuf.empty.Empty
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}

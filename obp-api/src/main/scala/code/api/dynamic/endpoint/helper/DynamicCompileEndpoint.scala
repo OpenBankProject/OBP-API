@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper
 
+import scala.language.implicitConversions
 import code.api.util.APIUtil.{OBPEndpoint, OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture}
 import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
@@ -34,7 +35,7 @@ trait DynamicCompileEndpoint {
   }
 
   private def validateDependencies() = {
-    val dependencies = DynamicUtil.getDynamicCodeDependentMethods(this.getClass, "process" == )
+    val dependencies = DynamicUtil.getDynamicCodeDependentMethods(this.getClass, "process".==)
     Validation.validateDependency(dependencies)
   }
 }

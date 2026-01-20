@@ -380,6 +380,7 @@ case class CreateAbacRuleJsonV600(
     rule_name: String,
     rule_code: String,
     description: String,
+    policy: String,
     is_active: Boolean
 )
 
@@ -387,6 +388,7 @@ case class UpdateAbacRuleJsonV600(
     rule_name: String,
     rule_code: String,
     description: String,
+    policy: String,
     is_active: Boolean
 )
 
@@ -396,6 +398,7 @@ case class AbacRuleJsonV600(
     rule_code: String,
     is_active: Boolean,
     description: String,
+    policy: String,
     created_by_user_id: String,
     updated_by_user_id: String
 )
@@ -459,10 +462,11 @@ case class AbacObjectTypeJsonV600(
 )
 
 case class AbacRuleExampleJsonV600(
-    category: String,
-    title: String,
-    code: String,
-    description: String
+    rule_name: String,
+    rule_code: String,
+    description: String,
+    policy: String,
+    is_active: Boolean
 )
 
 case class AbacRuleSchemaJsonV600(
@@ -471,6 +475,15 @@ case class AbacRuleSchemaJsonV600(
     examples: List[AbacRuleExampleJsonV600],
     available_operators: List[String],
     notes: List[String]
+)
+
+case class AbacPolicyJsonV600(
+    policy: String,
+    description: String
+)
+
+case class AbacPoliciesJsonV600(
+    policies: List[AbacPolicyJsonV600]
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
@@ -1086,6 +1099,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       rule_code = rule.ruleCode,
       is_active = rule.isActive,
       description = rule.description,
+      policy = rule.policy,
       created_by_user_id = rule.createdByUserId,
       updated_by_user_id = rule.updatedByUserId
     )

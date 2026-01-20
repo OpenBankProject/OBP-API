@@ -889,7 +889,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     * @return  a list of include original list and nested objects
     */
   private def getAllEntities(entities: List[AnyRef]) = {
-    val notNullEntities = entities.filter(null !=)
+    val notNullEntities = entities.filter(null.!=)
     val notSupportYetEntity = entities.filter(_.getClass.getSimpleName.equals(NotSupportedYet.getClass.getSimpleName.replace("$","")))
     val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
 
@@ -919,10 +919,10 @@ object SwaggerJSONFactory extends MdcLoggable {
         val entityType = ReflectUtils.getType(obj)
         val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
         // if exclude current obj, the result list tail will be Nil
-        val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
+        val resultTail = if(excludeTypes.exists(entityType.=:=)) Nil else List(obj)
 
         val refValues: List[Any] = constructorParamList
-          .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
+          .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_.=:=(it.info)))
           .map(it => {
             val paramName = it.name.toString
             val value = ReflectUtils.invokeMethod(obj, paramName)
@@ -1009,7 +1009,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.error_response_bodies).toSet
 
     val errorDefinitions = ErrorMessages.allFields
-      .filterNot(null ==)
+      .filterNot(null.==)
       .filter(it => errorMessages.contains(it._2))
       .toList
       .map(it => {

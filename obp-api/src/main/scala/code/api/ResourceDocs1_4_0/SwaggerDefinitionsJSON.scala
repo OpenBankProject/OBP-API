@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import scala.language.implicitConversions
 import code.api.Constant
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200

@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import scala.language.reflectiveCalls
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -79,7 +80,7 @@ trait APIMethods220 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI2_2_0.version, OBPAPI2_2_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -535,14 +536,14 @@ trait APIMethods220 {
             _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
-                Full()
+                Full(())
               case false =>
                 Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanCreateEntitlementAtOneBank.toString()))
             }
             _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
-                Full()
+                Full(())
               case false =>
                 Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
             }
@@ -1246,7 +1247,7 @@ trait APIMethods220 {
                 (account, callContext)
               }
             }else
-              Future{(Full(), Some(cc))}
+              Future{(Full(()), Some(cc))}
 
 
             otherAccountRoutingSchemeOBPFormat = if(postJson.other_account_routing_scheme.equalsIgnoreCase("AccountNo")) "ACCOUNT_NUMBER" else StringHelpers.snakify(postJson.other_account_routing_scheme).toUpperCase

@@ -1,5 +1,6 @@
 package code.api.Polish.v2_1_1_1
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag

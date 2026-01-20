@@ -1,6 +1,7 @@
 
 package code.api.v2_2_0
 
+import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import code.api.util.{APIUtil, VersionedOBPApis}

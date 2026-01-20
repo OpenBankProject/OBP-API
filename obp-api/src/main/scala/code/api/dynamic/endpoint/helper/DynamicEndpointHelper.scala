@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper
 
+import scala.language.existentials
 import org.apache.pekko.http.scaladsl.model.{HttpMethods, HttpMethod => PekkoHttpMethod}
 import code.DynamicData.{DynamicDataProvider, DynamicDataT}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -677,7 +678,7 @@ object DynamicEndpointHelper extends RestHelper {
         schemas += schema
       }
       // check whether this schema already recurse two times
-      if(schemas.count(schema ==) > 3) {
+      if(schemas.count(schema.==) > 3) {
         return JObject(Nil)
       }
 

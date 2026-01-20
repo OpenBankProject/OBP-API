@@ -1,5 +1,7 @@
 package code.obp.grpc
 
+import scala.language.existentials
+import scala.language.reflectiveCalls
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v3_0_0.{CoreTransactionsJsonV300, ModeratedTransactionCoreWithAttributes}

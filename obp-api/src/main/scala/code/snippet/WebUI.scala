@@ -312,11 +312,11 @@ class WebUI extends MdcLoggable{
   // External Consumer Registration Link
   // This replaces the internal Lift-based consumer registration functionality
   // with a link to an external consumer registration service.
-  // Uses webui_api_explorer_url + /consumers/register as default.
+  // Uses OBP-Portal (webui_obp_portal_url) for consumer registration by default.
   // Configure webui_external_consumer_registration_url to override with a custom URL.
   def externalConsumerRegistrationLink: CssSel = {
-    val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174")
-    val defaultConsumerRegisterUrl = s"$apiExplorerUrl/consumers/register"
+    val portalUrl = getWebUiPropsValue("webui_obp_portal_url", "http://localhost:5174")
+    val defaultConsumerRegisterUrl = s"$portalUrl/consumer-registration"
     val externalUrl = getWebUiPropsValue("webui_external_consumer_registration_url", defaultConsumerRegisterUrl)
     ".get-api-key-link a [href]" #> scala.xml.Unparsed(externalUrl) &
     ".get-api-key-link a [target]" #> "_blank" &
@@ -641,7 +641,7 @@ class WebUI extends MdcLoggable{
     val html = XML.loadString(htmlString)
 
     // Sleep if in development environment so can see the effects of content loading slowly
-    if (Props.mode == Props.RunModes.Development) Thread.sleep(10 seconds)
+    if (Props.mode == Props.RunModes.Development) Thread.sleep(10.seconds)
 
     // Return the HTML
     html

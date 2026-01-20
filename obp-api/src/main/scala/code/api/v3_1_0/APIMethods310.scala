@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import scala.language.reflectiveCalls
 import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -101,7 +102,7 @@ trait APIMethods310 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI3_1_0.version, OBPAPI3_1_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -1863,7 +1864,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      List(apiTagApi))
+      List(apiTagApi, apiTagOAuth, apiTagOIDC))
 
     lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
@@ -4111,7 +4112,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      List(apiTagApi))
+      List(apiTagApi, apiTagOAuth, apiTagOIDC))
 
     lazy val getOAuth2ServerJWKsURIs: OBPEndpoint = {
       case "jwks-uris" :: Nil JsonGet _ => {

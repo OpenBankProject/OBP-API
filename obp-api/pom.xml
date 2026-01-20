@@ -586,15 +586,9 @@
             <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <!-- Increased memory for faster test execution -->
-            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1G -Xms2G -Xmx4G -XX:+UseG1GC -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseStringDeduplication --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
+            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=512m -Xms512m -Xmx512m --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
             <tagsToExclude>code.external</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
-            <!-- Disable parallel test execution to avoid shared database state issues -->
-            <!-- Tests share an in-memory H2 database which causes conflicts when run in parallel -->
-<!--            <parallel>true</parallel>-->
-<!--            <threadCount>4</threadCount>-->
-            <parallel>false</parallel>
         </configuration>
         <executions>
           <execution>
@@ -673,26 +667,15 @@
           <version>4.8.1</version>
           <configuration>
             <fork>true</fork>
-            <recompileMode>incremental</recompileMode>
-            <useZincServer>true</useZincServer>
             <jvmArgs>
               <jvmArg>-Xms4G</jvmArg>
               <jvmArg>-Xmx12G</jvmArg>
-              <jvmArg>-Xss4m</jvmArg>
               <jvmArg>-XX:MaxMetaspaceSize=4G</jvmArg>
               <jvmArg>-XX:+UseG1GC</jvmArg>
-              <jvmArg>-XX:+TieredCompilation</jvmArg>
-              <jvmArg>-XX:TieredStopAtLevel=1</jvmArg>
             </jvmArgs>
             <args>
               <arg>-deprecation</arg>
               <arg>-feature</arg>
-              <!-- Enable language features to suppress warnings -->
-              <arg>-language:implicitConversions</arg>
-              <arg>-language:reflectiveCalls</arg>
-              <arg>-language:postfixOps</arg>
-              <!-- Suppress auto-application deprecation warning -->
-              <arg>-Wconf:cat=deprecation&amp;msg=auto-application:s</arg>
             </args>
           </configuration>
         </plugin>

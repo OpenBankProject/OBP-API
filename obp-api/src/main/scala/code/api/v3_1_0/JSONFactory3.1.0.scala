@@ -1075,7 +1075,7 @@ object JSONFactory310{
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
      userId => (userId, UserX.findByUserId(userId).map(_.name))
-    } toMap;
+    }.toMap;
 
     EntitlementJSonsV310(
       tr.map(e =>

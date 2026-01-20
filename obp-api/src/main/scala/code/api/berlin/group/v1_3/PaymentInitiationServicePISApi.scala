@@ -1,5 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
+import scala.language.implicitConversions
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkAuthorisationConfirmation, checkSelectPsuAuthenticationMethod, checkTransactionAuthorisation, checkUpdatePsuAuthentication, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus

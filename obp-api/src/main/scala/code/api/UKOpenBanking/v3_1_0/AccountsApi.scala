@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import scala.language.implicitConversions
 import code.api.Constant
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
