@@ -3283,6 +3283,33 @@ object Glossary extends MdcLoggable  {
 |* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
 |* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
 |
+|**Response format for GET /my/dynamic-entities:**
+|
+|The response contains an array of dynamic entity definitions. Note that the **entity name is a dynamic key** in each object (not a fixed property name):
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "CustomerPreferences": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      },
+|      "dynamicEntityId": "abc-123-def",
+|      "userId": "user-456",
+|      "hasPersonalEntity": true,
+|      "bankId": null
+|    }
+|  ]
+|}
+|```
+|
+|**Important:** The entity name (e.g., "CustomerPreferences") appears as a dynamic key, not as a property value. To extract the entity name programmatically, find the key that is NOT one of the standard properties: dynamicEntityId, userId, hasPersonalEntity, bankId.
+|
 |**Required roles:**
 |
 |* CanCreateSystemLevelDynamicEntity - To create system level dynamic entities
