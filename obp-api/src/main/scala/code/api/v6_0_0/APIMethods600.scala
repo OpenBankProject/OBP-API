@@ -30,7 +30,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, UpdateAbacRuleJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -4557,13 +4557,24 @@ trait APIMethods600 {
          |
          |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
          |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
          |For more information see ${Glossary.getGlossaryItemLink(
           "Dynamic-Entities"
         )} """,
       EmptyBody,
-      ListResult(
-        "dynamic_entities",
-        List(dynamicEntityResponseBodyExample)
+      DynamicEntitiesWithCountJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionWithCountJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "CustomerPreferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            record_count = 42
+          )
+        )
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -4584,16 +4595,82 @@ trait APIMethods600 {
             )
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
-            val jObjectsWithCounts = listCommons.map { entity =>
+            val entitiesWithCounts = listCommons.map { entity =>
               val recordCount = DynamicData.count(
                 By(DynamicData.DynamicEntityName, entity.entityName),
                 By(DynamicData.IsPersonalEntity, false),
                 if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
               )
-              entity.jValue.asInstanceOf[JObject] ~ ("record_count" -> recordCount)
+              (entity, recordCount)
             }
             (
-              ListResult("dynamic_entities", jObjectsWithCounts),
+              JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts),
+              HttpCode.`200`(cc.callContext)
+            )
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEntities),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Get Bank Level Dynamic Entities",
+      s"""Get all Bank Level Dynamic Entities for one bank with record counts.
+         |
+         |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
+         |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "Dynamic-Entities"
+        )} """,
+      EmptyBody,
+      DynamicEntitiesWithCountJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionWithCountJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "CustomerPreferences",
+            user_id = "user-456",
+            bank_id = Some("gh.29.uk"),
+            has_personal_entity = true,
+            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            record_count = 42
+          )
+        )
+      ),
+      List(
+        $BankNotFound,
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canGetBankLevelDynamicEntities))
+    )
+
+    lazy val getBankLevelDynamicEntities: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            dynamicEntities <- Future(
+              NewStyle.function.getDynamicEntities(Some(bankId), false)
+            )
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            val entitiesWithCounts = listCommons.map { entity =>
+              val recordCount = DynamicData.count(
+                By(DynamicData.DynamicEntityName, entity.entityName),
+                By(DynamicData.IsPersonalEntity, false),
+                By(DynamicData.BankId, bankId)
+              )
+              (entity, recordCount)
+            }
+            (
+              JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts),
               HttpCode.`200`(cc.callContext)
             )
           }
@@ -4612,6 +4689,397 @@ trait APIMethods600 {
         fullBoxOrException[T](changedMsgFailure)
       }
       box.openOrThrowException(s"$UnknownError ")
+    }
+
+    // Helper method for creating dynamic entities with v6.0.0 response format
+    private def createDynamicEntityV600(
+        cc: CallContext,
+        dynamicEntity: DynamicEntityCommons
+    ) = {
+      for {
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(
+          dynamicEntity,
+          cc.callContext
+        )
+        // Grant the CRUD roles to the logged-in user
+        crudRoles = List(
+          DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+        )
+      } yield {
+        crudRoles.map(role =>
+          Entitlement.entitlement.vend.addEntitlement(
+            dynamicEntity.bankId.getOrElse(""),
+            cc.userId,
+            role.toString()
+          )
+        )
+        val commonsData: DynamicEntityCommons = result
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`201`(cc.callContext)
+        )
+      }
+    }
+
+    // Helper method for updating dynamic entities with v6.0.0 response format
+    private def updateDynamicEntityV600(
+        cc: CallContext,
+        dynamicEntity: DynamicEntityCommons
+    ) = {
+      for {
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(
+          dynamicEntity,
+          cc.callContext
+        )
+      } yield {
+        val commonsData: DynamicEntityCommons = result
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`200`(cc.callContext)
+        )
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createSystemDynamicEntity),
+      "POST",
+      "/management/system-dynamic-entities",
+      "Create System Level Dynamic Entity",
+      s"""Create a system level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "CustomerPreferences",
+         |  "has_personal_entity": true,
+         |  "definition": {
+         |    "description": "User preferences",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:** Each property MUST include an `example` field with a valid example value.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "CustomerPreferences",
+        has_personal_entity = Some(true),
+        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "CustomerPreferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canCreateSystemLevelDynamicEntity))
+    )
+
+    lazy val createSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: Nil JsonPost json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[CreateDynamicEntityRequestJsonV600]
+          }
+          internalJson = JSONFactory600.convertV600RequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, None)
+          result <- createDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicEntity),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Create Bank Level Dynamic Entity",
+      s"""Create a bank level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "CustomerPreferences",
+         |  "has_personal_entity": true,
+         |  "definition": {
+         |    "description": "User preferences",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:** Each property MUST include an `example` field with a valid example value.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "CustomerPreferences",
+        has_personal_entity = Some(true),
+        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "CustomerPreferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $BankNotFound,
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canCreateBankLevelDynamicEntity))
+    )
+
+    lazy val createBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonPost json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[CreateDynamicEntityRequestJsonV600]
+          }
+          internalJson = JSONFactory600.convertV600RequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, Some(bankId))
+          result <- createDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateSystemDynamicEntity),
+      "PUT",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update System Level Dynamic Entity",
+      s"""Update a system level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "CustomerPreferences",
+         |  "has_personal_entity": true,
+         |  "definition": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "CustomerPreferences",
+        has_personal_entity = Some(true),
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "CustomerPreferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canUpdateSystemDynamicEntity))
+    )
+
+    lazy val updateSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicEntity),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update Bank Level Dynamic Entity",
+      s"""Update a bank level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "CustomerPreferences",
+         |  "has_personal_entity": true,
+         |  "definition": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "CustomerPreferences",
+        has_personal_entity = Some(true),
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "CustomerPreferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $BankNotFound,
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canUpdateBankLevelDynamicEntity))
+    )
+
+    lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, Some(bankId))
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateMyDynamicEntity),
+      "PUT",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update My Dynamic Entity",
+      s"""Update a Dynamic Entity that I created.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "CustomerPreferences",
+         |  "has_personal_entity": true,
+         |  "definition": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "CustomerPreferences",
+        has_personal_entity = Some(true),
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "CustomerPreferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi)
+    )
+
+    lazy val updateMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          // Verify the user owns this dynamic entity
+          existingEntity <- Future(
+            NewStyle.function.getDynamicEntitiesByUserId(cc.userId).find(_.dynamicEntityId.contains(dynamicEntityId))
+          )
+          _ <- Helper.booleanToFuture(s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = $dynamicEntityId", cc = cc.callContext) {
+            existingEntity.isDefined
+          }
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, existingEntity.get.bankId)
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
     }
 
     staticResourceDocs += ResourceDoc(
