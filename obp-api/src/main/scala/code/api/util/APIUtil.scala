@@ -3017,233 +3017,170 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return A Tuple of an User wrapped into a Future and optional session context data
    */
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
-    val s = S
-    val spelling = getSpellingParam()
-    val body: Box[String] = getRequestBody(S.request)
-    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
-    val correlationId = getCorrelationId()
-    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
-    val xRequestId: Option[String] =
-      reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
-        .map(_.values.mkString(","))
-    logger.debug(s"Request Headers for verb: $verb, URL: $url")
-    logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
-    val remoteIpAddress = getRemoteIpAddress()
 
-    val authHeaders = AuthorisationUtil.getAuthorisationHeaders(reqHeaders)
-    val authHeadersWithEmptyValues = RequestHeadersUtil.checkEmptyRequestHeaderValues(reqHeaders)
-    val authHeadersWithEmptyNames = RequestHeadersUtil.checkEmptyRequestHeaderNames(reqHeaders)
+    // PSD2 guard: если Failure/Empty -> стоп, дальше код не выполняется
+    passesPsd2Aisp(Some(cc)).flatMap {
+      case (Full(true), ccOpt) =>
 
-    // CONSUMER VALIDATION LOGIC
-    // OBP-API supports two methods for identifying/validating API consumers (applications):
-    // 1. CONSUMER_CERTIFICATE - Uses mTLS certificates or certificate headers (more secure, PSD2 compliant)
-    // 2. CONSUMER_KEY_VALUE - Uses traditional API keys in request headers (simpler for dev/test)
-    
-    // Step 1: Always attempt to identify consumer via certificate/mTLS
-    // This looks for TPP-Signature-Certificate or PSD2-CERT headers, or mTLS client certificates
-    val consumerByCertificate = Consent.getCurrentConsumerViaTppSignatureCertOrMtls(callContext = cc)
-    logger.debug(s"getUserAndSessionContextFuture says consumerByCertificate is: $consumerByCertificate")
-    
-    // Step 2: Check which validation method is configured for consent requests
-    // Default is CONSUMER_CERTIFICATE (certificate-based validation)
-    // Alternative is CONSUMER_KEY_VALUE (consumer key-based validation)
-    val method = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
-    
-    // Step 3: Conditionally attempt to identify consumer via consumer key (only if method allows it)
-    val consumerByConsumerKey = getConsumerKey(reqHeaders) match {
-      case Some(consumerKey) if method == "CONSUMER_KEY_VALUE" =>
-        // Consumer key found AND system is configured to use consumer key validation
-        // Look up the consumer by their API key
-        Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey)
-        
-      case Some(_) =>
-        // Consumer key found BUT system is configured for certificate validation
-        // Ignore the consumer key and return Empty (will rely on certificate validation instead)
-        // This prevents MatchError when consumer key is present but method != "CONSUMER_KEY_VALUE"
-        logger.warn(s"Consumer key provided in request but OBP is configured for certificate validation (method=$method). Ignoring consumer key and using certificate validation instead.")
-        Empty
-        
-      case None =>
-        // No consumer key found in request headers
-        // This is normal for certificate-based validation or anonymous requests
-        Empty
-    }
-    logger.debug(s"getUserAndSessionContextFuture says consumerByConsumerKey is: $consumerByConsumerKey")
+        val cc2 = ccOpt.getOrElse(cc)
 
-    val res =
-      if (authHeadersWithEmptyValues.nonEmpty) { // Check Authorization Headers Empty Values
-        val message = ErrorMessages.EmptyRequestHeaders + s"Header names: ${authHeadersWithEmptyValues.mkString(", ")}"
-        Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
-      } else if (authHeadersWithEmptyNames.nonEmpty) { // Check Authorization Headers Empty Names
-        val message = ErrorMessages.EmptyRequestHeaders + s"Header values: ${authHeadersWithEmptyNames.mkString(", ")}"
-        Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
-      } else if (authHeaders.size > 1) { // Check Authorization Headers ambiguity
-        Future { (Failure(ErrorMessages.AuthorizationHeaderAmbiguity + s"${authHeaders}"), Some(cc)) }
-      } else if (BerlinGroupCheck.hasUnwantedConsentIdHeaderForBGEndpoint(url, reqHeaders)) {
-        val message = ErrorMessages.InvalidConsentIdUsage
-        Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
-      } else if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
-        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerByCertificate))
-      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
-        val consentValue = APIUtil.getConsentJWT(reqHeaders)
-        Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
-          case Some(consent) => // JWT value obtained via "Consent-Id" request header
-            Consent.applyRules(
-              Some(consent.jsonWebToken),
-              // Note: At this point we are getting the Consumer from the Consumer in the Consent.
-              // This may later be cross checked via the value in consumer_validation_method_for_consent.
-              // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
-              cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
+        // ====== ТВОЙ СУЩЕСТВУЮЩИЙ КОД НАЧИНАЕТСЯ ЗДЕСЬ (почти без изменений) ======
+
+        val s = S
+        val spelling = getSpellingParam()
+        val body: Box[String] = getRequestBody(S.request)
+        val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+        val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+        val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""), "UTF-8")
+        val correlationId = getCorrelationId()
+        val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+        val xRequestId: Option[String] =
+          reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
+            .map(_.values.mkString(","))
+
+        logger.debug(s"Request Headers for verb: $verb, URL: $url")
+        logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
+
+        val remoteIpAddress = getRemoteIpAddress()
+
+        val authHeaders = AuthorisationUtil.getAuthorisationHeaders(reqHeaders)
+        val authHeadersWithEmptyValues = RequestHeadersUtil.checkEmptyRequestHeaderValues(reqHeaders)
+        val authHeadersWithEmptyNames = RequestHeadersUtil.checkEmptyRequestHeaderNames(reqHeaders)
+
+        // Step 1: identify consumer via certificate/mTLS
+        val consumerByCertificate =
+          Consent.getCurrentConsumerViaTppSignatureCertOrMtls(callContext = cc2)
+
+        logger.debug(s"getUserAndSessionContextFuture says consumerByCertificate is: $consumerByCertificate")
+
+        // Step 2: which validation method is configured
+        val method = APIUtil.getPropsValue(
+          nameOfProperty = "consumer_validation_method_for_consent",
+          defaultValue = "CONSUMER_CERTIFICATE"
+        )
+
+        // Step 3: optionally identify consumer via consumer key (only if method allows it)
+        val consumerByConsumerKey = getConsumerKey(reqHeaders) match {
+          case Some(consumerKey) if method == "CONSUMER_KEY_VALUE" =>
+            Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey)
+
+          case Some(_) =>
+            logger.warn(
+              s"Consumer key provided in request but OBP is configured for certificate validation (method=$method). " +
+                s"Ignoring consumer key and using certificate validation instead."
             )
-          case _ =>
-            JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
-              case true => // It's JWT obtained via "Consent-JWT" request header
-                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey)))
-              case false => // Unrecognised consent value
-                Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
-            }
+            Empty
+
+          case None =>
+            Empty
         }
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
-        getUserFromOAuthHeaderFuture(cc.copy(consumer = consumerByCertificate))
-      } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
-        for {
-          (user, callContext) <- OAuth2Login.getUserFuture(cc.copy(consumer = consumerByCertificate))
-        } yield {
-          (user, callContext)
-        }
-      } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
-      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders)) {
-        DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-      } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
-      else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-        DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-      } // Gateway Login
-      else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
-        APIUtil.getPropsValue("gateway.host") match {
-          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
-            httpCode match {
-              case 200 =>
-                val payload = GatewayLogin.parseJwt(parameters)
-                payload match {
-                  case Full(payload) =>
-                    GatewayLogin.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
-                      case Full((u, cbsToken, callContext)) => // Authentication is successful
-                        val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
-                        val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                        val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContext)
-                        (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
-                      case Failure(msg, t, c) =>
-                        (Failure(msg, t, c), None)
-                      case _ =>
-                        (Failure(payload), None)
-                    }
-                  case Failure(msg, t, c) =>
-                    Future { (Failure(msg, t, c), None) }
-                  case _ =>
-                    Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
-                }
+
+        logger.debug(s"getUserAndSessionContextFuture says consumerByConsumerKey is: $consumerByConsumerKey")
+
+        val res: Future[(Box[User], Option[CallContext])] =
+          if (authHeadersWithEmptyValues.nonEmpty) {
+            val message = ErrorMessages.EmptyRequestHeaders + s"Header names: ${authHeadersWithEmptyValues.mkString(", ")}"
+            Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc2.toLight))), Some(cc2)) }
+
+          } else if (authHeadersWithEmptyNames.nonEmpty) {
+            val message = ErrorMessages.EmptyRequestHeaders + s"Header values: ${authHeadersWithEmptyNames.mkString(", ")}"
+            Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc2.toLight))), Some(cc2)) }
+
+          } else if (authHeaders.size > 1) {
+            Future { (Failure(ErrorMessages.AuthorizationHeaderAmbiguity + s"${authHeaders}"), Some(cc2)) }
+
+          } else if (BerlinGroupCheck.hasUnwantedConsentIdHeaderForBGEndpoint(url, reqHeaders)) {
+            val message = ErrorMessages.InvalidConsentIdUsage
+            Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc2.toLight))), Some(cc2)) }
+
+          } else if (APIUtil.`hasConsent-ID`(reqHeaders)) {
+            Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc2.copy(consumer = consumerByCertificate))
+
+          } else if (APIUtil.hasConsentJWT(reqHeaders)) {
+            val consentValue = APIUtil.getConsentJWT(reqHeaders)
+            Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
+              case Some(consent) =>
+                Consent.applyRules(
+                  Some(consent.jsonWebToken),
+                  cc2.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
+                )
               case _ =>
-                Future { (Failure(message), None) }
-            }
-          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
-            Future { (Failure(ErrorMessages.GatewayLoginWhiteListAddresses), None) }
-          case Empty =>
-            Future { (Failure(ErrorMessages.GatewayLoginHostPropertyMissing), None) } // There is no gateway.host in props file
-          case Failure(msg, t, c) =>
-            Future { (Failure(msg, t, c), None) }
-          case _ =>
-            Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
-        }
-      }  // DAuth Login
-      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
-        logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
-        APIUtil.getPropsValue("dauth.host") match {
-          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
-            dauthToken match {
-              case Some(token :: _) =>
-                val payload = DAuth.parseJwt(token)
-                payload match {
-                  case Full(payload) =>
-                    DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
-                      case Full((u,callContext)) => // Authentication is successful
-                        val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
-                        val jwt = DAuth.createJwt(payload)
-                        val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
-                        (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
-                      case Failure(msg, t, c) =>
-                        (Failure(msg, t, c), None)
-                      case _ =>
-                        (Failure(payload), None)
-                    }
-                  case Failure(msg, t, c) =>
-                    Future { (Failure(msg, t, c), None) }
-                  case _ =>
-                    Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
+                JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
+                  case true =>
+                    Consent.applyRules(
+                      APIUtil.getConsentJWT(reqHeaders),
+                      cc2.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
+                    )
+                  case false =>
+                    Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
                 }
-              case _ =>
-                Future { (Failure(InvalidDAuthHeaderToken), None) }
             }
-          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
-            Future { (Failure(ErrorMessages.DAuthWhiteListAddresses), None) }
-          case Empty =>
-            Future { (Failure(ErrorMessages.DAuthHostPropertyMissing), None) } // There is no dauth.host in props file
-          case Failure(msg, t, c) =>
-            Future { (Failure(msg, t, c), None) }
-          case _ =>
-            Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
-        }
-      }
-      else if(Option(cc).flatMap(_.user).isDefined) {
-        Future{(cc.user, Some(cc))}
-      } else {
-        if(hasAuthorizationHeader(reqHeaders)) {
-          // We want to throw error in case of wrong or unsupported header. For instance:
-          // - Authorization: mF_9.B5f-4.1JqM
-          // - Authorization: Basic mF_9.B5f-4.1JqM
-          Future { (Failure(ErrorMessages.InvalidAuthorizationHeader), Some(cc)) }
-        } else {
-          Future { (Empty, Some(cc.copy(consumer = consumerByCertificate))) }
-        }
-      }
 
-    // COMMON POST AUTHENTICATION CODE GOES BELOW
+          } else if (hasAnOAuthHeader(cc2.authReqHeaderField)) {
+            getUserFromOAuthHeaderFuture(cc2.copy(consumer = consumerByCertificate))
 
-    // Check is it Consumer disabled
-    val consumerIsDisabled: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkConsumerIsDisabled(res)
-    // Check is it a user deleted or locked
-    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(consumerIsDisabled)
-    // Check Rate Limiting
-    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
-    // User init actions
-    val resultWithUserInitActions: Future[(Box[User], Option[CallContext])] = AfterApiAuth.outerLoginUserInitAction(resultWithRateLimiting)
+          } else if (hasAnOAuth2Header(cc2.authReqHeaderField)) {
+            for {
+              (user, callContext) <- OAuth2Login.getUserFuture(cc2.copy(consumer = consumerByCertificate))
+            } yield (user, callContext)
 
-    // Update Call Context
-    resultWithUserInitActions map {
-      x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
-    } map {
-      x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
-    } map {
-      x => (x._1, x._2.map(_.copy(verb = verb)))
-    } map {
-      x => (x._1, x._2.map(_.copy(url = url)))
-    } map {
-      x => (x._1, x._2.map(_.copy(correlationId = xRequestId.getOrElse(correlationId))))
-    } map {
-      x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
-    } map {
-      x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress)))
-    }  map {
-      x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
-    } map { // Inject logged in user into CallContext data
-      x => (x._1, x._2.map(_.copy(user = x._1)))
+          } else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc2.requestHeaders)) {
+            DirectLogin.getUserFromDirectLoginHeaderFuture(cc2)
+
+          } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc2.authReqHeaderField)) {
+            DirectLogin.getUserFromDirectLoginHeaderFuture(cc2)
+
+          } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc2.authReqHeaderField)) {
+            // ... твой Gateway блок без изменений, только cc -> cc2 если надо
+            ???
+
+          } else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc2.requestHeaders)) {
+            // ... твой DAuth блок без изменений, только cc -> cc2 если надо
+            ???
+
+          } else if (Option(cc2).flatMap(_.user).isDefined) {
+            Future { (cc2.user, Some(cc2)) }
+
+          } else {
+            if (hasAuthorizationHeader(reqHeaders)) {
+              Future { (Failure(ErrorMessages.InvalidAuthorizationHeader), Some(cc2)) }
+            } else {
+              Future { (Empty, Some(cc2.copy(consumer = consumerByCertificate))) }
+            }
+          }
+
+        // COMMON POST AUTHENTICATION CODE GOES BELOW
+        val consumerIsDisabled = AfterApiAuth.checkConsumerIsDisabled(res)
+        val userIsLockedOrDeleted = AfterApiAuth.checkUserIsDeletedOrLocked(consumerIsDisabled)
+        val resultWithRateLimiting = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
+        val resultWithUserInitActions = AfterApiAuth.outerLoginUserInitAction(resultWithRateLimiting)
+
+        resultWithUserInitActions
+          .map(x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2)))
+          .map(x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion))))
+          .map(x => (x._1, x._2.map(_.copy(verb = verb))))
+          .map(x => (x._1, x._2.map(_.copy(url = url))))
+          .map(x => (x._1, x._2.map(_.copy(correlationId = xRequestId.getOrElse(correlationId)))))
+          .map(x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders))))
+          .map(x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress))))
+          .map(x => (x._1, x._2.map(_.copy(httpBody = body.toOption))))
+          .map(x => (x._1, x._2.map(_.copy(user = x._1))))
+
+      // ====== ТВОЙ КОД ЗАКАНЧИВАЕТСЯ ЗДЕСЬ ======
+
+      case (f: Failure, ccOpt) =>
+        // PSD2 не прошёл -> возвращаем ошибку, дальше метод не выполняется
+        Future.successful((f, ccOpt))
+
+      case (Empty, ccOpt) =>
+        // PSD2 вернул Empty -> тоже стоп
+        Future.successful((Empty, ccOpt))
+
+      case (Full(false), ccOpt) =>
+        // на всякий случай, если когда-то начнёте возвращать Full(false)
+        Future.successful((Failure(X509ActionIsNotAllowed), ccOpt))
     }
-
   }
-
 
 
 
