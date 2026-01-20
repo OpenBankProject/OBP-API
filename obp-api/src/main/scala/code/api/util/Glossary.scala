@@ -3283,7 +3283,13 @@ object Glossary extends MdcLoggable  {
 |* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
 |* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
 |
-|**Response format for GET /my/dynamic-entities:**
+|**Discovery endpoint (available from v6.0.0):**
+|
+|* GET /personal-dynamic-entities/available - Discover all Dynamic Entities that support personal data storage
+|
+|This endpoint allows regular users (without admin roles) to discover which dynamic entities they can interact with for storing personal data via the /my/ENTITY_NAME endpoints. No special roles required - just needs to be logged in.
+|
+|**Response format for GET /my/dynamic-entities and GET /personal-dynamic-entities/available:**
 |
 |**v6.0.0 format (recommended):**
 |

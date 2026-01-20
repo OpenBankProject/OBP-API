@@ -6458,6 +6458,64 @@ trait APIMethods600 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getAvailablePersonalDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getAvailablePersonalDynamicEntities),
+      "GET",
+      "/personal-dynamic-entities/available",
+      "Get Available Personal Dynamic Entities",
+      s"""Get all Dynamic Entities that support personal data storage (hasPersonalEntity == true).
+         |
+         |This endpoint allows regular users (without admin roles) to discover which dynamic entities
+         |they can interact with for storing personal data via the /my/ENTITY_NAME endpoints.
+         |
+         |Authentication: User must be logged in (no special roles required).
+         |
+         |Use case: Portals and apps can show users what personal data types are available
+         |without needing admin access to view all dynamic entity definitions.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+      EmptyBody,
+      MyDynamicEntitiesJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "CustomerPreferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          )
+        )
+      ),
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagPersonalDynamicEntity, apiTagApi)
+    )
+
+    lazy val getAvailablePersonalDynamicEntities: OBPEndpoint = {
+      case "personal-dynamic-entities" :: "available" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          // Get all dynamic entities (system and bank level)
+          allDynamicEntities <- Future(
+            NewStyle.function.getDynamicEntities(None, false) ++
+            NewStyle.function.getDynamicEntities(None, true)
+          )
+        } yield {
+          // Filter to only those with hasPersonalEntity == true
+          val personalEntities: List[DynamicEntityCommons] = allDynamicEntities.filter(_.hasPersonalEntity)
+          (
+            JSONFactory600.createMyDynamicEntitiesJson(personalEntities),
+            HttpCode.`200`(cc.callContext)
+          )
+        }
+      }
+    }
+
   }
 }
 
