@@ -1,3 +1,5 @@
+    This assumes the use of PostgreSQL as the main DB for OBP API. A minimal example script for MS SQL Server is included.
+
 # TLDR;
 
 # For read access to Users (e.g. Keycloak)
