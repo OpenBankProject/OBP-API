@@ -487,14 +487,14 @@ case class AbacPoliciesJsonV600(
 )
 
 // Dynamic Entity definition with fully predictable structure (v6.0.0 format)
-// No dynamic keys - entity name is an explicit field, schema is in 'definition'
+// No dynamic keys - entity name is an explicit field, schema describes the structure
 case class DynamicEntityDefinitionJsonV600(
     dynamic_entity_id: String,
     entity_name: String,
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
-    definition: net.liftweb.json.JsonAST.JObject
+    schema: net.liftweb.json.JsonAST.JObject
 )
 
 case class MyDynamicEntitiesJsonV600(
@@ -508,7 +508,7 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
-    definition: net.liftweb.json.JsonAST.JObject,
+    schema: net.liftweb.json.JsonAST.JObject,
     record_count: Long
 )
 
@@ -520,14 +520,14 @@ case class DynamicEntitiesWithCountJsonV600(
 case class CreateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],  // defaults to true if not provided
-    definition: net.liftweb.json.JsonAST.JObject
+    schema: net.liftweb.json.JsonAST.JObject
 )
 
 // Request format for updating a dynamic entity (v6.0.0 with snake_case)
 case class UpdateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],
-    definition: net.liftweb.json.JsonAST.JObject
+    schema: net.liftweb.json.JsonAST.JObject
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
@@ -1343,7 +1343,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    * Create v6.0.0 response for GET /my/dynamic-entities
    *
    * Fully predictable structure with no dynamic keys.
-   * Entity name is an explicit field, schema is in 'definition'.
+   * Entity name is an explicit field, schema describes the structure.
    *
    * Response format:
    * {
@@ -1354,7 +1354,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    *       "user_id": "user-456",
    *       "bank_id": null,
    *       "has_personal_entity": true,
-   *       "definition": { ... schema ... }
+   *       "schema": { ... }
    *     }
    *   ]
    * }
@@ -1378,7 +1378,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           )
         }
 
-        val schema = schemaOption.getOrElse(
+        val schemaObj = schemaOption.getOrElse(
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
@@ -1388,7 +1388,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
-          definition = schema
+          schema = schemaObj
         )
       }
     )
@@ -1418,7 +1418,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           )
         }
 
-        val schema = schemaOption.getOrElse(
+        val schemaObj = schemaOption.getOrElse(
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
@@ -1428,7 +1428,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
-          definition = schema,
+          schema = schemaObj,
           record_count = recordCount
         )
       }
@@ -1442,7 +1442,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    * {
    *   "entity_name": "CustomerPreferences",
    *   "has_personal_entity": true,
-   *   "definition": { ... schema ... }
+   *   "schema": { ... }
    * }
    *
    * Output (internal):
@@ -1459,7 +1459,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
     // Build the internal format: entity name as dynamic key + hasPersonalEntity
     JObject(
-      JField(request.entity_name, request.definition) ::
+      JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
       Nil
     )
@@ -1473,7 +1473,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
     // Build the internal format: entity name as dynamic key + hasPersonalEntity
     JObject(
-      JField(request.entity_name, request.definition) ::
+      JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
       Nil
     )

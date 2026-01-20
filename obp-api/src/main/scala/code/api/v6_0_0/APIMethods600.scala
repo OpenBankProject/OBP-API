@@ -4571,7 +4571,7 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
-            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             record_count = 42
           )
         )
@@ -4636,7 +4636,7 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = Some("gh.29.uk"),
             has_personal_entity = true,
-            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             record_count = 42
           )
         )
@@ -4759,7 +4759,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "CustomerPreferences",
          |  "has_personal_entity": true,
-         |  "definition": {
+         |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
@@ -4776,7 +4776,7 @@ trait APIMethods600 {
       CreateDynamicEntityRequestJsonV600(
         entity_name = "CustomerPreferences",
         has_personal_entity = Some(true),
-        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -4784,7 +4784,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $UserNotLoggedIn,
@@ -4826,7 +4826,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "CustomerPreferences",
          |  "has_personal_entity": true,
-         |  "definition": {
+         |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
@@ -4843,7 +4843,7 @@ trait APIMethods600 {
       CreateDynamicEntityRequestJsonV600(
         entity_name = "CustomerPreferences",
         has_personal_entity = Some(true),
-        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -4851,7 +4851,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -4894,7 +4894,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "CustomerPreferences",
          |  "has_personal_entity": true,
-         |  "definition": {
+         |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
@@ -4910,7 +4910,7 @@ trait APIMethods600 {
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "CustomerPreferences",
         has_personal_entity = Some(true),
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -4918,7 +4918,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $UserNotLoggedIn,
@@ -4960,7 +4960,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "CustomerPreferences",
          |  "has_personal_entity": true,
-         |  "definition": {
+         |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
@@ -4976,7 +4976,7 @@ trait APIMethods600 {
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "CustomerPreferences",
         has_personal_entity = Some(true),
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -4984,7 +4984,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -5027,7 +5027,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "CustomerPreferences",
          |  "has_personal_entity": true,
-         |  "definition": {
+         |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
@@ -5043,7 +5043,7 @@ trait APIMethods600 {
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "CustomerPreferences",
         has_personal_entity = Some(true),
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5051,7 +5051,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        definition = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $UserNotLoggedIn,
@@ -6898,7 +6898,7 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
-            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
           )
         )
       ),
@@ -6953,7 +6953,7 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
-            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
           )
         )
       ),

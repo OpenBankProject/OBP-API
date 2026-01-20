@@ -74,7 +74,7 @@ class DynamicEntityTest extends V600ServerSetup {
       |{
       |    "entity_name": "FooBar",
       |    "has_personal_entity": true,
-      |    "definition": {
+      |    "schema": {
       |       "description": "description of this entity, can be markdown text.",
       |        "required": [
       |            "name"
@@ -102,7 +102,7 @@ class DynamicEntityTest extends V600ServerSetup {
       |{
       |    "entity_name": "SharedEntity",
       |    "has_personal_entity": false,
-      |    "definition": {
+      |    "schema": {
       |       "description": "A shared entity without personal endpoints.",
       |        "required": [
       |            "title"
@@ -123,7 +123,7 @@ class DynamicEntityTest extends V600ServerSetup {
       |{
       |    "entity_name": "FooBar",
       |    "has_personal_entity": true,
-      |    "definition": {
+      |    "schema": {
       |       "description": "description of this entity.",
       |        "required": [
       |            "name_wrong"
@@ -144,7 +144,7 @@ class DynamicEntityTest extends V600ServerSetup {
       |{
       |    "entity_name": "FooBar",
       |    "has_personal_entity": true,
-      |    "definition": {
+      |    "schema": {
       |       "description": "Updated description of this entity.",
       |        "required": [
       |            "name"
@@ -214,15 +214,15 @@ class DynamicEntityTest extends V600ServerSetup {
       And("Response should have snake_case field: has_personal_entity")
       (responseJson \ "has_personal_entity").extract[Boolean] should equal(true)
 
-      And("Response should have definition field with just the schema (no entity name wrapper)")
-      val definition = responseJson \ "definition"
-      (definition \ "description") shouldBe a[JString]
-      (definition \ "required") shouldBe a[JArray]
-      (definition \ "properties") shouldBe a[JObject]
+      And("Response should have schema field with just the schema (no entity name wrapper)")
+      val schemaField = responseJson \ "schema"
+      (schemaField \ "description") shouldBe a[JString]
+      (schemaField \ "required") shouldBe a[JArray]
+      (schemaField \ "properties") shouldBe a[JObject]
 
-      // Verify definition does NOT contain the entity name as a key (old format would have FooBar as key)
-      And("Definition should NOT contain entity name as a dynamic key")
-      (definition \ "FooBar") should equal(JNothing)
+      // Verify schema does NOT contain the entity name as a key (old format would have FooBar as key)
+      And("Schema should NOT contain entity name as a dynamic key")
+      (schemaField \ "FooBar") should equal(JNothing)
 
       val dynamicEntityId = (responseJson \ "dynamic_entity_id").extract[String]
 
@@ -281,9 +281,9 @@ class DynamicEntityTest extends V600ServerSetup {
       (responseJson \ "dynamic_entity_id").extract[String] should equal(dynamicEntityId)
       (responseJson \ "entity_name").extract[String] should equal("FooBar")
 
-      And("Definition should be updated")
-      val definition = responseJson \ "definition"
-      (definition \ "description").extract[String] should equal("Updated description of this entity.")
+      And("Schema should be updated")
+      val schemaField = responseJson \ "schema"
+      (schemaField \ "description").extract[String] should equal("Updated description of this entity.")
 
       // Cleanup
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
@@ -431,10 +431,10 @@ class DynamicEntityTest extends V600ServerSetup {
       (entity \ "user_id").extract[String] should equal(resourceUser1.userId)
       (entity \ "has_personal_entity").extract[Boolean] should equal(true)
 
-      And("Definition should contain only the schema")
-      val definition = entity \ "definition"
-      (definition \ "description") shouldBe a[JString]
-      (definition \ "FooBar") should equal(JNothing)  // Should NOT have entity name as key
+      And("Schema field should contain only the schema structure")
+      val schemaField = entity \ "schema"
+      (schemaField \ "description") shouldBe a[JString]
+      (schemaField \ "FooBar") should equal(JNothing)  // Should NOT have entity name as key
 
       // Test Update My Dynamic Entity
       When("We update my dynamic entity")
@@ -446,7 +446,7 @@ class DynamicEntityTest extends V600ServerSetup {
 
       And("Updated response should use snake_case fields")
       (updateResponse.body \ "entity_name").extract[String] should equal("FooBar")
-      (updateResponse.body \ "definition" \ "description").extract[String] should equal("Updated description of this entity.")
+      (updateResponse.body \ "schema" \ "description").extract[String] should equal("Updated description of this entity.")
 
       // Cleanup
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
@@ -504,7 +504,7 @@ class DynamicEntityTest extends V600ServerSetup {
       entities.foreach { entity =>
         (entity \ "dynamic_entity_id") shouldBe a[JString]
         (entity \ "entity_name") shouldBe a[JString]
-        (entity \ "definition") shouldBe a[JObject]
+        (entity \ "schema") shouldBe a[JObject]
       }
 
       // Cleanup
@@ -517,9 +517,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 Dynamic Entity definition field validation") {
+  feature("v6.0.0 Dynamic Entity schema field validation") {
 
-    scenario("Verify definition contains only schema, not entity name wrapper", ApiEndpoint1, VersionOfApi) {
+    scenario("Verify schema contains only schema structure, not entity name wrapper", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       val createRequest = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
@@ -527,19 +527,19 @@ class DynamicEntityTest extends V600ServerSetup {
       createResponse.code should equal(201)
 
       val dynamicEntityId = (createResponse.body \ "dynamic_entity_id").extract[String]
-      val definition = createResponse.body \ "definition"
+      val schemaField = createResponse.body \ "schema"
 
-      Then("Definition should contain schema fields directly")
-      (definition \ "description") shouldBe a[JString]
-      (definition \ "required") shouldBe a[JArray]
-      (definition \ "properties") shouldBe a[JObject]
+      Then("Schema should contain schema fields directly")
+      (schemaField \ "description") shouldBe a[JString]
+      (schemaField \ "required") shouldBe a[JArray]
+      (schemaField \ "properties") shouldBe a[JObject]
 
-      And("Definition should NOT contain the entity name as a nested key (old v4.0.0 format)")
-      (definition \ "FooBar") should equal(JNothing)
+      And("Schema should NOT contain the entity name as a nested key (old v4.0.0 format)")
+      (schemaField \ "FooBar") should equal(JNothing)
 
-      And("Definition should NOT contain hasPersonalEntity (that's a separate top-level field)")
-      (definition \ "hasPersonalEntity") should equal(JNothing)
-      (definition \ "has_personal_entity") should equal(JNothing)
+      And("Schema should NOT contain hasPersonalEntity (that's a separate top-level field)")
+      (schemaField \ "hasPersonalEntity") should equal(JNothing)
+      (schemaField \ "has_personal_entity") should equal(JNothing)
 
       // Cleanup
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
