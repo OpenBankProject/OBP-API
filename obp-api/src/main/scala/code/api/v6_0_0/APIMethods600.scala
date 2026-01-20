@@ -6961,7 +6961,7 @@ trait APIMethods600 {
         $UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagPersonalDynamicEntity, apiTagApi)
+      List(apiTagDynamicEntity, apiTagPersonalDynamicEntity, apiTagApi)
     )
 
     lazy val getAvailablePersonalDynamicEntities: OBPEndpoint = {
