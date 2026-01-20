@@ -6,11 +6,11 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
+import code.api.util.ApiRole.canReadResourceDoc
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.canReadResourceDoc
-import code.api.util.http4s.{Http4sCallContextBuilder, Http4sVaultKeys, ResourceDocMiddleware, ErrorResponseConverter}
+import code.api.util.http4s.{Http4sCallContextBuilder, ResourceDocMiddleware}
+import code.api.util.{ApiRole, ApiVersionUtils, CustomJsonFormats, NewStyle}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
 import com.github.dwickern.macros.NameOf.nameOf
@@ -20,9 +20,7 @@ import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import org.http4s._
 import org.http4s.dsl.io._
-import org.http4s.headers._
 
-import java.util.UUID
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
@@ -42,8 +40,6 @@ object Http4s700 {
 
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
-    private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
-
 
     // ResourceDoc with $UserNotLoggedIn in errorResponseBodies indicates auth is required
     // ResourceDocMiddleware will automatically handle authentication based on this metadata
@@ -80,7 +76,7 @@ object Http4s700 {
           JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
         )
         
-        Ok(responseJson).map(_.withContentType(jsonContentType))
+        Ok(responseJson)
     }
 
     resourceDocs += ResourceDoc(
@@ -117,7 +113,7 @@ object Http4s700 {
             } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
           })
         } yield result
-        Ok(response).map(_.withContentType(jsonContentType))
+        Ok(response)
     }
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -160,7 +156,7 @@ object Http4s700 {
             } yield convertAnyToJsonString(resourceDocsJson)
           })
         } yield result
-        Ok(response).map(_.withContentType(jsonContentType))
+        Ok(response)
     }
     
     // Example endpoint demonstrating full validation chain with ResourceDocMiddleware
@@ -200,7 +196,7 @@ object Http4s700 {
             "view_id" -> viewId
           )
         )
-        Ok(responseJson).map(_.withContentType(jsonContentType))
+        Ok(responseJson)
     }
 
     resourceDocs += ResourceDoc(
@@ -239,7 +235,7 @@ object Http4s700 {
             "counterparty_id" -> counterpartyId
           )
         )
-        Ok(responseJson).map(_.withContentType(jsonContentType))
+        Ok(responseJson)
     }
 
     // All routes combined (without middleware - for direct use)

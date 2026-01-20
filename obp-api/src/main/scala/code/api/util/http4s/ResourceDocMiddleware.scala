@@ -13,6 +13,7 @@ import code.api.util.{CallContext => SharedCallContext}
 import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
 import org.http4s._
+import org.http4s.headers.`Content-Type`
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.higherKinds
@@ -34,6 +35,7 @@ object ResourceDocMiddleware extends MdcLoggable{
   
   type HttpF[A] = OptionT[IO, A]
   type Middleware[F[_]] = HttpRoutes[F] => HttpRoutes[F]
+  private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
   
   /**
    * Check if ResourceDoc requires authentication based on errorResponseBodies
@@ -68,10 +70,15 @@ object ResourceDocMiddleware extends MdcLoggable{
           val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
           val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
           runValidationChain(req, resourceDoc, ccWithDoc, pathParams, routes)
+            .map(ensureJsonContentType)
         case None =>
           routes.run(req).getOrElseF(IO.pure(Response[IO](org.http4s.Status.NotFound)))
       }
     } yield response
+  }
+
+  private def ensureJsonContentType(response: Response[IO]): Response[IO] = {
+    if (response.contentType.isDefined) response else response.withContentType(jsonContentType)
   }
   
   /**
