@@ -66,7 +66,7 @@ class AccountAccessTest extends V510ServerSetup {
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
-      anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       // Call endpoint without the entitlement
       val badResponseGet = makeGetRequest(requestGet <@ user1)
@@ -92,7 +92,7 @@ class AccountAccessTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
@@ -174,7 +174,7 @@ class AccountAccessTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
@@ -272,7 +272,7 @@ class AccountAccessTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {

@@ -55,7 +55,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
     "Beneficiary" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
@@ -63,7 +63,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        case "accounts" :: accountId:: "beneficiaries" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -112,7 +112,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
     "Beneficiary" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
@@ -120,7 +120,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        case "beneficiaries" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

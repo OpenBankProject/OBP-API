@@ -76,7 +76,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -176,7 +176,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 

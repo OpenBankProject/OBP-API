@@ -83,8 +83,8 @@ class FundsAvailableTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

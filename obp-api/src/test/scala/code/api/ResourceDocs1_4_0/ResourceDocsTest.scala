@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.{InvalidApiCollectionIdParameter, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidApiCollectionIdParameter, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.setup.{DefaultUsers, PropsReset}
@@ -394,7 +394,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(401)
-      responseGetObp.toString contains(UserNotLoggedIn) should be (true)
+      responseGetObp.toString contains(AuthenticatedUserIsRequired) should be (true)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0 - resource_docs_requires_role props- login in user", ApiEndpoint1, VersionOfApi) {
@@ -669,7 +669,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(401)
-      responseGetObp.toString contains(UserNotLoggedIn) should be (true)
+      responseGetObp.toString contains(AuthenticatedUserIsRequired) should be (true)
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -v4.0.0 - resource_docs_requires_role props- login in user", ApiEndpoint1, VersionOfApi) {

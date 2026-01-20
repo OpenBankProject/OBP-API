@@ -28,7 +28,7 @@ package code.api.v5_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetMetricsAtOneBank
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_1_0.MetricsJson
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
 import code.entitlement.Entitlement
@@ -73,7 +73,7 @@ class MetricsTest extends V500ServerSetup {
       val response400 = getMetrics(None, bankId)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $apiEndpointName version $versionName - Authorized access") {

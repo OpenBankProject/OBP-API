@@ -1,6 +1,6 @@
 package code.api.v5_1_0
 
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage

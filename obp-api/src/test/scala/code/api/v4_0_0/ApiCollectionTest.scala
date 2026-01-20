@@ -28,7 +28,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{ApiCollectionEndpointNotFound, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{ApiCollectionEndpointNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -66,7 +66,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val response = makePostRequest(request, write(postApiCollectionJson))
         Then(s"we should get the error messages")
         response.code should equal(401)
-        response.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        response.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
       
       val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
@@ -94,7 +94,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val responseGet = makeGetRequest(requestGet)
         Then(s"we should get the error messages")
         responseGet.code should equal(401)
-        responseGet.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        responseGet.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
 
       
@@ -118,7 +118,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val responseGetSingle = makeGetRequest(requestGetSingle)
         Then(s"we should get the error messages")
         responseGetSingle.code should equal(401)
-        responseGetSingle.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        responseGetSingle.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
       
 
@@ -135,7 +135,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val responseGetSingle = makeGetRequest(requestGetSingle)
         Then(s"we should get the error messages")
         responseGetSingle.code should equal(401)
-        responseGetSingle.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        responseGetSingle.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
 
 
@@ -156,7 +156,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val responseDelete = makeDeleteRequest(requestDelete)
         Then(s"we should get the error messages")
         responseDelete.code should equal(401)
-        responseDelete.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        responseDelete.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
 
       val responseDelete = makeDeleteRequest(requestDelete)
@@ -220,7 +220,7 @@ class ApiCollectionTest extends V400ServerSetup {
         val responseApiEndpoint6 = makeGetRequest(requestApiEndpoint6)
         Then(s"we should get the error messages")
         responseApiEndpoint6.code should equal(401)
-        responseApiEndpoint6.body.toString contains(s"$UserNotLoggedIn") should be (true)
+        responseApiEndpoint6.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       }
       
       Then(s"we test the $ApiEndpoint6")

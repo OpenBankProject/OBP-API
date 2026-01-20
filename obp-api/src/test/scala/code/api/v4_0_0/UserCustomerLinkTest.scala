@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateUserCustomerLink, CanDeleteUserCustomerLink, CanGetUserCustomerLink}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_0_0.UserCustomerLinksJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
@@ -39,7 +39,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
@@ -63,7 +63,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
@@ -88,7 +88,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
@@ -115,7 +115,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val createResponse = makePostRequest(createRequest, write(postJson))
       Then("We should get a 401")
       createResponse.code should equal(401)
-      createResponse.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      createResponse.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {

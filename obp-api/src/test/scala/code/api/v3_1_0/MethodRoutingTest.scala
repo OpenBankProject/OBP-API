@@ -65,8 +65,8 @@ class MethodRoutingTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(rightEntity))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update a MethodRouting v3.1.0 - Unauthorized access") {
@@ -76,8 +76,8 @@ class MethodRoutingTest extends V310ServerSetup {
       val response310 = makePutRequest(request310, write(rightEntity))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Get MethodRoutings v3.1.0 - Unauthorized access") {
@@ -87,8 +87,8 @@ class MethodRoutingTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Delete the MethodRouting specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
@@ -98,8 +98,8 @@ class MethodRoutingTest extends V310ServerSetup {
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

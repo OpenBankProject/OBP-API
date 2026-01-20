@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
-import code.api.util.ErrorMessages.{UserNotLoggedIn, _}
+import code.api.util.ErrorMessages._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement

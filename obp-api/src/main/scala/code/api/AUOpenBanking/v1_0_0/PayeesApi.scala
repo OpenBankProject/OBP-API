@@ -48,7 +48,7 @@ object APIMethods_PayeesApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -56,7 +56,7 @@ object APIMethods_PayeesApi extends RestHelper {
        case "banking":: "payees" :: payeeId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -109,7 +109,7 @@ object APIMethods_PayeesApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -117,7 +117,7 @@ object APIMethods_PayeesApi extends RestHelper {
        case "banking":: "payees" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

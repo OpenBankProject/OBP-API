@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{canUpdateAtm, canUpdateAtmAtAnyBank}
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -44,7 +44,7 @@ class AtmsTest extends V400ServerSetup {
       val requestCreateAtmNoAuth = (v4_0_0_Request / "banks" /bankId.value / "atms").POST
       val responseCreateAtmNoAuth = makePostRequest(requestCreateAtmNoAuth, write(postAtmJson))
       responseCreateAtmNoAuth.code should be (401)
-      responseCreateAtmNoAuth.body.extract[ErrorMessage].message should equal($UserNotLoggedIn)
+      responseCreateAtmNoAuth.body.extract[ErrorMessage].message should equal($AuthenticatedUserIsRequired)
       
       When(" missing roles")
       val requestCreateAtmNoRole = (v4_0_0_Request / "banks" /bankId.value / "atms").POST <@ (user1)
@@ -60,7 +60,7 @@ class AtmsTest extends V400ServerSetup {
       val requestUpdateAtmNoAuth = (v4_0_0_Request / "banks" /bankId.value / "atms"/ "xxx").PUT
       val responseCreateAtmNoAuth = makePutRequest(requestUpdateAtmNoAuth, write(postAtmJson))
       responseCreateAtmNoAuth.code should be (401)
-      responseCreateAtmNoAuth.body.extract[ErrorMessage].message should equal($UserNotLoggedIn)
+      responseCreateAtmNoAuth.body.extract[ErrorMessage].message should equal($AuthenticatedUserIsRequired)
 
       When(" Put - missing roles")
       val requestUpdateAtmNoRole = (v4_0_0_Request / "banks" /bankId.value / "atms"/ "xxx").PUT <@ (user1)

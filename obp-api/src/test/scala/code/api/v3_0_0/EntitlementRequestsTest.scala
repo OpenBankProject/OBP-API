@@ -41,7 +41,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       val response300 = makePostRequest(request300, postJson)
       Then("We should get a 401 and error message")
       response300.code should equal(401)
-      response300.body.toString contains UserNotLoggedIn should be (true)
+      response300.body.toString contains AuthenticatedUserIsRequired should be (true)
     }
 
     scenario("create entitlement request - non existing bank", VersionOfApi, ApiEndpoint1) {

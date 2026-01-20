@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{CustomerAttributeNotFound, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{CustomerAttributeNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.ExampleValue.{customerAttributeValueExample,customerAttributeNameExample}
 import code.api.v3_0_0.CustomerAttributeResponseJsonV300
 import code.api.v3_1_0.CustomerWithAttributesJsonV310
@@ -47,7 +47,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postCustomerAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -129,7 +129,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val response400 = makePutRequest(request400, write(putCustomerAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -421,7 +421,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val responseNoLogin = makeDeleteRequest(requestNoLogin)
         Then("We should get a 401")
         responseNoLogin.code should equal(401)
-        responseNoLogin.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        responseNoLogin.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
         When("We try to delete the customer attribute with login and without Role")
         val requestNoRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)
@@ -458,7 +458,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val responseNoLogin = makeDeleteRequest(requestNoLogin)
         Then("We should get a 401")
         responseNoLogin.code should equal(401)
-        responseNoLogin.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        responseNoLogin.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
         When("We try to delete the customer attribute with login and without Role")
         val requestNoRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)

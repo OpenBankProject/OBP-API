@@ -34,8 +34,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401")
       responseGet.code should equal(401)
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
 
     }
 
@@ -56,8 +56,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401")
       responseGet.code should equal(401)
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
 
     }
 

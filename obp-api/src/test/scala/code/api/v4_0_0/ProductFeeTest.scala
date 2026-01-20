@@ -29,7 +29,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.productFeeJsonV400
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{ProductFeeNotFoundById, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{ProductFeeNotFoundById, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -188,7 +188,7 @@ class ProductFeeTest extends V400ServerSetup {
       val requestCreateProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fee").POST
       val responseCreateProductFee = makePostRequest(requestCreateProductFee, write(productFeeJsonV400))
       responseCreateProductFee.code should equal(401)
-      responseCreateProductFee.body.toString contains(UserNotLoggedIn) should be (true)
+      responseCreateProductFee.body.toString contains(AuthenticatedUserIsRequired) should be (true)
       
       {
         val requestCreateProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fee").POST <@(user1)
@@ -218,7 +218,7 @@ class ProductFeeTest extends V400ServerSetup {
       val updatedName = "test Case 123"
       val responsePutProductFee = makePutRequest(requestPutProductFee,write(productFeeJsonV400.copy(name = updatedName)) )
       responsePutProductFee.code should equal(401)
-      responsePutProductFee.body.toString contains(UserNotLoggedIn) should be (true)
+      responsePutProductFee.body.toString contains(AuthenticatedUserIsRequired) should be (true)
       
       {
         val requestPutProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).PUT <@(user1)
@@ -233,7 +233,7 @@ class ProductFeeTest extends V400ServerSetup {
       val requestDeleteProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).DELETE 
       val responseDeleteProductFee = makeDeleteRequest(requestDeleteProductFee)
       responseDeleteProductFee.code should equal(401)
-      responseDeleteProductFee.body.toString contains(UserNotLoggedIn) should be (true)
+      responseDeleteProductFee.body.toString contains(AuthenticatedUserIsRequired) should be (true)
       
       {
         val requestDeleteProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).DELETE <@(user1)

@@ -58,7 +58,7 @@ object APIMethods_StatementsApi extends RestHelper {
     "Statement" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") :: apiTagMockedData :: Nil
      )
 
@@ -66,7 +66,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountId:: "statements" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -100,7 +100,7 @@ object APIMethods_StatementsApi extends RestHelper {
             """,
        json.parse(""""""),
        json.parse("""{ }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") :: apiTagMockedData :: Nil
      )
 
@@ -108,7 +108,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountId:: "statements" :: statementId:: "file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{ }"""), callContext)
            }
@@ -142,7 +142,7 @@ object APIMethods_StatementsApi extends RestHelper {
     "Statement" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") :: apiTagMockedData :: Nil
      )
 
@@ -150,7 +150,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountId:: "statements" :: statementId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -199,7 +199,7 @@ object APIMethods_StatementsApi extends RestHelper {
     "Transaction" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") :: apiTagMockedData :: Nil
      )
 
@@ -207,7 +207,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "accounts" :: accountId:: "statements" :: statementId:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -256,7 +256,7 @@ object APIMethods_StatementsApi extends RestHelper {
     "Statement" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") :: apiTagMockedData :: Nil
      )
 
@@ -264,7 +264,7 @@ object APIMethods_StatementsApi extends RestHelper {
        case "statements" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

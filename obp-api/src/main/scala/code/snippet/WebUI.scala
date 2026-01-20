@@ -406,7 +406,7 @@ class WebUI extends MdcLoggable{
     val htmlDescription =  if (APIUtil.glossaryDocsRequireRole){
       val userId = AuthUser.getCurrentResourceUserUserId
       if (userId == ""){
-        s"<h1>${ErrorMessages.UserNotLoggedIn}</h1>"
+        s"<h1>${ErrorMessages.AuthenticatedUserIsRequired}</h1>"
       } else{
         if(APIUtil.hasEntitlement("", userId, ApiRole.canReadGlossary)) {
           PegdownOptions.convertPegdownToHtmlTweaked(propsValue)

@@ -120,8 +120,8 @@ class AccountAttributeTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(postAccountAttributeJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
@@ -155,8 +155,8 @@ class AccountAttributeTest extends V310ServerSetup {
       val response310 = makePutRequest(request310, write(putAccountAttributeJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Update endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")

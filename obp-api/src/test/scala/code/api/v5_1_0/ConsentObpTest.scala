@@ -84,7 +84,7 @@ class ConsentObpTest extends V510ServerSetup {
       val response = makePostRequest(request, write(postConsentImplicitJsonV310))
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint with user credentials-Implicit", CreateConsent, GetUserByUserId, VersionOfApi, VersionOfApi2) {

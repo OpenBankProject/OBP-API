@@ -48,9 +48,9 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms").POST
       val responseGet = makePostRequest(requestGet, write(atmJsonV510))
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
@@ -73,9 +73,9 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId" ).PUT
       val responseGet = makePutRequest(requestGet, write(atmJsonV510))
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
@@ -118,9 +118,9 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       val requestDelete = (v5_1_0_Request / "banks" / bankId / "atms"/ "amtId").DELETE
       val responseDelete = makeDeleteRequest(requestDelete)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseDelete.code should equal(401)
-      responseDelete.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseDelete.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {

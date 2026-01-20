@@ -66,7 +66,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
     "ConsentId" : "ConsentId"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -140,7 +140,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -189,7 +189,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
@@ -240,7 +240,7 @@ object APIMethods_FundsConfirmationsApi extends RestHelper {
     "ConsentId" : "ConsentId"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 

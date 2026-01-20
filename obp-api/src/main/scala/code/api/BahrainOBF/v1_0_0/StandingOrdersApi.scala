@@ -55,7 +55,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
     "StandingOrder" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -63,7 +63,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        case "accounts" :: accountId:: "standing-orders" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -112,7 +112,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
     "StandingOrder" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -120,7 +120,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        case "standing-orders" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

@@ -27,7 +27,7 @@ package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRateLimits}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -80,8 +80,8 @@ class RateLimitsTest extends V600ServerSetup {
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 401")
       response600.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response600.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response600.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
