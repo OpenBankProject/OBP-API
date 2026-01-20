@@ -3,7 +3,7 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.regulatedEntityPostJsonV510
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRegulatedEntity, CanDeleteRegulatedEntity, CanGetSystemIntegrity}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -33,7 +33,7 @@ class RegulatedEntityTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(regulatedEntityPostJsonV510))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   
@@ -68,7 +68,7 @@ class RegulatedEntityTest extends V510ServerSetup {
       val response510 = makeDeleteRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {

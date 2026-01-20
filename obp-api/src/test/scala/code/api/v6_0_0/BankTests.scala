@@ -40,9 +40,9 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       val request = (v6_0_0_Request / "banks").POST
       val response = makePostRequest(request, write(postBankJson600))
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {

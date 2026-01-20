@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheInfo}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -30,7 +30,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

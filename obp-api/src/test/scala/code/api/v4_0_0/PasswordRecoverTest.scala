@@ -71,9 +71,9 @@ class PasswordRecoverTest extends V400ServerSetupAsync {
       val response400 = makePostRequestAsync(request400, write(postJson))
       Then("We should get a 401")
       response400 map { r => r.code should equal(401) }
-      And("error should be " + UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
       response400 map { r =>
-          r.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+          r.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
       }
     }
   }

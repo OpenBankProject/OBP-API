@@ -3,7 +3,7 @@ package code.api.dynamic.entity.helper
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
@@ -183,7 +183,7 @@ object DynamicEntityHelper {
       EmptyBody,
       dynamicEntityInfo.getExampleList,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -211,7 +211,7 @@ object DynamicEntityHelper {
       EmptyBody,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -240,7 +240,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -270,7 +270,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -297,7 +297,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -331,7 +331,7 @@ object DynamicEntityHelper {
         EmptyBody,
         dynamicEntityInfo.getExampleList,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
@@ -357,7 +357,7 @@ object DynamicEntityHelper {
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
@@ -384,7 +384,7 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           InvalidJsonFormat,
           UnknownError
         ),
@@ -412,7 +412,7 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           InvalidJsonFormat,
           UnknownError
         ),
@@ -438,7 +438,7 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),

@@ -99,7 +99,7 @@ object APIMethods_AccountsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Accounts") :: Nil
      )
 
@@ -109,7 +109,7 @@ object APIMethods_AccountsApi extends RestHelper {
            val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
            val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              _ <- NewStyle.function.checkUKConsent(u, callContext)
              _ <- passesPsd2Aisp(callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
@@ -206,7 +206,7 @@ object APIMethods_AccountsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Accounts") :: Nil
      )
 

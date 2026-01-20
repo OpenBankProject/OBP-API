@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanCreateUserInvitation, CanGetUserInvitation}
-import code.api.util.ErrorMessages.{CannotGetUserInvitation, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{CannotGetUserInvitation, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.users.{UserInvitation, UserInvitationProvider}
@@ -161,7 +161,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
@@ -240,7 +240,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
@@ -261,7 +261,7 @@ class UserInvitationApiAndGuiTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {

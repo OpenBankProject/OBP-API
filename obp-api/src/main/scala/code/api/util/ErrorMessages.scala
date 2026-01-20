@@ -140,7 +140,7 @@ object ErrorMessages {
 
 
   // Authentication / Authorisation / User messages (OBP-20XXX)
-  val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
+  val AuthenticatedUserIsRequired = "OBP-20001: User not logged in. Authentication is required!"
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing:"
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired:"
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
@@ -834,7 +834,7 @@ object ErrorMessages {
 //    NotImplemented -> 501, // 400 or 501
     TooManyRequests -> 429,
     ResourceDoesNotExist -> 404,
-    UserNotLoggedIn -> 401,
+    AuthenticatedUserIsRequired -> 401,
     DirectLoginInvalidToken -> 401,
     InvalidLoginCredentials -> 401,
     UserNotFoundById -> 404,
@@ -889,7 +889,7 @@ object ErrorMessages {
   /**
    * validate method: APIUtil.authorizedAccess
    */
-  def $UserNotLoggedIn = UserNotLoggedIn
+  def $AuthenticatedUserIsRequired = AuthenticatedUserIsRequired
 
   /**
    * validate method: NewStyle.function.getBank

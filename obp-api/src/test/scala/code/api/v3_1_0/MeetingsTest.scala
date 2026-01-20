@@ -29,7 +29,7 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -59,8 +59,8 @@ class MeetingsTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(createMeetingJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
     scenario("We will Create Meetings  - Wrong Json format", ApiEndpoint1, VersionOfApi) {

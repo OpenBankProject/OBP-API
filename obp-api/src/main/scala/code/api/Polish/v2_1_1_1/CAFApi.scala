@@ -55,7 +55,7 @@ Confirming the availability on the payers account of the amount necessary to exe
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("CAF") :: apiTagMockedData :: Nil
      )
 

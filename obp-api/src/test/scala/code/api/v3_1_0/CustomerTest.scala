@@ -94,8 +94,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePostRequest(request310, write(postCustomerJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 
@@ -166,8 +166,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePostRequest(request310, write(customerNumberJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 
@@ -202,8 +202,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the email of an Customer v3.1.0 - Authorized access") {
@@ -247,8 +247,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the mobile phone number of an Customer v3.1.0 - Authorized access") {
@@ -293,8 +293,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the general data of an Customer v3.1.0 - Authorized access") {
@@ -342,8 +342,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditLimitJsonV310))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the credit limit of an Customer v3.1.0 - Authorized access") {
@@ -389,8 +389,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the credit rating and source of an Customer v3.1.0 - Authorized access") {
@@ -458,8 +458,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the Branch and source of an Customer v3.1.0 - Authorized access") {
@@ -504,8 +504,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putUpdateCustomerData))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update the other data and source of an Customer v3.1.0 - Authorized access") {
@@ -553,8 +553,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val response310 = makePutRequest(request310, write(putCustomerUpdateNumberJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   

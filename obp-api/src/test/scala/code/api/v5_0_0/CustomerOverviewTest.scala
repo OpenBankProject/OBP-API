@@ -75,8 +75,8 @@ class CustomerOverviewTest extends V500ServerSetup {
       val response = makePostRequest(request, write(PostCustomerOverviewJsonV500))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 
@@ -128,8 +128,8 @@ class CustomerOverviewTest extends V500ServerSetup {
       val response = makePostRequest(request, write(PostCustomerOverviewJsonV500))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

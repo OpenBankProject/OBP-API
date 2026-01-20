@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanReadCallLimits
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.CallLimitPostJsonV400
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.consumer.Consumers
@@ -95,8 +95,8 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)

@@ -226,8 +226,8 @@ class DynamicEntityTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       {
         When(s"We make a request $ApiEndpoint2 v4.0.0")
@@ -235,8 +235,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makePutRequest(request400, write(rightEntity))
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
       }
 
       {
@@ -245,8 +245,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makeGetRequest(request400)
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
 
       {
@@ -255,8 +255,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makeDeleteRequest(request400)
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
     }
 
@@ -465,8 +465,8 @@ class DynamicEntityTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       {
         When("We make a request v4.0.0")
@@ -474,8 +474,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makePutRequest(request400, write(rightEntity))
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
 
       {
@@ -484,8 +484,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makeGetRequest(request400)
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
 
       {
@@ -494,8 +494,8 @@ class DynamicEntityTest extends V400ServerSetup {
         val response400 = makeDeleteRequest(request400)
         Then("We should get a 401")
         response400.code should equal(401)
-        And("error should be " + UserNotLoggedIn)
-        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+        And("error should be " + AuthenticatedUserIsRequired)
+        response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
 
 
@@ -731,22 +731,22 @@ class DynamicEntityTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       val request400Put = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId).PUT
       val response400Put = makePutRequest(request400Put, write(rightEntity))
       Then("We should get a 401")
       response400Put.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400Put.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400Put.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       val request400Delete = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId).DELETE
       val response400Delete = makeDeleteRequest(request400Delete)
       Then("We should get a 401")
       response400Delete.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400Delete.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400Delete.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario("Test the CRUD Success cases ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {

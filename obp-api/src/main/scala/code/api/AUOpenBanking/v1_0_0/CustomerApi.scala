@@ -73,7 +73,7 @@ object APIMethods_CustomerApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -81,7 +81,7 @@ object APIMethods_CustomerApi extends RestHelper {
        case "common":: "customer" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -144,7 +144,7 @@ object APIMethods_CustomerApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Common") ::ApiTag("Customer") :: apiTagMockedData :: Nil
      )
 
@@ -152,7 +152,7 @@ object APIMethods_CustomerApi extends RestHelper {
        case "common":: "customer":: "detail" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

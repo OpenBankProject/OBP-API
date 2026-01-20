@@ -78,7 +78,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -86,7 +86,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts" :: accountId:: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -180,7 +180,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -188,7 +188,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -287,7 +287,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -295,7 +295,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

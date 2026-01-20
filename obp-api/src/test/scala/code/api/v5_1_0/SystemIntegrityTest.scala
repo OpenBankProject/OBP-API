@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetSystemIntegrity
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -32,7 +32,7 @@ class SystemIntegrityTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   
@@ -68,7 +68,7 @@ class SystemIntegrityTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -104,7 +104,7 @@ class SystemIntegrityTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -139,7 +139,7 @@ class SystemIntegrityTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -173,7 +173,7 @@ class SystemIntegrityTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

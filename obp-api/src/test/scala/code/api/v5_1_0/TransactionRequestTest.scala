@@ -64,8 +64,8 @@ class TransactionRequestTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response510.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response510.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will Get Transaction Requests - user is logged in", GetTransactionRequests, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -177,8 +177,8 @@ class TransactionRequestTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario(s"We will $GetTransactionRequestById - user is logged in", GetTransactionRequestById, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -201,8 +201,8 @@ class TransactionRequestTest extends V510ServerSetup {
       val response510 = makePutRequest(request510, write(putJson))
       Then("We should get a 401")
       response510.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario(s"We will $UpdateTransactionRequestStatus - user is logged in", UpdateTransactionRequestStatus, VersionOfApi) {
       When("We make a request v5.1.0")

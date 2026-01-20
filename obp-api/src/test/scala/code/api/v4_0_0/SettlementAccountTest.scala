@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAccountAttributeAtOneBank
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{APIUtil, ApiRole, NewStyle}
 import code.api.v2_0_0.BasicAccountJSON
 import code.api.v3_1_0.{CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
@@ -49,8 +49,8 @@ class SettlementAccountTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(createSettlementAccountJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $CreateSettlementAccountEndpoint - Authorized access") {
@@ -112,8 +112,8 @@ class SettlementAccountTest extends V400ServerSetup {
 
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

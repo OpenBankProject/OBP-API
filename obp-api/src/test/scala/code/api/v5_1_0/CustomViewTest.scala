@@ -52,13 +52,13 @@ class CustomViewTest extends V510ServerSetup {
   
   feature(s"test Authorized access") {
     
-    scenario(s"We will call the endpoint, $UserNotLoggedIn", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    scenario(s"We will call the endpoint, $AuthenticatedUserIsRequired", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView /"target-views").POST
       val response510 = makePostRequest(request510, write(postCustomViewJson))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       {
 
@@ -66,7 +66,7 @@ class CustomViewTest extends V510ServerSetup {
         val response510 = makePutRequest(request510, write(putCustomViewJson))
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
       {
@@ -74,7 +74,7 @@ class CustomViewTest extends V510ServerSetup {
         val response510 = makeGetRequest(request510)
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
       {
@@ -82,7 +82,7 @@ class CustomViewTest extends V510ServerSetup {
         val response510 = makeDeleteRequest(request510)
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
     }

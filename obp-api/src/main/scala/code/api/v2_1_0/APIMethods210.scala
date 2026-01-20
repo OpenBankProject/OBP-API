@@ -122,7 +122,7 @@ trait APIMethods210 {
       SandboxData.importJson,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         DataImportDisabled,
         UserHasMissingRoles,
@@ -170,7 +170,7 @@ trait APIMethods210 {
         |""",
       EmptyBody,
       transactionRequestTypesJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagTransactionRequest, apiTagBank))
 
 
@@ -274,8 +274,8 @@ trait APIMethods210 {
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
+        AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -314,8 +314,8 @@ trait APIMethods210 {
       transactionRequestBodyCounterpartyJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
+        AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -358,8 +358,8 @@ trait APIMethods210 {
       transactionRequestBodySEPAJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
+        AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -393,8 +393,8 @@ trait APIMethods210 {
       transactionRequestBodyFreeFormJSON,
       transactionRequestWithChargeJSON210,
       List(
-        UserNotLoggedIn,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
+        AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -612,7 +612,7 @@ trait APIMethods210 {
       challengeAnswerJSON,
       transactionRequestWithChargeJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidBankIdFormat, 
         InvalidAccountIdFormat, 
         InvalidJsonFormat,
@@ -726,7 +726,7 @@ trait APIMethods210 {
       EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         AccountNotFound,
         UserHasMissingRoles,
@@ -739,7 +739,7 @@ trait APIMethods210 {
         cc =>
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
-              u <- cc.user ?~ UserNotLoggedIn
+              u <- cc.user ?~ AuthenticatedUserIsRequired
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
@@ -772,7 +772,7 @@ trait APIMethods210 {
       """.stripMargin,
       EmptyBody,
       availableRolesJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagRole))
 
     lazy val getRoles: OBPEndpoint = {
@@ -807,7 +807,7 @@ trait APIMethods210 {
       EmptyBody,
       entitlementJSONs,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -858,7 +858,7 @@ trait APIMethods210 {
       EmptyBody,
       consumerJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConsumerId,
         UnknownError
@@ -871,7 +871,7 @@ trait APIMethods210 {
       case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! AuthenticatedUserIsRequired
             _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canGetConsumers, cc.callContext)
 
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
@@ -897,7 +897,7 @@ trait APIMethods210 {
       EmptyBody,
       consumersJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -909,7 +909,7 @@ trait APIMethods210 {
       case "management" :: "consumers" :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! AuthenticatedUserIsRequired
             _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canGetConsumers, cc.callContext)
             consumers <- Some(Consumer.findAll())
           } yield {
@@ -934,7 +934,7 @@ trait APIMethods210 {
       putEnabledJSON,
       putEnabledJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -946,7 +946,7 @@ trait APIMethods210 {
       case "management" :: "consumers" :: consumerId :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! AuthenticatedUserIsRequired
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
             _ <- putData.enabled match {
               case true  => NewStyle.function.ownEntitlement("", u.userId, ApiRole.canEnableConsumers, cc.callContext)
@@ -979,7 +979,7 @@ trait APIMethods210 {
       postPhysicalCardJSON,
       physicalCardJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         AllowedValuesAre,
         UnknownError
@@ -1064,7 +1064,7 @@ trait APIMethods210 {
       EmptyBody,
       usersJsonV200,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1109,7 +1109,7 @@ trait APIMethods210 {
       transactionTypeJsonV200,
       transactionType,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         InsufficientAuthorisationToCreateTransactionType,
@@ -1157,7 +1157,7 @@ trait APIMethods210 {
           |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmJson,
-      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM, apiTagOldStyle)
     )
 
@@ -1169,7 +1169,7 @@ trait APIMethods210 {
             _ <- if (getAtmsIsPublic)
               Box(Some(1))
             else
-              cc.user ?~! UserNotLoggedIn
+              cc.user ?~! AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             atm  <- Box(Atms.atmsProvider.vend.getAtm(bankId, atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
@@ -1203,7 +1203,7 @@ trait APIMethods210 {
       EmptyBody,
       branchJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BranchNotFoundByBranchId,
         UnknownError
       ),
@@ -1217,7 +1217,7 @@ trait APIMethods210 {
             _ <- if (getBranchesIsPublic)
               Box(Some(1))
             else
-              cc.user ?~! UserNotLoggedIn
+              cc.user ?~! AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! BranchNotFoundByBranchId
           } yield {
@@ -1254,7 +1254,7 @@ trait APIMethods210 {
       EmptyBody,
       productJsonV210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ProductNotFoundByProductCode,
         UnknownError
       ),
@@ -1301,7 +1301,7 @@ trait APIMethods210 {
       EmptyBody,
       productsJsonV210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         ProductNotFoundByProductCode,
         UnknownError
@@ -1354,7 +1354,7 @@ trait APIMethods210 {
       postCustomerJsonV210,
       customerJsonV210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         CustomerNumberAlreadyExists,
@@ -1377,7 +1377,7 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            u <- cc.user ?~! AuthenticatedUserIsRequired // TODO. CHECK user has role to create a customer / create a customer for another user id.
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
@@ -1430,7 +1430,7 @@ trait APIMethods210 {
       EmptyBody,
       customerJsonV210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1440,7 +1440,7 @@ trait APIMethods210 {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            u <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! AuthenticatedUserIsRequired
             customers <- tryo{CustomerX.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory210.createCustomersJson(customers)
@@ -1464,7 +1464,7 @@ trait APIMethods210 {
       EmptyBody,
       customerJSONs,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserCustomerLinksNotFoundForUser,
         UserCustomerLinksNotFoundForUser,
@@ -1507,7 +1507,7 @@ trait APIMethods210 {
       branchJsonPut,
       branchJson,
       List(
-        UserNotLoggedIn, 
+        AuthenticatedUserIsRequired, 
         BankNotFound, 
         InvalidJsonFormat,
         UserHasMissingRoles, 
@@ -1554,7 +1554,7 @@ trait APIMethods210 {
       branchJsonPost,
       branchJson,
       List(
-        UserNotLoggedIn, 
+        AuthenticatedUserIsRequired, 
         BankNotFound, 
         InvalidJsonFormat, 
         InsufficientAuthorisationToCreateBranch, 
@@ -1607,7 +1607,7 @@ trait APIMethods210 {
       consumerRedirectUrlJSON,
       consumerJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1717,7 +1717,7 @@ trait APIMethods210 {
       EmptyBody,
       metricsJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),

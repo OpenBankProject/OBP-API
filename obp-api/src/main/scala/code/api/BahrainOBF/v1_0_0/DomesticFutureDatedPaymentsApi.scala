@@ -122,7 +122,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -130,7 +130,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
        case "domestic-future-dated-payments" :: domesticFutureDatedPaymentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -316,7 +316,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -324,7 +324,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
        case "domestic-future-dated-payments" :: domesticFutureDatedPaymentId :: Nil JsonPatch _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -459,7 +459,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -467,7 +467,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
        case "domestic-future-dated-payments" :: domesticFutureDatedPaymentId:: "payment-details" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -651,7 +651,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -659,7 +659,7 @@ object APIMethods_DomesticFutureDatedPaymentsApi extends RestHelper {
        case "domestic-future-dated-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetAnyUser, CanGetEntitlementsForAnyUserAtAnyBank, CanValidateUser}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn, attemptedToOpenAnEmptyBox}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, attemptedToOpenAnEmptyBox}
 import code.api.v3_0_0.UserJsonV300
 import code.api.v4_0_0.UserJsonV400
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
@@ -37,7 +37,7 @@ class UserTest extends V510ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   
@@ -75,7 +75,7 @@ class UserTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
@@ -114,7 +114,7 @@ class UserTest extends V510ServerSetup {
       val response = makePutRequest(request, write(UserValidatedJson(true)))
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

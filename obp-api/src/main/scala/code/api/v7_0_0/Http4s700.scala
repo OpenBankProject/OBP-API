@@ -180,7 +180,7 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""",
       EmptyBody,
       moderatedAccountJSON,
-      List(UserNotLoggedIn, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
       apiTagAccount :: Nil,
       http4sPartialFunction = Some(getAccountByIdWithMiddleware)
     )
@@ -218,7 +218,7 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""",
       EmptyBody,
       moderatedAccountJSON,
-      List(UserNotLoggedIn, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, CounterpartyNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, CounterpartyNotFound, UnknownError),
       apiTagCounterparty :: Nil,
       http4sPartialFunction = Some(getCounterpartyByIdWithMiddleware)
     )

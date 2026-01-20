@@ -61,7 +61,7 @@ The CBPII requests the ASPSP for a payment coverage check against either a bank 
   }
 }"""),
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("CBPII") :: apiTagMockedData :: Nil
      )
 

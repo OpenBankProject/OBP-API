@@ -96,7 +96,7 @@ The resource identifications of these transactions are contained in the  payload
   "transactionStatus" : "ACCP",
   "psuMessage" : { }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -145,7 +145,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 """,
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -181,7 +181,7 @@ Returns the content of an signing basket object.""",
   "payments" : "",
   "consents" : ""
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -218,7 +218,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        json.parse("""{
   "authorisationIds" : ""
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -249,7 +249,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -285,7 +285,7 @@ Returns the status of a signing basket object.
        json.parse("""{
   "transactionStatus" : "RCVD"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -371,7 +371,7 @@ This applies in the following scenarios:
   "chosenScaMethod" : "",
   "psuMessage" : { }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 
@@ -460,7 +460,7 @@ There are the following request types on this access path:
                         "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
                       }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        apiTagSigningBaskets :: Nil
      )
 

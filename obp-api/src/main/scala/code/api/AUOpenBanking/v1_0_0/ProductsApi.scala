@@ -46,7 +46,7 @@ object APIMethods_ProductsApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -54,7 +54,7 @@ object APIMethods_ProductsApi extends RestHelper {
        case "banking":: "products" :: productId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -175,7 +175,7 @@ In addition, the concept of effective date and time has also been included. This
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -183,7 +183,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "products" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

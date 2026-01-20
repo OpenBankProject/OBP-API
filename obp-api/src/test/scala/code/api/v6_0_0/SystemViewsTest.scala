@@ -41,7 +41,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       val response = makeGetRequest(request)
       Then("We should get a 401 - User Not Logged In")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to get system views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
@@ -111,7 +111,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       val response = makeGetRequest(request)
       Then("We should get a 401 - User Not Logged In")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to get a system view by ID without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {

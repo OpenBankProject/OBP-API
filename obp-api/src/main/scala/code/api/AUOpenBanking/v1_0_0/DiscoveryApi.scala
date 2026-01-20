@@ -58,7 +58,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -66,7 +66,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
        case "discovery":: "outages" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -116,7 +116,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Common") ::ApiTag("Discovery") :: apiTagMockedData :: Nil
      )
 
@@ -124,7 +124,7 @@ object APIMethods_DiscoveryApi extends RestHelper {
        case "discovery":: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

@@ -78,8 +78,8 @@ class CustomerTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 
@@ -106,8 +106,8 @@ class CustomerTest extends V510ServerSetup {
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"$ApiEndpoint2 $VersionOfApi - Authorized access without proper role") {

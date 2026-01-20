@@ -139,7 +139,7 @@ recurringIndicator:
          consentStatus = "received",
          _links = ConsentLinksV13(Some(Href("/v1.3/consents/1234-wertiq-983/authorisations")))
        ),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -252,7 +252,7 @@ recurringIndicator:
             The TPP can delete an account information consent object if needed.""",
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupM :: Nil
      )
 
@@ -335,7 +335,7 @@ of the PSU at this ASPSP.
                     |    }
                     |  ]
                     |}""".stripMargin),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -413,7 +413,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
   }]
 }
 """),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -471,7 +471,7 @@ respectively the OAuth2 access token.
     }
   ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
@@ -541,7 +541,7 @@ This account-id then can be retrieved by the
     "referenceDate":"2018-03-08"
   }]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
@@ -630,7 +630,7 @@ Reads account data from a given card account addressed by "account-id".
                         }
                       }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM ::Nil
      )
 
@@ -676,7 +676,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        json.parse("""{
   "authorisationIds" : "faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -734,7 +734,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                       "lastActionDate": "2019-06-30",
                       "consentStatus": "received"
                     }"""),
-       List(UserNotLoggedIn, ConsentNotFound, UnknownError),
+       List(AuthenticatedUserIsRequired, ConsentNotFound, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -773,7 +773,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        json.parse("""{
   "scaStatus" : "started"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -808,7 +808,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        json.parse("""{
                       "consentStatus": "received"
                      }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupM :: Nil
      )
 
@@ -866,7 +866,7 @@ of the "Read Transaction List" call within the _links subfield.
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
@@ -958,7 +958,7 @@ The ASPSP might add balance information, if transaction lists without balances a
                         }
                       }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1027,7 +1027,7 @@ Give detailed information about the addressed account together with balance info
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1101,7 +1101,7 @@ respectively the OAuth2 access token.
                     |    }
                     |  }
                     |}""".stripMargin),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: Nil
      )
 
@@ -1184,7 +1184,7 @@ using the extended forms as indicated above.
                            "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1239,7 +1239,7 @@ using the extended forms as indicated above.
                            "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1281,7 +1281,7 @@ using the extended forms as indicated above.
                            "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1347,7 +1347,7 @@ Maybe in a later version the access path will change.
          scaStatus = "received",
          _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/consents/1234-wertiq-983/authorisations")))))
        ),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1416,7 +1416,7 @@ Maybe in a later version the access path will change.
          |           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
          |          }
          |        }""".stripMargin),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1461,7 +1461,7 @@ Maybe in a later version the access path will change.
                     |             "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                     |          }
                     |        }""".stripMargin),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1504,7 +1504,7 @@ Maybe in a later version the access path will change.
                     |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                     |          }
                     |        }""".stripMargin),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 

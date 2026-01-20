@@ -9,7 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
+import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
 import code.api.util.NewStyle.HttpCode
@@ -47,7 +47,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{CustomerAttribute, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.UserAttributeType
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
@@ -136,7 +136,7 @@ trait APIMethods600 {
       transactionRequestBodyHoldJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -175,7 +175,7 @@ trait APIMethods600 {
       EmptyBody,
       moderatedCoreAccountsJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -247,7 +247,7 @@ trait APIMethods600 {
       EmptyBody,
       redisCallCountersJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -288,7 +288,7 @@ trait APIMethods600 {
       callLimitPostJsonV600,
       callLimitJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -358,7 +358,7 @@ trait APIMethods600 {
       callLimitPostJsonV400,
       callLimitPostJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -418,7 +418,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
         UserHasMissingRoles,
@@ -479,7 +479,7 @@ trait APIMethods600 {
       EmptyBody,
       activeRateLimitsJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
         UserHasMissingRoles,
@@ -530,7 +530,7 @@ trait APIMethods600 {
       EmptyBody,
       activeRateLimitsJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
         UserHasMissingRoles,
@@ -580,7 +580,7 @@ trait APIMethods600 {
         call_counters = redisCallCountersJsonV600
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConsumerCredentials,
         UnknownError
@@ -617,7 +617,7 @@ trait APIMethods600 {
       ),
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -693,7 +693,7 @@ trait APIMethods600 {
         global_prefix = "obp_dev_"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -770,7 +770,7 @@ trait APIMethods600 {
         redis_available = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -889,7 +889,7 @@ trait APIMethods600 {
         total_issues = 1
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -985,7 +985,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1062,7 +1062,7 @@ trait APIMethods600 {
       """.stripMargin,
       EmptyBody,
       userJsonV300,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser))
 
     lazy val getCurrentUser: OBPEndpoint = {
@@ -1110,7 +1110,7 @@ trait APIMethods600 {
       EmptyBody,
       usersInfoJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1151,7 +1151,7 @@ trait APIMethods600 {
       EmptyBody,
       userInfoJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UnknownError
@@ -1214,7 +1214,7 @@ trait APIMethods600 {
       EmptyBody,
       migrationScriptLogsJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1287,7 +1287,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1357,7 +1357,7 @@ trait APIMethods600 {
       transactionRequestBodyCardanoJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -1397,7 +1397,7 @@ trait APIMethods600 {
       transactionRequestBodyEthereumJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -1436,7 +1436,7 @@ trait APIMethods600 {
       transactionRequestBodyEthSendRawTransactionJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -1483,7 +1483,7 @@ trait APIMethods600 {
       bankJson600,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -1580,7 +1580,7 @@ trait APIMethods600 {
       EmptyBody,
       JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP", "google.com")),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1654,7 +1654,7 @@ trait APIMethods600 {
       EmptyBody,
       ConnectorMethodNamesJsonV600(List("getBank", "getBanks", "getUser", "getAccount", "makePayment", "getTransactions")),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1822,7 +1822,7 @@ trait APIMethods600 {
       postCustomerJsonV600,
       customerJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         InvalidJsonContent,
@@ -1939,7 +1939,7 @@ trait APIMethods600 {
       EmptyBody,
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1981,7 +1981,7 @@ trait APIMethods600 {
       PostCustomerLegalNameJsonV510(legal_name = "John Smith"),
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -2031,7 +2031,7 @@ trait APIMethods600 {
       EmptyBody,
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -2071,7 +2071,7 @@ trait APIMethods600 {
       EmptyBody,
       customerWithAttributesJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -2113,7 +2113,7 @@ trait APIMethods600 {
       postCustomerNumberJsonV310,
       customerWithAttributesJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -2244,7 +2244,7 @@ trait APIMethods600 {
       EmptyBody,
       metricsJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2378,7 +2378,7 @@ trait APIMethods600 {
       EmptyBody,
       aggregateMetricsJSONV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2619,7 +2619,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2696,7 +2696,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2767,7 +2767,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2856,7 +2856,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3064,7 +3064,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         EntitlementCannotBeDeleted,
         UnknownError
@@ -3131,7 +3131,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3183,7 +3183,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3261,7 +3261,7 @@ trait APIMethods600 {
         entitlements_skipped = List("CanCreateTransaction")
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3374,7 +3374,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3471,7 +3471,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3542,7 +3542,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3626,7 +3626,7 @@ trait APIMethods600 {
         )
       )),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3687,7 +3687,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         SystemViewNotFound,
         UnknownError
@@ -3822,7 +3822,7 @@ trait APIMethods600 {
       ),
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         SystemViewNotFound,
         SystemViewCannotBePublicError,
@@ -3880,7 +3880,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3963,7 +3963,7 @@ trait APIMethods600 {
       createViewJsonV300,
       viewJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidCustomViewFormat,
@@ -4014,7 +4014,7 @@ trait APIMethods600 {
       EmptyBody,
       ViewsJsonV500(List()),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4072,7 +4072,7 @@ trait APIMethods600 {
         "https://api.example.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4404,7 +4404,7 @@ trait APIMethods600 {
       WebUiPropsPutJsonV600("https://apiexplorer.openbankproject.com"),
       WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidWebUiProps,
@@ -4474,7 +4474,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidWebUiProps,
         UnknownError
@@ -4546,7 +4546,7 @@ trait APIMethods600 {
         List(dynamicEntityResponseBodyExample)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4622,7 +4622,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4745,7 +4745,7 @@ trait APIMethods600 {
         updated_by_user_id = "user123"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4820,7 +4820,7 @@ trait APIMethods600 {
         updated_by_user_id = "user123"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4877,7 +4877,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4933,7 +4933,7 @@ trait APIMethods600 {
         updated_by_user_id = "user456"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4998,7 +4998,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5097,7 +5097,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5834,7 +5834,7 @@ trait APIMethods600 {
         message = "ABAC rule code is valid"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5931,7 +5931,7 @@ trait APIMethods600 {
         result = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -6023,7 +6023,7 @@ trait APIMethods600 {
       ),
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         InvalidJsonFormat,
@@ -6081,7 +6081,7 @@ trait APIMethods600 {
         user_attributes = List(userAttributeResponseJsonV510)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UnknownError
@@ -6118,7 +6118,7 @@ trait APIMethods600 {
       EmptyBody,
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UserAttributeNotFound,
@@ -6165,7 +6165,7 @@ trait APIMethods600 {
       ),
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UserAttributeNotFound,
@@ -6226,7 +6226,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UserAttributeNotFound,
@@ -6290,7 +6290,7 @@ trait APIMethods600 {
       ),
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -6344,7 +6344,7 @@ trait APIMethods600 {
         user_attributes = List(userAttributeResponseJsonV510)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
@@ -6377,7 +6377,7 @@ trait APIMethods600 {
       EmptyBody,
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserAttributeNotFound,
         UnknownError
       ),
@@ -6420,7 +6420,7 @@ trait APIMethods600 {
       ),
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserAttributeNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -6477,7 +6477,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserAttributeNotFound,
         UnknownError
       ),

@@ -4,7 +4,7 @@ import code.api.Constant.localIdentityProvider
 import code.api.util.APIUtil.OAuth
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanLockUser, CanReadUserLockedStatus, CanUnlockUser}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByProviderAndUsername, UserNotLoggedIn, UsernameHasBeenLocked}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByProviderAndUsername, AuthenticatedUserIsRequired, UsernameHasBeenLocked}
 import code.api.v3_0_0.UserJsonV300
 import code.api.v3_1_0.BadLoginStatusJson
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
@@ -36,7 +36,7 @@ class LockUserTest extends V510ServerSetup {
       val response = makePostRequest(request, "")
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -44,7 +44,7 @@ class LockUserTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.1.0")
@@ -52,7 +52,7 @@ class LockUserTest extends V510ServerSetup {
       val response = makePutRequest(request, "")
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

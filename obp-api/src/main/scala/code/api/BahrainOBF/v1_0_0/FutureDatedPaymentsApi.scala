@@ -54,7 +54,7 @@ object APIMethods_FutureDatedPaymentsApi extends RestHelper {
     "FutureDatedPayment" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -62,7 +62,7 @@ object APIMethods_FutureDatedPaymentsApi extends RestHelper {
        case "accounts" :: accountId:: "future-dated-payments" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -111,7 +111,7 @@ object APIMethods_FutureDatedPaymentsApi extends RestHelper {
     "FutureDatedPayment" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Future Dated Payments") :: apiTagMockedData :: Nil
      )
 
@@ -119,7 +119,7 @@ object APIMethods_FutureDatedPaymentsApi extends RestHelper {
        case "future-dated-payments" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

@@ -442,7 +442,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future {
-    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
   override def validateChallengeAnswerC3(
@@ -453,7 +453,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     hashOfSuppliedAnswer: String,
     callContext: Option[CallContext]
   ) : OBPReturnType[Box[ChallengeTrait]] = Future {
-    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId), callContext)
   }
 
@@ -466,7 +466,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future {
-    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
@@ -479,7 +479,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     suppliedAnswerType: SuppliedAnswerType.Value,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ChallengeTrait]] = Future {
-    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+    val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
     (Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId), callContext)
   }
   
@@ -497,14 +497,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def validateChallengeAnswerV2(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
       //In OBP, we only validateChallenge with SuppliedAnswerType.PLAN_TEXT,
       (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, userId).isDefined), callContext)
     } 
 
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
     Future { 
-      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
+      val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$AuthenticatedUserIsRequired Can not find the userId here."))
       (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
   

@@ -120,7 +120,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -128,7 +128,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        case "domestic-payments" :: domesticPaymentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -262,7 +262,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -270,7 +270,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        case "domestic-payments" :: domesticPaymentId:: "payment-details" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -452,7 +452,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
      )
 
@@ -460,7 +460,7 @@ object APIMethods_DomesticPaymentsApi extends RestHelper {
        case "domestic-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

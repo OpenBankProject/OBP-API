@@ -95,7 +95,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -103,7 +103,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: filePaymentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -211,7 +211,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -219,7 +219,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: filePaymentId:: "payment-details" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -273,7 +273,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
             """,
        json.parse(""""""),
        json.parse("""{ }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -281,7 +281,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: filePaymentId:: "report-file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{ }"""), callContext)
            }
@@ -375,7 +375,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -383,7 +383,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        case "file-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

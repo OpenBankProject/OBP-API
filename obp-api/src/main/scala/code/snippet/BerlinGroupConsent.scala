@@ -160,7 +160,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
 
         // Get all accounts held by the current user
         val userAccounts: Set[BankIdAccountId] =
-          AccountHolders.accountHolders.vend.getAccountsHeldByUser(AuthUser.currentUser.flatMap(_.user.foreign).openOrThrowException(ErrorMessages.UserNotLoggedIn), Some(null)).toSet
+          AccountHolders.accountHolders.vend.getAccountsHeldByUser(AuthUser.currentUser.flatMap(_.user.foreign).openOrThrowException(ErrorMessages.AuthenticatedUserIsRequired), Some(null)).toSet
         val userIbans: Set[String] = userAccounts.flatMap { acc =>
           BankAccountRouting.find(
             By(BankAccountRouting.BankId, acc.bankId.value),
@@ -429,7 +429,7 @@ class BerlinGroupConsent extends MdcLoggable with RestHelper with APIMethods510 
   }
 
   private def updateConsentUser(consent: MappedConsent): Box[MappedConsent] = {
-    val loggedInUser = AuthUser.currentUser.flatMap(_.user.foreign).openOrThrowException(ErrorMessages.UserNotLoggedIn)
+    val loggedInUser = AuthUser.currentUser.flatMap(_.user.foreign).openOrThrowException(ErrorMessages.AuthenticatedUserIsRequired)
     Consents.consentProvider.vend.updateConsentUser(consent.consentId, loggedInUser)
     val jwt = Consent.updateUserIdOfBerlinGroupConsentJWT(loggedInUser.userId, consent, None).openOrThrowException(ErrorMessages.InvalidConnectorResponse)
     Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)

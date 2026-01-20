@@ -6,7 +6,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
@@ -60,7 +60,7 @@ class AccountAccessTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postAccountAccessJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
@@ -70,7 +70,7 @@ class AccountAccessTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postAccountAccessJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

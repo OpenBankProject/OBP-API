@@ -40,7 +40,7 @@ object ResourceDocMiddleware extends MdcLoggable{
    */
   private def needsAuthentication(resourceDoc: ResourceDoc): Boolean = {
     // Roles always require an authenticated user to validate entitlements
-    resourceDoc.errorResponseBodies.contains($UserNotLoggedIn) || resourceDoc.roles.exists(_.nonEmpty)
+    resourceDoc.errorResponseBodies.contains($AuthenticatedUserIsRequired) || resourceDoc.roles.exists(_.nonEmpty)
   }
   
   /**
@@ -99,7 +99,7 @@ object ResourceDocMiddleware extends MdcLoggable{
               case Full(user) => 
                 IO.pure(Right((boxUser, updatedCC)))
               case Empty => 
-                ErrorResponseConverter.createErrorResponse(401, $UserNotLoggedIn, updatedCC).map(Left(_))
+                ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, updatedCC).map(Left(_))
               case LiftFailure(msg, _, _) => 
                 ErrorResponseConverter.createErrorResponse(401, msg, updatedCC).map(Left(_))
             }
@@ -111,10 +111,10 @@ object ResourceDocMiddleware extends MdcLoggable{
               implicit val formats = net.liftweb.json.DefaultFormats
               val json = parse(e.getMessage)
               val failCode = (json \ "failCode").extractOpt[Int].getOrElse(401)
-              val failMsg = (json \ "failMsg").extractOpt[String].getOrElse($UserNotLoggedIn)
+              val failMsg = (json \ "failMsg").extractOpt[String].getOrElse($AuthenticatedUserIsRequired)
               (failCode, failMsg)
             } catch {
-              case _: Exception => (401, $UserNotLoggedIn)
+              case _: Exception => (401, $AuthenticatedUserIsRequired)
             }
             ErrorResponseConverter.createErrorResponse(code, msg, cc).map(Left(_))
         }
@@ -153,7 +153,7 @@ object ResourceDocMiddleware extends MdcLoggable{
                   if (hasRole) IO.pure(Right(cc1)) 
                   else ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), cc1).map(Left(_))
                 case _ =>
-                  ErrorResponseConverter.createErrorResponse(401, $UserNotLoggedIn, cc1).map(Left(_))
+                  ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc1).map(Left(_))
               }
             case _ => IO.pure(Right(cc1))
           }

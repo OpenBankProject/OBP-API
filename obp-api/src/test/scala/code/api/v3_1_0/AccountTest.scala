@@ -6,7 +6,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.ApiRole
 import code.api.v2_0_0.BasicAccountJSON
 import code.api.v2_2_0.CreateAccountJSONV220
@@ -187,8 +187,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Create Account v3.1.0 - Authorized access") {

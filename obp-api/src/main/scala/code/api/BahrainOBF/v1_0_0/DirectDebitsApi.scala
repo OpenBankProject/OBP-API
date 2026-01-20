@@ -80,7 +80,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -88,7 +88,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "accounts" :: accountId:: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -189,7 +189,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -197,7 +197,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

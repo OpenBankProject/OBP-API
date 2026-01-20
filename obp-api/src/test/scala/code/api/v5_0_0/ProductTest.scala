@@ -89,8 +89,8 @@ class ProductTest extends V500ServerSetup {
       val response400 = makePutRequest(request400, write(parentPutProductJsonV500))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")

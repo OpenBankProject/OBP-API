@@ -93,7 +93,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -229,7 +229,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

@@ -164,7 +164,7 @@ trait APIMethods500 {
       bankJson500,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -250,7 +250,7 @@ trait APIMethods500 {
       bankJson500,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         BankNotFound,
         updateBankError,
         UnknownError
@@ -323,7 +323,7 @@ trait APIMethods500 {
       List(
         InvalidJsonFormat,
         BankNotFound,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidUserId,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
@@ -452,7 +452,7 @@ trait APIMethods500 {
       postUserAuthContextJson,
       userAuthContextJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         CreateUserAuthContextError,
         UnknownError
@@ -494,7 +494,7 @@ trait APIMethods500 {
       EmptyBody,
       userAuthContextJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -532,7 +532,7 @@ trait APIMethods500 {
       postUserAuthContextJson,
       userAuthContextUpdateJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         CreateUserAuthContextError,
@@ -578,7 +578,7 @@ trait APIMethods500 {
       postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         InvalidConnectorResponse,
@@ -751,7 +751,7 @@ trait APIMethods500 {
       EmptyBody,
       consentJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
         ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -827,7 +827,7 @@ trait APIMethods500 {
       EmptyBody,
       consentJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -858,7 +858,7 @@ trait APIMethods500 {
       EmptyBody,
       consentJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentRequestIsInvalid,
@@ -890,7 +890,7 @@ trait APIMethods500 {
       EmptyBody,
       consentJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentRequestIsInvalid,
@@ -1353,7 +1353,7 @@ trait APIMethods500 {
       postCustomerJsonV500,
       customerJsonV310,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         CustomerNumberAlreadyExists,
@@ -1429,7 +1429,7 @@ trait APIMethods500 {
       postCustomerOverviewJsonV500,
       customerOverviewJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1478,7 +1478,7 @@ trait APIMethods500 {
       postCustomerOverviewJsonV500,
       customerOverviewFlatJsonV500,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1525,7 +1525,7 @@ trait APIMethods500 {
       EmptyBody,
       customerJsonV210,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1561,7 +1561,7 @@ trait APIMethods500 {
       EmptyBody,
       customerJSONs,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -1606,7 +1606,7 @@ trait APIMethods500 {
       EmptyBody,
       customersJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1692,7 +1692,7 @@ trait APIMethods500 {
       putProductJsonV500,
       productJsonV400.copy(attributes = None, fees = None),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -1754,7 +1754,7 @@ trait APIMethods500 {
       createPhysicalCardJsonV500,
       physicalCardJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         AllowedValuesAre,
@@ -1873,7 +1873,7 @@ trait APIMethods500 {
       EmptyBody,
       viewsJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankAccountNotFound,
         UnknownError
       ),
@@ -1916,7 +1916,7 @@ trait APIMethods500 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "user does not have owner access"
@@ -2004,7 +2004,7 @@ trait APIMethods500 {
       EmptyBody,
       metricsJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2041,7 +2041,7 @@ trait APIMethods500 {
       EmptyBody,
       viewJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -2075,7 +2075,7 @@ trait APIMethods500 {
       EmptyBody,
       viewIdsJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -2122,7 +2122,7 @@ trait APIMethods500 {
       createSystemViewJsonV500,
       viewJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -2170,7 +2170,7 @@ trait APIMethods500 {
       viewJsonV500,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -2213,7 +2213,7 @@ trait APIMethods500 {
       createCustomerAccountLinkJson,
       customerAccountLinkJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         BankAccountNotFound,
         InvalidJsonFormat,
@@ -2268,7 +2268,7 @@ trait APIMethods500 {
       EmptyBody,
       customerAccountLinksJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         CustomerNotFoundByCustomerId,
         UserHasMissingRoles,
@@ -2306,7 +2306,7 @@ trait APIMethods500 {
       EmptyBody,
       customerAccountLinksJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         BankAccountNotFound,
         UserHasMissingRoles,
@@ -2341,7 +2341,7 @@ trait APIMethods500 {
       EmptyBody,
       customerAccountLinkJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -2375,7 +2375,7 @@ trait APIMethods500 {
       updateCustomerAccountLinkJson,
       customerAccountLinkJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -2414,7 +2414,7 @@ trait APIMethods500 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -2448,7 +2448,7 @@ trait APIMethods500 {
       """.stripMargin,
       EmptyBody,
       adapterInfoJsonV500,
-      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagApi),
       Some(List(canGetAdapterInfo))
     )

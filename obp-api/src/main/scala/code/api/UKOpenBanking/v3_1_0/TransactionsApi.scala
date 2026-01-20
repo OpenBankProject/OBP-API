@@ -269,7 +269,7 @@ object APIMethods_TransactionsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Statements") ::ApiTag("Transactions") :: apiTagMockedData :: Nil
      )
 
@@ -742,7 +742,7 @@ object APIMethods_TransactionsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Transactions") :: Nil
      )
 
@@ -1009,7 +1009,7 @@ object APIMethods_TransactionsApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Transactions") :: Nil
      )
 

@@ -101,7 +101,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -185,7 +185,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -272,7 +272,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -417,7 +417,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -501,7 +501,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -588,7 +588,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 
@@ -675,7 +675,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
 

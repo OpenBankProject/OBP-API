@@ -93,7 +93,7 @@ object APIMethods_EventNotificationApi extends RestHelper {
   "jti" : "jti"
 }"""),
        json.parse(""""""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Event Notification") :: apiTagMockedData :: Nil
      )
 
@@ -101,7 +101,7 @@ object APIMethods_EventNotificationApi extends RestHelper {
        case "event-notifications" :: Nil JsonPost _ => {
          cc => implicit val ec = EndpointContext(Some(cc))
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse(""""""), callContext)
            }

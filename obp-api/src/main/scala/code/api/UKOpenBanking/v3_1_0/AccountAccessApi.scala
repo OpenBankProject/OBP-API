@@ -78,7 +78,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
     "LastAvailableDateTime": "2020-10-20T08:40:47.375Z"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access") :: Nil
      )
 
@@ -148,7 +148,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
           |""".stripMargin, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access") :: Nil
      )
 
@@ -156,7 +156,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: consentId :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
@@ -205,7 +205,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
     "LastAvailableDateTime": "2020-10-20T10:28:39.801Z"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access") :: Nil
      )
 
@@ -213,7 +213,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
              }

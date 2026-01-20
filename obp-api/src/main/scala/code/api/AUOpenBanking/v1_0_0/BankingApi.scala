@@ -64,7 +64,7 @@ object APIMethods_BankingApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -72,7 +72,7 @@ object APIMethods_BankingApi extends RestHelper {
        case "banking":: "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -104,7 +104,7 @@ object APIMethods_BankingApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -112,7 +112,7 @@ object APIMethods_BankingApi extends RestHelper {
        case "banking":: "payees" :: payeeId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -144,7 +144,7 @@ object APIMethods_BankingApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -152,7 +152,7 @@ object APIMethods_BankingApi extends RestHelper {
        case "banking":: "products" :: productId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -184,7 +184,7 @@ object APIMethods_BankingApi extends RestHelper {
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -192,7 +192,7 @@ object APIMethods_BankingApi extends RestHelper {
        case "banking":: "accounts" :: accountId:: "transactions" :: transactionId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : "",
@@ -285,7 +285,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -293,7 +293,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts" :: accountId:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -401,7 +401,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
@@ -409,7 +409,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, BankId(defaultBankId))
              (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
              } yield {
@@ -451,7 +451,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "self" : "self"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
@@ -459,7 +459,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts" :: accountId:: "balance" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
              } yield {
              (JSONFactory_AU_OpenBanking_1_0_0.createAccountBalanceJson(account), HttpCode.`200`(callContext))
@@ -523,7 +523,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -531,7 +531,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts":: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -642,7 +642,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -650,7 +650,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts":: "balances" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -750,7 +750,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -758,7 +758,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts" :: accountId:: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -852,7 +852,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -860,7 +860,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts":: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -959,7 +959,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -967,7 +967,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "accounts":: "direct-debits" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -1051,7 +1051,7 @@ Some general notes that apply to all end points that retrieve transactions:
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -1059,7 +1059,7 @@ Some general notes that apply to all end points that retrieve transactions:
        case "banking":: "payees" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -1201,7 +1201,7 @@ In addition, the concept of effective date and time has also been included. This
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -1209,7 +1209,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "products" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -1577,7 +1577,7 @@ In addition, the concept of effective date and time has also been included. This
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -1585,7 +1585,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "accounts" :: accountId:: "payments":: "scheduled" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -2195,7 +2195,7 @@ In addition, the concept of effective date and time has also been included. This
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -2203,7 +2203,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "payments":: "scheduled" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -2818,7 +2818,7 @@ In addition, the concept of effective date and time has also been included. This
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -2826,7 +2826,7 @@ In addition, the concept of effective date and time has also been included. This
        case "banking":: "payments":: "scheduled" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

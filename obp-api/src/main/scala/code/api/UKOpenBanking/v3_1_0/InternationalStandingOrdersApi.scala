@@ -151,7 +151,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -387,7 +387,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -623,7 +623,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -859,7 +859,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
      )
 

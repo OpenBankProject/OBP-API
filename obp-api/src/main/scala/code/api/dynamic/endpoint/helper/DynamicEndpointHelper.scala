@@ -5,7 +5,7 @@ import code.DynamicData.{DynamicDataProvider, DynamicDataT}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CommonUtil, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, ApiVersion}
 import com.openbankproject.commons.util.Functions.Memo
@@ -323,7 +323,7 @@ object DynamicEndpointHelper extends RestHelper {
       val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
       val (successCode, successResponseBody: Product) = getResponseExample(openAPI, op.getResponses)
       val errorResponseBodies: List[String] = List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       )

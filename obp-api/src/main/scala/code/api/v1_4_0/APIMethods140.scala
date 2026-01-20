@@ -103,14 +103,14 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       EmptyBody,
       customerJsonV140,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagCustomer, apiTagOldStyle))
 
     lazy val getCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         cc => {
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+            u <- cc.user ?~! ErrorMessages.AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
             ucl <- tryo{ucls.find(x=>CustomerX.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
@@ -138,7 +138,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       EmptyBody,
       customerMessagesJson,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagMessage, apiTagCustomer))
 
     lazy val getCustomersMessages  : OBPEndpoint = {
@@ -170,7 +170,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       addCustomerMessageJson,
       successMessage,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagMessage, apiTagCustomer, apiTagPerson)
     )
 
@@ -224,7 +224,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       EmptyBody,
       branchesJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         "No branches available. License may not be set.",
         UnknownError),
@@ -238,7 +238,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             _ <- if(getBranchesIsPublic)
               Box(Some(1))
             else
-              cc.user ?~! UserNotLoggedIn
+              cc.user ?~! AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             httpParams <- createHttpParamsByUrl(cc.url)
@@ -276,7 +276,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       EmptyBody,
       atmsJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
@@ -292,7 +292,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             _ <- if(getAtmsIsPublic)
               Box(Some(1))
             else
-              cc.user ?~! UserNotLoggedIn
+              cc.user ?~! AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             
             httpParams <- createHttpParamsByUrl(cc.url)
@@ -334,7 +334,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       EmptyBody,
       productsJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         "No products available.",
         "License may not be set.",
@@ -350,7 +350,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             _ <- if(getProductsIsPublic)
               Box(Some(1))
             else
-              cc.user ?~! UserNotLoggedIn
+              cc.user ?~! AuthenticatedUserIsRequired
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
@@ -375,7 +375,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       EmptyBody,
       crmEventsJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         "No CRM Events available.",
         UnknownError),
@@ -430,7 +430,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       EmptyBody,
       transactionRequestTypesJsonV140,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         AccountNotFound,
         "Please specify a valid value for CURRENCY of your Bank Account. "
@@ -490,7 +490,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createCustomerJson,
       customerJsonV140,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         "entitlements required",

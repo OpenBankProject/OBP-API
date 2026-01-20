@@ -125,7 +125,7 @@ trait APIMethods300 {
       EmptyBody,
       viewsJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -185,7 +185,7 @@ trait APIMethods300 {
       SwaggerDefinitionsJSON.createViewJsonV300,
       viewJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         BankAccountNotFound,
         UnknownError
@@ -238,7 +238,7 @@ trait APIMethods300 {
         |The user needs to have access to the owner view.""",
       EmptyBody,
       viewsJsonV300,
-      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
+      List(AuthenticatedUserIsRequired,BankNotFound, AccountNotFound,UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser))
   
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
@@ -284,7 +284,7 @@ trait APIMethods300 {
       viewJsonV300,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -476,7 +476,7 @@ trait APIMethods300 {
          |""",
       EmptyBody,
       coreAccountsJsonV300,
-      List(UserNotLoggedIn,UnknownError),
+      List(AuthenticatedUserIsRequired,UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2)
     )
 
@@ -533,7 +533,7 @@ trait APIMethods300 {
          |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountsJsonV300,
-      List(UserNotLoggedIn,AccountFirehoseNotAllowedOnThisInstance,UnknownError),
+      List(AuthenticatedUserIsRequired,AccountFirehoseNotAllowedOnThisInstance,UnknownError),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
@@ -622,7 +622,7 @@ trait APIMethods300 {
          |""".stripMargin,
       EmptyBody,
       transactionsJsonV300,
-      List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
@@ -692,7 +692,7 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         UnknownError
@@ -750,7 +750,7 @@ trait APIMethods300 {
         FilterOffersetError,
         FilterLimitError ,
         FilterDateFormatError,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         UnknownError
@@ -823,7 +823,7 @@ trait APIMethods300 {
         """,
       elasticSearchJsonV300,
       emptyElasticSearch, //TODO what is output here?
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)))
     val esw = new elasticsearchWarehouse
@@ -902,7 +902,7 @@ trait APIMethods300 {
         """,
       elasticSearchJsonV300,
       emptyElasticSearch, //TODO what is output here?
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics))
     )
@@ -957,7 +957,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       usersJsonV200,
-      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -990,7 +990,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       usersJsonV200,
-      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1027,7 +1027,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       usersJsonV200,
-      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)))
 
@@ -1063,7 +1063,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       adapterInfoJsonV300,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagApi),
       Some(List(canGetAdapterInfoAtOneBank))
     )
@@ -1105,7 +1105,7 @@ trait APIMethods300 {
       branchJsonV300,
       branchJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InsufficientAuthorisationToCreateBranch,
         UnknownError
@@ -1155,7 +1155,7 @@ trait APIMethods300 {
       postBranchJsonV300,
       branchJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InsufficientAuthorisationToCreateBranch,
         UnknownError
@@ -1222,7 +1222,7 @@ trait APIMethods300 {
       atmJsonV300,
       atmJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -1275,7 +1275,7 @@ trait APIMethods300 {
       EmptyBody,
       branchJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BranchNotFoundByBranchId,
         UnknownError
       ),
@@ -1337,7 +1337,7 @@ trait APIMethods300 {
       EmptyBody,
       branchesJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BranchesNotFoundLicense,
         UnknownError),
@@ -1453,7 +1453,7 @@ trait APIMethods300 {
           |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmJsonV300,
-      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
@@ -1495,7 +1495,7 @@ trait APIMethods300 {
       EmptyBody,
       atmJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
@@ -1574,7 +1574,7 @@ trait APIMethods300 {
       EmptyBody,
       usersJsonV200,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1616,7 +1616,7 @@ trait APIMethods300 {
       EmptyBody,
       customersWithAttributesJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1664,7 +1664,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       userJsonV300,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser))
 
     lazy val getCurrentUser: OBPEndpoint = {
@@ -1699,7 +1699,7 @@ trait APIMethods300 {
          |${userAuthenticationMessage(true)}""".stripMargin,
       EmptyBody,
       coreAccountsJsonV300,
-      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagAccount,apiTagPSD2AIS, apiTagPsd2)
     )
   
@@ -1738,7 +1738,7 @@ trait APIMethods300 {
          |${userAuthenticationMessage(true)}""".stripMargin,
       EmptyBody,
       accountsIdsJsonV300,
-      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2)
     )
   
@@ -1774,7 +1774,7 @@ trait APIMethods300 {
       EmptyBody,
       otherAccountsJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         InvalidConnectorResponse,
@@ -1811,7 +1811,7 @@ trait APIMethods300 {
       EmptyBody,
       otherAccountJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         InvalidConnectorResponse,
@@ -1859,7 +1859,7 @@ trait APIMethods300 {
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
       entitlementRequestJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserNotFoundById,
         InvalidJsonFormat,
         IncorrectRoleName,
@@ -1916,7 +1916,7 @@ trait APIMethods300 {
       EmptyBody,
       entitlementRequestsJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -1955,7 +1955,7 @@ trait APIMethods300 {
       EmptyBody,
       entitlementRequestsJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -1994,7 +1994,7 @@ trait APIMethods300 {
       EmptyBody,
       entitlementRequestsJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -2029,7 +2029,7 @@ trait APIMethods300 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -2069,7 +2069,7 @@ trait APIMethods300 {
       EmptyBody,
       entitlementJSONs,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -2145,7 +2145,7 @@ trait APIMethods300 {
         """.stripMargin,
       EmptyBody,
       coreAccountsHeldJsonV300,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2)
     )
   
@@ -2222,7 +2222,7 @@ trait APIMethods300 {
       EmptyBody,
       aggregateMetricsJSONV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2268,7 +2268,7 @@ trait APIMethods300 {
       SwaggerDefinitionsJSON.createScopeJson,
       scopeJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ConsumerNotFoundById,
         InvalidJsonFormat,
         IncorrectRoleName,
@@ -2347,7 +2347,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
       List(apiTagScope, apiTagConsumer))
 
     lazy val deleteScope: OBPEndpoint = {
@@ -2385,7 +2385,7 @@ trait APIMethods300 {
       """.stripMargin,
       EmptyBody,
       scopeJsons,
-      List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
       List(apiTagScope, apiTagConsumer))
   
     lazy val getScopes: OBPEndpoint = {
@@ -2452,7 +2452,7 @@ trait APIMethods300 {
         |* Website""",
       EmptyBody,
       bankJson400,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 

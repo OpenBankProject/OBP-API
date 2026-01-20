@@ -124,7 +124,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -306,7 +306,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -488,7 +488,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -670,7 +670,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 

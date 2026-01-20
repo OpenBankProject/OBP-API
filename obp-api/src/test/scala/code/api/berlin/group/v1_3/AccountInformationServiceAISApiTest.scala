@@ -68,7 +68,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 401 ")
       response.code should equal(401)
-      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNotLoggedIn)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(AuthenticatedUserIsRequired)
     }
 
     scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
@@ -88,7 +88,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 401 ")
       response.code should equal(401)
-      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(UserNotLoggedIn)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(AuthenticatedUserIsRequired)
     }
 
     scenario("Authentication User, test succeed", BerlinGroupV1_3, getAccountDetails) {
