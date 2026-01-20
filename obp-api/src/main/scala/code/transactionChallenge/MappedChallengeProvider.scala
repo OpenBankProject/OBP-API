@@ -28,8 +28,12 @@ object MappedChallengeProvider extends ChallengeProvider {
     consentId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     basketId: Option[String], // Note: consentId and transactionRequestId and basketId are exclusive here.
     authenticationMethodId: Option[String],
-    challengeType: String, 
-  ): Box[ChallengeTrait] = 
+    challengeType: String,
+    // PSD2 Dynamic Linking fields
+    challengePurpose: Option[String] = None,
+    challengeContextHash: Option[String] = None,
+    challengeContextStructure: Option[String] = None
+  ): Box[ChallengeTrait] =
     tryo (
       MappedExpectedChallengeAnswer
         .create
@@ -44,6 +48,10 @@ object MappedChallengeProvider extends ChallengeProvider {
         .ConsentId(consentId.getOrElse(""))
         .BasketId(basketId.getOrElse(""))
         .AuthenticationMethodId(expectedUserId)
+        // PSD2 Dynamic Linking
+        .ChallengePurpose(challengePurpose.getOrElse(""))
+        .ChallengeContextHash(challengeContextHash.getOrElse(""))
+        .ChallengeContextStructure(challengeContextStructure.getOrElse(""))
         .saveMe()
     )
   
