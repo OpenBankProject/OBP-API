@@ -3600,7 +3600,17 @@ object Glossary extends MdcLoggable  {
 		glossaryItems += GlossaryItem(
 			title = "Dynamic linking (PSD2 context)",
 			description =
-				s"""""".stripMargin)
+				s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
+					 |
+					 |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
+					 |
+					 |1. **The amount** of the transaction
+					 |2. **The payee** (recipient) of the transaction
+					 |
+					 |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
+					 |
+					 |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
+					 |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "TPP",
