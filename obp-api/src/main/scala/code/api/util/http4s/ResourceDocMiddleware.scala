@@ -78,7 +78,10 @@ object ResourceDocMiddleware extends MdcLoggable{
   }
 
   private def ensureJsonContentType(response: Response[IO]): Response[IO] = {
-    if (response.contentType.isDefined) response else response.withContentType(jsonContentType)
+    response.contentType match {
+      case Some(contentType) if contentType.mediaType == MediaType.application.json => response
+      case _ => response.withContentType(jsonContentType)
+    }
   }
   
   /**
