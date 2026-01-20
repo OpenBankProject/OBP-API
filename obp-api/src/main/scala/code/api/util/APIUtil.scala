@@ -3018,13 +3018,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
 
-    // PSD2 guard: если Failure/Empty -> стоп, дальше код не выполняется
+    logger.debug(s"S.request before passesPsd2Aisp: ${S.request}")
+    logger.debug(s"CallContext before: $cc")
     passesPsd2Aisp(Some(cc)).flatMap {
       case (Full(true), ccOpt) =>
+        logger.debug(s"S.request after passesPsd2Aisp: ${S.request}")
+        logger.debug(s"CallContext after: $cc")
 
         val cc2 = ccOpt.getOrElse(cc)
-
-        // ====== ТВОЙ СУЩЕСТВУЮЩИЙ КОД НАЧИНАЕТСЯ ЗДЕСЬ (почти без изменений) ======
 
         val s = S
         val spelling = getSpellingParam()
@@ -3165,8 +3166,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           .map(x => (x._1, x._2.map(_.copy(ipAddress = remoteIpAddress))))
           .map(x => (x._1, x._2.map(_.copy(httpBody = body.toOption))))
           .map(x => (x._1, x._2.map(_.copy(user = x._1))))
-
-      // ====== ТВОЙ КОД ЗАКАНЧИВАЕТСЯ ЗДЕСЬ ======
 
       case (f: Failure, ccOpt) =>
         // PSD2 не прошёл -> возвращаем ошибку, дальше метод не выполняется
