@@ -3278,14 +3278,42 @@ object Glossary extends MdcLoggable  {
 |
 |**Note:** If hasPersonalEntity is set to false, no 'my' endpoints are generated.
 |
-|**Management endpoints for Dynamic Entity definitions:**
+|**Management endpoints for Dynamic Entity definitions (available from v4.0.0):**
 |
 |* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
 |* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
 |
 |**Response format for GET /my/dynamic-entities:**
 |
-|The response contains an array of dynamic entity definitions. Note that the **entity name is a dynamic key** in each object (not a fixed property name):
+|**v6.0.0 format (recommended):**
+|
+|The v6.0.0 response uses snake_case field names and an explicit `entity_name` field:
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "dynamic_entity_id": "abc-123-def",
+|      "entity_name": "CustomerPreferences",
+|      "user_id": "user-456",
+|      "bank_id": null,
+|      "has_personal_entity": true,
+|      "definition": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      }
+|    }
+|  ]
+|}
+|```
+|
+|**v4.0.0 format (legacy):**
+|
+|The v4.0.0 response uses camelCase field names and the **entity name is a dynamic key** (not a fixed property name):
 |
 |```json
 |{
@@ -3308,7 +3336,7 @@ object Glossary extends MdcLoggable  {
 |}
 |```
 |
-|**Important:** The entity name (e.g., "CustomerPreferences") appears as a dynamic key, not as a property value. To extract the entity name programmatically, find the key that is NOT one of the standard properties: dynamicEntityId, userId, hasPersonalEntity, bankId.
+|To extract the entity name from the v4.0.0 format programmatically, find the key that is NOT one of the standard properties: dynamicEntityId, userId, hasPersonalEntity, bankId.
 |
 |**Required roles:**
 |

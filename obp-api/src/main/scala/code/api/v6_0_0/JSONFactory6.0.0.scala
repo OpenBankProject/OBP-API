@@ -486,6 +486,21 @@ case class AbacPoliciesJsonV600(
     policies: List[AbacPolicyJsonV600]
 )
 
+// Dynamic Entity definition with fully predictable structure (v6.0.0 format)
+// No dynamic keys - entity name is an explicit field, schema is in 'definition'
+case class DynamicEntityDefinitionJsonV600(
+    dynamic_entity_id: String,
+    entity_name: String,
+    user_id: String,
+    bank_id: Option[String],
+    has_personal_entity: Boolean,
+    definition: net.liftweb.json.JsonAST.JObject
+)
+
+case class MyDynamicEntitiesJsonV600(
+    dynamic_entities: List[DynamicEntityDefinitionJsonV600]
+)
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createRedisCallCountersJson(
@@ -1292,6 +1307,44 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       namespaces = namespaces,
       total_keys = totalKeys,
       redis_available = redisAvailable
+    )
+  }
+
+  /**
+   * Create v6.0.0 response for GET /my/dynamic-entities
+   *
+   * Fully predictable structure with no dynamic keys.
+   * Entity name is an explicit field, schema is in 'definition'.
+   *
+   * Response format:
+   * {
+   *   "dynamic_entities": [
+   *     {
+   *       "dynamic_entity_id": "abc-123",
+   *       "entity_name": "CustomerPreferences",
+   *       "user_id": "user-456",
+   *       "bank_id": null,
+   *       "has_personal_entity": true,
+   *       "definition": { ... schema ... }
+   *     }
+   *   ]
+   * }
+   */
+  def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.parse
+
+    MyDynamicEntitiesJsonV600(
+      dynamic_entities = dynamicEntities.map { entity =>
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
+          entity_name = entity.entityName,
+          user_id = entity.userId,
+          bank_id = entity.bankId,
+          has_personal_entity = entity.hasPersonalEntity,
+          definition = parse(entity.metadataJson).asInstanceOf[JObject]
+        )
+      }
     )
   }
 }

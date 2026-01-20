@@ -30,7 +30,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CurrentConsumerJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, RedisCacheStatusJsonV600, UpdateAbacRuleJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, UpdateAbacRuleJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -6400,6 +6400,60 @@ trait APIMethods600 {
           } yield {
             (jsonSchema, HttpCode.`200`(callContext))
           }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEntities),
+      "GET",
+      "/my/dynamic-entities",
+      "Get My Dynamic Entities",
+      s"""Get all Dynamic Entity definitions I created.
+         |
+         |This v6.0.0 endpoint returns a cleaner response format with:
+         |* snake_case field names (dynamic_entity_id, user_id, bank_id, has_personal_entity)
+         |* An explicit entity_name field instead of using the entity name as a dynamic JSON key
+         |* The entity schema in a separate definition object
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "My-Dynamic-Entities"
+        )}""",
+      EmptyBody,
+      MyDynamicEntitiesJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "CustomerPreferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            definition = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          )
+        )
+      ),
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi)
+    )
+
+    lazy val getMyDynamicEntities: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          dynamicEntities <- Future(
+            NewStyle.function.getDynamicEntitiesByUserId(cc.userId)
+          )
+        } yield {
+          val listCommons: List[DynamicEntityCommons] = dynamicEntities
+          (
+            JSONFactory600.createMyDynamicEntitiesJson(listCommons),
+            HttpCode.`200`(cc.callContext)
+          )
         }
       }
     }
