@@ -3020,6 +3020,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     logger.debug(s"S.request before passesPsd2Aisp: ${S.request}")
     logger.debug(s"CallContext before: $cc")
+    val requestBefore = S.request
     passesPsd2Aisp(Some(cc)).flatMap {
       case (Full(true), ccOpt) =>
         logger.debug(s"S.request after passesPsd2Aisp: ${S.request}")
@@ -3027,14 +3028,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         val cc2 = ccOpt.getOrElse(cc)
 
-        val s = S
         val spelling = getSpellingParam()
         val body: Box[String] = getRequestBody(S.request)
-        val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-        val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+        val implementedInVersion = requestBefore.openOrThrowException(attemptedToOpenAnEmptyBox).view
+        val verb = requestBefore.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
         val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""), "UTF-8")
         val correlationId = getCorrelationId()
-        val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+        val reqHeaders = requestBefore.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
         val xRequestId: Option[String] =
           reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
             .map(_.values.mkString(","))
