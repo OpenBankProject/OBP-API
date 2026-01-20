@@ -3152,6 +3152,35 @@ object Glossary extends MdcLoggable  {
 |
 |OBP generates ONLY the regular endpoints. No 'my' endpoints are created. Use this when the entity represents shared data that should not be user-scoped.
 |
+|**Data Storage Differences:**
+|
+|Both personal and non-personal entities use the same database table (DynamicData), but the key difference is how user ownership is handled:
+|
+|When **hasPersonalEntity = true**:
+|
+|* Each record stores the UserId of the user who created it
+|* The UserId is **actively used in all queries** to filter results
+|* Users can only see, update, and delete their own records via 'my' endpoints
+|* The 'my' endpoints **skip role checks** - user isolation provides the authorization
+|* Cascade delete (deleting the entity definition and all data at once) is **not allowed**
+|
+|When **hasPersonalEntity = false**:
+|
+|* UserId may be stored for audit purposes but is **ignored in queries**
+|* All authorized users see the same shared data
+|* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
+|* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
+|
+|**Summary table:**
+|
+|| Feature | hasPersonalEntity=true | hasPersonalEntity=false |
+||---------|------------------------|-------------------------|
+|| Data visibility | Per-user (isolated) | Shared (all users) |
+|| UserId in queries | Yes (filters results) | No (ignored) |
+|| 'my' endpoints | Generated | Not generated |
+|| Authorization | User-scoped (no roles needed for 'my' endpoints) | Role-based |
+|| Cascade delete | Blocked | Allowed |
+|
 |**For bank-level entities**, endpoints include the bank ID:
 |
 |* POST /banks/BANK_ID/CustomerPreferences
