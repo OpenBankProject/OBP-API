@@ -331,6 +331,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     commit
   }
 
+  // API info props helpers (keep values centralized)
+  lazy val hostedByOrganisation: String = getPropsValue("hosted_by.organisation", "TESOBE")
+  lazy val hostedByEmail: String = getPropsValue("hosted_by.email", "contact@tesobe.com")
+  lazy val hostedByPhone: String = getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+  lazy val organisationWebsite: String = getPropsValue("organisation_website", "https://www.tesobe.com")
+  lazy val hostedAtOrganisation: String = getPropsValue("hosted_at.organisation", "")
+  lazy val hostedAtOrganisationWebsite: String = getPropsValue("hosted_at.organisation_website", "")
+  lazy val energySourceOrganisation: String = getPropsValue("energy_source.organisation", "")
+  lazy val energySourceOrganisationWebsite: String = getPropsValue("energy_source.organisation_website", "")
+  lazy val resourceDocsRequiresRole: Boolean = getPropsAsBoolValue("resource_docs_requires_role", false)
+
 
   /**
    * Caching of unchanged resources

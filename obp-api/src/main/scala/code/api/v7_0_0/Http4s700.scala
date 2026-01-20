@@ -77,7 +77,7 @@ object Http4s700 {
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
         val responseJson = convertAnyToJsonString(
-          JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello")
+          JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
         )
         
         Ok(responseJson).map(_.withContentType(jsonContentType))
@@ -111,7 +111,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "banks" =>
 
         val responseJson = convertAnyToJsonString(
-          JSONFactory700.getApiInfoJSON(implementedInApiVersion, s"Hello ")
+          JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
         )
         Ok(responseJson).map(_.withContentType(jsonContentType))
     }
