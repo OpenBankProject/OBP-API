@@ -231,44 +231,44 @@ object Http4s700 {
         Ok(responseJson)
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCounterpartyByIdWithMiddleware),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Id (http4s with middleware)",
-      s"""Get counterparty by id with automatic validation via ResourceDocMiddleware.
-        |
-        |This endpoint demonstrates the COMPLETE validation chain:
-        |* Authentication (required)
-        |* Bank existence validation (BANK_ID in path)
-        |* Account existence validation (ACCOUNT_ID in path)
-        |* View access validation (VIEW_ID in path)
-        |* Counterparty existence validation (COUNTERPARTY_ID in path)
-        |
-        |${userAuthenticationMessage(true)}""",
-      EmptyBody,
-      moderatedAccountJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, CounterpartyNotFound, UnknownError),
-      apiTagCounterparty :: Nil,
-      http4sPartialFunction = Some(getCounterpartyByIdWithMiddleware)
-    )
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(getCounterpartyByIdWithMiddleware),
+//      "GET",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+//      "Get Counterparty by Id (http4s with middleware)",
+//      s"""Get counterparty by id with automatic validation via ResourceDocMiddleware.
+//        |
+//        |This endpoint demonstrates the COMPLETE validation chain:
+//        |* Authentication (required)
+//        |* Bank existence validation (BANK_ID in path)
+//        |* Account existence validation (ACCOUNT_ID in path)
+//        |* View access validation (VIEW_ID in path)
+//        |* Counterparty existence validation (COUNTERPARTY_ID in path)
+//        |
+//        |${userAuthenticationMessage(true)}""",
+//      EmptyBody,
+//      moderatedAccountJSON,
+//      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, CounterpartyNotFound, UnknownError),
+//      apiTagCounterparty :: Nil,
+//      http4sPartialFunction = Some(getCounterpartyByIdWithMiddleware)
+//    )
     
-    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID
-    // When used with ResourceDocMiddleware, validation is automatic
-    val getCounterpartyByIdWithMiddleware: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "counterparties" / counterpartyId =>
-        val responseJson = convertAnyToJsonString(
-          Map(
-            "bank_id" -> bankId,
-            "account_id" -> accountId,
-            "view_id" -> viewId,
-            "counterparty_id" -> counterpartyId
-          )
-        )
-        Ok(responseJson)
-    }
+//    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID
+//    // When used with ResourceDocMiddleware, validation is automatic
+//    val getCounterpartyByIdWithMiddleware: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "counterparties" / counterpartyId =>
+//        val responseJson = convertAnyToJsonString(
+//          Map(
+//            "bank_id" -> bankId,
+//            "account_id" -> accountId,
+//            "view_id" -> viewId,
+//            "counterparty_id" -> counterpartyId
+//          )
+//        )
+//        Ok(responseJson)
+//    }
 
     // All routes combined (without middleware - for direct use)
     val allRoutes: HttpRoutes[IO] =
@@ -277,7 +277,7 @@ object Http4s700 {
           .orElse(getBanks(req))
           .orElse(getResourceDocsObpV700(req))
           .orElse(getAccountByIdWithMiddleware(req))
-          .orElse(getCounterpartyByIdWithMiddleware(req))
+//          .orElse(getCounterpartyByIdWithMiddleware(req))
       }
     
     // Routes wrapped with ResourceDocMiddleware for automatic validation
