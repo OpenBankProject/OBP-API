@@ -30,6 +30,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
+import net.liftweb.http.S
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -338,50 +339,67 @@ of the PSU at this ASPSP.
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
+  import net.liftweb.http.S
+  import net.liftweb.common.Full
+  import scala.concurrent.ExecutionContext.Implicits.global
 
-     lazy val getAccountList : OBPEndpoint = {
-       case "accounts" :: Nil JsonGet _ => {
-         cc =>
-           for {
-             _ <- passesPsd2Aisp(Some(cc.copy()))
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            withBalanceParam <- NewStyle.function.tryons(s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!", 400, callContext) {
+  lazy val getAccountList: OBPEndpoint = {
+    case "accounts" :: Nil JsonGet _ => { cc =>
+      (S.request, S.session) match {
+        case (Full(req), Full(sess)) =>
+          // Важно: передаём Full(req) и сам sess
+          S.init(Full(req), sess) {
+            for {
+              _ <- passesPsd2Aisp(Some(cc))
+              (Full(u), callContext) <- authenticatedAccess(cc)
+              withBalanceParam <- NewStyle.function.tryons(
+                s"$InvalidUrlParameters withBalance parameter can only take two values: TRUE or FALSE!",
+                400,
+                callContext
+              ) {
+                val withBalance = APIUtil.getHttpRequestUrlParam(cc.url, "withBalance")
+                if (withBalance.isEmpty) Some(false) else Some(withBalance.toBoolean)
+              }
+              _ <- passesPsd2Aisp(callContext)
+              (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
+              (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
+              (canReadTransactionsAccounts, callContext) <- NewStyle.function.getAccountCanReadTransactionsOfBerlinGroup(u, callContext)
+              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
 
-              val withBalance = APIUtil.getHttpRequestUrlParam(cc.url, "withBalance")
-              
-              if(withBalance.isEmpty)Some(false) else Some(withBalance.toBoolean)
+              bankAccountsFiltered = accounts.filter(bankAccount =>
+                bankAccount.attributes.toList.flatten.find(attribute =>
+                  attribute.name == "CashAccountTypeCode" &&
+                    attribute.`type` == "STRING" &&
+                    attribute.value.equalsIgnoreCase("card")
+                ).isEmpty
+              )
+
+              (balances, callContext) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountsBalances(
+                bankAccountsFiltered.map(_.accountId),
+                callContext
+              )
+            } yield {
+              (
+                JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(
+                  bankAccountsFiltered,
+                  canReadBalancesAccounts,
+                  canReadTransactionsAccounts,
+                  u,
+                  withBalanceParam,
+                  balances
+                ),
+                callContext
+              )
             }
-            _ <- passesPsd2Aisp(callContext)
-            (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
-            (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
-            (canReadTransactionsAccounts, callContext) <- NewStyle.function.getAccountCanReadTransactionsOfBerlinGroup(u, callContext)
-            (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-            bankAccountsFiltered = accounts.filter(bankAccount =>
-              bankAccount.attributes.toList.flatten.find(attribute =>
-                attribute.name.equals("CashAccountTypeCode")&&
-                attribute.`type`.equals("STRING")&&
-                attribute.value.equalsIgnoreCase("card")
-              ).isEmpty)
-
-            (balances, callContext) <-  code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountsBalances(
-              bankAccountsFiltered.map(_.accountId),
-              callContext
-            )
-             
-          } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(
-              bankAccountsFiltered,
-              canReadBalancesAccounts,
-              canReadTransactionsAccounts,
-              u,
-              withBalanceParam,
-              balances
-            ), callContext)
           }
-         }
-       }
+        case _ =>
+          // Если нет запроса или сессии
+          Future.failed(new Exception("No Lift request/session available"))
+      }
+    }
+  }
 
-     resourceDocs += ResourceDoc(
+  resourceDocs += ResourceDoc(
        getBalances,
        apiVersion,
        nameOf(getBalances),
