@@ -3,7 +3,7 @@ package code.api.util.http4s
 import cats.effect._
 import code.api.APIFailureNewStyle
 import code.api.util.ErrorMessages._
-import code.api.util.{CallContext => SharedCallContext}
+import code.api.util.CallContext
 import net.liftweb.common.{Failure => LiftFailure}
 import net.liftweb.json.compactRender
 import net.liftweb.json.JsonDSL._
@@ -41,7 +41,7 @@ object ErrorResponseConverter {
   /**
    * Convert an error to http4s Response[IO]
    */
-  def toHttp4sResponse(error: Throwable, callContext: SharedCallContext): IO[Response[IO]] = {
+  def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
       case e: APIFailureNewStyle =>
         apiFailureToResponse(e, callContext)
@@ -53,7 +53,7 @@ object ErrorResponseConverter {
   /**
    * Convert APIFailureNewStyle to http4s Response
    */
-  def apiFailureToResponse(failure: APIFailureNewStyle, callContext: SharedCallContext): IO[Response[IO]] = {
+  def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(failure.failCode, failure.failMsg)
     val status = org.http4s.Status.fromInt(failure.failCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
@@ -67,7 +67,7 @@ object ErrorResponseConverter {
   /**
    * Convert Box Failure to http4s Response
    */
-  def boxFailureToResponse(failure: LiftFailure, callContext: SharedCallContext): IO[Response[IO]] = {
+  def boxFailureToResponse(failure: LiftFailure, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(400, failure.msg)
     IO.pure(
       Response[IO](org.http4s.Status.BadRequest)
@@ -80,7 +80,7 @@ object ErrorResponseConverter {
   /**
    * Convert unknown error to http4s Response
    */
-  def unknownErrorToResponse(e: Throwable, callContext: SharedCallContext): IO[Response[IO]] = {
+  def unknownErrorToResponse(e: Throwable, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(500, s"$UnknownError: ${e.getMessage}")
     IO.pure(
       Response[IO](org.http4s.Status.InternalServerError)
@@ -93,7 +93,7 @@ object ErrorResponseConverter {
   /**
    * Create error response with specific status code and message
    */
-  def createErrorResponse(statusCode: Int, message: String, callContext: SharedCallContext): IO[Response[IO]] = {
+  def createErrorResponse(statusCode: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(statusCode, message)
     val status = org.http4s.Status.fromInt(statusCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(

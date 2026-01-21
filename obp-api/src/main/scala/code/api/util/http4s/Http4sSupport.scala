@@ -4,7 +4,7 @@ import cats.effect._
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
-import code.api.util.{CallContext => SharedCallContext}
+import code.api.util.CallContext
 import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
 import net.liftweb.http.provider.HTTPParam
@@ -24,7 +24,7 @@ import scala.language.higherKinds
  * 
  * This file contains:
  * - Http4sCallContextBuilder: Builds shared CallContext from http4s Request[IO]
- * - Http4sVaultKeys: Vault keys for storing validated objects in request attributes
+ * - Http4sRequestAttributes: Request attribute keys for storing validated objects
  * - ResourceDocMatcher: Matches http4s requests to ResourceDoc entries
  * - ResourceDocMiddleware: Validation chain middleware for http4s
  * - ErrorResponseConverter: Converts OBP errors to http4s Response[IO]
@@ -35,10 +35,16 @@ import scala.language.higherKinds
  * These keys allow middleware to pass validated objects to endpoint handlers.
  * WIP 
  */
-object Http4sVaultKeys {
+/**
+ * Request attribute keys for storing validated objects in http4s requests.
+ * These keys allow middleware to pass validated objects to endpoint handlers.
+ * 
+ * Note: Uses http4s Vault (org.typelevel.vault.Key) for type-safe request attributes.
+ */
+object Http4sRequestAttributes {
   // Use shared CallContext from code.api.util.ApiSession
-  val callContextKey: Key[SharedCallContext] = 
-    Key.newKey[IO, SharedCallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+  val callContextKey: Key[CallContext] = 
+    Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
   
   val userKey: Key[User] = 
     Key.newKey[IO, User].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
@@ -58,7 +64,7 @@ object Http4sVaultKeys {
   /**
    * Helper methods for accessing validated objects from request attributes
    */
-  def getCallContext(req: Request[IO]): Option[SharedCallContext] = 
+  def getCallContext(req: Request[IO]): Option[CallContext] = 
     req.attributes.lookup(callContextKey)
   
   def getUser(req: Request[IO]): Option[User] = 
@@ -91,12 +97,12 @@ object Http4sCallContextBuilder {
    * 
    * @param request The http4s request
    * @param apiVersion The API version string (e.g., "v7.0.0")
-   * @return IO[SharedCallContext] with all request data populated
+   * @return IO[CallContext] with all request data populated
    */
-  def fromRequest(request: Request[IO], apiVersion: String): IO[SharedCallContext] = {
+  def fromRequest(request: Request[IO], apiVersion: String): IO[CallContext] = {
     for {
       body <- request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
-    } yield SharedCallContext(
+    } yield CallContext(
       url = request.uri.renderString,
       verb = request.method.name,
       implementedInVersion = apiVersion,
@@ -316,9 +322,9 @@ object ResourceDocMatcher {
    * @return Updated CallContext with resourceDocument and operationId set
    */
   def attachToCallContext(
-    callContext: SharedCallContext,
+    callContext: CallContext,
     resourceDoc: ResourceDoc
-  ): SharedCallContext = {
+  ): CallContext = {
     callContext.copy(
       resourceDocument = Some(resourceDoc),
       operationId = Some(resourceDoc.operationId)
@@ -336,5 +342,5 @@ case class ValidatedContext(
   bankAccount: Option[BankAccount],
   view: Option[View],
   counterparty: Option[CounterpartyTrait],
-  callContext: SharedCallContext
+  callContext: CallContext
 )

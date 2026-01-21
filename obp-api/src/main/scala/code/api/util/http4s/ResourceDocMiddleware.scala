@@ -9,7 +9,7 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{CallContext => SharedCallContext}
+import code.api.util.CallContext
 import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
 import org.http4s._
@@ -192,7 +192,7 @@ object ResourceDocMiddleware extends MdcLoggable{
               case Left(errorResponse) => IO.pure(errorResponse)
               case Right((bankOpt, cc3)) =>
                 // Step 4: Account validation (if ACCOUNT_ID in path)
-                val accountResult: IO[Either[Response[IO], (Option[BankAccount], SharedCallContext)]] = 
+                val accountResult: IO[Either[Response[IO], (Option[BankAccount], CallContext)]] = 
                   (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
                     case (Some(bankIdStr), Some(accountIdStr)) =>
                       IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc3)))).attempt.flatMap {
@@ -211,7 +211,7 @@ object ResourceDocMiddleware extends MdcLoggable{
                   case Left(errorResponse) => IO.pure(errorResponse)
                   case Right((accountOpt, cc4)) =>
                     // Step 5: View validation (if VIEW_ID in path)
-                    val viewResult: IO[Either[Response[IO], (Option[View], SharedCallContext)]] = 
+                    val viewResult: IO[Either[Response[IO], (Option[View], CallContext)]] = 
                       (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
                         case (Some(bankIdStr), Some(accountIdStr), Some(viewIdStr)) =>
                           val bankIdAccountId = BankIdAccountId(BankId(bankIdStr), AccountId(accountIdStr))
@@ -229,7 +229,7 @@ object ResourceDocMiddleware extends MdcLoggable{
                       case Left(errorResponse) => IO.pure(errorResponse)
                       case Right((viewOpt, cc5)) =>
                         // Step 6: Counterparty validation (if COUNTERPARTY_ID in path)
-                        val counterpartyResult: IO[Either[Response[IO], (Option[CounterpartyTrait], SharedCallContext)]] = 
+                        val counterpartyResult: IO[Either[Response[IO], (Option[CounterpartyTrait], CallContext)]] = 
                           (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
                             case (Some(bankIdStr), Some(accountIdStr), Some(counterpartyIdStr)) =>
                               IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankIdStr), AccountId(accountIdStr), counterpartyIdStr, Some(cc5)))).attempt.flatMap {
@@ -247,12 +247,12 @@ object ResourceDocMiddleware extends MdcLoggable{
                           case Left(errorResponse) => IO.pure(errorResponse)
                           case Right((counterpartyOpt, finalCC)) =>
                             // All validations passed - store validated context and invoke route
-                            var updatedReq = req.withAttribute(Http4sVaultKeys.callContextKey, finalCC)
-                            boxUser.toOption.foreach { user => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.userKey, user) }
-                            bankOpt.foreach { bank => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankKey, bank) }
-                            accountOpt.foreach { account => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.bankAccountKey, account) }
-                            viewOpt.foreach { view => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.viewKey, view) }
-                            counterpartyOpt.foreach { counterparty => updatedReq = updatedReq.withAttribute(Http4sVaultKeys.counterpartyKey, counterparty) }
+                            var updatedReq = req.withAttribute(Http4sRequestAttributes.callContextKey, finalCC)
+                            boxUser.toOption.foreach { user => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.userKey, user) }
+                            bankOpt.foreach { bank => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.bankKey, bank) }
+                            accountOpt.foreach { account => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.bankAccountKey, account) }
+                            viewOpt.foreach { view => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.viewKey, view) }
+                            counterpartyOpt.foreach { counterparty => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.counterpartyKey, counterparty) }
                             routes.run(updatedReq).getOrElseF(IO.pure(Response[IO](org.http4s.Status.NotFound)))
                         }
                     }
