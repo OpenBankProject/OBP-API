@@ -33,6 +33,7 @@ import scala.language.higherKinds
 /**
  * Vault keys for storing validated objects in http4s request attributes.
  * These keys allow middleware to pass validated objects to endpoint handlers.
+ * WIP 
  */
 object Http4sVaultKeys {
   // Use shared CallContext from code.api.util.ApiSession
