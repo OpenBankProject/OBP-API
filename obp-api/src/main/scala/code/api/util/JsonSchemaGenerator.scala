@@ -33,14 +33,8 @@ object JsonSchemaGenerator {
       ("message_format" -> messageDoc.messageFormat) ~
       ("outbound_topic" -> messageDoc.outboundTopic) ~
       ("inbound_topic" -> messageDoc.inboundTopic) ~
-      ("outbound_schema" -> (
-        ("$schema" -> "http://json-schema.org/draft-07/schema#") ~
-        typeToJsonSchema(outboundType)
-      )) ~
-      ("inbound_schema" -> (
-        ("$schema" -> "http://json-schema.org/draft-07/schema#") ~
-        typeToJsonSchema(inboundType)
-      )) ~
+      ("outbound_schema" -> typeToJsonSchema(outboundType)) ~
+      ("inbound_schema" -> typeToJsonSchema(inboundType)) ~
       ("adapter_implementation" -> messageDoc.adapterImplementation.map { impl =>
         ("group" -> impl.group) ~
         ("suggested_order" -> JInt(BigInt(impl.suggestedOrder)))
