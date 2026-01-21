@@ -75,6 +75,7 @@ object ErrorMessages {
   val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
   val DuplicateQueryParameters = "OBP-09016: Duplicate Query Parameters are not allowed."
   val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
+  val InvalidDynamicEntityName = "OBP-09018: Invalid entity_name format. Entity names must be lowercase with underscores (snake_case), e.g. 'customer_preferences'. No uppercase letters or spaces allowed."
 
 
   // General messages (OBP-10XXX)

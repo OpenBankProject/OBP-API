@@ -4567,7 +4567,7 @@ trait APIMethods600 {
         dynamic_entities = List(
           DynamicEntityDefinitionWithCountJsonV600(
             dynamic_entity_id = "abc-123-def",
-            entity_name = "CustomerPreferences",
+            entity_name = "customer_preferences",
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
@@ -4632,7 +4632,7 @@ trait APIMethods600 {
         dynamic_entities = List(
           DynamicEntityDefinitionWithCountJsonV600(
             dynamic_entity_id = "abc-123-def",
-            entity_name = "CustomerPreferences",
+            entity_name = "customer_preferences",
             user_id = "user-456",
             bank_id = Some("gh.29.uk"),
             has_personal_entity = true,
@@ -4757,7 +4757,7 @@ trait APIMethods600 {
          |**Request format:**
          |```json
          |{
-         |  "entity_name": "CustomerPreferences",
+         |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "schema": {
          |    "description": "User preferences",
@@ -4770,17 +4770,19 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:** Each property MUST include an `example` field with a valid example value.
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property MUST include an `example` field with a valid example value.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
@@ -4796,6 +4798,17 @@ trait APIMethods600 {
       Some(List(canCreateSystemLevelDynamicEntity))
     )
 
+    // v6.0.0 entity names must be lowercase with underscores (snake_case)
+    private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
+
+    private def validateEntityNameV600(entityName: String, callContext: Option[CallContext]): Future[Unit] = {
+      if (validEntityNamePattern.matcher(entityName).matches()) {
+        Future.successful(())
+      } else {
+        Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
+      }
+    }
+
     lazy val createSystemDynamicEntity: OBPEndpoint = {
       case "management" :: "system-dynamic-entities" :: Nil JsonPost json -> _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
@@ -4803,6 +4816,7 @@ trait APIMethods600 {
           request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
             json.extract[CreateDynamicEntityRequestJsonV600]
           }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
           internalJson = JSONFactory600.convertV600RequestToInternal(request)
           dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, None)
           result <- createDynamicEntityV600(cc, dynamicEntity)
@@ -4824,7 +4838,7 @@ trait APIMethods600 {
          |**Request format:**
          |```json
          |{
-         |  "entity_name": "CustomerPreferences",
+         |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "schema": {
          |    "description": "User preferences",
@@ -4837,17 +4851,19 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:** Each property MUST include an `example` field with a valid example value.
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property MUST include an `example` field with a valid example value.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
@@ -4871,6 +4887,7 @@ trait APIMethods600 {
           request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
             json.extract[CreateDynamicEntityRequestJsonV600]
           }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
           internalJson = JSONFactory600.convertV600RequestToInternal(request)
           dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, Some(bankId))
           result <- createDynamicEntityV600(cc, dynamicEntity)
@@ -4892,7 +4909,7 @@ trait APIMethods600 {
          |**Request format:**
          |```json
          |{
-         |  "entity_name": "CustomerPreferences",
+         |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "schema": {
          |    "description": "User preferences updated",
@@ -4906,15 +4923,17 @@ trait APIMethods600 {
          |}
          |```
          |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
@@ -4937,6 +4956,7 @@ trait APIMethods600 {
           request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
             json.extract[UpdateDynamicEntityRequestJsonV600]
           }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
           internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
           dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
           result <- updateDynamicEntityV600(cc, dynamicEntity)
@@ -4958,7 +4978,7 @@ trait APIMethods600 {
          |**Request format:**
          |```json
          |{
-         |  "entity_name": "CustomerPreferences",
+         |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "schema": {
          |    "description": "User preferences updated",
@@ -4972,15 +4992,17 @@ trait APIMethods600 {
          |}
          |```
          |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
@@ -5004,6 +5026,7 @@ trait APIMethods600 {
           request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
             json.extract[UpdateDynamicEntityRequestJsonV600]
           }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
           internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
           dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, Some(bankId))
           result <- updateDynamicEntityV600(cc, dynamicEntity)
@@ -5025,7 +5048,7 @@ trait APIMethods600 {
          |**Request format:**
          |```json
          |{
-         |  "entity_name": "CustomerPreferences",
+         |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "schema": {
          |    "description": "User preferences updated",
@@ -5039,15 +5062,17 @@ trait APIMethods600 {
          |}
          |```
          |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
          |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
-        entity_name = "CustomerPreferences",
+        entity_name = "customer_preferences",
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
@@ -5075,6 +5100,7 @@ trait APIMethods600 {
           request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
             json.extract[UpdateDynamicEntityRequestJsonV600]
           }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
           internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
           dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, existingEntity.get.bankId)
           result <- updateDynamicEntityV600(cc, dynamicEntity)
@@ -6894,7 +6920,7 @@ trait APIMethods600 {
         dynamic_entities = List(
           DynamicEntityDefinitionJsonV600(
             dynamic_entity_id = "abc-123-def",
-            entity_name = "CustomerPreferences",
+            entity_name = "customer_preferences",
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
@@ -6949,7 +6975,7 @@ trait APIMethods600 {
         dynamic_entities = List(
           DynamicEntityDefinitionJsonV600(
             dynamic_entity_id = "abc-123-def",
-            entity_name = "CustomerPreferences",
+            entity_name = "customer_preferences",
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,

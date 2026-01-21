@@ -72,7 +72,7 @@ class DynamicEntityTest extends V600ServerSetup {
   val rightEntityV600 = parse(
     """
       |{
-      |    "entity_name": "FooBar",
+      |    "entity_name": "foo_bar",
       |    "has_personal_entity": true,
       |    "schema": {
       |       "description": "description of this entity, can be markdown text.",
@@ -100,7 +100,7 @@ class DynamicEntityTest extends V600ServerSetup {
   val entityWithoutPersonalV600 = parse(
     """
       |{
-      |    "entity_name": "SharedEntity",
+      |    "entity_name": "shared_entity",
       |    "has_personal_entity": false,
       |    "schema": {
       |       "description": "A shared entity without personal endpoints.",
@@ -121,7 +121,7 @@ class DynamicEntityTest extends V600ServerSetup {
   val wrongRequiredEntityV600 = parse(
     """
       |{
-      |    "entity_name": "FooBar",
+      |    "entity_name": "foo_bar",
       |    "has_personal_entity": true,
       |    "schema": {
       |       "description": "description of this entity.",
@@ -142,7 +142,7 @@ class DynamicEntityTest extends V600ServerSetup {
   val updatedEntityV600 = parse(
     """
       |{
-      |    "entity_name": "FooBar",
+      |    "entity_name": "foo_bar",
       |    "has_personal_entity": true,
       |    "schema": {
       |       "description": "Updated description of this entity.",
@@ -206,7 +206,7 @@ class DynamicEntityTest extends V600ServerSetup {
       (responseJson \ "dynamic_entity_id") shouldBe a[JString]
 
       And("Response should have snake_case field: entity_name")
-      (responseJson \ "entity_name").extract[String] should equal("FooBar")
+      (responseJson \ "entity_name").extract[String] should equal("foo_bar")
 
       And("Response should have snake_case field: user_id")
       (responseJson \ "user_id").extract[String] should equal(resourceUser1.userId)
@@ -220,9 +220,9 @@ class DynamicEntityTest extends V600ServerSetup {
       (schemaField \ "required") shouldBe a[JArray]
       (schemaField \ "properties") shouldBe a[JObject]
 
-      // Verify schema does NOT contain the entity name as a key (old format would have FooBar as key)
+      // Verify schema does NOT contain the entity name as a key (old format would have foo_bar as key)
       And("Schema should NOT contain entity name as a dynamic key")
-      (schemaField \ "FooBar") should equal(JNothing)
+      (schemaField \ "foo_bar") should equal(JNothing)
 
       val dynamicEntityId = (responseJson \ "dynamic_entity_id").extract[String]
 
@@ -245,7 +245,7 @@ class DynamicEntityTest extends V600ServerSetup {
       val entity = entities.head
       And("GET response should also use snake_case fields")
       (entity \ "dynamic_entity_id").extract[String] should equal(dynamicEntityId)
-      (entity \ "entity_name").extract[String] should equal("FooBar")
+      (entity \ "entity_name").extract[String] should equal("foo_bar")
       (entity \ "has_personal_entity").extract[Boolean] should equal(true)
 
       And("GET response should include record_count field")
@@ -279,7 +279,7 @@ class DynamicEntityTest extends V600ServerSetup {
 
       And("Updated response should use snake_case fields")
       (responseJson \ "dynamic_entity_id").extract[String] should equal(dynamicEntityId)
-      (responseJson \ "entity_name").extract[String] should equal("FooBar")
+      (responseJson \ "entity_name").extract[String] should equal("foo_bar")
 
       And("Schema should be updated")
       val schemaField = responseJson \ "schema"
@@ -333,7 +333,7 @@ class DynamicEntityTest extends V600ServerSetup {
       (responseJson \ "bank_id").extract[String] should equal(bankId)
 
       And("Response should have entity_name")
-      (responseJson \ "entity_name").extract[String] should equal("FooBar")
+      (responseJson \ "entity_name").extract[String] should equal("foo_bar")
 
       val dynamicEntityId = (responseJson \ "dynamic_entity_id").extract[String]
 
@@ -352,7 +352,7 @@ class DynamicEntityTest extends V600ServerSetup {
 
       val entity = entities.head
       (entity \ "bank_id").extract[String] should equal(bankId)
-      (entity \ "entity_name").extract[String] should equal("FooBar")
+      (entity \ "entity_name").extract[String] should equal("foo_bar")
       (entity \ "record_count") shouldBe a[JInt]
 
       // Cleanup
@@ -380,7 +380,7 @@ class DynamicEntityTest extends V600ServerSetup {
       updateResponse.code should equal(200)
 
       And("Updated response should have snake_case fields")
-      (updateResponse.body \ "entity_name").extract[String] should equal("FooBar")
+      (updateResponse.body \ "entity_name").extract[String] should equal("foo_bar")
       (updateResponse.body \ "bank_id").extract[String] should equal(bankId)
 
       // Cleanup
@@ -425,16 +425,16 @@ class DynamicEntityTest extends V600ServerSetup {
       entities.size should be >= 1
 
       And("Response should use snake_case fields")
-      val entity = entities.find(e => (e \ "entity_name").extract[String] == "FooBar").get
+      val entity = entities.find(e => (e \ "entity_name").extract[String] == "foo_bar").get
       (entity \ "dynamic_entity_id") shouldBe a[JString]
-      (entity \ "entity_name").extract[String] should equal("FooBar")
+      (entity \ "entity_name").extract[String] should equal("foo_bar")
       (entity \ "user_id").extract[String] should equal(resourceUser1.userId)
       (entity \ "has_personal_entity").extract[Boolean] should equal(true)
 
       And("Schema field should contain only the schema structure")
       val schemaField = entity \ "schema"
       (schemaField \ "description") shouldBe a[JString]
-      (schemaField \ "FooBar") should equal(JNothing)  // Should NOT have entity name as key
+      (schemaField \ "foo_bar") should equal(JNothing)  // Should NOT have entity name as key
 
       // Test Update My Dynamic Entity
       When("We update my dynamic entity")
@@ -445,7 +445,7 @@ class DynamicEntityTest extends V600ServerSetup {
       updateResponse.code should equal(200)
 
       And("Updated response should use snake_case fields")
-      (updateResponse.body \ "entity_name").extract[String] should equal("FooBar")
+      (updateResponse.body \ "entity_name").extract[String] should equal("foo_bar")
       (updateResponse.body \ "schema" \ "description").extract[String] should equal("Updated description of this entity.")
 
       // Cleanup
@@ -492,8 +492,8 @@ class DynamicEntityTest extends V600ServerSetup {
 
       And("Response should contain only entities with has_personal_entity = true")
       val entityNames = entities.map(e => (e \ "entity_name").extract[String])
-      entityNames should contain("FooBar")
-      entityNames should not contain("SharedEntity")
+      entityNames should contain("foo_bar")
+      entityNames should not contain("shared_entity")
 
       And("All returned entities should have has_personal_entity = true")
       entities.foreach { entity =>
@@ -535,7 +535,7 @@ class DynamicEntityTest extends V600ServerSetup {
       (schemaField \ "properties") shouldBe a[JObject]
 
       And("Schema should NOT contain the entity name as a nested key (old v4.0.0 format)")
-      (schemaField \ "FooBar") should equal(JNothing)
+      (schemaField \ "foo_bar") should equal(JNothing)
 
       And("Schema should NOT contain hasPersonalEntity (that's a separate top-level field)")
       (schemaField \ "hasPersonalEntity") should equal(JNothing)
