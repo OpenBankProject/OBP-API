@@ -547,7 +547,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         // Use params from CallContext (http4s path)
         validatorFutureWithParams("protectedResource", httpMethod, directLoginParamsFromCC)
       } else {
-        // Fall back to S.request (Lift path)
+        // Fall back to S.request (Lift path), e.g. we still use Lift to generate the token and secret, so we need to maintain backward compatibility here.
         validatorFuture("protectedResource", httpMethod)
       }
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
