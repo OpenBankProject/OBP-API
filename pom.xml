@@ -134,14 +134,10 @@
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
             <displayCmd>true</displayCmd>
-            <recompileMode>incremental</recompileMode>
-            <useZincServer>true</useZincServer>
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-              <jvmArg>-Xms512m</jvmArg>
-              <jvmArg>-Xmx2G</jvmArg>
-              <jvmArg>-XX:+TieredCompilation</jvmArg>
-              <jvmArg>-XX:TieredStopAtLevel=1</jvmArg>
+              <jvmArg>-Xms64m</jvmArg>
+              <jvmArg>-Xmx1024m</jvmArg>
             </jvmArgs>
             <args>
               <arg>-unchecked</arg>
@@ -151,12 +147,6 @@
               <arg>-deprecation</arg>
               -->
               <arg>-Ypartial-unification</arg>
-              <!-- Enable language features to suppress warnings -->
-              <arg>-language:implicitConversions</arg>
-              <arg>-language:reflectiveCalls</arg>
-              <arg>-language:postfixOps</arg>
-              <!-- Suppress auto-application deprecation warning -->
-              <arg>-Wconf:cat=deprecation&amp;msg=auto-application:s</arg>
             </args>
           </configuration>
           <executions>
