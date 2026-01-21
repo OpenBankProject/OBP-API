@@ -1725,20 +1725,20 @@ class DynamicEntityTest extends V400ServerSetup {
       }
 
       {
-        Then("User1 get my foobar, only return his own records, only one")
+        Then("User1 get my foobar, returns his own records (including those created via non-/my endpoints)")
         val requestGetFoobars = (dynamicEntity_Request / "my" / "FooBar").GET <@ (user1)
         val responseGetFoobars = makeGetRequest(requestGetFoobars)
         responseGetFoobars.code should equal(200)
 
-        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(1)
+        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(2)
       }
       {
-        Then("User2 get my foobar, only return his own records, only one")
+        Then("User2 get my foobar, returns his own records (including those created via non-/my endpoints)")
         val requestGetFoobars = (dynamicEntity_Request / "my" / "FooBar").GET <@ (user2)
         val responseGetFoobars = makeGetRequest(requestGetFoobars)
         responseGetFoobars.code should equal(200)
 
-        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(1)
+        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(2)
       }
 
       {
@@ -1851,20 +1851,20 @@ class DynamicEntityTest extends V400ServerSetup {
       }
 
       {
-        Then("User1 get my foobar, only return his own records, only one")
+        Then("User1 get my foobar, returns his own records (including those created via non-/my endpoints)")
         val requestGetFoobars = (dynamicEntity_Request / "banks" / testBankId1.value / "my" / "FooBar").GET <@ (user1)
         val responseGetFoobars = makeGetRequest(requestGetFoobars)
         responseGetFoobars.code should equal(200)
 
-        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(1)
+        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(2)
       }
       {
-        Then("User2 get my foobar, only return his own records, only one")
+        Then("User2 get my foobar, returns his own records (including those created via non-/my endpoints)")
         val requestGetFoobars = (dynamicEntity_Request / "banks" / testBankId1.value / "my" / "FooBar").GET <@ (user2)
         val responseGetFoobars = makeGetRequest(requestGetFoobars)
         responseGetFoobars.code should equal(200)
 
-        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(1)
+        (responseGetFoobars.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should be(2)
       }
 
       {
