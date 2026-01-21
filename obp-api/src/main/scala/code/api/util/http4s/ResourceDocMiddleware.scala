@@ -3,14 +3,12 @@ package code.api.util.http4s
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.APIFailureNewStyle
-import code.util.Helper.MdcLoggable
-import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
-import code.api.util.NewStyle
+import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.CallContext
-import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
+import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
@@ -90,17 +88,16 @@ object ResourceDocMiddleware extends MdcLoggable{
   private def runValidationChain(
     req: Request[IO],
     resourceDoc: ResourceDoc,
-    cc: SharedCallContext,
+    cc: CallContext,
     pathParams: Map[String, String],
     routes: HttpRoutes[IO]
   ): IO[Response[IO]] = {
-    import com.openbankproject.commons.ExecutionContext.Implicits.global
     
     // Step 1: Authentication
     val needsAuth = needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
     
-    val authResult: IO[Either[Response[IO], (Box[User], SharedCallContext)]] = 
+    val authResult: IO[Either[Response[IO], (Box[User], CallContext)]] = 
       if (needsAuth) {
         IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.flatMap {
           case Right((boxUser, optCC)) => 
@@ -149,7 +146,7 @@ object ResourceDocMiddleware extends MdcLoggable{
       case Left(errorResponse) => IO.pure(errorResponse)
       case Right((boxUser, cc1)) =>
         // Step 2: Role authorization - BEFORE business logic validation
-        val rolesResult: IO[Either[Response[IO], SharedCallContext]] = 
+        val rolesResult: IO[Either[Response[IO], CallContext]] = 
           resourceDoc.roles match {
             case Some(roles) if roles.nonEmpty =>
               boxUser match {
@@ -172,7 +169,7 @@ object ResourceDocMiddleware extends MdcLoggable{
           case Left(errorResponse) => IO.pure(errorResponse)
           case Right(cc2) =>
             // Step 3: Bank validation
-            val bankResult: IO[Either[Response[IO], (Option[Bank], SharedCallContext)]] = 
+            val bankResult: IO[Either[Response[IO], (Option[Bank], CallContext)]] = 
               pathParams.get("BANK_ID") match {
                 case Some(bankIdStr) =>
                   IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankIdStr), Some(cc2)))).attempt.flatMap {

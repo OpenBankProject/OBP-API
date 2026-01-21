@@ -6,11 +6,12 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.ApiRole.canReadResourceDoc
+import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{Http4sCallContextBuilder, ResourceDocMiddleware}
+import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
 import code.api.util.{ApiRole, ApiVersionUtils, CustomJsonFormats, NewStyle}
+import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
 import com.github.dwickern.macros.NameOf.nameOf
@@ -41,7 +42,7 @@ object Http4s700 {
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
-    // ResourceDoc with $AuthenticatedUserIsRequired in errorResponseBodies indicates auth is required
+    // ResourceDoc with AuthenticatedUserIsRequired in errorResponseBodies indicates auth is required
     // ResourceDocMiddleware will automatically handle authentication based on this metadata
     // No explicit auth code needed in the endpoint handler - just like Lift's wrappedWithAuthCheck
     resourceDocs += ResourceDoc(
@@ -60,15 +61,14 @@ object Http4s700 {
       EmptyBody,
       apiInfoJSON, 
       List(
-        UnknownError, 
-        "no connector set"
+        UnknownError
       ),
       apiTagApi :: Nil,
       http4sPartialFunction = Some(root)
     )
 
     // Route: GET /obp/v7.0.0/root
-    // Authentication is handled automatically by ResourceDocMiddleware based on $AuthenticatedUserIsRequired in ResourceDoc
+    // Authentication is handled automatically by ResourceDocMiddleware based on AuthenticatedUserIsRequired in ResourceDoc
     // The endpoint code only contains business logic - validated User is available from request attributes
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
@@ -106,16 +106,82 @@ object Http4s700 {
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
         val response = for {
-          cc <- Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
+          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
           result <- IO.fromFuture(IO {
             for {
-              (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+              (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
             } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
           })
         } yield result
         Ok(response)
     }
 
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCards),
+      "GET",
+      "/cards",
+      "Get cards for the current user",
+      "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
+      EmptyBody,
+      physicalCardsJSON,
+      List(AuthenticatedUserIsRequired, UnknownError),
+      apiTagCard :: Nil,
+      http4sPartialFunction = Some(getCards)
+    )
+
+    // Route: GET /obp/v7.0.0/cards
+    // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
+    val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "cards" =>
+        val response = for {
+          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
+          user <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.userKey))(new RuntimeException("User not found in request attributes"))
+          result <- IO.fromFuture(IO {
+            for {
+              (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+          })
+        } yield result
+        Ok(response)
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCardsForBank),
+      "GET",
+      "/banks/BANK_ID/cards",
+      "Get cards for the specified bank",
+      "",
+      EmptyBody,
+      physicalCardsJSON,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      apiTagCard :: Nil,
+      Some(List(canGetCardsForBank)),
+      http4sPartialFunction = Some(getCardsForBank)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/cards
+    // Authentication and bank validation handled by ResourceDocMiddleware
+    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
+        val response = for {
+          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
+          user <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.userKey))(new RuntimeException("User not found in request attributes"))
+          bank <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.bankKey))(new RuntimeException("Bank not found in request attributes"))
+          result <- IO.fromFuture(IO {
+            for {
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+              (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+              (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
+            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+          })
+        } yield result
+        Ok(response)
+    }
+ 
     resourceDocs += ResourceDoc(
       null,
       implementedInApiVersion,
@@ -152,7 +218,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
         import com.openbankproject.commons.ExecutionContext.Implicits.global
         val response = for {
-          cc <- Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.toString)
+          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
           result <- IO.fromFuture(IO {
             // Check resource_docs_requires_role property
             val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
@@ -194,42 +260,6 @@ object Http4s700 {
     // Example endpoint demonstrating full validation chain with ResourceDocMiddleware
     // This endpoint requires: authentication + bank validation + account validation + view validation
     // When using ResourceDocMiddleware, these validations are automatic based on path parameters
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getAccountByIdWithMiddleware),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (http4s with middleware)",
-      s"""Get account by id with automatic validation via ResourceDocMiddleware.
-        |
-        |This endpoint demonstrates the full validation chain:
-        |* Authentication (required)
-        |* Bank existence validation (BANK_ID in path)
-        |* Account existence validation (ACCOUNT_ID in path)
-        |* View access validation (VIEW_ID in path)
-        |
-        |${userAuthenticationMessage(true)}""",
-      EmptyBody,
-      moderatedAccountJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil,
-      http4sPartialFunction = Some(getAccountByIdWithMiddleware)
-    )
-    
-    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
-    // When used with ResourceDocMiddleware, validation is automatic
-    val getAccountByIdWithMiddleware: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "account" =>
-        val responseJson = convertAnyToJsonString(
-          Map(
-            "bank_id" -> bankId,
-            "account_id" -> accountId,
-            "view_id" -> viewId
-          )
-        )
-        Ok(responseJson)
-    }
 
 //    resourceDocs += ResourceDoc(
 //      null,
@@ -275,9 +305,10 @@ object Http4s700 {
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
           .orElse(getBanks(req))
+          .orElse(getCards(req))
+          .orElse(getCardsForBank(req))
           .orElse(getResourceDocsObpV700(req))
-          .orElse(getAccountByIdWithMiddleware(req))
-//          .orElse(getCounterpartyByIdWithMiddleware(req))
+//          .orElse(getAccountByIdWithMiddleware(req))
       }
     
     // Routes wrapped with ResourceDocMiddleware for automatic validation
