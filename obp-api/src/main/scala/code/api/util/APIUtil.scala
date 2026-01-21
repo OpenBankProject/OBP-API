@@ -3021,7 +3021,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     logger.debug(s"S.request before passesPsd2Aisp: ${S.request}")
     logger.debug(s"CallContext before: $cc")
     val requestBefore = S.request
-    passesPsd2Aisp(Some(cc)).flatMap {
+    passesPsd2Aisp(Some(cc.copy())).flatMap {
       case (Full(true), ccOpt) =>
         logger.debug(s"S.request after passesPsd2Aisp: ${S.request}")
         logger.debug(s"CallContext after: $cc")
