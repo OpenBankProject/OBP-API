@@ -3029,7 +3029,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val cc2 = cc
 
         val spelling = getSpellingParam()
-        val body: Box[String] = getRequestBody(S.request)
+        val body: Box[String] = getRequestBody(requestBefore)
         val implementedInVersion = requestBefore.openOrThrowException(attemptedToOpenAnEmptyBox).view
         val verb = requestBefore.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
         val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""), "UTF-8")
