@@ -578,7 +578,119 @@ object Glossary extends MdcLoggable  {
 				 |"""
 	)
 
-
+	glossaryItems += GlossaryItem(
+		title = "Connector.User.Authentication",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |The property `connector.user.authentication` (default: `false`) controls whether OBP can authenticate a user via the Connector when they are not found locally.
+				 |
+				 |OBP always checks for users locally first. When this property is enabled and a user is not found locally (or exists but is from an external provider), OBP will attempt to authenticate them against an external identity provider or Core Banking System (CBS) via the Connector.
+				 |
+				 |### Configuration
+				 |
+				 |In your props file:
+				 |
+				 |```
+				 |connector.user.authentication=true
+				 |```
+				 |
+				 |### Behavior When Enabled (true)
+				 |
+				 |**1. Login Authentication Flow:**
+				 |
+				 |When a user attempts to log in:
+				 |
+				 |```
+				 |User Login Request
+				 |       │
+				 |       ▼
+				 |┌─────────────────────────┐
+				 |│ 1. Check if user exists │
+				 |│    locally in OBP       │
+				 |└───────────┬─────────────┘
+				 |            │
+				 |   ┌────────┼────────┬─────────────────┐
+				 |   │        │        │                 │
+				 |   ▼        ▼        ▼                 ▼
+				 |Found     Found    Found            Not Found
+				 |(local   (external (external        (and property
+				 |provider) provider) provider         enabled)
+				 |   │      property  property            │
+				 |   │      disabled) enabled)            │
+				 |   │        │        │                  │
+				 |   ▼        ▼        ▼                  ▼
+				 |┌────────┐ ┌────┐  ┌─────────────────────────┐
+				 |│Check   │ │Fail│  │ 2. Call Connector:      │
+				 |│local   │ │    │  │ checkExternalUser       │
+				 |│password│ │    │  │ Credentials()           │
+				 |└───┬────┘ └────┘  └───────────┬─────────────┘
+				 |    │                          │
+				 |    ▼                 ┌────────┴────────┐
+				 | Success/             │                 │
+				 | Failure              ▼                 ▼
+				 |                   Success           Failure
+				 |                      │                 │
+				 |                      ▼                 ▼
+				 |               ┌─────────────┐  ┌─────────────┐
+				 |               │Create local │  │Increment    │
+				 |               │AuthUser if  │  │bad login    │
+				 |               │not exists   │  │attempts     │
+				 |               └─────────────┘  └─────────────┘
+				 |```
+				 |
+				 |**2. Username Uniqueness Validation:**
+				 |
+				 |During user signup, OBP checks if the username already exists in the external system by calling `checkExternalUserExists()`.
+				 |
+				 |**3. Auto Creation of Local Users:**
+				 |
+				 |If external authentication succeeds but the user doesn't exist locally, OBP automatically creates a local `AuthUser` record linked to the external provider.
+				 |
+				 |### Behavior When Disabled (false, default)
+				 |
+				 |* Users must exist locally in OBP's database
+				 |* Authentication is performed against locally stored credentials
+				 |* No connector calls are made for authentication
+				 |
+				 |### Required Connector Methods
+				 |
+				 |When enabled, your Connector must implement:
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserCredentials")} : Validates username and password against external system. Returns `InboundExternalUser` with user details (sub, iss, email, name, userAuthContexts).
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserExists")} : Checks if a username exists in the external system. Used during signup validation.
+				 |
+				 |### InboundExternalUser Response
+				 |
+				 |The connector should return user information including:
+				 |
+				 |* `sub`: Subject identifier (username)
+				 |* `iss`: Issuer (provider identifier)
+				 |* `email`: User's email address
+				 |* `name`: User's display name
+				 |* `userAuthContexts`: Optional list of auth contexts (e.g., customer numbers)
+				 |
+				 |### Use Cases
+				 |
+				 |**Enable when:**
+				 |* You have an external identity provider (LDAP, Active Directory, OAuth provider)
+				 |* User credentials are managed by the Core Banking System
+				 |* You want single sign on with an existing user directory
+				 |
+				 |**Disable when:**
+				 |* OBP manages all user authentication locally
+				 |* You're using OBP's built in user management
+				 |* You don't have an external authentication system
+				 |
+				 |### Related Properties
+				 |
+				 |* `connector`: Specifies which connector implementation to use
+				 |* `connector.user.authcontext.read.in.login`: Read user auth contexts during login
+				 |
+				 |"""
+	)
 
 
 
