@@ -27,7 +27,7 @@ package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetMigrations
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -53,7 +53,7 @@ class MigrationsTest extends V600ServerSetup {
       val response600 = makeGetRequest(request600)
       Then("We should get a 401")
       response600.code should equal(401)
-      response600.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response600.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

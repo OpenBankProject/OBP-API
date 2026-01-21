@@ -253,7 +253,7 @@ object APIMethods_PISApi extends RestHelper {
   "bundleDetailedStatus" : "bundleDetailedStatus",
   "bundleStatus" : "inProgress"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -314,7 +314,7 @@ object APIMethods_PISApi extends RestHelper {
     "executionMode" : "Immediate"
   } ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -367,7 +367,7 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentStatus" : "submitted",
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -430,7 +430,7 @@ object APIMethods_PISApi extends RestHelper {
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -493,7 +493,7 @@ object APIMethods_PISApi extends RestHelper {
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -556,7 +556,7 @@ object APIMethods_PISApi extends RestHelper {
   "bundleDetailedStatus" : "bundleDetailedStatus",
   "bundleStatus" : "inProgress"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -641,7 +641,7 @@ object APIMethods_PISApi extends RestHelper {
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -690,7 +690,7 @@ object APIMethods_PISApi extends RestHelper {
   "requestHeader" : ""
 }"""),
        json.parse(""""""""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -730,7 +730,7 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentStatus" : "submitted",
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -802,7 +802,7 @@ object APIMethods_PISApi extends RestHelper {
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -948,7 +948,7 @@ object APIMethods_PISApi extends RestHelper {
   "recurringPaymentStatus" : "submitted",
   "recurringPaymentDetailedStatus" : "recurringPaymentDetailedStatus"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 
@@ -1025,7 +1025,7 @@ object APIMethods_PISApi extends RestHelper {
     "isCallback" : true
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PIS") :: apiTagMockedData :: Nil
      )
 

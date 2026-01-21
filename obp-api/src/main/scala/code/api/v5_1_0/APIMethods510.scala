@@ -11,7 +11,7 @@ import code.api.cache.RedisLogger
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
+import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, AuthenticatedUserIsRequired, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
@@ -270,7 +270,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)))
 
@@ -301,7 +301,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)))
 
@@ -332,7 +332,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)))
 
@@ -363,7 +363,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)))
 
@@ -394,7 +394,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)))
 
@@ -425,7 +425,7 @@ trait APIMethods510 {
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)))
 
@@ -479,7 +479,7 @@ trait APIMethods510 {
       regulatedEntityPostJsonV510,
       regulatedEntityJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -535,7 +535,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -638,7 +638,7 @@ trait APIMethods510 {
       postAgentJsonV510,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         AgentNumberAlreadyExists,
@@ -697,7 +697,7 @@ trait APIMethods510 {
       putAgentJsonV510,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         AgentNotFound,
@@ -746,7 +746,7 @@ trait APIMethods510 {
       EmptyBody,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         AgentNotFound,
         AgentAccountLinkNotFound,
@@ -788,7 +788,7 @@ trait APIMethods510 {
       userAttributeJsonV510,
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -840,7 +840,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -880,7 +880,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -924,7 +924,7 @@ trait APIMethods510 {
       EmptyBody,
       refresUserJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -965,7 +965,7 @@ trait APIMethods510 {
       EmptyBody,
       coreAccountsHeldJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserNotFoundByUserId,
         UnknownError
@@ -1012,7 +1012,7 @@ trait APIMethods510 {
       EmptyBody,
       coreAccountsHeldJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserNotFoundByUserId,
         UnknownError
@@ -1056,7 +1056,7 @@ trait APIMethods510 {
       EmptyBody,
       userJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UserHasMissingRoles,
         UnknownError),
@@ -1092,7 +1092,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1128,7 +1128,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1165,7 +1165,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1201,7 +1201,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1237,7 +1237,7 @@ trait APIMethods510 {
       EmptyBody,
       currenciesJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagFx)
@@ -1275,7 +1275,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1326,7 +1326,7 @@ trait APIMethods510 {
       atmAttributeJsonV510,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -1414,7 +1414,7 @@ trait APIMethods510 {
       EmptyBody,
       atmAttributesResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -1450,7 +1450,7 @@ trait APIMethods510 {
       EmptyBody,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -1489,7 +1489,7 @@ trait APIMethods510 {
       atmAttributeJsonV510,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -1547,7 +1547,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -1593,7 +1593,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1657,7 +1657,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1735,7 +1735,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1809,7 +1809,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsInfoJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1848,7 +1848,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsInfoJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1899,7 +1899,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1961,7 +1961,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -2003,7 +2003,7 @@ trait APIMethods510 {
       EmptyBody,
       consentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -2041,7 +2041,7 @@ trait APIMethods510 {
       EmptyBody,
       consentJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -2085,7 +2085,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2138,7 +2138,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2188,7 +2188,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -2330,7 +2330,7 @@ trait APIMethods510 {
       postConsentImplicitJsonV310,
       consentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -2556,7 +2556,7 @@ trait APIMethods510 {
       EmptyBody,
       certificateInfoJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2591,7 +2591,7 @@ trait APIMethods510 {
       postApiCollectionJson400,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UserNotFoundByUserId,
         UnknownError
@@ -2653,7 +2653,7 @@ trait APIMethods510 {
       """.stripMargin,
       EmptyBody,
       userJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser))
     )
@@ -2687,7 +2687,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canReadUserLockedStatus))
     )
@@ -2729,7 +2729,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canUnlockUser)))
     lazy val unlockUserByProviderAndUsername: OBPEndpoint = {
@@ -2774,7 +2774,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       userLockStatusJson,
-      List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canLockUser)))
     lazy val lockUserByProviderAndUsername: OBPEndpoint = {
@@ -2809,7 +2809,7 @@ trait APIMethods510 {
       EmptyBody,
       userLockStatusJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UserHasMissingRoles,
         UnknownError
@@ -2881,7 +2881,7 @@ trait APIMethods510 {
       EmptyBody,
       aggregateMetricsJSONV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3006,7 +3006,7 @@ trait APIMethods510 {
       EmptyBody,
       metricsJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3048,7 +3048,7 @@ trait APIMethods510 {
       EmptyBody,
       customersWithAttributesJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -3087,7 +3087,7 @@ trait APIMethods510 {
       postCustomerLegalNameJsonV510,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -3126,7 +3126,7 @@ trait APIMethods510 {
       postAtmJsonV510,
       atmJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3168,7 +3168,7 @@ trait APIMethods510 {
       atmJsonV510.copy(id = None, attributes = None),
       atmJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3282,7 +3282,7 @@ trait APIMethods510 {
          |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmJsonV510,
-      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
@@ -3317,7 +3317,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagATM),
@@ -3584,7 +3584,7 @@ trait APIMethods510 {
       createConsumerRequestJsonV510,
       consumerJsonOnlyForPostResponseV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3637,7 +3637,7 @@ trait APIMethods510 {
       createConsumerRequestJsonV510,
       consumerJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3691,7 +3691,7 @@ trait APIMethods510 {
       EmptyBody,
       callLimitsJson510Example,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -3735,7 +3735,7 @@ trait APIMethods510 {
       consumerRedirectUrlJSON,
       consumerJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3794,7 +3794,7 @@ trait APIMethods510 {
       consumerLogoUrlJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3841,7 +3841,7 @@ trait APIMethods510 {
       consumerCertificateJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3889,7 +3889,7 @@ trait APIMethods510 {
       consumerNameJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3931,7 +3931,7 @@ trait APIMethods510 {
       EmptyBody,
       consumerJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         ConsumerNotFoundByConsumerId,
         UnknownError
@@ -3970,7 +3970,7 @@ trait APIMethods510 {
       EmptyBody,
       consumersJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4052,7 +4052,7 @@ trait APIMethods510 {
       postAccountAccessJsonV510,
       viewJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4113,7 +4113,7 @@ trait APIMethods510 {
       postAccountAccessJsonV510,
       revokedJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4187,7 +4187,7 @@ trait APIMethods510 {
       postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4251,7 +4251,7 @@ trait APIMethods510 {
       EmptyBody,
       transactionRequestWithChargeJSON210,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         GetTransactionRequestsException,
         UnknownError
       ),
@@ -4308,7 +4308,7 @@ trait APIMethods510 {
       EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         UserNoPermissionAccessView,
@@ -4367,7 +4367,7 @@ trait APIMethods510 {
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
@@ -4410,7 +4410,7 @@ trait APIMethods510 {
       EmptyBody,
       accountsMinimalJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -4471,7 +4471,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountJsonV400,
-      List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
     lazy val getCoreAccountByIdThroughView : OBPEndpoint = {
@@ -4500,7 +4500,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalanceV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UserNoPermissionAccessView,
@@ -4539,7 +4539,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalancesV400Json,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -4570,7 +4570,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalancesV400Json,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -4625,7 +4625,7 @@ trait APIMethods510 {
       postCounterpartyLimitV510,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4688,7 +4688,7 @@ trait APIMethods510 {
       postCounterpartyLimitV510,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4740,7 +4740,7 @@ trait APIMethods510 {
       EmptyBody,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4779,7 +4779,7 @@ trait APIMethods510 {
       EmptyBody,
       counterpartyLimitStatusV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4933,7 +4933,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4986,7 +4986,7 @@ trait APIMethods510 {
       createCustomViewJson,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -5044,7 +5044,7 @@ trait APIMethods510 {
       updateCustomViewJson,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -5120,7 +5120,7 @@ trait APIMethods510 {
       EmptyBody,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -5162,7 +5162,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -5322,7 +5322,7 @@ trait APIMethods510 {
      """.stripMargin,
       regulatedEntityAttributeRequestJsonV510,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn, InvalidJsonFormat, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canCreateRegulatedEntityAttribute))
     )
@@ -5372,7 +5372,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canDeleteRegulatedEntityAttribute))
     )
@@ -5405,7 +5405,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn,UnknownError),
+      List($AuthenticatedUserIsRequired,UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttribute))
     )
@@ -5438,7 +5438,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       regulatedEntityAttributesJsonV510,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttributes))
     )
@@ -5471,7 +5471,7 @@ trait APIMethods510 {
      """.stripMargin,
       regulatedEntityAttributeRequestJsonV510,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn, InvalidJsonFormat, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canUpdateRegulatedEntityAttribute))
     )
@@ -5521,7 +5521,7 @@ trait APIMethods510 {
       bankAccountBalanceRequestJsonV510,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5571,7 +5571,7 @@ trait APIMethods510 {
       EmptyBody,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5609,7 +5609,7 @@ trait APIMethods510 {
       EmptyBody,
       bankAccountBalancesJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5647,7 +5647,7 @@ trait APIMethods510 {
       bankAccountBalanceRequestJsonV510,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5701,7 +5701,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5803,7 +5803,7 @@ trait APIMethods510 {
       createViewPermissionJson,
       entitlementJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementAlreadyExists,
@@ -5847,7 +5847,7 @@ trait APIMethods510 {
       """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemView),
       Some(List(canDeleteSystemViewPermission))
     )

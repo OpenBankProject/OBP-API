@@ -108,7 +108,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
@@ -272,7 +272,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 

@@ -49,10 +49,10 @@ class GroupEntitlementsTest extends V600ServerSetup with DefaultUsers {
         (v6_0_0_Request / "management" / "groups" / "test-group-id" / "entitlements").GET
       val response = makeGetRequest(request)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(
-        ErrorMessages.UserNotLoggedIn
+        ErrorMessages.AuthenticatedUserIsRequired
       )
     }
 

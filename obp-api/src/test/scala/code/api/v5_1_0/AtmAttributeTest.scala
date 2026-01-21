@@ -47,9 +47,9 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").POST
       val responseGet = makePostRequest(requestGet, write(atmAttributeJsonV510))
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
@@ -91,9 +91,9 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").PUT
       val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
@@ -136,9 +136,9 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").DELETE
       val response = makeDeleteRequest(request)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint3 without proper role - Authorized access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
@@ -180,9 +180,9 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").GET
       val response = makeGetRequest(request)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
@@ -223,9 +223,9 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").GET
       val response = makeGetRequest(request)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
     scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")

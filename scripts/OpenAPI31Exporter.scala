@@ -383,7 +383,7 @@ object OpenAPI31Exporter {
         }
         
         // Security
-        if (endpoint.roles.nonEmpty || !endpoint.errorCodes.exists(_.contains("UserNotLoggedIn"))) {
+        if (endpoint.roles.nonEmpty || !endpoint.errorCodes.exists(_.contains("AuthenticatedUserIsRequired"))) {
           yaml.append("      security:\n")
           yaml.append("        - DirectLogin: []\n")
           yaml.append("        - GatewayLogin: []\n")

@@ -81,7 +81,7 @@ object APIMethods_PartysApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 
@@ -191,7 +191,7 @@ object APIMethods_PartysApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 

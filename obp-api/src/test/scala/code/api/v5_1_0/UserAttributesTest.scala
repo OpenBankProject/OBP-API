@@ -41,7 +41,7 @@ class UserAttributesTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario(s"We will call the  $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
@@ -50,7 +50,7 @@ class UserAttributesTest extends V510ServerSetup {
       val response510 = makeDeleteRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario(s"We will call the  $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
@@ -59,7 +59,7 @@ class UserAttributesTest extends V510ServerSetup {
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

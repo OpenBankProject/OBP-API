@@ -84,7 +84,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postCounterpartyLimitTestMonthly))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       {
 
@@ -92,7 +92,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
         val response510 = makePutRequest(request510, write(postCounterpartyLimitTestMonthly))
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
       {
@@ -100,7 +100,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
         val response510 = makeGetRequest(request510)
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
       {
@@ -108,7 +108,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
         val response510 = makeDeleteRequest(request510)
         Then("We should get a 401")
         response510.code should equal(401)
-        response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+        response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
 
       }
     }

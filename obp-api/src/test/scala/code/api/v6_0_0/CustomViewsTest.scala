@@ -44,7 +44,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       val response = makeGetRequest(request)
       Then("We should get a 401 - User Not Logged In")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to get custom views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
@@ -188,7 +188,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       val response = makePostRequest(request, viewJson)
       Then("We should get a 401 - User Not Logged In")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to create a custom view via management endpoint without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {

@@ -89,8 +89,8 @@ class CustomerTest extends V600ServerSetup {
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint without the proper role", ApiEndpoint1, VersionOfApi) {
@@ -130,8 +130,8 @@ class CustomerTest extends V600ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint without the proper role", ApiEndpoint2, VersionOfApi) {
@@ -182,8 +182,8 @@ class CustomerTest extends V600ServerSetup {
       val response = makePostRequest(request, write(customerNumberJson))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint without the proper role", ApiEndpoint3, VersionOfApi) {

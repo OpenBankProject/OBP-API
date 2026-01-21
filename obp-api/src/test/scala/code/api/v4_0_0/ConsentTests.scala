@@ -36,9 +36,9 @@ class ConsentTests extends V400ServerSetupAsync with DefaultUsers {
       val requestGet = (v4_0_0_Request / "banks" / "SOME_BANK" / "my" / "consents").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
       responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario(s"We try to consume endpoint $ApiEndpoint1 - Authorized access", ApiEndpoint1, VersionOfApi) {

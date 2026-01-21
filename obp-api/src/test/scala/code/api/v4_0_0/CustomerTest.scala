@@ -80,8 +80,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature(s"Get Customers at Any Bank $VersionOfApi - Authorized access") {
@@ -115,8 +115,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
@@ -151,8 +151,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makePostRequest(request, write(postCustomerJson))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 
@@ -199,8 +199,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       val response = makePostRequest(request, write(postCustomerPhoneNumberJsonV400))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access without proper role") {

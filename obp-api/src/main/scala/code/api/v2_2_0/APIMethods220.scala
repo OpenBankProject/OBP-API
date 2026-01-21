@@ -123,7 +123,7 @@ trait APIMethods220 {
       EmptyBody,
       viewsJSONV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -179,7 +179,7 @@ trait APIMethods220 {
       createViewJsonV121,
       viewJSONV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         BankAccountNotFound,
         UnknownError
@@ -194,7 +194,7 @@ trait APIMethods220 {
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(isValidCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
-            u <- cc.user ?~!UserNotLoggedIn
+            u <- cc.user ?~!AuthenticatedUserIsRequired
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
               createViewJsonV121.name,
@@ -238,7 +238,7 @@ trait APIMethods220 {
       viewJSONV220,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -255,7 +255,7 @@ trait APIMethods220 {
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat+s"Current view_name (${viewId.value})")
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user, Some(cc))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            u <- cc.user ?~!UserNotLoggedIn
+            u <- cc.user ?~!AuthenticatedUserIsRequired
             account <- BankAccountX(bankId, accountId) ?~!BankAccountNotFound
             updateViewJson = UpdateViewJSON(
               description = updateJsonV121.description,
@@ -309,7 +309,7 @@ trait APIMethods220 {
       """.stripMargin,
       EmptyBody,
       fXRateJSON,
-      List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
+      List(InvalidISOCurrencyCode,AuthenticatedUserIsRequired,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       List(apiTagFx))
 
     val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
@@ -355,7 +355,7 @@ trait APIMethods220 {
       EmptyBody,
       counterpartiesJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         NoViewPermission,
@@ -413,7 +413,7 @@ trait APIMethods220 {
          |""".stripMargin,
       EmptyBody,
       counterpartyWithMetadataJson,
-      List(UserNotLoggedIn, BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
     )
   
@@ -493,7 +493,7 @@ trait APIMethods220 {
       bankJSONV220,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -515,7 +515,7 @@ trait APIMethods220 {
             
             _ <- Helper.booleanToBox(
               !`checkIfContains::::` (bank.id), s"$InvalidJsonFormat BANK_ID can not contain `::::` characters")
-            u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
+            u <- cc.user ?~!ErrorMessages.AuthenticatedUserIsRequired
             consumer <- cc.consumer ?~! ErrorMessages.InvalidConsumerCredentials
             _ <- NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString,  canCreateBank, cc.callContext)
             success <- Connector.connector.vend.createOrUpdateBank(
@@ -577,7 +577,7 @@ trait APIMethods220 {
       branchJsonV220,
       branchJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InsufficientAuthorisationToCreateBranch,
         UnknownError
@@ -626,7 +626,7 @@ trait APIMethods220 {
       atmJsonV220,
       atmJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -677,7 +677,7 @@ trait APIMethods220 {
       productJsonV220,
       productJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -754,7 +754,7 @@ trait APIMethods220 {
       fxJsonV220,
       fxJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -828,7 +828,7 @@ trait APIMethods220 {
       List(
         InvalidJsonFormat,
         BankNotFound,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidUserId,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
@@ -933,7 +933,7 @@ trait APIMethods220 {
       EmptyBody,
       configurationJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1051,7 +1051,7 @@ trait APIMethods220 {
           |-----END CERTIFICATE-----""".stripMargin
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -1064,7 +1064,7 @@ trait APIMethods220 {
       case "management" :: "consumers" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
+            u <- cc.user ?~! AuthenticatedUserIsRequired
             _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canCreateConsumer, cc.callContext)
               postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(generateUUID()),
@@ -1177,7 +1177,7 @@ trait APIMethods220 {
       postCounterpartyJSON,
       counterpartyWithMetadataJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         BankNotFound,
@@ -1300,7 +1300,7 @@ trait APIMethods220 {
       EmptyBody,
       customerViewsJsonV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         AccountNotFound,
         ViewNotFound
@@ -1336,7 +1336,7 @@ trait APIMethods220 {
       case "management" :: "connector" :: "metrics" :: Nil JsonGet _ => {
         cc =>{
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            u <- user ?~! ErrorMessages.AuthenticatedUserIsRequired
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
 
                      } yield {

@@ -63,8 +63,8 @@ class WebhooksTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
     scenario(s"We will try to create the web hook without user credentials $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
@@ -74,8 +74,8 @@ class WebhooksTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postJson))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
   }

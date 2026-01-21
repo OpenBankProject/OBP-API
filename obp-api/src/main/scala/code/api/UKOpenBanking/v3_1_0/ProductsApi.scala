@@ -38,7 +38,7 @@ object APIMethods_ProductsApi extends RestHelper {
        s"""${mockedDataText(true)}""", 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -64,7 +64,7 @@ object APIMethods_ProductsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 

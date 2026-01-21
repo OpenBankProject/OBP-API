@@ -156,8 +156,8 @@ class CustomerTest extends V500ServerSetupAsync {
       val responseApiEndpoint1 = makeGetRequest(requestApiEndpoint1)
       Then("We should get a 401")
       responseApiEndpoint1.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint1.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint1.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario(s"$ApiEndpoint2 without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
@@ -165,8 +165,8 @@ class CustomerTest extends V500ServerSetupAsync {
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario(s"$ApiEndpoint3 without a user credentials", ApiEndpoint3, VersionOfApi) {
@@ -175,8 +175,8 @@ class CustomerTest extends V500ServerSetupAsync {
       val responseApiEndpoint3 = makeGetRequest(requestApiEndpoint3)
       Then("We should get a 401")
       responseApiEndpoint3.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint3.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint3.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario(s"$ApiEndpoint3 miss role", ApiEndpoint3, VersionOfApi) {
@@ -196,8 +196,8 @@ class CustomerTest extends V500ServerSetupAsync {
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
       Then("We should get a 401")
       responseApiEndpoint4.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint4.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint4.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario(s"$ApiEndpoint4 miss role", ApiEndpoint4, VersionOfApi) {
@@ -220,8 +220,8 @@ class CustomerTest extends V500ServerSetupAsync {
       val response = makePostRequest(request, write(postCustomerJson))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

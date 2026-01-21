@@ -27,7 +27,7 @@ package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetCacheConfig, CanGetCacheInfo, CanInvalidateCacheNamespace}
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -60,7 +60,7 @@ class CacheEndpointsTest extends V600ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -117,7 +117,7 @@ class CacheEndpointsTest extends V600ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -178,7 +178,7 @@ class CacheEndpointsTest extends V600ServerSetup {
       val response = makePostRequest(request, write(InvalidateCacheNamespaceJsonV600("rd_localised")))
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

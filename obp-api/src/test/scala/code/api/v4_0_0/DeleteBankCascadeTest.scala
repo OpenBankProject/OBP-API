@@ -7,7 +7,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanDeleteBankCascade, canGetCustomersMinimalAtAllBanks}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
@@ -41,7 +41,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {

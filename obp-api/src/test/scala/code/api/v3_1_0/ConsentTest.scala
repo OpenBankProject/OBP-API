@@ -96,7 +96,7 @@ class ConsentTest extends V310ServerSetup {
       val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
     scenario("We will call the endpoint without user credentials-IMPLICIT", ApiEndpoint1, VersionOfApi) {
@@ -105,7 +105,7 @@ class ConsentTest extends V310ServerSetup {
       val response400 = makePostRequest(request400, write(postConsentImplicitJsonV310))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint with user credentials but wrong SCA method", ApiEndpoint1, VersionOfApi) {
