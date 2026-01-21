@@ -3026,7 +3026,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         logger.debug(s"S.request after passesPsd2Aisp: ${S.request}")
         logger.debug(s"CallContext after: $cc")
 
-        val cc2 = ccOpt.getOrElse(cc)
+        val cc2 = cc
 
         val spelling = getSpellingParam()
         val body: Box[String] = getRequestBody(S.request)
