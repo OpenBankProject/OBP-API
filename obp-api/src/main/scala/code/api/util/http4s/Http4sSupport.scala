@@ -34,8 +34,12 @@ import scala.language.higherKinds
 /**
  * Request attribute keys for storing CallContext in http4s requests.
  * 
+ * Note: Uses http4s Vault (org.typelevel.vault.Key) for type-safe request attributes.
+ * Validated entities (bank, bankAccount, view, counterparty) are stored within CallContext itself.
  */
 object Http4sRequestAttributes {
+  import org.typelevel.vault.Key
+  
   // CallContext contains all request data and validated entities
   val callContextKey: Key[CallContext] = 
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
@@ -46,6 +50,33 @@ object Http4sRequestAttributes {
    */
   def getCallContext(req: Request[IO]): Option[CallContext] = 
     req.attributes.lookup(callContextKey)
+  
+  /**
+   * Helper method to extract CallContext from http4s Request and execute business logic.
+   * Simplifies endpoint code by handling the common pattern of extracting CallContext.
+   * 
+   * Usage example:
+   * {{{
+   * val myEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+   *   case req @ GET -> Root / "banks" =>
+   *     withCallContext(req) { cc =>
+   *       for {
+   *         result <- yourBusinessLogic(cc)
+   *         response <- Ok(result)
+   *       } yield response
+   *     }
+   * }
+   * }}}
+   * 
+   * @param req The http4s request
+   * @param f Function that takes CallContext and returns IO[Response]
+   * @return IO[Response[IO]]
+   */
+  def withCallContext(req: Request[IO])(f: CallContext => IO[Response[IO]]): IO[Response[IO]] = {
+    IO.fromOption(req.attributes.lookup(callContextKey))(
+      new RuntimeException("CallContext not found in request attributes")
+    ).flatMap(f)
+  }
 }
 
 /**

@@ -105,15 +105,16 @@ object Http4s700 {
     // Route: GET /obp/v7.0.0/banks
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
-        val response = for {
-          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          result <- IO.fromFuture(IO {
-            for {
-              (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-            } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
-          })
-        } yield result
-        Ok(response)
+        Http4sRequestAttributes.withCallContext(req) { cc =>
+          for {
+            result <- IO.fromFuture(IO {
+              for {
+                (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+              } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
+            })
+            response <- Ok(result)
+          } yield response
+        }
     }
 
     resourceDocs += ResourceDoc(
@@ -135,16 +136,17 @@ object Http4s700 {
     // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
     val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "cards" =>
-        val response = for {
-          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-          result <- IO.fromFuture(IO {
-            for {
-              (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
-            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-          })
-        } yield result
-        Ok(response)
+        Http4sRequestAttributes.withCallContext(req) { cc =>
+          for {
+            user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            result <- IO.fromFuture(IO {
+              for {
+                (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+              } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+            })
+            response <- Ok(result)
+          } yield response
+        }
     }
 
     resourceDocs += ResourceDoc(
@@ -167,19 +169,20 @@ object Http4s700 {
     // Authentication and bank validation handled by ResourceDocMiddleware
     val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
-        val response = for {
-          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-          bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-          result <- IO.fromFuture(IO {
-            for {
-              httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-              (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-              (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
-            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-          })
-        } yield result
-        Ok(response)
+        Http4sRequestAttributes.withCallContext(req) { cc =>
+          for {
+            user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+            result <- IO.fromFuture(IO {
+              for {
+                httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+                (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+                (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
+              } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+            })
+            response <- Ok(result)
+          } yield response
+        }
     }
  
     resourceDocs += ResourceDoc(
@@ -217,88 +220,47 @@ object Http4s700 {
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
         import com.openbankproject.commons.ExecutionContext.Implicits.global
-        val response = for {
-          cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          result <- IO.fromFuture(IO {
-            // Check resource_docs_requires_role property
-            val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
-            
-            for {
-              // Authentication based on property
-              (boxUser, cc1) <- if (resourceDocsRequireRole) 
-                authenticatedAccess(cc)
-              else 
-                anonymousAccess(cc)
+        Http4sRequestAttributes.withCallContext(req) { cc =>
+          for {
+            result <- IO.fromFuture(IO {
+              // Check resource_docs_requires_role property
+              val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
               
-              // Role check based on property
-              _ <- if (resourceDocsRequireRole) {
-                NewStyle.function.hasAtLeastOneEntitlement(
-                  failMsg = UserHasMissingRoles + canReadResourceDoc.toString
-                )("", boxUser.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc1)
-              } else {
-                Future.successful(())
-              }
-              
-              httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-              tagsParam = httpParams.filter(_.name == "tags").map(_.values).headOption
-              functionsParam = httpParams.filter(_.name == "functions").map(_.values).headOption
-              localeParam = httpParams.filter(param => param.name == "locale" || param.name == "language").map(_.values).flatten.headOption
-              contentParam = httpParams.filter(_.name == "content").map(_.values).flatten.flatMap(ResourceDocsAPIMethodsUtil.stringToContentParam).headOption
-              apiCollectionIdParam = httpParams.filter(_.name == "api-collection-id").map(_.values).flatten.headOption
-              tags = tagsParam.map(_.map(ResourceDocTag(_)))
-              functions = functionsParam.map(_.toList)
-              requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
-              resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
-              filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
-              resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
-            } yield convertAnyToJsonString(resourceDocsJson)
-          })
-        } yield result
-        Ok(response)
+              for {
+                // Authentication based on property
+                (boxUser, cc1) <- if (resourceDocsRequireRole) 
+                  authenticatedAccess(cc)
+                else 
+                  anonymousAccess(cc)
+                
+                // Role check based on property
+                _ <- if (resourceDocsRequireRole) {
+                  NewStyle.function.hasAtLeastOneEntitlement(
+                    failMsg = UserHasMissingRoles + canReadResourceDoc.toString
+                  )("", boxUser.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc1)
+                } else {
+                  Future.successful(())
+                }
+                
+                httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+                tagsParam = httpParams.filter(_.name == "tags").map(_.values).headOption
+                functionsParam = httpParams.filter(_.name == "functions").map(_.values).headOption
+                localeParam = httpParams.filter(param => param.name == "locale" || param.name == "language").map(_.values).flatten.headOption
+                contentParam = httpParams.filter(_.name == "content").map(_.values).flatten.flatMap(ResourceDocsAPIMethodsUtil.stringToContentParam).headOption
+                apiCollectionIdParam = httpParams.filter(_.name == "api-collection-id").map(_.values).flatten.headOption
+                tags = tagsParam.map(_.map(ResourceDocTag(_)))
+                functions = functionsParam.map(_.toList)
+                requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
+                resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+                filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
+                resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
+              } yield convertAnyToJsonString(resourceDocsJson)
+            })
+            response <- Ok(result)
+          } yield response
+        }
     }
-    
-    // Example endpoint demonstrating full validation chain with ResourceDocMiddleware
-    // This endpoint requires: authentication + bank validation + account validation + view validation
-    // When using ResourceDocMiddleware, these validations are automatic based on path parameters
 
-//    resourceDocs += ResourceDoc(
-//      null,
-//      implementedInApiVersion,
-//      nameOf(getCounterpartyByIdWithMiddleware),
-//      "GET",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-//      "Get Counterparty by Id (http4s with middleware)",
-//      s"""Get counterparty by id with automatic validation via ResourceDocMiddleware.
-//        |
-//        |This endpoint demonstrates the COMPLETE validation chain:
-//        |* Authentication (required)
-//        |* Bank existence validation (BANK_ID in path)
-//        |* Account existence validation (ACCOUNT_ID in path)
-//        |* View access validation (VIEW_ID in path)
-//        |* Counterparty existence validation (COUNTERPARTY_ID in path)
-//        |
-//        |${userAuthenticationMessage(true)}""",
-//      EmptyBody,
-//      moderatedAccountJSON,
-//      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound, ViewNotFound, UserNoPermissionAccessView, CounterpartyNotFound, UnknownError),
-//      apiTagCounterparty :: Nil,
-//      http4sPartialFunction = Some(getCounterpartyByIdWithMiddleware)
-//    )
-    
-//    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID
-//    // When used with ResourceDocMiddleware, validation is automatic
-//    val getCounterpartyByIdWithMiddleware: HttpRoutes[IO] = HttpRoutes.of[IO] {
-//      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "counterparties" / counterpartyId =>
-//        val responseJson = convertAnyToJsonString(
-//          Map(
-//            "bank_id" -> bankId,
-//            "account_id" -> accountId,
-//            "view_id" -> viewId,
-//            "counterparty_id" -> counterpartyId
-//          )
-//        )
-//        Ok(responseJson)
-//    }
 
     // All routes combined (without middleware - for direct use)
     val allRoutes: HttpRoutes[IO] =
@@ -308,7 +270,6 @@ object Http4s700 {
           .orElse(getCards(req))
           .orElse(getCardsForBank(req))
           .orElse(getResourceDocsObpV700(req))
-//          .orElse(getAccountByIdWithMiddleware(req))
       }
     
     // Routes wrapped with ResourceDocMiddleware for automatic validation
