@@ -334,6 +334,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     commit
   }
 
+  // API info props helpers (keep values centralized)
+  lazy val hostedByOrganisation: String = getPropsValue("hosted_by.organisation", "TESOBE")
+  lazy val hostedByEmail: String = getPropsValue("hosted_by.email", "contact@tesobe.com")
+  lazy val hostedByPhone: String = getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+  lazy val organisationWebsite: String = getPropsValue("organisation_website", "https://www.tesobe.com")
+  lazy val hostedAtOrganisation: String = getPropsValue("hosted_at.organisation", "")
+  lazy val hostedAtOrganisationWebsite: String = getPropsValue("hosted_at.organisation_website", "")
+  lazy val energySourceOrganisation: String = getPropsValue("energy_source.organisation", "")
+  lazy val energySourceOrganisationWebsite: String = getPropsValue("energy_source.organisation_website", "")
+  lazy val resourceDocsRequiresRole: Boolean = getPropsAsBoolValue("resource_docs_requires_role", false)
+
 
   /**
    * Caching of unchanged resources
@@ -3039,18 +3050,49 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
     val s = S
     val spelling = getSpellingParam()
-    val body: Box[String] = getRequestBody(S.request)
-    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
-    val correlationId = getCorrelationId()
-    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    
+    // NEW: Prefer CallContext fields, fall back to S.request for Lift compatibility
+    // This allows http4s to use the same auth chain by populating CallContext fields
+    val body: Box[String] = cc.httpBody match {
+      case Some(b) => Full(b)
+      case None => getRequestBody(S.request)
+    }
+    
+    val implementedInVersion = if (cc.implementedInVersion.nonEmpty) 
+      cc.implementedInVersion 
+    else 
+      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+      
+    val verb = if (cc.verb.nonEmpty) 
+      cc.verb 
+    else 
+      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+      
+    val url = if (cc.url.nonEmpty) 
+      cc.url 
+    else 
+      URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
+      
+    val correlationId = if (cc.correlationId.nonEmpty) 
+      cc.correlationId 
+    else 
+      getCorrelationId()
+      
+    val reqHeaders = if (cc.requestHeaders.nonEmpty) 
+      cc.requestHeaders 
+    else 
+      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+      
+    val remoteIpAddress = if (cc.ipAddress.nonEmpty) 
+      cc.ipAddress 
+    else 
+      getRemoteIpAddress()
+    
     val xRequestId: Option[String] =
       reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
         .map(_.values.mkString(","))
     logger.debug(s"Request Headers for verb: $verb, URL: $url")
     logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
-    val remoteIpAddress = getRemoteIpAddress()
 
     val authHeaders = AuthorisationUtil.getAuthorisationHeaders(reqHeaders)
     val authHeadersWithEmptyValues = RequestHeadersUtil.checkEmptyRequestHeaderValues(reqHeaders)
