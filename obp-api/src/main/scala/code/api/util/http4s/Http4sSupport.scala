@@ -11,12 +11,14 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.json.JsonDSL._
 import org.http4s._
+import org.http4s.dsl.io._
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 import org.typelevel.vault.Key
 
 import java.util.{Date, UUID}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 import scala.language.higherKinds
 
 /**
@@ -76,6 +78,135 @@ object Http4sRequestAttributes {
       req.attributes.lookup(callContextKey).getOrElse(
         throw new RuntimeException("CallContext not found in request attributes")
       )
+    }
+  }
+  
+  /**
+   * Helper methods to simplify endpoint implementations.
+   * These eliminate boilerplate for common patterns in http4s endpoints.
+   */
+  object EndpointHelpers {
+    import net.liftweb.json.{Extraction, Formats}
+    import net.liftweb.json.JsonAST.prettyRender
+    
+    /**
+     * Execute a Future-based business logic function and return JSON response.
+     * Handles Future execution, JSON conversion, and Ok response creation.
+     * 
+     * Usage:
+     * {{{
+     * case req @ GET -> Root / "banks" =>
+     *   executeAndRespond(req) { implicit cc =>
+     *     for {
+     *       (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+     *     } yield JSONFactory400.createBanksJson(banks)
+     *   }
+     * }}}
+     * 
+     * @param req The http4s request
+     * @param f Business logic function that takes CallContext and returns Future[A]
+     * @param formats Implicit JSON formats for serialization
+     * @tparam A The result type (will be converted to JSON)
+     * @return IO[Response[IO]] with JSON body
+     */
+    def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      for {
+        result <- IO.fromFuture(IO(f(cc)))
+        jsonString = prettyRender(Extraction.decompose(result))
+        response <- Ok(jsonString)
+      } yield response
+    }
+    
+    /**
+     * Execute business logic that requires validated User from CallContext.
+     * Extracts User from CallContext, executes business logic, and returns JSON response.
+     * 
+     * Usage:
+     * {{{
+     * case req @ GET -> Root / "cards" =>
+     *   withUser(req) { (user, cc) =>
+     *     for {
+     *       (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+     *     } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
+     *   }
+     * }}}
+     * 
+     * @param req The http4s request
+     * @param f Business logic function that takes (User, CallContext) and returns Future[A]
+     * @param formats Implicit JSON formats for serialization
+     * @tparam A The result type (will be converted to JSON)
+     * @return IO[Response[IO]] with JSON body
+     */
+    def withUser[A](req: Request[IO])(f: (User, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      for {
+        user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, cc)))
+        jsonString = prettyRender(Extraction.decompose(result))
+        response <- Ok(jsonString)
+      } yield response
+    }
+    
+    /**
+     * Execute business logic that requires validated Bank from CallContext.
+     * Extracts Bank from CallContext, executes business logic, and returns JSON response.
+     * 
+     * Usage:
+     * {{{
+     * case req @ GET -> Root / "banks" / bankId / "accounts" =>
+     *   withBank(req) { (bank, cc) =>
+     *     for {
+     *       (accounts, callContext) <- NewStyle.function.getBankAccounts(bank, Some(cc))
+     *     } yield JSONFactory400.createAccountsJson(accounts)
+     *   }
+     * }}}
+     * 
+     * @param req The http4s request
+     * @param f Business logic function that takes (Bank, CallContext) and returns Future[A]
+     * @param formats Implicit JSON formats for serialization
+     * @tparam A The result type (will be converted to JSON)
+     * @return IO[Response[IO]] with JSON body
+     */
+    def withBank[A](req: Request[IO])(f: (Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      for {
+        bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- IO.fromFuture(IO(f(bank, cc)))
+        jsonString = prettyRender(Extraction.decompose(result))
+        response <- Ok(jsonString)
+      } yield response
+    }
+    
+    /**
+     * Execute business logic that requires both User and Bank from CallContext.
+     * Extracts both from CallContext, executes business logic, and returns JSON response.
+     * 
+     * Usage:
+     * {{{
+     * case req @ GET -> Root / "banks" / bankId / "cards" =>
+     *   withUserAndBank(req) { (user, bank, cc) =>
+     *     for {
+     *       (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, Some(cc))
+     *     } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
+     *   }
+     * }}}
+     * 
+     * @param req The http4s request
+     * @param f Business logic function that takes (User, Bank, CallContext) and returns Future[A]
+     * @param formats Implicit JSON formats for serialization
+     * @tparam A The result type (will be converted to JSON)
+     * @return IO[Response[IO]] with JSON body
+     */
+    def withUserAndBank[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      for {
+        user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, bank, cc)))
+        jsonString = prettyRender(Extraction.decompose(result))
+        response <- Ok(jsonString)
+      } yield response
     }
   }
 }

@@ -10,7 +10,7 @@ import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
-import code.api.util.http4s.Http4sRequestAttributes.RequestOps
+import code.api.util.http4s.Http4sRequestAttributes.{RequestOps, EndpointHelpers}
 import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -105,15 +105,11 @@ object Http4s700 {
     // Route: GET /obp/v7.0.0/banks
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
-        implicit val cc: CallContext = req.callContext
-        for {
-          result <- IO.fromFuture(IO {
-            for {
-              (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-            } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
-          })
-          response <- Ok(result)
-        } yield response
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+          } yield JSONFactory400.createBanksJson(banks)
+        }
     }
 
     resourceDocs += ResourceDoc(
@@ -135,16 +131,11 @@ object Http4s700 {
     // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
     val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "cards" =>
-        implicit val cc: CallContext = req.callContext
-        for {
-          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-          result <- IO.fromFuture(IO {
-            for {
-              (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
-            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-          })
-          response <- Ok(result)
-        } yield response
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
+        }
     }
 
     resourceDocs += ResourceDoc(
@@ -167,19 +158,13 @@ object Http4s700 {
     // Authentication and bank validation handled by ResourceDocMiddleware
     val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
-        implicit val cc: CallContext = req.callContext
-        for {
-          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-          bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-          result <- IO.fromFuture(IO {
-            for {
-              httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-              (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-              (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
-            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-          })
-          response <- Ok(result)
-        } yield response
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
+          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
+        }
     }
  
     resourceDocs += ResourceDoc(
