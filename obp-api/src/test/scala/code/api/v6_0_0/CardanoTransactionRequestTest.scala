@@ -91,8 +91,8 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       val response600 = makePostRequest(request600, write(cardanoTransactionRequestBody))
       Then("We should get a 401")
       response600.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response600.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response600.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
 //    scenario("We will create Cardano transaction request - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {

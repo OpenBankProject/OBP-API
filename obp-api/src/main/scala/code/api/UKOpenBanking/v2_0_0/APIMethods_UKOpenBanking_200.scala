@@ -4,7 +4,7 @@ import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, _}
+import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, AuthenticatedUserIsRequired, _}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
@@ -43,7 +43,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |""",
       EmptyBody,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
-      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      List(ErrorMessages.AuthenticatedUserIsRequired,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
     apiRelations += ApiRelation(getAccountList, getAccountList, "self")
@@ -77,7 +77,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |""",
       EmptyBody,
       SwaggerDefinitionsJSON.transactionsJsonUKV200,
-      List(UserNotLoggedIn,UnknownError),
+      List(AuthenticatedUserIsRequired,UnknownError),
       List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData, apiTagPsd2))
   
     lazy val getAccountTransactions : OBPEndpoint = {
@@ -127,7 +127,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |""",
       EmptyBody,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
-      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      List(ErrorMessages.AuthenticatedUserIsRequired,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
 
     apiRelations += ApiRelation(getAccount, getAccount, "self")
@@ -165,7 +165,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |""",
       EmptyBody,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
-      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      List(ErrorMessages.AuthenticatedUserIsRequired,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
   
     lazy val getAccountBalances : OBPEndpoint = {
@@ -210,7 +210,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |""",
       EmptyBody,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
-      List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
+      List(ErrorMessages.AuthenticatedUserIsRequired,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
   
     lazy val getBalances : OBPEndpoint = {

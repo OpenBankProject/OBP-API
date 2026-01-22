@@ -78,7 +78,7 @@ object APIMethods_SupplementaryAccountInfoApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Supplementary Account Info") :: apiTagMockedData :: Nil
      )
 
@@ -86,7 +86,7 @@ object APIMethods_SupplementaryAccountInfoApi extends RestHelper {
        case "accounts" :: accountId:: "supplementary-account-info" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Data" : {

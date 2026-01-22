@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.api.v4_0_0.{ApiCollectionJson400, ApiCollectionsJson400}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
@@ -79,7 +79,7 @@ class ApiCollectionTest extends V510ServerSetup {
       val responseApiEndpoint8 = makeGetRequest(requestApiEndpoint)
       Then(s"we should get the error messages")
       responseApiEndpoint8.code should equal(401)
-      responseApiEndpoint8.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiEndpoint8.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
       {
         Then(s"we test the $ApiEndpoint8")
@@ -107,7 +107,7 @@ class ApiCollectionTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(SwaggerDefinitionsJSON.postApiCollectionJson400))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {

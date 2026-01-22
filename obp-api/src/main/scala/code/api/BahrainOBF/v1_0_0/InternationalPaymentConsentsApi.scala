@@ -60,7 +60,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -68,7 +68,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
        case "international-payment-consents" :: consentId:: "funds-confirmation" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -238,7 +238,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -246,7 +246,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
        case "international-payment-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -618,7 +618,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -626,7 +626,7 @@ object APIMethods_InternationalPaymentConsentsApi extends RestHelper {
        case "international-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

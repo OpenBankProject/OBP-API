@@ -9,7 +9,7 @@ import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{canCreateCustomerAccountLink, canDeleteCustomerAccountLink, canGetCustomerAccountLink, canGetCustomerAccountLinks, canUpdateCustomerAccountLink}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
 import net.liftweb.json.Serialization.write
@@ -41,8 +41,8 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 401")
       responseApiEndpoint1.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint1.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint1.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint2")
@@ -50,24 +50,24 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint3")
       val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).PUT
       val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(updateCustomerAccountLinkJson))
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint4")
       val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId1 / "customer-account-links" )
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
       Then("We should get a 401")
       responseApiEndpoint4.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint4.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint4.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint5")
@@ -75,8 +75,8 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
       Then("We should get a 401")
       responseApiEndpoint5.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint5.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint5.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
 
 
@@ -85,8 +85,8 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       val responseApiEndpoint6 = makeDeleteRequest(requestApiEndpoint6)
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }    
 
     scenario("We will call the endpoint without roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {

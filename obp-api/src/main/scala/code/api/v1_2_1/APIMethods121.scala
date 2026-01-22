@@ -191,7 +191,7 @@ trait APIMethods121 {
         |* Website""",
       EmptyBody,
       bankJSON,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
 
@@ -223,7 +223,7 @@ trait APIMethods121 {
          |""".stripMargin,
       EmptyBody,
       accountJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     //TODO double check with `lazy val privateAccountsAllBanks :`, they are the same now.
@@ -232,7 +232,7 @@ trait APIMethods121 {
       case "accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
             availablePrivateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
           } yield {
@@ -256,7 +256,7 @@ trait APIMethods121 {
         |""".stripMargin,
       EmptyBody,
       accountJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil)
 
     lazy val privateAccountsAllBanks : OBPEndpoint = {
@@ -264,7 +264,7 @@ trait APIMethods121 {
       case "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
             privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
           } yield {
@@ -320,7 +320,7 @@ trait APIMethods121 {
       """,
       EmptyBody,
       accountJSON,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       apiTagAccount :: apiTagOldStyle :: Nil)
 
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
@@ -328,7 +328,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+            u <- cc.user ?~! ErrorMessages.AuthenticatedUserIsRequired
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -353,7 +353,7 @@ trait APIMethods121 {
         |""".stripMargin,
       EmptyBody,
       accountJSON,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       List(apiTagAccount, apiTagPsd2, apiTagOldStyle))
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -361,7 +361,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
             val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
@@ -385,7 +385,7 @@ trait APIMethods121 {
         |""".stripMargin,
       EmptyBody,
       accountJSON,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       apiTagAccountPublic :: apiTagAccount :: apiTagPublicData ::  apiTagOldStyle :: Nil)
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
@@ -428,7 +428,7 @@ trait APIMethods121 {
          |""".stripMargin,
       EmptyBody,
       moderatedAccountJSON,
-      List(UserNotLoggedIn, UnknownError, BankAccountNotFound),
+      List(AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound),
       apiTagAccount ::  apiTagOldStyle :: Nil)
 
     lazy val accountById : OBPEndpoint = {
@@ -436,7 +436,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             (account, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             availableviews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
@@ -464,7 +464,7 @@ trait APIMethods121 {
        """.stripMargin,
       updateAccountJSON,
       successMessage,
-      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
       List(apiTagAccount)
     )
 
@@ -529,7 +529,7 @@ trait APIMethods121 {
          |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       viewsJSONV121,
-      List(UserNotLoggedIn, BankAccountNotFound, UnknownError, "user does not have owner access"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
       List(apiTagView, apiTagAccount, apiTagOldStyle))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
@@ -537,7 +537,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             permission <- Views.views.vend.permission(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), u)
             anyViewContainsCanSeeAvailableViewsForBankAccountPermission =  permission.views.map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)).find(_.==(true)).getOrElse(false)
@@ -576,7 +576,7 @@ trait APIMethods121 {
       createViewJsonV121,
       viewJSONV121,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         BankAccountNotFound,
         UnknownError,
@@ -590,7 +590,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(isValidCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
@@ -635,7 +635,7 @@ trait APIMethods121 {
       viewJSONV121,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         ViewNotFound,
         UnknownError,
@@ -653,7 +653,7 @@ trait APIMethods121 {
           for {
             updateJsonV121 <- tryo{ json.extract[UpdateViewJsonV121] } ?~ InvalidJsonFormat
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat +s"Current view_id (${viewId.value})")
             view <- Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
@@ -691,7 +691,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "user does not have owner access"
@@ -740,7 +740,7 @@ trait APIMethods121 {
         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       permissionsJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagView, apiTagAccount, apiTagEntitlement, apiTagOldStyle)
     )
   
@@ -749,7 +749,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
+            u <- cc.user ?~  AuthenticatedUserIsRequired
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             anyViewContainsCanSeeViewsWithPermissionsForAllUsersPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
               .map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS))).getOrElse(Nil).find(_.==(true)).getOrElse(false)
@@ -779,7 +779,7 @@ trait APIMethods121 {
       EmptyBody,
       viewsJSONV121,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "user does not have access to owner view on account"
@@ -793,7 +793,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
         cc =>
           for {
-            loggedInUser <- cc.user ?~  UserNotLoggedIn
+            loggedInUser <- cc.user ?~  AuthenticatedUserIsRequired
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(bankId, accountId), loggedInUser)
             anyViewContainsCanSeeViewsWithPermissionsForOneUserPermission = loggedInUserPermissionBox.map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
@@ -828,7 +828,7 @@ trait APIMethods121 {
       viewIdsJson,
       viewsJSONV121,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "wrong format JSON",
@@ -877,7 +877,7 @@ trait APIMethods121 {
       EmptyBody, // No Json body required
       viewJSONV121,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         UserLacksPermissionCanGrantAccessToViewForTargetAccount,
@@ -938,7 +938,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "could not save the privilege",
         "user does not have access to owner view on account",
@@ -976,7 +976,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "user does not have access to owner view on account"
@@ -1074,7 +1074,7 @@ trait APIMethods121 {
         |Authentication via OAuth is required if the view is not public.""",
       EmptyBody,
       otherAccountMetadataJSON,
-      List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
+      List(AuthenticatedUserIsRequired, UnknownError, "the view does not allow metadata access"),
       List(apiTagCounterpartyMetaData, apiTagCounterparty))
 
     lazy val getOtherAccountMetadata : OBPEndpoint = {
@@ -1212,7 +1212,7 @@ trait APIMethods121 {
       List(
         BankAccountNotFound,
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         "the view does not allow metadata access",
         "the view does not allow updating the public alias",
         "Alias cannot be updated",
@@ -1311,7 +1311,7 @@ trait APIMethods121 {
       EmptyBody,
       aliasJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow private alias access",
@@ -1355,7 +1355,7 @@ trait APIMethods121 {
       aliasJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -1407,7 +1407,7 @@ trait APIMethods121 {
       aliasJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -1459,7 +1459,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow deleting the private alias",
@@ -1506,7 +1506,7 @@ trait APIMethods121 {
       moreInfoJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         NoViewPermission,
@@ -1556,7 +1556,7 @@ trait APIMethods121 {
       moreInfoJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -1605,7 +1605,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow deleting more info",
@@ -1652,7 +1652,7 @@ trait APIMethods121 {
       urlJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -1702,7 +1702,7 @@ trait APIMethods121 {
       urlJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         NoViewPermission,
@@ -1751,7 +1751,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow deleting a url",
@@ -1798,7 +1798,7 @@ trait APIMethods121 {
       imageUrlJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -1984,7 +1984,7 @@ trait APIMethods121 {
       openCorporateUrlJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -2033,7 +2033,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow deleting an open corporate url",
@@ -2080,7 +2080,7 @@ trait APIMethods121 {
       corporateLocationJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "the view does not allow adding a corporate location",
@@ -2134,7 +2134,7 @@ trait APIMethods121 {
       corporateLocationJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -2187,7 +2187,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         "the view does not allow metadata access",
         "Corporate Location cannot be deleted",
@@ -2236,7 +2236,7 @@ trait APIMethods121 {
       physicalLocationJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -2291,7 +2291,7 @@ trait APIMethods121 {
       physicalLocationJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         "the view does not allow metadata access",
@@ -2344,7 +2344,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         NoViewPermission,
         "Physical Location cannot be deleted",
@@ -2611,7 +2611,7 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         NoViewPermission,
         UnknownError),
@@ -2648,7 +2648,7 @@ trait APIMethods121 {
       EmptyBody,
       transactionCommentsJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         NoViewPermission,
         ViewNotFound,
@@ -2687,7 +2687,7 @@ trait APIMethods121 {
       postTransactionCommentJSON,
       transactionCommentJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         BankAccountNotFound,
         NoViewPermission,
@@ -2734,7 +2734,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         NoViewPermission,
         ViewNotFound,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
@@ -2808,7 +2808,7 @@ trait APIMethods121 {
       postTransactionTagJSON,
       transactionTagJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         NoViewPermission,
@@ -2889,7 +2889,7 @@ trait APIMethods121 {
       EmptyBody,
       transactionImagesJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         NoViewPermission,
         ViewNotFound,
@@ -2974,7 +2974,7 @@ trait APIMethods121 {
       List(
         BankAccountNotFound,
         NoViewPermission,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         "You must be able to see images in order to delete them",
         "Image not found for this transaction",
         "Deleting images not permitted for this view",
@@ -3053,7 +3053,7 @@ trait APIMethods121 {
       postTransactionWhereJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         ViewNotFound,
@@ -3099,7 +3099,7 @@ trait APIMethods121 {
       postTransactionWhereJSON,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         InvalidJsonFormat,
         ViewNotFound,
@@ -3145,10 +3145,10 @@ trait APIMethods121 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         NoViewPermission,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ViewNotFound,
         "there is no tag to delete",
         "Delete not completed",

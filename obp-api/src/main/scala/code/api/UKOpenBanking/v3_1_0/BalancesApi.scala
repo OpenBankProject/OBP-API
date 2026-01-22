@@ -103,7 +103,7 @@ object APIMethods_BalancesApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Balances") :: Nil
      )
 
@@ -112,7 +112,7 @@ object APIMethods_BalancesApi extends RestHelper {
          cc =>
            val viewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
            for {
-             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(user), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              _ <- NewStyle.function.checkUKConsent(user, callContext)
              _ <- passesPsd2Aisp(callContext)
              (account, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
@@ -197,7 +197,7 @@ object APIMethods_BalancesApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Balances") :: Nil
      )
 

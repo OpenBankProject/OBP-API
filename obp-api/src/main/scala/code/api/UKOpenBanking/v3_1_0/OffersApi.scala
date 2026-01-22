@@ -92,7 +92,7 @@ object APIMethods_OffersApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 
@@ -224,7 +224,7 @@ object APIMethods_OffersApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 

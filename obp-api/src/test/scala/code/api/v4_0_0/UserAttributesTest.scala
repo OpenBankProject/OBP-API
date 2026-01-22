@@ -43,7 +43,7 @@ class UserAttributesTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -67,7 +67,7 @@ class UserAttributesTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access") {
@@ -96,7 +96,7 @@ class UserAttributesTest extends V400ServerSetup {
       val response400 = makePutRequest(request400, write(putUserAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access") {

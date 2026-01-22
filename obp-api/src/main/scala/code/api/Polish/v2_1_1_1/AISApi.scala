@@ -49,7 +49,7 @@ Removes consent""",
   "consentId" : "consentId"
 }"""),
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -106,7 +106,7 @@ User identification based on access token""",
     "availableBalance" : "availableBalance"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -189,7 +189,7 @@ User identification based on access token""",
     "accountNumber" : "accountNumber"
   } ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -251,7 +251,7 @@ User identification based on access token""",
   },
   "holds" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -344,7 +344,7 @@ User identification based on access token""",
   "amountBaseCurrency" : "amountBaseCurrency",
   "tppName" : "tppName"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -432,7 +432,7 @@ User identification based on access token""",
   },
   "transactions" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -480,7 +480,7 @@ User identification based on access token""",
   },
   "transactions" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -528,7 +528,7 @@ User identification based on access token""",
   },
   "transactions" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -576,7 +576,7 @@ User identification based on access token""",
   },
   "transactions" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 
@@ -624,7 +624,7 @@ User identification based on access token""",
   },
   "transactions" : [ "", "" ]
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )
 

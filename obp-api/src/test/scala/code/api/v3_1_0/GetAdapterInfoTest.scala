@@ -29,7 +29,7 @@ import com.openbankproject.commons.util.ApiVersion
 import code.api.v3_0_0.AdapterInfoJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, canGetAdapterInfo}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.setup.{APIResponse, DefaultUsers}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
@@ -51,14 +51,14 @@ class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
 
   feature("Get Adapter Info v3.1.0")
   {
-    scenario(s"$UserNotLoggedIn error case", ApiEndpoint, VersionOfApi) {
+    scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "adapter").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")

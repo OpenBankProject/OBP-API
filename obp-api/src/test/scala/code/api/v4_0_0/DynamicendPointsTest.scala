@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{DynamicEndpointExists, EndpointMappingNotFoundByOperationId, InvalidMyDynamicEndpointUser, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicEndpointExists, EndpointMappingNotFoundByOperationId, InvalidMyDynamicEndpointUser, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.ExampleValue
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
@@ -1545,7 +1545,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postDynamicEndpointRequestBodyExample))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -1592,7 +1592,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -1652,7 +1652,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -1716,7 +1716,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -1859,7 +1859,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       val responsePut = makePutRequest(requestPut, write(postDynamicEndpointRequestBodyExample))
       Then("We should get a 401")
       responsePut.code should equal(401)
-      responsePut.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      responsePut.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -2441,7 +2441,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
         val request = (dynamicEndpoint_Request / "accounts").POST
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(401)
-        response.body.toString contains(UserNotLoggedIn) should be (true)
+        response.body.toString contains(AuthenticatedUserIsRequired) should be (true)
       }
 
       Then("we test missing role error")
@@ -2499,7 +2499,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
         val request = (dynamicEndpoint_Request/"banks"/testBankId1.value / "accounts").POST
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(401)
-        response.body.toString contains(UserNotLoggedIn) should be (true)
+        response.body.toString contains(AuthenticatedUserIsRequired) should be (true)
       }
 
       Then("we test missing role error")

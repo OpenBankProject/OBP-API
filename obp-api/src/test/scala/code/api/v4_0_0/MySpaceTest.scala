@@ -4,7 +4,7 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -30,7 +30,7 @@ class MySpaceTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario("We will call the endpoint return empty List", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")

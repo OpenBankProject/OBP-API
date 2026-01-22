@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
 import code.api.v4_0_0.{AccountsBalancesJsonV400, BalanceJsonV400}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -36,7 +36,7 @@ class AccountBalanceTest extends V510ServerSetup {
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances())
       Then("We should get a 401")
       responseGetAccountBalances.code should equal(401)
-      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access, no proper view") {
@@ -61,7 +61,7 @@ class AccountBalanceTest extends V510ServerSetup {
       val responseGetAccountBalances = makeGetRequest(requestGetAccountsBalances())
       Then("We should get a 401")
       responseGetAccountBalances.code should equal(401)
-      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper view") {
@@ -103,7 +103,7 @@ class AccountBalanceTest extends V510ServerSetup {
       val responseGetAccountBalances = makeGetRequest(requestGetAccountsBalancesThroughView("owner"))
       Then("We should get a 401")
       responseGetAccountBalances.code should equal(401)
-      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      responseGetAccountBalances.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

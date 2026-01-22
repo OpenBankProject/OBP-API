@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.ConsumerJsonV310
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
@@ -87,23 +87,23 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint3.code should equal(401)
       responseApiEndpoint4.code should equal(401)
       responseApiEndpoint6.code should equal(401)
-      responseApiEndpoint1.body.toString contains(s"$UserNotLoggedIn") should be (true)
-      responseApiEndpoint2.body.toString contains(s"$UserNotLoggedIn") should be (true)
-      responseApiEndpoint3.body.toString contains(s"$UserNotLoggedIn") should be (true)
-      responseApiEndpoint4.body.toString contains(s"$UserNotLoggedIn") should be (true)
-      responseApiEndpoint6.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiEndpoint1.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      responseApiEndpoint2.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      responseApiEndpoint3.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      responseApiEndpoint4.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      responseApiEndpoint6.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
       responseApiUpdateConsumerName.code should equal(401)
-      responseApiUpdateConsumerName.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiUpdateConsumerName.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
       responseApiUpdateConsumerCertificate.code should equal(401)
-      responseApiUpdateConsumerCertificate.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiUpdateConsumerCertificate.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
       // Endpoint GetConsumer
       val requestApiEndpoint5 = (v5_1_0_Request / "management" / "consumers" / "whatever").GET
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
       responseApiEndpoint5.code should equal(401)
-      responseApiEndpoint5.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseApiEndpoint5.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
     }
 
     scenario("We test the missing roles errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate, VersionOfApi) {

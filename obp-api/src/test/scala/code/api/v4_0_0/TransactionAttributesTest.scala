@@ -47,7 +47,7 @@ class TransactionAttributesTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postTransactionAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -105,7 +105,7 @@ class TransactionAttributesTest extends V400ServerSetup {
       val response400 = makePutRequest(request400, write(putTransactionAttributeJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

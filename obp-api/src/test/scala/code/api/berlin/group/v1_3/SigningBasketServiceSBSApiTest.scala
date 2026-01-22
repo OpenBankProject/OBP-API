@@ -35,7 +35,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val response: APIResponse = makePostRequest(requestPost, postJson)
       Then("We should get a 401 ")
       response.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -86,7 +86,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
       responseGet.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -98,7 +98,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
       responseGet.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -110,7 +110,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val response = makeDeleteRequest(request)
       Then("We should get a 401 ")
       response.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -123,7 +123,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val response = makePostRequest(request, postJson)
       Then("We should get a 401 ")
       response.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -135,7 +135,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
       responseGet.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -147,7 +147,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
       responseGet.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
@@ -160,7 +160,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val response = makePutRequest(request, putJson)
       Then("We should get a 401 ")
       response.code should equal(401)
-      val error = s"$UserNotLoggedIn"
+      val error = s"$AuthenticatedUserIsRequired"
       And("error should be " + error)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }

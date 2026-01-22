@@ -28,7 +28,7 @@ package code.api.v4_0_0
 import code.api.cache.Redis
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanUpdateRateLimits, canCreateDynamicEndpoint}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{ApiRole, ExampleValue, RateLimitingUtil}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0.getCurrentUser
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
@@ -98,8 +98,8 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
       val response400 = setRateLimitingAnonymousAccess(callLimitJsonInitial)
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will try to set Rate Limiting per minute without a proper Role " + ApiRole.canUpdateRateLimits, ApiCallsLimit, ApiVersion400) {
      

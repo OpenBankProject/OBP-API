@@ -6,7 +6,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanCreateStandingOrderAtOneBank
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.{NoViewPermission, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{NoViewPermission, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
@@ -36,7 +36,7 @@ class StandingOrderTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postStandingOrderJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
@@ -58,7 +58,7 @@ class StandingOrderTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, "")
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {

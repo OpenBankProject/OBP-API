@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{postAgentJsonV510, putAgentJsonV510}
-import code.api.util.ErrorMessages.{BankNotFound, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{BankNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -31,13 +31,13 @@ class AgentTest extends V510ServerSetup {
       val request = (v5_1_0_Request / "banks" / "BANK_ID" / "agents").POST
       val response = makePostRequest(request, write(postAgentJsonV510))
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
       
       {
         val request = (v5_1_0_Request / "banks" / "BANK_ID" / "agents"/ "agentId").PUT
         val response = makePutRequest(request, write(putAgentJsonV510))
         response.code should equal(401)
-        response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn) 
+        response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired) 
       }
       
       {
@@ -51,7 +51,7 @@ class AgentTest extends V510ServerSetup {
         val request = (v5_1_0_Request / "banks" / "BANK_ID" / "agents"/"agentId").GET
         val response = makeGetRequest(request)
         response.code should equal(401)
-        response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn) 
+        response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired) 
       }
     }
     scenario(s"We will test all endpoints wrong Bankid", CreateAgent, UpdateAgentStatus,GetAgent, GetAgents, VersionOfApi) {

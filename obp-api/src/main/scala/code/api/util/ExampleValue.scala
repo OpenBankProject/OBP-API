@@ -4,7 +4,7 @@ package code.api.util
 import code.api.Constant
 import code.api.Constant._
 import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgoDate, parseDate}
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.apicollection.ApiCollection
 import code.dynamicEntity._
@@ -570,7 +570,7 @@ object ExampleValue {
     """{"my_user_id": "some_id_value", "name": "Jhon", "age": 12, "hobby": ["coding"],"_optional_fields_": ["hobby"]}""".stripMargin, "the json string of the success response body.")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.successResponseBody", successResponseBodyExample)
   
-  lazy val errorResponseBodiesExample = ConnectorField(s"$UnknownError,$UserNotLoggedIn,$UserHasMissingRoles,$InvalidJsonFormat", "The possible error messages of the endpoint. ")
+  lazy val errorResponseBodiesExample = ConnectorField(s"$UnknownError,$AuthenticatedUserIsRequired,$UserHasMissingRoles,$InvalidJsonFormat", "The possible error messages of the endpoint. ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.errorResponseBodies", errorResponseBodiesExample)
   
   

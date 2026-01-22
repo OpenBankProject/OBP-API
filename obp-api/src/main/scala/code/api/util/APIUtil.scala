@@ -729,7 +729,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         message.contains(extractErrorMessageCode(ConsumerHasMissingRoles))
     }
     def check401(message: String): Boolean = {
-      message.contains(extractErrorMessageCode(UserNotLoggedIn))
+      message.contains(extractErrorMessageCode(AuthenticatedUserIsRequired))
     }
     def check408(message: String): Boolean = {
       message.contains(extractErrorMessageCode(requestTimeout))
@@ -1659,21 +1659,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (rolesIsEmpty) {
         errorResponseBodies ?-= UserHasMissingRoles
       } else {
-        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= AuthenticatedUserIsRequired
         errorResponseBodies ?+= UserHasMissingRoles
       }
-      // if authentication is required, add UserNotLoggedIn to errorResponseBodies
+      // if authentication is required, add AuthenticatedUserIsRequired to errorResponseBodies
       if (description.contains(authenticationIsRequired)) {
-        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= AuthenticatedUserIsRequired
       } else if (description.contains(authenticationIsOptional) && rolesIsEmpty) {
-        errorResponseBodies ?-= UserNotLoggedIn
-      } else if (errorResponseBodies.contains(UserNotLoggedIn)) {
+        errorResponseBodies ?-= AuthenticatedUserIsRequired
+      } else if (errorResponseBodies.contains(AuthenticatedUserIsRequired)) {
         description +=
           s"""
              |
              |$authenticationIsRequired
              |"""
-      } else if (!errorResponseBodies.contains(UserNotLoggedIn)) {
+      } else if (!errorResponseBodies.contains(AuthenticatedUserIsRequired)) {
         description +=
           s"""
              |
@@ -1763,7 +1763,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-    private val isNeedCheckAuth = errorResponseBodies.contains($UserNotLoggedIn)
+    private val isNeedCheckAuth = errorResponseBodies.contains($AuthenticatedUserIsRequired)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
     private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
@@ -1780,7 +1780,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }.toMap
 
     /**
-     * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
+     * According errorResponseBodies whether contains AuthenticatedUserIsRequired and UserHasMissingRoles do validation.
      * So can avoid duplicate code in endpoint body for expression do check.
      * Note: maybe this will be misused, So currently just comment out.
      */
@@ -3350,7 +3350,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * This function is used to factor out common code at endpoints regarding Authorized access
    * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
    */
-  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
+  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = AuthenticatedUserIsRequired): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map{
       x => (
         fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 401, Some(cc.toLight))),

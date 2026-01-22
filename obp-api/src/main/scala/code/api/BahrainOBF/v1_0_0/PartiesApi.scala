@@ -130,7 +130,7 @@ object APIMethods_PartiesApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Parties") :: apiTagMockedData :: Nil
      )
 
@@ -138,7 +138,7 @@ object APIMethods_PartiesApi extends RestHelper {
        case "accounts" :: accountId:: "parties" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -298,7 +298,7 @@ object APIMethods_PartiesApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Parties") :: apiTagMockedData :: Nil
      )
 
@@ -306,7 +306,7 @@ object APIMethods_PartiesApi extends RestHelper {
        case "accounts" :: accountId:: "party" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -429,7 +429,7 @@ object APIMethods_PartiesApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Parties") :: apiTagMockedData :: Nil
      )
 
@@ -437,7 +437,7 @@ object APIMethods_PartiesApi extends RestHelper {
        case "party" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
