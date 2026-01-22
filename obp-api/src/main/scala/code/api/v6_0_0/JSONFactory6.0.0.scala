@@ -305,6 +305,20 @@ case class CacheInfoJsonV600(
     redis_available: Boolean
 )
 
+case class DatabasePoolInfoJsonV600(
+    pool_name: String,
+    active_connections: Int,
+    idle_connections: Int,
+    total_connections: Int,
+    threads_awaiting_connection: Int,
+    maximum_pool_size: Int,
+    minimum_idle: Int,
+    connection_timeout_ms: Long,
+    idle_timeout_ms: Long,
+    max_lifetime_ms: Long,
+    keepalive_time_ms: Long
+)
+
 case class PostCustomerJsonV600(
     legal_name: String,
     customer_number: Option[String] = None,
@@ -486,6 +500,12 @@ case class AbacPoliciesJsonV600(
     policies: List[AbacPolicyJsonV600]
 )
 
+// HATEOAS-style links for dynamic entity discoverability
+case class RelatedLinkJsonV600(rel: String, href: String, method: String)
+case class DynamicEntityLinksJsonV600(
+    related: List[RelatedLinkJsonV600]
+)
+
 // Dynamic Entity definition with fully predictable structure (v6.0.0 format)
 // No dynamic keys - entity name is an explicit field, schema describes the structure
 case class DynamicEntityDefinitionJsonV600(
@@ -494,7 +514,8 @@ case class DynamicEntityDefinitionJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
-    schema: net.liftweb.json.JsonAST.JObject
+    schema: net.liftweb.json.JsonAST.JObject,
+    _links: Option[DynamicEntityLinksJsonV600] = None
 )
 
 case class MyDynamicEntitiesJsonV600(
@@ -1339,6 +1360,28 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
+  def createDatabasePoolInfoJsonV600(): DatabasePoolInfoJsonV600 = {
+    import code.api.util.APIUtil
+
+    val ds = APIUtil.vendor.HikariDatasource.ds
+    val config = APIUtil.vendor.HikariDatasource.config
+    val pool = ds.getHikariPoolMXBean
+
+    DatabasePoolInfoJsonV600(
+      pool_name = ds.getPoolName,
+      active_connections = if (pool != null) pool.getActiveConnections else -1,
+      idle_connections = if (pool != null) pool.getIdleConnections else -1,
+      total_connections = if (pool != null) pool.getTotalConnections else -1,
+      threads_awaiting_connection = if (pool != null) pool.getThreadsAwaitingConnection else -1,
+      maximum_pool_size = config.getMaximumPoolSize,
+      minimum_idle = config.getMinimumIdle,
+      connection_timeout_ms = config.getConnectionTimeout,
+      idle_timeout_ms = config.getIdleTimeout,
+      max_lifetime_ms = config.getMaxLifetime,
+      keepalive_time_ms = config.getKeepaliveTime
+    )
+  }
+
   /**
    * Create v6.0.0 response for GET /my/dynamic-entities
    *
@@ -1362,6 +1405,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
     import net.liftweb.json.JsonAST._
     import net.liftweb.json.parse
+    import net.liftweb.util.StringHelpers
 
     MyDynamicEntitiesJsonV600(
       dynamic_entities = dynamicEntities.map { entity =>
@@ -1382,13 +1426,32 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
+        // Build HATEOAS-style links for this dynamic entity
+        val entityName = entity.entityName
+        val idPlaceholder = StringHelpers.snakify(entityName + "Id").toUpperCase()
+        val baseUrl = entity.bankId match {
+          case Some(bankId) => s"/obp/v6.0.0/banks/$bankId/my/$entityName"
+          case None => s"/obp/v6.0.0/my/$entityName"
+        }
+
+        val links = DynamicEntityLinksJsonV600(
+          related = List(
+            RelatedLinkJsonV600("list", baseUrl, "GET"),
+            RelatedLinkJsonV600("create", baseUrl, "POST"),
+            RelatedLinkJsonV600("read", s"$baseUrl/$idPlaceholder", "GET"),
+            RelatedLinkJsonV600("update", s"$baseUrl/$idPlaceholder", "PUT"),
+            RelatedLinkJsonV600("delete", s"$baseUrl/$idPlaceholder", "DELETE")
+          )
+        )
+
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
           entity_name = entity.entityName,
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
-          schema = schemaObj
+          schema = schemaObj,
+          _links = Some(links)
         )
       }
     )
