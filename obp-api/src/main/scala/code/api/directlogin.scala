@@ -416,6 +416,69 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   }
 
+  /**
+   * Validator that uses pre-extracted parameters from CallContext (for http4s support)
+   * This avoids dependency on S.request which is not available in http4s context
+   */
+  def validatorFutureWithParams(requestType: String, httpMethod: String, parameters: Map[String, String]): Future[(Int, String, Map[String, String])] = {
+
+    def validAccessTokenFuture(tokenKey: String) = {
+      Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
+        case Full(token) => token.isValid
+        case _ => false
+      }
+    }
+
+    var message = ""
+    var httpCode: Int = 500
+
+    val missingParams = missingDirectLoginParameters(parameters, requestType)
+    val validParams = validDirectLoginParameters(parameters)
+
+    val validF =
+      if (requestType == "protectedResource") {
+        validAccessTokenFuture(parameters.getOrElse("token", ""))
+      } else if (requestType == "authorizationToken" &&
+        APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true)) {
+        APIUtil.registeredApplicationFuture(parameters.getOrElse("consumer_key", ""))
+      } else {
+        Future { true }
+      }
+
+    for {
+      valid <- validF
+    } yield {
+      if (parameters.get("error").isDefined) {
+        message = parameters.get("error").getOrElse("")
+        httpCode = 400
+      }
+      else if (missingParams.nonEmpty) {
+        message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
+        httpCode = 400
+      }
+      else if (SILENCE_IS_GOLDEN != validParams.mkString("")) {
+        message = validParams.mkString("")
+        httpCode = 400
+      }
+      else if (requestType == "protectedResource" && !valid) {
+        message = ErrorMessages.DirectLoginInvalidToken + parameters.getOrElse("token", "")
+        httpCode = 401
+      }
+      else if (requestType == "authorizationToken" &&
+        APIUtil.getPropsAsBoolValue("direct_login_consumer_key_mandatory", true) &&
+        !valid) {
+        logger.error("application: " + parameters.getOrElse("consumer_key", "") + " not found")
+        message = ErrorMessages.InvalidConsumerKey
+        httpCode = 401
+      }
+      else
+        httpCode = 200
+      if (message.nonEmpty)
+        logger.error("error message : " + message)
+      (httpCode, message, parameters)
+    }
+  }
+
   private def generateTokenAndSecret(claims: JWTClaimsSet): (String, String) =
   {
     // generate random string
@@ -473,12 +536,20 @@ object DirectLogin extends RestHelper with MdcLoggable {
   }
 
   def getUserFromDirectLoginHeaderFuture(sc: CallContext) : Future[(Box[User], Option[CallContext])] = {
-    val httpMethod = S.request match {
+    val httpMethod = if (sc.verb.nonEmpty) sc.verb else S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
     }
+    // Prefer directLoginParams from CallContext (http4s), fall back to S.request (Lift)
+    val directLoginParamsFromCC = sc.directLoginParams
     for {
-      (httpCode, message, directLoginParameters) <- validatorFuture("protectedResource", httpMethod)
+      (httpCode, message, directLoginParameters) <- if (directLoginParamsFromCC.nonEmpty && directLoginParamsFromCC.contains("token")) {
+        // Use params from CallContext (http4s path)
+        validatorFutureWithParams("protectedResource", httpMethod, directLoginParamsFromCC)
+      } else {
+        // Fall back to S.request (Lift path), e.g. we still use Lift to generate the token and secret, so we need to maintain backward compatibility here.
+        validatorFuture("protectedResource", httpMethod)
+      }
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
       consumer <- OAuthHandshake.getConsumerFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
       user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
