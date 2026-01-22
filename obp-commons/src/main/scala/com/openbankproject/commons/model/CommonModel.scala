@@ -581,14 +581,17 @@ case class ChallengeCommons(
   override val expectedUserId : String   ,
   override val salt: String ,
   override val successful: Boolean,
-  
+
   override val challengeType: String,
   override val consentId: Option[String],
   override val basketId: Option[String] = None,
   override val scaMethod: Option[SCA],
   override val scaStatus: Option[SCAStatus],
   override val authenticationMethodId: Option[String] ,
-  override val attemptCounter: Int  = 0 //NOTE: set the default value here, so do not break current connectors
+  override val attemptCounter: Int  = 0, //NOTE: set the default value here, so do not break current connectors
+  override val challengePurpose: Option[String] = None,
+  override val challengeContextHash: Option[String] = None,
+  override val challengeContextStructure: Option[String] = None
 ) extends ChallengeTrait
 object ChallengeCommons extends Converter[ChallengeTrait, ChallengeCommons]
 
@@ -673,7 +676,10 @@ case class ChallengeTraitCommons(
   scaMethod: Option[SCA],
   scaStatus: Option[SCAStatus],
   authenticationMethodId: Option[String],
-  attemptCounter: Int) extends ChallengeTrait with JsonFieldReName
+  attemptCounter: Int,
+  challengePurpose: Option[String] = None,
+  challengeContextHash: Option[String] = None,
+  challengeContextStructure: Option[String] = None) extends ChallengeTrait with JsonFieldReName
 
 object ChallengeTraitCommons extends Converter[ChallengeTrait, ChallengeTraitCommons]
 

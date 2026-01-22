@@ -86,7 +86,7 @@ jobs:
             echo "No maven-build.log found; skipping failure scan."
             exit 0
           fi
-          if grep -n "\*\*\* FAILED \*\*\*" maven-build.log; then
+          if grep -C 3 -n "\*\*\* FAILED \*\*\*" maven-build.log; then
             echo "Failing tests detected above."
             exit 1
           else
