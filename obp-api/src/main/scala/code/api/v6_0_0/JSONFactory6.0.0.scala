@@ -1428,48 +1428,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
-          definition = schema,
-          record_count = recordCount
-        )
-      }
-    )
-  }
-
-  /**
-   * Create v6.0.0 response for management GET endpoints (includes record_count)
-   */
-  def createDynamicEntitiesWithCountJson(
-    entitiesWithCounts: List[(code.dynamicEntity.DynamicEntityCommons, Long)]
-  ): DynamicEntitiesWithCountJsonV600 = {
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.parse
-
-    DynamicEntitiesWithCountJsonV600(
-      dynamic_entities = entitiesWithCounts.map { case (entity, recordCount) =>
-        // metadataJson contains the full internal format: { "EntityName": { schema }, "hasPersonalEntity": true }
-        // We need to extract just the schema part using the entity name as key
-        val fullJson = parse(entity.metadataJson).asInstanceOf[JObject]
-        val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
-
-        // Validate that the dynamic key matches entity_name
-        val dynamicKeyName = fullJson.obj.find(_.name != "hasPersonalEntity").map(_.name)
-        if (dynamicKeyName.exists(_ != entity.entityName)) {
-          throw new IllegalStateException(
-            s"Dynamic entity key mismatch: stored entityName='${entity.entityName}' but dynamic key='${dynamicKeyName.getOrElse("none")}'"
-          )
-        }
-
-        val schemaObj = schemaOption.getOrElse(
-          throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
-        )
-
-        DynamicEntityDefinitionWithCountJsonV600(
-          dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
-          entity_name = entity.entityName,
-          user_id = entity.userId,
-          bank_id = entity.bankId,
-          has_personal_entity = entity.hasPersonalEntity,
-          schema = schemaObj,
+          schema = schema,
           record_count = recordCount
         )
       }

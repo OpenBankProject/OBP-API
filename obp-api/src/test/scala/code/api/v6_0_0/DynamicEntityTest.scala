@@ -175,8 +175,8 @@ class DynamicEntityTest extends V600ServerSetup {
       val response = makePostRequest(request, write(rightEntityV600))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("Create System Dynamic Entity - without proper role", ApiEndpoint1, VersionOfApi) {

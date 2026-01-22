@@ -4643,7 +4643,7 @@ trait APIMethods600 {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4789,7 +4789,7 @@ trait APIMethods600 {
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4871,7 +4871,7 @@ trait APIMethods600 {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4940,7 +4940,7 @@ trait APIMethods600 {
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5010,7 +5010,7 @@ trait APIMethods600 {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5079,7 +5079,7 @@ trait APIMethods600 {
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -6929,7 +6929,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi)
@@ -6984,7 +6984,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagDynamicEntity, apiTagPersonalDynamicEntity, apiTagApi)
