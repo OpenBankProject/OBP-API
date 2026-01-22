@@ -10,7 +10,8 @@ import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
-import code.api.util.{ApiRole, ApiVersionUtils, CustomJsonFormats, NewStyle}
+import code.api.util.http4s.Http4sRequestAttributes.RequestOps
+import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
@@ -75,7 +76,6 @@ object Http4s700 {
         val responseJson = convertAnyToJsonString(
           JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
         )
-        
         Ok(responseJson)
     }
 
@@ -105,16 +105,15 @@ object Http4s700 {
     // Route: GET /obp/v7.0.0/banks
     val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" =>
-        Http4sRequestAttributes.withCallContext(req) { cc =>
-          for {
-            result <- IO.fromFuture(IO {
-              for {
-                (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-              } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
-            })
-            response <- Ok(result)
-          } yield response
-        }
+        implicit val cc: CallContext = req.callContext
+        for {
+          result <- IO.fromFuture(IO {
+            for {
+              (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+            } yield convertAnyToJsonString(JSONFactory400.createBanksJson(banks))
+          })
+          response <- Ok(result)
+        } yield response
     }
 
     resourceDocs += ResourceDoc(
@@ -136,17 +135,16 @@ object Http4s700 {
     // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
     val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "cards" =>
-        Http4sRequestAttributes.withCallContext(req) { cc =>
-          for {
-            user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-            result <- IO.fromFuture(IO {
-              for {
-                (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
-              } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-            })
-            response <- Ok(result)
-          } yield response
-        }
+        implicit val cc: CallContext = req.callContext
+        for {
+          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+          result <- IO.fromFuture(IO {
+            for {
+              (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+          })
+          response <- Ok(result)
+        } yield response
     }
 
     resourceDocs += ResourceDoc(
@@ -169,20 +167,19 @@ object Http4s700 {
     // Authentication and bank validation handled by ResourceDocMiddleware
     val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
-        Http4sRequestAttributes.withCallContext(req) { cc =>
-          for {
-            user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-            bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-            result <- IO.fromFuture(IO {
-              for {
-                httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-                (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-                (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
-              } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
-            })
-            response <- Ok(result)
-          } yield response
-        }
+        implicit val cc: CallContext = req.callContext
+        for {
+          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+          bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+          result <- IO.fromFuture(IO {
+            for {
+              httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+              (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+              (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
+            } yield convertAnyToJsonString(JSONFactory1_3_0.createPhysicalCardsJSON(cards, user))
+          })
+          response <- Ok(result)
+        } yield response
     }
  
     resourceDocs += ResourceDoc(
@@ -219,12 +216,11 @@ object Http4s700 {
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
-        import com.openbankproject.commons.ExecutionContext.Implicits.global
-        Http4sRequestAttributes.withCallContext(req) { cc =>
-          for {
-            result <- IO.fromFuture(IO {
-              // Check resource_docs_requires_role property
-              val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
+        implicit val cc: CallContext = req.callContext
+        for {
+          result <- IO.fromFuture(IO {
+            // Check resource_docs_requires_role property
+            val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
               
               for {
                 // Authentication based on property
@@ -258,7 +254,6 @@ object Http4s700 {
             })
             response <- Ok(result)
           } yield response
-        }
     }
 
 
