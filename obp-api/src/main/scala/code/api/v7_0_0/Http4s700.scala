@@ -137,7 +137,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "cards" =>
         val response = for {
           cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          user <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.userKey))(new RuntimeException("User not found in request attributes"))
+          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
           result <- IO.fromFuture(IO {
             for {
               (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
@@ -169,8 +169,8 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
         val response = for {
           cc <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.callContextKey))(new RuntimeException("CallContext not found in request attributes"))
-          user <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.userKey))(new RuntimeException("User not found in request attributes"))
-          bank <- IO.fromOption(req.attributes.lookup(Http4sRequestAttributes.bankKey))(new RuntimeException("Bank not found in request attributes"))
+          user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+          bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
           result <- IO.fromFuture(IO {
             for {
               httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)

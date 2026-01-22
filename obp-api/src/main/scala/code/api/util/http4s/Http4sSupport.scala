@@ -24,63 +24,28 @@ import scala.language.higherKinds
  * 
  * This file contains:
  * - Http4sCallContextBuilder: Builds shared CallContext from http4s Request[IO]
- * - Http4sRequestAttributes: Request attribute keys for storing validated objects
+ * - Http4sRequestAttributes: Request attribute key for storing CallContext
  * - ResourceDocMatcher: Matches http4s requests to ResourceDoc entries
- * - ResourceDocMiddleware: Validation chain middleware for http4s
- * - ErrorResponseConverter: Converts OBP errors to http4s Response[IO]
+ * 
+ * Validated entities (User, Bank, BankAccount, View, Counterparty) are stored
+ * directly in CallContext fields, making them available throughout the call chain.
  */
 
 /**
- * Vault keys for storing validated objects in http4s request attributes.
- * These keys allow middleware to pass validated objects to endpoint handlers.
- * WIP 
- */
-/**
- * Request attribute keys for storing validated objects in http4s requests.
- * These keys allow middleware to pass validated objects to endpoint handlers.
+ * Request attribute keys for storing CallContext in http4s requests.
  * 
- * Note: Uses http4s Vault (org.typelevel.vault.Key) for type-safe request attributes.
  */
 object Http4sRequestAttributes {
-  // Use shared CallContext from code.api.util.ApiSession
+  // CallContext contains all request data and validated entities
   val callContextKey: Key[CallContext] = 
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
   
-  val userKey: Key[User] = 
-    Key.newKey[IO, User].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
-  val bankKey: Key[Bank] = 
-    Key.newKey[IO, Bank].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
-  val bankAccountKey: Key[BankAccount] = 
-    Key.newKey[IO, BankAccount].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
-  val viewKey: Key[View] = 
-    Key.newKey[IO, View].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
-  val counterpartyKey: Key[CounterpartyTrait] = 
-    Key.newKey[IO, CounterpartyTrait].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
   /**
-   * Helper methods for accessing validated objects from request attributes
+   * Get CallContext from request attributes.
+   * CallContext contains validated entities: bank, bankAccount, view, counterparty
    */
   def getCallContext(req: Request[IO]): Option[CallContext] = 
     req.attributes.lookup(callContextKey)
-  
-  def getUser(req: Request[IO]): Option[User] = 
-    req.attributes.lookup(userKey)
-  
-  def getBank(req: Request[IO]): Option[Bank] = 
-    req.attributes.lookup(bankKey)
-  
-  def getBankAccount(req: Request[IO]): Option[BankAccount] = 
-    req.attributes.lookup(bankAccountKey)
-  
-  def getView(req: Request[IO]): Option[View] = 
-    req.attributes.lookup(viewKey)
-  
-  def getCounterparty(req: Request[IO]): Option[CounterpartyTrait] = 
-    req.attributes.lookup(counterpartyKey)
 }
 
 /**
@@ -331,16 +296,3 @@ object ResourceDocMatcher {
     )
   }
 }
-
-/**
- * Validated context containing all validated objects from the middleware chain.
- * This is passed to endpoint handlers after successful validation.
- */
-case class ValidatedContext(
-  user: Option[User],
-  bank: Option[Bank],
-  bankAccount: Option[BankAccount],
-  view: Option[View],
-  counterparty: Option[CounterpartyTrait],
-  callContext: CallContext
-)

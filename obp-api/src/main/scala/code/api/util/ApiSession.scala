@@ -55,7 +55,12 @@ case class CallContext(
                         xRateLimitRemaining : Long = -1,
                         xRateLimitReset : Long = -1,
                         paginationOffset : Option[String] = None,
-                        paginationLimit : Option[String] = None
+                        paginationLimit : Option[String] = None,
+                        // Validated entities from ResourceDoc middleware (http4s)
+                        bank: Option[Bank] = None,
+                        bankAccount: Option[BankAccount] = None,
+                        view: Option[View] = None,
+                        counterparty: Option[CounterpartyTrait] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"

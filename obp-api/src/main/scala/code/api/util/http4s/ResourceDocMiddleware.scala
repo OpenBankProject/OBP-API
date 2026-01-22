@@ -243,13 +243,16 @@ object ResourceDocMiddleware extends MdcLoggable{
                         counterpartyResult.flatMap {
                           case Left(errorResponse) => IO.pure(errorResponse)
                           case Right((counterpartyOpt, finalCC)) =>
-                            // All validations passed - store validated context and invoke route
-                            var updatedReq = req.withAttribute(Http4sRequestAttributes.callContextKey, finalCC)
-                            boxUser.toOption.foreach { user => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.userKey, user) }
-                            bankOpt.foreach { bank => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.bankKey, bank) }
-                            accountOpt.foreach { account => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.bankAccountKey, account) }
-                            viewOpt.foreach { view => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.viewKey, view) }
-                            counterpartyOpt.foreach { counterparty => updatedReq = updatedReq.withAttribute(Http4sRequestAttributes.counterpartyKey, counterparty) }
+                            // All validations passed - update CallContext with validated entities
+                            val enrichedCC = finalCC.copy(
+                              bank = bankOpt,
+                              bankAccount = accountOpt,
+                              view = viewOpt,
+                              counterparty = counterpartyOpt
+                            )
+                            
+                            // Store enriched CallContext in request attributes
+                            val updatedReq = req.withAttribute(Http4sRequestAttributes.callContextKey, enrichedCC)
                             routes.run(updatedReq).getOrElseF(IO.pure(Response[IO](org.http4s.Status.NotFound)))
                         }
                     }
