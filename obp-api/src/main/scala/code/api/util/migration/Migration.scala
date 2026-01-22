@@ -648,8 +648,11 @@ object Migration extends MdcLoggable {
           if (performWrite) {
             logFunc(ct)
             val st = conn.createStatement
-            st.execute(ct)
-            st.close
+            try {
+              st.execute(ct)
+            } finally {
+              st.close()
+            }
           }
           ct
       }
