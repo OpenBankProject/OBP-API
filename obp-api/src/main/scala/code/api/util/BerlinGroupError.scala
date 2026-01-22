@@ -48,6 +48,9 @@ object BerlinGroupError {
     code match {
       // If this error occurs it implies that its error handling MUST be refined in OBP code
       case "400" if message.contains("OBP-50005") => "INTERNAL_ERROR"
+      case "400" if message.contains("InternalServerError") => "INTERNAL_ERROR"
+      case "404" if message.contains("InternalServerError") => "INTERNAL_ERROR"
+      case "500" if message.contains("InternalServerError") => "INTERNAL_ERROR"
 
       case "401" if message.contains("OBP-20001") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20201") => "PSU_CREDENTIALS_INVALID"
