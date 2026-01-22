@@ -923,7 +923,7 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         import com.openbankproject.commons.dto.{InBoundGetBankAccountByIban => InBound, OutBoundGetBankAccountByIban => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_by_iban", req, callContext)
-        response.map(convertToTuple[BankAccountCommons](callContext))        
+        response.map(convertToTupleFirstError[BankAccountCommons](callContext))
   }
           
   messageDocs += getBankAccountByRoutingDoc
