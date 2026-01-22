@@ -44,3 +44,4 @@ coursier
 metals.sbt
 obp-http4s-runner/src/main/resources/git.properties
 test-results
+untracked_files/

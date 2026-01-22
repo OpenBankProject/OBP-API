@@ -73,6 +73,7 @@ object ApiTag {
   val apiTagFx = ResourceDocTag("FX")
   val apiTagMessage = ResourceDocTag("Customer-Message")
   val apiTagMetric = ResourceDocTag("Metric")
+  val apiTagMessageDoc = ResourceDocTag("Message-Doc")
   val apiTagDocumentation = ResourceDocTag("Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
@@ -105,6 +106,7 @@ object ApiTag {
   val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")
+  val apiTagPersonalDynamicEntity = ResourceDocTag("Personal-Dynamic-Entity")
   val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
   val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-Manage")
 

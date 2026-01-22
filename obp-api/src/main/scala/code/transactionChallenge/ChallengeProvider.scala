@@ -20,6 +20,10 @@ trait ChallengeProvider {
     basketId: Option[String], // Note: basketId, consentId and transactionRequestId are exclusive here.
     authenticationMethodId: Option[String],
     challengeType: String,
+    // PSD2 Dynamic Linking fields
+    challengePurpose: Option[String] = None,         // Human-readable description shown to user
+    challengeContextHash: Option[String] = None,     // SHA-256 hash of critical transaction fields
+    challengeContextStructure: Option[String] = None // Comma-separated list of field names in hash
   ): Box[ChallengeTrait]
   
   def getChallenge(challengeId: String): Box[ChallengeTrait]

@@ -75,6 +75,7 @@ object ErrorMessages {
   val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
   val DuplicateQueryParameters = "OBP-09016: Duplicate Query Parameters are not allowed."
   val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
+  val InvalidDynamicEntityName = "OBP-09018: Invalid entity_name format. Entity names must be lowercase with underscores (snake_case), e.g. 'customer_preferences'. No uppercase letters or spaces allowed."
 
 
   // General messages (OBP-10XXX)
@@ -649,6 +650,16 @@ object ErrorMessages {
   val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
   val CannotFindUserInvitation = "OBP-37883: Cannot find user invitation."
 
+  // ABAC Rule related messages (OBP-38XXX)
+  val AbacRuleValidationFailed = "OBP-38001: ABAC rule validation failed. The rule code could not be validated."
+  val AbacRuleCompilationFailed = "OBP-38002: ABAC rule compilation failed. The rule code contains syntax errors or invalid Scala code."
+  val AbacRuleTypeMismatch = "OBP-38003: ABAC rule type mismatch. The rule code must return a Boolean value but returns a different type."
+  val AbacRuleSyntaxError = "OBP-38004: ABAC rule syntax error. The rule code contains invalid syntax."
+  val AbacRuleFieldReferenceError = "OBP-38005: ABAC rule field reference error. The rule code references fields or objects that do not exist."
+  val AbacRuleCodeEmpty = "OBP-38006: ABAC rule code must not be empty."
+  val AbacRuleNotFound = "OBP-38007: ABAC rule not found. Please specify a valid value for ABAC_RULE_ID."
+  val AbacRuleNotActive = "OBP-38008: ABAC rule is not active."
+  val AbacRuleExecutionFailed = "OBP-38009: ABAC rule execution failed. An error occurred while executing the rule."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

@@ -578,7 +578,119 @@ object Glossary extends MdcLoggable  {
 				 |"""
 	)
 
-
+	glossaryItems += GlossaryItem(
+		title = "Connector.User.Authentication",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |The property `connector.user.authentication` (default: `false`) controls whether OBP can authenticate a user via the Connector when they are not found locally.
+				 |
+				 |OBP always checks for users locally first. When this property is enabled and a user is not found locally (or exists but is from an external provider), OBP will attempt to authenticate them against an external identity provider or Core Banking System (CBS) via the Connector.
+				 |
+				 |### Configuration
+				 |
+				 |In your props file:
+				 |
+				 |```
+				 |connector.user.authentication=true
+				 |```
+				 |
+				 |### Behavior When Enabled (true)
+				 |
+				 |**1. Login Authentication Flow:**
+				 |
+				 |When a user attempts to log in:
+				 |
+				 |```
+				 |User Login Request
+				 |       │
+				 |       ▼
+				 |┌─────────────────────────┐
+				 |│ 1. Check if user exists │
+				 |│    locally in OBP       │
+				 |└───────────┬─────────────┘
+				 |            │
+				 |   ┌────────┼────────┬─────────────────┐
+				 |   │        │        │                 │
+				 |   ▼        ▼        ▼                 ▼
+				 |Found     Found    Found            Not Found
+				 |(local   (external (external        (and property
+				 |provider) provider) provider         enabled)
+				 |   │      property  property            │
+				 |   │      disabled) enabled)            │
+				 |   │        │        │                  │
+				 |   ▼        ▼        ▼                  ▼
+				 |┌────────┐ ┌────┐  ┌─────────────────────────┐
+				 |│Check   │ │Fail│  │ 2. Call Connector:      │
+				 |│local   │ │    │  │ checkExternalUser       │
+				 |│password│ │    │  │ Credentials()           │
+				 |└───┬────┘ └────┘  └───────────┬─────────────┘
+				 |    │                          │
+				 |    ▼                 ┌────────┴────────┐
+				 | Success/             │                 │
+				 | Failure              ▼                 ▼
+				 |                   Success           Failure
+				 |                      │                 │
+				 |                      ▼                 ▼
+				 |               ┌─────────────┐  ┌─────────────┐
+				 |               │Create local │  │Increment    │
+				 |               │AuthUser if  │  │bad login    │
+				 |               │not exists   │  │attempts     │
+				 |               └─────────────┘  └─────────────┘
+				 |```
+				 |
+				 |**2. Username Uniqueness Validation:**
+				 |
+				 |During user signup, OBP checks if the username already exists in the external system by calling `checkExternalUserExists()`.
+				 |
+				 |**3. Auto Creation of Local Users:**
+				 |
+				 |If external authentication succeeds but the user doesn't exist locally, OBP automatically creates a local `AuthUser` record linked to the external provider.
+				 |
+				 |### Behavior When Disabled (false, default)
+				 |
+				 |* Users must exist locally in OBP's database
+				 |* Authentication is performed against locally stored credentials
+				 |* No connector calls are made for authentication
+				 |
+				 |### Required Connector Methods
+				 |
+				 |When enabled, your Connector must implement:
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserCredentials")} : Validates username and password against external system. Returns `InboundExternalUser` with user details (sub, iss, email, name, userAuthContexts).
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserExists")} : Checks if a username exists in the external system. Used during signup validation.
+				 |
+				 |### InboundExternalUser Response
+				 |
+				 |The connector should return user information including:
+				 |
+				 |* `sub`: Subject identifier (username)
+				 |* `iss`: Issuer (provider identifier)
+				 |* `email`: User's email address
+				 |* `name`: User's display name
+				 |* `userAuthContexts`: Optional list of auth contexts (e.g., customer numbers)
+				 |
+				 |### Use Cases
+				 |
+				 |**Enable when:**
+				 |* You have an external identity provider (LDAP, Active Directory, OAuth provider)
+				 |* User credentials are managed by the Core Banking System
+				 |* You want single sign on with an existing user directory
+				 |
+				 |**Disable when:**
+				 |* OBP manages all user authentication locally
+				 |* You're using OBP's built in user management
+				 |* You don't have an external authentication system
+				 |
+				 |### Related Properties
+				 |
+				 |* `connector`: Specifies which connector implementation to use
+				 |* `connector.user.authcontext.read.in.login`: Read user auth contexts during login
+				 |
+				 |"""
+	)
 
 
 
@@ -3152,6 +3264,35 @@ object Glossary extends MdcLoggable  {
 |
 |OBP generates ONLY the regular endpoints. No 'my' endpoints are created. Use this when the entity represents shared data that should not be user-scoped.
 |
+|**Data Storage Differences:**
+|
+|Both personal and non-personal entities use the same database table (DynamicData), but the key difference is how user ownership is handled:
+|
+|When **hasPersonalEntity = true**:
+|
+|* Each record stores the UserId of the user who created it
+|* The UserId is **actively used in all queries** to filter results
+|* Users can only see, update, and delete their own records via 'my' endpoints
+|* The 'my' endpoints **skip role checks** - user isolation provides the authorization
+|* Cascade delete (deleting the entity definition and all data at once) is **not allowed**
+|
+|When **hasPersonalEntity = false**:
+|
+|* UserId may be stored for audit purposes but is **ignored in queries**
+|* All authorized users see the same shared data
+|* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
+|* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
+|
+|**Summary table:**
+|
+|| Feature | hasPersonalEntity=true | hasPersonalEntity=false |
+||---------|------------------------|-------------------------|
+|| Data visibility | Per-user (isolated) | Shared (all users) |
+|| UserId in queries | Yes (filters results) | No (ignored) |
+|| 'my' endpoints | Generated | Not generated |
+|| Authorization | User-scoped (no roles needed for 'my' endpoints) | Role-based |
+|| Cascade delete | Blocked | Allowed |
+|
 |**For bank-level entities**, endpoints include the bank ID:
 |
 |* POST /banks/BANK_ID/CustomerPreferences
@@ -3249,10 +3390,71 @@ object Glossary extends MdcLoggable  {
 |
 |**Note:** If hasPersonalEntity is set to false, no 'my' endpoints are generated.
 |
-|**Management endpoints for Dynamic Entity definitions:**
+|**Management endpoints for Dynamic Entity definitions (available from v4.0.0):**
 |
 |* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
 |* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
+|
+|**Discovery endpoint (available from v6.0.0):**
+|
+|* GET /personal-dynamic-entities/available - Discover all Dynamic Entities that support personal data storage
+|
+|This endpoint allows regular users (without admin roles) to discover which dynamic entities they can interact with for storing personal data via the /my/ENTITY_NAME endpoints. No special roles required - just needs to be logged in.
+|
+|**Response format for GET /my/dynamic-entities and GET /personal-dynamic-entities/available:**
+|
+|**v6.0.0 format (recommended):**
+|
+|The v6.0.0 response uses snake_case field names and an explicit `entity_name` field:
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "dynamic_entity_id": "abc-123-def",
+|      "entity_name": "CustomerPreferences",
+|      "user_id": "user-456",
+|      "bank_id": null,
+|      "has_personal_entity": true,
+|      "definition": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      }
+|    }
+|  ]
+|}
+|```
+|
+|**v4.0.0 format (legacy):**
+|
+|The v4.0.0 response uses camelCase field names and the **entity name is a dynamic key** (not a fixed property name):
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "CustomerPreferences": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      },
+|      "dynamicEntityId": "abc-123-def",
+|      "userId": "user-456",
+|      "hasPersonalEntity": true,
+|      "bankId": null
+|    }
+|  ]
+|}
+|```
+|
+|To extract the entity name from the v4.0.0 format programmatically, find the key that is NOT one of the standard properties: dynamicEntityId, userId, hasPersonalEntity, bankId.
 |
 |**Required roles:**
 |
@@ -3571,7 +3773,17 @@ object Glossary extends MdcLoggable  {
 		glossaryItems += GlossaryItem(
 			title = "Dynamic linking (PSD2 context)",
 			description =
-				s"""""".stripMargin)
+				s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
+					 |
+					 |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
+					 |
+					 |1. **The amount** of the transaction
+					 |2. **The payee** (recipient) of the transaction
+					 |
+					 |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
+					 |
+					 |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
+					 |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "TPP",
