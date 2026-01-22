@@ -11,7 +11,9 @@ import java.util.{Date, Locale}
 
 object BgSpecValidation {
 
-  val MaxValidDays: LocalDate = LocalDate.now().plusDays(180) // Max 180 days from today
+  //val MaxValidDays: LocalDate = LocalDate.now().plusDaysCustom(180) // Max 180 days from today
+  //FOR TEST
+  val MaxValidDays: LocalDate = BgSpecValidation.plusDaysCustom(LocalDate.now(), 180) // Max 180 days from today
   val DateFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
   def getErrorMessage(dateStr: String): String = {
@@ -55,4 +57,25 @@ object BgSpecValidation {
     }
   }
 
+  def plusDaysCustom(date: LocalDate, daysToAdd: Long): LocalDate = {
+    if (daysToAdd == 0) return date
+
+    var newDate = date
+    var remainingDays = daysToAdd
+
+    // Предположим, что у нас есть методы для получения длины месяца и дня месяца
+    while (remainingDays != 0) {
+      val daysInCurrentMonth = newDate.lengthOfMonth() - newDate.getDayOfMonth()
+
+      // Если оставшихся дней меньше, чем до конца текущего месяца
+      if (remainingDays <= daysInCurrentMonth) {
+        return newDate.plusDays(remainingDays)
+      } else {
+        // Переходим на следующий месяц
+        remainingDays -= daysInCurrentMonth + 1
+        newDate = newDate.plusMonths(1).withDayOfMonth(1)  // Переходим на 1-е число следующего месяца
+      }
+    }
+    newDate
+  }
 }
