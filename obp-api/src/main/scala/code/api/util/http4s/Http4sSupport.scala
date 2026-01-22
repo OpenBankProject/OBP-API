@@ -22,57 +22,56 @@ import scala.concurrent.Future
 import scala.language.higherKinds
 
 /**
- * Http4s support for ResourceDoc-driven validation.
+ * Http4s support utilities for OBP API.
  * 
- * This file contains:
- * - Http4sCallContextBuilder: Builds shared CallContext from http4s Request[IO]
- * - Http4sRequestAttributes: Provides CallContext access from http4s requests
- * - ResourceDocMatcher: Matches http4s requests to ResourceDoc entries
+ * This file contains three main components:
  * 
- * Validated entities (User, Bank, BankAccount, View, Counterparty) are stored
- * directly in CallContext fields, making them available throughout the call chain.
+ * 1. Http4sRequestAttributes: Request attribute management and endpoint helpers
+ *    - Stores CallContext in http4s request Vault
+ *    - Provides helper methods to simplify endpoint implementations
+ *    - Validated entities are stored in CallContext fields
+ * 
+ * 2. Http4sCallContextBuilder: Builds CallContext from http4s Request[IO]
+ *    - Extracts headers, auth params, and request metadata
+ *    - Supports DirectLogin, OAuth, and Gateway authentication
+ * 
+ * 3. ResourceDocMatcher: Matches requests to ResourceDoc entries
+ *    - Finds ResourceDoc by HTTP verb and URL pattern
+ *    - Extracts path parameters (BANK_ID, ACCOUNT_ID, etc.)
+ *    - Attaches ResourceDoc to CallContext for metrics/rate limiting
  */
 
 /**
- * Request attribute keys and helpers for accessing CallContext in http4s requests.
+ * Request attributes and helper methods for http4s endpoints.
  * 
- * CallContext is stored in http4s request attributes using Vault (type-safe key-value store).
- * Validated entities (bank, bankAccount, view, counterparty) are stored within CallContext itself.
- * 
- * Usage in endpoints:
- * {{{
- * import Http4sRequestAttributes.RequestOps
- * 
- * val myEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
- *   case req @ GET -> Root / "banks" =>
- *     implicit val cc: CallContext = req.callContext
- *     for {
- *       result <- yourBusinessLogic  // cc is implicitly available
- *       response <- Ok(result)
- *     } yield response
- * }
- * }}}
+ * CallContext is stored in request attributes using http4s Vault (type-safe key-value store).
+ * Validated entities (user, bank, bankAccount, view, counterparty) are stored within CallContext.
  */
 object Http4sRequestAttributes {
-  import org.typelevel.vault.Key
   
   /**
    * Vault key for storing CallContext in http4s request attributes.
-   * CallContext contains all request data and validated entities.
+   * CallContext contains request data and validated entities (user, bank, account, view, counterparty).
    */
   val callContextKey: Key[CallContext] = 
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
   
   /**
-   * Implicit class that adds CallContext accessor to Request[IO].
-   * Import RequestOps to enable `req.callContext` syntax.
+   * Implicit class that adds .callContext accessor to Request[IO].
+   * 
+   * Usage:
+   * {{{
+   * import Http4sRequestAttributes.RequestOps
+   * 
+   * case req @ GET -> Root / "banks" =>
+   *   implicit val cc: CallContext = req.callContext
+   *   // Use cc for business logic
+   * }}}
    */
   implicit class RequestOps(val req: Request[IO]) extends AnyVal {
     /**
      * Extract CallContext from request attributes.
-     * Throws RuntimeException if CallContext is not found (should never happen with ResourceDocMiddleware).
-     * 
-     * @return CallContext containing validated user, bank, account, view, counterparty
+     * Throws RuntimeException if not found (should never happen with ResourceDocMiddleware).
      */
     def callContext: CallContext = {
       req.attributes.lookup(callContextKey).getOrElse(
@@ -82,31 +81,26 @@ object Http4sRequestAttributes {
   }
   
   /**
-   * Helper methods to simplify endpoint implementations.
-   * These eliminate boilerplate for common patterns in http4s endpoints.
+   * Helper methods to eliminate boilerplate in endpoint implementations.
+   * 
+   * These methods handle:
+   * - CallContext extraction from request
+   * - User/Bank extraction from CallContext
+   * - Future execution with IO.fromFuture
+   * - JSON serialization with Lift JSON
+   * - Ok response creation
    */
   object EndpointHelpers {
     import net.liftweb.json.{Extraction, Formats}
     import net.liftweb.json.JsonAST.prettyRender
     
     /**
-     * Execute a Future-based business logic function and return JSON response.
-     * Handles Future execution, JSON conversion, and Ok response creation.
+     * Execute Future-based business logic and return JSON response.
      * 
-     * Usage:
-     * {{{
-     * case req @ GET -> Root / "banks" =>
-     *   executeAndRespond(req) { implicit cc =>
-     *     for {
-     *       (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-     *     } yield JSONFactory400.createBanksJson(banks)
-     *   }
-     * }}}
+     * Handles: Future execution, JSON conversion, Ok response.
      * 
-     * @param req The http4s request
-     * @param f Business logic function that takes CallContext and returns Future[A]
-     * @param formats Implicit JSON formats for serialization
-     * @tparam A The result type (will be converted to JSON)
+     * @param req http4s request
+     * @param f Business logic: CallContext => Future[A]
      * @return IO[Response[IO]] with JSON body
      */
     def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
@@ -119,23 +113,12 @@ object Http4sRequestAttributes {
     }
     
     /**
-     * Execute business logic that requires validated User from CallContext.
-     * Extracts User from CallContext, executes business logic, and returns JSON response.
+     * Execute business logic requiring validated User.
      * 
-     * Usage:
-     * {{{
-     * case req @ GET -> Root / "cards" =>
-     *   withUser(req) { (user, cc) =>
-     *     for {
-     *       (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
-     *     } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
-     *   }
-     * }}}
+     * Extracts User from CallContext, executes logic, returns JSON response.
      * 
-     * @param req The http4s request
-     * @param f Business logic function that takes (User, CallContext) and returns Future[A]
-     * @param formats Implicit JSON formats for serialization
-     * @tparam A The result type (will be converted to JSON)
+     * @param req http4s request
+     * @param f Business logic: (User, CallContext) => Future[A]
      * @return IO[Response[IO]] with JSON body
      */
     def withUser[A](req: Request[IO])(f: (User, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
@@ -149,23 +132,12 @@ object Http4sRequestAttributes {
     }
     
     /**
-     * Execute business logic that requires validated Bank from CallContext.
-     * Extracts Bank from CallContext, executes business logic, and returns JSON response.
+     * Execute business logic requiring validated Bank.
      * 
-     * Usage:
-     * {{{
-     * case req @ GET -> Root / "banks" / bankId / "accounts" =>
-     *   withBank(req) { (bank, cc) =>
-     *     for {
-     *       (accounts, callContext) <- NewStyle.function.getBankAccounts(bank, Some(cc))
-     *     } yield JSONFactory400.createAccountsJson(accounts)
-     *   }
-     * }}}
+     * Extracts Bank from CallContext, executes logic, returns JSON response.
      * 
-     * @param req The http4s request
-     * @param f Business logic function that takes (Bank, CallContext) and returns Future[A]
-     * @param formats Implicit JSON formats for serialization
-     * @tparam A The result type (will be converted to JSON)
+     * @param req http4s request
+     * @param f Business logic: (Bank, CallContext) => Future[A]
      * @return IO[Response[IO]] with JSON body
      */
     def withBank[A](req: Request[IO])(f: (Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
@@ -179,23 +151,12 @@ object Http4sRequestAttributes {
     }
     
     /**
-     * Execute business logic that requires both User and Bank from CallContext.
-     * Extracts both from CallContext, executes business logic, and returns JSON response.
+     * Execute business logic requiring both User and Bank.
      * 
-     * Usage:
-     * {{{
-     * case req @ GET -> Root / "banks" / bankId / "cards" =>
-     *   withUserAndBank(req) { (user, bank, cc) =>
-     *     for {
-     *       (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, Some(cc))
-     *     } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
-     *   }
-     * }}}
+     * Extracts both from CallContext, executes logic, returns JSON response.
      * 
-     * @param req The http4s request
-     * @param f Business logic function that takes (User, Bank, CallContext) and returns Future[A]
-     * @param formats Implicit JSON formats for serialization
-     * @tparam A The result type (will be converted to JSON)
+     * @param req http4s request
+     * @param f Business logic: (User, Bank, CallContext) => Future[A]
      * @return IO[Response[IO]] with JSON body
      */
     def withUserAndBank[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {

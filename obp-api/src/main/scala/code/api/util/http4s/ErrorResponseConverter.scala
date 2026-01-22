@@ -13,7 +13,16 @@ import org.typelevel.ci.CIString
 
 /**
  * Converts OBP errors to http4s Response[IO].
- * Uses Lift JSON for serialization (consistent with OBP codebase).
+ * 
+ * Handles:
+ * - APIFailureNewStyle (structured errors with code and message)
+ * - Box Failure (Lift framework errors)
+ * - Unknown exceptions
+ * 
+ * All responses include:
+ * - JSON body with code and message
+ * - Correlation-Id header for request tracing
+ * - Appropriate HTTP status code
  */
 object ErrorResponseConverter {
   import net.liftweb.json.Formats
@@ -23,7 +32,7 @@ object ErrorResponseConverter {
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
   
   /**
-   * OBP standard error response format
+   * OBP standard error response format.
    */
   case class OBPErrorResponse(
     code: Int,
@@ -31,7 +40,7 @@ object ErrorResponseConverter {
   )
   
   /**
-   * Convert error response to JSON string
+   * Convert error response to JSON string using Lift JSON.
    */
   private def toJsonString(error: OBPErrorResponse): String = {
     val json = ("code" -> error.code) ~ ("message" -> error.message)
@@ -39,19 +48,18 @@ object ErrorResponseConverter {
   }
   
   /**
-   * Convert an error to http4s Response[IO]
+   * Convert any error to http4s Response[IO].
    */
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
-      case e: APIFailureNewStyle =>
-        apiFailureToResponse(e, callContext)
-      case e =>
-        unknownErrorToResponse(e, callContext)
+      case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
+      case _ => unknownErrorToResponse(error, callContext)
     }
   }
   
   /**
-   * Convert APIFailureNewStyle to http4s Response
+   * Convert APIFailureNewStyle to http4s Response.
+   * Uses failCode as HTTP status and failMsg as error message.
    */
   def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(failure.failCode, failure.failMsg)
@@ -65,7 +73,8 @@ object ErrorResponseConverter {
   }
   
   /**
-   * Convert Box Failure to http4s Response
+   * Convert Lift Box Failure to http4s Response.
+   * Returns 400 Bad Request with failure message.
    */
   def boxFailureToResponse(failure: LiftFailure, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(400, failure.msg)
@@ -78,7 +87,8 @@ object ErrorResponseConverter {
   }
   
   /**
-   * Convert unknown error to http4s Response
+   * Convert unknown error to http4s Response.
+   * Returns 500 Internal Server Error.
    */
   def unknownErrorToResponse(e: Throwable, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(500, s"$UnknownError: ${e.getMessage}")
@@ -91,7 +101,7 @@ object ErrorResponseConverter {
   }
   
   /**
-   * Create error response with specific status code and message
+   * Create error response with specific status code and message.
    */
   def createErrorResponse(statusCode: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
     val errorJson = OBPErrorResponse(statusCode, message)

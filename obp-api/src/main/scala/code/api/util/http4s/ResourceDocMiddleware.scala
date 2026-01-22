@@ -20,14 +20,17 @@ import scala.language.higherKinds
  * ResourceDoc-driven validation middleware for http4s.
  * 
  * This middleware wraps http4s routes with automatic validation based on ResourceDoc metadata.
+ * Validation is performed in a specific order to ensure security and proper error responses.
  * 
  * VALIDATION ORDER:
- * 1. Authentication first
- * 2. Roles authorization (if roles specified in ResourceDoc)
- * 3. BANK_ID validation (if present in path)
- * 4. ACCOUNT_ID validation (if present in path)
- * 5. VIEW_ID validation (if present in path)
- * 6. COUNTERPARTY_ID validation (if present in path)
+ * 1. Authentication - Check if user is authenticated (if required by ResourceDoc)
+ * 2. Authorization - Verify user has required roles/entitlements
+ * 3. Bank validation - Validate BANK_ID path parameter (if present)
+ * 4. Account validation - Validate ACCOUNT_ID path parameter (if present)
+ * 5. View validation - Validate VIEW_ID and check user access (if present)
+ * 6. Counterparty validation - Validate COUNTERPARTY_ID (if present)
+ * 
+ * Validated entities are stored in CallContext fields for use in endpoint handlers.
  */
 object ResourceDocMiddleware extends MdcLoggable{
   
@@ -36,20 +39,26 @@ object ResourceDocMiddleware extends MdcLoggable{
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
   
   /**
-   * Check if ResourceDoc requires authentication based on errorResponseBodies or property
+   * Check if ResourceDoc requires authentication.
+   * 
+   * Authentication is required if:
+   * - ResourceDoc errorResponseBodies contains $AuthenticatedUserIsRequired
+   * - ResourceDoc has roles (roles always require authenticated user)
+   * - Special case: resource-docs endpoint checks resource_docs_requires_role property
    */
   private def needsAuthentication(resourceDoc: ResourceDoc): Boolean = {
-    // Special handling for resource-docs endpoint
     if (resourceDoc.partialFunctionName == "getResourceDocsObpV700") {
       APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
     } else {
-      // Standard check: roles always require an authenticated user to validate entitlements
       resourceDoc.errorResponseBodies.contains($AuthenticatedUserIsRequired) || resourceDoc.roles.exists(_.nonEmpty)
     }
   }
   
   /**
-   * Create middleware that applies ResourceDoc-driven validation to standard HttpRoutes
+   * Create middleware that applies ResourceDoc-driven validation.
+   * 
+   * @param resourceDocs Collection of ResourceDoc entries for matching
+   * @return Middleware that wraps HttpRoutes with validation
    */
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): Middleware[IO] = { routes =>
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -58,7 +67,13 @@ object ResourceDocMiddleware extends MdcLoggable{
   }
   
   /**
-   * Validate request and route to handler if validation passes
+   * Validate request and route to handler if validation passes.
+   * 
+   * Steps:
+   * 1. Build CallContext from request
+   * 2. Find matching ResourceDoc
+   * 3. Run validation chain
+   * 4. Route to handler with enriched CallContext
    */
   private def validateAndRoute(
     req: Request[IO],
@@ -80,6 +95,9 @@ object ResourceDocMiddleware extends MdcLoggable{
     } yield response
   }
 
+  /**
+   * Ensure response has JSON content type.
+   */
   private def ensureJsonContentType(response: Response[IO]): Response[IO] = {
     response.contentType match {
       case Some(contentType) if contentType.mediaType == MediaType.application.json => response
@@ -88,179 +106,18 @@ object ResourceDocMiddleware extends MdcLoggable{
   }
   
   /**
-   * Run validation chain and return enriched CallContext.
-   * Used by wrapEndpoint to validate and enrich CallContext before passing to endpoint.
-   */
-  private def runValidationChain(
-    resourceDoc: ResourceDoc,
-    cc: CallContext,
-    pathParams: Map[String, String]
-  ): IO[CallContext] = {
-    import com.openbankproject.commons.ExecutionContext.Implicits.global
-    
-    // Step 1: Authentication
-    val needsAuth = needsAuthentication(resourceDoc)
-    logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
-    
-    val authResult: IO[Either[Throwable, (Box[User], CallContext)]] = 
-      if (needsAuth) {
-        IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.flatMap {
-          case Right((boxUser, optCC)) => 
-            val updatedCC = optCC.getOrElse(cc)
-            boxUser match {
-              case Full(user) => 
-                IO.pure(Right((boxUser, updatedCC)))
-              case Empty => 
-                IO.pure(Left(new RuntimeException($AuthenticatedUserIsRequired)))
-              case LiftFailure(msg, _, _) => 
-                IO.pure(Left(new RuntimeException(msg)))
-            }
-          case Left(e: APIFailureNewStyle) => 
-            IO.pure(Left(e))
-          case Left(e) => 
-            IO.pure(Left(new RuntimeException($AuthenticatedUserIsRequired)))
-        }
-      } else {
-        IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.flatMap {
-          case Right((boxUser, Some(updatedCC))) => 
-            IO.pure(Right((boxUser, updatedCC)))
-          case Right((boxUser, None)) => 
-            IO.pure(Right((boxUser, cc)))
-          case Left(e) => 
-            // For anonymous access, continue with Empty user
-            IO.pure(Right((Empty, cc)))
-        }
-      }
-    
-    authResult.flatMap {
-      case Left(error) => IO.raiseError(error)
-      case Right((boxUser, cc1)) =>
-        // Step 2: Role authorization
-        val rolesResult: IO[Either[Throwable, CallContext]] = 
-          resourceDoc.roles match {
-            case Some(roles) if roles.nonEmpty =>
-              val shouldCheckRoles = if (resourceDoc.partialFunctionName == "getResourceDocsObpV700") {
-                APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
-              } else {
-                true
-              }
-              
-              if (shouldCheckRoles) {
-                boxUser match {
-                  case Full(user) =>
-                    val userId = user.userId
-                    val bankId = pathParams.get("BANK_ID").getOrElse("")
-                    val hasRole = roles.exists { role =>
-                      val checkBankId = if (role.requiresBankId) bankId else ""
-                      APIUtil.hasEntitlement(checkBankId, userId, role)
-                    }
-                    if (hasRole) IO.pure(Right(cc1)) 
-                    else IO.pure(Left(new RuntimeException(UserHasMissingRoles + roles.mkString(", "))))
-                  case _ =>
-                    IO.pure(Left(new RuntimeException($AuthenticatedUserIsRequired)))
-                }
-              } else {
-                IO.pure(Right(cc1))
-              }
-            case _ => IO.pure(Right(cc1))
-          }
-        
-        rolesResult.flatMap {
-          case Left(error) => IO.raiseError(error)
-          case Right(cc2) =>
-            // Step 3: Bank validation
-            val bankResult: IO[Either[Throwable, (Option[Bank], CallContext)]] = 
-              pathParams.get("BANK_ID") match {
-                case Some(bankIdStr) =>
-                  IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankIdStr), Some(cc2)))).attempt.flatMap {
-                    case Right((bank, Some(updatedCC))) =>
-                      IO.pure(Right((Some(bank), updatedCC)))
-                    case Right((bank, None)) =>
-                      IO.pure(Right((Some(bank), cc2)))
-                    case Left(e: APIFailureNewStyle) =>
-                      IO.pure(Left(e))
-                    case Left(e) =>
-                      IO.pure(Left(new RuntimeException(BankNotFound + ": " + bankIdStr)))
-                  }
-                case None => IO.pure(Right((None, cc2)))
-              }
-            
-            bankResult.flatMap {
-              case Left(error) => IO.raiseError(error)
-              case Right((bankOpt, cc3)) =>
-                // Step 4: Account validation
-                val accountResult: IO[Either[Throwable, (Option[BankAccount], CallContext)]] = 
-                  (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
-                    case (Some(bankIdStr), Some(accountIdStr)) =>
-                      IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc3)))).attempt.flatMap {
-                        case Right((account, Some(updatedCC))) => IO.pure(Right((Some(account), updatedCC)))
-                        case Right((account, None)) => IO.pure(Right((Some(account), cc3)))
-                        case Left(e: APIFailureNewStyle) => 
-                          IO.pure(Left(e))
-                        case Left(e) => 
-                          IO.pure(Left(new RuntimeException(BankAccountNotFound + s": bankId=$bankIdStr, accountId=$accountIdStr")))
-                      }
-                    case _ => IO.pure(Right((None, cc3)))
-                  }
-                
-                accountResult.flatMap {
-                  case Left(error) => IO.raiseError(error)
-                  case Right((accountOpt, cc4)) =>
-                    // Step 5: View validation
-                    val viewResult: IO[Either[Throwable, (Option[View], CallContext)]] = 
-                      (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
-                        case (Some(bankIdStr), Some(accountIdStr), Some(viewIdStr)) =>
-                          val bankIdAccountId = BankIdAccountId(BankId(bankIdStr), AccountId(accountIdStr))
-                          IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewIdStr), bankIdAccountId, boxUser.toOption, Some(cc4)))).attempt.flatMap {
-                            case Right(view) => IO.pure(Right((Some(view), cc4)))
-                            case Left(e: APIFailureNewStyle) => 
-                              IO.pure(Left(e))
-                            case Left(e) => 
-                              IO.pure(Left(new RuntimeException(UserNoPermissionAccessView + s": viewId=$viewIdStr")))
-                          }
-                        case _ => IO.pure(Right((None, cc4)))
-                      }
-                    
-                    viewResult.flatMap {
-                      case Left(error) => IO.raiseError(error)
-                      case Right((viewOpt, cc5)) =>
-                        // Step 6: Counterparty validation
-                        val counterpartyResult: IO[Either[Throwable, (Option[CounterpartyTrait], CallContext)]] = 
-                          (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
-                            case (Some(bankIdStr), Some(accountIdStr), Some(counterpartyIdStr)) =>
-                              IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankIdStr), AccountId(accountIdStr), counterpartyIdStr, Some(cc5)))).attempt.flatMap {
-                                case Right((counterparty, Some(updatedCC))) => IO.pure(Right((Some(counterparty), updatedCC)))
-                                case Right((counterparty, None)) => IO.pure(Right((Some(counterparty), cc5)))
-                                case Left(e: APIFailureNewStyle) => 
-                                  IO.pure(Left(e))
-                                case Left(e) => 
-                                  IO.pure(Left(new RuntimeException(CounterpartyNotFound + s": counterpartyId=$counterpartyIdStr")))
-                              }
-                            case _ => IO.pure(Right((None, cc5)))
-                          }
-                        
-                        counterpartyResult.flatMap {
-                          case Left(error) => IO.raiseError(error)
-                          case Right((counterpartyOpt, finalCC)) =>
-                            // All validations passed - return enriched CallContext
-                            val enrichedCC = finalCC.copy(
-                              bank = bankOpt,
-                              bankAccount = accountOpt,
-                              view = viewOpt,
-                              counterparty = counterpartyOpt
-                            )
-                            IO.pure(enrichedCC)
-                        }
-                    }
-                }
-            }
-        }
-    }
-  }
-  
-  /**
-   * Run validation chain for standard HttpRoutes (returns Response).
-   * Used by apply() middleware for backward compatibility.
+   * Run validation chain for HttpRoutes and return Response.
+   * 
+   * This method performs all validation steps in order:
+   * 1. Authentication (if required)
+   * 2. Role authorization (if roles specified)
+   * 3. Bank validation (if BANK_ID in path)
+   * 4. Account validation (if ACCOUNT_ID in path)
+   * 5. View validation (if VIEW_ID in path)
+   * 6. Counterparty validation (if COUNTERPARTY_ID in path)
+   * 
+   * On success: Enriches CallContext with validated entities and routes to handler
+   * On failure: Returns error response immediately
    */
   private def runValidationChainForRoutes(
     req: Request[IO],
@@ -270,10 +127,10 @@ object ResourceDocMiddleware extends MdcLoggable{
     routes: HttpRoutes[IO]
   ): IO[Response[IO]] = {
     
-    // Step 1: Authentication
     val needsAuth = needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
     
+    // Step 1: Authentication
     val authResult: IO[Either[Response[IO], (Box[User], CallContext)]] = 
       if (needsAuth) {
         IO.fromFuture(IO(APIUtil.authenticatedAccess(cc))).attempt.flatMap {
@@ -305,24 +162,19 @@ object ResourceDocMiddleware extends MdcLoggable{
       } else {
         IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).attempt.flatMap {
           case Right((boxUser, Some(updatedCC))) => 
-            logger.debug(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser")
             IO.pure(Right((boxUser, updatedCC)))
           case Right((boxUser, None)) => 
-            logger.debug(s"[ResourceDocMiddleware] anonymousAccess succeeded with user: $boxUser (no updated CC)")
             IO.pure(Right((boxUser, cc)))
           case Left(e) => 
-            // For anonymous access, we don't fail on auth errors - just continue with Empty user
-            // This allows endpoints without $AuthenticatedUserIsRequired to work without authentication
-            logger.debug(s"[ResourceDocMiddleware] anonymousAccess threw exception (ignoring for anonymous): ${e.getClass.getName}: ${e.getMessage.take(100)}")
+            // For anonymous endpoints, continue with Empty user even if auth fails
             IO.pure(Right((Empty, cc)))
         }
       }
 
-    
-    authResult.flatMap {
+        authResult.flatMap {
       case Left(errorResponse) => IO.pure(errorResponse)
       case Right((boxUser, cc1)) =>
-        // Step 2: Role authorization - BEFORE business logic validation
+        // Step 2: Role authorization
         val rolesResult: IO[Either[Response[IO], CallContext]] = 
           resourceDoc.roles match {
             case Some(roles) if roles.nonEmpty =>
