@@ -177,54 +177,18 @@ val ruleCode = """user.emailAddress.contains("admin")"""
 val compiled = AbacRuleEngine.compileRule("rule123", ruleCode)
 ```
 
-### Execute a Rule (Async - Recommended)
-```scala
-import code.abacrule.AbacRuleEngine
-import com.openbankproject.commons.model._
-import scala.concurrent.Future
-
-val resultFuture: Future[Box[Boolean]] = AbacRuleEngine.executeRule(
-  ruleId = "rule123",
-  authenticatedUserId = currentUser.userId,
-  onBehalfOfUserId = None,
-  userId = Some(targetUser.userId),
-  callContext = callContext,
-  bankId = Some(bank.bankId.value),
-  accountId = Some(account.accountId.value),
-  viewId = None,
-  transactionId = None,
-  transactionRequestId = None,
-  customerId = None
-)
-
-resultFuture.map { result =>
-  result match {
-    case Full(true) => println("Access granted")
-    case Full(false) => println("Access denied")
-    case Failure(msg, _, _) => println(s"Error: $msg")
-    case Empty => println("Rule not found")
-  }
-}
-```
-
-### Execute a Rule (Sync - Deprecated)
+### Execute a Rule
 ```scala
 import code.abacrule.AbacRuleEngine
 import com.openbankproject.commons.model._
 
-// This is deprecated and blocks the thread - use async version above instead
-val result = AbacRuleEngine.executeRuleSync(
+val result = AbacRuleEngine.executeRule(
   ruleId = "rule123",
-  authenticatedUserId = currentUser.userId,
-  onBehalfOfUserId = None,
-  userId = Some(targetUser.userId),
-  callContext = callContext,
-  bankId = Some(bank.bankId.value),
-  accountId = Some(account.accountId.value),
-  viewId = None,
-  transactionId = None,
-  transactionRequestId = None,
-  customerId = None
+  user = currentUser,
+  bankOpt = Some(bank),
+  accountOpt = Some(account),
+  transactionOpt = None,
+  customerOpt = None
 )
 
 result match {
@@ -235,56 +199,24 @@ result match {
 }
 ```
 
-### Execute Rules by Policy (Async - Recommended)
-Execute all active rules associated with a policy (OR logic - at least one must pass):
+### Execute Multiple Rules (AND Logic)
+All rules must pass:
 ```scala
-val resultFuture: Future[Box[Boolean]] = AbacRuleEngine.executeRulesByPolicy(
-  policy = "account_access_policy",
-  authenticatedUserId = currentUser.userId,
-  onBehalfOfUserId = None,
-  userId = Some(targetUser.userId),
-  callContext = callContext,
-  bankId = Some(bank.bankId.value),
-  accountId = Some(account.accountId.value),
-  viewId = None,
-  transactionId = None,
-  transactionRequestId = None,
-  customerId = None
+val result = AbacRuleEngine.executeRulesAnd(
+  ruleIds = List("rule1", "rule2", "rule3"),
+  user = currentUser,
+  bankOpt = Some(bank)
 )
-
-resultFuture.map { result =>
-  result match {
-    case Full(true) => println("Access granted by policy")
-    case Full(false) => println("Access denied by policy")
-    case Failure(msg, _, _) => println(s"Error: $msg")
-    case Empty => println("Policy not found")
-  }
-}
 ```
 
-### Execute Rules by Policy (Sync - Deprecated)
+### Execute Multiple Rules (OR Logic)
+At least one rule must pass:
 ```scala
-// This is deprecated and blocks the thread - use async version above instead
-val result = AbacRuleEngine.executeRulesByPolicySync(
-  policy = "account_access_policy",
-  authenticatedUserId = currentUser.userId,
-  onBehalfOfUserId = None,
-  userId = Some(targetUser.userId),
-  callContext = callContext,
-  bankId = Some(bank.bankId.value),
-  accountId = Some(account.accountId.value),
-  viewId = None,
-  transactionId = None,
-  transactionRequestId = None,
-  customerId = None
+val result = AbacRuleEngine.executeRulesOr(
+  ruleIds = List("rule1", "rule2", "rule3"),
+  user = currentUser,
+  bankOpt = Some(bank)
 )
-
-result match {
-  case Full(true) => println("Access granted by policy")
-  case Full(false) => println("Access denied by policy")
-  case Failure(msg, _, _) => println(s"Error: $msg")
-  case Empty => println("Policy not found")
-}
 ```
 
 ### Validate Rule Code
@@ -409,19 +341,16 @@ for {
   (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
   
   // Check ABAC rules
-  allowed <- AbacRuleEngine.executeRulesByPolicy(
-    policy = "bank_access_policy",
-    authenticatedUserId = user.userId,
-    onBehalfOfUserId = None,
-    userId = Some(user.userId),
-    callContext = callContext,
-    bankId = Some(bank.bankId.value),
-    accountId = Some(account.accountId.value),
-    viewId = None,
-    transactionId = None,
-    transactionRequestId = None,
-    customerId = None
-  )
+  allowed <- Future {
+    AbacRuleEngine.executeRulesAnd(
+      ruleIds = List("bank_access_rule", "account_limit_rule"),
+      user = user,
+      bankOpt = Some(bank),
+      accountOpt = Some(account)
+    )
+  } map {
+    unboxFullOrFail(_, callContext, "ABAC access check failed", 403)
+  }
   
   _ <- Helper.booleanToFuture(s"Access denied by ABAC rules", cc = callContext) {
     allowed
