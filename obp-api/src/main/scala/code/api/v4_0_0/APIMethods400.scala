@@ -2245,7 +2245,12 @@ trait APIMethods400 extends MdcLoggable {
          |
          |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
          |
-         |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |**The hasPersonalEntity flag:**
+         |
+         |* If `hasPersonalEntity` = **true** (default): OBP generates both regular endpoints AND personal 'my' endpoints. Data is user-scoped - each user only sees their own records via 'my' endpoints.
+         |* If `hasPersonalEntity` = **false**: OBP generates ONLY regular endpoints (no 'my' endpoints). Data is shared - all authorized users see the same records.
+         |
+         |This flag also affects authorization (role-based vs user-scoped) and whether cascade delete is allowed. See the Dynamic-Entities glossary for full details on data storage differences.
          |
          |$dynamicEntityNamingExplanation
          |
@@ -2448,7 +2453,12 @@ trait APIMethods400 extends MdcLoggable {
          |
          |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
          |
-         |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |**The hasPersonalEntity flag:**
+         |
+         |* If `hasPersonalEntity` = **true** (default): OBP generates both regular endpoints AND personal 'my' endpoints. Data is user-scoped - each user only sees their own records via 'my' endpoints.
+         |* If `hasPersonalEntity` = **false**: OBP generates ONLY regular endpoints (no 'my' endpoints). Data is shared - all authorized users see the same records.
+         |
+         |This flag also affects authorization (role-based vs user-scoped) and whether cascade delete is allowed. See the Dynamic-Entities glossary for full details on data storage differences.
          |
          |$dynamicEntityNamingExplanation
          |

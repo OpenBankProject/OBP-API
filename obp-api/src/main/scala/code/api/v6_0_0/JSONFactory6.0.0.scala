@@ -486,6 +486,50 @@ case class AbacPoliciesJsonV600(
     policies: List[AbacPolicyJsonV600]
 )
 
+// Dynamic Entity definition with fully predictable structure (v6.0.0 format)
+// No dynamic keys - entity name is an explicit field, schema describes the structure
+case class DynamicEntityDefinitionJsonV600(
+    dynamic_entity_id: String,
+    entity_name: String,
+    user_id: String,
+    bank_id: Option[String],
+    has_personal_entity: Boolean,
+    schema: net.liftweb.json.JsonAST.JObject
+)
+
+case class MyDynamicEntitiesJsonV600(
+    dynamic_entities: List[DynamicEntityDefinitionJsonV600]
+)
+
+// Management version includes record_count for admin visibility
+case class DynamicEntityDefinitionWithCountJsonV600(
+    dynamic_entity_id: String,
+    entity_name: String,
+    user_id: String,
+    bank_id: Option[String],
+    has_personal_entity: Boolean,
+    schema: net.liftweb.json.JsonAST.JObject,
+    record_count: Long
+)
+
+case class DynamicEntitiesWithCountJsonV600(
+    dynamic_entities: List[DynamicEntityDefinitionWithCountJsonV600]
+)
+
+// Request format for creating a dynamic entity (v6.0.0 with snake_case)
+case class CreateDynamicEntityRequestJsonV600(
+    entity_name: String,
+    has_personal_entity: Option[Boolean],  // defaults to true if not provided
+    schema: net.liftweb.json.JsonAST.JObject
+)
+
+// Request format for updating a dynamic entity (v6.0.0 with snake_case)
+case class UpdateDynamicEntityRequestJsonV600(
+    entity_name: String,
+    has_personal_entity: Option[Boolean],
+    schema: net.liftweb.json.JsonAST.JObject
+)
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createRedisCallCountersJson(
@@ -1294,4 +1338,145 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       redis_available = redisAvailable
     )
   }
+
+  /**
+   * Create v6.0.0 response for GET /my/dynamic-entities
+   *
+   * Fully predictable structure with no dynamic keys.
+   * Entity name is an explicit field, schema describes the structure.
+   *
+   * Response format:
+   * {
+   *   "dynamic_entities": [
+   *     {
+   *       "dynamic_entity_id": "abc-123",
+   *       "entity_name": "CustomerPreferences",
+   *       "user_id": "user-456",
+   *       "bank_id": null,
+   *       "has_personal_entity": true,
+   *       "schema": { ... }
+   *     }
+   *   ]
+   * }
+   */
+  def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.parse
+
+    MyDynamicEntitiesJsonV600(
+      dynamic_entities = dynamicEntities.map { entity =>
+        // metadataJson contains the full internal format: { "EntityName": { schema }, "hasPersonalEntity": true }
+        // We need to extract just the schema part using the entity name as key
+        val fullJson = parse(entity.metadataJson).asInstanceOf[JObject]
+        val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
+
+        // Validate that the dynamic key matches entity_name
+        val dynamicKeyName = fullJson.obj.find(_.name != "hasPersonalEntity").map(_.name)
+        if (dynamicKeyName.exists(_ != entity.entityName)) {
+          throw new IllegalStateException(
+            s"Dynamic entity key mismatch: stored entityName='${entity.entityName}' but dynamic key='${dynamicKeyName.getOrElse("none")}'"
+          )
+        }
+
+        val schemaObj = schemaOption.getOrElse(
+          throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
+        )
+
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
+          entity_name = entity.entityName,
+          user_id = entity.userId,
+          bank_id = entity.bankId,
+          has_personal_entity = entity.hasPersonalEntity,
+          schema = schemaObj
+        )
+      }
+    )
+  }
+
+  /**
+   * Create v6.0.0 response for management GET endpoints (includes record_count)
+   */
+  def createDynamicEntitiesWithCountJson(
+    entitiesWithCounts: List[(code.dynamicEntity.DynamicEntityCommons, Long)]
+  ): DynamicEntitiesWithCountJsonV600 = {
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.parse
+
+    DynamicEntitiesWithCountJsonV600(
+      dynamic_entities = entitiesWithCounts.map { case (entity, recordCount) =>
+        // metadataJson contains the full internal format: { "EntityName": { schema }, "hasPersonalEntity": true }
+        // We need to extract just the schema part using the entity name as key
+        val fullJson = parse(entity.metadataJson).asInstanceOf[JObject]
+        val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
+
+        // Validate that the dynamic key matches entity_name
+        val dynamicKeyName = fullJson.obj.find(_.name != "hasPersonalEntity").map(_.name)
+        if (dynamicKeyName.exists(_ != entity.entityName)) {
+          throw new IllegalStateException(
+            s"Dynamic entity key mismatch: stored entityName='${entity.entityName}' but dynamic key='${dynamicKeyName.getOrElse("none")}'"
+          )
+        }
+
+        val schema = schemaOption.getOrElse(
+          throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
+        )
+
+        DynamicEntityDefinitionWithCountJsonV600(
+          dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
+          entity_name = entity.entityName,
+          user_id = entity.userId,
+          bank_id = entity.bankId,
+          has_personal_entity = entity.hasPersonalEntity,
+          schema = schema,
+          record_count = recordCount
+        )
+      }
+    )
+  }
+
+  /**
+   * Convert v6.0.0 request format to the internal JObject format expected by DynamicEntityCommons.apply
+   *
+   * Input (v6.0.0):
+   * {
+   *   "entity_name": "CustomerPreferences",
+   *   "has_personal_entity": true,
+   *   "schema": { ... }
+   * }
+   *
+   * Output (internal):
+   * {
+   *   "CustomerPreferences": { ... schema ... },
+   *   "hasPersonalEntity": true
+   * }
+   */
+  def convertV600RequestToInternal(request: CreateDynamicEntityRequestJsonV600): net.liftweb.json.JsonAST.JObject = {
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.JsonDSL._
+
+    val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+
+    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    JObject(
+      JField(request.entity_name, request.schema) ::
+      JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      Nil
+    )
+  }
+
+  def convertV600UpdateRequestToInternal(request: UpdateDynamicEntityRequestJsonV600): net.liftweb.json.JsonAST.JObject = {
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.JsonDSL._
+
+    val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+
+    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    JObject(
+      JField(request.entity_name, request.schema) ::
+      JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      Nil
+    )
+  }
+
 }

@@ -29,6 +29,11 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
     override def defaultValue = 0
   }
 
+  // PSD2 Dynamic Linking fields
+  object ChallengePurpose extends MappedString(this, 2000)
+  object ChallengeContextHash extends MappedString(this, 64)
+  object ChallengeContextStructure extends MappedString(this, 500)
+
   override def challengeId: String = ChallengeId.get
   override def challengeType: String = ChallengeType.get
   override def transactionRequestId: String = TransactionRequestId.get
@@ -42,6 +47,11 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
   override def scaStatus: Option[SCAStatus] = Option(StrongCustomerAuthenticationStatus.withName(ScaStatus.get))
   override def authenticationMethodId: Option[String] = Option(AuthenticationMethodId.get)
   override def attemptCounter: Int = AttemptCounter.get
+
+  // PSD2 Dynamic Linking
+  override def challengePurpose: Option[String] = Option(ChallengePurpose.get).filter(_.nonEmpty)
+  override def challengeContextHash: Option[String] = Option(ChallengeContextHash.get).filter(_.nonEmpty)
+  override def challengeContextStructure: Option[String] = Option(ChallengeContextStructure.get).filter(_.nonEmpty)
 }
 
 object MappedExpectedChallengeAnswer extends MappedExpectedChallengeAnswer with LongKeyedMetaMapper[MappedExpectedChallengeAnswer] {
