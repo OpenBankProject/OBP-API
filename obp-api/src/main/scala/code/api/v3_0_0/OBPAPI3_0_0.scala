@@ -26,20 +26,19 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_0_0
 
-import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
-import code.api.v1_3_0.APIMethods130
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
+
+import scala.language.reflectiveCalls
+//import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.util.Helper.MdcLoggable
-
-import scala.collection.immutable.Nil
 
 
 
@@ -48,7 +47,7 @@ This file defines which endpoints from all the versions are available in v3.0.0
  */
 
 
-object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable with VersionedOBPApis{
+object OBPAPI3_0_0 extends OBPRestHelper with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with MdcLoggable with VersionedOBPApis{
   
 
 
@@ -124,10 +123,10 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Nil
 
 
-  // Possible Endpoints from VERSION 1.3.0
-  val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
-                         Implementations1_3_0.getCardsForBank ::
-                         Nil
+//  // Possible Endpoints from VERSION 1.3.0
+//  val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
+//                         Implementations1_3_0.getCardsForBank ::
+//                         Nil
 
 
   // Possible Endpoints from 1.4.0
@@ -285,13 +284,13 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                         Implementations2_1_0.resourceDocs ++
                         Implementations2_0_0.resourceDocs ++
                         Implementations1_4_0.resourceDocs ++
-                        Implementations1_3_0.resourceDocs ++
+                        //Implementations1_3_0.resourceDocs ++
                         Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
-  getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
+  //getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf2_0_0, Implementations2_0_0.resourceDocs) :::
   getAllowedEndpoints(endpointsOf2_1_0, Implementations2_1_0.resourceDocs) :::

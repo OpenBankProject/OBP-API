@@ -27,11 +27,12 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 
-import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import code.api.util.VersionedOBPApis
-import code.api.v1_3_0.APIMethods130
+
+import scala.language.reflectiveCalls
+//import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
@@ -53,7 +54,6 @@ import org.apache.http.HttpStatus
 This file defines which endpoints from all the versions are available in v5.0.0
  */
 object OBPAPI6_0_0 extends OBPRestHelper 
-  with APIMethods130 
   with APIMethods140 
   with APIMethods200 
   with APIMethods210 

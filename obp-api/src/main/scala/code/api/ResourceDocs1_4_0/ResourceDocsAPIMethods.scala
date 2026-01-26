@@ -12,7 +12,6 @@ import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.util.YAMLUtils
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
@@ -33,19 +32,17 @@ import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.{LiftRules, S}
-import net.liftweb.http.{InMemoryResponse, LiftRules, PlainTextResponse}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 
 import java.util.concurrent.ConcurrentHashMap
-import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 // JObject creation
 import code.api.v1_2_1.{APIMethods121, OBPAPI1_2_1}
-import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
+//import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
 import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
 import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
 
@@ -60,7 +57,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 
 
-trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 /*with APIMethods130*/ with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: OBPRestHelper =>
@@ -128,9 +125,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
-        case ApiVersion.v2_0_0 => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v2_0_0 => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs /*++ Implementations1_3_0.resourceDocs*/ ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs /*++ Implementations1_3_0.resourceDocs*/ ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_3_0 => ArrayBuffer.empty[ResourceDoc]
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
@@ -152,7 +149,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
         case ApiVersion.v2_0_0 => OBPAPI2_0_0.routes
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
-        case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
+        case ApiVersion.v1_3_0 => Nil
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
@@ -1257,4 +1254,3 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
 }
-

@@ -464,7 +464,7 @@ class Boot extends MdcLoggable {
     // Add the various API versions
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
     enableVersionIfAllowed(ApiVersion.v1_2_1)
-    enableVersionIfAllowed(ApiVersion.v1_3_0)
+    //enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)
     enableVersionIfAllowed(ApiVersion.v2_0_0)
     enableVersionIfAllowed(ApiVersion.v2_1_0)

@@ -34,7 +34,7 @@ import scala.concurrent.Future
 // JObject creation
 import code.api.APIFailure
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy}
-import code.api.v1_3_0.APIMethods130
+//import code.api.v1_3_0.APIMethods130
 
 import scala.collection.mutable.ArrayBuffer
 //import code.api.v2_0_0.{OBPAPI2_0_0, APIMethods200}
@@ -51,7 +51,7 @@ import code.products.Products
 import code.util.Helper._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
-trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
+trait APIMethods140 extends MdcLoggable with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>

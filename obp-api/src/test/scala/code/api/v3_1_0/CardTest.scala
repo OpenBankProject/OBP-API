@@ -1,20 +1,18 @@
 package code.api.v3_1_0
 
-import java.util.Date
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{createPhysicalCardJsonV310, updatePhysicalCardJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV310
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanCreateCustomer
 import code.api.util.ApiRole
+import code.api.util.ApiRole.CanCreateCustomer
+import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
-import code.api.util.ErrorMessages._
-import code.api.v1_3_0.ReplacementJSON
+//import code.api.v1_3_0.ReplacementJSON
 import com.openbankproject.commons.model.{CardAction, CardReplacementReason}
 import com.openbankproject.commons.util.ApiVersion
 
@@ -78,7 +76,7 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       responseWithWrongVlaueForAllows.body.toString contains(AllowedValuesAre++ CardAction.availableValues.mkString(", "))
 
       Then(s"We call the authentication user, but wrong card.replacement value")
-      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = Some(ReplacementJSON(new Date(),"Wrong"))) // The replacement must be Enum of `CardReplacementReason` 
+      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = Some(null)) 
       val responseWrongCardReplacementReasonJson = makePostRequest(requestWithAuthUser, write(wrongCardReplacementReasonJson))
       And(s"We should get 400 and get the error message")
       responseWrongCardReplacementReasonJson.code should equal(400)

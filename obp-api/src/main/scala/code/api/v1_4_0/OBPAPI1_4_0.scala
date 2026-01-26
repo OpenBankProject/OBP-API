@@ -1,11 +1,12 @@
 package code.api.v1_4_0
 
-import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
+
+import scala.language.reflectiveCalls
 
 
 object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable with VersionedOBPApis{
@@ -86,11 +87,11 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
     //Implementations1_2_1.makePayment // Back for a while
   )
 
-    // New in 1.3.0
-    val endpointsOf1_3_0 = List(
-    Implementations1_3_0.getCards,
-    Implementations1_3_0.getCardsForBank
-  )
+//    // New in 1.3.0
+//    val endpointsOf1_3_0 = List(
+//    Implementations1_3_0.getCards,
+//    Implementations1_3_0.getCardsForBank
+//  )
 
 
     // New in 1.4.0
@@ -111,13 +112,13 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
 
   val allResourceDocs =
     Implementations1_4_0.resourceDocs ++
-      Implementations1_3_0.resourceDocs ++
+      //Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) ::: 
-      getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
+      //getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs)
 
   registerRoutes(routes, allResourceDocs, apiPrefix)

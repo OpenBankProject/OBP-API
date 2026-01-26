@@ -26,22 +26,21 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_0_0
 
-import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import code.api.util.{APIUtil, VersionedOBPApis}
-import code.api.v1_3_0.APIMethods130
+import code.api.util.VersionedOBPApis
+
+import scala.language.reflectiveCalls
+//import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
+import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import code.api.v4_0_0.OBPAPI4_0_0.{Implementations4_0_0, endpointsOf4_0_0}
 import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
@@ -51,7 +50,6 @@ import org.apache.http.HttpStatus
 This file defines which endpoints from all the versions are available in v5.0.0
  */
 object OBPAPI5_0_0 extends OBPRestHelper 
-  with APIMethods130 
   with APIMethods140 
   with APIMethods200 
   with APIMethods210 

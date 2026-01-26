@@ -26,16 +26,17 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_0_0
 
-import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
-import code.api.v1_3_0.APIMethods130
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
+
+import scala.language.reflectiveCalls
+//import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.util.Helper.MdcLoggable
 
-object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with MdcLoggable with VersionedOBPApis{
+object OBPAPI2_0_0 extends OBPRestHelper with APIMethods140 with APIMethods200 with MdcLoggable with VersionedOBPApis{
 
 
   val version : ApiVersion = ApiVersion.v2_0_0 // "2.0.0"
@@ -118,10 +119,10 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     //Implementations1_2_1.makePayment
   )
 
-    // New in 1.3.0
-    val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
-    Implementations1_3_0.getCardsForBank::
-    Nil
+//    // New in 1.3.0
+//    val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
+//    Implementations1_3_0.getCardsForBank::
+//    Nil
 
     // New in 1.4.0
     // Possible Endpoints 2.0.0 (less info about the views)
@@ -185,13 +186,13 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val allResourceDocs =
     Implementations2_0_0.resourceDocs ++
       Implementations1_4_0.resourceDocs ++
-      Implementations1_3_0.resourceDocs ++
+      //Implementations1_3_0.resourceDocs ++
       Implementations1_2_1.resourceDocs
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] =
     getAllowedEndpoints(endpointsOf1_2_1, Implementations1_2_1.resourceDocs) :::
-      getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
+      //getAllowedEndpoints(endpointsOf1_3_0, Implementations1_3_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf1_4_0, Implementations1_4_0.resourceDocs) :::
       getAllowedEndpoints(endpointsOf2_0_0, Implementations2_0_0.resourceDocs)
 
