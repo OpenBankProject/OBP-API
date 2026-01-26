@@ -1,17 +1,12 @@
-name: Build and publish container develop
+name: Build on Pull Request
 
-# read-write repo token
-# access to secrets
 on:
-  workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - develop
-
+      - '**'
 env:
   ## Sets environment variable
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
-  DOCKER_HUB_REPOSITORY: obp-api
 
 
 jobs:
@@ -41,7 +36,6 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: |
-          set -o pipefail
           cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
@@ -71,87 +65,23 @@ jobs:
           echo COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
 
+
           echo allow_oauth2_login=true >> obp-api/src/main/resources/props/test.default.props
           echo oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs >> obp-api/src/main/resources/props/test.default.props
 
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
-          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod 2>&1 | tee maven-build.log
-
-      - name: Report failing tests (if any)
-        if: always()
-        run: |
-          echo "Checking build log for failing tests via grep..."
-          if [ ! -f maven-build.log ]; then
-            echo "No maven-build.log found; skipping failure scan."
-            exit 0
-          fi
-          if grep -C 3 -n "\*\*\* FAILED \*\*\*" maven-build.log; then
-            echo "Failing tests detected above."
-            exit 1
-          else
-            echo "No failing tests detected in maven-build.log."
-          fi
-
-      - name: Upload Maven build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: maven-build-log
-          if-no-files-found: ignore
-          path: |
-            maven-build.log
-
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports
-          if-no-files-found: ignore
-          path: |
-            obp-api/target/surefire-reports/**
-            obp-commons/target/surefire-reports/**
-            **/target/scalatest-reports/**
-            **/target/site/surefire-report.html
-            **/target/site/surefire-report/*
+          MAVEN_OPTS="-Xmx3G -Xss2m" mvn clean package -Pprod
 
       - name: Save .war artifact
         run: |
-          mkdir -p ./push
-          cp obp-api/target/obp-api-1.*.war ./push/
+          mkdir -p ./pull
+          cp obp-api/target/obp-api-1.*.war ./pull/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}
-          path: push/
-
-      - name: Build the Docker image
-        run: |
-          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
-          docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
-          docker build . --file .github/Dockerfile_PreBuild_OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}-OC
-          docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }} --all-tags
-          echo docker done
-
-      - uses: sigstore/cosign-installer@main
-
-      - name: Write signing key to disk (only needed for `cosign sign --key`)
-        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
-
-      - name: Sign container image
-        run: |
-          cosign sign -y --key cosign.key \
-            docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop-OC
-          cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC
-        env:
-          COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"
+          path: pull/
 
 
 

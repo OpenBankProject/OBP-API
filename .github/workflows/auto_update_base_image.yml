@@ -1,0 +1,35 @@
+name: Regular base image update check
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+env:
+  ## Sets environment variable
+  DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Docker Image Update Checker
+        id: baseupdatecheck
+        uses: lucacome/docker-image-update-checker@v2.0.0
+        with:
+          base-image: jetty:9.4-jdk11-alpine
+          image: ${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api:latest
+
+      - name: Trigger build_container_develop_branch workflow
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build_container_develop_branch.yml',
+              ref: 'refs/heads/develop'
+            });
+        if: steps.baseupdatecheck.outputs.needs-updating == 'true'
