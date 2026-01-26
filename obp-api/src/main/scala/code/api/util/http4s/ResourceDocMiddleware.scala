@@ -113,17 +113,17 @@ object ResourceDocMiddleware extends MdcLoggable {
                              ): IO[Response[IO]] = {
 
     // Initial context with just CallContext
-    val initialCtx = ValidationContext(callContext = cc)
+    val initialContext = ValidationContext(callContext = cc)
 
     // Compose all validation steps using EitherT
     val result: Validation[ValidationContext] = for {
-      ctx1 <- authenticate(req, resourceDoc, initialCtx)
-      ctx2 <- authorizeRoles(resourceDoc, pathParams, ctx1)
-      ctx3 <- validateBank(pathParams, ctx2)
-      ctx4 <- validateAccount(pathParams, ctx3)
-      ctx5 <- validateView(pathParams, ctx4)
-      ctx6 <- validateCounterparty(pathParams, ctx5)
-    } yield ctx6
+      context <- authenticate(req, resourceDoc, initialContext)
+      context <- authorizeRoles(resourceDoc, pathParams, context)
+      context <- validateBank(pathParams, context)
+      context <- validateAccount(pathParams, context)
+      context <- validateView(pathParams, context)
+      context <- validateCounterparty(pathParams, context)
+    } yield context
 
     // Convert Validation result to Response
     result.value.flatMap {
