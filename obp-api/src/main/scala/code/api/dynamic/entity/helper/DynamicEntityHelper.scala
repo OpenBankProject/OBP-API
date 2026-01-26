@@ -500,7 +500,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   val subEntities: List[DynamicEntityInfo] = Nil
 
-  val idName = StringUtils.uncapitalize(entityName) + "Id"
+  val idName = StringHelpers.snakify(entityName) + "_id"
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
 
@@ -581,11 +581,16 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
   }
 
-  def getExampleList: JObject =  if (bankId.isDefined){
-    val objectList: JObject = (listName -> JArray(List(getSingleExample)))
-    bankIdJObject merge objectList
-  } else{
-    (listName -> JArray(List(getSingleExample)))
+  def getExampleList: JObject = {
+    // Create the list item without the singleName wrapper - the actual API response
+    // returns a flat list of objects, not wrapped in entity name
+    val listItem: JObject = JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)
+    if (bankId.isDefined) {
+      val objectList: JObject = (listName -> JArray(List(listItem)))
+      bankIdJObject merge objectList
+    } else {
+      (listName -> JArray(List(listItem)))
+    }
   }
 
   val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)

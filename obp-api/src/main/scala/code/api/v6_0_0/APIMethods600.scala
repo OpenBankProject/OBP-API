@@ -30,7 +30,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -790,6 +790,62 @@ trait APIMethods600 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, canGetCacheInfo, callContext)
           } yield {
             val result = JSONFactory600.createCacheInfoJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getDatabasePoolInfo,
+      implementedInApiVersion,
+      nameOf(getDatabasePoolInfo),
+      "GET",
+      "/system/database/pool",
+      "Get Database Pool Information",
+      """Returns HikariCP connection pool information including:
+        |
+        |- Pool name
+        |- Active connections: currently in use
+        |- Idle connections: available in pool
+        |- Total connections: active + idle
+        |- Threads awaiting connection: requests waiting for a connection
+        |- Configuration: max pool size, min idle, timeouts
+        |
+        |This helps diagnose connection pool issues such as connection leaks or pool exhaustion.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      DatabasePoolInfoJsonV600(
+        pool_name = "HikariPool-1",
+        active_connections = 5,
+        idle_connections = 3,
+        total_connections = 8,
+        threads_awaiting_connection = 0,
+        maximum_pool_size = 10,
+        minimum_idle = 2,
+        connection_timeout_ms = 30000,
+        idle_timeout_ms = 600000,
+        max_lifetime_ms = 1800000,
+        keepalive_time_ms = 0
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystem, apiTagApi),
+      Some(List(canGetDatabasePoolInfo))
+    )
+
+    lazy val getDatabasePoolInfo: OBPEndpoint = {
+      case "system" :: "database" :: "pool" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetDatabasePoolInfo, callContext)
+          } yield {
+            val result = JSONFactory600.createDatabasePoolInfoJsonV600()
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -6924,7 +6980,16 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
-            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            _links = Some(DynamicEntityLinksJsonV600(
+              related = List(
+                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+              )
+            ))
           )
         )
       ),
@@ -6979,7 +7044,16 @@ trait APIMethods600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = true,
-            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            _links = Some(DynamicEntityLinksJsonV600(
+              related = List(
+                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+              )
+            ))
           )
         )
       ),

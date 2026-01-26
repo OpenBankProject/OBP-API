@@ -367,6 +367,8 @@ object Glossary extends MdcLoggable  {
 			 |
 			 |Dynamic Entities can be found under the **More** list of API Versions. Look for versions starting with `OBPdynamic-entity` or similar in the version selector.
 			 |
+			 |To programmatically discover all Dynamic Entity endpoints, use: `GET /resource-docs/API_VERSION/obp?content=dynamic`
+			 |
 			 |For more information about Dynamic Entities see ${getGlossaryItemLink("Dynamic-Entities")}
 			 |
 			|### Creating Favorites
@@ -3315,6 +3317,25 @@ object Glossary extends MdcLoggable  {
 |* GET /management/banks/BANK_ID/dynamic-entities - List bank level entities
 |* PUT /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Update entity definition
 |* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete entity (and all its data)
+|
+|**Discovering Dynamic Entity Endpoints (for application developers):**
+|
+|Once Dynamic Entities are created, their auto-generated CRUD endpoints are documented in the Resource Docs API. To programmatically discover all available Dynamic Entity endpoints, use:
+|
+|```
+|GET /resource-docs/API_VERSION/obp?content=dynamic
+|```
+|
+|For example: `GET /resource-docs/v5.1.0/obp?content=dynamic`
+|
+|This returns documentation for all dynamic endpoints (both Dynamic Entities and Dynamic Endpoints) including:
+|
+|* Endpoint paths and HTTP methods
+|* Request and response schemas with examples
+|* Required roles and authentication
+|* Field descriptions and types
+|
+|You can also get this documentation in OpenAPI/Swagger format for code generation and API client tooling.
 |
 |**Required roles to manage Dynamic Entities:**
 |
