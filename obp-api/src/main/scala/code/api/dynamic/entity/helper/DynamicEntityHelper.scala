@@ -500,7 +500,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   val subEntities: List[DynamicEntityInfo] = Nil
 
-  val idName = StringUtils.uncapitalize(entityName) + "Id"
+  val idName = StringHelpers.snakify(entityName) + "_id"
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
 
