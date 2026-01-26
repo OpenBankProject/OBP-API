@@ -3,7 +3,7 @@ package code.api.v7_0_0
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
@@ -180,10 +180,22 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val request = withDirectLoginToken(baseRequest, token1.value)
 
       When("Running through wrapped routes")
-      val (status, _) = runAndParseJson(request)
+      val (status, json) = runAndParseJson(request)
 
       Then("Response is 403 Forbidden")
       status.code shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(UserHasMissingRoles)
+              message should include(canGetCardsForBank.toString)
+            case _ =>
+              fail("Expected message field as JSON string for missing-role response")
+          }
+        case _ =>
+          fail("Expected JSON object for missing-role response")
+      }
     }
 
     scenario("Return BankNotFound when bank does not exist and user is entitled", Http4s700RoutesTag) {
@@ -280,10 +292,22 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val request = withDirectLoginToken(baseRequest, token1.value)
 
       When("Running through wrapped routes")
-      val (status, _) = runAndParseJson(request)
+      val (status, json) = runAndParseJson(request)
 
-      Then("Response is 400 Bad Request")
-      status.code shouldBe 400
+      Then("Response is 403 Forbidden")
+      status.code shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(UserHasMissingRoles)
+              message should include(canReadResourceDoc.toString)
+            case _ =>
+              fail("Expected message field as JSON string for missing-role response")
+          }
+        case _ =>
+          fail("Expected JSON object for missing-role response")
+      }
     }
 
     scenario("Return docs when authenticated and entitled with canReadResourceDoc", Http4s700RoutesTag) {

@@ -6,12 +6,12 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
+import code.api.util.ApiRole.canGetCardsForBank
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
+import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{RequestOps, EndpointHelpers}
-import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.{ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
@@ -201,62 +201,25 @@ object Http4s700 {
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
-        implicit val cc: CallContext = req.callContext
-        val resultF: Future[String] = {
-          val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          val queryParams = req.uri.query.multiParams
+          val tags = queryParams
+            .get("tags")
+            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
+          val functions = queryParams
+            .get("functions")
+            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
+          val localeParam = queryParams
+            .get("locale")
+            .flatMap(_.headOption)
+            .orElse(queryParams.get("language").flatMap(_.headOption))
+            .map(_.trim)
+            .filter(_.nonEmpty)
           for {
-            (boxUser, cc1) <- if (resourceDocsRequireRole)
-              authenticatedAccess(cc)
-            else
-              anonymousAccess(cc)
-
-            _ <- if (resourceDocsRequireRole) {
-              NewStyle.function.hasAtLeastOneEntitlement(
-                failMsg = UserHasMissingRoles + canReadResourceDoc.toString
-              )("", boxUser.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc1)
-            } else {
-              Future.successful(())
-            }
-
-            queryParams = req.uri.query.multiParams
-            tags = queryParams
-              .get("tags")
-              .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
-            functions = queryParams
-              .get("functions")
-              .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
-            localeParam = queryParams
-              .get("locale")
-              .flatMap(_.headOption)
-              .orElse(queryParams.get("language").flatMap(_.headOption))
-              .map(_.trim)
-              .filter(_.nonEmpty)
-            contentParam = queryParams
-              .get("content")
-              .flatMap(_.headOption)
-              .map(_.trim)
-              .flatMap(ResourceDocsAPIMethodsUtil.stringToContentParam)
             requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
             resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
             filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
-            resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
-          } yield convertAnyToJsonString(resourceDocsJson)
-        }
-
-        IO.fromFuture(IO(resultF)).attempt.flatMap {
-          case Right(result) => Ok(result)
-          case Left(e) =>
-            val (code, msg) = try {
-              import net.liftweb.json._
-              implicit val formats = net.liftweb.json.DefaultFormats
-              val json = parse(e.getMessage)
-              val failCode = (json \ "failCode").extractOpt[Int].getOrElse(400)
-              val failMsg = (json \ "failMsg").extractOpt[String].getOrElse(UnknownError)
-              (failCode, failMsg)
-            } catch {
-              case _: Exception => (500, UnknownError)
-            }
-            ErrorResponseConverter.createErrorResponse(code, msg, cc)
+          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
         }
     }
 
