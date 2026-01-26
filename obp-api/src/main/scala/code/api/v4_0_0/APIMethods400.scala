@@ -2221,6 +2221,14 @@ trait APIMethods400 extends MdcLoggable {
          |
          |FYI Dynamic Entities and Dynamic Endpoints are listed in the Resource Doc endpoints by adding content=dynamic to the path. They are cached differently to static endpoints.
          |
+         |**Discovering the generated endpoints:**
+         |
+         |After creating a Dynamic Entity, OBP automatically generates CRUD endpoints. To discover these endpoints programmatically, use:
+         |
+         |`GET /resource-docs/API_VERSION/obp?content=dynamic`
+         |
+         |This returns documentation for all dynamic endpoints including paths, schemas, and required roles.
+         |
          |For more information about Dynamic Entities see ${Glossary
           .getGlossaryItemLink("Dynamic-Entities")}
          |
@@ -2430,6 +2438,14 @@ trait APIMethods400 extends MdcLoggable {
       |
       |FYI Dynamic Entities and Dynamic Endpoints are listed in the Resource Doc endpoints by adding content=dynamic to the path. They are cached differently to static endpoints.
       |
+         |**Discovering the generated endpoints:**
+         |
+         |After creating a Dynamic Entity, OBP automatically generates CRUD endpoints. To discover these endpoints programmatically, use:
+         |
+         |`GET /resource-docs/API_VERSION/obp?content=dynamic`
+         |
+         |This returns documentation for all dynamic endpoints including paths, schemas, and required roles.
+         |
          |For more information about Dynamic Entities see ${Glossary
           .getGlossaryItemLink("Dynamic-Entities")}
          |
