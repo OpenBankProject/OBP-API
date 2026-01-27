@@ -11,9 +11,7 @@ import java.util.{Date, Locale}
 
 object BgSpecValidation {
 
-  //val MaxValidDays: LocalDate = LocalDate.now().plusDaysCustom(180) // Max 180 days from today
-  //FOR TEST
-  val MaxValidDays: LocalDate = BgSpecValidation.plusDaysCustom(LocalDate.now(), 180) // Max 180 days from today
+  val MaxValidDays: LocalDate = LocalDate.now().plusDays(180) // Max 180 days from today
   val DateFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
   def getErrorMessage(dateStr: String): String = {
@@ -35,11 +33,12 @@ object BgSpecValidation {
     try {
       val date = LocalDate.parse(dateStr, DateFormat)
       val today = LocalDate.now()
+      val maxValidDaysCurrent = today.plusDays(180)
 
       if (date.isBefore(today)) {
         Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) cannot be in the past!")
-      } else if (date.isAfter(MaxValidDays)) {
-        Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) exceeds the maximum allowed period of 180 days (until $MaxValidDays). today: ($today)")
+      } else if (date.isAfter(maxValidDaysCurrent)) {
+        Left(s"$InvalidDateFormat The `validUntil` date ($dateStr) exceeds the maximum allowed period of 180 days (until $maxValidDaysCurrent). today: ($today)")
       } else {
         Right(date) // Valid date (inclusive of 180 days)
       }
@@ -55,27 +54,5 @@ object BgSpecValidation {
       val localDate: LocalDate = date.toInstant.atZone(ZoneId.systemDefault()).toLocalDate
       localDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
     }
-  }
-
-  def plusDaysCustom(date: LocalDate, daysToAdd: Long): LocalDate = {
-    if (daysToAdd == 0) return date
-
-    var newDate = date
-    var remainingDays = daysToAdd
-
-    // Предположим, что у нас есть методы для получения длины месяца и дня месяца
-    while (remainingDays != 0) {
-      val daysInCurrentMonth = newDate.lengthOfMonth() - newDate.getDayOfMonth()
-
-      // Если оставшихся дней меньше, чем до конца текущего месяца
-      if (remainingDays <= daysInCurrentMonth) {
-        return newDate.plusDays(remainingDays)
-      } else {
-        // Переходим на следующий месяц
-        remainingDays -= daysInCurrentMonth + 1
-        newDate = newDate.plusMonths(1).withDayOfMonth(1)  // Переходим на 1-е число следующего месяца
-      }
-    }
-    newDate
   }
 }
