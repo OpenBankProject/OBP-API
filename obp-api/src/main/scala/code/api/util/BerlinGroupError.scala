@@ -118,6 +118,8 @@ object BerlinGroupError {
       case "400" if message.contains("OBP-90002") => "FORMAT_ERROR"
       case "400" if message.contains("OBP-90003") => "BAD_REQUEST"
 
+      case "404" if message.contains("OBP-10033") => "FORMAT_ERROR"
+
       case "400" if message.contains("OBP-50221") => "PAYMENT_FAILED"
 
       case "405" if message.contains("OBP-10404") => "SERVICE_INVALID"
