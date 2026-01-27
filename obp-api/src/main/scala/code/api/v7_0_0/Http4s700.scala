@@ -6,12 +6,12 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
+import code.api.util.ApiRole.canGetCardsForBank
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{RequestOps, EndpointHelpers}
-import code.api.util.{ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.{ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.JSONFactory400
@@ -201,44 +201,26 @@ object Http4s700 {
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
-        implicit val cc: CallContext = req.callContext
-        for {
-          result <- IO.fromFuture(IO {
-            // Check resource_docs_requires_role property
-            val resourceDocsRequireRole = getPropsAsBoolValue("resource_docs_requires_role", false)
-              
-              for {
-                // Authentication based on property
-                (boxUser, cc1) <- if (resourceDocsRequireRole) 
-                  authenticatedAccess(cc)
-                else 
-                  anonymousAccess(cc)
-                
-                // Role check based on property
-                _ <- if (resourceDocsRequireRole) {
-                  NewStyle.function.hasAtLeastOneEntitlement(
-                    failMsg = UserHasMissingRoles + canReadResourceDoc.toString
-                  )("", boxUser.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc1)
-                } else {
-                  Future.successful(())
-                }
-                
-                httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-                tagsParam = httpParams.filter(_.name == "tags").map(_.values).headOption
-                functionsParam = httpParams.filter(_.name == "functions").map(_.values).headOption
-                localeParam = httpParams.filter(param => param.name == "locale" || param.name == "language").map(_.values).flatten.headOption
-                contentParam = httpParams.filter(_.name == "content").map(_.values).flatten.flatMap(ResourceDocsAPIMethodsUtil.stringToContentParam).headOption
-                apiCollectionIdParam = httpParams.filter(_.name == "api-collection-id").map(_.values).flatten.headOption
-                tags = tagsParam.map(_.map(ResourceDocTag(_)))
-                functions = functionsParam.map(_.toList)
-                requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
-                resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
-                filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
-                resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
-              } yield convertAnyToJsonString(resourceDocsJson)
-            })
-            response <- Ok(result)
-          } yield response
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          val queryParams = req.uri.query.multiParams
+          val tags = queryParams
+            .get("tags")
+            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
+          val functions = queryParams
+            .get("functions")
+            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
+          val localeParam = queryParams
+            .get("locale")
+            .flatMap(_.headOption)
+            .orElse(queryParams.get("language").flatMap(_.headOption))
+            .map(_.trim)
+            .filter(_.nonEmpty)
+          for {
+            requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
+            resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
+          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
+        }
     }
 
 
