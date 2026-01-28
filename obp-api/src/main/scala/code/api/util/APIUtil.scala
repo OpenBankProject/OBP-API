@@ -3078,10 +3078,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else 
       getCorrelationId()
       
-    val reqHeaders = if (cc.requestHeaders.nonEmpty) 
-      cc.requestHeaders 
-    else 
-      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    val reqHeaders = if (cc.requestHeaders.nonEmpty)
+      cc.requestHeaders
+    else
+      S.request.map(_.request.headers).openOr(Nil)
       
     val remoteIpAddress = if (cc.ipAddress.nonEmpty) 
       cc.ipAddress 
