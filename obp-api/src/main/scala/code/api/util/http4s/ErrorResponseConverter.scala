@@ -5,6 +5,7 @@ import code.api.APIFailureNewStyle
 import code.api.util.ErrorMessages._
 import code.api.util.CallContext
 import net.liftweb.common.{Failure => LiftFailure}
+import net.liftweb.json.JsonParser.parse
 import net.liftweb.json.compactRender
 import net.liftweb.json.JsonDSL._
 import org.http4s._
@@ -30,6 +31,19 @@ object ErrorResponseConverter {
   
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
+
+  private def tryExtractApiFailureFromExceptionMessage(error: Throwable): Option[APIFailureNewStyle] = {
+    val msg = Option(error.getMessage).getOrElse("").trim
+    if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
+      try {
+        Some(parse(msg).extract[APIFailureNewStyle])
+      } catch {
+        case _: Throwable => None
+      }
+    } else {
+      None
+    }
+  }
   
   /**
    * OBP standard error response format.
@@ -53,7 +67,11 @@ object ErrorResponseConverter {
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
       case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
-      case _ => unknownErrorToResponse(error, callContext)
+      case _ =>
+        tryExtractApiFailureFromExceptionMessage(error) match {
+          case Some(apiFailure) => apiFailureToResponse(apiFailure, callContext)
+          case None => unknownErrorToResponse(error, callContext)
+        }
     }
   }
   

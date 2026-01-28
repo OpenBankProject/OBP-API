@@ -93,4 +93,44 @@ class Http4s500RoutesTest extends ServerSetupWithTestData {
       }
     }
   }
+
+  feature("Http4s500 products endpoints") {
+
+    scenario("Return products list JSON", Http4s500RoutesTag) {
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString(s"/obp/v5.0.0/banks/${APIUtil.defaultBankId}/products")
+      )
+
+      val (status, json) = runAndParseJson(request)
+
+      status shouldBe Status.Ok
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("products") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected products field to be an array")
+          }
+        case _ =>
+          fail("Expected JSON object for products endpoint")
+      }
+    }
+
+    scenario("Return 404 for missing product", Http4s500RoutesTag) {
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString(s"/obp/v5.0.0/banks/${APIUtil.defaultBankId}/products/DOES_NOT_EXIST")
+      )
+
+      val (status, json) = runAndParseJson(request)
+
+      status shouldBe Status.NotFound
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") should not be empty
+        case _ =>
+          fail("Expected JSON object for error response")
+      }
+    }
+  }
 }

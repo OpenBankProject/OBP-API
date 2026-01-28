@@ -8,13 +8,16 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.ResourceDocMiddleware
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.http4s.ErrorResponseConverter
 import code.api.util.{CustomJsonFormats, NewStyle}
+import code.api.util.APIUtil.getProductsIsPublic
 import code.api.v4_0_0.JSONFactory400
-import code.api.v5_0_0.JSONFactory500
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.ProductCode
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
@@ -30,6 +33,19 @@ object Http4s500 {
 
   implicit val formats: Formats = CustomJsonFormats.formats
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
+
+  private def okJson[A](a: A): IO[Response[IO]] = {
+    val jsonString = prettyRender(Extraction.decompose(a))
+    Ok(jsonString)
+  }
+
+  private def executeFuture[A](req: Request[IO])(f: => scala.concurrent.Future[A]): IO[Response[IO]] = {
+    implicit val cc: code.api.util.CallContext = req.callContext
+    IO.fromFuture(IO(f)).attempt.flatMap {
+      case Right(result) => okJson(result)
+      case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+    }
+  }
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_0_0
   val versionStatus: String = ApiVersionStatus.STABLE.toString
@@ -135,11 +151,81 @@ object Http4s500 {
         }
     }
 
+    private val productsAuthErrorBodies =
+      if (getProductsIsPublic) List(BankNotFound, UnknownError)
+      else List(AuthenticatedUserIsRequired, BankNotFound, UnknownError)
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getProducts),
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Get products offered by the bank specified by BANK_ID.
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productsJsonV400,
+      productsAuthErrorBodies,
+      List(apiTagProduct),
+      http4sPartialFunction = Some(getProducts)
+    )
+
+    val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "products" =>
+        executeFuture(req) {
+          val cc = req.callContext
+          val params = req.uri.query.multiParams.toList.map { case (k, vs) =>
+            GetProductsParam(k, vs.toList)
+          }
+          for {
+            (products, callContext) <- NewStyle.function.getProducts(BankId(bankId), params, Some(cc))
+          } yield JSONFactory400.createProductsJson(products)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE.
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productJsonV400,
+      productsAuthErrorBodies ::: List(ProductNotFoundByProductCode),
+      List(apiTagProduct),
+      http4sPartialFunction = Some(getProduct)
+    )
+
+    val getProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "products" / productCode =>
+        executeFuture(req) {
+          val cc = req.callContext
+          val bankIdObj = BankId(bankId)
+          val productCodeObj = ProductCode(productCode)
+          for {
+            (product, callContext) <- NewStyle.function.getProduct(bankIdObj, productCodeObj, Some(cc))
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankIdObj, productCodeObj, callContext)
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(bankIdObj, productCodeObj, callContext)
+          } yield JSONFactory400.createProductJson(product, productAttributes, productFees)
+        }
+    }
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
           .orElse(getBanks(req))
           .orElse(getBank(req))
+          .orElse(getProducts(req))
+          .orElse(getProduct(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =

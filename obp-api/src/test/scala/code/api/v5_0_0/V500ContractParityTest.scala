@@ -107,5 +107,56 @@ class V500ContractParityTest extends V500ServerSetup {
       getStringField(liftResponse.body, "id") shouldBe Some(bankId)
       getStringField(http4sJson, "id") shouldBe Some(bankId)
     }
+
+    scenario("products list returns consistent status and products array shape", V500ContractParityTag) {
+      val bankId = APIUtil.defaultBankId
+      val liftResponse = makeGetRequest((v5_0_0_Request / "banks" / bankId / "products").GET)
+      val (http4sStatus, http4sJson) = http4sRunAndParseJson(s"/obp/v5.0.0/banks/$bankId/products")
+
+      liftResponse.code should equal(http4sStatus.code)
+
+      liftResponse.body match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("products") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected Lift products field to be an array")
+          }
+        case _ =>
+          fail("Expected Lift JSON object for products endpoint")
+      }
+
+      http4sJson match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("products") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected http4s products field to be an array")
+          }
+        case _ =>
+          fail("Expected http4s JSON object for products endpoint")
+      }
+    }
+
+    scenario("product returns consistent 404 for missing product", V500ContractParityTag) {
+      val bankId = APIUtil.defaultBankId
+      val productCode = "DOES_NOT_EXIST"
+      val liftResponse = makeGetRequest((v5_0_0_Request / "banks" / bankId / "products" / productCode).GET)
+      val (http4sStatus, http4sJson) = http4sRunAndParseJson(s"/obp/v5.0.0/banks/$bankId/products/$productCode")
+
+      liftResponse.code should equal(http4sStatus.code)
+
+      liftResponse.body match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") should not be empty
+        case _ =>
+          fail("Expected Lift JSON object for missing product error")
+      }
+
+      http4sJson match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") should not be empty
+        case _ =>
+          fail("Expected http4s JSON object for missing product error")
+      }
+    }
   }
 }
