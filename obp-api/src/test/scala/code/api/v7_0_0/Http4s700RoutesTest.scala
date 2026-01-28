@@ -267,6 +267,81 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
+    scenario("Return only http4s technology endpoints", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request")
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
+      )
+
+      When("Running through wrapped routes")
+      val (status, json) = runAndParseJson(request)
+
+      Then("Response is 200 OK and includes no lift endpoints")
+      status shouldBe Status.Ok
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("resource_docs") match {
+            case Some(JArray(resourceDocs)) =>
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == "http4s"
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe true
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == "lift"
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe false
+            case _ =>
+              fail("Expected resource_docs field to be an array")
+          }
+        case _ =>
+          fail("Expected JSON object for resource-docs endpoint")
+      }
+    }
+
+    scenario("Reject requesting non-v7 API version docs", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/resource-docs/v6.0.0/obp request")
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v6.0.0/obp")
+      )
+
+      When("Running through wrapped routes")
+      val (status, json) = runAndParseJson(request)
+
+      Then("Response is 400 Bad Request")
+      status.code shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include("API Version not supported")
+            case _ =>
+              fail("Expected message field as JSON string for invalid-version response")
+          }
+        case _ =>
+          fail("Expected JSON object for invalid-version response")
+      }
+    }
+
     scenario("Reject unauthenticated access when resource docs role is required", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request without auth headers and role required")
       setPropsValues("resource_docs_requires_role" -> "true")
