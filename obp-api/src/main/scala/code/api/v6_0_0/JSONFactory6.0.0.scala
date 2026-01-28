@@ -38,6 +38,7 @@ import com.openbankproject.commons.model.{
   CustomerAttribute,
   _
 }
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 
 import java.util.Date
@@ -1430,8 +1431,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val entityName = entity.entityName
         val idPlaceholder = StringHelpers.snakify(entityName + "Id").toUpperCase()
         val baseUrl = entity.bankId match {
-          case Some(bankId) => s"/obp/v6.0.0/banks/$bankId/my/$entityName"
-          case None => s"/obp/v6.0.0/my/$entityName"
+          case Some(bankId) => s"/obp/${ApiVersion.v6_0_0}/banks/$bankId/my/$entityName"
+          case None => s"/obp/${ApiVersion.v6_0_0}/my/$entityName"
         }
 
         val links = DynamicEntityLinksJsonV600(

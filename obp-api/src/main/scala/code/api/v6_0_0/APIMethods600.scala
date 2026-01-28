@@ -1800,18 +1800,18 @@ trait APIMethods600 {
       ListResult(
         "scanned_api_versions",
         List(
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.2.1", fully_qualified_version = "OBPv1.2.1", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.3.0", fully_qualified_version = "OBPv1.3.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.4.0", fully_qualified_version = "OBPv1.4.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.0.0", fully_qualified_version = "OBPv2.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.1.0", fully_qualified_version = "OBPv2.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.2.0", fully_qualified_version = "OBPv2.2.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.0.0", fully_qualified_version = "OBPv3.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.1.0", fully_qualified_version = "OBPv3.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v4.0.0", fully_qualified_version = "OBPv4.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.0.0", fully_qualified_version = "OBPv5.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.1.0", fully_qualified_version = "OBPv5.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v6.0.0", fully_qualified_version = "OBPv6.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_2_1.toString, fully_qualified_version = ApiVersion.v1_2_1.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_3_0.toString, fully_qualified_version = ApiVersion.v1_3_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_4_0.toString, fully_qualified_version = ApiVersion.v1_4_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_0_0.toString, fully_qualified_version = ApiVersion.v2_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_1_0.toString, fully_qualified_version = ApiVersion.v2_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_2_0.toString, fully_qualified_version = ApiVersion.v2_2_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_0_0.toString, fully_qualified_version = ApiVersion.v3_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_1_0.toString, fully_qualified_version = ApiVersion.v3_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v4_0_0.toString, fully_qualified_version = ApiVersion.v4_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_0_0.toString, fully_qualified_version = ApiVersion.v5_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_1_0.toString, fully_qualified_version = ApiVersion.v5_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v6_0_0.toString, fully_qualified_version = ApiVersion.v6_0_0.fullyQualifiedVersion, is_active = true),
           ScannedApiVersionJsonV600(url_prefix = "berlin-group", api_standard = "BG", api_short_version = "v1.3", fully_qualified_version = "BGv1.3", is_active = false)
         )
       ),
@@ -4289,7 +4289,7 @@ trait APIMethods600 {
     lazy val getWebUiProp: OBPEndpoint = {
       case "webui-props" :: webUiPropName :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          logger.info(s"========== GET /obp/v6.0.0/webui-props/$webUiPropName (SINGLE PROP) called ==========")
+          logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props/$webUiPropName (SINGLE PROP) called ==========")
           val active = ObpS.param("active").getOrElse("false")
           for {
             invalidMsg <- Future(s"""$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: ${active} """)
@@ -4391,7 +4391,7 @@ trait APIMethods600 {
       case "webui-props":: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           val what = ObpS.param("what").getOrElse("active")
-          logger.info(s"========== GET /obp/v6.0.0/webui-props (ALL PROPS) called with what=$what ==========")
+          logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props (ALL PROPS) called with what=$what ==========")
           for {
             callContext <- Future.successful(cc.callContext)
             _ <- NewStyle.function.tryons(s"""$InvalidFilterParameterFormat `what` must be one of: active, database, config. Current value: $what""", 400, callContext) {
@@ -4417,11 +4417,11 @@ trait APIMethods600 {
                 explicitWebUiPropsWithSource ++ configPropsNotInDatabase
             }
           } yield {
-            logger.info(s"========== GET /obp/v6.0.0/webui-props returning ${result.size} records ==========")
+            logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props returning ${result.size} records ==========")
             result.foreach { prop =>
               logger.info(s"  - name: ${prop.name}, value: ${prop.value}, webUiPropsId: ${prop.webUiPropsId}")
             }
-            logger.info(s"========== END GET /obp/v6.0.0/webui-props ==========")
+            logger.info(s"========== END GET /obp/${ApiVersion.v6_0_0}/webui-props ==========")
             (ListResult("webui_props", result), HttpCode.`200`(callContext))
           }
       }
@@ -6983,11 +6983,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )
@@ -7047,11 +7047,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )
