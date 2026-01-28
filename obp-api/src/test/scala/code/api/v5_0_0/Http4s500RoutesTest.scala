@@ -2,6 +2,7 @@ package code.api.v5_0_0
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import code.api.util.APIUtil
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
@@ -70,5 +71,26 @@ class Http4s500RoutesTest extends ServerSetupWithTestData {
       }
     }
   }
-}
 
+  feature("Http4s500 bank endpoint") {
+
+    scenario("Return single bank JSON", Http4s500RoutesTag) {
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString(s"/obp/v5.0.0/banks/${APIUtil.defaultBankId}")
+      )
+
+      val (status, json) = runAndParseJson(request)
+
+      status shouldBe Status.Ok
+      json match {
+        case JObject(fields) =>
+          val keys = fields.map(_.name)
+          keys should contain("id")
+          keys should contain("bank_code")
+        case _ =>
+          fail("Expected JSON object for get bank endpoint")
+      }
+    }
+  }
+}

@@ -11,8 +11,10 @@ import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{CustomJsonFormats, NewStyle}
 import code.api.v4_0_0.JSONFactory400
+import code.api.v5_0_0.JSONFactory500
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
@@ -101,10 +103,43 @@ object Http4s500 {
         }
     }
 
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Bank code and full name of bank
+        |* Logo URL
+        |* Website""",
+      EmptyBody,
+      bankJson500,
+      List(
+        UnknownError,
+        BankNotFound
+      ),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      http4sPartialFunction = Some(getBank)
+    )
+
+    val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId =>
+        EndpointHelpers.withBank(req) { (bank, cc) =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(BankId(bankId), Some(cc))
+          } yield JSONFactory500.createBankJSON500(bank, attributes)
+        }
+    }
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
           .orElse(getBanks(req))
+          .orElse(getBank(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
@@ -113,4 +148,3 @@ object Http4s500 {
 
   val wrappedRoutesV500Services: HttpRoutes[IO] = Implementations5_0_0.allRoutesWithMiddleware
 }
-

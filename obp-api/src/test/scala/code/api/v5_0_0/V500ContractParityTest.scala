@@ -2,8 +2,9 @@ package code.api.v5_0_0
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import code.api.util.APIUtil
 import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.JsonParser.parse
 import org.http4s.{Method, Request, Status, Uri}
 import org.scalatest.Tag
@@ -25,6 +26,17 @@ class V500ContractParityTest extends V500ServerSetup {
 
   private def toFieldMap(fields: List[JField]): Map[String, JValue] = {
     fields.map(field => field.name -> field.value).toMap
+  }
+
+  private def getStringField(json: JValue, key: String): Option[String] = {
+    json match {
+      case JObject(fields) =>
+        toFieldMap(fields).get(key) match {
+          case Some(JString(v)) => Some(v)
+          case _ => None
+        }
+      case _ => None
+    }
   }
 
   feature("V500 Lift vs http4s parity") {
@@ -84,6 +96,16 @@ class V500ContractParityTest extends V500ServerSetup {
           fail("Expected http4s JSON object for banks endpoint")
       }
     }
+
+    scenario("bank returns consistent status and bank id", V500ContractParityTag) {
+      val bankId = APIUtil.defaultBankId
+      val liftResponse = makeGetRequest((v5_0_0_Request / "banks" / bankId).GET)
+      val (http4sStatus, http4sJson) = http4sRunAndParseJson(s"/obp/v5.0.0/banks/$bankId")
+
+      liftResponse.code should equal(http4sStatus.code)
+
+      getStringField(liftResponse.body, "id") shouldBe Some(bankId)
+      getStringField(http4sJson, "id") shouldBe Some(bankId)
+    }
   }
 }
-
