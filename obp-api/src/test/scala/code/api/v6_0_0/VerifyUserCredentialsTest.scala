@@ -13,8 +13,8 @@ import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Full
 import net.liftweb.json.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -27,8 +27,8 @@ import org.scalatest.Tag
  * - Successful credential verification
  * - Invalid password (should fail with 401)
  * - Invalid username (should fail with 401)
- * - Account locked after too many failed attempts
  * - Provider mismatch
+ * - Invalid JSON format
  */
 class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
 
@@ -100,8 +100,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Successfully verify valid credentials", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials")
       val postJson = Map(
@@ -110,7 +110,12 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "provider" -> Constant.localIdentityProvider
       )
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, write(postJson))
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 200")
       response.code should equal(200)
@@ -124,8 +129,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Fail to verify with wrong password", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      // Entitlement already added in previous scenario
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify credentials with wrong password")
       val postJson = Map(
@@ -134,20 +139,24 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "provider" -> Constant.localIdentityProvider
       )
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, write(postJson))
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Reset bad login attempts for this user
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, testUsername)
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 401")
       response.code should equal(401)
       And("The error message should indicate invalid credentials")
       response.body.extract[ErrorMessage].message should include("OBP-20004")
-
-      // Reset bad login attempts for this user
-      LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, testUsername)
     }
 
     scenario("Fail to verify with non-existent username", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      // Entitlement already added
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify credentials with non-existent username")
       val postJson = Map(
@@ -156,7 +165,12 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "provider" -> Constant.localIdentityProvider
       )
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, write(postJson))
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 401")
       response.code should equal(401)
@@ -164,9 +178,9 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Fail to verify with empty provider (should still work - provider check is optional)", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      // Entitlement already added
+    scenario("Successfully verify with empty provider (provider check is optional)", ApiEndpoint, VersionOfApi) {
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials with empty provider")
       val postJson = Map(
@@ -175,7 +189,12 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "provider" -> ""
       )
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, write(postJson))
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 200 (provider check is skipped when empty)")
       response.code should equal(200)
@@ -185,8 +204,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Fail to verify with mismatched provider", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      // Entitlement already added
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify credentials with wrong provider")
       val postJson = Map(
@@ -195,7 +214,12 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "provider" -> "some_other_provider"
       )
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, write(postJson))
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 401")
       response.code should equal(401)
@@ -204,12 +228,17 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Fail with invalid JSON format", ApiEndpoint, VersionOfApi) {
-      Given("User has the required entitlement")
-      // Entitlement already added
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We send invalid JSON")
       val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = makePostRequest(request, "{ invalid json }")
+      val response = try {
+        makePostRequest(request, "{ invalid json }")
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
 
       Then("We should get a 400")
       response.code should equal(400)
