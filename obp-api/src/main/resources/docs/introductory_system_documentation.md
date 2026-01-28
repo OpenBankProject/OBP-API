@@ -6,8 +6,8 @@ It provides an introduction to its key components, architecture, deployment and 
 For more detailed information or the sources of truths, please refer to the individual repository READMEs or contact TESOBE for commercial licences and support.
 
 **Version:** 0.5.0
-**Last Updated:** Oct 2025
-**License:** Copyright TESOBE GmbH 2025 - AGPL V3
+**Last Updated:** Jan 2026
+**License:** Copyright TESOBE GmbH 2026 - AGPL V3
 
 ---
 
@@ -17,17 +17,19 @@ For more detailed information or the sources of truths, please refer to the indi
 2. [System Architecture](#system-architecture)
 3. [Component Descriptions](#component-descriptions)
    - 3.1 [OBP-API (Core Server)](#31-obp-api-core-server)
-   - 3.2 [API Explorer](#32-api-explorer)
-   - 3.3 [API Manager](#33-api-manager)
+   - 3.2 [API Explorer II](#32-api-explorer-ii)
+   - 3.3 [API Manager II](#33-api-manager-ii)
    - 3.4 [Opey II (AI Agent)](#34-opey-ii-ai-agent)
    - 3.5 [OBP-OIDC (Development Provider)](#35-obp-oidc-development-provider)
    - 3.6 [Keycloak Integration (Production Provider)](#36-keycloak-integration-production-provider)
    - 3.7 [Ory Hydra (Production Provider)](#37-ory-hydra-production-provider)
    - 3.8 [OBP-Hola](#38-obp-hola)
    - 3.9 [OBP-SEPA-Adapter](#39-obp-sepa-adapter)
-   - 3.10 [Connectors](#310-connectors)
-   - 3.11 [Adapters](#311-adapters)
-   - 3.12 [Message Docs](#312-message-docs)
+   - 3.10 [OBP-Rabbit-Cats-Adapter](#310-obp-rabbit-cats-adapter)
+   - 3.11 [Connectors](#311-connectors)
+   - 3.12 [Adapters](#312-adapters)
+   - 3.13 [Message Docs](#313-message-docs)
+   - 3.14 [OBP-MCP (Model Context Protocol Server)](#314-obp-mcp-model-context-protocol-server)
 4. [Standards Compliance](#standards-compliance)
 5. [Installation and Configuration](#installation-and-configuration)
 6. [Migration Scripts and Migration Script Logs](#migration-scripts-and-migration-script-logs)
@@ -37,7 +39,9 @@ For more detailed information or the sources of truths, please refer to the indi
    - 8.2 [Consent Management](#82-consent-management)
    - 8.3 [Views System](#83-views-system)
    - 8.4 [Rate Limiting](#84-rate-limiting)
-   - 8.5 [Security Best Practices](#85-security-best-practices)
+   - 8.5 [Attribute-Based Access Control (ABAC)](#85-attribute-based-access-control-abac)
+   - 8.6 [User Attributes and Personal Data](#86-user-attributes-and-personal-data)
+   - 8.7 [Security Best Practices](#87-security-best-practices)
 9. [Use Cases](#use-cases)
 10. [Monitoring, Logging, and Troubleshooting](#monitoring-logging-and-troubleshooting)
 11. [API Documentation and Service Guides](#api-documentation-and-service-guides)
@@ -170,11 +174,11 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 #### 1.2.13 Developer Experience
 
-- **API Explorer**: Interactive API documentation and testing (Vue.js/TypeScript)
+- **API Explorer II**: Interactive API documentation and testing (Vue.js/TypeScript)
 - **Swagger/OAS**: OpenAPI specification support
 - **Sandbox Mode**: Test environment with mock data
 - **Comprehensive Documentation**: Glossary, Resource Docs with Auto-generated API docs from code
-- **API Manager**: Django-based admin interface for API governance
+- **API Manager II**: Admin interface for API governance (SvelteKit/TypeScript)
 - **Web UI Props**: Configurable UI properties
 
 #### 1.2.14 Advanced Features
@@ -204,8 +208,8 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 ### 1.3 Key Components
 
 - **OBP-API:** Core RESTful API server (Scala/Lift framework)
-- **API Explorer:** Interactive API documentation and testing tool (Vue.js/TypeScript)
-- **API Manager:** Administration interface for managing APIs and consumers (Django/Python)
+- **API Explorer II:** Interactive API documentation and testing tool (Vue.js/TypeScript)
+- **API Manager II:** Administration interface for managing APIs and consumers (SvelteKit/TypeScript)
 - **Opey II:** AI-powered conversational banking assistant (Python/LangGraph)
 - **OBP-OIDC:** Development OpenID Connect provider for testing
 - **Keycloak Integration:** Production-grade OIDC provider support
@@ -218,7 +222,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 ```
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────────────────────┐
-│   API Explorer  │  │   API Manager   │  │    Opey II      │  │   Client Applications         │
+│ API Explorer II │  │ API Manager II  │  │    Opey II      │  │   Client Applications         │
 │   (Frontend)    │  │   (Admin UI)    │  │   (AI Agent)    │  │ (Web/Mobile Apps, TPP, etc.)  │
 └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └────────┬──────────────────────┘
          │                    │                    │                    │
@@ -352,20 +356,19 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - Concurrency: Akka
 - JDK: OpenJDK 11, Oracle JDK 1.8/13
 
-**Frontend (API Explorer):**
+**Frontend (API Explorer II):**
 
 - Framework: Vue.js 3, TypeScript
 - Build Tool: Vite
 - UI: Tailwind CSS
 - Testing: Vitest, Playwright
 
-**Admin UI (API Manager):**
+**Admin UI (API Manager II):**
 
-- Framework: Django 3.x/4.x
-- Language: Python 3.x
-- Database: SQLite (dev) / PostgreSQL (prod)
-- Auth: OAuth 1.0a (OBP API-driven)
-- WSGI Server: Gunicorn
+- Framework: SvelteKit 2
+- Language: TypeScript
+- UI: Svelte 5, Tailwind CSS 4
+- Auth: OAuth 2.0 / OIDC (Arctic)
 
 **AI Agent (Opey II):**
 
@@ -449,7 +452,7 @@ cache.redis.port=6379
 super_admin_user_ids=uuid-of-admin-user
 ```
 
-### 3.2 API Explorer
+### 3.2 API Explorer II
 
 **Purpose:** Interactive API documentation and testing interface
 
@@ -507,9 +510,9 @@ server {
 }
 ```
 
-### 3.3 API Manager
+### 3.3 API Manager II
 
-**Purpose:** Django-based administrative interface for managing OBP APIs and consumers
+**Purpose:** Administrative interface for managing OBP APIs, consumers, and entitlements
 
 **Key Features:**
 
@@ -518,118 +521,44 @@ server {
 - User entitlement grant/revoke functionality
 - Resource management (branches, etc.)
 - Consumer enable/disable control
-- OAuth 1.0a authentication against OBP API
+- OAuth 2.0 / OIDC authentication
 - Web UI for administrative tasks
 
 **Technology:**
 
-- Framework: Django 3.x/4.x
-- Language: Python 3.x
-- Database: SQLite (development) / PostgreSQL (production)
-- WSGI Server: Gunicorn
-- Process Control: systemd / supervisor
-- Web Server: Nginx / Apache (reverse proxy)
-
-**Configuration (`local_settings.py`):**
-
-```python
-import os
-
-BASE_DIR = '/path/to/project'
-
-# Django settings
-SECRET_KEY = '<random-string>'
-DEBUG = False  # Set to True for development
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'apimanager.yourdomain.com']
-
-# OBP API Configuration
-API_HOST = 'http://127.0.0.1:8080'
-API_PORTAL = 'http://127.0.0.1:8080'  # If split deployment
-
-# OAuth credentials for the API Manager app
-OAUTH_CONSUMER_KEY = '<your-consumer-key>'
-OAUTH_CONSUMER_SECRET = '<your-consumer-secret>'
-
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, '..', '..', 'db.sqlite3'),
-    }
-}
-
-# Optional: Explicit callback URL
-# CALLBACK_BASE_URL = "https://apimanager.example.com"
-
-# Static files
-STATIC_ROOT = os.path.join(BASE_DIR, '..', '..', 'static-collected')
-
-# Email (for production)
-ADMINS = [('Admin', 'admin@example.com')]
-SERVER_EMAIL = 'apimanager@example.com'
-EMAIL_HOST = 'mail.example.com'
-EMAIL_TLS = True
-
-# Filtering
-EXCLUDE_APPS = []
-EXCLUDE_FUNCTIONS = []
-EXCLUDE_URL_PATTERN = []
-API_EXPLORER_APP_NAME = 'API Explorer'
-
-# Date formats
-API_DATE_FORMAT_WITH_SECONDS = '%Y-%m-%dT%H:%M:%SZ'
-API_DATE_FORMAT_WITH_MILLISECONDS = '%Y-%m-%dT%H:%M:%S.000Z'
-```
+- Framework: SvelteKit 2
+- Language: TypeScript
+- UI: Svelte 5, Tailwind CSS 4
+- Build: Vite
+- Session Storage: Redis
+- Authentication: Arctic (OAuth2/OIDC), JWT
+- Testing: Vitest (unit), Playwright (E2E)
 
 **Installation (Development):**
 
 ```bash
-# Create project structure
-mkdir OpenBankProject && cd OpenBankProject
-git clone https://github.com/OpenBankProject/API-Manager.git
-cd API-Manager
-
-# Create virtual environment
-virtualenv --python=python3 ../venv
-source ../venv/bin/activate
+git clone https://github.com/OpenBankProject/API-Manager-II.git
+cd API-Manager-II
 
 # Install dependencies
-pip install -r requirements.txt
+npm install
 
-# Create local settings
-cp apimanager/apimanager/local_settings.py.example \
-   apimanager/apimanager/local_settings.py
-
-# Edit local_settings.py with your configuration
-nano apimanager/apimanager/local_settings.py
-
-# Initialize database
-./apimanager/manage.py migrate
+# Configure environment
+cp .env.example .env
+# Edit .env with OBP API URL and OAuth credentials
 
 # Run development server
-./apimanager/manage.py runserver
-# Access at http://localhost:8000
+npm run dev
+# Access at http://localhost:5173
 ```
 
 **Installation (Production):**
 
 ```bash
-# After development setup, collect static files
-./apimanager/manage.py collectstatic
+npm run build
 
-# Run with Gunicorn
-cd apimanager
-gunicorn --config ../gunicorn.conf.py apimanager.wsgi
-
-# Configure systemd service
-sudo cp apimanager.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable apimanager
-sudo systemctl start apimanager
-
-# Configure Nginx
-sudo cp nginx.apimanager.conf /etc/nginx/sites-enabled/
-sudo systemctl reload nginx
+# Run the built application
+node build
 ```
 
 **Management:**
@@ -1156,7 +1085,80 @@ sbt "runMain sepa.scheduler.ProcessIncomingFilesActorSystem"
 
 ---
 
-### 3.10 Connectors
+### 3.10 OBP-Rabbit-Cats-Adapter
+
+**Purpose:** OBP-Rabbit-Cats-Adapter is a functional, type-safe adapter that bridges OBP-API with Core Banking Systems (CBS) using RabbitMQ messaging. It is built on a modern Scala stack using Cats Effect and http4s.
+
+**Architecture:**
+
+```
+OBP-API ↔ RabbitMQ ↔ OBP-Rabbit-Cats-Adapter ↔ Core Banking System (REST/SOAP/etc)
+```
+
+**Technology Stack:**
+
+- **Scala 2.13** with **Cats Effect 3** for purely functional, non-blocking I/O
+- **fs2** and **fs2-rabbit** for functional streaming and RabbitMQ integration
+- **http4s** (Ember) for the discovery/health HTTP server
+- **Circe** for type-safe JSON serialization
+- **Prometheus** for metrics and monitoring
+- **Redis** (optional) for message counting
+
+**Key Design: LocalAdapter Interface**
+
+Banks integrate by implementing a single `LocalAdapter` trait:
+
+```scala
+trait LocalAdapter {
+  def name: String
+  def version: String
+  def handleMessage(process: String, data: JsonObject, callContext: CallContext): IO[LocalAdapterResult]
+  def checkHealth(callContext: CallContext): IO[LocalAdapterResult]
+  def getAdapterInfo(callContext: CallContext): IO[LocalAdapterResult]
+}
+```
+
+The generic adapter code handles RabbitMQ messaging and OBP protocol concerns, while the bank-specific `LocalAdapter` implementation handles CBS communication. This separation means banks do not need to modify the generic adapter code.
+
+**Message Flow:**
+
+1. OBP-API publishes a request to the RabbitMQ `obp.request` queue
+2. The adapter consumes the message and extracts the message type (e.g. `obp.getBank`)
+3. The `LocalAdapter` implementation processes the request against the CBS
+4. The response is published to the `obp.response` queue with a matching correlation ID
+
+**Supported Message Types** (via Message Docs):
+
+- `obp.getAdapterInfo`, `obp.getBank`, `obp.getBankAccount`
+- `obp.getTransaction`, `obp.getTransactions`
+- `obp.checkFundsAvailable`, `obp.makePayment`
+- Any additional message types defined in OBP Message Docs
+
+**Observability:**
+
+- Discovery web UI at configurable HTTP port (default 52345)
+- Health check endpoints: `/health`, `/ready`, `/info`
+- Built-in telemetry with Prometheus metrics support
+- Correlation ID tracking through the full message processing pipeline
+
+**Quick Start:**
+
+```bash
+# Start RabbitMQ
+./start_rabbitmq.sh
+
+# Build and run
+./build_and_run.sh
+
+# Access discovery UI
+open http://localhost:52345
+```
+
+**Repository:** https://github.com/OpenBankProject/OBP-Rabbit-Cats-Adapter
+
+---
+
+### 3.11 Connectors
 
 **Purpose:** Connectors provide the integration layer between OBP-API and backend banking systems or data sources.
 
@@ -1217,7 +1219,7 @@ sbt "runMain sepa.scheduler.ProcessIncomingFilesActorSystem"
 
 ---
 
-### 3.11 Adapters
+### 3.12 Adapters
 
 **Purpose:** Adapters are backend services that receive messages from OBP-API connectors and respond according to Message Doc definitions.
 
@@ -1256,7 +1258,7 @@ Adapters listen to message queues or remote calls, parse incoming messages accor
 
 ---
 
-### 3.12 Message Docs
+### 3.13 Message Docs
 
 **Purpose:** Message Docs define the structure and schema of messages exchanged between OBP-API connectors and backend adapters.
 
@@ -1282,6 +1284,37 @@ Message Docs are available for various connectors including Kafka, RabbitMQ, and
 
 **Example:** [RabbitMQ Message Docs](https://apiexplorer-ii-sandbox.openbankproject.com/message-docs/rabbitmq_vOct2024)
 
+**Message Docs Endpoints:**
+
+Three endpoint formats are available for retrieving Message Docs:
+
+| Version | Endpoint | Format |
+|---------|----------|--------|
+| v2.2.0+ | `GET /obp/v6.0.0/message-docs/CONNECTOR` | JSON examples |
+| v3.1.0+ | `GET /obp/v6.0.0/message-docs/CONNECTOR/swagger2.0` | Swagger 2.0 |
+| v6.0.0+ | `GET /obp/v6.0.0/message-docs/CONNECTOR/json-schema` | JSON Schema (draft-07) |
+
+**JSON Schema Message Docs (v6.0.0):**
+
+The `json-schema` endpoint returns machine-readable JSON Schema (draft-07) documents for each connector. This is the recommended format for building adapters as it provides:
+
+- **Full type information** with required vs optional fields explicitly marked
+- **Nested type definitions** fully resolved in a `definitions` section
+- **Library-agnostic** format that works with any JSON library (Circe, Jackson, Play JSON, etc.)
+- **Code generation ready** - generate adapter types in 15+ languages using tools such as quicktype
+- **AI-friendly** structured format suitable for automated adapter generation
+
+```bash
+# Get JSON Schema for RabbitMQ connector
+GET /obp/v6.0.0/message-docs/rabbitmq_vOct2024/json-schema
+
+# Other supported connectors
+GET /obp/v6.0.0/message-docs/rest_vMar2019/json-schema
+GET /obp/v6.0.0/message-docs/akka_vDec2018/json-schema
+```
+
+Each message in the schema includes `outbound_schema` (OBP-API to Adapter request) and `inbound_schema` (Adapter to OBP-API response) with full type definitions.
+
 **Configuration:**
 
 ```properties
@@ -1296,6 +1329,85 @@ connector=rabbitmq_vOct2024
 - CanGetAllDynamicMessageDocs
 - CanUpdateDynamicMessageDoc
 - CanDeleteDynamicMessageDoc
+
+---
+
+### 3.14 OBP-MCP (Model Context Protocol Server)
+
+**Purpose:** OBP-MCP is an MCP (Model Context Protocol) server that enables AI assistants (such as Claude, ChatGPT, and other LLM-based tools) to discover, explore, and interact with the 600+ OBP API endpoints and 800+ glossary terms.
+
+**Overview:**
+
+The server exposes the entire OBP API surface as MCP tools, allowing AI assistants to look up endpoints by category, retrieve full OpenAPI schemas, execute API calls, and access banking terminology - all through the standardised Model Context Protocol.
+
+**Technology Stack:**
+
+- **Python 3.12+** with **FastMCP** (MCP server framework)
+- **Uvicorn/Starlette** for HTTP transport
+- **Streamable HTTP** MCP transport protocol
+
+**Architecture: Hybrid Tag-Based Routing**
+
+Rather than using RAG (Retrieval Augmented Generation) with vector databases, OBP-MCP uses a lightweight tag-based discovery model:
+
+1. AI assistant identifies relevant categories (e.g. Account, Transaction, Bank)
+2. `list_endpoints_by_tag()` returns lightweight endpoint summaries
+3. AI selects the specific endpoint needed
+4. `get_endpoint_schema()` fetches the full OpenAPI schema on demand
+5. `call_obp_api()` executes the request
+
+This approach is cost-efficient (minimal token usage), fast, and requires no vector database infrastructure.
+
+**MCP Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `list_endpoints_by_tag` | Filter 600+ endpoints by category tags |
+| `get_endpoint_schema` | Fetch full OpenAPI schema for a specific endpoint |
+| `call_obp_api` | Execute an API request to OBP |
+| `list_glossary_terms` | Search 800+ OBP glossary terms |
+| `get_glossary_term` | Fetch complete definition for a term |
+
+**Data Management:**
+
+- On startup, fetches the OBP Swagger specification and glossary
+- Generates lightweight index files for efficient lookup
+- Automatic change detection via hash comparison; re-indexes when OBP data changes
+- Lazy-loads full schemas on demand to minimise memory usage
+
+**Authentication:**
+
+Supports multiple OAuth 2.0/OIDC providers:
+
+- **Keycloak** integration
+- **OBP-OIDC** native integration
+- Unauthenticated mode for development
+
+**Client Integration:**
+
+OBP-MCP integrates with AI development tools including Claude Code, VS Code (Copilot), and Zed.
+
+**Quick Start:**
+
+```bash
+# Install UV package manager (if needed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Configure
+cp .env.example .env
+# Edit .env with OBP_BASE_URL and OBP_API_VERSION
+
+# Generate indexes
+uv run python scripts/generate_endpoint_index.py
+uv run python scripts/generate_glossary_index.py
+
+# Run server
+./run_server.sh
+```
+
+The server starts at `http://localhost:9100` with the MCP endpoint at `/mcp`.
+
+**Repository:** https://github.com/OpenBankProject/OBP-MCP
 
 ---
 
@@ -1832,9 +1944,9 @@ api_enabled_endpoints=[OBPv5.1.0-getBanks,OBPv5.1.0-getBank]
 
 #### 5.4.2 Finding Endpoint Operation IDs
 
-**Method 1: Using API Explorer**
+**Method 1: Using API Explorer II**
 
-Navigate to any endpoint in API Explorer and check the `operationId` field in the endpoint documentation.
+Navigate to any endpoint in API Explorer II and check the `operationId` field in the endpoint documentation.
 
 **Method 2: Using Resource Docs API**
 
@@ -1900,16 +2012,16 @@ api_enabled_endpoints=[
   OBPv5.1.0-createMethodRouting,
   OBPv5.1.0-updateMethodRouting,
   OBPv5.1.0-deleteMethodRouting,
-  OBPv4.0.0-createDynamicEndpoint,
-  OBPv4.0.0-updateDynamicEndpointHost,
-  OBPv4.0.0-getDynamicEndpoint,
-  OBPv4.0.0-getDynamicEndpoints,
-  OBPv4.0.0-deleteDynamicEndpoint,
-  OBPv4.0.0-createBankLevelDynamicEndpoint,
-  OBPv4.0.0-updateBankLevelDynamicEndpointHost,
-  OBPv4.0.0-getBankLevelDynamicEndpoint,
-  OBPv4.0.0-getBankLevelDynamicEndpoints,
-  OBPv4.0.0-deleteBankLevelDynamicEndpoint,
+  OBPv6.0.0-createDynamicEndpoint,
+  OBPv6.0.0-updateDynamicEndpointHost,
+  OBPv6.0.0-getDynamicEndpoint,
+  OBPv6.0.0-getDynamicEndpoints,
+  OBPv6.0.0-deleteDynamicEndpoint,
+  OBPv6.0.0-createBankLevelDynamicEndpoint,
+  OBPv6.0.0-updateBankLevelDynamicEndpointHost,
+  OBPv6.0.0-getBankLevelDynamicEndpoint,
+  OBPv6.0.0-getBankLevelDynamicEndpoints,
+  OBPv6.0.0-deleteBankLevelDynamicEndpoint,
   OBPv5.1.0-getAccountWebhooks,
   OBPv5.1.0-createAccountWebhook,
   OBPv5.1.0-updateAccountWebhook,
@@ -2872,7 +2984,96 @@ X-Rate-Limit-Reset: 45
 - **Single Source of Truth**: `RateLimitingUtil.getActiveRateLimitsWithIds()` calculates all active limits consistently
 - **Unlimited**: A value of `-1` means unlimited for that time period
 
-### 8.5 Security Best Practices
+### 8.5 Attribute-Based Access Control (ABAC)
+
+**Status:** New in v6.0.0
+
+**Purpose:** ABAC provides fine-grained access control using Scala functions that evaluate contextual attributes to determine access permissions.
+
+**Overview:**
+
+ABAC rules are Scala functions that return Boolean values. Rules can access 21+ contextual parameters including:
+
+- Authenticated user information
+- User attributes (non-personal)
+- Authentication context (provider, type)
+- Optional objects: Bank, Account, Transaction, Customer, View
+
+**Key Endpoints:**
+
+```bash
+# ABAC Rules Management
+POST   /obp/v6.0.0/management/abac-rules                    # Create rule
+GET    /obp/v6.0.0/management/abac-rules                    # List rules
+GET    /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID       # Get rule
+PUT    /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID       # Update rule
+DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID       # Delete rule
+
+# Schema and Validation
+GET    /obp/v6.0.0/management/abac-rules-schema             # Get available parameters
+POST   /obp/v6.0.0/management/abac-rules/validate           # Validate rule code
+
+# Execution
+POST   /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID/execute  # Execute rule
+POST   /obp/v6.0.0/management/abac-policies/POLICY/execute     # Execute policy
+```
+
+**Example ABAC Rule:**
+
+```scala
+// Rule: Allow access only during business hours for non-admin users
+val isAdmin = userAttributes.exists(_.name == "role" && _.value == "admin")
+val hour = java.time.LocalTime.now().getHour
+val isBusinessHours = hour >= 9 && hour < 17
+
+isAdmin || isBusinessHours
+```
+
+**Related Roles:**
+
+- CanCreateAbacRule, CanGetAbacRule, CanUpdateAbacRule, CanDeleteAbacRule
+- CanExecuteAbacRule, CanGetAbacRuleSchema, CanValidateAbacRule
+
+### 8.6 User Attributes and Personal Data
+
+**Status:** New in v6.0.0
+
+**Purpose:** Manage user-associated data with clear separation between ABAC-accessible attributes and private personal data.
+
+**User Attributes** (Non-Personal):
+
+User attributes are key-value pairs that can be used in ABAC rules. They require specific roles to create/modify.
+
+```bash
+POST   /obp/v6.0.0/users/USER_ID/attributes                       # Create
+GET    /obp/v6.0.0/users/USER_ID/attributes                       # List
+GET    /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID     # Get
+PUT    /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID     # Update
+DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID     # Delete
+```
+
+**Personal Data** (User-Managed):
+
+Personal data is managed by users themselves without requiring special roles. For privacy, personal data is NOT available in ABAC rules.
+
+```bash
+POST   /obp/v6.0.0/my/personal-data                       # Create
+GET    /obp/v6.0.0/my/personal-data                       # List
+GET    /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Get
+PUT    /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Update
+DELETE /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Delete
+```
+
+**Key Distinction:**
+
+| Feature | User Attributes | Personal Data |
+|---------|-----------------|---------------|
+| Who manages | Administrators | Users themselves |
+| Roles required | Yes | No |
+| Available in ABAC | Yes | No (privacy) |
+| Use case | Access control | User preferences |
+
+### 8.7 Security Best Practices
 
 **Password Security:**
 
@@ -3244,9 +3445,9 @@ GET /obp/v5.1.0/rate-limiting
 
 ## 11. API Documentation and Service Guides
 
-### 11.1 API Explorer Usage
+### 11.1 API Explorer II Usage
 
-**Accessing API Explorer:**
+**Accessing API Explorer II:**
 
 ```
 http://localhost:5173  # Development
@@ -3318,7 +3519,7 @@ GET /obp/v5.1.0/resource-docs/v5.1.0/obp?tags=Account,Bank
 GET /obp/v5.1.0/resource-docs/v5.1.0/obp?functions=getBank,getAccounts
 
 # Filter by content type (dynamic/static)
-GET /obp/v5.1.0/resource-docs/v5.1.0/obp?content=dynamic
+GET /obp/v6.0.0/resource-docs/v6.0.0/obp?content=dynamic
 ```
 
 **Swagger Documentation:**
@@ -3454,7 +3655,7 @@ mvn jetty:run -pl obp-api
 
 # 4. Access
 # API: http://localhost:8080
-# API Explorer: http://localhost:5173 (separate repo)
+# API Explorer II: http://localhost:5173 (separate repo)
 ```
 
 ### 12.2 Staging Deployment
@@ -3480,7 +3681,7 @@ mvn clean package
 sudo cp target/OBP-API-1.0.war /usr/share/jetty9/webapps/root.war
 sudo systemctl restart jetty9
 
-# 5. Setup API Explorer
+# 5. Setup API Explorer II
 cd API-Explorer-II
 npm install
 npm run build
@@ -3864,7 +4065,7 @@ connector=custom_connector_2024
 **Define Dynamic Endpoint:**
 
 ```bash
-POST /obp/v5.1.0/management/dynamic-endpoints
+POST /obp/v6.0.0/management/dynamic-endpoints
 {
   "dynamic_endpoint_id": "my-custom-endpoint",
   "swagger_string": "{
@@ -3890,7 +4091,7 @@ POST /obp/v5.1.0/management/dynamic-endpoints
 **Define Dynamic Entity:**
 
 ```bash
-POST /obp/v5.1.0/management/dynamic-entities
+POST /obp/v6.0.0/management/dynamic-entities
 {
   "dynamic_entity_id": "customer-preferences",
   "entity_name": "CustomerPreferences",
@@ -3973,18 +4174,16 @@ class AccountService {
 
 The Open Bank Project follows an agile roadmap that evolves based on feedback from banks, regulators, developers, and the community. This section outlines current and future developments across the OBP ecosystem.
 
-### 14.2 OBP-API-II (Next Generation API)
+### 14.2 Version 7.0.0 APIs
 
-**Status:** Experimental
+**Status:** In Development
 
-**Purpose:** A modernized version of OBP-API for selected endpoints.
-
-**Architecture Enhancements:**
-
-- Fewer dependencies including Jetty.
+**Purpose:** Version 7.0.0 APIs are being surfaced through http4s and Cats IO rather than Liftweb. This transition moves the API layer to a modern, purely functional Scala stack, reducing dependencies (including Jetty) and improving composability, testability, and performance through lightweight, non-blocking I/O.
 
 **Technology Stack:**
 
+- **http4s** - Typelevel HTTP server/client library
+- **Cats IO** - Effect type for purely functional asynchronous programming
 - Scala 2.13/3.x (upgraded from 2.12)
 
 ### 14.3 OBP-Dispatch (Request Router)
@@ -3997,15 +4196,15 @@ The Open Bank Project follows an agile roadmap that evolves based on feedback fr
 
 **Routing:**
 
-- Route traffic according to Resouce Docs available on OBP-API-II, OBP-Trading or OBP-API
+- Route traffic according to Resource Docs available on v7.0.0 (http4s), OBP-Trading or OBP-API (Liftweb)
 
 **Use Cases:**
 
 1. **Implementation Migration:**
-   - Re-Implement an endpoint in OBP-API-II
+   - Re-implement an endpoint using the v7.0.0 http4s stack
 
 2. **New Endpoint implementation:**
-   - Implement a new endpoint in OBP-API-II or OBP-Trading
+   - Implement a new endpoint using v7.0.0 (http4s) or OBP-Trading
 
 **Deployment:**
 
@@ -4033,8 +4232,8 @@ docker run -p 8080:8080 \
          ┌───────────────────┼───────────────────┐
          │                   │                   │
     ┌────▼────┐         ┌────▼────┐        ┌────▼────┐
-    │ OBP-API │         │ OBP-API-II │     │ OBP-Trading │
-    │ v4.0.0  │         │ v5.0.0  │        │ v5.1.0  │
+    │ OBP-API │         │  v7.0.0  │       │ OBP-Trading │
+    │(Liftweb)│         │ (http4s) │       │ v5.1.0  │
     │ (EU)    │         │ (US)    │        │ (APAC)  │
     └─────────┘         └─────────┘        └─────────┘
 ```
@@ -4045,7 +4244,7 @@ docker run -p 8080:8080 \
 
 **Account:** Bank account holding funds
 
-**API Explorer:** Interactive API documentation tool
+**API Explorer II:** Interactive API documentation tool
 
 **Bank:** Financial institution entity in OBP (also called "Space")
 
@@ -4185,7 +4384,7 @@ super_admin_user_ids=uuid1,uuid2
 # Sandbox
 allow_sandbox_data_import=true
 
-# API Explorer
+# API Explorer II
 api_explorer_url=http://localhost:5173
 
 # Security
@@ -4713,7 +4912,7 @@ GET  /obp/v5.1.0/users                         # List users
 - Website: https://www.openbankproject.com
 - GitHub: https://github.com/OpenBankProject
 - API Sandbox: https://apisandbox.openbankproject.com
-- API Explorer: https://apiexplorer-ii-sandbox.openbankproject.com
+- API Explorer II: https://apiexplorer-ii-sandbox.openbankproject.com
 
 **Standards:**
 
@@ -4738,6 +4937,7 @@ GET  /obp/v5.1.0/users                         # List users
 
 **Major Releases:**
 
+- v6.0.0 (2025) - ABAC (Attribute-Based Access Control), User Attributes, Personal Data, JSON Schema Message Docs, Blockchain transactions (Cardano/Ethereum)
 - v5.1.0 (2024) - Enhanced OIDC, Dynamic endpoints
 - v5.0.0 (2022) - Major refactoring, Performance improvements
 - v4.0.0 (2022) - Berlin Group, UK Open Banking support
@@ -5474,7 +5674,7 @@ The complete list of roles is defined in:
 
 - `obp-api/src/main/scala/code/api/util/ApiRole.scala`
 
-**Via API Explorer:**
+**Via API Explorer II:**
 
 - Navigate to the "Role" endpoints section
 - View role requirements for each endpoint in the documentation
@@ -5513,16 +5713,18 @@ POST /obp/v5.1.0/users/USER_ID/entitlements
 
 ### 14.6 Roadmap and Future Development
 
-#### OBP-API-II (Next Generation API)
+#### Version 7.0.0 APIs
 
 **Status:** In Active Development
 
 **Overview:**
-OBP-API-II is a leaner tech stack for future Open Bank Project API versions with less dependencies.
+Version 7.0.0 APIs are being surfaced through http4s and Cats IO rather than Liftweb. This provides a leaner, purely functional tech stack with fewer dependencies.
 
-**Purpose:**
+**Key Changes:**
 
-- **Aim:** Reduce the dependencies on Liftweb and Jetty.
+- **http4s** replaces Liftweb for HTTP request/response handling
+- **Cats IO** replaces Liftweb's threading model with purely functional, non-blocking I/O
+- Reduced dependency on Jetty
 
 **Development Focus:**
 
@@ -5530,11 +5732,11 @@ OBP-API-II is a leaner tech stack for future Open Bank Project API versions with
 
 **Migration Path:**
 
-- Use OBP Dispatch to route between endpoints served by OBP-API and OBP-API-II (both stacks return Resource Docs so dispatch can discover and route)
+- Use OBP Dispatch to route between endpoints served by OBP-API (Liftweb) and v7.0.0 (http4s) instances (both stacks return Resource Docs so dispatch can discover and route)
 
 **Repository:**
 
-- GitHub: `OBP-API-II` (development branch)
+- GitHub: `OBP-API` (the v7.0.0 APIs are developed within the existing OBP-API repository)
 
 #### OBP-Dispatch (API Gateway/Proxy)
 
@@ -5542,7 +5744,7 @@ OBP-API-II is a leaner tech stack for future Open Bank Project API versions with
 
 **Overview:**
 OBP-Dispatch is a lightweight proxy/gateway service designed to route requests
-to OBP-API or OBP-API-II or OBP-Trading instances.
+to OBP-API (Liftweb) or v7.0.0 (http4s) or OBP-Trading instances.
 
 **Key Features:**
 
