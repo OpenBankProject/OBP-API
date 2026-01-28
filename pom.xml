@@ -13,7 +13,7 @@
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.20</scala.compiler>
     <akka.version>2.5.32</akka.version>
-    <avro.version>1.8.2</avro.version>
+    <avro.version>1.11.4</avro.version>
     <lift.version>3.5.0</lift.version>
     <jetty.version>9.4.50.v20221201</jetty.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
@@ -97,7 +97,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.18.0</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
       <dependency>
@@ -126,15 +126,15 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>4.3.1</version>
+          <version>4.9.5</version>
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
-            <charset>${project.build.sourceEncoding}</charset>
+<!--            <charset>${project.build.sourceEncoding}</charset>-->
             <displayCmd>true</displayCmd>
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
               <jvmArg>-Xms64m</jvmArg>
-              <jvmArg>-Xmx1024m</jvmArg>
+              <jvmArg>-Xmx2G</jvmArg>
             </jvmArgs>
             <args>
               <arg>-unchecked</arg>
