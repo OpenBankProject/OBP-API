@@ -46,7 +46,7 @@ LATEX_HEADER=$(cat <<'EOF'
 \fancyhf{}
 \fancyhead[L]{\textcolor{OBPDarkGreen}{\small\leftmark}}
 \fancyhead[R]{\textcolor{OBPDarkGreen}{\small\thepage}}
-\fancyfoot[C]{\textcolor{OBPLightGreen}{\tiny Copyright © TESOBE GmbH 2025, License: AGPLv3}}
+\fancyfoot[C]{\textcolor{OBPLightGreen}{\tiny Copyright © TESOBE GmbH 2026, License: AGPLv3}}
 \renewcommand{\headrulewidth}{0.5pt}
 \renewcommand{\footrulewidth}{0.5pt}
 \renewcommand{\headrule}{\hbox to\headwidth{\color{OBPGreen}\leaders\hrule height \headrulewidth\hfill}}
