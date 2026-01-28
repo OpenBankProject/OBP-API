@@ -328,6 +328,8 @@ class Boot extends MdcLoggable {
 
     createBootstrapSuperUser()
 
+    warnAboutSuperAdminUsers()
+
     //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
     DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
 
@@ -1024,6 +1026,33 @@ class Boot extends MdcLoggable {
 
     }
 
+  }
+
+  /**
+   * Warn about Super Admin Users
+   * Super admin is intended for bootstrapping only. Users should grant themselves
+   * proper roles (e.g. CanCreateEntitlementAtAnyBank) and then remove their user_id
+   * from the super_admin_user_ids props setting.
+   */
+  private def warnAboutSuperAdminUsers(): Unit = {
+    APIUtil.getPropsValue("super_admin_user_ids") match {
+      case Full(v) if v.trim.nonEmpty =>
+        val userIds = v.split(",").map(_.trim).filter(_.nonEmpty).toList
+        if (userIds.nonEmpty) {
+          logger.warn("========================================================================")
+          logger.warn("WARNING: super_admin_user_ids is configured with the following user IDs:")
+          userIds.foreach(userId => logger.warn(s"  - $userId"))
+          logger.warn("")
+          logger.warn("Super admin is intended for BOOTSTRAPPING ONLY.")
+          logger.warn("These users bypass normal role checks.")
+          logger.warn("Please:")
+          logger.warn("  1. Login as a super admin user")
+          logger.warn("  2. Grant yourself CanCreateEntitlementAtAnyBank (and other required roles)")
+          logger.warn("  3. Remove your user_id from super_admin_user_ids in props")
+          logger.warn("========================================================================")
+        }
+      case _ => // No super admin users configured, nothing to warn about
+    }
   }
 
   LiftRules.statelessDispatch.append(aliveCheck)
