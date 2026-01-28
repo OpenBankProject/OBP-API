@@ -200,6 +200,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetAnyUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyUser = CanGetAnyUser()
 
+  case class CanVerifyUserCredentials(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canVerifyUserCredentials = CanVerifyUserCredentials()
+
   case class CanCreateAnyTransactionRequest(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAnyTransactionRequest = CanCreateAnyTransactionRequest()
 

@@ -206,6 +206,12 @@ case class CreateUserJsonV600(
     validating_application: Option[String] = None
 )
 
+case class PostVerifyUserCredentialsJsonV600(
+    username: String,
+    password: String,
+    provider: String
+)
+
 case class MigrationScriptLogJsonV600(
     migration_script_log_id: String,
     name: String,
