@@ -26,7 +26,7 @@ import org.http4s.dsl.io._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
-import scala.util.{Failure, Success, Try}
+import code.util.Helper
 
 object Http4s700 {
 
@@ -217,16 +217,24 @@ object Http4s700 {
           .map(_.trim)
           .filter(_.nonEmpty)
 
-        Try(ApiVersionUtils.valueOf(requestedApiVersionString)) match {
-          case Success(requestedApiVersion) if requestedApiVersion == ApiVersion.v7_0_0 =>
-            val http4sOnlyDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs.toList, tags, functions)
-            EndpointHelpers.executeAndRespond(req) { _ =>
-              Future.successful(JSONFactory1_4_0.createResourceDocsJson(http4sOnlyDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true))
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          for {
+            requestedApiVersion <- NewStyle.function.tryons(
+              failMsg = s"$InvalidApiVersionString Current value: $requestedApiVersionString",
+              failCode = 400,
+              callContext = Some(cc)
+            ) {
+              ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-          case Success(_) =>
-            ErrorResponseConverter.createErrorResponse(400, s"API Version not supported by this server: $requestedApiVersionString", cc)
-          case Failure(_) =>
-            ErrorResponseConverter.createErrorResponse(400, s"Invalid API Version: $requestedApiVersionString", cc)
+            _ <- Helper.booleanToFuture(
+              failMsg = s"$InvalidApiVersionString This server supports only ${ApiVersion.v7_0_0}. Current value: $requestedApiVersionString",
+              failCode = 400,
+              cc = Some(cc)
+            ) {
+              requestedApiVersion == ApiVersion.v7_0_0
+            }
+            http4sOnlyDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs.toList, tags, functions)
+          } yield JSONFactory1_4_0.createResourceDocsJson(http4sOnlyDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
     }
 

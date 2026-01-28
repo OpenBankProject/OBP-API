@@ -3,7 +3,7 @@ package code.api.v7_0_0
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, InvalidApiVersionString, UserHasMissingRoles}
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
@@ -333,7 +333,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
             case Some(JString(message)) =>
-              message should include("API Version not supported")
+              message should include(InvalidApiVersionString)
+              message should include("v6.0.0")
             case _ =>
               fail("Expected message field as JSON string for invalid-version response")
           }
