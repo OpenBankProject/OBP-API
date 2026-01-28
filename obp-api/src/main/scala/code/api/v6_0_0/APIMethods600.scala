@@ -7122,7 +7122,8 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
