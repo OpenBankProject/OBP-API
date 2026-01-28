@@ -246,8 +246,19 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
-            case Some(JArray(_)) =>
-              succeed
+            case Some(JArray(resourceDocs)) =>
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == "http4s"
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe true
             case _ =>
               fail("Expected resource_docs field to be an array")
           }

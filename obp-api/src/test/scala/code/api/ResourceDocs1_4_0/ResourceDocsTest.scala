@@ -68,7 +68,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
   def stringToNodeSeq(html : String) : NodeSeq = {
     val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
     //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).head
+    Html5.parse(newHtmlString).headOption.getOrElse(NodeSeq.Empty)
   }
   
   
@@ -79,6 +79,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
+      responseDocs.resource_docs.head.implemented_by.technology shouldBe Some("lift")
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
@@ -97,6 +98,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
+      responseDocs.resource_docs.head.implemented_by.technology shouldBe None
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }

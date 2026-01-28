@@ -1796,7 +1796,8 @@ object SwaggerDefinitionsJSON {
 
   lazy val implementedByJson = ImplementedByJson(
     version = "1_4_0",
-    function = "getBranches"
+    function = "getBranches",
+    technology = None
   )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   lazy val canCreateCustomerSwagger = CanCreateCustomer()

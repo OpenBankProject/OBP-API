@@ -328,7 +328,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
   // Used to describe where an API call is implemented
   case class ImplementedByJson (
     version : String, // Short hand for the version e.g. "1_4_0" means Implementations1_4_0
-    function : String // The val / partial function that implements the call e.g. "getBranches"
+    function : String, // The val / partial function that implements the call e.g. "getBranches"
+    technology: Option[String] = None
   )
 
   case class ResourceDocMeta(
@@ -525,11 +526,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
     locale: Option[String],// this will be in the cacheKey
     resourceDocUpdatedTags: ResourceDoc,
     isVersion4OrHigher:Boolean,// this will be in the cacheKey
+    includeTechnology: Boolean, // this will be in the cacheKey
     urlParametersI18n:String ,
     jsonRequestBodyFieldsI18n:String,
     jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
-    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher".intern()
+    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
@@ -564,6 +566,13 @@ object JSONFactory1_4_0 extends MdcLoggable{
         val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
         val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
 
+       val technology =
+         if (includeTechnology) {
+           Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) "http4s" else "lift")
+         } else {
+           None
+         }
+
        val resourceDoc = ResourceDocJson(
           operation_id = resourceDocUpdatedTags.operationId,
           request_verb = resourceDocUpdatedTags.requestVerb,
@@ -575,7 +584,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
           example_request_body = resourceDocUpdatedTags.exampleRequestBody,
           success_response_body = resourceDocUpdatedTags.successResponseBody,
           error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
-          implemented_by = ImplementedByJson(resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion, resourceDocUpdatedTags.partialFunctionName), // was resourceDocUpdatedTags.implementedInApiVersion.noV
+          implemented_by = ImplementedByJson(
+            version = resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion,
+            function = resourceDocUpdatedTags.partialFunctionName,
+            technology = technology
+          ), // was resourceDocUpdatedTags.implementedInApiVersion.noV
           tags = resourceDocUpdatedTags.tags.map(i => i.tag),
           typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
           typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
@@ -592,7 +605,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }}
   
   
-  def createLocalisedResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
+  def createLocalisedResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], includeTechnology: Boolean, urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
     // We MUST recompute all resource doc values due to translation via Web UI props --> now need to wait $CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL seconds
     val userDefinedEndpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocWithUserDefinedEndpointTags: ResourceDoc = rd.copy(tags = userDefinedEndpointTags++ rd.tags)
@@ -602,6 +615,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       locale: Option[String],
       resourceDocWithUserDefinedEndpointTags,
       isVersion4OrHigher: Boolean,
+      includeTechnology: Boolean,
       urlParametersI18n: String,
       jsonRequestBodyFieldsI18n: String,
       jsonResponseBodyFieldsI18n: String
@@ -609,7 +623,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String], includeTechnology: Boolean = false) : ResourceDocsJson = {
     val urlParametersI18n = I18NUtil.ResourceDocTranslation.translate(
       I18NResourceDocField.URL_PARAMETERS,
       "resourceDocUrlParametersString_i180n",
@@ -632,11 +646,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
     
     if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createLocalisedResourceDocJson(_,isVersion4OrHigher, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)),
+        resourceDocList.map(createLocalisedResourceDocJson(_,isVersion4OrHigher, locale, includeTechnology, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createLocalisedResourceDocJson(_,false, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)))
+      ResourceDocsJson(resourceDocList.map(createLocalisedResourceDocJson(_,false, locale, includeTechnology, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)))
     }
   }
   
