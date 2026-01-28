@@ -1,5 +1,6 @@
 package code.api.BahrainOBF.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -61,7 +62,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
     "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access Consents") :: apiTagMockedData :: Nil
      )
 
@@ -69,7 +70,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
        case "account-access-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -134,7 +135,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
     "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access Consents") :: apiTagMockedData :: Nil
      )
 
@@ -142,7 +143,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
        case "account-access-consents" :: consentId :: Nil JsonPatch _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -209,7 +210,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
     "TransactionFromDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Account Access Consents") :: apiTagMockedData :: Nil
      )
 
@@ -217,7 +218,7 @@ object APIMethods_AccountAccessConsentsApi extends RestHelper {
        case "account-access-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

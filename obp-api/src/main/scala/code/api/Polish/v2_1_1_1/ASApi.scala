@@ -1,5 +1,6 @@
 package code.api.Polish.v2_1_1_1
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -926,7 +927,7 @@ Requests OAuth2 authorization code""",
   },
   "aspspRedirectUri" : "aspspRedirectUri"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 
@@ -1843,7 +1844,7 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
   "client_id" : "client_id"
 }"""),
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 
@@ -2819,7 +2820,7 @@ Requests OAuth2 access token value""",
   "token_type" : "token_type",
   "expires_in" : "expires_in"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("AS") :: apiTagMockedData :: Nil
      )
 

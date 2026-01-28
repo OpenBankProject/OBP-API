@@ -947,7 +947,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
                 attributeType = TransactionRequestAttributeType.withName("STRING"),
                 value = refundReasonCode,
                 callContext = callContext)
-            } else Future.successful()
+            } else Future.successful(())
 
             (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(refundFromAccount, refundToAccount, createdTransactionRequest, callContext)
             _ <- NewStyle.function.saveTransactionRequestStatusImpl(createdTransactionRequest.id, newTransactionRequestStatus.toString, callContext)

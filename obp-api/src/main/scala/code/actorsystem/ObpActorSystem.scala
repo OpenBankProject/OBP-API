@@ -1,6 +1,6 @@
 package code.actorsystem
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import code.bankconnectors.akka.actor.AkkaConnectorActorConfig
 import code.util.Helper
 import code.util.Helper.MdcLoggable

@@ -1,5 +1,6 @@
 package code.api.BahrainOBF.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -54,7 +55,7 @@ object APIMethods_AccountsApi extends RestHelper {
     "Account" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -62,7 +63,7 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -111,7 +112,7 @@ object APIMethods_AccountsApi extends RestHelper {
     "Account" : [ { }, { } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -119,7 +120,7 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

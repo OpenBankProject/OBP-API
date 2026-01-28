@@ -25,4 +25,22 @@ object InMemory extends MdcLoggable {
     logger.trace(s"InMemory.memoizeWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
     memoize(ttl)(f)
   }
+
+  /**
+   * Count keys matching a pattern in the in-memory cache
+   * @param pattern Pattern to match (supports * wildcard)
+   * @return Number of matching keys
+   */
+  def countKeys(pattern: String): Int = {
+    try {
+      val regex = pattern.replace("*", ".*").r
+      val allKeys = underlyingGuavaCache.asMap().keySet()
+      import scala.collection.JavaConverters._
+      allKeys.asScala.count(key => regex.pattern.matcher(key).matches())
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Error counting in-memory cache keys for pattern $pattern: ${e.getMessage}")
+        0
+    }
+  }
 }

@@ -28,14 +28,18 @@ TESOBE (http://www.tesobe.com/)
 package code.setup
 
 import _root_.net.liftweb.json.JsonAST.JObject
+import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}
+import code.model.{Consumer, Nonce, Token}
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._
+import net.liftweb.mapper.MetaMapper
 import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
@@ -60,6 +64,46 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("berlin_group_mandatory_headers" -> "")
   setPropsValues("berlin_group_mandatory_header_consent" -> "")
   
+  // Set system properties to force Pekko to use random available ports
+  // This prevents conflicts when both RunWebApp and tests are running
+  System.setProperty("pekko.remote.artery.canonical.port", "0")
+  System.setProperty("pekko.remote.artery.bind.port", "0")
+
+  /**
+   * Reset database before each test class to ensure test isolation.
+   *
+   * This prevents test pollution where state from one test class leaks into another.
+   * All tests share a single TestServer/database instance, so we need to clean up
+   * before each test class starts.
+   *
+   * We preserve only the essential OAuth/auth tables (Nonce, Token, Consumer, AuthUser, ResourceUser)
+   * as these are needed for test authentication and are managed by DefaultUsers trait.
+   */
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    resetDatabaseForTestClass()
+  }
+
+  /**
+   * Resets database tables to ensure clean state for each test class.
+   * Preserves auth-related tables that are managed separately by DefaultUsers.
+   */
+  protected def resetDatabaseForTestClass(): Unit = {
+    def exclusion(m: MetaMapper[_]): Boolean = {
+      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
+    }
+
+    logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")
+    ToSchemify.models.filterNot(exclusion).foreach { model =>
+      try {
+        model.bulkDelete_!!()
+      } catch {
+        case e: Exception =>
+          logger.warn(s"[TEST ISOLATION] Failed to clear table for ${model.getClass.getSimpleName}: ${e.getMessage}")
+      }
+    }
+  }
+
   val server = TestServer
   def baseRequest = host(server.host, server.port)
   val secured = APIUtil.getPropsAsBoolValue("external.https", false)

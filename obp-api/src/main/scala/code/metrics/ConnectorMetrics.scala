@@ -33,7 +33,7 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey { 
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics days){
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics.days){
           val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedConnectorMetric](value) }.headOption
           val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedConnectorMetric](value) }.headOption
           val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedConnectorMetric.date, date) }.headOption

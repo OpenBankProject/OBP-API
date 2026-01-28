@@ -352,7 +352,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
   }
 
   override def save(): Boolean = {
-    if(! (user defined_?)){
+    if(! (user.defined_?)){
       logger.info("user reference is null. We will create a ResourceUser")
       val resourceUser = createUnsavedResourceUser()
       val savedUser = Users.users.vend.saveResourceUser(resourceUser)

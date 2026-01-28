@@ -44,7 +44,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
   override def getAll(bankId: Option[String]): List[JsonDynamicMessageDoc] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicMessageDocTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicMessageDocTTL.second) {
         if(bankId.isEmpty){
           DynamicMessageDoc.findAll().map(DynamicMessageDoc.getJsonDynamicMessageDoc)
         } else {

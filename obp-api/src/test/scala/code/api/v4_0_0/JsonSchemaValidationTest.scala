@@ -44,7 +44,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val response= makePostRequest(request, jsonSchemaFooBar)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
@@ -53,7 +53,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val response= makePutRequest(request, jsonSchemaFooBar)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
@@ -62,7 +62,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val response= makeDeleteRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
@@ -71,7 +71,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
@@ -80,7 +80,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

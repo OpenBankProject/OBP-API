@@ -1,5 +1,7 @@
 package code.api.AUOpenBanking.v1_0_0
 
+import scala.language.reflectiveCalls
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -78,7 +80,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -86,7 +88,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts" :: accountId:: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -180,7 +182,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -188,7 +190,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {
@@ -287,7 +289,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
     "first" : "first"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -295,7 +297,7 @@ object APIMethods_DirectDebitsApi extends RestHelper {
        case "banking":: "accounts":: "direct-debits" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "data" : {

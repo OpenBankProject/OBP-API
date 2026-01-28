@@ -284,7 +284,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       val cacheTTL = determineMetricsCacheTTL(queryParams)
       CacheKeyFromArguments.buildCacheKey { 
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds){
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
           val optionalParams = getQueryParams(queryParams)
           MappedMetric.findAll(optionalParams: _*)
       }
@@ -339,7 +339,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     val cacheTTL = determineMetricsCacheTTL(queryParams)
     logger.debug(s"getAllAggregateMetricsBox cache key: $cacheKey, TTL: $cacheTTL seconds")
-    CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds){
+    CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
       logger.info(s"getAllAggregateMetricsBox - CACHE MISS - Executing database query for aggregate metrics")
       val startTime = System.currentTimeMillis()
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
@@ -457,7 +457,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
   val cacheTTL = determineMetricsCacheTTL(queryParams)
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds){
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
     {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -540,7 +540,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   */                                                                                       
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
   val cacheTTL = determineMetricsCacheTTL(queryParams)
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds){
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
   
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption

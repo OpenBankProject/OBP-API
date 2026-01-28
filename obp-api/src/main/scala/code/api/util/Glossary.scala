@@ -144,9 +144,15 @@ object Glossary extends MdcLoggable  {
 
 	// Note: this doesn't get / use an OBP version
 	def getApiExplorerLink(title: String, operationId: String) : String = {
-		val apiExplorerPrefix = APIUtil.getPropsValue("webui_api_explorer_url", "")
+		val apiExplorerPrefix = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174")
 		// Note: This is hardcoded for API Explorer II
 		s"""<a href="$apiExplorerPrefix/operationid/$operationId">$title</a>"""
+	}
+
+	// Consumer registration URL helper
+	def getConsumerRegistrationUrl(): String = {
+		val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174")
+		s"$apiExplorerUrl/consumers/register"
 	}
 
 	glossaryItems += GlossaryItem(
@@ -190,6 +196,160 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Rate Limiting",
+		description =
+			s"""
+				 |Rate Limiting controls the number of API requests a Consumer can make within specific time periods. This prevents abuse and ensures fair resource allocation across all API consumers.
+				 |
+				 |### Architecture - Single Source of Truth
+				 |
+				 |```
+				 |┌─────────────────────────────────────────────────────────────────────────┐
+				 |│                      RateLimitingUtil.scala                             │
+				 |│                                                                         │
+				 |│  ┌───────────────────────────────────────────────────────────────────┐ │
+				 |│  │                                                                   │ │
+				 |│  │  getActiveRateLimitsWithIds(consumerId, date):                   │ │
+				 |│  │  Future[(CallLimit, List[String])]                               │ │
+				 |│  │                                                                   │ │
+				 |│  │  ═══════════════════════════════════════════════════════         │ │
+				 |│  │  Single Source of Truth                              │ │
+				 |│  │  ═══════════════════════════════════════════════════════         │ │
+				 |│  │                                                                   │ │
+				 |│  │  This function calculates active rate limits                │ │
+				 |│  │                                                                   │ │
+				 |│  │  Logic:                                                           │ │
+				 |│  │  1. Query RateLimiting table for active records                  │ │
+				 |│  │  2. If found:                                                     │ │
+				 |│  │     • Sum positive values (> 0) for each period                  │ │
+				 |│  │     • Return -1 if no positive values (unlimited)                │ │
+				 |│  │     • Extract rate_limiting_ids                                  │ │
+				 |│  │  3. If not found:                                                 │ │
+				 |│  │     • Return system defaults from props                          │ │
+				 |│  │     • Empty ID list                                              │ │
+				 |│  │  4. Return: (CallLimit, List[rate_limiting_ids])                 │ │
+				 |│  │                                                                   │ │
+				 |│  └───────────────────────────────────────────────────────────────────┘ │
+				 |│                              ▲                                          │
+				 |│                              │                                          │
+				 |└──────────────────────────────┼──────────────────────────────────────────┘
+				 |                               │
+				 |                               │ Both callers use
+				 |                               │ the same function
+				 |                               │
+				 |               ┌───────────────┴───────────────┐
+				 |               │                               │
+				 |               │                               │
+				 |    ┌──────────▼──────────┐         ┌──────────▼──────────┐
+				 |    │                     │         │                     │
+				 |    │  AfterApiAuth.scala │         │ APIMethods600.scala │
+				 |    │                     │         │                     │
+				 |    │  checkRateLimiting()│         │ getActiveCallLimits │
+				 |    │                     │         │ AtDate              │
+				 |    │  ─────────────────  │         │  ────────────────   │
+				 |    │                     │         │                     │
+				 |    │  Called: Every      │         │  Endpoint:          │
+				 |    │  API request        │         │  GET /management/   │
+				 |    │                     │         │  consumers/ID/      │
+				 |    │  Uses:              │         │  consumer/active-   │
+				 |    │  (rateLimit, _)     │         │  rate-limits/DATE   │
+				 |    │                     │         │                     │
+				 |    │  Ignores IDs,       │         │  Uses:              │
+				 |    │  just needs the     │         │  (rateLimit, ids)   │
+				 |    │  CallLimit for      │         │                     │
+				 |    │  enforcement        │         │  Returns both in    │
+				 |    │                     │         │  JSON response      │
+				 |    │                     │         │                     │
+				 |    └─────────────────────┘         └─────────────────────┘
+				 |```
+				 |
+				 |**Key Point**: There is one function that calculates active rate limits. Both enforcement and API reporting call this one function.
+				 |
+				 |### How It Works
+				 |
+				 |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
+				 |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
+				 |3. **Aggregation**: When multiple records are active, their limits are summed together (positive values only)
+				 |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
+				 |
+				 |### Time Periods
+				 |
+				 |Rate limits can be set for six time periods:
+				 |- **per_second_rate_limit**: Maximum requests per second
+				 |- **per_minute_rate_limit**: Maximum requests per minute
+				 |- **per_hour_rate_limit**: Maximum requests per hour
+				 |- **per_day_rate_limit**: Maximum requests per day
+				 |- **per_week_rate_limit**: Maximum requests per week
+				 |- **per_month_rate_limit**: Maximum requests per month
+				 |
+				 |A value of `-1` means unlimited for that period.
+				 |
+				 |### HTTP Headers
+				 |
+				 |When rate limiting is active, responses include:
+				 |- `X-Rate-Limit-Limit`: Maximum allowed requests for the period
+				 |- `X-Rate-Limit-Remaining`: Remaining requests in current period
+				 |- `X-Rate-Limit-Reset`: Seconds until the limit resets
+				 |
+				 |### HTTP Status Codes
+				 |
+				 |- **200 OK**: Request allowed, headers show current limit status
+				 |- **429 Too Many Requests**: Rate limit exceeded for a time period
+				 |
+				 |### Querying Active Rate Limits
+				 |
+				 |Use the endpoint:
+				 |```
+				 |GET /obp/v6.0.0/management/consumers/{CONSUMER_ID}/active-rate-limits/{DATE_WITH_HOUR}
+				 |```
+				 |
+				 |Where `DATE_WITH_HOUR` is in format `YYYY-MM-DD-HH` in **UTC timezone** (e.g., `2025-12-31-13` for hour 13:00-13:59 UTC on Dec 31, 2025).
+				 |
+				 |Returns the aggregated active rate limits for the specified hour, including which rate limit records contributed to the totals.
+				 |
+				 |Rate limits are cached and queried at hour-level granularity for performance. All hours are interpreted in UTC for consistency across all servers.
+				 |
+				 |### System Defaults
+				 |
+				 |If no rate limit records exist for a consumer, system-wide defaults are used from properties:
+				 |- `rate_limiting_per_second`
+				 |- `rate_limiting_per_minute`
+				 |- `rate_limiting_per_hour`
+				 |- `rate_limiting_per_day`
+				 |- `rate_limiting_per_week`
+				 |- `rate_limiting_per_month`
+				 |
+				 |Default value: `-1` (unlimited)
+				 |
+				 |### Example
+				 |
+				 |A consumer with two overlapping rate limit records:
+				 |- Record 1: 10 requests/second, 100 requests/minute
+				 |- Record 2: 5 requests/second, 50 requests/minute
+				 |
+				 |**Aggregated limits**: 15 requests/second, 150 requests/minute
+				 |
+				 |### Configuration
+				 |
+				 |Enable rate limiting by setting:
+				 |```
+				 |use_consumer_limits=true
+				 |```
+				 |
+				 |For anonymous access, configure:
+				 |```
+				 |user_consumer_limit_anonymous_access=1000
+				 |```
+				 |(Default: 1000 requests per hour)
+				 |
+				 |### Related Concepts
+				 |
+				 |- **Consumer**: The API client subject to rate limiting
+				 |- **Redis**: Storage system for tracking request counts
+				 |- **Single Source of Truth**: `RateLimitingUtil.getActiveRateLimitsWithIds()` function calculates all active rate limits
+			""".stripMargin)
+
+	glossaryItems += GlossaryItem(
     title = "API-Explorer-II-Help",
     description = s"""
 			 |## API Explorer II - How to Use
@@ -206,6 +366,8 @@ object Glossary extends MdcLoggable  {
 			 |### Finding Dynamic Entities
 			 |
 			 |Dynamic Entities can be found under the **More** list of API Versions. Look for versions starting with `OBPdynamic-entity` or similar in the version selector.
+			 |
+			 |To programmatically discover all Dynamic Entity endpoints, use: `GET /resource-docs/API_VERSION/obp?content=dynamic`
 			 |
 			 |For more information about Dynamic Entities see ${getGlossaryItemLink("Dynamic-Entities")}
 			 |
@@ -418,7 +580,119 @@ object Glossary extends MdcLoggable  {
 				 |"""
 	)
 
-
+	glossaryItems += GlossaryItem(
+		title = "Connector.User.Authentication",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |The property `connector.user.authentication` (default: `false`) controls whether OBP can authenticate a user via the Connector when they are not found locally.
+				 |
+				 |OBP always checks for users locally first. When this property is enabled and a user is not found locally (or exists but is from an external provider), OBP will attempt to authenticate them against an external identity provider or Core Banking System (CBS) via the Connector.
+				 |
+				 |### Configuration
+				 |
+				 |In your props file:
+				 |
+				 |```
+				 |connector.user.authentication=true
+				 |```
+				 |
+				 |### Behavior When Enabled (true)
+				 |
+				 |**1. Login Authentication Flow:**
+				 |
+				 |When a user attempts to log in:
+				 |
+				 |```
+				 |User Login Request
+				 |       │
+				 |       ▼
+				 |┌─────────────────────────┐
+				 |│ 1. Check if user exists │
+				 |│    locally in OBP       │
+				 |└───────────┬─────────────┘
+				 |            │
+				 |   ┌────────┼────────┬─────────────────┐
+				 |   │        │        │                 │
+				 |   ▼        ▼        ▼                 ▼
+				 |Found     Found    Found            Not Found
+				 |(local   (external (external        (and property
+				 |provider) provider) provider         enabled)
+				 |   │      property  property            │
+				 |   │      disabled) enabled)            │
+				 |   │        │        │                  │
+				 |   ▼        ▼        ▼                  ▼
+				 |┌────────┐ ┌────┐  ┌─────────────────────────┐
+				 |│Check   │ │Fail│  │ 2. Call Connector:      │
+				 |│local   │ │    │  │ checkExternalUser       │
+				 |│password│ │    │  │ Credentials()           │
+				 |└───┬────┘ └────┘  └───────────┬─────────────┘
+				 |    │                          │
+				 |    ▼                 ┌────────┴────────┐
+				 | Success/             │                 │
+				 | Failure              ▼                 ▼
+				 |                   Success           Failure
+				 |                      │                 │
+				 |                      ▼                 ▼
+				 |               ┌─────────────┐  ┌─────────────┐
+				 |               │Create local │  │Increment    │
+				 |               │AuthUser if  │  │bad login    │
+				 |               │not exists   │  │attempts     │
+				 |               └─────────────┘  └─────────────┘
+				 |```
+				 |
+				 |**2. Username Uniqueness Validation:**
+				 |
+				 |During user signup, OBP checks if the username already exists in the external system by calling `checkExternalUserExists()`.
+				 |
+				 |**3. Auto Creation of Local Users:**
+				 |
+				 |If external authentication succeeds but the user doesn't exist locally, OBP automatically creates a local `AuthUser` record linked to the external provider.
+				 |
+				 |### Behavior When Disabled (false, default)
+				 |
+				 |* Users must exist locally in OBP's database
+				 |* Authentication is performed against locally stored credentials
+				 |* No connector calls are made for authentication
+				 |
+				 |### Required Connector Methods
+				 |
+				 |When enabled, your Connector must implement:
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserCredentials")} : Validates username and password against external system. Returns `InboundExternalUser` with user details (sub, iss, email, name, userAuthContexts).
+				 |
+				 |* ${messageDocLinkRabbitMQ("obp.checkExternalUserExists")} : Checks if a username exists in the external system. Used during signup validation.
+				 |
+				 |### InboundExternalUser Response
+				 |
+				 |The connector should return user information including:
+				 |
+				 |* `sub`: Subject identifier (username)
+				 |* `iss`: Issuer (provider identifier)
+				 |* `email`: User's email address
+				 |* `name`: User's display name
+				 |* `userAuthContexts`: Optional list of auth contexts (e.g., customer numbers)
+				 |
+				 |### Use Cases
+				 |
+				 |**Enable when:**
+				 |* You have an external identity provider (LDAP, Active Directory, OAuth provider)
+				 |* User credentials are managed by the Core Banking System
+				 |* You want single sign on with an existing user directory
+				 |
+				 |**Disable when:**
+				 |* OBP manages all user authentication locally
+				 |* You're using OBP's built in user management
+				 |* You don't have an external authentication system
+				 |
+				 |### Related Properties
+				 |
+				 |* `connector`: Specifies which connector implementation to use
+				 |* `connector.user.authcontext.read.in.login`: Read user auth contexts during login
+				 |
+				 |"""
+	)
 
 
 
@@ -590,7 +864,7 @@ object Glossary extends MdcLoggable  {
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
 |
-|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:5174/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -1091,7 +1365,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
 			|
-			|Register your App key [HERE]($getServerUrl/consumer-registration)
+			|Register your App key [HERE](${getConsumerRegistrationUrl()})
 			|
 			|Copy and paste the consumer key for step two below.
 			|
@@ -1182,7 +1456,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|       consumer_key
 			|         The application identifier. Generated on OBP side via
-			|         $getServerUrl/consumer-registration endpoint.
+			|         ${getConsumerRegistrationUrl()} endpoint.
 			|
 			|
 			|  Each parameter MUST NOT appear more than once per request.
@@ -2147,7 +2421,7 @@ object Glossary extends MdcLoggable  {
         |
         |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer
         |
-        |Register your App key [HERE]($getServerUrl/consumer-registration)
+        |Register your App key [HERE](${getConsumerRegistrationUrl()})
         |
         |Copy and paste the CLIENT ID (AKA CONSUMER KEY), CLIENT SECRET (AKA CONSUMER SECRET) and REDIRECT_URL for the subsequent steps below.
         |
@@ -2796,9 +3070,9 @@ object Glossary extends MdcLoggable  {
 |
 |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
 |
-|Register your App / Consumer [HERE]($getServerUrl/consumer-registration)
+|Register your App / Consumer [HERE](${getConsumerRegistrationUrl()})
 |
-|Be sure to enter your Client Certificate in the above form. To create the user.crt file see [HERE](https://fardog.io/blog/2017/12/30/client-side-certificate-authentication-with-nginx/)
+|Be sure to enter your Client Certificate in the registration form. To create the user.crt file see [HERE](https://fardog.io/blog/2017/12/30/client-side-certificate-authentication-with-nginx/)
 |
 |
 |## Authenticate
@@ -2992,6 +3266,35 @@ object Glossary extends MdcLoggable  {
 |
 |OBP generates ONLY the regular endpoints. No 'my' endpoints are created. Use this when the entity represents shared data that should not be user-scoped.
 |
+|**Data Storage Differences:**
+|
+|Both personal and non-personal entities use the same database table (DynamicData), but the key difference is how user ownership is handled:
+|
+|When **hasPersonalEntity = true**:
+|
+|* Each record stores the UserId of the user who created it
+|* The UserId is **actively used in all queries** to filter results
+|* Users can only see, update, and delete their own records via 'my' endpoints
+|* The 'my' endpoints **skip role checks** - user isolation provides the authorization
+|* Cascade delete (deleting the entity definition and all data at once) is **not allowed**
+|
+|When **hasPersonalEntity = false**:
+|
+|* UserId may be stored for audit purposes but is **ignored in queries**
+|* All authorized users see the same shared data
+|* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
+|* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
+|
+|**Summary table:**
+|
+|| Feature | hasPersonalEntity=true | hasPersonalEntity=false |
+||---------|------------------------|-------------------------|
+|| Data visibility | Per-user (isolated) | Shared (all users) |
+|| UserId in queries | Yes (filters results) | No (ignored) |
+|| 'my' endpoints | Generated | Not generated |
+|| Authorization | User-scoped (no roles needed for 'my' endpoints) | Role-based |
+|| Cascade delete | Blocked | Allowed |
+|
 |**For bank-level entities**, endpoints include the bank ID:
 |
 |* POST /banks/BANK_ID/CustomerPreferences
@@ -3014,6 +3317,25 @@ object Glossary extends MdcLoggable  {
 |* GET /management/banks/BANK_ID/dynamic-entities - List bank level entities
 |* PUT /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Update entity definition
 |* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete entity (and all its data)
+|
+|**Discovering Dynamic Entity Endpoints (for application developers):**
+|
+|Once Dynamic Entities are created, their auto-generated CRUD endpoints are documented in the Resource Docs API. To programmatically discover all available Dynamic Entity endpoints, use:
+|
+|```
+|GET /resource-docs/API_VERSION/obp?content=dynamic
+|```
+|
+|For example: `GET /resource-docs/v5.1.0/obp?content=dynamic`
+|
+|This returns documentation for all dynamic endpoints (both Dynamic Entities and Dynamic Endpoints) including:
+|
+|* Endpoint paths and HTTP methods
+|* Request and response schemas with examples
+|* Required roles and authentication
+|* Field descriptions and types
+|
+|You can also get this documentation in OpenAPI/Swagger format for code generation and API client tooling.
 |
 |**Required roles to manage Dynamic Entities:**
 |
@@ -3089,10 +3411,71 @@ object Glossary extends MdcLoggable  {
 |
 |**Note:** If hasPersonalEntity is set to false, no 'my' endpoints are generated.
 |
-|**Management endpoints for Dynamic Entity definitions:**
+|**Management endpoints for Dynamic Entity definitions (available from v4.0.0):**
 |
 |* GET /my/dynamic-entities - Get all Dynamic Entity definitions I created
 |* PUT /my/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition I created
+|
+|**Discovery endpoint (available from v6.0.0):**
+|
+|* GET /personal-dynamic-entities/available - Discover all Dynamic Entities that support personal data storage
+|
+|This endpoint allows regular users (without admin roles) to discover which dynamic entities they can interact with for storing personal data via the /my/ENTITY_NAME endpoints. No special roles required - just needs to be logged in.
+|
+|**Response format for GET /my/dynamic-entities and GET /personal-dynamic-entities/available:**
+|
+|**v6.0.0 format (recommended):**
+|
+|The v6.0.0 response uses snake_case field names and an explicit `entity_name` field:
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "dynamic_entity_id": "abc-123-def",
+|      "entity_name": "CustomerPreferences",
+|      "user_id": "user-456",
+|      "bank_id": null,
+|      "has_personal_entity": true,
+|      "definition": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      }
+|    }
+|  ]
+|}
+|```
+|
+|**v4.0.0 format (legacy):**
+|
+|The v4.0.0 response uses camelCase field names and the **entity name is a dynamic key** (not a fixed property name):
+|
+|```json
+|{
+|  "dynamic_entities": [
+|    {
+|      "CustomerPreferences": {
+|        "description": "User preferences",
+|        "required": ["theme"],
+|        "properties": {
+|          "theme": {"type": "string"},
+|          "language": {"type": "string"}
+|        }
+|      },
+|      "dynamicEntityId": "abc-123-def",
+|      "userId": "user-456",
+|      "hasPersonalEntity": true,
+|      "bankId": null
+|    }
+|  ]
+|}
+|```
+|
+|To extract the entity name from the v4.0.0 format programmatically, find the key that is NOT one of the standard properties: dynamicEntityId, userId, hasPersonalEntity, bankId.
 |
 |**Required roles:**
 |
@@ -3411,7 +3794,17 @@ object Glossary extends MdcLoggable  {
 		glossaryItems += GlossaryItem(
 			title = "Dynamic linking (PSD2 context)",
 			description =
-				s"""""".stripMargin)
+				s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
+					 |
+					 |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
+					 |
+					 |1. **The amount** of the transaction
+					 |2. **The payee** (recipient) of the transaction
+					 |
+					 |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
+					 |
+					 |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
+					 |""".stripMargin)
 
 		glossaryItems += GlossaryItem(
 			title = "TPP",
@@ -3902,6 +4295,473 @@ object Glossary extends MdcLoggable  {
 				 |Note: You can / should run a separate instance of OBP for surfacing the Regulated Entities endpoints.
 				 |""".stripMargin)
 
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Simple_Guide",
+		description =
+			s"""
+				 |# ABAC Rules Engine - Simple Guide
+				 |
+				 |## Overview
+				 |
+				 |The ABAC (Attribute-Based Access Control) Rules Engine allows you to create dynamic access control rules in Scala that evaluate whether a user should have access to a resource.
+				 |
+				 |## API Usage
+				 |
+				 |### Endpoint
+				 |```
+				 |POST $getObpApiRoot/v6.0.0/management/abac-rules/{RULE_ID}/execute
+				 |```
+				 |
+				 |### Request Example
+				 |```bash
+				 |curl -X POST \\
+				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
+				 |  -H 'Authorization: DirectLogin token=eyJhbGciOiJIUzI1...' \\
+				 |  -H 'Content-Type: application/json' \\
+				 |  -d '{
+				 |    "bank_id": "gh.29.uk",
+				 |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
+				 |  }'
+				 |```
+				 |
+				 |## Understanding the Three User Parameters
+				 |
+				 |### 1. `authenticatedUserId` (Required)
+				 |**The person actually logged in and making the API call**
+				 |
+				 |- The real user who authenticated
+				 |- Retrieved from the authentication token
+				 |
+				 |### 2. `onBehalfOfUserId` (Optional)
+				 |**When someone acts on behalf of another user (delegation)**
+				 |
+				 |- Used for delegation scenarios
+				 |- The authenticated user is acting for someone else
+				 |- Common in customer service, admin tools, power of attorney
+				 |
+				 |### 3. `userId` (Optional)
+				 |**The target user being evaluated by the rule**
+				 |
+				 |- Defaults to `authenticatedUserId` if not provided
+				 |- The user whose permissions/attributes are being checked
+				 |- Useful for testing rules for different users
+				 |
+				 |## Writing ABAC Rules
+				 |
+				 |### Simple Rule Examples
+				 |
+				 |**Rule 1: User Must Own Account**
+				 |```scala
+				 |accountOpt.exists(account =>
+				 |  account.owners.exists(owner => owner.userId == user.userId)
+				 |)
+				 |```
+				 |
+				 |**Rule 2: Admin or Owner**
+				 |```scala
+				 |val isAdmin = authenticatedUser.emailAddress.endsWith("@admin.com")
+				 |val isOwner = accountOpt.exists(account =>
+				 |  account.owners.exists(owner => owner.userId == user.userId)
+				 |)
+				 |
+				 |isAdmin || isOwner
+				 |```
+				 |
+				 |**Rule 3: Account Balance Check**
+				 |```scala
+				 |accountOpt.exists(account => account.balance.toDouble >= 1000.0)
+				 |```
+				 |
+				 |## Available Objects in Rules
+				 |
+				 |```scala
+				 |authenticatedUser: User                    // The logged in user
+				 |onBehalfOfUserOpt: Option[User]           // User being acted on behalf of (if provided)
+				 |user: User                                 // The target user being evaluated
+				 |bankOpt: Option[Bank]                      // Bank context (if bank_id provided)
+				 |accountOpt: Option[BankAccount]            // Account context (if account_id provided)
+				 |transactionOpt: Option[Transaction]        // Transaction context (if transaction_id provided)
+				 |customerOpt: Option[Customer]              // Customer context (if customer_id provided)
+				 |```
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Parameters_Summary - Complete list of all 18 parameters
+				 |- ABAC_Object_Properties_Reference - Detailed property reference
+				 |- ABAC_Testing_Examples - More testing examples
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Parameters_Summary",
+		description =
+			s"""
+				 |# ABAC Rule Parameters Summary
+				 |
+				 |The ABAC Rules Engine provides 18 parameters to your rule function, organized into three categories:
+				 |
+				 |## User Parameters (6 parameters)
+				 |
+				 |1. **authenticatedUser: User** - The logged-in user
+				 |2. **authenticatedUserAttributes: List[UserAttributeTrait]** - Non-personal attributes of authenticated user (IsPersonal=false)
+				 |3. **authenticatedUserAuthContext: List[UserAuthContext]** - Auth context of authenticated user
+				 |4. **onBehalfOfUserOpt: Option[User]** - User being acted on behalf of (if provided)
+				 |5. **onBehalfOfUserAttributes: List[UserAttributeTrait]** - Non-personal attributes of on-behalf-of user (IsPersonal=false)
+				 |6. **onBehalfOfUserAuthContext: List[UserAuthContext]** - Auth context of on-behalf-of user
+				 |
+				 |## Target User Parameters (3 parameters)
+				 |
+				 |7. **userOpt: Option[User]** - Target user being evaluated
+				 |8. **userAttributes: List[UserAttributeTrait]** - Non-personal attributes of target user (IsPersonal=false)
+				 |9. **user: User** - Resolved target user (defaults to authenticatedUser)
+				 |
+				 |## Resource Context Parameters (9 parameters)
+				 |
+				 |10. **bankOpt: Option[Bank]** - Bank context (if bank_id provided)
+				 |11. **bankAttributes: List[BankAttributeTrait]** - Bank attributes
+				 |12. **accountOpt: Option[BankAccount]** - Account context (if account_id provided)
+				 |13. **accountAttributes: List[AccountAttribute]** - Account attributes
+				 |14. **transactionOpt: Option[Transaction]** - Transaction context (if transaction_id provided)
+				 |15. **transactionAttributes: List[TransactionAttribute]** - Transaction attributes
+				 |16. **transactionRequestOpt: Option[TransactionRequest]** - Transaction request context
+				 |17. **transactionRequestAttributes: List[TransactionRequestAttributeTrait]** - Transaction request attributes
+				 |18. **customerOpt: Option[Customer]** - Customer context (if customer_id provided)
+				 |19. **customerAttributes: List[CustomerAttribute]** - Customer attributes
+				 |
+				 |## Usage in Rules
+				 |
+				 |```scala
+				 |// Access user email
+				 |authenticatedUser.emailAddress
+				 |
+				 |// Check if account exists and has sufficient balance
+				 |accountOpt.exists(account => account.balance.toDouble >= 1000.0)
+				 |
+				 |// Check user attributes (non-personal only)
+				 |authenticatedUserAttributes.exists(attr =>
+				 |  attr.name == "role" && attr.value == "admin"
+				 |)
+				 |
+				 |// Note: Only non-personal attributes (IsPersonal=false) are included
+				 |
+				 |// Check delegation
+				 |onBehalfOfUserOpt.isDefined
+				 |```
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Simple_Guide - Getting started guide
+				 |- ABAC_Object_Properties_Reference - Detailed property reference
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Object_Properties_Reference",
+		description =
+			s"""
+				 |# ABAC Object Properties Reference
+				 |
+				 |This document lists all properties available on objects passed to ABAC rules.
+				 |
+				 |## User Object
+				 |
+				 |Available as: `authenticatedUser`, `user`, `onBehalfOfUserOpt.get`
+				 |
+				 |### Core Properties
+				 |
+				 |```scala
+				 |user.userId              // String - Unique user ID
+				 |user.emailAddress        // String - User's email
+				 |user.name                // String - Display name
+				 |user.provider            // String - Auth provider
+				 |user.providerId          // String - Provider's user ID
+				 |```
+				 |
+				 |### Usage Examples
+				 |
+				 |```scala
+				 |// Check if user is admin
+				 |user.emailAddress.endsWith("@admin.com")
+				 |
+				 |// Check specific user
+				 |user.userId == "alice@example.com"
+				 |```
+				 |
+				 |## BankAccount Object
+				 |
+				 |Available as: `accountOpt.get`
+				 |
+				 |### Core Properties
+				 |
+				 |```scala
+				 |account.accountId         // AccountId - Account identifier
+				 |account.bankId            // BankId - Bank identifier
+				 |account.accountType       // String - Account type
+				 |account.balance           // BigDecimal - Current balance
+				 |account.currency          // String - Currency code (e.g., "EUR")
+				 |account.name              // String - Account name
+				 |account.label             // String - Account label
+				 |account.owners            // List[User] - Account owners
+				 |```
+				 |
+				 |### Usage Examples
+				 |
+				 |```scala
+				 |// Check balance
+				 |accountOpt.exists(_.balance.toDouble >= 1000.0)
+				 |
+				 |// Check ownership
+				 |accountOpt.exists(account =>
+				 |  account.owners.exists(owner => owner.userId == user.userId)
+				 |)
+				 |
+				 |// Check currency
+				 |accountOpt.exists(_.currency == "EUR")
+				 |```
+				 |
+				 |## Bank Object
+				 |
+				 |Available as: `bankOpt.get`
+				 |
+				 |### Core Properties
+				 |
+				 |```scala
+				 |bank.bankId               // BankId - Bank identifier
+				 |bank.shortName            // String - Short name
+				 |bank.fullName             // String - Full legal name
+				 |bank.logoUrl              // String - URL to bank logo
+				 |bank.websiteUrl           // String - Bank website URL
+				 |bank.bankRoutingScheme    // String - Routing scheme
+				 |bank.bankRoutingAddress   // String - Routing address
+				 |```
+				 |
+				 |### Usage Examples
+				 |
+				 |```scala
+				 |// Check specific bank
+				 |bankOpt.exists(_.bankId.value == "gh.29.uk")
+				 |
+				 |// Check bank by routing
+				 |bankOpt.exists(_.bankRoutingScheme == "SWIFT_BIC")
+				 |```
+				 |
+				 |## Transaction Object
+				 |
+				 |Available as: `transactionOpt.get`
+				 |
+				 |### Core Properties
+				 |
+				 |```scala
+				 |transaction.id            // TransactionId - Transaction ID
+				 |transaction.amount        // BigDecimal - Transaction amount
+				 |transaction.currency      // String - Currency code
+				 |transaction.description   // String - Description
+				 |transaction.startDate     // Option[Date] - Posted date
+				 |transaction.finishDate    // Option[Date] - Completed date
+				 |transaction.transactionType // String - Transaction type
+				 |```
+				 |
+				 |### Usage Examples
+				 |
+				 |```scala
+				 |// Check transaction amount
+				 |transactionOpt.exists(tx => tx.amount.abs.toDouble < 100.0)
+				 |
+				 |// Check transaction type
+				 |transactionOpt.exists(_.transactionType == "SEPA")
+				 |```
+				 |
+				 |## Customer Object
+				 |
+				 |Available as: `customerOpt.get`
+				 |
+				 |### Core Properties
+				 |
+				 |```scala
+				 |customer.customerId       // String - Customer ID
+				 |customer.customerNumber   // String - Customer number
+				 |customer.legalName        // String - Legal name
+				 |customer.mobileNumber     // String - Mobile number
+				 |customer.email            // String - Email address
+				 |customer.dateOfBirth      // Date - Date of birth
+				 |```
+				 |
+				 |### Usage Examples
+				 |
+				 |```scala
+				 |// Check customer email domain
+				 |customerOpt.exists(_.email.endsWith("@company.com"))
+				 |```
+				 |
+				 |## Attribute Objects
+				 |
+				 |### UserAttributeTrait
+				 |
+				 |```scala
+				 |attr.name                 // String - Attribute name
+				 |attr.value                // String - Attribute value
+				 |attr.attributeType        // UserAttributeType - Type of attribute
+				 |```
+				 |
+				 |### Usage Example
+				 |
+				 |```scala
+				 |// Check for specific non-personal attribute
+				 |authenticatedUserAttributes.exists(attr =>
+				 |  attr.name == "department" && attr.value == "finance"
+				 |)
+				 |
+				 |// Note: User attributes in ABAC rules only include non-personal attributes
+				 |// (where IsPersonal=false). Personal attributes are not available for
+				 |// privacy and GDPR compliance reasons.
+				 |```
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Simple_Guide - Getting started guide
+				 |- ABAC_Parameters_Summary - Complete parameter list
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Testing_Examples",
+		description =
+			s"""
+				 |# ABAC Testing Examples
+				 |
+				 |## API Endpoint
+				 |
+				 |```
+				 |POST $getObpApiRoot/v6.0.0/management/abac-rules/{RULE_ID}/execute
+				 |```
+				 |
+				 |## Example 1: Admin Only Rule
+				 |
+				 |**Rule Code:**
+				 |```scala
+				 |authenticatedUser.emailAddress.endsWith("@admin.com")
+				 |```
+				 |
+				 |**Test Request:**
+				 |```bash
+				 |curl -X POST \\
+				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
+				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H 'Content-Type: application/json' \\
+				 |  -d '{}'
+				 |```
+				 |
+				 |**Expected Result:**
+				 |- Admin user → `{"result": true}`
+				 |- Regular user → `{"result": false}`
+				 |
+				 |## Example 2: Account Owner Check
+				 |
+				 |**Rule Code:**
+				 |```scala
+				 |accountOpt.exists(account =>
+				 |  account.owners.exists(owner => owner.userId == user.userId)
+				 |)
+				 |```
+				 |
+				 |**Test Request:**
+				 |```bash
+				 |curl -X POST \\
+				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/account-owner-only/execute' \\
+				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H 'Content-Type: application/json' \\
+				 |  -d '{
+				 |    "user_id": "alice@example.com",
+				 |    "bank_id": "gh.29.uk",
+				 |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
+				 |  }'
+				 |```
+				 |
+				 |## Example 3: Balance Check
+				 |
+				 |**Rule Code:**
+				 |```scala
+				 |accountOpt.exists(account => account.balance.toDouble >= 1000.0)
+				 |```
+				 |
+				 |**Test Request:**
+				 |```bash
+				 |curl -X POST \\
+				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/high-balance-only/execute' \\
+				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H 'Content-Type: application/json' \\
+				 |  -d '{
+				 |    "bank_id": "gh.29.uk",
+				 |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
+				 |  }'
+				 |```
+				 |
+				 |## Example 4: Transaction Amount Check
+				 |
+				 |**Rule Code:**
+				 |```scala
+				 |transactionOpt.exists(tx => tx.amount.abs.toDouble < 100.0)
+				 |```
+				 |
+				 |**Test Request:**
+				 |```bash
+				 |curl -X POST \\
+				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/small-transactions/execute' \\
+				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H 'Content-Type: application/json' \\
+				 |  -d '{
+				 |    "bank_id": "gh.29.uk",
+				 |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+				 |    "transaction_id": "trans-123"
+				 |  }'
+				 |```
+				 |
+				 |## Testing Patterns
+				 |
+				 |### Pattern 1: Test Different Users
+				 |
+				 |```bash
+				 |# Test for admin
+				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/RULE_ID/execute' \\
+				 |  -d '{"user_id": "admin@admin.com", "bank_id": "gh.29.uk"}'
+				 |
+				 |# Test for regular user
+				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/RULE_ID/execute' \\
+				 |  -d '{"user_id": "alice@example.com", "bank_id": "gh.29.uk"}'
+				 |```
+				 |
+				 |### Pattern 2: Test Edge Cases
+				 |
+				 |```bash
+				 |# No context (minimal)
+				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/RULE_ID/execute' -d '{}'
+				 |
+				 |# Full context
+				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/RULE_ID/execute' -d '{
+				 |  "user_id": "alice@example.com",
+				 |  "bank_id": "gh.29.uk",
+				 |  "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+				 |  "transaction_id": "trans-123",
+				 |  "customer_id": "cust-456"
+				 |}'
+				 |```
+				 |
+				 |## Common Errors
+				 |
+				 |### Error 1: Rule Not Found
+				 |
+				 |```bash
+				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/nonexistent-rule/execute' \\
+				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -d '{}'
+				 |```
+				 |
+				 |**Response:** `{"error": "ABAC Rule not found with ID: nonexistent-rule"}`
+				 |
+				 |### Error 2: Invalid Context
+				 |
+				 |**Response:** Objects will be `None` if IDs are invalid, rule should handle gracefully
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Simple_Guide - Getting started guide
+				 |- ABAC_Parameters_Summary - Complete parameter list
+				 |- ABAC_Object_Properties_Reference - Property reference
+				 |""".stripMargin)
 
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)

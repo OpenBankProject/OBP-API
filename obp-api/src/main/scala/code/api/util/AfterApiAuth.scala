@@ -32,11 +32,12 @@ object AfterApiAuth extends MdcLoggable{
    */
   def innerLoginUserInitAction(authUser: Box[AuthUser]) = {
     authUser.map { u => // Init actions
-      logger.info("AfterApiAuth.innerLoginUserInitAction started successfully")
+      logger.debug("AfterApiAuth.innerLoginUserInitAction started successfully")
       sofitInitAction(u)
     } match {
-        case Full(_) => logger.warn("AfterApiAuth.innerLoginUserInitAction completed successfully")
-        case userInitActionFailure => logger.warn("AfterApiAuth.innerLoginUserInitAction: " + userInitActionFailure)
+        case Full(_) => logger.debug("AfterApiAuth.innerLoginUserInitAction completed successfully")
+        case Empty => // Init actions are not started at all
+        case userInitActionFailure => logger.error("AfterApiAuth.innerLoginUserInitAction: " + userInitActionFailure)
     }
   }
   /**
@@ -93,67 +94,18 @@ object AfterApiAuth extends MdcLoggable{
 
   /**
    * This block of code needs to update Call Context with Rate Limiting
-   * Please note that first source is the table RateLimiting and second is the table Consumer
+   * Uses RateLimitingUtil.getActiveRateLimitsWithIds as the SINGLE SOURCE OF TRUTH
    */
   def checkRateLimiting(userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
-    def getActiveRateLimitings(consumerId: String): Future[List[RateLimiting]] = {
-      RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, new Date())
-        case false => Future(List.empty)
-      }
-    }
-    
-    def aggregateLimits(limits: List[RateLimiting], consumerId: String): CallLimit = {
-      def sumLimits(values: List[Long]): Long = {
-        val positiveValues = values.filter(_ > 0)
-        if (positiveValues.isEmpty) -1 else positiveValues.sum
-      }
-      
-      if (limits.nonEmpty) {
-        CallLimit(
-          consumerId,
-          limits.find(_.apiName.isDefined).flatMap(_.apiName),
-          limits.find(_.apiVersion.isDefined).flatMap(_.apiVersion),
-          limits.find(_.bankId.isDefined).flatMap(_.bankId),
-          sumLimits(limits.map(_.perSecondCallLimit)),
-          sumLimits(limits.map(_.perMinuteCallLimit)),
-          sumLimits(limits.map(_.perHourCallLimit)),
-          sumLimits(limits.map(_.perDayCallLimit)),
-          sumLimits(limits.map(_.perWeekCallLimit)),
-          sumLimits(limits.map(_.perMonthCallLimit))
-        )
-      } else {
-        CallLimit(consumerId, None, None, None, -1, -1, -1, -1, -1, -1)
-      }
-    }
-    
     for {
       (user, cc) <- userIsLockedOrDeleted
       consumer = cc.flatMap(_.consumer)
       consumerId = consumer.map(_.consumerId.get).getOrElse("")
-      rateLimitings <- getActiveRateLimitings(consumerId)
+      (rateLimit, _) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, new Date())
     } yield {
-      val limit: Option[CallLimit] = rateLimitings match {
-        case Nil => // No rate limiting records found, use consumer defaults
-          Some(CallLimit(
-            consumerId,
-            None,
-            None,
-            None,
-            consumer.map(_.perSecondCallLimit.get).getOrElse(-1),
-            consumer.map(_.perMinuteCallLimit.get).getOrElse(-1),
-            consumer.map(_.perHourCallLimit.get).getOrElse(-1),
-            consumer.map(_.perDayCallLimit.get).getOrElse(-1),
-            consumer.map(_.perWeekCallLimit.get).getOrElse(-1),
-            consumer.map(_.perMonthCallLimit.get).getOrElse(-1)
-          ))
-        case activeLimits => // Aggregate multiple rate limiting records
-          Some(aggregateLimits(activeLimits, consumerId))
-      }
-      (user, cc.map(_.copy(rateLimiting = limit)))
+      (user, cc.map(_.copy(rateLimiting = Some(rateLimit))))
     }
   }
-  
   private def sofitInitAction(user: AuthUser): Boolean = applyAction("sofit.logon_init_action.enabled") {
     def getOrCreateBankAccount(bank: Bank, accountId: String, label: String, accountType: String = ""): Box[BankAccount] = {
       MappedBankAccount.find(

@@ -56,6 +56,7 @@ trait ConsumersProvider {
                      LogoURL: Option[String] = None,
                      certificate: Option[String] = None,
   ): Box[Consumer]
+  @deprecated("Use RateLimitingDI.rateLimiting.vend methods instead", "v5.0.0")
   def updateConsumerCallLimits(id: Long, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]]
   def getOrCreateConsumer(consumerId: Option[String], 
                           key: Option[String], 

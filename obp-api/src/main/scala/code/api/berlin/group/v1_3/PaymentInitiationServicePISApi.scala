@@ -1,5 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
+import scala.language.implicitConversions
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, checkAuthorisationConfirmation, checkSelectPsuAuthenticationMethod, checkTransactionAuthorisation, checkUpdatePsuAuthentication, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
@@ -99,7 +100,7 @@ or * access method is generally applicable, but further authorisation processes 
            startAuthorisation = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/cancellation-authorisations/1234-wertiq-983/status")
          )
        ),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: Nil
      )
 
@@ -175,7 +176,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -222,7 +223,7 @@ Returns the content of a payment object""",
                       },
                       "creditorName":"70charname"
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM ::Nil
      )
 
@@ -281,7 +282,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                            }
                        }
                      ]"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -319,7 +320,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        json.parse("""{
   "cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e]"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -356,7 +357,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -395,7 +396,7 @@ Check the transaction status of a payment initiation.""",
        json.parse(s"""{
                       "transactionStatus": "${TransactionStatus.ACCP.code}"
                      }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -606,7 +607,7 @@ Check the transaction status of a payment initiation.""",
                       "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                       }
                   }"""),
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
@@ -655,7 +656,7 @@ Check the transaction status of a payment initiation.""",
                       "scaStatus": {"href": "/v1.3/periodic-payments/1234-wertiq-983/authorisations/123auth456"}
                       }
                   }"""),
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
@@ -717,7 +718,7 @@ Check the transaction status of a payment initiation.""",
                       "scaStatus": {"href": "/v1.3/bulk-payments/1234-wertiq-983/authorisations/123auth456"}
                       }
                   }"""),
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
@@ -788,7 +789,7 @@ This applies in the following scenarios:
                         }
                       }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -832,7 +833,7 @@ This applies in the following scenarios:
                     }
                   }
                 }"""),
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
@@ -876,7 +877,7 @@ This applies in the following scenarios:
                     }
                   }
                 }"""),
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
     )
 
@@ -970,7 +971,7 @@ This applies in the following scenarios:
            }
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1038,7 +1039,7 @@ This applies in the following scenarios:
            }
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1082,7 +1083,7 @@ This applies in the following scenarios:
            }
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1167,7 +1168,7 @@ There are the following request types on this access path:
                         "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
                       }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1246,7 +1247,7 @@ There are the following request types on this access path:
            "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1288,7 +1289,7 @@ There are the following request types on this access path:
            "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1330,7 +1331,7 @@ There are the following request types on this access path:
            "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1414,7 +1415,7 @@ There are the following request types on this access path:
                             "scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}
                         }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1489,7 +1490,7 @@ There are the following request types on this access path:
                             "scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}
                         }
                     }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1533,7 +1534,7 @@ There are the following request types on this access path:
            "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1577,7 +1578,7 @@ There are the following request types on this access path:
            "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
          }
        }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 

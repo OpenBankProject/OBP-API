@@ -83,9 +83,7 @@ trait APIMethodsDynamicEntity {
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val isGetAll = StringUtils.isBlank(id)
 
-        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitName = entityName
         val splitNameWithBankId = if (bankId.isDefined)
           s"""$splitName(${bankId.getOrElse("")})"""
         else
@@ -169,9 +167,7 @@ trait APIMethodsDynamicEntity {
       case EntityName(bankId, entityName, _, isPersonalEntity) JsonPost json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operation: DynamicEntityOperation = CREATE
-        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitName = entityName
         val splitNameWithBankId = if (bankId.isDefined)
           s"""$splitName(${bankId.getOrElse("")})"""
         else
@@ -230,9 +226,7 @@ trait APIMethodsDynamicEntity {
       case EntityName(bankId, entityName, id, isPersonalEntity) JsonPut json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operation: DynamicEntityOperation = UPDATE
-        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitName = entityName
         val splitNameWithBankId = if (bankId.isDefined)
           s"""$splitName(${bankId.getOrElse("")})"""
         else
@@ -303,9 +297,7 @@ trait APIMethodsDynamicEntity {
       }
       case EntityName(bankId, entityName, id, isPersonalEntity) JsonDelete _ => { cc =>
         val operation: DynamicEntityOperation = DELETE
-        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitName = entityName
         val splitNameWithBankId = if (bankId.isDefined)
           s"""$splitName(${bankId.getOrElse("")})"""
         else

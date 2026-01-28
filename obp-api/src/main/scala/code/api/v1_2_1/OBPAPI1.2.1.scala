@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v1_2_1
 
+import scala.language.implicitConversions
+import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
@@ -40,7 +42,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable wit
   val version : ApiVersion = ApiVersion.v1_2_1  //    "1.2.1"
   val versionStatus = ApiVersionStatus.DEPRECATED.toString
 
-  lazy val endpointsOf1_2_1 = List(
+  lazy val endpointsOf1_2_1: Seq[OBPEndpoint] = List(
     Implementations1_2_1.root,
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,

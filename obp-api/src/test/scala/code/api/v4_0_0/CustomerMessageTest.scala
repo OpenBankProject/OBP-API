@@ -72,15 +72,15 @@ class CustomerMessageTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(createMessageJsonV400))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
 
       val requestGet400 = (v4_0_0_Request / "banks" / testBankId / "customers"/ "testCustomerId" / "messages").GET
       val responseGet400 = makeGetRequest(requestGet400)
       Then("We should get a 401")
       responseGet400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      responseGet400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {

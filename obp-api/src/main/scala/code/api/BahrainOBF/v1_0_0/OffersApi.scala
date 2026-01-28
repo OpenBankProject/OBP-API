@@ -1,5 +1,6 @@
 package code.api.BahrainOBF.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -86,7 +87,7 @@ object APIMethods_OffersApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 
@@ -94,7 +95,7 @@ object APIMethods_OffersApi extends RestHelper {
        case "accounts" :: accountId:: "offers" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -207,7 +208,7 @@ object APIMethods_OffersApi extends RestHelper {
     } ]
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Offers") :: apiTagMockedData :: Nil
      )
 
@@ -215,7 +216,7 @@ object APIMethods_OffersApi extends RestHelper {
        case "offers" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -37,7 +38,7 @@ object APIMethods_ProductsApi extends RestHelper {
        s"""${mockedDataText(true)}""", 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -63,7 +64,7 @@ object APIMethods_ProductsApi extends RestHelper {
 """, 
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
 

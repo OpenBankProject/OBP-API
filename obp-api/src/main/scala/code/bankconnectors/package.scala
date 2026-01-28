@@ -3,7 +3,7 @@ package code
 import java.lang.reflect.Method
 import java.util.regex.Pattern
 
-import akka.http.scaladsl.model.HttpMethod
+import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
 import code.api.util.{CallContext, FutureUtil, NewStyle}
 import code.methodrouting.{MethodRouting, MethodRoutingT}

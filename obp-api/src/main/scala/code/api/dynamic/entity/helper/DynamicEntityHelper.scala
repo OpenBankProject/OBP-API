@@ -3,7 +3,7 @@ package code.api.dynamic.entity.helper
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
@@ -29,7 +29,7 @@ object EntityName {
     case "my" :: entityName :: id :: Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPersonalEntity)
         .map(_ => (None, entityName, id, true))
-      
+
     //eg: /FooBar21
     case entityName ::  Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
@@ -39,7 +39,7 @@ object EntityName {
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
         .map(_ => (None, entityName, id, false))
 
-    
+
     //eg: /Banks/BANK_ID/my/FooBar21
     case "banks" :: bankId :: "my" :: entityName :: Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPersonalEntity)
@@ -58,14 +58,14 @@ object EntityName {
     case "banks" :: bankId :: entityName :: id :: Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
         .map(_ => (Some(bankId),entityName, id, false))//no bank:
-      
+
     case _ => None
   }
 }
 
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
-  
+
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
   def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity))).toMap
 
@@ -82,7 +82,7 @@ object DynamicEntityHelper {
     // eg: entityName = PetEntity => entityIdName = pet_entity_id
     s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
   }
-  
+
   def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 
@@ -98,7 +98,7 @@ object DynamicEntityHelper {
     //    Csem_case -> Csem Case
     //    _Csem_case -> _Csem Case
     //    csem-case -> Csem Case
-    def prettyTagName(s: String) = s.capitalize.split("(?<=[^-_])[-_]+").reduceLeft(_ + " " + _.capitalize)
+    def prettyTagName(s: String) = s
 
     def apiTag(entityName: String, singularName: String): ResourceDocTag = {
 
@@ -139,15 +139,13 @@ object DynamicEntityHelper {
                 (dynamicEntityInfo: DynamicEntityInfo): mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     val hasPersonalEntity = dynamicEntityInfo.hasPersonalEntity
-    
+    val splitName = entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
-    val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-    val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
     val splitNameWithBankId = if (dynamicEntityInfo.bankId.isDefined)
-      s"""$splitName(${dynamicEntityInfo.bankId.getOrElse("")})""" 
-    else 
+      s"""$splitName(${dynamicEntityInfo.bankId.getOrElse("")})"""
+    else
       s"""$splitName"""
-    
+
     val mySplitNameWithBankId = s"My$splitNameWithBankId"
 
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
@@ -185,7 +183,7 @@ object DynamicEntityHelper {
       EmptyBody,
       dynamicEntityInfo.getExampleList,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -193,7 +191,7 @@ object DynamicEntityHelper {
       Some(List(dynamicEntityInfo.canGetRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
-    
+
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
@@ -213,7 +211,7 @@ object DynamicEntityHelper {
       EmptyBody,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -242,7 +240,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -272,7 +270,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -299,7 +297,7 @@ object DynamicEntityHelper {
       dynamicEntityInfo.getSingleExampleWithoutId,
       dynamicEntityInfo.getSingleExample,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -333,13 +331,13 @@ object DynamicEntityHelper {
         EmptyBody,
         dynamicEntityInfo.getExampleList,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
       )
-      
+
       resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
         endPoint,
         implementedInApiVersion,
@@ -359,13 +357,13 @@ object DynamicEntityHelper {
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
       )
-  
+
       resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
         endPoint,
         implementedInApiVersion,
@@ -386,14 +384,14 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           InvalidJsonFormat,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
         )
-  
+
       resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
         endPoint,
         implementedInApiVersion,
@@ -414,7 +412,7 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           InvalidJsonFormat,
           UnknownError
         ),
@@ -422,7 +420,7 @@ object DynamicEntityHelper {
         Some(List(dynamicEntityInfo.canUpdateRole)),
         createdByBankId= dynamicEntityInfo.bankId
       )
-  
+
       resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
         endPoint,
         implementedInApiVersion,
@@ -440,7 +438,7 @@ object DynamicEntityHelper {
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         List(
-          UserNotLoggedIn,
+          AuthenticatedUserIsRequired,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
@@ -502,10 +500,10 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   val subEntities: List[DynamicEntityInfo] = Nil
 
-  val idName = StringUtils.uncapitalize(entityName) + "Id"
+  val idName = StringHelpers.snakify(entityName) + "_id"
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-  
+
   val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
   val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
@@ -575,7 +573,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     JObject(exampleFields)
   }
   val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
-  
+
   def getSingleExample: JObject = if (bankId.isDefined){
     val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
     bankIdJObject merge SingleObject
@@ -583,11 +581,16 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
   }
 
-  def getExampleList: JObject =  if (bankId.isDefined){
-    val objectList: JObject = (listName -> JArray(List(getSingleExample)))
-    bankIdJObject merge objectList 
-  } else{
-    (listName -> JArray(List(getSingleExample)))
+  def getExampleList: JObject = {
+    // Create the list item without the singleName wrapper - the actual API response
+    // returns a flat list of objects, not wrapped in entity name
+    val listItem: JObject = JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)
+    if (bankId.isDefined) {
+      val objectList: JObject = (listName -> JArray(List(listItem)))
+      bankIdJObject merge objectList
+    } else {
+      (listName -> JArray(List(listItem)))
+    }
   }
 
   val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)
@@ -597,33 +600,33 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 }
 
 object DynamicEntityInfo {
-  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = 
-    if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, true) 
-    else  
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false) 
-  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = 
-    if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, true) 
-    else  
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false) 
-      
-  def canGetRole(entityName: String, bankId:Option[String]): ApiRole = 
+  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole =
     if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, true) 
-    else  
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false) 
-      
-  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = 
-    if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, true) 
-    else  
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false) 
+      getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false)
+  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole =
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false)
+
+  def canGetRole(entityName: String, bankId:Option[String]): ApiRole =
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false)
+
+  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole =
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false)
 
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
-    canCreateRole(entityName, bankId), 
+    canCreateRole(entityName, bankId),
     canUpdateRole(entityName, bankId),
-    canGetRole(entityName, bankId), 
+    canGetRole(entityName, bankId),
     canDeleteRole(entityName, bankId)
   ).map(_.toString())
 }

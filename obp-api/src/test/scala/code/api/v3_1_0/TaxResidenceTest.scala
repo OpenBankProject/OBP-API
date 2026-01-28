@@ -62,8 +62,8 @@ class TaxResidenceTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
@@ -73,8 +73,8 @@ class TaxResidenceTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID v3.1.0 - Unauthorized access") {
@@ -84,8 +84,8 @@ class TaxResidenceTest extends V310ServerSetup {
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

@@ -1,12 +1,12 @@
 package code.actorsystem
 
-import akka.actor.{ActorSystem}
+import org.apache.pekko.actor.{ActorSystem}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedOutInBoundTransfer
 import code.bankconnectors.akka.actor.{AkkaConnectorActorConfig, AkkaConnectorHelperActor}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.adapter.akka.commons.config.AkkaConfig
+// import com.openbankproject.adapter.pekko.commons.config.PekkoConfig // TODO: Re-enable when Pekko adapter is available
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Full
 
@@ -38,7 +38,7 @@ trait ObpLookupSystem extends MdcLoggable {
       if (port == 0) {
         logger.error("Failed to connect to local Remotedata actor, the port is 0, can not find a proper port in current machine.")
       }
-      s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
+      s"pekko.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
 
     this.obpLookupSystem.actorSelection(actorPath)
@@ -55,7 +55,7 @@ trait ObpLookupSystem extends MdcLoggable {
         val hostname = h
         val port = p
         val akka_connector_hostname = Helper.getAkkaConnectorHostname
-        s"akka.tcp://SouthSideAkkaConnector_${akka_connector_hostname}@${hostname}:${port}/user/${actorName}"
+        s"pekko.tcp://SouthSideAkkaConnector_${akka_connector_hostname}@${hostname}:${port}/user/${actorName}"
 
       case _ =>
         val hostname = AkkaConnectorActorConfig.localHostname
@@ -66,12 +66,12 @@ trait ObpLookupSystem extends MdcLoggable {
         }
 
         if(embeddedAdapter) {
-          AkkaConfig(LocalMappedOutInBoundTransfer, Some(ObpActorSystem.northSideAkkaConnectorActorSystem))
+          // AkkaConfig(LocalMappedOutInBoundTransfer, Some(ObpActorSystem.northSideAkkaConnectorActorSystem)) // TODO: Re-enable when Pekko adapter is available
         } else {
           AkkaConnectorHelperActor.startAkkaConnectorHelperActors(ObpActorSystem.northSideAkkaConnectorActorSystem)
         }
 
-        s"akka.tcp://SouthSideAkkaConnector_${props_hostname}@${hostname}:${port}/user/${actorName}"
+        s"pekko.tcp://SouthSideAkkaConnector_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
     this.obpLookupSystem.actorSelection(actorPath)
   }

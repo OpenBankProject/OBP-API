@@ -1,0 +1,505 @@
+{
+  "parameters": [
+    {
+      "name": "authenticatedUser",
+      "type": "User",
+      "description": "The logged-in user (always present)",
+      "required": true,
+      "category": "User"
+    },
+    {
+      "name": "authenticatedUserAttributes",
+      "type": "List[UserAttributeTrait]",
+      "description": "Non-personal attributes of authenticated user",
+      "required": true,
+      "category": "User"
+    },
+    {
+      "name": "authenticatedUserAuthContext",
+      "type": "List[UserAuthContext]",
+      "description": "Auth context of authenticated user",
+      "required": true,
+      "category": "User"
+    },
+    {
+      "name": "onBehalfOfUserOpt",
+      "type": "Option[User]",
+      "description": "User being acted on behalf of (delegation)",
+      "required": false,
+      "category": "User"
+    },
+    {
+      "name": "onBehalfOfUserAttributes",
+      "type": "List[UserAttributeTrait]",
+      "description": "Attributes of delegation user",
+      "required": false,
+      "category": "User"
+    },
+    {
+      "name": "onBehalfOfUserAuthContext",
+      "type": "List[UserAuthContext]",
+      "description": "Auth context of delegation user",
+      "required": false,
+      "category": "User"
+    },
+    {
+      "name": "userOpt",
+      "type": "Option[User]",
+      "description": "Target user being evaluated",
+      "required": false,
+      "category": "User"
+    },
+    {
+      "name": "userAttributes",
+      "type": "List[UserAttributeTrait]",
+      "description": "Attributes of target user",
+      "required": false,
+      "category": "User"
+    },
+    {
+      "name": "bankOpt",
+      "type": "Option[Bank]",
+      "description": "Bank context",
+      "required": false,
+      "category": "Bank"
+    },
+    {
+      "name": "bankAttributes",
+      "type": "List[BankAttributeTrait]",
+      "description": "Bank attributes",
+      "required": false,
+      "category": "Bank"
+    },
+    {
+      "name": "accountOpt",
+      "type": "Option[BankAccount]",
+      "description": "Account context",
+      "required": false,
+      "category": "Account"
+    },
+    {
+      "name": "accountAttributes",
+      "type": "List[AccountAttribute]",
+      "description": "Account attributes",
+      "required": false,
+      "category": "Account"
+    },
+    {
+      "name": "transactionOpt",
+      "type": "Option[Transaction]",
+      "description": "Transaction context",
+      "required": false,
+      "category": "Transaction"
+    },
+    {
+      "name": "transactionAttributes",
+      "type": "List[TransactionAttribute]",
+      "description": "Transaction attributes",
+      "required": false,
+      "category": "Transaction"
+    },
+    {
+      "name": "transactionRequestOpt",
+      "type": "Option[TransactionRequest]",
+      "description": "Transaction request context",
+      "required": false,
+      "category": "TransactionRequest"
+    },
+    {
+      "name": "transactionRequestAttributes",
+      "type": "List[TransactionRequestAttributeTrait]",
+      "description": "Transaction request attributes",
+      "required": false,
+      "category": "TransactionRequest"
+    },
+    {
+      "name": "customerOpt",
+      "type": "Option[Customer]",
+      "description": "Customer context",
+      "required": false,
+      "category": "Customer"
+    },
+    {
+      "name": "customerAttributes",
+      "type": "List[CustomerAttribute]",
+      "description": "Customer attributes",
+      "required": false,
+      "category": "Customer"
+    },
+    {
+      "name": "callContext",
+      "type": "Option[CallContext]",
+      "description": "Request call context with metadata (IP, user agent, etc.)",
+      "required": false,
+      "category": "Context"
+    }
+  ],
+  "object_types": [
+    {
+      "name": "User",
+      "description": "User object with profile and authentication information",
+      "properties": [
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "Unique user ID"
+        },
+        {
+          "name": "emailAddress",
+          "type": "String",
+          "description": "User email address"
+        },
+        {
+          "name": "provider",
+          "type": "String",
+          "description": "Authentication provider (e.g., 'obp')"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "User display name"
+        },
+        {
+          "name": "isDeleted",
+          "type": "Option[Boolean]",
+          "description": "Whether user is deleted"
+        }
+      ]
+    },
+    {
+      "name": "BankAccount",
+      "description": "Bank account object",
+      "properties": [
+        {
+          "name": "accountId",
+          "type": "AccountId",
+          "description": "Account ID"
+        },
+        {
+          "name": "bankId",
+          "type": "BankId",
+          "description": "Bank ID"
+        },
+        {
+          "name": "accountType",
+          "type": "String",
+          "description": "Account type"
+        },
+        {
+          "name": "balance",
+          "type": "BigDecimal",
+          "description": "Account balance"
+        },
+        {
+          "name": "currency",
+          "type": "String",
+          "description": "Account currency"
+        },
+        {
+          "name": "label",
+          "type": "String",
+          "description": "Account label"
+        }
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "category": "Authenticated User",
+      "title": "Check Email Domain",
+      "code": "authenticatedUser.emailAddress.contains(\"@example.com\")",
+      "description": "Verify authenticated user's email belongs to a specific domain"
+    },
+    {
+      "category": "Authenticated User",
+      "title": "Check Provider",
+      "code": "authenticatedUser.provider == \"obp\"",
+      "description": "Verify the authentication provider is OBP"
+    },
+    {
+      "category": "Authenticated User",
+      "title": "User Not Deleted",
+      "code": "!authenticatedUser.isDeleted.getOrElse(false)",
+      "description": "Ensure the authenticated user account is not marked as deleted"
+    },
+    {
+      "category": "Authenticated User Attributes",
+      "title": "Admin Role Check",
+      "code": "authenticatedUserAttributes.exists(attr => attr.name == \"role\" && attr.value == \"admin\")",
+      "description": "Check if authenticated user has admin role attribute"
+    },
+    {
+      "category": "Authenticated User Attributes",
+      "title": "Department Check",
+      "code": "authenticatedUserAttributes.find(_.name == \"department\").exists(_.value == \"finance\")",
+      "description": "Check if user belongs to finance department"
+    },
+    {
+      "category": "Authenticated User Attributes",
+      "title": "Multiple Role Check",
+      "code": "authenticatedUserAttributes.exists(attr => attr.name == \"role\" && List(\"admin\", \"manager\", \"supervisor\").contains(attr.value))",
+      "description": "Check if user has any of the specified management roles"
+    },
+    {
+      "category": "Target User",
+      "title": "Self Access",
+      "code": "userOpt.exists(_.userId == authenticatedUser.userId)",
+      "description": "Check if target user is the authenticated user (self-access)"
+    },
+    {
+      "category": "Target User",
+      "title": "Provider Match",
+      "code": "userOpt.exists(_.provider == \"obp\")",
+      "description": "Verify target user uses OBP provider"
+    },
+    {
+      "category": "Target User",
+      "title": "Trusted Domain",
+      "code": "userOpt.exists(_.emailAddress.endsWith(\"@trusted.com\"))",
+      "description": "Check if target user's email is from trusted domain"
+    },
+    {
+      "category": "User Attributes",
+      "title": "Premium Account Type",
+      "code": "userAttributes.exists(attr => attr.name == \"account_type\" && attr.value == \"premium\")",
+      "description": "Check if target user has premium account type attribute"
+    },
+    {
+      "category": "User Attributes",
+      "title": "KYC Verified",
+      "code": "userAttributes.exists(attr => attr.name == \"kyc_status\" && attr.value == \"verified\")",
+      "description": "Verify target user has completed KYC verification"
+    },
+    {
+      "category": "User Attributes",
+      "title": "Minimum Tier Level",
+      "code": "userAttributes.find(_.name == \"tier\").exists(_.value.toInt >= 2)",
+      "description": "Check if user's tier level is 2 or higher"
+    },
+    {
+      "category": "Account",
+      "title": "Balance Threshold",
+      "code": "accountOpt.exists(_.balance > 1000)",
+      "description": "Check if account balance exceeds threshold"
+    },
+    {
+      "category": "Account",
+      "title": "Currency and Balance",
+      "code": "accountOpt.exists(acc => acc.currency == \"USD\" && acc.balance > 5000)",
+      "description": "Check account has USD currency and balance over 5000"
+    },
+    {
+      "category": "Account",
+      "title": "Savings Account Type",
+      "code": "accountOpt.exists(_.accountType == \"SAVINGS\")",
+      "description": "Verify account is a savings account"
+    },
+    {
+      "category": "Account Attributes",
+      "title": "Active Status",
+      "code": "accountAttributes.exists(attr => attr.name == \"status\" && attr.value == \"active\")",
+      "description": "Check if account status is active"
+    },
+    {
+      "category": "Transaction",
+      "title": "Amount Limit",
+      "code": "transactionOpt.exists(_.amount < 10000)",
+      "description": "Check transaction amount is below limit"
+    },
+    {
+      "category": "Transaction",
+      "title": "Transfer Type",
+      "code": "transactionOpt.exists(_.transactionType.contains(\"TRANSFER\"))",
+      "description": "Verify transaction is a transfer type"
+    },
+    {
+      "category": "Customer",
+      "title": "Email Matches User",
+      "code": "customerOpt.exists(_.email == authenticatedUser.emailAddress)",
+      "description": "Verify customer email matches authenticated user"
+    },
+    {
+      "category": "Customer",
+      "title": "Active Relationship",
+      "code": "customerOpt.exists(_.relationshipStatus == \"ACTIVE\")",
+      "description": "Check customer has active relationship status"
+    },
+    {
+      "category": "Object Comparisons - User",
+      "title": "Self Access by User ID",
+      "code": "userOpt.exists(_.userId == authenticatedUser.userId)",
+      "description": "Verify target user ID matches authenticated user (self-access)"
+    },
+    {
+      "category": "Object Comparisons - User",
+      "title": "Same Email Domain",
+      "code": "userOpt.exists(u => authenticatedUser.emailAddress.split(\"@\")(1) == u.emailAddress.split(\"@\")(1))",
+      "description": "Check both users share the same email domain"
+    },
+    {
+      "category": "Object Comparisons - Customer/User",
+      "title": "Customer Email Matches Target User",
+      "code": "customerOpt.exists(c => userOpt.exists(u => c.email == u.emailAddress))",
+      "description": "Verify customer email matches target user"
+    },
+    {
+      "category": "Object Comparisons - Account/Transaction",
+      "title": "Transaction Within Balance",
+      "code": "transactionOpt.exists(t => accountOpt.exists(a => t.amount < a.balance))",
+      "description": "Verify transaction amount is less than account balance"
+    },
+    {
+      "category": "Object Comparisons - Account/Transaction",
+      "title": "Currency Match",
+      "code": "transactionOpt.exists(t => accountOpt.exists(a => t.currency == a.currency))",
+      "description": "Verify transaction currency matches account currency"
+    },
+    {
+      "category": "Object Comparisons - Account/Transaction",
+      "title": "No Overdraft",
+      "code": "transactionOpt.exists(t => accountOpt.exists(a => a.balance - t.amount >= 0))",
+      "description": "Ensure transaction won't overdraw account"
+    },
+    {
+      "category": "Object Comparisons - Attributes",
+      "title": "User Tier Matches Account Tier",
+      "code": "userAttributes.exists(ua => ua.name == \"tier\" && accountAttributes.exists(aa => aa.name == \"tier\" && ua.value == aa.value))",
+      "description": "Verify user tier level matches account tier level"
+    },
+    {
+      "category": "Object Comparisons - Attributes",
+      "title": "Department Match",
+      "code": "authenticatedUserAttributes.exists(ua => ua.name == \"department\" && accountAttributes.exists(aa => aa.name == \"department\" && ua.value == aa.value))",
+      "description": "Verify user department matches account department"
+    },
+    {
+      "category": "Object Comparisons - Attributes",
+      "title": "Risk Tolerance Check",
+      "code": "transactionAttributes.exists(ta => ta.name == \"risk_score\" && userAttributes.exists(ua => ua.name == \"risk_tolerance\" && ta.value.toInt <= ua.value.toInt))",
+      "description": "Check transaction risk score is within user's risk tolerance"
+    },
+    {
+      "category": "Complex Scenarios",
+      "title": "Trusted Employee Access",
+      "code": "authenticatedUser.emailAddress.endsWith(\"@bank.com\") && accountOpt.exists(_.balance > 0) && bankOpt.exists(_.bankId.value == \"gh.29.uk\")",
+      "description": "Allow bank employees to access accounts with positive balance at specific bank"
+    },
+    {
+      "category": "Complex Scenarios",
+      "title": "Manager Accessing Team Data",
+      "code": "authenticatedUserAttributes.exists(_.name == \"role\" && _.value == \"manager\") && userOpt.exists(_.userId != authenticatedUser.userId)",
+      "description": "Allow managers to access other users' data"
+    },
+    {
+      "category": "Complex Scenarios",
+      "title": "Delegation with Balance Check",
+      "code": "(onBehalfOfUserOpt.isEmpty || onBehalfOfUserOpt.exists(_.userId == authenticatedUser.userId)) && accountOpt.exists(_.balance > 1000)",
+      "description": "Allow self-access or no delegation with minimum balance requirement"
+    },
+    {
+      "category": "Complex Scenarios",
+      "title": "VIP with Premium Account",
+      "code": "customerAttributes.exists(_.name == \"vip_status\" && _.value == \"true\") && accountAttributes.exists(_.name == \"account_tier\" && _.value == \"premium\")",
+      "description": "Check for VIP customer with premium account combination"
+    },
+    {
+      "category": "Chained Validation",
+      "title": "Full Customer Chain",
+      "code": "userOpt.exists(u => customerOpt.exists(c => c.email == u.emailAddress && accountOpt.exists(a => transactionOpt.exists(t => t.accountId.value == a.accountId.value))))",
+      "description": "Validate complete chain: User → Customer → Account → Transaction"
+    },
+    {
+      "category": "Chained Validation",
+      "title": "Bank to Transaction Request Chain",
+      "code": "bankOpt.exists(b => accountOpt.exists(a => a.bankId == b.bankId.value && transactionRequestOpt.exists(tr => tr.this_account_id.value == a.accountId.value)))",
+      "description": "Validate chain: Bank → Account → Transaction Request"
+    },
+    {
+      "category": "Business Logic",
+      "title": "Loan Approval",
+      "code": "customerAttributes.exists(ca => ca.name == \"credit_score\" && ca.value.toInt > 650) && accountOpt.exists(_.balance > 5000)",
+      "description": "Check credit score above 650 and minimum balance for loan approval"
+    },
+    {
+      "category": "Business Logic",
+      "title": "Wire Transfer Authorization",
+      "code": "transactionOpt.exists(t => t.amount < 100000 && t.transactionType.exists(_.contains(\"WIRE\"))) && authenticatedUserAttributes.exists(_.name == \"wire_authorized\")",
+      "description": "Verify user is authorized for wire transfers under limit"
+    },
+    {
+      "category": "Business Logic",
+      "title": "Joint Account Access",
+      "code": "accountOpt.exists(a => a.accountHolders.exists(h => h.userId == authenticatedUser.userId || h.emailAddress == authenticatedUser.emailAddress))",
+      "description": "Allow access if user is one of the joint account holders"
+    },
+    {
+      "category": "Safe Patterns",
+      "title": "Pattern Matching",
+      "code": "userOpt match { case Some(u) => u.userId == authenticatedUser.userId case None => false }",
+      "description": "Safe Option handling using pattern matching"
+    },
+    {
+      "category": "Safe Patterns",
+      "title": "Using exists()",
+      "code": "accountOpt.exists(_.balance > 0)",
+      "description": "Safe way to check Option value using exists method"
+    },
+    {
+      "category": "Safe Patterns",
+      "title": "Using forall()",
+      "code": "userOpt.forall(!_.isDeleted.getOrElse(false))",
+      "description": "Safe negative condition using forall (returns true if None)"
+    },
+    {
+      "category": "Safe Patterns",
+      "title": "Using map() with getOrElse()",
+      "code": "accountOpt.map(_.balance).getOrElse(0) > 100",
+      "description": "Safe value extraction with default using map and getOrElse"
+    },
+    {
+      "category": "Common Mistakes",
+      "title": "WRONG - Unsafe get()",
+      "code": "accountOpt.get.balance > 1000",
+      "description": "❌ WRONG: Using .get without checking isDefined (can throw exception)"
+    },
+    {
+      "category": "Common Mistakes",
+      "title": "CORRECT - Safe exists()",
+      "code": "accountOpt.exists(_.balance > 1000)",
+      "description": "✅ CORRECT: Safe way to check account balance using exists()"
+    }
+  ],
+  "available_operators": [
+    "==",
+    "!=",
+    "&&",
+    "||",
+    "!",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "contains",
+    "startsWith",
+    "endsWith",
+    "isDefined",
+    "isEmpty",
+    "nonEmpty",
+    "exists",
+    "forall",
+    "find",
+    "filter",
+    "get",
+    "getOrElse"
+  ],
+  "notes": [
+    "PARAMETER NAMES: Use authenticatedUser, userOpt, accountOpt, bankOpt, transactionOpt, etc. (NOT user, account, bank)",
+    "PROPERTY NAMES: Use camelCase - userId (NOT user_id), accountId (NOT account_id), emailAddress (NOT email_address)",
+    "OPTION TYPES: Only authenticatedUser is guaranteed to exist. All others are Option types - check isDefined before using .get",
+    "ATTRIBUTES: All attributes are Lists - use Scala collection methods like exists(), find(), filter()",
+    "SAFE OPTION HANDLING: Use pattern matching: userOpt match { case Some(u) => u.userId == ... case None => false }",
+    "RETURN TYPE: Rule must return Boolean - true = access granted, false = access denied",
+    "AUTO-FETCHING: Objects are automatically fetched based on IDs passed to execute endpoint",
+    "COMMON MISTAKE: Writing 'user.user_id' instead of 'userOpt.get.userId' or 'authenticatedUser.userId'"
+  ]
+}

@@ -235,7 +235,7 @@ class WebUI extends MdcLoggable{
     val tags = S.attr("tags") openOr ""
     val locale = S.locale.toString
     // Note the Props value might contain a query parameter e.g. ?psd2=true
-    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174")
     // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
     val baseUrlWithQuery = baseUrl.contains("?") match {
       case true => baseUrl + s"&tags=$tags${brandString}&locale=${locale}" // ? found so add & instead
@@ -309,7 +309,19 @@ class WebUI extends MdcLoggable{
       ".commit-id-link a [href]" #> s"https://github.com/OpenBankProject/OBP-API/commit/$commitId"
   }
 
-
+  // External Consumer Registration Link
+  // This replaces the internal Lift-based consumer registration functionality
+  // with a link to an external consumer registration service.
+  // Uses OBP-Portal (webui_obp_portal_url) for consumer registration by default.
+  // Configure webui_external_consumer_registration_url to override with a custom URL.
+  def externalConsumerRegistrationLink: CssSel = {
+    val portalUrl = getWebUiPropsValue("webui_obp_portal_url", "http://localhost:5174")
+    val defaultConsumerRegisterUrl = s"$portalUrl/consumer-registration"
+    val externalUrl = getWebUiPropsValue("webui_external_consumer_registration_url", defaultConsumerRegisterUrl)
+    ".get-api-key-link a [href]" #> scala.xml.Unparsed(externalUrl) &
+    ".get-api-key-link a [target]" #> "_blank" &
+    ".get-api-key-link a [rel]" #> "noopener"
+  }
 
   // Social Finance (Sofi)
   def sofiLink: CssSel = {
@@ -394,7 +406,7 @@ class WebUI extends MdcLoggable{
     val htmlDescription =  if (APIUtil.glossaryDocsRequireRole){
       val userId = AuthUser.getCurrentResourceUserUserId
       if (userId == ""){
-        s"<h1>${ErrorMessages.UserNotLoggedIn}</h1>"
+        s"<h1>${ErrorMessages.AuthenticatedUserIsRequired}</h1>"
       } else{
         if(APIUtil.hasEntitlement("", userId, ApiRole.canReadGlossary)) {
           PegdownOptions.convertPegdownToHtmlTweaked(propsValue)
@@ -456,7 +468,7 @@ class WebUI extends MdcLoggable{
   }
 
   // API Explorer URL from Props
-  val apiExplorerUrl = scala.xml.Unparsed(getWebUiPropsValue("webui_api_explorer_url", ""))
+  val apiExplorerUrl = scala.xml.Unparsed(getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174"))
 
   // DirectLogin documentation url
   def directLoginDocumentationUrl: CssSel = {
@@ -491,13 +503,13 @@ class WebUI extends MdcLoggable{
 
 
   def directLoginDocLink: CssSel = {
-    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174")
     val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_direct_login_documentation_url", s"${baseUrl}/glossary#Direct-Login"))
     "#direct-login-doc-link a [href]" #> supportplatformlink
   }
 
   def oauth1aLoginDocLink: CssSel = {
-    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174")
     val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_oauth_1_documentation_url", s"${baseUrl}/glossary#OAuth-1.0a"))
     "#oauth1a-doc-link a [href]" #> supportplatformlink
   }
@@ -629,7 +641,7 @@ class WebUI extends MdcLoggable{
     val html = XML.loadString(htmlString)
 
     // Sleep if in development environment so can see the effects of content loading slowly
-    if (Props.mode == Props.RunModes.Development) Thread.sleep(10 seconds)
+    if (Props.mode == Props.RunModes.Development) Thread.sleep(10.seconds)
 
     // Return the HTML
     html

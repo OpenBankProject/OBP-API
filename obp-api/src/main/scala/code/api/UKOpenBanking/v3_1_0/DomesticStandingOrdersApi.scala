@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -124,7 +125,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -306,7 +307,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -488,7 +489,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 
@@ -670,7 +671,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
      )
 

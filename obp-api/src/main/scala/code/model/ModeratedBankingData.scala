@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 
 package code.model
+
+import scala.language.implicitConversions
 import code.api.Constant._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext}
@@ -121,7 +123,7 @@ class ModeratedTransactionMetadata(
   */
   def deleteTag(tagId : String, user: Option[User], bankAccount : BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { UserNotLoggedIn}
+      u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       tagList <- Box(tags) ?~ { s"$NoViewPermission can_delete_tag. " }
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
       deleteFunc <- if(tag.postedBy == user||view.allowed_actions.exists(_ == CAN_DELETE_TAG))
@@ -138,7 +140,7 @@ class ModeratedTransactionMetadata(
   */
   def deleteImage(imageId : String, user: Option[User], bankAccount : BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { UserNotLoggedIn}
+      u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
       deleteFunc <- if(image.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_IMAGE))
@@ -152,7 +154,7 @@ class ModeratedTransactionMetadata(
 
   def deleteComment(commentId: String, user: Option[User],bankAccount: BankAccount, view: View, callContext: Option[CallContext]) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { UserNotLoggedIn}
+      u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       commentList <- Box(comments) ?~ { s"$NoViewPermission can_delete_comment." }
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
       deleteFunc <- if(comment.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_COMMENT))
@@ -166,7 +168,7 @@ class ModeratedTransactionMetadata(
 
   def deleteWhereTag(viewId: ViewId, user: Option[User],bankAccount: BankAccount, view: View, callContext: Option[CallContext]) : Box[Boolean] = {
     for {
-      u <- Box(user) ?~ { UserNotLoggedIn}
+      u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       whereTagOption <- Box(whereTag) ?~ { s"$NoViewPermission can_delete_where_tag. Current ViewId($viewId)" }
       whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
       deleteFunc <- if(whereTag.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_WHERE_TAG))
@@ -182,6 +184,7 @@ class ModeratedTransactionMetadata(
 
 
 object ModeratedTransactionMetadata {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedTransactionMetadata2Json(mTransactionMeta: ModeratedTransactionMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)
@@ -256,6 +259,7 @@ object ModeratedBankAccount {
     	("name" -> bankName))
   }
 
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
     val holderName = mBankAccount.owners match{
@@ -318,6 +322,7 @@ case class ModeratedOtherBankAccountCore(
 }
 
 object ModeratedOtherBankAccount {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
     val holderName = mOtherBank.label.display
@@ -353,6 +358,7 @@ class ModeratedOtherBankAccountMetadata(
 )
 
 object ModeratedOtherBankAccountMetadata {
+  import scala.language.implicitConversions
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   implicit def moderatedOtherBankAccountMetadata2Json(mOtherBankMeta: ModeratedOtherBankAccountMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)

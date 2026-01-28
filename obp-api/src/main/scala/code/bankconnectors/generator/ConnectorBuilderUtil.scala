@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils.uncapitalize
 import java.io.File
 import java.net.URL
 import java.util.Date
-import scala.jdk.CollectionConverters.enumerationAsScalaIteratorConverter
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}

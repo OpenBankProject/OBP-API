@@ -89,14 +89,14 @@ object Helper extends Loggable {
    */
   def booleanToBox(statement: => Boolean, msg: String): Box[Unit] = {
     if(statement)
-      Full()
+      Full(())
     else
       Failure(msg)
   }
 
   def booleanToBox(statement: => Boolean): Box[Unit] = {
     if(statement)
-      Full()
+      Full(())
     else
       Empty
   }
@@ -216,7 +216,7 @@ object Helper extends Loggable {
   def isValidInternalRedirectUrl(url: String) : Boolean = {
     //set the default value is "/" and "/oauth/authorize"
     val internalRedirectUrlsWhiteList = List(
-      "/","/oauth/authorize","/consumer-registration",
+      "/","/oauth/authorize",
       "/dummy-user-tokens","/create-sandbox-account",
       "/add-user-auth-context-update-request","/otp",
       "/terms-and-conditions", "/privacy-policy",
@@ -450,7 +450,7 @@ object Helper extends Loggable {
   def getRequiredFieldInfo(tpe: Type): RequiredInfo = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000 days) {
+      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
 
         RequiredFieldValidation.getRequiredInfo(tpe)
 

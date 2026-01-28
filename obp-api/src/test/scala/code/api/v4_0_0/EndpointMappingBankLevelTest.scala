@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonCodeTemplateJson
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{UserNotLoggedIn, _}
+import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.endpointMapping.EndpointMappingCommons
@@ -40,8 +40,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Update a EndpointMapping v4.0.0- Unauthorized access") {
@@ -51,8 +51,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       val response400 = makePutRequest(request400, write(rightEntity))
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Get EndpointMappings v4.0.0- Unauthorized access") {
@@ -62,8 +62,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
   feature("Delete the EndpointMapping specified by METHOD_ROUTING_ID v4.0.0- Unauthorized access") {
@@ -73,8 +73,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
 

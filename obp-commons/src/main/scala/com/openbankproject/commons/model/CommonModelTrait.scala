@@ -647,8 +647,16 @@ trait ChallengeTrait {
   def scaMethod: Option[SCA]
   def scaStatus: Option[SCAStatus]
   def authenticationMethodId: Option[String]
-  
+
   def attemptCounter: Int
+
+  // PSD2 Dynamic Linking support - these fields ensure the authentication is linked to the transaction details
+  // challenge_purpose: Human-readable description of what is being authorized (shown to user in SMS/email)
+  def challengePurpose: Option[String]
+  // challenge_context_hash: SHA-256 hash of critical transaction fields for tamper detection
+  def challengeContextHash: Option[String]
+  // challenge_context_structure: Comma-separated list of field names included in the hash
+  def challengeContextStructure: Option[String]
 }
 
 

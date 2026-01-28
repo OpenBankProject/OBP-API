@@ -48,7 +48,7 @@ class RegulatedEntityAttributeTest extends V510ServerSetup with DefaultUsers {
       val request = (v5_1_0_Request / "regulated-entities" / entityId / "attributes").POST
       val response = makePostRequest(request, write(regulatedEntityAttributeRequestJsonV510))
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("403 Forbidden (no role)", Create, VersionOfApi) {

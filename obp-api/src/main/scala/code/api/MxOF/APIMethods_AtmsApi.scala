@@ -1,5 +1,7 @@
 package code.api.MxOF
 
+import scala.language.reflectiveCalls
+import scala.language.implicitConversions
 import code.api.Constant
 import code.api.MxOF.JSONFactory_MXOF_0_0_1.createGetAtmsResponse
 import code.api.util.APIUtil._

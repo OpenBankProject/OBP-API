@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}

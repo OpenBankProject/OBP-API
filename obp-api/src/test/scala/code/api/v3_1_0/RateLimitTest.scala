@@ -33,7 +33,7 @@ import java.util.Date
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, RateLimitingUtil}
 import code.api.util.ApiRole.{CanReadCallLimits, CanUpdateRateLimits}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -152,8 +152,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canUpdateRateLimits, ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canUpdateRateLimits)
@@ -339,8 +339,8 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)

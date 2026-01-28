@@ -1,6 +1,6 @@
 package code.scheduler
 
-import code.actorsystem.ObpLookupSystem
+import code.actorsystem.ObpActorSystem
 import code.api.Constant
 import code.api.util.APIUtil.generateUUID
 import code.api.util.APIUtil
@@ -17,7 +17,7 @@ import code.token.Tokens
 
 object DataBaseCleanerScheduler extends MdcLoggable {
 
-  private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
+  private lazy val actorSystem = ObpActorSystem.localActorSystem
   implicit lazy val executor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000

@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 
+import scala.language.reflectiveCalls
 import code.api.Constant
 import code.api.Constant._
 import code.api.OAuth2Login.{Keycloak, OBPOIDC}
@@ -10,7 +11,7 @@ import code.api.cache.RedisLogger
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
+import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, AuthenticatedUserIsRequired, _}
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.JwtUtil.{getSignedPayloadAsJson, verifyJwt}
 import code.api.util.NewStyle.HttpCode
@@ -72,7 +73,7 @@ trait APIMethods510 {
 
   val Implementations5_1_0 = new Implementations510()
 
-  class Implementations510 {
+  class Implementations510 extends Helper.MdcLoggable {
 
     val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_1_0
 
@@ -107,7 +108,7 @@ trait APIMethods510 {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory510.getApiInfoJSON(OBPAPI5_1_0.version,OBPAPI5_1_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -238,55 +239,204 @@ trait APIMethods510 {
           }
     }
 
+    // Helper function to avoid code duplication
+    private def getLogCacheHelper(level: RedisLogger.LogLevel.Value, cc: CallContext): Future[(RedisLogger.LogTail, Option[CallContext])] = {
+      implicit val ec = EndpointContext(Some(cc))
+      for {
+        httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+        (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+        limit = obpQueryParams.collectFirst { case OBPLimit(value) => value }
+        offset = obpQueryParams.collectFirst { case OBPOffset(value) => value }
+        logs <- Future(RedisLogger.getLogTail(level, limit, offset))
+      } yield {
+        (logs, HttpCode.`200`(callContext))
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
-      logCacheEndpoint,
+      logCacheTraceEndpoint,
       implementedInApiVersion,
-      nameOf(logCacheEndpoint),
+      nameOf(logCacheTraceEndpoint),
       "GET",
-      "/system/log-cache/LOG_LEVEL",
-      "Get Log Cache",
-      """Returns information about:
-        |
-        |* Log Cache
+      "/system/log-cache/trace",
+      "Get Trace Level Log Cache",
+      """Returns TRACE level logs from the system log cache.
         |
         |This endpoint supports pagination via the following optional query parameters:
         |* limit - Maximum number of log entries to return
         |* offset - Number of log entries to skip (for pagination)
         |
-        |Example: GET /system/log-cache/INFO?limit=50&offset=100
+        |Example: GET /system/log-cache/trace?limit=50&offset=100
         """,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
-      apiTagSystem :: apiTagApi :: Nil,
-      Some(List(canGetAllLevelLogsAtAllBanks)))
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)))
 
-    lazy val logCacheEndpoint: OBPEndpoint = {
-      case "system" :: "log-cache" :: logLevel :: Nil JsonGet _ =>
+    lazy val logCacheTraceEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "trace" :: Nil JsonGet _ =>
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            // Parse and validate log level
-            level <- NewStyle.function.tryons(ErrorMessages.invalidLogLevel, 400, cc.callContext) {
-              RedisLogger.LogLevel.valueOf(logLevel)
-            }
-            // Check entitlements using helper
-            _ <- NewStyle.function.handleEntitlementsAndScopes(
-              bankId = "",
-              userId = cc.userId,
-              roles = RedisLogger.LogLevel.requiredRoles(level),
-              callContext = cc.callContext
-            )
-            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
-            // Extract limit and offset from query parameters
-            limit = obpQueryParams.collectFirst { case OBPLimit(value) => value }
-            offset = obpQueryParams.collectFirst { case OBPOffset(value) => value }
-            // Fetch logs with pagination
-            logs <- Future(RedisLogger.getLogTail(level, limit, offset))
-          } yield {
-            (logs, HttpCode.`200`(cc.callContext))
-          }
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.TRACE, cc)
+          } yield result
+    }
+
+    staticResourceDocs += ResourceDoc(
+      logCacheDebugEndpoint,
+      implementedInApiVersion,
+      nameOf(logCacheDebugEndpoint),
+      "GET",
+      "/system/log-cache/debug",
+      "Get Debug Level Log Cache",
+      """Returns DEBUG level logs from the system log cache.
+        |
+        |This endpoint supports pagination via the following optional query parameters:
+        |* limit - Maximum number of log entries to return
+        |* offset - Number of log entries to skip (for pagination)
+        |
+        |Example: GET /system/log-cache/debug?limit=50&offset=100
+        """,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)))
+
+    lazy val logCacheDebugEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "debug" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.DEBUG, cc)
+          } yield result
+    }
+
+    staticResourceDocs += ResourceDoc(
+      logCacheInfoEndpoint,
+      implementedInApiVersion,
+      nameOf(logCacheInfoEndpoint),
+      "GET",
+      "/system/log-cache/info",
+      "Get Info Level Log Cache",
+      """Returns INFO level logs from the system log cache.
+        |
+        |This endpoint supports pagination via the following optional query parameters:
+        |* limit - Maximum number of log entries to return
+        |* offset - Number of log entries to skip (for pagination)
+        |
+        |Example: GET /system/log-cache/info?limit=50&offset=100
+        """,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)))
+
+    lazy val logCacheInfoEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "info" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.INFO, cc)
+          } yield result
+    }
+
+    staticResourceDocs += ResourceDoc(
+      logCacheWarningEndpoint,
+      implementedInApiVersion,
+      nameOf(logCacheWarningEndpoint),
+      "GET",
+      "/system/log-cache/warning",
+      "Get Warning Level Log Cache",
+      """Returns WARNING level logs from the system log cache.
+        |
+        |This endpoint supports pagination via the following optional query parameters:
+        |* limit - Maximum number of log entries to return
+        |* offset - Number of log entries to skip (for pagination)
+        |
+        |Example: GET /system/log-cache/warning?limit=50&offset=100
+        """,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)))
+
+    lazy val logCacheWarningEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "warning" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.WARNING, cc)
+          } yield result
+    }
+
+    staticResourceDocs += ResourceDoc(
+      logCacheErrorEndpoint,
+      implementedInApiVersion,
+      nameOf(logCacheErrorEndpoint),
+      "GET",
+      "/system/log-cache/error",
+      "Get Error Level Log Cache",
+      """Returns ERROR level logs from the system log cache.
+        |
+        |This endpoint supports pagination via the following optional query parameters:
+        |* limit - Maximum number of log entries to return
+        |* offset - Number of log entries to skip (for pagination)
+        |
+        |Example: GET /system/log-cache/error?limit=50&offset=100
+        """,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)))
+
+    lazy val logCacheErrorEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "error" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheError, canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.ERROR, cc)
+          } yield result
+    }
+
+    staticResourceDocs += ResourceDoc(
+      logCacheAllEndpoint,
+      implementedInApiVersion,
+      nameOf(logCacheAllEndpoint),
+      "GET",
+      "/system/log-cache/all",
+      "Get All Level Log Cache",
+      """Returns logs of all levels from the system log cache.
+        |
+        |This endpoint supports pagination via the following optional query parameters:
+        |* limit - Maximum number of log entries to return
+        |* offset - Number of log entries to skip (for pagination)
+        |
+        |Example: GET /system/log-cache/all?limit=50&offset=100
+        """,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheAll)))
+
+    lazy val logCacheAllEndpoint: OBPEndpoint = {
+      case "system" :: "log-cache" :: "all" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- NewStyle.function.handleEntitlementsAndScopes("", cc.userId, List(canGetSystemLogCacheAll), cc.callContext)
+            result <- getLogCacheHelper(RedisLogger.LogLevel.ALL, cc)
+          } yield result
     }
 
 
@@ -329,7 +479,7 @@ trait APIMethods510 {
       regulatedEntityPostJsonV510,
       regulatedEntityJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -385,7 +535,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -488,7 +638,7 @@ trait APIMethods510 {
       postAgentJsonV510,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         AgentNumberAlreadyExists,
@@ -547,7 +697,7 @@ trait APIMethods510 {
       putAgentJsonV510,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         AgentNotFound,
@@ -596,7 +746,7 @@ trait APIMethods510 {
       EmptyBody,
       agentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         AgentNotFound,
         AgentAccountLinkNotFound,
@@ -638,7 +788,7 @@ trait APIMethods510 {
       userAttributeJsonV510,
       userAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -690,7 +840,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -730,7 +880,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidConnectorResponse,
         UnknownError
@@ -774,7 +924,7 @@ trait APIMethods510 {
       EmptyBody,
       refresUserJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -815,7 +965,7 @@ trait APIMethods510 {
       EmptyBody,
       coreAccountsHeldJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserNotFoundByUserId,
         UnknownError
@@ -862,7 +1012,7 @@ trait APIMethods510 {
       EmptyBody,
       coreAccountsHeldJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserNotFoundByUserId,
         UnknownError
@@ -906,7 +1056,7 @@ trait APIMethods510 {
       EmptyBody,
       userJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UserHasMissingRoles,
         UnknownError),
@@ -942,7 +1092,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -978,7 +1128,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1015,7 +1165,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1051,7 +1201,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1087,7 +1237,7 @@ trait APIMethods510 {
       EmptyBody,
       currenciesJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagFx)
@@ -1125,7 +1275,7 @@ trait APIMethods510 {
       EmptyBody,
       CheckSystemIntegrityJsonV510(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1176,12 +1326,12 @@ trait APIMethods510 {
       atmAttributeJsonV510,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank))
     )
 
@@ -1264,12 +1414,12 @@ trait APIMethods510 {
       EmptyBody,
       atmAttributesResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
@@ -1300,12 +1450,12 @@ trait APIMethods510 {
       EmptyBody,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
@@ -1339,12 +1489,12 @@ trait APIMethods510 {
       atmAttributeJsonV510,
       atmAttributeResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank))
     )
 
@@ -1397,12 +1547,12 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank))
     )
 
@@ -1443,7 +1593,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1507,7 +1657,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1585,7 +1735,7 @@ trait APIMethods510 {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         ConsentNotFound,
@@ -1659,7 +1809,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsInfoJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1698,7 +1848,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsInfoJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1749,7 +1899,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1811,7 +1961,7 @@ trait APIMethods510 {
       EmptyBody,
       consentsJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -1853,7 +2003,7 @@ trait APIMethods510 {
       EmptyBody,
       consentJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -1891,7 +2041,7 @@ trait APIMethods510 {
       EmptyBody,
       consentJsonV500,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -1935,7 +2085,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -1988,7 +2138,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2038,7 +2188,7 @@ trait APIMethods510 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -2180,7 +2330,7 @@ trait APIMethods510 {
       postConsentImplicitJsonV310,
       consentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -2406,7 +2556,7 @@ trait APIMethods510 {
       EmptyBody,
       certificateInfoJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2441,7 +2591,7 @@ trait APIMethods510 {
       postApiCollectionJson400,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UserNotFoundByUserId,
         UnknownError
@@ -2503,7 +2653,7 @@ trait APIMethods510 {
       """.stripMargin,
       EmptyBody,
       userJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser))
     )
@@ -2537,7 +2687,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canReadUserLockedStatus))
     )
@@ -2579,7 +2729,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canUnlockUser)))
     lazy val unlockUserByProviderAndUsername: OBPEndpoint = {
@@ -2624,7 +2774,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       userLockStatusJson,
-      List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canLockUser)))
     lazy val lockUserByProviderAndUsername: OBPEndpoint = {
@@ -2659,7 +2809,7 @@ trait APIMethods510 {
       EmptyBody,
       userLockStatusJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UserHasMissingRoles,
         UnknownError
@@ -2731,7 +2881,7 @@ trait APIMethods510 {
       EmptyBody,
       aggregateMetricsJSONV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2856,7 +3006,7 @@ trait APIMethods510 {
       EmptyBody,
       metricsJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2898,7 +3048,7 @@ trait APIMethods510 {
       EmptyBody,
       customersWithAttributesJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -2937,7 +3087,7 @@ trait APIMethods510 {
       postCustomerLegalNameJsonV510,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -2976,7 +3126,7 @@ trait APIMethods510 {
       postAtmJsonV510,
       atmJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3018,7 +3168,7 @@ trait APIMethods510 {
       atmJsonV510.copy(id = None, attributes = None),
       atmJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3132,7 +3282,7 @@ trait APIMethods510 {
          |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmJsonV510,
-      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
@@ -3167,7 +3317,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagATM),
@@ -3194,20 +3344,87 @@ trait APIMethods510 {
       "POST",
       "/dynamic-registration/consumers",
       "Create a Consumer(Dynamic Registration)",
-      s"""Create a Consumer (mTLS access).
+      s"""Create a Consumer with full certificate validation (mTLS access) - **Recommended for PSD2/Berlin Group compliance**.
          |
-         | JWT payload:
-         |  - minimal
-         |    { "description":"Description" }
-         |  - full
-         |    {
-         |     "description": "Description",
-         |     "app_name": "Tesobe GmbH",
-         |     "app_type": "Sofit",
-         |     "developer_email": "marko@tesobe.com",
-         |     "redirect_url": "http://localhost:8082"
-         |    }
-         | Please note that JWT must be signed with the counterpart private key of the public key used to establish mTLS
+         |This endpoint provides **secure, validated consumer registration** unlike the standard `/management/consumers` endpoint.
+         |
+         |**How it works (for comprehension flow):**
+         |
+         |1. **Extract JWT from request**: Parse the signed JWT from the request body
+         |2. **Extract certificate**: Get certificate from `PSD2-CERT` header in PEM format
+         |3. **Verify JWT signature**: Validate JWT is signed with the certificate's private key (proves possession)
+         |4. **Parse JWT payload**: Extract consumer details (description, app_name, app_type, developer_email, redirect_url)
+         |5. **Extract certificate info**: Parse certificate to get Common Name, Email, Organization
+         |6. **Validate against Regulated Entity**: Check certificate exists in Regulated Entity registry (PSD2 requirement)
+         |7. **Create consumer**: Generate credentials and create consumer record with validated certificate
+         |8. **Return consumer with certificate info**: Returns consumer details including parsed certificate information
+         |
+         |**Certificate Validation (CRITICAL SECURITY DIFFERENCE from regular creation):**
+         |
+         |[YES] **JWT Signature Verification**: JWT must be signed with certificate's private key - proves TPP owns the certificate
+         |[YES] **Regulated Entity Check**: Certificate must match a pre-registered Regulated Entity in the database
+         |[YES] **Certificate Binding**: Certificate is permanently bound to the consumer at creation time
+         |[YES] **CA Validation**: Certificate chain can be validated against trusted root CAs during API requests
+         |[YES] **PSD2 Compliance**: Meets EU regulatory requirements for TPP registration
+         |
+         |**Security benefits vs regular consumer creation:**
+         |
+         || Feature | Regular Creation | Dynamic Registration |
+         ||---------|-----------------|---------------------|
+         || Certificate validation | [NO] None | [YES] Full validation |
+         || Regulated Entity check | [NO] Not required | [YES] Required |
+         || JWT signature proof | [NO] Not required | [YES] Required (proves private key possession) |
+         || Self-signed certs | [YES] Accepted | [NO] Rejected |
+         || PSD2 compliant | [NO] No | [YES] Yes |
+         || Rogue TPP prevention | [NO] No | [YES] Yes |
+         |
+         |**Prerequisites:**
+         |1. TPP must be registered as a Regulated Entity with their certificate
+         |2. Certificate must be provided in `PSD2-CERT` request header (PEM format)
+         |3. JWT must be signed with the private key corresponding to the certificate
+         |4. Trust store must be configured with trusted root CAs
+         |
+         |**JWT Payload Structure:**
+         |
+         |Minimal:
+         |```json
+         |{ "description":"TPP Application Description" }
+         |```
+         |
+         |Full:
+         |```json
+         |{
+         |  "description": "Payment Initiation Service",
+         |  "app_name": "Tesobe GmbH",
+         |  "app_type": "Confidential",
+         |  "developer_email": "contact@tesobe.com",
+         |  "redirect_url": "https://tpp.example.com/callback"
+         |}
+         |```
+         |
+         |**Note:** JWT must be signed with the private key that corresponds to the public key in the certificate sent via `PSD2-CERT` header.
+         |
+         |**Certificate Information Extraction:**
+         |
+         |The endpoint automatically extracts information from the certificate:
+         |- Common Name (CN) → used as app_name if not provided in JWT
+         |- Email Address → used as developer_email if not provided
+         |- Organization (O) → used as company
+         |- Certificate validity period
+         |- Issuer information
+         |
+         |**Configuration Required:**
+         |- `truststore.path.tpp_signature` - Path to trust store for CA validation
+         |- `truststore.password.tpp_signature` - Trust store password
+         |- Regulated Entity must be pre-registered with certificate public key
+         |
+         |**Error Scenarios:**
+         |- JWT signature invalid → `PostJsonIsNotSigned` (400)
+         |- Certificate not in Regulated Entity registry → `RegulatedEntityNotFoundByCertificate` (400)
+         |- Invalid JWT format → `InvalidJsonFormat` (400)
+         |- Missing PSD2-CERT header → Signature verification fails
+         |
+         |**This is the SECURE way to register consumers for production PSD2/Berlin Group implementations.**
          |
          |""",
       ConsumerJwtPostJsonV510("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IlRQUCBkZXNjcmlwdGlvbiJ9.c5gPPsyUmnVW774y7h2xyLXg0wdtu25nbU2AvOmyzcWa7JTdCKuuy3CblxueGwqYkQDDQIya1Qny4blyAvh_a1Q28LgzEKBcH7Em9FZXerhkvR9v4FWbCC5AgNLdQ7sR8-rUQdShmJcGDKdVmsZjuO4XhY2Zx0nFnkcvYfsU9bccoAvkKpVJATXzwBqdoEOuFlplnbxsMH1wWbAd3hbcPPWTdvO43xavNZTB5ybgrXVDEYjw8D-98_ZkqxS0vfvhJ4cGefHViaFzp6zXm7msdBpcE__O9rFbdl9Gvup_bsMbrHJioIrmc2d15Yc-tTNTF9J4qjD_lNxMRlx5o2TZEw"),
@@ -3284,11 +3501,90 @@ trait APIMethods510 {
       "Create a Consumer",
       s"""Create a Consumer (Authenticated access).
          |
+         |A Consumer represents an application that uses the Open Bank Project API. Each Consumer has:
+         |- A unique **key** (40 character random string) - used as the client ID for authentication
+         |- A unique **secret** (40 character random string) - used for secure authentication
+         |- An **app_type** (Confidential or Public) - determines OAuth2 flow requirements
+         |- Metadata like app_name, description, developer_email, company, etc.
+         |
+         |**How it works (for comprehension flow):**
+         |
+         |1. **Extract authenticated user**: Retrieves the currently logged-in user who is creating the consumer
+         |2. **Parse and validate JSON request**: Extracts the CreateConsumerRequestJsonV510 from the request body
+         |3. **Determine app_type**: Converts the string "Confidential" or "Public" to the AppType enum
+         |4. **Generate credentials**: Creates random 40-character key and secret for the new consumer
+         |5. **Create consumer record**: Calls createConsumerNewStyle with all parameters:
+         |   - Auto-generated key and secret
+         |   - enabled flag (controls if consumer is active)
+         |   - app_name, description, developer_email, company
+         |   - redirect_url (for OAuth flows)
+         |   - client_certificate (optional, for certificate-based auth)
+         |   - logo_url (optional)
+         |   - createdByUserId (the authenticated user's ID)
+         |6. **Return response**: Returns the newly created consumer with HTTP 201 Created status
+         |
+         |**Client Certificate (Optional but Recommended for PSD2/Berlin Group):**
+         |
+         |The `client_certificate` field provides enhanced security through X.509 certificate validation.
+         |
+         |**IMPORTANT SECURITY NOTE:**
+         |- **This endpoint does NOT validate the certificate at creation time** - any certificate can be provided
+         |- The certificate is simply stored with the consumer record without checking if it's from a trusted CA
+         |- For PSD2/Berlin Group compliance with certificate validation, use the **Dynamic Registration** endpoint instead
+         |- Dynamic Registration validates certificates against registered Regulated Entities and trusted CAs
+         |
+         |**How certificates are used (after creation):**
+         |- Certificate is stored in PEM format (Base64-encoded X.509) with the consumer record
+         |- On subsequent API requests, the certificate from the `PSD2-CERT` header is compared against the stored certificate
+         |- If certificates don't match, access is denied even with valid OAuth2 tokens
+         |- First request populates the certificate if not set; subsequent requests must match that certificate
+         |
+         |**Certificate validation process (during API requests, NOT at consumer creation):**
+         |1. Certificate from `PSD2-CERT` header is compared to stored certificate (simple string match)
+         |2. Certificate is parsed from PEM format to X.509Certificate object
+         |3. Validated against a configured trust store (PKCS12 format) containing trusted root CAs
+         |4. Certificate chain is verified using PKIX validation
+         |5. Optional CRL (Certificate Revocation List) checking if enabled via `use_tpp_signature_revocation_list`
+         |6. Public key from certificate can verify signed requests (Berlin Group requirement)
+         |
+         |**Note:** Steps 3-6 only apply during API request validation, NOT during consumer creation via this endpoint.
+         |
+         |**Security benefits (when properly configured):**
+         |- **Certificate binding**: Links consumer to a specific certificate (prevents token reuse with different certs)
+         |- **Request verification**: Certificate's public key can verify signed requests
+         |- **Non-repudiation**: Certificate-based signatures prove request origin
+         |
+         |**Security limitations of this endpoint:**
+         |- **No validation at creation**: Any certificate (even self-signed or expired) can be stored
+         |- **No CA verification**: Certificate is not checked against trusted root CAs during creation
+         |- **No Regulated Entity check**: Does not verify the TPP is registered
+         |- **Use Dynamic Registration instead** for proper PSD2/Berlin Group compliance with full certificate validation
+         |
+         |**For proper PSD2 compliance:**
+         |Use the **Dynamic Consumer Registration** endpoint (`POST /obp/v5.1.0/dynamic-registration/consumers`) which:
+         |- Requires JWT-signed request using the certificate's private key
+         |- Validates certificate against Regulated Entity registry
+         |- Checks certificate is from a trusted CA using the configured trust store
+         |- Ensures proper QWAC/eIDAS compliance for EU TPPs
+         |
+         |**Configuration properties (for runtime validation):**
+         |- `truststore.path.tpp_signature` - Path to trust store for certificate validation during API requests
+         |- `truststore.password.tpp_signature` - Trust store password
+         |- `use_tpp_signature_revocation_list` - Enable/disable CRL checking during requests (default: true)
+         |- `consumer_validation_method_for_consent` - Set to "CONSUMER_CERTIFICATE" for cert-based validation
+         |- `bypass_tpp_signature_validation` - Emergency bypass (default: false, use only for testing)
+         |
+         |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.
+         |
+         |${consumerDisabledText()}
+         |
+         |${userAuthenticationMessage(true)}
+         |
          |""",
       createConsumerRequestJsonV510,
       consumerJsonOnlyForPostResponseV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3341,7 +3637,7 @@ trait APIMethods510 {
       createConsumerRequestJsonV510,
       consumerJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3395,7 +3691,7 @@ trait APIMethods510 {
       EmptyBody,
       callLimitsJson510Example,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -3439,7 +3735,7 @@ trait APIMethods510 {
       consumerRedirectUrlJSON,
       consumerJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3498,7 +3794,7 @@ trait APIMethods510 {
       consumerLogoUrlJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3545,7 +3841,7 @@ trait APIMethods510 {
       consumerCertificateJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3593,7 +3889,7 @@ trait APIMethods510 {
       consumerNameJson,
       consumerJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3635,7 +3931,7 @@ trait APIMethods510 {
       EmptyBody,
       consumerJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         ConsumerNotFoundByConsumerId,
         UnknownError
@@ -3674,7 +3970,7 @@ trait APIMethods510 {
       EmptyBody,
       consumersJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3688,8 +3984,25 @@ trait APIMethods510 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            _ = logger.info(s"========== CONSUMER QUERY DEBUG START ==========")
+            _ = logger.info(s"[CONSUMER-QUERY] Full URL: ${cc.url}")
+            _ = logger.info(s"[CONSUMER-QUERY] HTTP Params: $httpParams")
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            _ = logger.info(s"[CONSUMER-QUERY] OBP Query Params: $obpQueryParams")
+            _ = obpQueryParams.foreach(param => logger.info(s"[CONSUMER-QUERY]   - Param: $param"))
+            totalCount <- Future(Consumer.count())
+            _ = logger.info(s"[CONSUMER-QUERY] Total consumers in database: $totalCount")
+            allConsumers <- Future(Consumer.findAll())
+            consumersWithNullDate = allConsumers.filter(c => c.createdAt.get == null)
+            _ = logger.info(s"[CONSUMER-QUERY] Consumers with NULL createdAt: ${consumersWithNullDate.length}")
+            _ = if (consumersWithNullDate.nonEmpty) {
+              consumersWithNullDate.foreach(c => logger.info(s"[CONSUMER-QUERY]   - NULL createdAt: Consumer ID: ${c.id.get}, Name: ${c.name.get}"))
+            }
             consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, callContext)
+            _ = logger.info(s"[CONSUMER-QUERY] Consumers returned from query: ${consumers.length}")
+            _ = consumers.foreach(c => logger.info(s"[CONSUMER-QUERY]   - Consumer ID: ${c.id.get}, Name: ${c.name.get}, CreatedAt: ${c.createdAt.get}"))
+            _ = logger.info(s"[CONSUMER-QUERY] RESULT: Returned ${consumers.length} out of $totalCount total consumers")
+            _ = logger.info(s"========== CONSUMER QUERY DEBUG END ==========")
           } yield {
             (JSONFactory510.createConsumersJson(consumers), HttpCode.`200`(callContext))
           }
@@ -3739,7 +4052,7 @@ trait APIMethods510 {
       postAccountAccessJsonV510,
       viewJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -3800,7 +4113,7 @@ trait APIMethods510 {
       postAccountAccessJsonV510,
       revokedJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -3874,7 +4187,7 @@ trait APIMethods510 {
       postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -3938,7 +4251,7 @@ trait APIMethods510 {
       EmptyBody,
       transactionRequestWithChargeJSON210,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         GetTransactionRequestsException,
         UnknownError
       ),
@@ -3995,7 +4308,7 @@ trait APIMethods510 {
       EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         UserNoPermissionAccessView,
@@ -4054,7 +4367,7 @@ trait APIMethods510 {
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
@@ -4097,7 +4410,7 @@ trait APIMethods510 {
       EmptyBody,
       accountsMinimalJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -4139,7 +4452,7 @@ trait APIMethods510 {
       case "tags" ::  Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future.successful() // Just start async call
+            _ <- Future.successful(()) // Just start async call
           } yield {
             (APITags(ApiTag.allDisplayTagNames.toList), HttpCode.`200`(cc.callContext))
           }
@@ -4158,7 +4471,7 @@ trait APIMethods510 {
          |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountJsonV400,
-      List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
     lazy val getCoreAccountByIdThroughView : OBPEndpoint = {
@@ -4187,7 +4500,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalanceV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UserNoPermissionAccessView,
@@ -4226,7 +4539,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalancesV400Json,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -4257,7 +4570,7 @@ trait APIMethods510 {
       EmptyBody,
       accountBalancesV400Json,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -4312,7 +4625,7 @@ trait APIMethods510 {
       postCounterpartyLimitV510,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4375,7 +4688,7 @@ trait APIMethods510 {
       postCounterpartyLimitV510,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4427,7 +4740,7 @@ trait APIMethods510 {
       EmptyBody,
       counterpartyLimitV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4466,7 +4779,7 @@ trait APIMethods510 {
       EmptyBody,
       counterpartyLimitStatusV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4620,7 +4933,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4673,7 +4986,7 @@ trait APIMethods510 {
       createCustomViewJson,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4731,7 +5044,7 @@ trait APIMethods510 {
       updateCustomViewJson,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4807,7 +5120,7 @@ trait APIMethods510 {
       EmptyBody,
       customViewJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4849,7 +5162,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -5009,7 +5322,7 @@ trait APIMethods510 {
      """.stripMargin,
       regulatedEntityAttributeRequestJsonV510,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn, InvalidJsonFormat, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canCreateRegulatedEntityAttribute))
     )
@@ -5059,7 +5372,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canDeleteRegulatedEntityAttribute))
     )
@@ -5092,7 +5405,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn,UnknownError),
+      List($AuthenticatedUserIsRequired,UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttribute))
     )
@@ -5125,7 +5438,7 @@ trait APIMethods510 {
      """.stripMargin,
       EmptyBody,
       regulatedEntityAttributesJsonV510,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttributes))
     )
@@ -5158,7 +5471,7 @@ trait APIMethods510 {
      """.stripMargin,
       regulatedEntityAttributeRequestJsonV510,
       regulatedEntityAttributeResponseJsonV510,
-      List($UserNotLoggedIn, InvalidJsonFormat, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canUpdateRegulatedEntityAttribute))
     )
@@ -5208,7 +5521,7 @@ trait APIMethods510 {
       bankAccountBalanceRequestJsonV510,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5258,7 +5571,7 @@ trait APIMethods510 {
       EmptyBody,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5296,7 +5609,7 @@ trait APIMethods510 {
       EmptyBody,
       bankAccountBalancesJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5334,7 +5647,7 @@ trait APIMethods510 {
       bankAccountBalanceRequestJsonV510,
       bankAccountBalanceResponseJsonV510,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5388,7 +5701,7 @@ trait APIMethods510 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5490,7 +5803,7 @@ trait APIMethods510 {
       createViewPermissionJson,
       entitlementJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementAlreadyExists,
@@ -5534,7 +5847,7 @@ trait APIMethods510 {
       """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemView),
       Some(List(canDeleteSystemViewPermission))
     )

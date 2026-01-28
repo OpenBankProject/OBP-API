@@ -30,6 +30,7 @@ import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
 import code.UserRefreshes.MappedUserRefreshes
+import code.abacrule.AbacRule
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -585,7 +586,7 @@ class Boot extends MdcLoggable {
       Menu.i("debug-webui") / "debug" / "debug-webui",
       Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
         submenus(Consumer.menus : _*),
-      Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
+
       Menu("Consent Screen", Helper.i18n("consent.screen")) / "consent-screen" >> AuthUser.loginFirst,
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
@@ -1040,6 +1041,7 @@ object ToSchemify {
     MappedRegulatedEntity,
     AtmAttribute,
     Admin,
+    AbacRule,
     MappedBank,
     MappedBankAccount,
     BankAccountRouting,

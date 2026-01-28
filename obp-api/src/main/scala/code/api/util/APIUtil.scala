@@ -26,7 +26,11 @@ TESOBE (http://www.tesobe.com/)
  */
 
 package code.api.util
+
+import scala.language.implicitConversions
+import scala.language.reflectiveCalls
 import bootstrap.liftweb.CustomDBVendor
+import cats.effect.IO
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
@@ -96,6 +100,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+import org.http4s.HttpRoutes
 
 import java.io.InputStream
 import java.net.URLDecoder
@@ -328,6 +333,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     commit
   }
+
+  // API info props helpers (keep values centralized)
+  lazy val hostedByOrganisation: String = getPropsValue("hosted_by.organisation", "TESOBE")
+  lazy val hostedByEmail: String = getPropsValue("hosted_by.email", "contact@tesobe.com")
+  lazy val hostedByPhone: String = getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+  lazy val organisationWebsite: String = getPropsValue("organisation_website", "https://www.tesobe.com")
+  lazy val hostedAtOrganisation: String = getPropsValue("hosted_at.organisation", "")
+  lazy val hostedAtOrganisationWebsite: String = getPropsValue("hosted_at.organisation_website", "")
+  lazy val energySourceOrganisation: String = getPropsValue("energy_source.organisation", "")
+  lazy val energySourceOrganisationWebsite: String = getPropsValue("energy_source.organisation_website", "")
+  lazy val resourceDocsRequiresRole: Boolean = getPropsAsBoolValue("resource_docs_requires_role", false)
 
 
   /**
@@ -724,7 +740,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         message.contains(extractErrorMessageCode(ConsumerHasMissingRoles))
     }
     def check401(message: String): Boolean = {
-      message.contains(extractErrorMessageCode(UserNotLoggedIn))
+      message.contains(extractErrorMessageCode(AuthenticatedUserIsRequired))
     }
     def check408(message: String): Boolean = {
       message.contains(extractErrorMessageCode(requestTimeout))
@@ -1633,10 +1649,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var errorResponseBodies: List[String], // Possible error responses
                           tags: List[ResourceDocTag],
                           var roles: Option[List[ApiRole]] = None,
+                          // IMPORTANT: Roles declared here are AUTOMATICALLY CHECKED at runtime!
+                          // When roles specified, framework automatically: 1) Validates user authentication,
+                          // 2) Checks user has at least one of specified roles, 3) Performs checks in wrappedWithAuthCheck()
+                          // No manual hasEntitlement() call needed in endpoint body - handled automatically!
+                          // To disable: call .disableAutoValidateRoles() on ResourceDoc
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
-                          createdByBankId: Option[String] = None //we need to filter the resource Doc by BankId
+                          createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
+                          http4sPartialFunction: Http4sEndpoint = None // http4s endpoint handler
                         ) {
     // this code block will be merged to constructor.
     {
@@ -1648,21 +1670,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (rolesIsEmpty) {
         errorResponseBodies ?-= UserHasMissingRoles
       } else {
-        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= AuthenticatedUserIsRequired
         errorResponseBodies ?+= UserHasMissingRoles
       }
-      // if authentication is required, add UserNotLoggedIn to errorResponseBodies
+      // if authentication is required, add AuthenticatedUserIsRequired to errorResponseBodies
       if (description.contains(authenticationIsRequired)) {
-        errorResponseBodies ?+= UserNotLoggedIn
+        errorResponseBodies ?+= AuthenticatedUserIsRequired
       } else if (description.contains(authenticationIsOptional) && rolesIsEmpty) {
-        errorResponseBodies ?-= UserNotLoggedIn
-      } else if (errorResponseBodies.contains(UserNotLoggedIn)) {
+        errorResponseBodies ?-= AuthenticatedUserIsRequired
+      } else if (errorResponseBodies.contains(AuthenticatedUserIsRequired)) {
         description +=
           s"""
              |
              |$authenticationIsRequired
              |"""
-      } else if (!errorResponseBodies.contains(UserNotLoggedIn)) {
+      } else if (!errorResponseBodies.contains(AuthenticatedUserIsRequired)) {
         description +=
           s"""
              |
@@ -1752,7 +1774,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-    private val isNeedCheckAuth = errorResponseBodies.contains($UserNotLoggedIn)
+    private val isNeedCheckAuth = errorResponseBodies.contains($AuthenticatedUserIsRequired)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
     private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
@@ -1764,12 +1786,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     
     private val reversedRequestUrl = requestUrlPartPath.reverse
     def getPathParams(url: List[String]): Map[String, String] =
-      reversedRequestUrl.zip(url.reverse) collect {
+      reversedRequestUrl.zip(url.reverse).collect {
         case pair @(k, _) if isPathVariable(k) => pair
-      } toMap
+      }.toMap
 
     /**
-     * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
+     * According errorResponseBodies whether contains AuthenticatedUserIsRequired and UserHasMissingRoles do validation.
      * So can avoid duplicate code in endpoint body for expression do check.
      * Note: maybe this will be misused, So currently just comment out.
      */
@@ -2678,7 +2700,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case JField("ccy", x) => JField("currency", x)
   }
 
-  def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledVersions() : List[String] = {
+    val disabledVersions = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+    if (disabledVersions.nonEmpty) {
+      logger.info(s"Disabled API versions: ${disabledVersions.mkString(", ")}")
+    }
+    disabledVersions
+  }
 
   def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
@@ -2770,11 +2798,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case _ => logger.info(s"There is no ${version.toString}")
       }
 
-      logger.info(s"${version.toString} was ENABLED")
+      logger.info(s"${version.fullyQualifiedVersion} was ENABLED")
 
       true
     } else {
-      logger.info(s"${version.toString} was NOT enabled")
+      logger.info(s"${version.fullyQualifiedVersion} was NOT enabled")
       false
     }
     allowed
@@ -2783,6 +2811,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   type OBPEndpoint = PartialFunction[Req, CallContext => Box[JsonResponse]]
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
+  type Http4sEndpoint = Option[HttpRoutes[IO]]
 
 
   def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
@@ -3021,18 +3050,49 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
     val s = S
     val spelling = getSpellingParam()
-    val body: Box[String] = getRequestBody(S.request)
-    val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-    val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
-    val correlationId = getCorrelationId()
-    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
+    
+    // NEW: Prefer CallContext fields, fall back to S.request for Lift compatibility
+    // This allows http4s to use the same auth chain by populating CallContext fields
+    val body: Box[String] = cc.httpBody match {
+      case Some(b) => Full(b)
+      case None => getRequestBody(S.request)
+    }
+    
+    val implementedInVersion = if (cc.implementedInVersion.nonEmpty) 
+      cc.implementedInVersion 
+    else 
+      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
+      
+    val verb = if (cc.verb.nonEmpty) 
+      cc.verb 
+    else 
+      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+      
+    val url = if (cc.url.nonEmpty) 
+      cc.url 
+    else 
+      URLDecoder.decode(ObpS.uriAndQueryString.getOrElse(""),"UTF-8")
+      
+    val correlationId = if (cc.correlationId.nonEmpty) 
+      cc.correlationId 
+    else 
+      getCorrelationId()
+      
+    val reqHeaders = if (cc.requestHeaders.nonEmpty)
+      cc.requestHeaders
+    else
+      S.request.map(_.request.headers).openOr(Nil)
+      
+    val remoteIpAddress = if (cc.ipAddress.nonEmpty) 
+      cc.ipAddress 
+    else 
+      getRemoteIpAddress()
+    
     val xRequestId: Option[String] =
       reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
         .map(_.values.mkString(","))
     logger.debug(s"Request Headers for verb: $verb, URL: $url")
     logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
-    val remoteIpAddress = getRemoteIpAddress()
 
     val authHeaders = AuthorisationUtil.getAuthorisationHeaders(reqHeaders)
     val authHeadersWithEmptyValues = RequestHeadersUtil.checkEmptyRequestHeaderValues(reqHeaders)
@@ -3301,7 +3361,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * This function is used to factor out common code at endpoints regarding Authorized access
    * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
    */
-  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
+  def authenticatedAccess(cc: CallContext, emptyUserErrorMsg: String = AuthenticatedUserIsRequired): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map{
       x => (
         fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 401, Some(cc.toLight))),
@@ -4016,7 +4076,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def parseDate(date: String): Option[Date] = {
     val currentSupportFormats = List(DateWithDayFormat, DateWithSecondsFormat, DateWithMsFormat, DateWithMsRollbackFormat)
     val parsePosition = new ParsePosition(0)
-    currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
+    currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null.!=)
   }
 
   private def passesPsd2ServiceProviderCommon(cc: Option[CallContext], serviceProvider: String) = {
@@ -4412,7 +4472,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def getClassPool(classLoader: ClassLoader) = {
     import scala.concurrent.duration._
-    Caching.memoizeSyncWithImMemory(Some(classLoader.toString()))(DurationInt(30) days) {
+    Caching.memoizeSyncWithImMemory(Some(classLoader.toString()))(DurationInt(30).days) {
       val classPool: ClassPool = ClassPool.getDefault
       classPool.appendClassPath(new LoaderClassPath(classLoader))
       classPool
@@ -4513,7 +4573,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      */
     def getObpTrace(clazzName: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] = {
       import scala.concurrent.duration._
-      Caching.memoizeSyncWithImMemory(Some(clazzName + methodName + signature))(DurationInt(30) days) {
+      Caching.memoizeSyncWithImMemory(Some(clazzName + methodName + signature))(DurationInt(30).days) {
         // List:: className->methodName->signature, find all the dependent methods for one 
         val methods = getDependentMethods(clazzName, methodName, signature)
 

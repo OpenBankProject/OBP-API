@@ -1,10 +1,10 @@
 package code.util
 
 
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.stream.ActorMaterializer
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.settings.ConnectionPoolSettings
+import org.apache.pekko.stream.ActorMaterializer
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
@@ -52,7 +52,7 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   private lazy val connectionPoolSettings: ConnectionPoolSettings = {
     val systemConfig = ConnectionPoolSettings(system.settings.config)
     //Note: get the timeout setting from here:  https://github.com/akka/akka-http/issues/742
-    val clientSettings = systemConfig.connectionSettings.withIdleTimeout(httpRequestTimeout seconds)
+    val clientSettings = systemConfig.connectionSettings.withIdleTimeout(httpRequestTimeout.seconds)
     // reset some settings value
     systemConfig.copy(
       /*

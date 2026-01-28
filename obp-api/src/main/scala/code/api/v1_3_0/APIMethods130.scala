@@ -50,7 +50,7 @@ trait APIMethods130 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI1_3_0.version, OBPAPI1_3_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -67,7 +67,7 @@ trait APIMethods130 {
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       EmptyBody,
       physicalCardsJSON,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagCard))
 
     lazy val getCards : OBPEndpoint = {
@@ -95,7 +95,7 @@ trait APIMethods130 {
       "",
       EmptyBody,
       physicalCardsJSON,
-      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired,BankNotFound, UnknownError),
       List(apiTagCard),
       Some(List(canGetCardsForBank)))
 

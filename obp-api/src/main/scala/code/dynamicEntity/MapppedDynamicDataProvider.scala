@@ -12,6 +12,13 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
+/**
+ * Note on IsPersonalEntity flag:
+ * The IsPersonalEntity flag indicates HOW a record was created (via /my/ endpoint or not),
+ * but is NOT used as a filter when querying personal data. The /my/ endpoints return all
+ * records belonging to the current user (filtered by UserId), regardless of IsPersonalEntity value.
+ * This provides a unified view of a user's data whether it was created via /my/ or non-/my/ endpoints.
+ */
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
@@ -40,7 +47,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     if(bankId.isEmpty && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
       //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
       DynamicData.find(
-        By(DynamicData.DynamicDataId, id), 
+        By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.UserId, userId.getOrElse(null)),
         By(DynamicData.IsPersonalEntity, false),
@@ -49,12 +56,11 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
       }
-    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, get all the data for specific userId.
+    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, get the data for specific userId (regardless of how it was created).
       DynamicData.find(
-        By(DynamicData.DynamicDataId, id), 
+        By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.UserId, userId.getOrElse(null)),
-        By(DynamicData.IsPersonalEntity, true),
         NullRef(DynamicData.BankId)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
@@ -63,7 +69,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     } else if(bankId.isDefined && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
       //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
       DynamicData.find(
-        By(DynamicData.DynamicDataId, id), 
+        By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.IsPersonalEntity, false),
         By(DynamicData.BankId, bankId.get),
@@ -71,19 +77,18 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId= ${bankId.get}")
       }
-    }else{  //isPersonalEntity == true, get all the data for specific userId.
+    }else{  //isPersonalEntity == true, get the data for specific userId (regardless of how it was created).
       DynamicData.find(
-        By(DynamicData.DynamicDataId, id), 
+        By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.BankId, bankId.get),
-        By(DynamicData.UserId, userId.get),
-        By(DynamicData.IsPersonalEntity, true)
+        By(DynamicData.UserId, userId.get)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId= ${bankId.get}, userId = ${userId.get}")
       }
     }
-    
+
   }
 
   override def getAllDataJson(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[JObject] = {
@@ -98,14 +103,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.IsPersonalEntity, false),
         NullRef(DynamicData.BankId),
-      ) 
-    } else if(bankId.isEmpty && isPersonalEntity){  //isPersonalEntity == true, get all the data for specific userId.
+      )
+    } else if(bankId.isEmpty && isPersonalEntity){  //isPersonalEntity == true, get all the data for specific userId (regardless of how it was created).
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.UserId, userId.getOrElse(null)),
-        By(DynamicData.IsPersonalEntity, true),
         NullRef(DynamicData.BankId)
-      ) 
+      )
     } else if(bankId.isDefined && !isPersonalEntity){ //isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
@@ -113,11 +117,10 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         By(DynamicData.BankId, bankId.get),
       )
     }else{
-      DynamicData.findAll(//isPersonalEntity == true, get all the data for specific userId.
+      DynamicData.findAll(//isPersonalEntity == true, get all the data for specific userId (regardless of how it was created).
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.BankId, bankId.get),
-        By(DynamicData.UserId, userId.getOrElse(null)),
-        By(DynamicData.IsPersonalEntity, true)
+        By(DynamicData.UserId, userId.getOrElse(null))
       )
     }
   }
@@ -139,18 +142,16 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         By(DynamicData.BankId, bankId.get),
         By(DynamicData.IsPersonalEntity, false)
       ).nonEmpty
-    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, get all the data for specific userId.
+    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),
         NullRef(DynamicData.BankId),
-        By(DynamicData.IsPersonalEntity, true),
         By(DynamicData.UserId, userId.getOrElse(null))
       ).nonEmpty
-    } else {
+    } else { //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),
         By(DynamicData.BankId, bankId.get),
-        By(DynamicData.IsPersonalEntity, true),
         By(DynamicData.UserId, userId.getOrElse(null))
       ).nonEmpty
     }

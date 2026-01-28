@@ -1,19 +1,22 @@
 package code.api.v6_0_0
 
+import scala.language.reflectiveCalls
 import code.accountattribute.AccountAttributeX
 import code.api.Constant
 import code.api.{DirectLogin, ObpApiFailure}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.cache.Caching
+import code.api.cache.{Caching, Redis}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
+import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
 import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
+import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, RateLimitingUtil}
+import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v3_0_0.JSONFactory300
@@ -26,10 +29,12 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupJsonV600, GroupMembershipJsonV600, GroupMembershipsJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, createActiveCallLimitsJsonV600, createCallLimitJsonV600, createCurrentUsageJson}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
+import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
-import code.bankconnectors.LocalMappedConnectorInternal
+import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.LocalMappedConnectorInternal._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -40,15 +45,17 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
 import code.views.system.ViewDefinition
-import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
 import code.dynamicEntity.DynamicEntityCommons
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{CustomerAttribute, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+import com.openbankproject.commons.model.enums.UserAttributeType
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -65,6 +72,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.collection.JavaConverters._
 import scala.util.Random
 
 
@@ -73,12 +81,12 @@ trait APIMethods600 {
 
   val Implementations6_0_0 = new Implementations600()
 
-  class Implementations600 extends MdcLoggable {
+  class Implementations600 extends RestHelper with MdcLoggable {
 
     val implementedInApiVersion: ScannedApiVersion = ApiVersion.v6_0_0
 
-    private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
-    def resourceDocs = staticResourceDocs
+    val staticResourceDocs = ArrayBuffer[ResourceDoc]()
+    val resourceDocs = staticResourceDocs
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
@@ -107,7 +115,7 @@ trait APIMethods600 {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory510.getApiInfoJSON(OBPAPI6_0_0.version, OBPAPI6_0_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -132,7 +140,7 @@ trait APIMethods600 {
       transactionRequestBodyHoldJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -171,7 +179,7 @@ trait APIMethods600 {
       EmptyBody,
       moderatedCoreAccountsJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -211,21 +219,39 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getCurrentCallsLimit,
+      getConsumerCallCounters,
       implementedInApiVersion,
-      nameOf(getCurrentCallsLimit),
+      nameOf(getConsumerCallCounters),
       "GET",
-      "/management/consumers/CONSUMER_ID/consumer/current-usage",
-      "Get Rate Limits for a Consumer Usage",
+      "/management/consumers/CONSUMER_ID/call-counters",
+      "Get Call Counts for Consumer",
       s"""
-         |Get Rate Limits for a Consumer Usage.
+         |Get the call counters (current usage) for a specific consumer. Shows how many API calls have been made and when the counters reset.
+         |
+         |This endpoint returns the current state of API rate limits across all time periods (per second, per minute, per hour, per day, per week, per month).
+         |
+         |**Response Structure:**
+         |The response always contains a consistent structure with all six time periods, regardless of whether rate limits are configured or active.
+         |
+         |Each time period contains:
+         |- `calls_made`: Number of API calls made in the current period (null if no data available)
+         |- `reset_in_seconds`: Seconds until the counter resets (null if no data available)
+         |- `status`: Current state of the rate limit for this period
+         |
+         |**Status Values:**
+         |- `ACTIVE`: Rate limit counter is active and tracking calls. Both `calls_made` and `reset_in_seconds` will have numeric values.
+         |- `NO_COUNTER`: Key does not exist - the consumer has not made any API calls in this time period yet.
+         |- `EXPIRED`: The rate limit counter has expired (TTL reached 0). The counter will be recreated on the next API call.
+         |- `REDIS_UNAVAILABLE`: Cannot retrieve data from Redis. This indicates a system connectivity issue.
+         |- `DATA_MISSING`: Unexpected error - period data is missing from the response. This should not occur under normal circumstances.
+         |
          |${userAuthenticationMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      redisCallLimitJson,
+      redisCallCountersJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -234,18 +260,18 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canReadCallLimits)))
+      Some(List(canGetRateLimits)))
 
 
-    lazy val getCurrentCallsLimit: OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: "current-usage" :: Nil JsonGet _ =>
+    lazy val getConsumerCallCounters: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "call-counters" :: Nil JsonGet _ =>
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, cc.callContext)
-            currentUsage <- Future(RateLimitingUtil.consumerRateLimitState(consumerId).toList)
+            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumerId).toList)
           } yield {
-            (createCurrentUsageJson(currentUsage), HttpCode.`200`(cc.callContext))
+            (createRedisCallCountersJson(currentConsumerCallCounters), HttpCode.`200`(cc.callContext))
           }
     }
 
@@ -266,7 +292,7 @@ trait APIMethods600 {
       callLimitPostJsonV600,
       callLimitJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -336,7 +362,7 @@ trait APIMethods600 {
       callLimitPostJsonV400,
       callLimitPostJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -396,7 +422,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
         UserHasMissingRoles,
@@ -434,24 +460,30 @@ trait APIMethods600 {
 
 
     staticResourceDocs += ResourceDoc(
-      getActiveCallLimitsAtDate,
+      getActiveRateLimitsAtDate,
       implementedInApiVersion,
-      nameOf(getActiveCallLimitsAtDate),
+      nameOf(getActiveRateLimitsAtDate),
       "GET",
-      "/management/consumers/CONSUMER_ID/consumer/rate-limits/active-at-date/DATE",
-      "Get Active Rate Limits at Date",
+      "/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR",
+      "Get Active Rate Limits for Hour",
       s"""
-         |Get the sum of rate limits at a certain date time. This returns a SUM of all the records that span that time.
+         |Get the active rate limits for a consumer for a specific hour. Returns the aggregated rate limits from all active records during that hour.
          |
-         |Date format: YYYY-MM-DDTHH:MM:SSZ (e.g. 1099-12-31T23:00:00Z)
+         |Rate limits are cached and queried at hour-level granularity.
+         |
+         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for more details on how rate limiting works.
+         |
+         |Date format: YYYY-MM-DD-HH in UTC timezone (e.g. 2025-12-31-13 for hour 13:00-13:59 UTC on Dec 31, 2025)
+         |
+         |Note: The hour is always interpreted in UTC for consistency across all servers.
          |
          |${userAuthenticationMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      activeCallLimitsJsonV600,
+      activeRateLimitsJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
         UserHasMissingRoles,
@@ -459,25 +491,390 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canReadCallLimits)))
+      Some(List(canGetRateLimits)))
 
 
-    lazy val getActiveCallLimitsAtDate: OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: "rate-limits" :: "active-at-date" :: dateString :: Nil JsonGet _ =>
+    lazy val getActiveRateLimitsAtDate: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "active-rate-limits" :: dateWithHourString :: Nil JsonGet _ =>
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canReadCallLimits, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetRateLimits, callContext)
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
-            date <- NewStyle.function.tryons(s"$InvalidDateFormat Current date format is: $dateString. Please use this format: YYYY-MM-DDTHH:MM:SSZ (e.g. 1099-12-31T23:00:00Z)", 400, callContext) {
-              val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-              format.parse(dateString)
+            date <- NewStyle.function.tryons(s"$InvalidDateFormat Current date format is: $dateWithHourString. Please use this format: YYYY-MM-DD-HH in UTC (e.g. 2025-12-31-13 for hour 13:00-13:59 UTC on Dec 31, 2025)", 400, callContext) {
+              val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
+              val localDateTime = java.time.LocalDateTime.parse(dateWithHourString, formatter)
+              java.util.Date.from(localDateTime.atZone(java.time.ZoneOffset.UTC).toInstant())
             }
-            activeCallLimits <- RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, date)
+            (rateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
           } yield {
-            (createActiveCallLimitsJsonV600(activeCallLimits, date), HttpCode.`200`(callContext))
+            (JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, rateLimitIds, date), HttpCode.`200`(callContext))
           }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getActiveRateLimitsNow,
+      implementedInApiVersion,
+      nameOf(getActiveRateLimitsNow),
+      "GET",
+      "/management/consumers/CONSUMER_ID/active-rate-limits",
+      "Get Active Rate Limits (Current)",
+      s"""
+         |Get the active rate limits for a consumer at the current date/time. Returns the aggregated rate limits from all active records at this moment.
+         |
+         |This is a convenience endpoint that uses the current date/time automatically.
+         |
+         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for more details on how rate limiting works.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      activeRateLimitsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConsumer),
+      Some(List(canGetRateLimits)))
+
+
+    lazy val getActiveRateLimitsNow: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "active-rate-limits" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetRateLimits, callContext)
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            date = new java.util.Date() // Use current date/time
+            (rateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+          } yield {
+            (JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, rateLimitIds, date), HttpCode.`200`(callContext))
+          }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCurrentConsumer,
+      implementedInApiVersion,
+      nameOf(getCurrentConsumer),
+      "GET",
+      "/consumers/current",
+      "Get Current Consumer",
+      s"""Returns the consumer_id of the current authenticated consumer.
+        |
+        |This endpoint requires authentication via:
+        |* User authentication (OAuth, DirectLogin, etc.) - returns the consumer associated with the user's session
+        |* Consumer/Client authentication - returns the consumer credentials being used
+        |
+        |${userAuthenticationMessage(true)}
+        |""",
+      EmptyBody,
+      CurrentConsumerJsonV600(
+        app_name = "SOFI",
+        app_type = "Web",
+        description = "Account Management",
+        consumer_id = "123",
+        active_rate_limits = activeRateLimitsJsonV600,
+        call_counters = redisCallCountersJsonV600
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidConsumerCredentials,
+        UnknownError
+      ),
+      apiTagConsumer :: apiTagApi :: Nil,
+      Some(List(canGetCurrentConsumer))
+    )
+
+    staticResourceDocs += ResourceDoc(
+      invalidateCacheNamespace,
+      implementedInApiVersion,
+      nameOf(invalidateCacheNamespace),
+      "POST",
+      "/management/cache/namespaces/invalidate",
+      "Invalidate Cache Namespace",
+      """Invalidates a cache namespace by incrementing its version counter.
+        |
+        |This provides instant cache invalidation without deleting individual keys.
+        |Incrementing the version counter makes all keys with the old version unreachable.
+        |
+        |Available namespace IDs: call_counter, rl_active, rd_localised, rd_dynamic,
+        |rd_static, rd_all, swagger_static, connector, metrics_stable, metrics_recent, abac_rule
+        |
+        |Use after updating rate limits, translations, endpoints, or CBS data.
+        |
+        |Authentication is Required
+        |""",
+      InvalidateCacheNamespaceJsonV600(namespace_id = "rd_localised"),
+      InvalidatedCacheNamespaceJsonV600(
+        namespace_id = "rd_localised",
+        old_version = 1,
+        new_version = 2,
+        status = "invalidated"
+      ),
+      List(
+        InvalidJsonFormat,
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCache, apiTagSystem, apiTagApi),
+      Some(List(canInvalidateCacheNamespace))
+    )
+
+    lazy val invalidateCacheNamespace: OBPEndpoint = {
+      case "management" :: "cache" :: "namespaces" :: "invalidate" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) {
+              json.extract[InvalidateCacheNamespaceJsonV600]
+            }
+            namespaceId = postJson.namespace_id
+            _ <- Helper.booleanToFuture(
+              s"$InvalidCacheNamespaceId $namespaceId. Valid values: ${Constant.ALL_CACHE_NAMESPACES.mkString(", ")}",
+              400,
+              callContext
+            )(Constant.ALL_CACHE_NAMESPACES.contains(namespaceId))
+            oldVersion = Constant.getCacheNamespaceVersion(namespaceId)
+            newVersionOpt = Constant.incrementCacheNamespaceVersion(namespaceId)
+            _ <- Helper.booleanToFuture(
+              s"Failed to increment cache namespace version for: $namespaceId",
+              500,
+              callContext
+            )(newVersionOpt.isDefined)
+          } yield {
+            val result = InvalidatedCacheNamespaceJsonV600(
+              namespace_id = namespaceId,
+              old_version = oldVersion,
+              new_version = newVersionOpt.get,
+              status = "invalidated"
+            )
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCacheConfig,
+      implementedInApiVersion,
+      nameOf(getCacheConfig),
+      "GET",
+      "/system/cache/config",
+      "Get Cache Configuration",
+      """Returns cache configuration information including:
+        |
+        |- Redis status: availability, connection details (URL, port, SSL)
+        |- In-memory cache status: availability and current size
+        |- Instance ID and environment
+        |- Global cache namespace prefix
+        |
+        |This helps understand what cache backend is being used and how it's configured.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      CacheConfigJsonV600(
+        redis_status = RedisCacheStatusJsonV600(
+          available = true,
+          url = "127.0.0.1",
+          port = 6379,
+          use_ssl = false
+        ),
+        in_memory_status = InMemoryCacheStatusJsonV600(
+          available = true,
+          current_size = 42
+        ),
+        instance_id = "obp",
+        environment = "dev",
+        global_prefix = "obp_dev_"
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCache, apiTagSystem, apiTagApi),
+      Some(List(canGetCacheConfig))
+    )
+
+    lazy val getCacheConfig: OBPEndpoint = {
+      case "system" :: "cache" :: "config" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetCacheConfig, callContext)
+          } yield {
+            val result = JSONFactory600.createCacheConfigJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCacheInfo,
+      implementedInApiVersion,
+      nameOf(getCacheInfo),
+      "GET",
+      "/system/cache/info",
+      "Get Cache Information",
+      """Returns detailed cache information for all namespaces:
+        |
+        |- Namespace ID and versioned prefix
+        |- Current version counter
+        |- Number of keys in each namespace
+        |- Description and category
+        |- Storage location (redis, memory, both, or unknown)
+        |  - "redis": Keys stored in Redis
+        |  - "memory": Keys stored in in-memory cache
+        |  - "both": Keys in both locations (indicates a BUG - should never happen)
+        |  - "unknown": No keys found, storage location cannot be determined
+        |- TTL info: Sampled TTL information from actual keys
+        |  - Shows actual TTL values from up to 5 sample keys
+        |  - Format: "123s" (fixed), "range 60s to 3600s (avg 1800s)" (variable), "no expiry" (persistent)
+        |- Total key count across all namespaces
+        |- Redis availability status
+        |
+        |This endpoint helps monitor cache usage and identify which namespaces contain the most data.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      CacheInfoJsonV600(
+        namespaces = List(
+          CacheNamespaceInfoJsonV600(
+            namespace_id = "call_counter",
+            prefix = "obp_dev_call_counter_1_",
+            current_version = 1,
+            key_count = 42,
+            description = "Rate limit call counters",
+            category = "Rate Limiting",
+            storage_location = "redis",
+            ttl_info = "range 60s to 86400s (avg 3600s)"
+          ),
+          CacheNamespaceInfoJsonV600(
+            namespace_id = "rd_localised",
+            prefix = "obp_dev_rd_localised_1_",
+            current_version = 1,
+            key_count = 128,
+            description = "Localized resource docs",
+            category = "API Documentation",
+            storage_location = "redis",
+            ttl_info = "3600s"
+          )
+        ),
+        total_keys = 170,
+        redis_available = true
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCache, apiTagSystem, apiTagApi),
+      Some(List(canGetCacheInfo))
+    )
+
+    lazy val getCacheInfo: OBPEndpoint = {
+      case "system" :: "cache" :: "info" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetCacheInfo, callContext)
+          } yield {
+            val result = JSONFactory600.createCacheInfoJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getDatabasePoolInfo,
+      implementedInApiVersion,
+      nameOf(getDatabasePoolInfo),
+      "GET",
+      "/system/database/pool",
+      "Get Database Pool Information",
+      """Returns HikariCP connection pool information including:
+        |
+        |- Pool name
+        |- Active connections: currently in use
+        |- Idle connections: available in pool
+        |- Total connections: active + idle
+        |- Threads awaiting connection: requests waiting for a connection
+        |- Configuration: max pool size, min idle, timeouts
+        |
+        |This helps diagnose connection pool issues such as connection leaks or pool exhaustion.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      DatabasePoolInfoJsonV600(
+        pool_name = "HikariPool-1",
+        active_connections = 5,
+        idle_connections = 3,
+        total_connections = 8,
+        threads_awaiting_connection = 0,
+        maximum_pool_size = 10,
+        minimum_idle = 2,
+        connection_timeout_ms = 30000,
+        idle_timeout_ms = 600000,
+        max_lifetime_ms = 1800000,
+        keepalive_time_ms = 0
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystem, apiTagApi),
+      Some(List(canGetDatabasePoolInfo))
+    )
+
+    lazy val getDatabasePoolInfo: OBPEndpoint = {
+      case "system" :: "database" :: "pool" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetDatabasePoolInfo, callContext)
+          } yield {
+            val result = JSONFactory600.createDatabasePoolInfoJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    lazy val getCurrentConsumer: OBPEndpoint = {
+      case "consumers" :: "current" :: Nil JsonGet _ => {
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            consumer <- Future {
+              cc.consumer match {
+                case Full(c) => Full(c)
+                case _ => Empty
+              }
+            } map {
+              unboxFullOrFail(_, cc.callContext, InvalidConsumerCredentials, 401)
+            }
+            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            date = new java.util.Date()
+            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            activeRateLimitsJson = JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date)
+            callCountersJson = createRedisCallCountersJson(currentConsumerCallCounters)
+          } yield {
+            (CurrentConsumerJsonV600(consumer.name.get, consumer.appType.get, consumer.description.get, consumer.consumerId.get, activeRateLimitsJson, callCountersJson), HttpCode.`200`(callContext))
+          }
+        }
+      }
     }
 
     staticResourceDocs += ResourceDoc(
@@ -552,7 +949,7 @@ trait APIMethods600 {
         total_issues = 1
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -648,7 +1045,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -725,7 +1122,7 @@ trait APIMethods600 {
       """.stripMargin,
       EmptyBody,
       userJsonV300,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser))
 
     lazy val getCurrentUser: OBPEndpoint = {
@@ -737,7 +1134,24 @@ trait APIMethods600 {
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
             val permissions: Option[Permission] = Views.views.vend.getPermissionForUser(u).toOption
-            val currentUser = UserV600(u, entitlements, permissions)
+            // Add SuperAdmin virtual entitlement if user is super admin
+            val finalEntitlements = if (APIUtil.isSuperAdmin(u.userId)) {
+              // Create a virtual SuperAdmin entitlement
+              val superAdminEntitlement: Entitlement = new Entitlement {
+                def entitlementId: String = ""
+                def bankId: String = ""
+                def userId: String = u.userId
+                def roleName: String = "SuperAdmin"
+                def createdByProcess: String = "System"
+                def entitlementRequestId: Option[String] = None
+                def groupId: Option[String] = None
+                def process: Option[String] = None
+              }
+              entitlements ::: List(superAdminEntitlement)
+            } else {
+              entitlements
+            }
+            val currentUser = UserV600(u, finalEntitlements, permissions)
             val onBehalfOfUser = if(cc.onBehalfOfUser.isDefined) {
               val user = cc.onBehalfOfUser.toOption.get
               val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).headOption.toList.flatten
@@ -773,7 +1187,7 @@ trait APIMethods600 {
       EmptyBody,
       usersInfoJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -814,7 +1228,7 @@ trait APIMethods600 {
       EmptyBody,
       userInfoJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByUserId,
         UnknownError
@@ -877,7 +1291,7 @@ trait APIMethods600 {
       EmptyBody,
       migrationScriptLogsJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -899,6 +1313,110 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getCacheNamespaces,
+      implementedInApiVersion,
+      nameOf(getCacheNamespaces),
+      "GET",
+      "/system/cache/namespaces",
+      "Get Cache Namespaces",
+      """Returns information about all cache namespaces in the system.
+        |
+        |This endpoint provides visibility into:
+        |* Cache namespace prefixes and their purposes
+        |* Number of keys in each namespace
+        |* TTL configurations
+        |* Example keys for each namespace
+        |
+        |This is useful for:
+        |* Monitoring cache usage
+        |* Understanding cache structure
+        |* Debugging cache-related issues
+        |* Planning cache management operations
+        |
+        |""",
+      EmptyBody,
+      CacheNamespacesJsonV600(
+        namespaces = List(
+          CacheNamespaceJsonV600(
+            prefix = "call_counter_",
+            description = "Rate limiting counters per consumer and time period",
+            ttl_seconds = "varies",
+            category = "Rate Limiting",
+            key_count = 42,
+            example_key = "rl_counter_consumer123_PER_MINUTE"
+          ),
+          CacheNamespaceJsonV600(
+            prefix = "rl_active_",
+            description = "Active rate limit configurations",
+            ttl_seconds = "3600",
+            category = "Rate Limiting",
+            key_count = 15,
+            example_key = "rl_active_consumer123_2024-12-27-14"
+          ),
+          CacheNamespaceJsonV600(
+            prefix = "rd_localised_",
+            description = "Localized resource documentation",
+            ttl_seconds = "3600",
+            category = "Resource Documentation",
+            key_count = 128,
+            example_key = "rd_localised_operationId:getBanks-locale:en"
+          )
+        )
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCache, apiTagSystem, apiTagApi),
+      Some(List(canGetCacheNamespaces))
+    )
+
+    lazy val getCacheNamespaces: OBPEndpoint = {
+      case "system" :: "cache" :: "namespaces" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetCacheNamespaces, callContext)
+          } yield {
+            // Define known cache namespaces with their metadata
+            val namespaces = List(
+              // Rate Limiting
+              (Constant.CALL_COUNTER_PREFIX, "Rate limiting counters per consumer and time period", "varies", "Rate Limiting"),
+              (Constant.RATE_LIMIT_ACTIVE_PREFIX, "Active rate limit configurations", Constant.RATE_LIMIT_ACTIVE_CACHE_TTL.toString, "Rate Limiting"),
+              // Resource Documentation
+              (Constant.LOCALISED_RESOURCE_DOC_PREFIX, "Localized resource documentation", Constant.CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.toString, "Resource Documentation"),
+              (Constant.DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Dynamic resource documentation", Constant.GET_DYNAMIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Static resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, "All resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, "Swagger documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              // Connector
+              (Constant.CONNECTOR_PREFIX, "Connector method names and metadata", "3600", "Connector"),
+              // Metrics
+              (Constant.METRICS_STABLE_PREFIX, "Stable metrics (historical)", "86400", "Metrics"),
+              (Constant.METRICS_RECENT_PREFIX, "Recent metrics", "7", "Metrics"),
+              // ABAC
+              (Constant.ABAC_RULE_PREFIX, "ABAC rule cache", "indefinite", "ABAC")
+            ).map { case (prefix, description, ttl, category) =>
+              // Get actual key count and example from Redis
+              val keyCount = Redis.countKeys(s"${prefix}*")
+              val exampleKey = Redis.getSampleKey(s"${prefix}*")
+              JSONFactory600.createCacheNamespaceJsonV600(
+                prefix = prefix,
+                description = description,
+                ttlSeconds = ttl,
+                category = category,
+                keyCount = keyCount,
+                exampleKey = exampleKey
+              )
+            }
+
+            (JSONFactory600.createCacheNamespacesJsonV600(namespaces), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       createTransactionRequestCardano,
       implementedInApiVersion,
       nameOf(createTransactionRequestCardano),
@@ -916,7 +1434,7 @@ trait APIMethods600 {
       transactionRequestBodyCardanoJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -956,7 +1474,7 @@ trait APIMethods600 {
       transactionRequestBodyEthereumJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -995,7 +1513,7 @@ trait APIMethods600 {
       transactionRequestBodyEthSendRawTransactionJsonV600,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
@@ -1042,7 +1560,7 @@ trait APIMethods600 {
       bankJson600,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -1098,14 +1616,14 @@ trait APIMethods600 {
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true =>
                 // Already has entitlement
-                Future()
+                Future(())
               case false =>
                 Future(Entitlement.entitlement.vend.addEntitlement(postJson.bank_id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true =>
                 // Already has entitlement
-                Future()
+                Future(())
               case false =>
                 Future(Entitlement.entitlement.vend.addEntitlement(postJson.bank_id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
             }
@@ -1139,7 +1657,7 @@ trait APIMethods600 {
       EmptyBody,
       JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP", "google.com")),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1207,18 +1725,18 @@ trait APIMethods600 {
          |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetMethodRoutings entitlement is required.
+         |CanGetSystemConnectorMethodNames entitlement is required.
          |
       """.stripMargin,
       EmptyBody,
       ConnectorMethodNamesJsonV600(List("getBank", "getBanks", "getUser", "getAccount", "makePayment", "getTransactions")),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystem, apiTagMethodRouting, apiTagApi),
-      Some(List(canGetMethodRoutings))
+      List(apiTagConnectorMethod, apiTagSystem, apiTagMethodRouting, apiTagApi),
+      Some(List(canGetSystemConnectorMethodNames))
     )
 
     lazy val getConnectorMethodNames: OBPEndpoint = {
@@ -1226,7 +1744,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetMethodRoutings, callContext)
             // Fetch connector method names with caching
             methodNames <- Future {
               /**
@@ -1234,7 +1751,7 @@ trait APIMethods600 {
                */
               val cacheKey = "getConnectorMethodNames"
               val cacheTTL = APIUtil.getPropsAsIntValue("getConnectorMethodNames.cache.ttl.seconds", 3600)
-              Caching.memoizeSyncWithProvider(Some(cacheKey))(cacheTTL seconds) {
+              Caching.memoizeSyncWithProvider(Some(cacheKey))(cacheTTL.seconds) {
                 val connectorName = APIUtil.getPropsValue("connector", "mapped")
                 val connector = code.bankconnectors.Connector.getConnectorInstance(connectorName)
                 connector.callableMethods.keys.toList
@@ -1243,6 +1760,90 @@ trait APIMethods600 {
           } yield {
             (JSONFactory600.createConnectorMethodNamesJson(methodNames), HttpCode.`200`(callContext))
           }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getScannedApiVersions,
+      implementedInApiVersion,
+      nameOf(getScannedApiVersions),
+      "GET",
+      "/api/versions",
+      "Get Scanned API Versions",
+      s"""Get all scanned API versions available in this codebase.
+         |
+         |This endpoint returns all API versions that have been discovered/scanned, along with their active status.
+         |
+         |**Response Fields:**
+         |
+         |* `url_prefix`: The URL prefix for the version (e.g., "obp", "berlin-group", "open-banking")
+         |* `api_standard`: The API standard name (e.g., "OBP", "BG", "UK", "STET")
+         |* `api_short_version`: The version number (e.g., "v4.0.0", "v1.3")
+         |* `fully_qualified_version`: The fully qualified version combining standard and version (e.g., "OBPv4.0.0", "BGv1.3")
+         |* `is_active`: Boolean indicating if the version is currently enabled and accessible
+         |
+         |**Active Status:**
+         |
+         |* `is_active=true`: Version is enabled and can be accessed via its URL prefix
+         |* `is_active=false`: Version is scanned but disabled (via `api_disabled_versions` props)
+         |
+         |**Use Cases:**
+         |
+         |* Discover what API versions are available in the codebase
+         |* Check which versions are currently enabled
+         |* Verify that disabled versions configuration is working correctly
+         |* API documentation and discovery
+         |
+         |**Note:** This differs from v4.0.0's `/api/versions` endpoint which shows all scanned versions without is_active status.
+         |
+         |""",
+      EmptyBody,
+      ListResult(
+        "scanned_api_versions",
+        List(
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.2.1", fully_qualified_version = "OBPv1.2.1", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.3.0", fully_qualified_version = "OBPv1.3.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.4.0", fully_qualified_version = "OBPv1.4.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.0.0", fully_qualified_version = "OBPv2.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.1.0", fully_qualified_version = "OBPv2.1.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.2.0", fully_qualified_version = "OBPv2.2.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.0.0", fully_qualified_version = "OBPv3.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.1.0", fully_qualified_version = "OBPv3.1.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v4.0.0", fully_qualified_version = "OBPv4.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.0.0", fully_qualified_version = "OBPv5.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.1.0", fully_qualified_version = "OBPv5.1.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v6.0.0", fully_qualified_version = "OBPv6.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "berlin-group", api_standard = "BG", api_short_version = "v1.3", fully_qualified_version = "BGv1.3", is_active = false)
+        )
+      ),
+      List(
+        UnknownError
+      ),
+      List(apiTagDocumentation, apiTagApi),
+      Some(Nil)
+    )
+
+    lazy val getScannedApiVersions: OBPEndpoint = {
+      case "api" :: "versions" :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        Future {
+          val versions: List[ScannedApiVersionJsonV600] =
+            ApiVersion.allScannedApiVersion.asScala.toList
+              .filter(version => version.urlPrefix.trim.nonEmpty)
+              .map { version =>
+                ScannedApiVersionJsonV600(
+                  url_prefix = version.urlPrefix,
+                  api_standard = version.apiStandard,
+                  api_short_version = version.apiShortVersion,
+                  fully_qualified_version = version.fullyQualifiedVersion,
+                  is_active = versionIsAllowed(version)
+                )
+              }
+          (
+            ListResult("scanned_api_versions", versions),
+            HttpCode.`200`(cc.callContext)
+          )
+        }
+      }
     }
 
     staticResourceDocs += ResourceDoc(
@@ -1297,7 +1898,7 @@ trait APIMethods600 {
       postCustomerJsonV600,
       customerJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         InvalidJsonContent,
@@ -1414,7 +2015,7 @@ trait APIMethods600 {
       EmptyBody,
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1456,7 +2057,7 @@ trait APIMethods600 {
       PostCustomerLegalNameJsonV510(legal_name = "John Smith"),
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1506,7 +2107,7 @@ trait APIMethods600 {
       EmptyBody,
       customerJSONsV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1546,7 +2147,7 @@ trait APIMethods600 {
       EmptyBody,
       customerWithAttributesJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -1588,7 +2189,7 @@ trait APIMethods600 {
       postCustomerNumberJsonV310,
       customerWithAttributesJsonV600,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1719,7 +2320,7 @@ trait APIMethods600 {
       EmptyBody,
       metricsJsonV510,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1853,7 +2454,7 @@ trait APIMethods600 {
       EmptyBody,
       aggregateMetricsJSONV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2094,7 +2695,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2171,7 +2772,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2242,7 +2843,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2331,7 +2932,7 @@ trait APIMethods600 {
         is_enabled = true
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2476,7 +3077,7 @@ trait APIMethods600 {
             if (!skipEmailValidation) {
               // Construct validation link based on validating_application and portal_external_url
               val portalExternalUrl = APIUtil.getPropsValue("portal_external_url")
-              
+
               val emailValidationLink = postedData.validating_application match {
                 case Some("LEGACY_PORTAL") =>
                   // Use API hostname with legacy path
@@ -2539,7 +3140,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         EntitlementCannotBeDeleted,
         UnknownError
@@ -2606,7 +3207,7 @@ trait APIMethods600 {
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2658,7 +3259,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2698,13 +3299,23 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(addUserToGroup),
       "POST",
-      "/users/USER_ID/group-memberships",
-      "Add User to Group",
-      s"""Add a user to a group. This will create entitlements for all roles in the group.
+      "/users/USER_ID/group-entitlements",
+      "Grant User Group Entitlements",
+      s"""Grant the User Group Entitlements.
          |
-         |Each entitlement will have:
+         |This endpoint creates entitlements for every Role in the Group. If the user
+         |already has a particular role at the same bank, that entitlement is skipped (not duplicated).
+         |
+         |Each entitlement created will have:
          |- group_id set to the group ID
          |- process set to "GROUP_MEMBERSHIP"
+         |
+         |**Response Fields:**
+         |- target_entitlements: All roles defined in the group (the complete list of entitlements that this group aims to grant)
+         |- entitlements_created: Roles that were newly created as entitlements during this operation
+         |- entitlements_skipped: Roles that the user already possessed, so no new entitlement was created
+         |
+         |Note: target_entitlements = entitlements_created + entitlements_skipped
          |
          |Requires either:
          |- CanAddUserToGroupAtAllBanks (for any group)
@@ -2716,15 +3327,17 @@ trait APIMethods600 {
       PostGroupMembershipJsonV600(
         group_id = "group-id-123"
       ),
-      GroupMembershipJsonV600(
+      AddUserToGroupResponseJsonV600(
         group_id = "group-id-123",
         user_id = "user-id-123",
         bank_id = Some("gh.29.uk"),
         group_name = "Teller Group",
-        list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction")
+        target_entitlements = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
+        entitlements_created = List("CanGetCustomer", "CanGetAccount"),
+        entitlements_skipped = List("CanCreateTransaction")
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2734,7 +3347,7 @@ trait APIMethods600 {
     )
 
     lazy val addUserToGroup: OBPEndpoint = {
-      case "users" :: userId :: "group-memberships" :: Nil JsonPost json -> _ => {
+      case "users" :: userId :: "group-entitlements" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -2760,15 +3373,15 @@ trait APIMethods600 {
             existingEntitlements <- Future {
               Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
-            // Create entitlements for all roles in the group, skipping duplicates
-            _ <- Future.sequence {
+            // Create entitlements for all roles in the group, tracking which were added vs already present
+            entitlementResults <- Future.sequence {
               group.listOfRoles.map { roleName =>
                 Future {
                   // Check if user already has this role at this bank
                   val alreadyHasRole = existingEntitlements.toOption.exists(_.exists { ent =>
                     ent.roleName == roleName && ent.bankId == group.bankId.getOrElse("")
                   })
-                  
+
                   if (!alreadyHasRole) {
                     Entitlement.entitlement.vend.addEntitlement(
                       group.bankId.getOrElse(""),
@@ -2779,17 +3392,24 @@ trait APIMethods600 {
                       Some(postJson.group_id),
                       Some("GROUP_MEMBERSHIP")
                     )
+                    (roleName, true) // true means it was added
+                  } else {
+                    (roleName, false) // false means it was already present
                   }
                 }
               }
             }
+            entitlementsAdded = entitlementResults.filter(_._2).map(_._1)
+            entitlementsAlreadyPresent = entitlementResults.filterNot(_._2).map(_._1)
           } yield {
-            val response = GroupMembershipJsonV600(
+            val response = AddUserToGroupResponseJsonV600(
               group_id = group.groupId,
               user_id = userId,
               bank_id = group.bankId,
               group_name = group.groupName,
-              list_of_roles = group.listOfRoles
+              target_entitlements = group.listOfRoles,
+              entitlements_created = entitlementsAdded,
+              entitlements_skipped = entitlementsAlreadyPresent
             )
             (response, HttpCode.`201`(callContext))
           }
@@ -2801,11 +3421,14 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(getUserGroupMemberships),
       "GET",
-      "/users/USER_ID/group-memberships",
+      "/users/USER_ID/group-entitlements",
       "Get User's Group Memberships",
       s"""Get all groups a user is a member of.
          |
          |Returns groups where the user has entitlements with process = "GROUP_MEMBERSHIP".
+         |
+         |The response includes:
+         |- list_of_entitlements: entitlements the user currently has from this group membership
          |
          |Requires either:
          |- CanGetUserGroupMembershipsAtAllBanks (for any user)
@@ -2815,19 +3438,19 @@ trait APIMethods600 {
          |
          |""".stripMargin,
       EmptyBody,
-      GroupMembershipsJsonV600(
-        group_memberships = List(
-          GroupMembershipJsonV600(
+      UserGroupMembershipsJsonV600(
+        group_entitlements = List(
+          UserGroupMembershipJsonV600(
             group_id = "group-id-123",
             user_id = "user-id-123",
             bank_id = Some("gh.29.uk"),
             group_name = "Teller Group",
-            list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction")
+            list_of_entitlements = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction")
           )
         )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2836,7 +3459,7 @@ trait APIMethods600 {
     )
 
     lazy val getUserGroupMemberships: OBPEndpoint = {
-      case "users" :: userId :: "group-memberships" :: Nil JsonGet _ => {
+      case "users" :: userId :: "group-entitlements" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -2873,15 +3496,101 @@ trait APIMethods600 {
             validGroups = groups.flatten
           } yield {
             val memberships = validGroups.map { group =>
-              GroupMembershipJsonV600(
+              // Get entitlements for this user that came from this specific group
+              val groupSpecificEntitlements = groupEntitlements
+                .filter(_.groupId.contains(group.groupId))
+                .map(_.roleName)
+                .distinct
+
+              UserGroupMembershipJsonV600(
                 group_id = group.groupId,
                 user_id = userId,
                 bank_id = group.bankId,
                 group_name = group.groupName,
-                list_of_roles = group.listOfRoles
+                list_of_entitlements = groupSpecificEntitlements
               )
             }
-            (GroupMembershipsJsonV600(memberships), HttpCode.`200`(callContext))
+            (UserGroupMembershipsJsonV600(group_entitlements = memberships), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getGroupEntitlements,
+      implementedInApiVersion,
+      nameOf(getGroupEntitlements),
+      "GET",
+      "/management/groups/GROUP_ID/entitlements",
+      "Get Group Entitlements",
+      s"""Get all entitlements that have been granted from a specific group.
+         |
+         |This returns all entitlements where the group_id matches the specified GROUP_ID.
+         |
+         |Requires:
+         |- CanGetEntitlementsForAnyBank
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      GroupEntitlementsJsonV600(
+        entitlements = List(
+          GroupEntitlementJsonV600(
+            entitlement_id = "entitlement-id-123",
+            role_name = "CanGetCustomer",
+            bank_id = "gh.29.uk",
+            user_id = "user-id-123",
+            username = "susan.uk.29@example.com",
+            group_id = Some("group-id-123"),
+            process = Some("GROUP_MEMBERSHIP")
+          )
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagGroup, apiTagEntitlement),
+      Some(List(canGetEntitlementsForAnyBank))
+    )
+
+    lazy val getGroupEntitlements: OBPEndpoint = {
+      case "management" :: "groups" :: groupId :: "entitlements" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            // Verify the group exists
+            group <- Future {
+              code.group.GroupTrait.group.vend.getGroup(groupId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Group not found", 404)
+            }
+            // Get entitlements by group_id
+            groupEntitlements <- Entitlement.entitlement.vend.getEntitlementsByGroupId(groupId) map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get entitlements", 400)
+            }
+            // Get usernames for each entitlement
+            entitlementsWithUsernames <- Future.sequence {
+              groupEntitlements.map { ent =>
+                Users.users.vend.getUserByUserIdFuture(ent.userId).map { userBox =>
+                  val username = userBox.map(_.name).getOrElse("")
+                  GroupEntitlementJsonV600(
+                    entitlement_id = ent.entitlementId,
+                    role_name = ent.roleName,
+                    bank_id = ent.bankId,
+                    user_id = ent.userId,
+                    username = username,
+                    group_id = ent.groupId,
+                    process = ent.process
+                  )
+                }
+              }
+            }
+          } yield {
+            val entitlementCount = entitlementsWithUsernames.length
+            logger.info(s"getGroupEntitlements called for group_id: $groupId, returned $entitlementCount records")
+            (GroupEntitlementsJsonV600(entitlements = entitlementsWithUsernames), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2891,7 +3600,7 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(removeUserFromGroup),
       "DELETE",
-      "/users/USER_ID/group-memberships/GROUP_ID",
+      "/users/USER_ID/group-entitlements/GROUP_ID",
       "Remove User from Group",
       s"""Remove a user from a group. This will delete all entitlements that were created by this group membership.
          |
@@ -2909,7 +3618,7 @@ trait APIMethods600 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2918,7 +3627,7 @@ trait APIMethods600 {
     )
 
     lazy val removeUserFromGroup: OBPEndpoint = {
-      case "users" :: userId :: "group-memberships" :: groupId :: Nil JsonDelete _ => {
+      case "users" :: userId :: "group-entitlements" :: groupId :: Nil JsonDelete _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -2938,7 +3647,7 @@ trait APIMethods600 {
             entitlements <- Future {
               Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
-            groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e => 
+            groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e =>
               e.groupId == Some(groupId) && e.process == Some("GROUP_MEMBERSHIP")
             )
             // Delete all entitlements from this group
@@ -2970,13 +3679,30 @@ trait APIMethods600 {
          |- auditor
          |- standard
          |
+         |Each view is returned with an `allowed_actions` array containing all permissions for that view.
+         |
          |${userAuthenticationMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      ViewsJsonV500(List()),
+      ViewsJsonV600(List(
+        ViewJsonV600(
+          view_id = "owner",
+          short_name = "Owner",
+          description = "The owner of the account",
+          metadata_view = "owner",
+          is_public = false,
+          is_system = true,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("owner"),
+          can_revoke_access_to_views = List("owner"),
+          allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
+        )
+      )),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2991,7 +3717,7 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             views <- Views.views.vend.getSystemViews()
           } yield {
-            (JSONFactory500.createViewsJsonV500(views), HttpCode.`200`(callContext))
+            (JSONFactory600.createViewsJsonV600(views), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3011,12 +3737,14 @@ trait APIMethods600 {
          |- auditor
          |- standard
          |
+         |The view is returned with an `allowed_actions` array containing all permissions for that view.
+         |
          |${userAuthenticationMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      ViewJsonV500(
-        id = "owner",
+      ViewJsonV600(
+        view_id = "owner",
         short_name = "Owner",
         description = "The owner of the account. Has full privileges.",
         metadata_view = "owner",
@@ -3027,83 +3755,15 @@ trait APIMethods600 {
         hide_metadata_if_alias_used = false,
         can_grant_access_to_views = List("owner", "accountant"),
         can_revoke_access_to_views = List("owner", "accountant"),
-        can_add_comment = true,
-        can_add_corporate_location = true,
-        can_add_image = true,
-        can_add_image_url = true,
-        can_add_more_info = true,
-        can_add_open_corporates_url = true,
-        can_add_physical_location = true,
-        can_add_private_alias = true,
-        can_add_public_alias = true,
-        can_add_tag = true,
-        can_add_url = true,
-        can_add_where_tag = true,
-        can_delete_comment = true,
-        can_add_counterparty = true,
-        can_delete_corporate_location = true,
-        can_delete_image = true,
-        can_delete_physical_location = true,
-        can_delete_tag = true,
-        can_delete_where_tag = true,
-        can_edit_owner_comment = true,
-        can_see_bank_account_balance = true,
-        can_query_available_funds = true,
-        can_see_bank_account_bank_name = true,
-        can_see_bank_account_currency = true,
-        can_see_bank_account_iban = true,
-        can_see_bank_account_label = true,
-        can_see_bank_account_national_identifier = true,
-        can_see_bank_account_number = true,
-        can_see_bank_account_owners = true,
-        can_see_bank_account_swift_bic = true,
-        can_see_bank_account_type = true,
-        can_see_comments = true,
-        can_see_corporate_location = true,
-        can_see_image_url = true,
-        can_see_images = true,
-        can_see_more_info = true,
-        can_see_open_corporates_url = true,
-        can_see_other_account_bank_name = true,
-        can_see_other_account_iban = true,
-        can_see_other_account_kind = true,
-        can_see_other_account_metadata = true,
-        can_see_other_account_national_identifier = true,
-        can_see_other_account_number = true,
-        can_see_other_account_swift_bic = true,
-        can_see_owner_comment = true,
-        can_see_physical_location = true,
-        can_see_private_alias = true,
-        can_see_public_alias = true,
-        can_see_tags = true,
-        can_see_transaction_amount = true,
-        can_see_transaction_balance = true,
-        can_see_transaction_currency = true,
-        can_see_transaction_description = true,
-        can_see_transaction_finish_date = true,
-        can_see_transaction_metadata = true,
-        can_see_transaction_other_bank_account = true,
-        can_see_transaction_start_date = true,
-        can_see_transaction_this_bank_account = true,
-        can_see_transaction_type = true,
-        can_see_url = true,
-        can_see_where_tag = true,
-        can_see_bank_routing_scheme = true,
-        can_see_bank_routing_address = true,
-        can_see_bank_account_routing_scheme = true,
-        can_see_bank_account_routing_address = true,
-        can_see_other_bank_routing_scheme = true,
-        can_see_other_bank_routing_address = true,
-        can_see_other_account_routing_scheme = true,
-        can_see_other_account_routing_address = true,
-        can_add_transaction_request_to_own_account = true,
-        can_add_transaction_request_to_any_account = true,
-        can_see_bank_account_credit_limit = true,
-        can_create_direct_debit = true,
-        can_create_standing_order = true
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment",
+          "can_create_custom_view"
+        )
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         SystemViewNotFound,
         UnknownError
@@ -3119,7 +3779,225 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             view <- ViewNewStyle.systemView(ViewId(viewId), callContext)
           } yield {
-            (JSONFactory500.createViewJsonV500(view), HttpCode.`200`(callContext))
+            (JSONFactory600.createViewJsonV600(view), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+//    staticResourceDocs += ResourceDoc(
+//      getSystemView,
+//      implementedInApiVersion,
+//      nameOf(getSystemView),
+//      "GET",
+//      "/system-views/VIEW_ID",
+//      "Get System View",
+//      s"""Get a single system view by its ID.
+//         |
+//         |System views are predefined views that apply to all accounts, such as:
+//         |- owner
+//         |- accountant
+//         |- auditor
+//         |- standard
+//         |
+//         |This endpoint returns the view with an `allowed_actions` array containing all permissions.
+//         |
+//         |${userAuthenticationMessage(true)}
+//         |
+//         |""".stripMargin,
+//      EmptyBody,
+//      ViewJsonV600(
+//        view_id = "owner",
+//        short_name = "Owner",
+//        description = "The owner of the account. Has full privileges.",
+//        metadata_view = "owner",
+//        is_public = false,
+//        is_system = true,
+//        is_firehose = Some(false),
+//        alias = "private",
+//        hide_metadata_if_alias_used = false,
+//        can_grant_access_to_views = List("owner", "accountant"),
+//        can_revoke_access_to_views = List("owner", "accountant"),
+//        allowed_actions = List(
+//          "can_see_transaction_amount",
+//          "can_see_bank_account_balance",
+//          "can_add_comment",
+//          "can_create_custom_view"
+//        )
+//      ),
+//      List(
+//        AuthenticatedUserIsRequired,
+//        UserHasMissingRoles,
+//        SystemViewNotFound,
+//        UnknownError
+//      ),
+//      List(apiTagSystemView, apiTagView),
+//      Some(List(canGetSystemViews))
+//    )
+//
+//    lazy val getSystemView: OBPEndpoint = {
+//      case "system-views" :: viewId :: Nil JsonGet _ => {
+//        cc => implicit val ec = EndpointContext(Some(cc))
+//          for {
+//            (Full(u), callContext) <- authenticatedAccess(cc)
+//            view <- ViewNewStyle.systemView(ViewId(viewId), callContext)
+//          } yield {
+//            (JSONFactory600.createViewJsonV600(view), HttpCode.`200`(callContext))
+//          }
+//      }
+//    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemView,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View",
+      s"""Update an existing system view.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |The JSON sent is the same as during view creation, with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created).
+         |
+         |The response contains the updated view with an `allowed_actions` array.
+         |
+         |""".stripMargin,
+      UpdateViewJsonV600(
+        description = "This is the owner view",
+        metadata_view = "owner",
+        is_public = false,
+        is_firehose = Some(false),
+        which_alias_to_use = "private",
+        hide_metadata_if_alias_used = false,
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment"
+        ),
+        can_grant_access_to_views = Some(List("owner", "accountant")),
+        can_revoke_access_to_views = Some(List("owner", "accountant"))
+      ),
+      ViewJsonV600(
+        view_id = "owner",
+        short_name = "Owner",
+        description = "This is the owner view",
+        metadata_view = "owner",
+        is_public = false,
+        is_system = true,
+        is_firehose = Some(false),
+        alias = "private",
+        hide_metadata_if_alias_used = false,
+        can_grant_access_to_views = List("owner", "accountant"),
+        can_revoke_access_to_views = List("owner", "accountant"),
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment"
+        )
+      ),
+      List(
+        InvalidJsonFormat,
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        SystemViewNotFound,
+        SystemViewCannotBePublicError,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagView),
+      Some(List(canUpdateSystemView))
+    )
+
+    lazy val updateSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUpdateSystemView, callContext)
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV600", 400, callContext) {
+              json.extract[UpdateViewJsonV600]
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = callContext) {
+              updateJson.is_public == false
+            }
+            _ <- ViewNewStyle.systemView(ViewId(viewId), callContext)
+            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, callContext)
+          } yield {
+            (JSONFactory600.createViewJsonV600(updatedView), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getViewPermissions,
+      implementedInApiVersion,
+      nameOf(getViewPermissions),
+      "GET",
+      "/management/view-permissions",
+      "Get View Permissions",
+      s"""Get a list of all available view permissions.
+         |
+         |This endpoint returns all the available permissions that can be assigned to views,
+         |organized by category. These permissions control what actions and data can be accessed
+         |through a view.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |The response contains all available view permission names that can be used in the
+         |`allowed_actions` field when creating or updating custom views.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ViewPermissionsJsonV600(
+        permissions = List(
+          ViewPermissionJsonV600("can_see_transaction_amount", "Transaction"),
+          ViewPermissionJsonV600("can_see_bank_account_balance", "Account"),
+          ViewPermissionJsonV600("can_create_custom_view", "View")
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagView),
+      Some(List(canGetViewPermissionsAtAllBanks))
+    )
+
+    lazy val getViewPermissions: OBPEndpoint = {
+      case "management" :: "view-permissions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetViewPermissionsAtAllBanks, callContext)
+          } yield {
+            import Constant._
+
+            // Helper function to determine category from permission name
+            def categorizePermission(permission: String): String = {
+              permission match {
+                case p if p.contains("transaction") && !p.contains("request") => "Transaction"
+                case p if p.contains("bank_account") || p.contains("bank_routing") || p.contains("available_funds") => "Account"
+                case p if p.contains("other_account") || p.contains("other_bank") ||
+                         p.contains("counterparty") || p.contains("more_info") ||
+                         p.contains("url") || p.contains("corporates") ||
+                         p.contains("location") || p.contains("alias") => "Counterparty"
+                case p if p.contains("comment") || p.contains("tag") ||
+                         p.contains("image") || p.contains("where_tag") => "Metadata"
+                case p if p.contains("transaction_request") || p.contains("direct_debit") ||
+                         p.contains("standing_order") => "Transaction Request"
+                case p if p.contains("view") => "View"
+                case p if p.contains("grant") || p.contains("revoke") => "Access Control"
+                case _ => "Other"
+              }
+            }
+
+            // Return all view permissions directly from the constants with generated categories
+            val permissions = ALL_VIEW_PERMISSION_NAMES.map { permission =>
+              ViewPermissionJsonV600(permission, categorizePermission(permission))
+            }.sortBy(p => (p.category, p.permission))
+
+            (ViewPermissionsJsonV600(permissions), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3135,8 +4013,8 @@ trait APIMethods600 {
          |
          |This is a **management endpoint** that requires the `CanCreateCustomView` role (entitlement).
          |
-         |This endpoint provides a simpler, role-based authorization model compared to the original 
-         |v3.0.0 endpoint which requires view-level permissions. Use this endpoint when you want to 
+         |This endpoint provides a simpler, role-based authorization model compared to the original
+         |v3.0.0 endpoint which requires view-level permissions. Use this endpoint when you want to
          |grant view creation ability through direct role assignment rather than through view access.
          |
          |For the original endpoint that checks account-level view permissions, see:
@@ -3161,7 +4039,7 @@ trait APIMethods600 {
       createViewJsonV300,
       viewJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidCustomViewFormat,
@@ -3212,7 +4090,7 @@ trait APIMethods600 {
       EmptyBody,
       ViewsJsonV500(List()),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3270,7 +4148,7 @@ trait APIMethods600 {
         "https://api.example.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3312,7 +4190,7 @@ trait APIMethods600 {
                 case Full(user) if user.validated.get && user.email.get == postedData.email =>
                   // Verify user_id matches
                   Users.users.vend.getUserByUserId(postedData.user_id) match {
-                    case Full(resourceUser) if resourceUser.name == postedData.username && 
+                    case Full(resourceUser) if resourceUser.name == postedData.username &&
                                                  resourceUser.emailAddress == postedData.email =>
                       user
                     case _ => throw new Exception("User ID does not match username and email")
@@ -3323,23 +4201,23 @@ trait APIMethods600 {
           } yield {
             // Explicitly type the user to ensure proper method resolution
             val user: code.model.dataAccess.AuthUser = authUser
-            
+
             // Generate new reset token
             // Reset the unique ID token by generating a new random value (32 chars, no hyphens)
             user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
             user.save
-            
+
             // Construct reset URL using portal_hostname
             // Get the unique ID value for the reset token URL
-            val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) + 
-              "/user_mgt/reset_password/" + 
+            val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+              "/user_mgt/reset_password/" +
               java.net.URLEncoder.encode(user.uniqueId.get, "UTF-8")
-            
+
             // Send email using CommonsEmailWrapper (like createUser does)
             val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
             val htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetPasswordLink'>$resetPasswordLink</a></p>")
             val subjectContent = "Reset your password - " + user.username.get
-            
+
             val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
               from = code.model.dataAccess.AuthUser.emailFrom,
               to = List(user.email.get),
@@ -3348,9 +4226,9 @@ trait APIMethods600 {
               textContent = textContent,
               htmlContent = htmlContent
             )
-            
+
             code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
-            
+
             (
               ResetPasswordUrlJsonV600(resetPasswordLink),
               HttpCode.`201`(callContext)
@@ -3378,12 +4256,18 @@ trait APIMethods600 {
          |
          |2. **Implicit WebUiProps (Configuration File)**: Default values defined in the `sample.props.template` configuration file.
          |
+         |**Response Fields:**
+         |
+         |* `name`: The property name
+         |* `value`: The property value
+         |* `webUiPropsId` (optional): UUID for database props, omitted for config props
+         |* `source`: Either "database" (editable via API) or "config" (read-only from config file)
+         |
          |**Query Parameter:**
          |
          |* `active` (optional, boolean string, default: "false")
-         |  - If `active=false` or omitted: Returns only explicit prop from the database
-         |  - If `active=true`: Returns explicit prop from database, or if not found, returns implicit (default) prop from configuration file
-         |    - Implicit props are marked with `webUiPropsId = "default"`
+         |  - If `active=false` or omitted: Returns only explicit prop from the database (source="database")
+         |  - If `active=true`: Returns explicit prop from database, or if not found, returns implicit (default) prop from configuration file (source="config")
          |
          |**Examples:**
          |
@@ -3395,7 +4279,7 @@ trait APIMethods600 {
          |
          |""",
       EmptyBody,
-      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")),
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("config")),
       List(
         WebUiPropsNotFoundByName,
         UnknownError
@@ -3418,11 +4302,11 @@ trait APIMethods600 {
               explicitProp match {
                 case Some(prop) =>
                   // Found in database
-                  Future.successful(prop)
+                  Future.successful(WebUiPropsCommons(prop.name, prop.value, prop.webUiPropsId, source = Some("database")))
                 case None if isActived =>
                   // Not in database, check implicit props if active=true
                   val implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs =>
-                    WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId = Some("default"))
+                    WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId = Some("default"), source = Some("config"))
                   )
                   val implicitProp = implicitWebUiProps.find(_.name == webUiPropName)
                   implicitProp match {
@@ -3459,15 +4343,21 @@ trait APIMethods600 {
          |
          |2. **Implicit WebUiProps (Configuration File)**: Default values defined in the `sample.props.template` configuration file.
          |
+         |**Response Fields:**
+         |
+         |* `name`: The property name
+         |* `value`: The property value
+         |* `webUiPropsId` (optional): UUID for database props, omitted for config props
+         |* `source`: Either "database" (editable via API) or "config" (read-only from config file)
+         |
          |**Query Parameter:**
          |
          |* `what` (optional, string, default: "active")
          |  - `active`: Returns one value per property name
-         |    - If property exists in database: returns database value
-         |    - If property only in config file: returns config default value
-         |    - Database values have UUID `webUiPropsId`, config values have `webUiPropsId = "default"`
-         |  - `database`: Returns ONLY properties explicitly stored in the database
-         |  - `config`: Returns ONLY default properties from configuration file
+         |    - If property exists in database: returns database value (source="database")
+         |    - If property only in config file: returns config default value (source="config")
+         |  - `database`: Returns ONLY properties explicitly stored in the database (source="database")
+         |  - `config`: Returns ONLY default properties from configuration file (source="config")
          |
          |**Examples:**
          |
@@ -3487,7 +4377,7 @@ trait APIMethods600 {
       EmptyBody,
       ListResult(
         "webui_props",
-        (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"))))
+        (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("database"))))
       )
       ,
       List(
@@ -3511,19 +4401,20 @@ trait APIMethods600 {
               }
             }
             explicitWebUiProps <- Future{ MappedWebUiPropsProvider.getAll() }
-            implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId= Some("default")))
+            explicitWebUiPropsWithSource = explicitWebUiProps.map(prop => WebUiPropsCommons(prop.name, prop.value, prop.webUiPropsId, source = Some("database")))
+            implicitWebUiProps = getWebUIPropsPairs.map(webUIPropsPairs=>WebUiPropsCommons(webUIPropsPairs._1, webUIPropsPairs._2, webUiPropsId = Some("default"), source = Some("config")))
             result = what match {
-              case "database" => 
+              case "database" =>
                 // Return only database props
-                explicitWebUiProps
+                explicitWebUiPropsWithSource
               case "config" =>
                 // Return only config file props
                 implicitWebUiProps.distinct
               case "active" =>
                 // Return one value per prop: database value if exists, otherwise config value
-                val databasePropNames = explicitWebUiProps.map(_.name).toSet
+                val databasePropNames = explicitWebUiPropsWithSource.map(_.name).toSet
                 val configPropsNotInDatabase = implicitWebUiProps.distinct.filterNot(prop => databasePropNames.contains(prop.name))
-                explicitWebUiProps ++ configPropsNotInDatabase
+                explicitWebUiPropsWithSource ++ configPropsNotInDatabase
             }
           } yield {
             logger.info(s"========== GET /obp/v6.0.0/webui-props returning ${result.size} records ==========")
@@ -3532,6 +4423,181 @@ trait APIMethods600 {
             }
             logger.info(s"========== END GET /obp/v6.0.0/webui-props ==========")
             (ListResult("webui_props", result), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createOrUpdateWebUiProps,
+      implementedInApiVersion,
+      nameOf(createOrUpdateWebUiProps),
+      "PUT",
+      "/management/webui_props/WEBUI_PROP_NAME",
+      "Create or Update WebUiProps",
+      s"""Create or Update a WebUiProps.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |This endpoint is idempotent - it will create the property if it doesn't exist, or update it if it does.
+         |The property is identified by WEBUI_PROP_NAME in the URL path.
+         |
+         |Explanation of Fields:
+         |
+         |* WEBUI_PROP_NAME in URL path (must start with `webui_`, contain only alphanumeric characters, underscore, and dot, not exceed 255 characters, and will be converted to lowercase)
+         |* value is required String value in request body
+         |
+         |The line break and double quotations should be escaped, example:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value
+         |have "line break" and double quotations."}
+         |
+         |```
+         |should be escaped like this:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value\\nhave \\"line break\\" and double quotations."}
+         |
+         |```
+         |
+         |Insert image examples:
+         |
+         |```
+         |// set width=100 and height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =100x50)"}
+         |
+         |// only set height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =x50)"}
+         |
+         |// only width=20%
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =20%x)"}
+         |
+         |```
+         |
+         |""",
+      WebUiPropsPutJsonV600("https://apiexplorer.openbankproject.com"),
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        InvalidWebUiProps,
+        UnknownError
+      ),
+      List(apiTagWebUiProps),
+      Some(List(canCreateWebUiProps))
+    )
+
+    lazy val createOrUpdateWebUiProps: OBPEndpoint = {
+      case "management" :: "webui_props" :: webUiPropName :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateWebUiProps, callContext)
+            // Convert name to lowercase
+            webUiPropNameLower = webUiPropName.toLowerCase
+            invalidMsg = s"""$InvalidWebUiProps name must start with webui_, but current name is: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              require(webUiPropNameLower.startsWith("webui_"))
+            }
+            invalidCharsMsg = s"""$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidCharsMsg, 400, callContext) {
+              require(webUiPropNameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            invalidLengthMsg = s"""$InvalidWebUiProps name must not exceed 255 characters. Current length: ${webUiPropNameLower.length} """
+            _ <- NewStyle.function.tryons(invalidLengthMsg, 400, callContext) {
+              require(webUiPropNameLower.length <= 255)
+            }
+            // Check if resource already exists to determine status code
+            existingProp <- Future { MappedWebUiPropsProvider.getByName(webUiPropNameLower) }
+            resourceExists = existingProp.isDefined
+            failMsg = s"$InvalidJsonFormat The Json body should contain a value field"
+            valueJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[WebUiPropsPutJsonV600]
+            }
+            webUiPropsData = WebUiPropsCommons(webUiPropNameLower, valueJson.value)
+            Full(webUiProps) <- Future { MappedWebUiPropsProvider.createOrUpdate(webUiPropsData) }
+          } yield {
+            val commonsData: WebUiPropsCommons = webUiProps
+            val statusCode = if (resourceExists) HttpCode.`200`(callContext) else HttpCode.`201`(callContext)
+            (commonsData, statusCode)
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteWebUiProps,
+      implementedInApiVersion,
+      nameOf(deleteWebUiProps),
+      "DELETE",
+      "/management/webui_props/WEBUI_PROP_NAME",
+      "Delete WebUiProps",
+      s"""Delete a WebUiProps specified by WEBUI_PROP_NAME.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |The property name will be converted to lowercase before deletion.
+         |
+         |Returns 204 No Content on successful deletion.
+         |
+         |This endpoint is idempotent - if the property does not exist, it still returns 204 No Content.
+         |
+         |Requires the $canDeleteWebUiProps role.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidWebUiProps,
+        UnknownError
+      ),
+      List(apiTagWebUiProps),
+      Some(List(canDeleteWebUiProps))
+    )
+
+    lazy val deleteWebUiProps: OBPEndpoint = {
+      case "management" :: "webui_props" :: webUiPropName :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteWebUiProps, callContext)
+            // Convert name to lowercase
+            webUiPropNameLower = webUiPropName.toLowerCase
+            invalidMsg = s"""$InvalidWebUiProps name must start with webui_, but current name is: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              require(webUiPropNameLower.startsWith("webui_"))
+            }
+            invalidCharsMsg = s"""$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: ${webUiPropNameLower} """
+            _ <- NewStyle.function.tryons(invalidCharsMsg, 400, callContext) {
+              require(webUiPropNameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            invalidLengthMsg = s"""$InvalidWebUiProps name must not exceed 255 characters. Current length: ${webUiPropNameLower.length} """
+            _ <- NewStyle.function.tryons(invalidLengthMsg, 400, callContext) {
+              require(webUiPropNameLower.length <= 255)
+            }
+            // Check if resource exists
+            existingProp <- Future { MappedWebUiPropsProvider.getByName(webUiPropNameLower) }
+            _ <- existingProp match {
+              case Full(prop) =>
+                // Property exists - delete it
+                Future { MappedWebUiPropsProvider.delete(prop.webUiPropsId.getOrElse("")) } map {
+                  case Full(true) => Full(())
+                  case Full(false) => ObpApiFailure(s"$UnknownError Cannot delete WebUI prop", 500, callContext)
+                  case Empty => ObpApiFailure(s"$UnknownError Cannot delete WebUI prop", 500, callContext)
+                  case Failure(msg, _, _) => ObpApiFailure(msg, 500, callContext)
+                }
+              case Empty =>
+                // Property not found - idempotent delete returns success
+                Future.successful(Full(()))
+              case Failure(msg, _, _) =>
+                Future.failed(new Exception(msg))
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
           }
       }
     }
@@ -3547,16 +4613,27 @@ trait APIMethods600 {
          |
          |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
          |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
          |For more information see ${Glossary.getGlossaryItemLink(
           "Dynamic-Entities"
         )} """,
       EmptyBody,
-      ListResult(
-        "dynamic_entities",
-        List(dynamicEntityResponseBodyExample)
+      DynamicEntitiesWithCountJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionWithCountJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "customer_preferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            record_count = 42
+          )
+        )
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3574,16 +4651,82 @@ trait APIMethods600 {
             )
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
-            val jObjectsWithCounts = listCommons.map { entity =>
+            val entitiesWithCounts = listCommons.map { entity =>
               val recordCount = DynamicData.count(
                 By(DynamicData.DynamicEntityName, entity.entityName),
                 By(DynamicData.IsPersonalEntity, false),
                 if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
               )
-              entity.jValue.asInstanceOf[JObject] ~ ("record_count" -> recordCount)
+              (entity, recordCount)
             }
             (
-              ListResult("dynamic_entities", jObjectsWithCounts),
+              JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts),
+              HttpCode.`200`(cc.callContext)
+            )
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEntities),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Get Bank Level Dynamic Entities",
+      s"""Get all Bank Level Dynamic Entities for one bank with record counts.
+         |
+         |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
+         |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "Dynamic-Entities"
+        )} """,
+      EmptyBody,
+      DynamicEntitiesWithCountJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionWithCountJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "customer_preferences",
+            user_id = "user-456",
+            bank_id = Some("gh.29.uk"),
+            has_personal_entity = true,
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            record_count = 42
+          )
+        )
+      ),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canGetBankLevelDynamicEntities))
+    )
+
+    lazy val getBankLevelDynamicEntities: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            dynamicEntities <- Future(
+              NewStyle.function.getDynamicEntities(Some(bankId), false)
+            )
+          } yield {
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            val entitiesWithCounts = listCommons.map { entity =>
+              val recordCount = DynamicData.count(
+                By(DynamicData.DynamicEntityName, entity.entityName),
+                By(DynamicData.IsPersonalEntity, false),
+                By(DynamicData.BankId, bankId)
+              )
+              (entity, recordCount)
+            }
+            (
+              JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts),
               HttpCode.`200`(cc.callContext)
             )
           }
@@ -3604,6 +4747,423 @@ trait APIMethods600 {
       box.openOrThrowException(s"$UnknownError ")
     }
 
+    // Helper method for creating dynamic entities with v6.0.0 response format
+    private def createDynamicEntityV600(
+        cc: CallContext,
+        dynamicEntity: DynamicEntityCommons
+    ) = {
+      for {
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(
+          dynamicEntity,
+          cc.callContext
+        )
+        // Grant the CRUD roles to the logged-in user
+        crudRoles = List(
+          DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+        )
+      } yield {
+        crudRoles.map(role =>
+          Entitlement.entitlement.vend.addEntitlement(
+            dynamicEntity.bankId.getOrElse(""),
+            cc.userId,
+            role.toString()
+          )
+        )
+        val commonsData: DynamicEntityCommons = result
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`201`(cc.callContext)
+        )
+      }
+    }
+
+    // Helper method for updating dynamic entities with v6.0.0 response format
+    private def updateDynamicEntityV600(
+        cc: CallContext,
+        dynamicEntity: DynamicEntityCommons
+    ) = {
+      for {
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(
+          dynamicEntity,
+          cc.callContext
+        )
+      } yield {
+        val commonsData: DynamicEntityCommons = result
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`200`(cc.callContext)
+        )
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createSystemDynamicEntity),
+      "POST",
+      "/management/system-dynamic-entities",
+      "Create System Level Dynamic Entity",
+      s"""Create a system level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "customer_preferences",
+         |  "has_personal_entity": true,
+         |  "schema": {
+         |    "description": "User preferences",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property MUST include an `example` field with a valid example value.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canCreateSystemLevelDynamicEntity))
+    )
+
+    // v6.0.0 entity names must be lowercase with underscores (snake_case)
+    private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
+
+    private def validateEntityNameV600(entityName: String, callContext: Option[CallContext]): Future[Unit] = {
+      if (validEntityNamePattern.matcher(entityName).matches()) {
+        Future.successful(())
+      } else {
+        Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
+      }
+    }
+
+    lazy val createSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: Nil JsonPost json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[CreateDynamicEntityRequestJsonV600]
+          }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
+          internalJson = JSONFactory600.convertV600RequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, None)
+          result <- createDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicEntity),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Create Bank Level Dynamic Entity",
+      s"""Create a bank level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "customer_preferences",
+         |  "has_personal_entity": true,
+         |  "schema": {
+         |    "description": "User preferences",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property MUST include an `example` field with a valid example value.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canCreateBankLevelDynamicEntity))
+    )
+
+    lazy val createBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonPost json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[CreateDynamicEntityRequestJsonV600]
+          }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
+          internalJson = JSONFactory600.convertV600RequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, Some(bankId))
+          result <- createDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateSystemDynamicEntity),
+      "PUT",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update System Level Dynamic Entity",
+      s"""Update a system level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "customer_preferences",
+         |  "has_personal_entity": true,
+         |  "schema": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canUpdateSystemDynamicEntity))
+    )
+
+    lazy val updateSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicEntity),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update Bank Level Dynamic Entity",
+      s"""Update a bank level Dynamic Entity.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "customer_preferences",
+         |  "has_personal_entity": true,
+         |  "schema": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canUpdateBankLevelDynamicEntity))
+    )
+
+    lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, Some(bankId))
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateMyDynamicEntity,
+      implementedInApiVersion,
+      nameOf(updateMyDynamicEntity),
+      "PUT",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update My Dynamic Entity",
+      s"""Update a Dynamic Entity that I created.
+         |
+         |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+         |
+         |**Request format:**
+         |```json
+         |{
+         |  "entity_name": "customer_preferences",
+         |  "has_personal_entity": true,
+         |  "schema": {
+         |    "description": "User preferences updated",
+         |    "required": ["theme"],
+         |    "properties": {
+         |      "theme": {"type": "string", "example": "dark"},
+         |      "language": {"type": "string", "example": "en"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |    }
+         |  }
+         |}
+         |```
+         |
+         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi)
+    )
+
+    lazy val updateMyDynamicEntity: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          // Verify the user owns this dynamic entity
+          existingEntity <- Future(
+            NewStyle.function.getDynamicEntitiesByUserId(cc.userId).find(_.dynamicEntityId.contains(dynamicEntityId))
+          )
+          _ <- Helper.booleanToFuture(s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = $dynamicEntityId", cc = cc.callContext) {
+            existingEntity.isDefined
+          }
+          request <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+            json.extract[UpdateDynamicEntityRequestJsonV600]
+          }
+          _ <- validateEntityNameV600(request.entity_name, cc.callContext)
+          internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+          dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, existingEntity.get.bankId)
+          result <- updateDynamicEntityV600(cc, dynamicEntity)
+        } yield result
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       deleteSystemDynamicEntityCascade,
       implementedInApiVersion,
@@ -3617,17 +5177,22 @@ trait APIMethods600 {
          |1. Deletes all data records associated with the dynamic entity
          |2. Deletes the dynamic entity definition itself
          |
+         |This operation is only allowed for non-personal entities (hasPersonalEntity=false).
+         |For personal entities (hasPersonalEntity=true), you must delete the records and definition separately.
+         |
          |Use with caution - this operation cannot be undone.
          |
          |For more information see ${Glossary.getGlossaryItemLink(
           "Dynamic-Entities"
         )}/
          |
+         |${userAuthenticationMessage(true)}
+         |
          |""",
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -3654,6 +5219,10 @@ trait APIMethods600 {
           dynamicEntityId,
           cc.callContext
         )
+        // Check if this is a personal entity - cascade delete not allowed for personal entities
+        _ <- Helper.booleanToFuture(failMsg = CannotDeleteCascadePersonalEntity, cc = cc.callContext) {
+          !entity.hasPersonalEntity
+        }
         // Get all data records for this entity
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           GET_ALL,
@@ -3693,6 +5262,1825 @@ trait APIMethods600 {
         )
       } yield {
         (deleted, HttpCode.`200`(cc.callContext))
+      }
+    }
+
+    // ABAC Rule Endpoints
+    staticResourceDocs += ResourceDoc(
+      createAbacRule,
+      implementedInApiVersion,
+      nameOf(createAbacRule),
+      "POST",
+      "/management/abac-rules",
+      "Create ABAC Rule",
+      s"""Create a new ABAC (Attribute-Based Access Control) rule.
+         |
+         |ABAC rules are Scala functions that return a Boolean value indicating whether access should be granted.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+         |
+         |The rule function receives 18 parameters including authenticatedUser, attributes, auth context, and optional objects (bank, account, transaction, etc.).
+         |
+         |Example rule code:
+         |```scala
+         |// Allow access only if authenticated user is admin
+         |authenticatedUser.emailAddress.contains("admin")
+         |```
+         |
+         |```scala
+         |// Allow access only to accounts with balance > 1000
+         |accountOpt.exists(_.balance.toDouble > 1000.0)
+         |```
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      CreateAbacRuleJsonV600(
+        rule_name = "admin_only",
+        rule_code = """user.emailAddress.contains("admin")""",
+        description = "Only allow access to users with admin email",
+        policy = "user-access,admin",
+        is_active = true
+      ),
+      AbacRuleJsonV600(
+        abac_rule_id = "abc123",
+        rule_name = "admin_only",
+        rule_code = """user.emailAddress.contains("admin")""",
+        is_active = true,
+        description = "Only allow access to users with admin email",
+        policy = "user-access,admin",
+        created_by_user_id = "user123",
+        updated_by_user_id = "user123"
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canCreateAbacRule))
+    )
+
+    lazy val createAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateAbacRule, callContext)
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
+              json.extract[CreateAbacRuleJsonV600]
+            }
+            _ <- NewStyle.function.tryons(s"Rule name must not be empty", 400, callContext) {
+              createJson.rule_name.nonEmpty
+            }
+            _ <- NewStyle.function.tryons(s"Rule code must not be empty", 400, callContext) {
+              createJson.rule_code.nonEmpty
+            }
+            // Validate rule code by attempting to compile it
+            _ <- Future {
+              AbacRuleEngine.validateRuleCode(createJson.rule_code)
+            } map {
+              unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
+            }
+            rule <- Future {
+              MappedAbacRuleProvider.createAbacRule(
+                ruleName = createJson.rule_name,
+                ruleCode = createJson.rule_code,
+                description = createJson.description,
+                policy = createJson.policy,
+                isActive = createJson.is_active,
+                createdBy = user.userId
+              )
+            } map {
+              unboxFullOrFail(_, callContext, s"Could not create ABAC rule", 400)
+            }
+          } yield {
+            (createAbacRuleJsonV600(rule), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAbacRule,
+      implementedInApiVersion,
+      nameOf(getAbacRule),
+      "GET",
+      "/management/abac-rules/ABAC_RULE_ID",
+      "Get ABAC Rule",
+      s"""Get an ABAC rule by its ID.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      AbacRuleJsonV600(
+        abac_rule_id = "abc123",
+        rule_name = "admin_only",
+        rule_code = """user.emailAddress.contains("admin")""",
+        is_active = true,
+        description = "Only allow access to users with admin email",
+        policy = "user-access,admin",
+        created_by_user_id = "user123",
+        updated_by_user_id = "user123"
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canGetAbacRule))
+    )
+
+    lazy val getAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: ruleId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetAbacRule, callContext)
+            rule <- Future {
+              MappedAbacRuleProvider.getAbacRuleById(ruleId)
+            } map {
+              unboxFullOrFail(_, callContext, s"ABAC Rule not found with ID: $ruleId", 404)
+            }
+          } yield {
+            (createAbacRuleJsonV600(rule), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAbacRules,
+      implementedInApiVersion,
+      nameOf(getAbacRules),
+      "GET",
+      "/management/abac-rules",
+      "Get ABAC Rules",
+      s"""Get all ABAC rules.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      AbacRulesJsonV600(
+        abac_rules = List(
+          AbacRuleJsonV600(
+            abac_rule_id = "abc123",
+            rule_name = "admin_only",
+            rule_code = """user.emailAddress.contains("admin")""",
+            is_active = true,
+            description = "Only allow access to users with admin email",
+            policy = "user-access,admin",
+            created_by_user_id = "user123",
+            updated_by_user_id = "user123"
+          )
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canGetAbacRule))
+    )
+
+    lazy val getAbacRules: OBPEndpoint = {
+      case "management" :: "abac-rules" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetAbacRule, callContext)
+            rules <- Future {
+              MappedAbacRuleProvider.getAllAbacRules()
+            }
+          } yield {
+            (createAbacRulesJsonV600(rules), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAbacRulesByPolicy,
+      implementedInApiVersion,
+      nameOf(getAbacRulesByPolicy),
+      "GET",
+      "/management/abac-rules/policy/POLICY",
+      "Get ABAC Rules by Policy",
+      s"""Get all ABAC rules that belong to a specific policy.
+         |
+         |Multiple rules can share the same policy. Rules with multiple policies (comma-separated)
+         |will be returned if any of their policies match the requested policy.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      AbacRulesJsonV600(
+        abac_rules = List(
+          AbacRuleJsonV600(
+            abac_rule_id = "abc123",
+            rule_name = "admin_only",
+            rule_code = """user.emailAddress.contains("admin")""",
+            is_active = true,
+            description = "Only allow access to users with admin email",
+            policy = "user-access,admin",
+            created_by_user_id = "user123",
+            updated_by_user_id = "user123"
+          ),
+          AbacRuleJsonV600(
+            abac_rule_id = "def456",
+            rule_name = "admin_department_check",
+            rule_code = """user.department == "admin"""",
+            is_active = true,
+            description = "Check if user is in admin department",
+            policy = "admin",
+            created_by_user_id = "user123",
+            updated_by_user_id = "user123"
+          )
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canGetAbacRule))
+    )
+
+    lazy val getAbacRulesByPolicy: OBPEndpoint = {
+      case "management" :: "abac-rules" :: "policy" :: policy :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetAbacRule, callContext)
+            rules <- Future {
+              MappedAbacRuleProvider.getAbacRulesByPolicy(policy)
+            }
+          } yield {
+            (createAbacRulesJsonV600(rules), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAbacRule,
+      implementedInApiVersion,
+      nameOf(updateAbacRule),
+      "PUT",
+      "/management/abac-rules/ABAC_RULE_ID",
+      "Update ABAC Rule",
+      s"""Update an existing ABAC rule.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      UpdateAbacRuleJsonV600(
+        rule_name = "admin_only_updated",
+        rule_code = """user.emailAddress.contains("admin") && user.provider == "obp"""",
+        description = "Only allow access to OBP admin users",
+        policy = "user-access,admin,obp",
+        is_active = true
+      ),
+      AbacRuleJsonV600(
+        abac_rule_id = "abc123",
+        rule_name = "admin_only_updated",
+        rule_code = """user.emailAddress.contains("admin") && user.provider == "obp"""",
+        is_active = true,
+        description = "Only allow access to OBP admin users",
+        policy = "user-access,admin,obp",
+        created_by_user_id = "user123",
+        updated_by_user_id = "user456"
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canUpdateAbacRule))
+    )
+
+    lazy val updateAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: ruleId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateAbacRule, callContext)
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
+              json.extract[UpdateAbacRuleJsonV600]
+            }
+            // Validate rule code by attempting to compile it
+            _ <- Future {
+              AbacRuleEngine.validateRuleCode(updateJson.rule_code)
+            } map {
+              unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
+            }
+            rule <- Future {
+              MappedAbacRuleProvider.updateAbacRule(
+                ruleId = ruleId,
+                ruleName = updateJson.rule_name,
+                ruleCode = updateJson.rule_code,
+                description = updateJson.description,
+                policy = updateJson.policy,
+                isActive = updateJson.is_active,
+                updatedBy = user.userId
+              )
+            } map {
+              unboxFullOrFail(_, callContext, s"Could not update ABAC rule with ID: $ruleId", 400)
+            }
+            // Clear rule from cache after update
+            _ <- Future {
+              AbacRuleEngine.clearRuleFromCache(ruleId)
+            }
+          } yield {
+            (createAbacRuleJsonV600(rule), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteAbacRule,
+      implementedInApiVersion,
+      nameOf(deleteAbacRule),
+      "DELETE",
+      "/management/abac-rules/ABAC_RULE_ID",
+      "Delete ABAC Rule",
+      s"""Delete an ABAC rule by its ID.
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canDeleteAbacRule))
+    )
+
+    lazy val deleteAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: ruleId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteAbacRule, callContext)
+            deleted <- Future {
+              MappedAbacRuleProvider.deleteAbacRule(ruleId)
+            } map {
+              unboxFullOrFail(_, callContext, s"Could not delete ABAC rule with ID: $ruleId", 400)
+            }
+            // Clear rule from cache after deletion
+            _ <- Future {
+              AbacRuleEngine.clearRuleFromCache(ruleId)
+            }
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAbacRuleSchema,
+      implementedInApiVersion,
+      nameOf(getAbacRuleSchema),
+      "GET",
+      "/management/abac-rules-schema",
+      "Get ABAC Rule Schema",
+      s"""Get schema information about ABAC rule structure for building rule code.
+         |
+         |This endpoint returns schema information including:
+         |- All 18 parameters available in ABAC rules
+         |- Object types (User, Bank, Account, etc.) and their properties
+         |- Available operators and syntax
+         |- Example rules
+         |
+         |This schema information is useful for:
+         |- Building rule editors with auto-completion
+         |- Validating rule syntax in frontends
+         |- AI agents that help construct rules
+         |- Dynamic form builders
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      AbacRuleSchemaJsonV600(
+        parameters = List(
+          AbacParameterJsonV600(
+            name = "authenticatedUser",
+            `type` = "User",
+            description = "The logged-in user (always present)",
+            required = true,
+            category = "User"
+          )
+        ),
+        object_types = List(
+          AbacObjectTypeJsonV600(
+            name = "User",
+            description = "User object with profile information",
+            properties = List(
+              AbacObjectPropertyJsonV600(
+                name = "userId",
+                `type` = "String",
+                description = "Unique user ID"
+              )
+            )
+          )
+        ),
+        examples = List(
+          AbacRuleExampleJsonV600(
+            rule_name = "Check User Identity",
+            rule_code = "authenticatedUser.userId == user.userId",
+            description = "Verify that the authenticated user matches the target user",
+            policy = "user-access",
+            is_active = true
+          ),
+          AbacRuleExampleJsonV600(
+            rule_name = "Check Specific Bank",
+            rule_code = "bankOpt.isDefined && bankOpt.get.bankId.value == \"gh.29.uk\"",
+            policy = "bank-access",
+            description = "Verify that the bank context is defined and matches a specific bank ID",
+            is_active = true
+          )
+        ),
+        available_operators = List("==", "!=", "&&", "||", "!", ">", "<", ">=", "<=", "contains", "isDefined"),
+        notes = List(
+          "Only authenticatedUser is guaranteed to exist (not wrapped in Option)",
+          "All other objects are Option types - use isDefined or pattern matching",
+          "Attributes are Lists - use .find(), .exists(), .forall() etc."
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canGetAbacRule))
+    )
+
+    lazy val getAbacRuleSchema: OBPEndpoint = {
+      case "management" :: "abac-rules-schema" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetAbacRule, callContext)
+          } yield {
+            val metadata = AbacRuleSchemaJsonV600(
+              parameters = List(
+                AbacParameterJsonV600("authenticatedUser", "User", "The logged-in user (always present)", required = true, "User"),
+                AbacParameterJsonV600("authenticatedUserAttributes", "List[UserAttributeTrait]", "Non-personal attributes of authenticated user", required = true, "User"),
+                AbacParameterJsonV600("authenticatedUserAuthContext", "List[UserAuthContext]", "Auth context of authenticated user", required = true, "User"),
+                AbacParameterJsonV600("authenticatedUserEntitlements", "List[Entitlement]", "Entitlements (roles) of authenticated user", required = true, "User"),
+                AbacParameterJsonV600("onBehalfOfUserOpt", "Option[User]", "User being acted on behalf of (delegation)", required = false, "User"),
+                AbacParameterJsonV600("onBehalfOfUserAttributes", "List[UserAttributeTrait]", "Attributes of delegation user", required = false, "User"),
+                AbacParameterJsonV600("onBehalfOfUserAuthContext", "List[UserAuthContext]", "Auth context of delegation user", required = false, "User"),
+                AbacParameterJsonV600("onBehalfOfUserEntitlements", "List[Entitlement]", "Entitlements (roles) of delegation user", required = false, "User"),
+                AbacParameterJsonV600("userOpt", "Option[User]", "Target user being evaluated", required = false, "User"),
+                AbacParameterJsonV600("userAttributes", "List[UserAttributeTrait]", "Attributes of target user", required = false, "User"),
+                AbacParameterJsonV600("bankOpt", "Option[Bank]", "Bank context", required = false, "Bank"),
+                AbacParameterJsonV600("bankAttributes", "List[BankAttributeTrait]", "Bank attributes", required = false, "Bank"),
+                AbacParameterJsonV600("accountOpt", "Option[BankAccount]", "Account context", required = false, "Account"),
+                AbacParameterJsonV600("accountAttributes", "List[AccountAttribute]", "Account attributes", required = false, "Account"),
+                AbacParameterJsonV600("transactionOpt", "Option[Transaction]", "Transaction context", required = false, "Transaction"),
+                AbacParameterJsonV600("transactionAttributes", "List[TransactionAttribute]", "Transaction attributes", required = false, "Transaction"),
+                AbacParameterJsonV600("transactionRequestOpt", "Option[TransactionRequest]", "Transaction request context", required = false, "TransactionRequest"),
+                AbacParameterJsonV600("transactionRequestAttributes", "List[TransactionRequestAttributeTrait]", "Transaction request attributes", required = false, "TransactionRequest"),
+                AbacParameterJsonV600("customerOpt", "Option[Customer]", "Customer context", required = false, "Customer"),
+                AbacParameterJsonV600("customerAttributes", "List[CustomerAttribute]", "Customer attributes", required = false, "Customer"),
+                AbacParameterJsonV600("callContext", "Option[CallContext]", "Request call context with metadata (IP, user agent, etc.)", required = false, "Context")
+              ),
+              object_types = List(
+                AbacObjectTypeJsonV600("User", "User object with profile and authentication information", List(
+                  AbacObjectPropertyJsonV600("userId", "String", "Unique user ID"),
+                  AbacObjectPropertyJsonV600("emailAddress", "String", "User email address"),
+                  AbacObjectPropertyJsonV600("provider", "String", "Authentication provider (e.g., 'obp')"),
+                  AbacObjectPropertyJsonV600("name", "String", "User display name"),
+                  AbacObjectPropertyJsonV600("idGivenByProvider", "String", "ID given by provider (same as username)"),
+                  AbacObjectPropertyJsonV600("createdByConsentId", "Option[String]", "Consent ID that created the user (if any)"),
+                  AbacObjectPropertyJsonV600("isDeleted", "Option[Boolean]", "Whether user is deleted")
+                )),
+                AbacObjectTypeJsonV600("Bank", "Bank object", List(
+                  AbacObjectPropertyJsonV600("bankId", "BankId", "Bank ID"),
+                  AbacObjectPropertyJsonV600("fullName", "String", "Bank full name"),
+                  AbacObjectPropertyJsonV600("shortName", "String", "Bank short name"),
+                  AbacObjectPropertyJsonV600("logoUrl", "String", "Bank logo URL"),
+                  AbacObjectPropertyJsonV600("websiteUrl", "String", "Bank website URL"),
+                  AbacObjectPropertyJsonV600("bankRoutingScheme", "String", "Bank routing scheme"),
+                  AbacObjectPropertyJsonV600("bankRoutingAddress", "String", "Bank routing address")
+                )),
+                AbacObjectTypeJsonV600("BankAccount", "Bank account object", List(
+                  AbacObjectPropertyJsonV600("accountId", "AccountId", "Account ID"),
+                  AbacObjectPropertyJsonV600("bankId", "BankId", "Bank ID"),
+                  AbacObjectPropertyJsonV600("accountType", "String", "Account type"),
+                  AbacObjectPropertyJsonV600("balance", "BigDecimal", "Account balance"),
+                  AbacObjectPropertyJsonV600("currency", "String", "Account currency"),
+                  AbacObjectPropertyJsonV600("name", "String", "Account name"),
+                  AbacObjectPropertyJsonV600("label", "String", "Account label"),
+                  AbacObjectPropertyJsonV600("number", "String", "Account number"),
+                  AbacObjectPropertyJsonV600("lastUpdate", "Date", "Last update date"),
+                  AbacObjectPropertyJsonV600("branchId", "String", "Branch ID"),
+                  AbacObjectPropertyJsonV600("accountRoutings", "List[AccountRouting]", "Account routings")
+                )),
+                AbacObjectTypeJsonV600("Transaction", "Transaction object", List(
+                  AbacObjectPropertyJsonV600("id", "TransactionId", "Transaction ID"),
+                  AbacObjectPropertyJsonV600("uuid", "String", "Universally unique ID"),
+                  AbacObjectPropertyJsonV600("thisAccount", "BankAccount", "This account"),
+                  AbacObjectPropertyJsonV600("otherAccount", "Counterparty", "Other account/counterparty"),
+                  AbacObjectPropertyJsonV600("transactionType", "String", "Transaction type (e.g., cash withdrawal)"),
+                  AbacObjectPropertyJsonV600("amount", "BigDecimal", "Transaction amount"),
+                  AbacObjectPropertyJsonV600("currency", "String", "Transaction currency (ISO 4217)"),
+                  AbacObjectPropertyJsonV600("description", "Option[String]", "Bank provided label"),
+                  AbacObjectPropertyJsonV600("startDate", "Date", "Date transaction was initiated"),
+                  AbacObjectPropertyJsonV600("finishDate", "Option[Date]", "Date money finished changing hands"),
+                  AbacObjectPropertyJsonV600("balance", "BigDecimal", "New balance after transaction"),
+                  AbacObjectPropertyJsonV600("status", "Option[String]", "Transaction status")
+                )),
+                AbacObjectTypeJsonV600("TransactionRequest", "Transaction request object", List(
+                  AbacObjectPropertyJsonV600("id", "TransactionRequestId", "Transaction request ID"),
+                  AbacObjectPropertyJsonV600("type", "String", "Transaction request type"),
+                  AbacObjectPropertyJsonV600("from", "TransactionRequestAccount", "From account"),
+                  AbacObjectPropertyJsonV600("status", "String", "Transaction request status"),
+                  AbacObjectPropertyJsonV600("start_date", "Date", "Start date"),
+                  AbacObjectPropertyJsonV600("end_date", "Date", "End date"),
+                  AbacObjectPropertyJsonV600("transaction_ids", "String", "Associated transaction IDs"),
+                  AbacObjectPropertyJsonV600("charge", "TransactionRequestCharge", "Charge information"),
+                  AbacObjectPropertyJsonV600("this_bank_id", "BankId", "This bank ID"),
+                  AbacObjectPropertyJsonV600("this_account_id", "AccountId", "This account ID"),
+                  AbacObjectPropertyJsonV600("counterparty_id", "CounterpartyId", "Counterparty ID")
+                )),
+                AbacObjectTypeJsonV600("Customer", "Customer object", List(
+                  AbacObjectPropertyJsonV600("customerId", "String", "Customer ID (UUID)"),
+                  AbacObjectPropertyJsonV600("bankId", "String", "Bank ID"),
+                  AbacObjectPropertyJsonV600("number", "String", "Customer number (bank identifier)"),
+                  AbacObjectPropertyJsonV600("legalName", "String", "Customer legal name"),
+                  AbacObjectPropertyJsonV600("mobileNumber", "String", "Customer mobile number"),
+                  AbacObjectPropertyJsonV600("email", "String", "Customer email"),
+                  AbacObjectPropertyJsonV600("dateOfBirth", "Date", "Date of birth"),
+                  AbacObjectPropertyJsonV600("relationshipStatus", "String", "Relationship status"),
+                  AbacObjectPropertyJsonV600("dependents", "Integer", "Number of dependents")
+                )),
+                AbacObjectTypeJsonV600("UserAttributeTrait", "User attribute", List(
+                  AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+                  AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+                  AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type (STRING, INTEGER, DOUBLE, DATE_WITH_DAY)")
+                )),
+                AbacObjectTypeJsonV600("AccountAttribute", "Account attribute", List(
+                  AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+                  AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+                  AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+                )),
+                AbacObjectTypeJsonV600("TransactionAttribute", "Transaction attribute", List(
+                  AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+                  AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+                  AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+                )),
+                AbacObjectTypeJsonV600("CustomerAttribute", "Customer attribute", List(
+                  AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+                  AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+                  AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+                )),
+                AbacObjectTypeJsonV600("Entitlement", "User entitlement (role)", List(
+                  AbacObjectPropertyJsonV600("entitlementId", "String", "Entitlement ID"),
+                  AbacObjectPropertyJsonV600("roleName", "String", "Role name (e.g., CanCreateAccount, CanReadTransactions)"),
+                  AbacObjectPropertyJsonV600("bankId", "String", "Bank ID (empty string for system-wide roles)"),
+                  AbacObjectPropertyJsonV600("userId", "String", "User ID this entitlement belongs to")
+                )),
+                AbacObjectTypeJsonV600("CallContext", "Request context with metadata", List(
+                  AbacObjectPropertyJsonV600("correlationId", "String", "Correlation ID for request tracking"),
+                  AbacObjectPropertyJsonV600("url", "Option[String]", "Request URL"),
+                  AbacObjectPropertyJsonV600("verb", "Option[String]", "HTTP verb (GET, POST, etc.)"),
+                  AbacObjectPropertyJsonV600("ipAddress", "Option[String]", "Client IP address"),
+                  AbacObjectPropertyJsonV600("userAgent", "Option[String]", "Client user agent"),
+                  AbacObjectPropertyJsonV600("implementedByPartialFunction", "Option[String]", "Endpoint implementation name"),
+                  AbacObjectPropertyJsonV600("startTime", "Option[Date]", "Request start time"),
+                  AbacObjectPropertyJsonV600("endTime", "Option[Date]", "Request end time")
+                ))
+              ),
+              examples = List(
+                AbacRuleExampleJsonV600(
+                  rule_name = "Branch Manager Internal Account Access",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"branch\" && accountAttributes.exists(aa => aa.name == \"branch\" && a.value == aa.value)) && callContext.exists(_.verb.exists(_ == \"GET\")) && accountOpt.exists(_.accountType == \"CURRENT\")",
+                  description = "Allow GET access to current accounts when user has CanReadAccountsAtOneBank role and branch matches account's branch",
+                  policy = "account-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "Internal Network High-Value Transaction Review",
+                  rule_code = "callContext.exists(_.ipAddress.exists(_.startsWith(\"10.\"))) && authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && transactionOpt.exists(_.amount > 10000)",
+                  description = "Allow users with CanReadTransactionsAtOneBank role on internal network to review high-value transactions over 10,000",
+                  policy = "transaction-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "Department Head Same-Department Account Read where overdrawn",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(ua => ua.name == \"department\" && accountAttributes.exists(aa => aa.name == \"department\" && ua.value == aa.value)) && callContext.exists(_.url.exists(_.contains(\"/accounts/\"))) && accountOpt.exists(_.balance < 0)",
+                  description = "Allow users with CanReadAccountsAtOneBank role to read overdrawn accounts in their department",
+                  policy = "account-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "Manager Internal Network Transaction Approval",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanCreateTransactionRequest\") && callContext.exists(_.ipAddress.exists(ip => ip.startsWith(\"10.\") || ip.startsWith(\"192.168.\"))) && transactionRequestOpt.exists(tr => tr.status == \"PENDING\" && tr.charge.value.toDouble < 50000)",
+                  description = "Allow users with CanCreateTransactionRequest role on internal network to approve pending transaction requests under 50,000",
+                  policy = "transaction-request",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "KYC Officer Customer Creation from Branch",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanCreateCustomer\") && authenticatedUserAttributes.exists(a => a.name == \"certification\" && a.value == \"kyc_certified\") && callContext.exists(_.verb.exists(_ == \"POST\")) && callContext.exists(_.ipAddress.exists(_.startsWith(\"10.20.\"))) && customerAttributes.exists(ca => ca.name == \"onboarding_status\" && ca.value == \"pending\")",
+                  description = "Allow users with CanCreateCustomer role and KYC certification to create customers via POST from branch network (10.20.x.x) when status is pending",
+                  policy = "customer-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "International Team Foreign Currency Transaction",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"team\" && a.value == \"international\") && callContext.exists(_.url.exists(_.contains(\"/transactions/\"))) && transactionOpt.exists(t => t.currency != \"USD\" && t.amount < 100000) && accountOpt.exists(a => accountAttributes.exists(aa => aa.name == \"international_enabled\" && aa.value == \"true\"))",
+                  description = "Allow international team users with CanReadTransactionsAtOneBank role to access foreign currency transactions under 100k on international-enabled accounts",
+                  policy = "transaction-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "Assistant with Limited Delegation Account View",
+                  rule_code = "onBehalfOfUserOpt.isDefined && onBehalfOfUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"assistant_of\" && onBehalfOfUserOpt.exists(u => a.value == u.userId)) && callContext.exists(_.verb.exists(_ == \"GET\")) && accountOpt.exists(a => accountAttributes.exists(aa => aa.name == \"tier\" && List(\"gold\", \"platinum\").contains(aa.value)))",
+                  description = "Allow assistants to view gold/platinum accounts via GET when acting on behalf of a user with CanReadAccountsAtOneBank role",
+                  policy = "account-access",
+                  is_active = true
+                ),
+                AbacRuleExampleJsonV600(
+                  rule_name = "Fraud Analyst High-Risk Transaction Access",
+                  rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && callContext.exists(c => c.verb.exists(_ == \"GET\") && c.implementedByPartialFunction.exists(_.contains(\"Transaction\"))) && transactionAttributes.exists(ta => ta.name == \"risk_score\" && ta.value.toInt >= 75) && transactionOpt.exists(_.status.exists(_ != \"COMPLETED\"))",
+                  description = "Allow users with CanReadTransactionsAtOneBank role to GET high-risk (score ≥75) non-completed transactions",
+                  policy = "transaction-access",
+                  is_active = true
+                )
+              ),
+              available_operators = List(
+                "==", "!=", "&&", "||", "!", ">", "<", ">=", "<=",
+                "contains", "startsWith", "endsWith",
+                "isDefined", "isEmpty", "nonEmpty",
+                "exists", "forall", "find", "filter",
+                "get", "getOrElse"
+              ),
+              notes = List(
+                "PARAMETER NAMES: Use authenticatedUser, userOpt, accountOpt, bankOpt, transactionOpt, etc. (NOT user, account, bank)",
+                "PROPERTY NAMES: Use camelCase - userId (NOT user_id), accountId (NOT account_id), emailAddress (NOT email_address)",
+                "OPTION TYPES: Only authenticatedUser is guaranteed to exist. All others are Option types - check isDefined before using .get",
+                "ATTRIBUTES: All attributes are Lists - use Scala collection methods like exists(), find(), filter()",
+                "SAFE OPTION HANDLING: Use pattern matching: userOpt match { case Some(u) => u.userId == ... case None => false }",
+                "RETURN TYPE: Rule must return Boolean - true = access granted, false = access denied",
+                "AUTO-FETCHING: Objects are automatically fetched based on IDs passed to execute endpoint",
+                "COMMON MISTAKE: Writing 'user.user_id' instead of 'userOpt.get.userId' or 'authenticatedUser.userId'"
+              )
+            )
+            (metadata, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAbacPolicies,
+      implementedInApiVersion,
+      nameOf(getAbacPolicies),
+      "GET",
+      "/management/abac-policies",
+      "Get ABAC Policies",
+      s"""Get the list of allowed ABAC policy names.
+         |
+         |ABAC rules are organized by policies. Each rule must have at least one policy assigned.
+         |Rules can have multiple policies (comma-separated). This endpoint returns the list of
+         |standardized policy names that should be used when creating or updating rules.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      AbacPoliciesJsonV600(
+        policies = List(
+          AbacPolicyJsonV600(
+            policy = "account-access",
+            description = "Rules for controlling access to account information"
+          )
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canGetAbacRule))
+    )
+
+    lazy val getAbacPolicies: OBPEndpoint = {
+      case "management" :: "abac-policies" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetAbacRule, callContext)
+          } yield {
+            val policies = Constant.ABAC_POLICIES.map { policy =>
+              AbacPolicyJsonV600(
+                policy = policy,
+                description = Constant.ABAC_POLICY_DESCRIPTIONS.getOrElse(policy, "No description available")
+              )
+            }
+
+            (AbacPoliciesJsonV600(policies), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      validateAbacRule,
+      implementedInApiVersion,
+      nameOf(validateAbacRule),
+      "POST",
+      "/management/abac-rules/validate",
+      "Validate ABAC Rule",
+      s"""Validate ABAC rule code syntax and structure without creating or executing the rule.
+         |
+         |This endpoint performs the following validations:
+         |- Parse the rule_code as a Scala expression
+         |- Validate syntax - check for parsing errors
+         |- Validate field references - check if referenced objects/fields exist
+         |- Check type consistency - verify the expression returns a Boolean
+         |
+         |**Available ABAC Context Objects:**
+         |- AuthenticatedUser - The user who is logged in
+         |- OnBehalfOfUser - Optional delegation user
+         |- User - Target user being evaluated
+         |- Bank, Account, View, Transaction, TransactionRequest, Customer
+         |- Attributes for each entity (e.g., userAttributes, accountAttributes)
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |
+         |This is a "dry-run" validation that does NOT save or execute the rule.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      ValidateAbacRuleJsonV600(
+        rule_code = """AuthenticatedUser.user_id == Account.owner_id"""
+      ),
+      ValidateAbacRuleSuccessJsonV600(
+        valid = true,
+        message = "ABAC rule code is valid"
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canCreateAbacRule))
+    )
+
+    lazy val validateAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: "validate" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateAbacRule, callContext)
+            validateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
+              json.extract[ValidateAbacRuleJsonV600]
+            }
+            _ <- NewStyle.function.tryons(s"$AbacRuleCodeEmpty", 400, callContext) {
+              validateJson.rule_code.trim.nonEmpty
+            }
+            validationResult <- Future {
+              AbacRuleEngine.validateRuleCode(validateJson.rule_code) match {
+                case Full(msg) =>
+                  Full(ValidateAbacRuleSuccessJsonV600(
+                    valid = true,
+                    message = msg
+                  ))
+                case Failure(errorMsg, _, _) =>
+                  // Extract error details from the error message
+                  val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "").replace("Failed to compile ABAC rule: ", "")
+
+                  // Determine the proper OBP error message and error type
+                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
+                    (AbacRuleTypeMismatch, "TypeError")
+                  } else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse")) {
+                    (AbacRuleSyntaxError, "SyntaxError")
+                  } else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member")) {
+                    (AbacRuleFieldReferenceError, "FieldReferenceError")
+                  } else if (cleanError.toLowerCase.contains("compilation failed") || cleanError.toLowerCase.contains("reflective compilation has failed")) {
+                    (AbacRuleCompilationFailed, "CompilationError")
+                  } else {
+                    (AbacRuleValidationFailed, "ValidationError")
+                  }
+
+                  Full(ValidateAbacRuleFailureJsonV600(
+                    valid = false,
+                    error = cleanError,
+                    message = obpErrorMessage,
+                    details = ValidateAbacRuleErrorDetailsJsonV600(
+                      error_type = errorType
+                    )
+                  ))
+                case Empty =>
+                  Full(ValidateAbacRuleFailureJsonV600(
+                    valid = false,
+                    error = "Unknown validation error",
+                    message = AbacRuleValidationFailed,
+                    details = ValidateAbacRuleErrorDetailsJsonV600(
+                      error_type = "UnknownError"
+                    )
+                  ))
+              }
+            } map {
+              unboxFullOrFail(_, callContext, AbacRuleValidationFailed, 400)
+            }
+          } yield {
+            (validationResult, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      executeAbacRule,
+      implementedInApiVersion,
+      nameOf(executeAbacRule),
+      "POST",
+      "/management/abac-rules/ABAC_RULE_ID/execute",
+      "Execute ABAC Rule",
+      s"""Execute an ABAC rule to test access control.
+         |
+         |This endpoint allows you to test an ABAC rule with specific context (authenticated user, bank, account, transaction, customer, etc.).
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+         |
+         |You can provide optional IDs in the request body to test the rule with specific context.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      ExecuteAbacRuleJsonV600(
+        authenticated_user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+        on_behalf_of_user_id = Some("a3b5c123-1234-5678-9012-fedcba987654"),
+        user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+        bank_id = Some("gh.29.uk"),
+        account_id = Some("8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"),
+        view_id = Some("owner"),
+        transaction_request_id = Some("123456"),
+        transaction_id = Some("abc123"),
+        customer_id = Some("customer-id-123")
+      ),
+      AbacRuleResultJsonV600(
+        result = true
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canExecuteAbacRule))
+    )
+
+    lazy val executeAbacRule: OBPEndpoint = {
+      case "management" :: "abac-rules" :: ruleId :: "execute" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canExecuteAbacRule, callContext)
+            execJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
+              json.extract[ExecuteAbacRuleJsonV600]
+            }
+            rule <- Future {
+              MappedAbacRuleProvider.getAbacRuleById(ruleId)
+            } map {
+              unboxFullOrFail(_, callContext, s"ABAC Rule not found with ID: $ruleId", 404)
+            }
+
+            // Execute the rule with IDs - object fetching happens internally
+            // authenticatedUserId: can be provided in request (for testing) or defaults to actual authenticated user
+            // onBehalfOfUserId: optional delegation - acting on behalf of another user
+            // userId: the target user being evaluated (defaults to authenticated user)
+            effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
+
+            result <- Future {
+              val resultBox = AbacRuleEngine.executeRule(
+                ruleId = ruleId,
+                authenticatedUserId = effectiveAuthenticatedUserId,
+                onBehalfOfUserId = execJson.on_behalf_of_user_id,
+                userId = execJson.user_id,
+                callContext = callContext.getOrElse(cc),
+                bankId = execJson.bank_id,
+                accountId = execJson.account_id,
+                viewId = execJson.view_id,
+                transactionId = execJson.transaction_id,
+                transactionRequestId = execJson.transaction_request_id,
+                customerId = execJson.customer_id
+              )
+
+              resultBox match {
+                case Full(allowed) =>
+                  AbacRuleResultJsonV600(result = allowed)
+                case Failure(msg, _, _) =>
+                  AbacRuleResultJsonV600(result = false)
+                case Empty =>
+                  AbacRuleResultJsonV600(result = false)
+              }
+            }
+          } yield {
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      executeAbacPolicy,
+      implementedInApiVersion,
+      nameOf(executeAbacPolicy),
+      "POST",
+      "/management/abac-policies/POLICY/execute",
+      "Execute ABAC Policy",
+      s"""Execute all ABAC rules in a policy to test access control.
+         |
+         |This endpoint executes all active rules that belong to the specified policy.
+         |The policy uses OR logic - access is granted if at least one rule passes.
+         |
+         |This allows you to test a complete policy with specific context (authenticated user, bank, account, transaction, customer, etc.).
+         |
+         |**Documentation:**
+         |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+         |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+         |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+         |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+         |
+         |You can provide optional IDs in the request body to test the policy with specific context.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      ExecuteAbacRuleJsonV600(
+        authenticated_user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+        on_behalf_of_user_id = Some("a3b5c123-1234-5678-9012-fedcba987654"),
+        user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+        bank_id = Some("gh.29.uk"),
+        account_id = Some("8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"),
+        view_id = Some("owner"),
+        transaction_request_id = Some("123456"),
+        transaction_id = Some("abc123"),
+        customer_id = Some("customer-id-123")
+      ),
+      AbacRuleResultJsonV600(
+        result = true
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagABAC),
+      Some(List(canExecuteAbacRule))
+    )
+
+    lazy val executeAbacPolicy: OBPEndpoint = {
+      case "management" :: "abac-policies" :: policy :: "execute" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canExecuteAbacRule, callContext)
+            execJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
+              json.extract[ExecuteAbacRuleJsonV600]
+            }
+
+            // Verify the policy exists
+            _ <- Future {
+              if (Constant.ABAC_POLICIES.contains(policy)) {
+                Full(true)
+              } else {
+                Failure(s"Policy not found: $policy. Available policies: ${Constant.ABAC_POLICIES.mkString(", ")}")
+              }
+            } map {
+              unboxFullOrFail(_, callContext, s"Invalid ABAC Policy: $policy", 404)
+            }
+
+            // Execute the policy with IDs - object fetching happens internally
+            // authenticatedUserId: can be provided in request (for testing) or defaults to actual authenticated user
+            // onBehalfOfUserId: optional delegation - acting on behalf of another user
+            // userId: the target user being evaluated (defaults to authenticated user)
+            effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
+
+            result <- Future {
+              val resultBox = AbacRuleEngine.executeRulesByPolicy(
+                policy = policy,
+                authenticatedUserId = effectiveAuthenticatedUserId,
+                onBehalfOfUserId = execJson.on_behalf_of_user_id,
+                userId = execJson.user_id,
+                callContext = callContext.getOrElse(cc),
+                bankId = execJson.bank_id,
+                accountId = execJson.account_id,
+                viewId = execJson.view_id,
+                transactionId = execJson.transaction_id,
+                transactionRequestId = execJson.transaction_request_id,
+                customerId = execJson.customer_id
+              )
+
+              resultBox match {
+                case Full(allowed) =>
+                  AbacRuleResultJsonV600(result = allowed)
+                case Failure(msg, _, _) =>
+                  AbacRuleResultJsonV600(result = false)
+                case Empty =>
+                  AbacRuleResultJsonV600(result = false)
+              }
+            }
+          } yield {
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ============================================================================================================
+    // USER ATTRIBUTES v6.0.0 - Consistent with other entity attributes
+    // ============================================================================================================
+    // "user attributes" = IsPersonal=false (requires roles) - consistent with other entity attributes
+    // "personal user attributes" = IsPersonal=true (no roles, user manages their own)
+    // ============================================================================================================
+
+    staticResourceDocs += ResourceDoc(
+      createUserAttribute,
+      implementedInApiVersion,
+      nameOf(createUserAttribute),
+      "POST",
+      "/users/USER_ID/attributes",
+      "Create User Attribute",
+      s"""Create a User Attribute for the user specified by USER_ID.
+         |
+         |User Attributes are non-personal attributes (IsPersonal=false) that can be used in ABAC rules.
+         |They require a role to set, similar to Customer Attributes, Account Attributes, etc.
+         |
+         |For personal attributes that users manage themselves, see the /my/personal-user-attributes endpoints.
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      code.api.v5_1_0.UserAttributeJsonV510(
+        name = "account_type",
+        `type` = "STRING",
+        value = "premium"
+      ),
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByUserId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List(canCreateUserAttribute))
+    )
+
+    lazy val createUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateUserAttribute, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510"
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[code.api.v5_1_0.UserAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId,
+              None,
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              false, // IsPersonal = false for user attributes
+              callContext
+            )
+          } yield {
+            (JSONFactory510.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserAttributes,
+      implementedInApiVersion,
+      nameOf(getUserAttributes),
+      "GET",
+      "/users/USER_ID/attributes",
+      "Get User Attributes",
+      s"""Get User Attributes for the user specified by USER_ID.
+         |
+         |Returns non-personal user attributes (IsPersonal=false) that can be used in ABAC rules.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      code.api.v5_1_0.UserAttributesResponseJsonV510(
+        user_attributes = List(userAttributeResponseJsonV510)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List(canGetUserAttributes))
+    )
+
+    lazy val getUserAttributes: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetUserAttributes, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            (attributes, callContext) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+          } yield {
+            (code.api.v5_1_0.UserAttributesResponseJsonV510(attributes.map(JSONFactory510.createUserAttributeJson)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserAttributeById,
+      implementedInApiVersion,
+      nameOf(getUserAttributeById),
+      "GET",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+      "Get User Attribute By Id",
+      s"""Get a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByUserId,
+        UserAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List(canGetUserAttributes))
+    )
+
+    lazy val getUserAttributeById: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: userAttributeId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetUserAttributes, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            (attributes, callContext) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            attribute <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+          } yield {
+            (JSONFactory510.createUserAttributeJson(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateUserAttribute,
+      implementedInApiVersion,
+      nameOf(updateUserAttribute),
+      "PUT",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+      "Update User Attribute",
+      s"""Update a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      code.api.v5_1_0.UserAttributeJsonV510(
+        name = "account_type",
+        `type` = "STRING",
+        value = "enterprise"
+      ),
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByUserId,
+        UserAttributeNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List(canUpdateUserAttribute))
+    )
+
+    lazy val updateUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: userAttributeId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateUserAttribute, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510"
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[code.api.v5_1_0.UserAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (attributes, callContext) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            _ <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId,
+              Some(userAttributeId),
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              false, // IsPersonal = false for user attributes
+              callContext
+            )
+          } yield {
+            (JSONFactory510.createUserAttributeJson(userAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteUserAttribute,
+      implementedInApiVersion,
+      nameOf(deleteUserAttribute),
+      "DELETE",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+      "Delete User Attribute",
+      s"""Delete a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByUserId,
+        UserAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List(canDeleteUserAttribute))
+    )
+
+    lazy val deleteUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteUserAttribute, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            (attributes, callContext) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            _ <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+            (deleted, callContext) <- Connector.connector.vend.deleteUserAttribute(
+              userAttributeId,
+              callContext
+            ) map {
+              i => (connectorEmptyResponse(i._1, callContext), i._2)
+            }
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // ============================================================================================================
+    // PERSONAL DATA - User manages their own personal data
+    // ============================================================================================================
+
+    staticResourceDocs += ResourceDoc(
+      createMyPersonalUserAttribute,
+      implementedInApiVersion,
+      nameOf(createMyPersonalUserAttribute),
+      "POST",
+      "/my/personal-data",
+      "Create My Personal Data",
+      s"""Create Personal Data for the currently authenticated user.
+         |
+         |Personal Data (IsPersonal=true) is managed by the user themselves and does not require special roles.
+         |This data is not available in ABAC rules for privacy reasons.
+         |
+         |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      code.api.v5_1_0.UserAttributeJsonV510(
+        name = "favorite_color",
+        `type` = "STRING",
+        value = "blue"
+      ),
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List())
+    )
+
+    lazy val createMyPersonalUserAttribute: OBPEndpoint = {
+      case "my" :: "personal-data" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510"
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[code.api.v5_1_0.UserAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              u.userId,
+              None,
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              true, // IsPersonal = true for personal user attributes
+              callContext
+            )
+          } yield {
+            (JSONFactory510.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyPersonalUserAttributes,
+      implementedInApiVersion,
+      nameOf(getMyPersonalUserAttributes),
+      "GET",
+      "/my/personal-data",
+      "Get My Personal Data",
+      s"""Get Personal Data for the currently authenticated user.
+         |
+         |Returns personal data (IsPersonal=true) that is managed by the user.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      code.api.v5_1_0.UserAttributesResponseJsonV510(
+        user_attributes = List(userAttributeResponseJsonV510)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List())
+    )
+
+    lazy val getMyPersonalUserAttributes: OBPEndpoint = {
+      case "my" :: "personal-data" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(u.userId, callContext)
+          } yield {
+            (code.api.v5_1_0.UserAttributesResponseJsonV510(attributes.map(JSONFactory510.createUserAttributeJson)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyPersonalUserAttributeById,
+      implementedInApiVersion,
+      nameOf(getMyPersonalUserAttributeById),
+      "GET",
+      "/my/personal-data/USER_ATTRIBUTE_ID",
+      "Get My Personal Data By Id",
+      s"""Get Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List())
+    )
+
+    lazy val getMyPersonalUserAttributeById: OBPEndpoint = {
+      case "my" :: "personal-data" :: userAttributeId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(u.userId, callContext)
+            attribute <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+          } yield {
+            (JSONFactory510.createUserAttributeJson(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateMyPersonalUserAttribute,
+      implementedInApiVersion,
+      nameOf(updateMyPersonalUserAttribute),
+      "PUT",
+      "/my/personal-data/USER_ATTRIBUTE_ID",
+      "Update My Personal Data",
+      s"""Update Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      code.api.v5_1_0.UserAttributeJsonV510(
+        name = "favorite_color",
+        `type` = "STRING",
+        value = "green"
+      ),
+      userAttributeResponseJsonV510,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserAttributeNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List())
+    )
+
+    lazy val updateMyPersonalUserAttribute: OBPEndpoint = {
+      case "my" :: "personal-data" :: userAttributeId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510"
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[code.api.v5_1_0.UserAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(u.userId, callContext)
+            _ <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              u.userId,
+              Some(userAttributeId),
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              true, // IsPersonal = true for personal user attributes
+              callContext
+            )
+          } yield {
+            (JSONFactory510.createUserAttributeJson(userAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyPersonalUserAttribute,
+      implementedInApiVersion,
+      nameOf(deleteMyPersonalUserAttribute),
+      "DELETE",
+      "/my/personal-data/USER_ATTRIBUTE_ID",
+      "Delete My Personal Data",
+      s"""Delete Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
+      Some(List())
+    )
+
+    lazy val deleteMyPersonalUserAttribute: OBPEndpoint = {
+      case "my" :: "personal-data" :: userAttributeId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(u.userId, callContext)
+            _ <- Future {
+              attributes.find(_.userAttributeId == userAttributeId)
+            } map {
+              unboxFullOrFail(_, callContext, UserAttributeNotFound, 404)
+            }
+            (deleted, callContext) <- Connector.connector.vend.deleteUserAttribute(
+              userAttributeId,
+              callContext
+            ) map {
+              i => (connectorEmptyResponse(i._1, callContext), i._2)
+            }
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMessageDocsJsonSchema,
+      implementedInApiVersion,
+      nameOf(getMessageDocsJsonSchema),
+      "GET",
+      "/message-docs/CONNECTOR/json-schema",
+      "Get Message Docs as JSON Schema",
+      """Returns message documentation as JSON Schema format for code generation in any language.
+        |
+        |This endpoint provides machine-readable schemas instead of just examples, making it ideal for:
+        |- AI-powered code generation
+        |- Automatic adapter creation in multiple languages
+        |- Type-safe client generation with tools like quicktype
+        |
+        |**Supported Connectors:**
+        |- rabbitmq_vOct2024 - RabbitMQ connector message schemas
+        |- rest_vMar2019 - REST connector message schemas
+        |- akka_vDec2018 - Akka connector message schemas
+        |- kafka_vMay2019 - Kafka connector message schemas (if available)
+        |
+        |**Code Generation Examples:**
+        |
+        |Generate Scala code with Circe:
+        |```bash
+        |curl https://api.../message-docs/rabbitmq_vOct2024/json-schema > schemas.json
+        |quicktype -s schema schemas.json -o Messages.scala --framework circe
+        |```
+        |
+        |Generate Python code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.py --lang python
+        |```
+        |
+        |Generate TypeScript code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.ts --lang typescript
+        |```
+        |
+        |**Schema Structure:**
+        |Each message includes:
+        |- `process` - The connector method name (e.g., "obp.getAdapterInfo")
+        |- `description` - Human-readable description of what the message does
+        |- `outbound_schema` - JSON Schema for request messages (OBP-API -> Adapter)
+        |- `inbound_schema` - JSON Schema for response messages (Adapter -> OBP-API)
+        |
+        |All nested type definitions are included in the `definitions` section for reuse.
+        |
+        |**Authentication:**
+        |This endpoint is publicly accessible (no authentication required) to facilitate adapter development.
+        |
+        |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        InvalidConnector,
+        UnknownError
+      ),
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
+    )
+
+    lazy val getMessageDocsJsonSchema: OBPEndpoint = {
+      case "message-docs" :: connector :: "json-schema" :: Nil JsonGet _ => {
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            cacheKey = s"message-docs-json-schema-$connector"
+            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+            jsonSchema <- if (cacheValueFromRedis.isDefined) {
+              NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, callContext) {
+                json.parse(cacheValueFromRedis.get).asInstanceOf[JObject]
+              }
+            } else {
+              NewStyle.function.tryons(s"$UnknownError Cannot generate JSON Schema.", 400, callContext) {
+                val connectorObjectBox = tryo{Connector.getConnectorInstance(connector)}
+                val connectorObject = unboxFullOrFail(
+                  connectorObjectBox,
+                  callContext,
+                  s"$InvalidConnector Current input is: $connector. Valid connectors include: rabbitmq_vOct2024, rest_vMar2019, akka_vDec2018"
+                )
+                val schema = JsonSchemaGenerator.messageDocsToJsonSchema(
+                  connectorObject.messageDocs.toList,
+                  connector
+                )
+                val schemaString = json.compactRender(schema)
+                Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                schema
+              }
+            }
+          } yield {
+            (jsonSchema, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEntities),
+      "GET",
+      "/my/dynamic-entities",
+      "Get My Dynamic Entities",
+      s"""Get all Dynamic Entity definitions I created.
+         |
+         |This v6.0.0 endpoint returns a cleaner response format with:
+         |* snake_case field names (dynamic_entity_id, user_id, bank_id, has_personal_entity)
+         |* An explicit entity_name field instead of using the entity name as a dynamic JSON key
+         |* The entity schema in a separate definition object
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "My-Dynamic-Entities"
+        )}""",
+      EmptyBody,
+      MyDynamicEntitiesJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "customer_preferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            _links = Some(DynamicEntityLinksJsonV600(
+              related = List(
+                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+              )
+            ))
+          )
+        )
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi)
+    )
+
+    lazy val getMyDynamicEntities: OBPEndpoint = {
+      case "my" :: "dynamic-entities" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          dynamicEntities <- Future(
+            NewStyle.function.getDynamicEntitiesByUserId(cc.userId)
+          )
+        } yield {
+          val listCommons: List[DynamicEntityCommons] = dynamicEntities
+          (
+            JSONFactory600.createMyDynamicEntitiesJson(listCommons),
+            HttpCode.`200`(cc.callContext)
+          )
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAvailablePersonalDynamicEntities,
+      implementedInApiVersion,
+      nameOf(getAvailablePersonalDynamicEntities),
+      "GET",
+      "/personal-dynamic-entities/available",
+      "Get Available Personal Dynamic Entities",
+      s"""Get all Dynamic Entities that support personal data storage (hasPersonalEntity == true).
+         |
+         |This endpoint allows regular users (without admin roles) to discover which dynamic entities
+         |they can interact with for storing personal data via the /my/ENTITY_NAME endpoints.
+         |
+         |Authentication: User must be logged in (no special roles required).
+         |
+         |Use case: Portals and apps can show users what personal data types are available
+         |without needing admin access to view all dynamic entity definitions.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+      EmptyBody,
+      MyDynamicEntitiesJsonV600(
+        dynamic_entities = List(
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "customer_preferences",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = true,
+            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+            _links = Some(DynamicEntityLinksJsonV600(
+              related = List(
+                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+              )
+            ))
+          )
+        )
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagPersonalDynamicEntity, apiTagApi)
+    )
+
+    lazy val getAvailablePersonalDynamicEntities: OBPEndpoint = {
+      case "personal-dynamic-entities" :: "available" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          // Get all dynamic entities (system and bank level)
+          allDynamicEntities <- Future(
+            NewStyle.function.getDynamicEntities(None, false) ++
+            NewStyle.function.getDynamicEntities(None, true)
+          )
+        } yield {
+          // Filter to only those with hasPersonalEntity == true
+          val personalEntities: List[DynamicEntityCommons] = allDynamicEntities.filter(_.hasPersonalEntity)
+          (
+            JSONFactory600.createMyDynamicEntitiesJson(personalEntities),
+            HttpCode.`200`(cc.callContext)
+          )
+        }
       }
     }
 

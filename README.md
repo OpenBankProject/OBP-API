@@ -67,6 +67,17 @@ To compile and run Jetty, install Maven 3, create your configuration in `obp-api
 mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 ```
 
+### Running http4s server (obp-http4s-runner)
+
+To run the API using the http4s server (without Jetty), use the `obp-http4s-runner` module from the project root:
+
+```sh
+MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-http4s-runner -am clean package -DskipTests=true -Dmaven.test.skip=true && \
+java -jar obp-http4s-runner/target/obp-http4s-runner.jar
+```
+
+The http4s server binds to `http4s.host` / `http4s.port` as configured in your props file (defaults are `127.0.0.1` and `8086`).
+
 ### ZED IDE Setup
 
 For ZED IDE users, we provide a complete development environment with Scala language server support:

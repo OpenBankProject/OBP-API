@@ -1,5 +1,23 @@
 package code.api.v5_0_0
 
+/*
+ * CardTest is completely commented out due to initialization issues.
+ *
+ * The problem: When this test class is loaded during test discovery, it triggers initialization of
+ * V500ServerSetupAsync which tries to start a test server. This causes port binding issues and
+ * initialization errors that abort the entire test suite.
+ *
+ * Additional issues:
+ * - createPhysicalCardJsonV500 causes circular dependency chain
+ * - ExampleValue$ → Glossary$ → Helper$.ObpS → cglib proxy creation fails
+ * - NoClassDefFoundError when running on Java 17 with Java 11 project configuration
+ * - Port 8018 binding conflicts
+ *
+ * TODO: Fix the initialization order, move createPhysicalCardJsonV500 call inside test methods,
+ * and resolve server setup issues before re-enabling this test.
+ */
+
+/*
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{createPhysicalCardJsonV500}
 import code.api.util.ApiRole
@@ -19,19 +37,6 @@ import org.scalatest.{Ignore, Tag}
 
 import java.util.Date
 
-/**
- * CardTest is temporarily disabled due to initialization issues with createPhysicalCardJsonV500.
- * 
- * The problem: When this test class is loaded, it triggers initialization of createPhysicalCardJsonV500
- * at line 37, which causes a circular dependency chain:
- * - createPhysicalCardJsonV500 → ExampleValue$ → Glossary$ → Helper$.ObpS → cglib proxy creation
- * 
- * This fails with NoClassDefFoundError when running on Java 17 with Java 11 project configuration.
- * The error occurs because cglib cannot create proxies due to module access restrictions.
- * 
- * TODO: Fix the initialization order or move createPhysicalCardJsonV500 call inside test methods
- * instead of at class initialization time (line 37).
- */
 @Ignore
 class CardTest extends V500ServerSetupAsync with DefaultUsers {
 
@@ -41,8 +46,8 @@ class CardTest extends V500ServerSetupAsync with DefaultUsers {
 
 
   feature("test Card APIs") {
-    scenario("We will create Card with many error cases", 
-      ApiEndpointAddCardForBank, 
+    scenario("We will create Card with many error cases",
+      ApiEndpointAddCardForBank,
       VersionOfApi
     ) {
       Given("The test bank and test account")
@@ -61,14 +66,14 @@ class CardTest extends V500ServerSetupAsync with DefaultUsers {
 
       val properCardJson = dummyCard.copy(account_id = testAccount.value, issue_number = "123", customer_id = customerId)
 
-      val requestAnonymous = (v5_0_0_Request / "management"/"banks" / testBank.value / "cards" ).POST 
+      val requestAnonymous = (v5_0_0_Request / "management"/"banks" / testBank.value / "cards" ).POST
       val requestWithAuthUser = (v5_0_0_Request / "management" /"banks" / testBank.value / "cards" ).POST <@ (user1)
 
       Then(s"We test with anonymous user.")
       val responseAnonymous = makePostRequest(requestAnonymous, write(properCardJson))
       And(s"We should get  401 and get the authentication error")
       responseAnonymous.code should equal(401)
-      responseAnonymous.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseAnonymous.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
       Then(s"We call the authentication user, but without proper role:  ${ApiRole.canCreateCardsForBank}")
       val responseUserButNoRole = makePostRequest(requestWithAuthUser, write(properCardJson))
@@ -99,7 +104,7 @@ class CardTest extends V500ServerSetupAsync with DefaultUsers {
       responseWithWrongVlaueForAllows.body.toString contains(AllowedValuesAre++ CardAction.availableValues.mkString(", "))
 
       Then(s"We call the authentication user, but wrong card.replacement value")
-      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = Some(ReplacementJSON(new Date(),"Wrong"))) // The replacement must be Enum of `CardReplacementReason` 
+      val wrongCardReplacementReasonJson = dummyCard.copy(replacement = Some(ReplacementJSON(new Date(),"Wrong"))) // The replacement must be Enum of `CardReplacementReason`
       val responseWrongCardReplacementReasonJson = makePostRequest(requestWithAuthUser, write(wrongCardReplacementReasonJson))
       And(s"We should get 400 and get the error message")
       responseWrongCardReplacementReasonJson.code should equal(400)
@@ -169,4 +174,5 @@ class CardTest extends V500ServerSetupAsync with DefaultUsers {
     }
   }
 
-} 
+}
+*/

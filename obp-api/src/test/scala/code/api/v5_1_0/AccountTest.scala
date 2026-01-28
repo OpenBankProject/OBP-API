@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetAccountsHeldAtAnyBank, CanGetAccountsHeldAtOneBank, CanSyncUser}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -34,7 +34,7 @@ class AccountTest extends V510ServerSetup {
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
-      anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
       
     }
   }
@@ -45,7 +45,7 @@ class AccountTest extends V510ServerSetup {
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
-      anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario("We will call the endpoint with user credentials", getAccountsHeldByUserAtBank, VersionOfApi) {
       When(s"We make a request $getAccountsHeldByUserAtBank")
@@ -64,7 +64,7 @@ class AccountTest extends V510ServerSetup {
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
-      anonymousResponseGet.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario("We will call the endpoint with user credentials", GetAccountsHeldByUser, VersionOfApi) {
       When(s"We make a request $GetAccountsHeldByUser")
@@ -83,7 +83,7 @@ class AccountTest extends V510ServerSetup {
       // Anonymous call fails
       val response = makePostRequest(request, write(""))
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     scenario("We will call the endpoint with user credentials", SyncExternalUser, VersionOfApi) {
       When(s"We make a request $SyncExternalUser")

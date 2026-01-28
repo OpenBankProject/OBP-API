@@ -20,7 +20,7 @@ object MappedJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
   override def getByOperationId(operationId: String): Box[JsonValidation] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL.second) {
         JsonSchemaValidation.find(By(JsonSchemaValidation.OperationId, operationId))
           .map(it => JsonValidation(it.operationId, it.jsonSchema))
       }}

@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import scala.language.implicitConversions
 import code.api.Constant
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -4086,6 +4087,17 @@ object SwaggerDefinitionsJSON {
     Some(rateLimit)
   )
   
+  lazy val rateLimitV600 = RateLimitV600(Some(42), Some(15), "ACTIVE")
+  
+  lazy val redisCallCountersJsonV600 = RedisCallCountersJsonV600(
+    rateLimitV600,
+    rateLimitV600,
+    rateLimitV600,
+    rateLimitV600,
+    rateLimitV600,
+    rateLimitV600
+  )
+  
   lazy val callLimitJson = CallLimitJson(
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
@@ -4145,15 +4157,15 @@ object SwaggerDefinitionsJSON {
     updated_at = DateWithDayExampleObject
   )
 
-  lazy val activeCallLimitsJsonV600 = ActiveCallLimitsJsonV600(
-    call_limits = List(callLimitJsonV600),
+  lazy val activeRateLimitsJsonV600 = ActiveRateLimitsJsonV600(
+    considered_rate_limit_ids = List("80e1e0b2-d8bf-4f85-a579-e69ef36e3305"),
     active_at_date = DateWithDayExampleObject,
-    total_per_second_call_limit = 100,
-    total_per_minute_call_limit = 1000,
-    total_per_hour_call_limit = -1,
-    total_per_day_call_limit = -1,
-    total_per_week_call_limit = -1,
-    total_per_month_call_limit = -1
+    active_per_second_rate_limit = 100,
+    active_per_minute_rate_limit = 1000,
+    active_per_hour_rate_limit = -1,
+    active_per_day_rate_limit = -1,
+    active_per_week_rate_limit = -1,
+    active_per_month_rate_limit = -1
   )
 
   lazy val accountWebhookPostJson = AccountWebhookPostJson(

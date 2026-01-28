@@ -55,7 +55,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
@@ -84,7 +84,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario(s"We will call the dynamic entity endpoint without authentication", VersionOfApi) {
@@ -96,7 +96,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint dynamic endpoints without authentication", VersionOfApi) {
@@ -108,7 +108,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

@@ -505,6 +505,7 @@ case class ViewExtended(val view: View) extends MdcLoggable {
             None
       }
 
+      import scala.language.implicitConversions
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(viewPermissions.exists(_ == CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER)) Some(otherBankAccount.nationalIdentifier) else None
       val otherAccountSWIFT_BIC = if(viewPermissions.exists(_ == CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC)) otherBankAccount.otherBankRoutingAddress else None
@@ -607,6 +608,7 @@ case class ViewExtended(val view: View) extends MdcLoggable {
           None
       }
 
+      import scala.language.implicitConversions
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountSWIFT_BIC = if(viewPermissions.exists(_ == CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC)) counterpartyCore.otherBankRoutingAddress else None
       val otherAccountIBAN = if(viewPermissions.exists(_ == CAN_SEE_OTHER_ACCOUNT_IBAN)) counterpartyCore.otherAccountRoutingAddress else None

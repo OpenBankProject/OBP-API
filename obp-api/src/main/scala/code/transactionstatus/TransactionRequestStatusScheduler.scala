@@ -2,7 +2,7 @@ package code.transactionStatusScheduler
 
 import java.util.concurrent.TimeUnit
 
-import code.actorsystem.ObpLookupSystem
+import code.actorsystem.ObpActorSystem
 import code.transactionrequests.TransactionRequests
 import code.util.Helper.MdcLoggable
 
@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 object TransactionRequestStatusScheduler extends MdcLoggable {
 
-  private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
+  private lazy val actorSystem = ObpActorSystem.localActorSystem
   implicit lazy val executor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
 

@@ -469,7 +469,7 @@ object MapperViews extends Views with MdcLoggable {
         viewId
       ).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
-        case false => Full()
+        case false => Full(())
       }
     } yield {
       customView.deleteViewPermissions
@@ -481,7 +481,7 @@ object MapperViews extends Views with MdcLoggable {
       view <- ViewDefinition.findSystemView(viewId.value)
       _ <- AccountAccess.findAllBySystemViewId(viewId).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
-        case false => Full()
+        case false => Full(())
       }
     } yield {
       view.deleteViewPermissions

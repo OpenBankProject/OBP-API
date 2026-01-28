@@ -27,6 +27,11 @@ starConnector_supported_types = mapped,internal
 # Connector cache time-to-live in seconds, caching disabled if not set
 #connector.cache.ttl.seconds=3
 
+# Disable metrics writing during tests to prevent database bloat
+# Metrics accumulate with every API call - with 2000+ tests this can create 100,000+ records
+# causing MetricsTest to hang on bulkDelete operations
+# Note: Specific tests (like code.api.v5_1_0.MetricTest) explicitly enable this when needed
+write_metrics = false
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
@@ -56,8 +61,9 @@ End of minimum settings
 # if connector is mapped, set a database backend. If not set, this will be set to an in-memory h2 database by default
 # you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 # Please note that since update o version 2.1.214 we use NON_KEYWORDS=VALUE to bypass reserved word issue in SQL statements
+# IMPORTANT: For tests, use test_only_lift_proto.db so the cleanup script can safely delete it
 #db.driver=org.h2.Driver
-#db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
+#db.url=jdbc:h2:./test_only_lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 
 #set this to false if you don't want the api payments call to work
 payments_enabled=false

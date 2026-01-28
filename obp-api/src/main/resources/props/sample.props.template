@@ -624,6 +624,14 @@ webui_agree_terms_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
 #webui_post_consumer_registration_submit_button_value=Register consumer
 
+# OBP Portal URL - base URL for the OBP Portal service
+webui_obp_portal_url = http://localhost:5174
+
+# External Consumer Registration URL - used to redirect "Get API Key" links to an external service
+# If not set, defaults to webui_obp_portal_url + "/consumer-registration"
+# Set this to redirect to a custom URL for consumer registration
+webui_external_consumer_registration_url = http://localhost:5174/consumer-registration
+
 
 ## Display For Banks section
 webui_display_for_banks_section = true
@@ -720,9 +728,10 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # For a VERSION (the version in path e.g. /obp/v4.0.0) to be allowed, it must be:
 
 # 1) Absent from here (high priority):
-# Note the default is empty, not the example here.
 # Black List of Versions
-#api_disabled_versions=[OBPv3.0.0,BGv1.3]
+# Since December 2025 we are removing older versions of OBP standards by default. Note any endpoints defined in these versions are still
+# available via calling v5.1.0 or v6.0.0. We're doing this so API Explorer (II) loads faster etc.
+#api_disabled_versions=["OBPv1.2.1,OBPv1.3.0,OBPv1.4.0,OBPv2.0.0,OBPv2.1.0,OBPv2.2.0,OBPv3.0.0,OBPv3.1.0,OBPv4.0.0,OBPv5.0.0"]
 
 # 2) Present here OR this entry must be empty:
 # Note the default is empty, not the example here.
@@ -969,9 +978,10 @@ featured_apis=elasticSearchWarehouseV300
 # ----------------------------------------------
 
 # -- Rate Limiting -----------------------------------
-# Define how many calls per hour a consumer can make
-# In case isn't defined default value is "false"
-# use_consumer_limits=false
+# Enable consumer-specific rate limiting (queries RateLimiting table)
+# Default is now true. This property may be removed in a future version.
+# Set to false to use only system-wide defaults (not recommended)
+# use_consumer_limits=true
 # In case isn't defined default value is 60
 # user_consumer_limit_anonymous_access=100
 # For the Rate Limiting feature we use Redis cache instance
@@ -1682,3 +1692,13 @@ securelogging_mask_credit_card=true
 
 # Email addresses
 securelogging_mask_email=true
+
+
+############################################
+# http4s server configuration
+############################################
+
+# Host and port for http4s server (used by bootstrap.http4s.Http4sServer)
+# Defaults (if not set) are 127.0.0.1 and 8086
+http4s.host=127.0.0.1
+http4s.port=8086

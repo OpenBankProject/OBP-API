@@ -185,13 +185,13 @@ class elasticsearch extends MdcLoggable {
   }
 
   private def getParameters(queryString: String): Map[String, String] = {
-    val res = queryString.split('&') map { str =>
+    val res = queryString.split('&').map { str =>
     val pair = str.split('=')
       if (pair.length > 1)
         (pair(0) -> pair(1))
       else
         (pair(0) -> "")
-    } toMap
+    }.toMap
 
     res
   }

@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -80,7 +81,7 @@ object APIMethods_PartysApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 
@@ -190,7 +191,7 @@ object APIMethods_PartysApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 

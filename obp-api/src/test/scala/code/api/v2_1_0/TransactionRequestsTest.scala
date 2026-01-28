@@ -307,7 +307,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         response.code should equal(401)
 
         Then("We should have the error message")
-        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.AuthenticatedUserIsRequired)
 
       }
     }

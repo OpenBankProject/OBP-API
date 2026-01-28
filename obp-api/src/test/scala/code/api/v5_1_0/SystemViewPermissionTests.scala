@@ -4,7 +4,7 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.entitlement.Entitlement
 import code.setup.APIResponse
 import com.openbankproject.commons.model.ErrorMessage
@@ -40,7 +40,7 @@ class SystemViewsPermissionsTests extends V510ServerSetup {
     scenario("Unauthorized access", ApiEndpoint1, VersionOfApi) {
       val response = postSystemViewPermission("some-id", CreateViewPermissionJson("can_grant_access_to_views", None), None)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("Authorized without role", ApiEndpoint1, VersionOfApi) {
@@ -64,7 +64,7 @@ class SystemViewsPermissionsTests extends V510ServerSetup {
     scenario("Unauthorized access", ApiEndpoint2, VersionOfApi) {
       val response = deleteSystemViewPermission("some-id", "can_grant_access_to_views", None)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message contains(UserNotLoggedIn)  shouldBe (true)
+      response.body.extract[ErrorMessage].message contains(AuthenticatedUserIsRequired)  shouldBe (true)
     }
 
     scenario("Authorized without role", ApiEndpoint2, VersionOfApi) {

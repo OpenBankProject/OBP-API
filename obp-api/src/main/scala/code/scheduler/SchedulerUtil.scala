@@ -1,14 +1,14 @@
 package code.scheduler
 
 
-import code.actorsystem.ObpLookupSystem
+import code.actorsystem.ObpActorSystem
 
 import java.util.concurrent.TimeUnit
 import java.util.{Calendar, Date}
 import scala.concurrent.duration._
 object SchedulerUtil {
 
-  private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
+  private lazy val actorSystem = ObpActorSystem.localActorSystem
   implicit lazy val executor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
 

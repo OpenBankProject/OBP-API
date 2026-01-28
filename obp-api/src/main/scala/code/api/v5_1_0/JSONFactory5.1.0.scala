@@ -1049,22 +1049,22 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
   }
 
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
-    val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
-    val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
-    val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
-    val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
+    val organisation = APIUtil.hostedByOrganisation
+    val email = APIUtil.hostedByEmail
+    val phone = APIUtil.hostedByPhone
+    val organisationWebsite = APIUtil.organisationWebsite
     val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
 
-    val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
-    val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
+    val organisationHostedAt = APIUtil.hostedAtOrganisation
+    val organisationWebsiteHostedAt = APIUtil.hostedAtOrganisationWebsite
     val hostedAt = HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
 
-    val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
-    val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
+    val organisationEnergySource = APIUtil.energySourceOrganisation
+    val organisationWebsiteEnergySource = APIUtil.energySourceOrganisationWebsite
     val energySource = EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
     val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
-    val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+    val resourceDocsRequiresRole = APIUtil.resourceDocsRequiresRole
 
     APIInfoJsonV510(
       version = apiVersion.vDottedApiVersion,

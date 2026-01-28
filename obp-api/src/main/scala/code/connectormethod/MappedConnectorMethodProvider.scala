@@ -31,14 +31,14 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
   override def getByMethodNameWithCache(methodName: String): Box[JsonConnectorMethod] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
         getByMethodNameWithoutCache(methodName)
       }}
   }
   override def getAll(): List[JsonConnectorMethod] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
         ConnectorMethod.findAll()
           .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
       }}

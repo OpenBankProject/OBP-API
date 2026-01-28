@@ -394,7 +394,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         response.code should equal(401)
 
         Then("We should have the error message")
-        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.AuthenticatedUserIsRequired)
 
       }
     }
@@ -1808,7 +1808,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {

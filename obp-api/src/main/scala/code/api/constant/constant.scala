@@ -1,8 +1,10 @@
 package code.api
 
 import code.api.util.{APIUtil, ErrorMessages}
+import code.api.cache.Redis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiStandards
+import net.liftweb.util.Props
 
 
 // Note: Import this with: import code.api.Constant._
@@ -10,24 +12,24 @@ object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
 
   final val directLoginHeaderName = "directlogin"
-  
+
   object Pagination {
     final val offset = 0
     final val limit = 50
   }
-  
+
   final val shortEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "short_endpoint_timeout", 1L * 1000L)
   final val mediumEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "medium_endpoint_timeout", 7L * 1000L)
   final val longEndpointTimeoutInMillis = APIUtil.getPropsAsLongValue(nameOfProperty = "long_endpoint_timeout", 55L * 1000L)
-  
+
   final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
   final val CONNECTOR = APIUtil.getPropsValue("connector")
   final val openidConnectEnabled = APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)
-  
+
   final val bgRemoveSignOfAmounts = APIUtil.getPropsAsBoolValue("BG_remove_sign_of_amounts", false)
-  
+
   final val ApiInstanceId = {
     val apiInstanceIdFromProps = APIUtil.getPropsValue("api_instance_id")
     if(apiInstanceIdFromProps.isDefined){
@@ -35,16 +37,106 @@ object Constant extends MdcLoggable {
         apiInstanceIdFromProps.head
       }else{
         s"${apiInstanceIdFromProps.head}_${APIUtil.generateUUID()}"
-      }    
+      }
     }else{
       APIUtil.generateUUID()
     }
   }
-  
+
+  /**
+   * Get the global cache namespace prefix for Redis keys.
+   * This prefix ensures that cache keys from different OBP instances and environments don't conflict.
+   *
+   * The prefix format is: {instance_id}_{environment}_
+   * Examples:
+   *   - "mybank_prod_"
+   *   - "mybank_test_"
+   *   - "mybank_dev_"
+   *   - "abc123_staging_"
+   *
+   * @return A string prefix to be prepended to all Redis cache keys
+   */
+  def getGlobalCacheNamespacePrefix: String = {
+    val instanceId = APIUtil.getPropsValue("api_instance_id").getOrElse("obp")
+    val environment = Props.mode match {
+      case Props.RunModes.Production => "prod"
+      case Props.RunModes.Staging => "staging"
+      case Props.RunModes.Development => "dev"
+      case Props.RunModes.Test => "test"
+      case _ => "unknown"
+    }
+    s"${instanceId}_${environment}_"
+  }
+
+  /**
+   * Get the current version counter for a cache namespace.
+   * This allows for easy cache invalidation by incrementing the counter.
+   *
+   * The counter is stored in Redis with a key like: "mybank_prod_cache_version_rd_localised"
+   * If the counter doesn't exist, it defaults to 1.
+   *
+   * @param namespaceId The cache namespace identifier (e.g., "rd_localised", "rd_dynamic", "connector")
+   * @return The current version counter for that namespace
+   */
+  def getCacheNamespaceVersion(namespaceId: String): Long = {
+    val versionKey = s"${getGlobalCacheNamespacePrefix}cache_version_${namespaceId}"
+    try {
+      Redis.use(JedisMethod.GET, versionKey, None, None)
+        .map(_.toLong)
+        .getOrElse {
+          // Initialize counter to 1 if it doesn't exist
+          Redis.use(JedisMethod.SET, versionKey, None, Some("1"))
+          1L
+        }
+    } catch {
+      case _: Throwable =>
+        // If Redis is unavailable, return 1 as default
+        1L
+    }
+  }
+
+  /**
+   * Increment the version counter for a cache namespace.
+   * This effectively invalidates all cached keys in that namespace by making them unreachable.
+   *
+   * Usage example:
+   *   Before: mybank_prod_rd_localised_1_en_US_v4.0.0
+   *   After incrementing: mybank_prod_rd_localised_2_en_US_v4.0.0
+   *   (old keys with "_1_" are now orphaned and will be ignored)
+   *
+   * @param namespaceId The cache namespace identifier (e.g., "rd_localised", "rd_dynamic")
+   * @return The new version number, or None if increment failed
+   */
+  def incrementCacheNamespaceVersion(namespaceId: String): Option[Long] = {
+    val versionKey = s"${getGlobalCacheNamespacePrefix}cache_version_${namespaceId}"
+    try {
+      val newVersion = Redis.use(JedisMethod.INCR, versionKey, None, None)
+        .map(_.toLong)
+      logger.info(s"Cache namespace version incremented: ${namespaceId} -> ${newVersion.getOrElse("unknown")}")
+      newVersion
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Failed to increment cache namespace version for ${namespaceId}: ${e.getMessage}")
+        None
+    }
+  }
+
+  /**
+   * Build a versioned cache prefix with the namespace counter included.
+   * Format: {instance}_{env}_{prefix}_{version}_
+   *
+   * @param basePrefix The base prefix name (e.g., "rd_localised", "rd_dynamic")
+   * @return Versioned prefix string (e.g., "mybank_prod_rd_localised_1_")
+   */
+  def getVersionedCachePrefix(basePrefix: String): String = {
+    val version = getCacheNamespaceVersion(basePrefix)
+    s"${getGlobalCacheNamespacePrefix}${basePrefix}_${version}_"
+  }
+
   final val localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
-    
+
   final val mailUsersUserinfoSenderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
-  
+
   final val oauth2JwkSetUrl = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
 
   final val consumerDefaultLogoUrl = APIUtil.getPropsValue("consumer_default_logo_url")
@@ -52,7 +144,7 @@ object Constant extends MdcLoggable {
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)
-  
+
   final val CUSTOM_PUBLIC_VIEW_ID = "_public"
   final val SYSTEM_OWNER_VIEW_ID = "owner" // From this commit new owner views are system views
   final val SYSTEM_AUDITOR_VIEW_ID = "auditor"
@@ -75,7 +167,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID = "InitiatePaymentsBerlinGroup"
 
   //This is used for the canRevokeAccessToViews_ and canGrantAccessToViews_ fields of SYSTEM_OWNER_VIEW_ID or SYSTEM_STANDARD_VIEW_ID.
-  final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS = 
+  final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS =
     SYSTEM_OWNER_VIEW_ID::
     SYSTEM_AUDITOR_VIEW_ID::
     SYSTEM_ACCOUNTANT_VIEW_ID::
@@ -91,13 +183,13 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID::
     SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
-    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID :: 
+    SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID ::
       SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID :: Nil
-  
+
   //We allow CBS side to generate views by getBankAccountsForUser.viewsToGenerate filed.
   // viewsToGenerate can be any views, and OBP will check the following list, to make sure only allowed views are generated
   // If some views are not allowed, obp just log it, do not throw exceptions.
-  final val VIEWS_GENERATED_FROM_CBS_WHITE_LIST = 
+  final val VIEWS_GENERATED_FROM_CBS_WHITE_LIST =
     SYSTEM_OWNER_VIEW_ID::
     SYSTEM_ACCOUNTANT_VIEW_ID::
     SYSTEM_AUDITOR_VIEW_ID::
@@ -110,24 +202,83 @@ object Constant extends MdcLoggable {
       SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID :: Nil
 
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
-  final val INCOMING_SETTLEMENT_ACCOUNT_ID = "OBP-INCOMING-SETTLEMENT-ACCOUNT"    
-  final val OUTGOING_SETTLEMENT_ACCOUNT_ID = "OBP-OUTGOING-SETTLEMENT-ACCOUNT"    
-  final val ALL_CONSUMERS = "ALL_CONSUMERS"  
+  final val INCOMING_SETTLEMENT_ACCOUNT_ID = "OBP-INCOMING-SETTLEMENT-ACCOUNT"
+  final val OUTGOING_SETTLEMENT_ACCOUNT_ID = "OBP-OUTGOING-SETTLEMENT-ACCOUNT"
+  final val ALL_CONSUMERS = "ALL_CONSUMERS"
 
   final val PARAM_LOCALE = "locale"
   final val PARAM_TIMESTAMP = "_timestamp_"
 
+  // Cache Namespace IDs - Single source of truth for all namespace identifiers
+  final val CALL_COUNTER_NAMESPACE = "call_counter"
+  final val RL_ACTIVE_NAMESPACE = "rl_active"
+  final val RD_LOCALISED_NAMESPACE = "rd_localised"
+  final val RD_DYNAMIC_NAMESPACE = "rd_dynamic"
+  final val RD_STATIC_NAMESPACE = "rd_static"
+  final val RD_ALL_NAMESPACE = "rd_all"
+  final val SWAGGER_STATIC_NAMESPACE = "swagger_static"
+  final val CONNECTOR_NAMESPACE = "connector"
+  final val METRICS_STABLE_NAMESPACE = "metrics_stable"
+  final val METRICS_RECENT_NAMESPACE = "metrics_recent"
+  final val ABAC_RULE_NAMESPACE = "abac_rule"
 
-  final val LOCALISED_RESOURCE_DOC_PREFIX = "rd_localised_"
-  final val DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_dynamic_"
-  final val STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_static_"
-  final val ALL_RESOURCE_DOC_CACHE_KEY_PREFIX = "rd_all_"
-  final val STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX = "swagger_static_"
+  // List of all versioned cache namespaces
+  final val ALL_CACHE_NAMESPACES = List(
+    CALL_COUNTER_NAMESPACE,
+    RL_ACTIVE_NAMESPACE,
+    RD_LOCALISED_NAMESPACE,
+    RD_DYNAMIC_NAMESPACE,
+    RD_STATIC_NAMESPACE,
+    RD_ALL_NAMESPACE,
+    SWAGGER_STATIC_NAMESPACE,
+    CONNECTOR_NAMESPACE,
+    METRICS_STABLE_NAMESPACE,
+    METRICS_RECENT_NAMESPACE,
+    ABAC_RULE_NAMESPACE
+  )
+
+  // Cache key prefixes with global namespace and versioning for easy invalidation
+  // Version counter allows invalidating entire cache namespaces by incrementing the counter
+  // Example: rd_localised_1_ → rd_localised_2_ (all old keys with _1_ become unreachable)
+  def LOCALISED_RESOURCE_DOC_PREFIX: String = getVersionedCachePrefix(RD_LOCALISED_NAMESPACE)
+  def DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(RD_DYNAMIC_NAMESPACE)
+  def STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(RD_STATIC_NAMESPACE)
+  def ALL_RESOURCE_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(RD_ALL_NAMESPACE)
+  def STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(SWAGGER_STATIC_NAMESPACE)
   final val CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL: Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
   final val GET_DYNAMIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
   final val GET_STATIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "3600").toInt
   final val SHOW_USED_CONNECTOR_METHODS: Boolean = APIUtil.getPropsAsBoolValue(s"show_used_connector_methods", false)
-  
+
+  // Rate Limiting Cache Prefixes (with global namespace and versioning)
+  // Both call_counter and rl_active are versioned for consistent cache invalidation
+  def CALL_COUNTER_PREFIX: String = getVersionedCachePrefix(CALL_COUNTER_NAMESPACE)
+  def RATE_LIMIT_ACTIVE_PREFIX: String = getVersionedCachePrefix(RL_ACTIVE_NAMESPACE)
+  final val RATE_LIMIT_ACTIVE_CACHE_TTL: Int = APIUtil.getPropsValue("rateLimitActive.cache.ttl.seconds", "3600").toInt
+
+  // Connector Cache Prefixes (with global namespace and versioning)
+  def CONNECTOR_PREFIX: String = getVersionedCachePrefix(CONNECTOR_NAMESPACE)
+
+  // Metrics Cache Prefixes (with global namespace and versioning)
+  def METRICS_STABLE_PREFIX: String = getVersionedCachePrefix(METRICS_STABLE_NAMESPACE)
+  def METRICS_RECENT_PREFIX: String = getVersionedCachePrefix(METRICS_RECENT_NAMESPACE)
+
+  // ABAC Cache Prefixes (with global namespace and versioning)
+  def ABAC_RULE_PREFIX: String = getVersionedCachePrefix(ABAC_RULE_NAMESPACE)
+
+  // ABAC Policy Constants
+  final val ABAC_POLICY_ACCOUNT_ACCESS = "account-access"
+
+  // List of all ABAC Policies
+  final val ABAC_POLICIES: List[String] = List(
+    ABAC_POLICY_ACCOUNT_ACCESS
+  )
+
+  // Map of ABAC Policies to their descriptions
+  final val ABAC_POLICY_DESCRIPTIONS: Map[String, String] = Map(
+    ABAC_POLICY_ACCOUNT_ACCESS -> "Rules for controlling access to account information and account-related operations"
+  )
+
   final val CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT = "can_see_transaction_other_bank_account"
   final val CAN_SEE_TRANSACTION_METADATA = "can_see_transaction_metadata"
   final val CAN_SEE_TRANSACTION_DESCRIPTION = "can_see_transaction_description"
@@ -332,7 +483,7 @@ object Constant extends MdcLoggable {
     CAN_SEE_BANK_ACCOUNT_CURRENCY,
     CAN_SEE_TRANSACTION_STATUS
   )
-  
+
   final val SYSTEM_VIEW_PERMISSION_COMMON = List(
     CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
     CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
@@ -517,7 +668,7 @@ object PrivateKeyConstants {
 
 object JedisMethod extends Enumeration {
   type JedisMethod = Value
-  val GET, SET, EXISTS, DELETE, TTL, INCR, FLUSHDB= Value
+  val GET, SET, EXISTS, DELETE, TTL, INCR, FLUSHDB, SCAN = Value
 }
 
 
@@ -549,14 +700,14 @@ object RequestHeader {
   final lazy val `TPP-Signature-Certificate` = "TPP-Signature-Certificate" // Berlin Group
 
   /**
-   * The If-Modified-Since request HTTP header makes the request conditional: 
-   * the server sends back the requested resource, with a 200 status, 
-   * only if it has been last modified after the given date. 
-   * If the resource has not been modified since, the response is a 304 without any body; 
-   * the Last-Modified response header of a previous request contains the date of last modification. 
+   * The If-Modified-Since request HTTP header makes the request conditional:
+   * the server sends back the requested resource, with a 200 status,
+   * only if it has been last modified after the given date.
+   * If the resource has not been modified since, the response is a 304 without any body;
+   * the Last-Modified response header of a previous request contains the date of last modification.
    * Unlike If-Unmodified-Since, If-Modified-Since can only be used with a GET or HEAD.
    *
-   * When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match. 
+   * When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
    */
   final lazy val `If-Modified-Since` = "If-Modified-Since"
 }
@@ -590,4 +741,3 @@ object BerlinGroup extends Enumeration {
     val SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP = Value
   }
 }
-

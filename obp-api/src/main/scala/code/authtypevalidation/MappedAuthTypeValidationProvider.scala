@@ -22,7 +22,7 @@ object MappedAuthTypeValidationProvider extends AuthenticationTypeValidationProv
   override def getByOperationId(operationId: String): Box[JsonAuthTypeValidation] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL.second) {
         AuthenticationTypeValidation.find(By(AuthenticationTypeValidation.OperationId, operationId))
           .map(it => JsonAuthTypeValidation(it.operationId, it.allowedAuthTypes))
       }}

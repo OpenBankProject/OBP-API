@@ -1,6 +1,6 @@
 package code.bankconnectors.akka.actor
 
-import akka.actor.{ActorSystem, Props}
+import org.apache.pekko.actor.{ActorSystem, Props}
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 

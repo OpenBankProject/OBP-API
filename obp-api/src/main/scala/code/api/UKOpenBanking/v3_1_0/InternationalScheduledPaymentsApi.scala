@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -170,7 +171,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -442,7 +443,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -714,7 +715,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -888,7 +889,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -1050,7 +1051,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

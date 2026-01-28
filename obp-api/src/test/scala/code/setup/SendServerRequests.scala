@@ -180,7 +180,8 @@ trait SendServerRequests {
   private def ApiResponseCommonPart(req: Req) = {
     for (response <- Http.default(req > as.Response(p => p)))
       yield {
-        val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
+        //{} -->parse(body) => JObject(List()) , this is not "NO Content", change "" --> JNothing
+        val body = if (response.getResponseBody().isEmpty) "" else response.getResponseBody()
 
         // Check that every response has a correlationId at Response Header
         val list = response.getHeaders(ResponseHeader.`Correlation-Id`).asScala.toList

@@ -66,8 +66,8 @@ class UserAuthContextTest extends V500ServerSetupAsync {
       val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
       Then("We should get a 401")
       response500.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
@@ -85,8 +85,8 @@ class UserAuthContextTest extends V500ServerSetupAsync {
       val response500 = makeGetRequest(request500)
       Then("We should get a 401")
       response500.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
@@ -136,8 +136,8 @@ class UserAuthContextTest extends V500ServerSetupAsync {
       val response500 = makePostRequest(request500, write(postUserAuthContextJson))
       Then("We should get a 401")
       response500.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
@@ -146,8 +146,8 @@ class UserAuthContextTest extends V500ServerSetupAsync {
       val response500 = makePostRequest(request500, write(postUserAuthContextUpdateJsonV310))
       Then("We should get a 401")
       response500.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {

@@ -1,5 +1,6 @@
 package code.api.BahrainOBF.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -64,7 +65,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -72,7 +73,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
        case "domestic-future-dated-payment-cancellation-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Data" : {
@@ -144,7 +145,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -152,7 +153,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
        case "domestic-future-dated-payment-cancellation-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Data" : {
@@ -289,7 +290,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -297,7 +298,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
        case "domestic-future-dated-payment-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -565,7 +566,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
     "ExpectedSettlementDateTime" : "2000-01-23T04:56:07.000+00:00"
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Domestic Future Dated Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -573,7 +574,7 @@ object APIMethods_DomesticFutureDatedPaymentConsentsApi extends RestHelper {
        case "domestic-future-dated-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

@@ -3,7 +3,7 @@ package code.api.ResourceDocs1_4_0
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{InvalidApiCollectionIdParameter, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.setup.{DefaultUsers, PropsReset}
@@ -99,6 +99,52 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    
+    scenario("Test OpenAPI endpoint with valid parameters", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("content", "static"), ("tags", "Account"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(200)
+    }
+    
+    scenario("Test OpenAPI endpoint with invalid content parameter", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("content", "invalid"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(400)
+      responseGetOpenAPI.body.toString should include("OBP-10052")
+    }
+    
+    scenario("Test OpenAPI endpoint with empty tags parameter", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", ""))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(400)
+      responseGetOpenAPI.body.toString should include("OBP-10053")
+    }
+    
+    scenario("Test OpenAPI endpoint with empty functions parameter", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("functions", ""))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(400)
+      responseGetOpenAPI.body.toString should include("OBP-10054")
+    }
+    
+    scenario("Test OpenAPI endpoint with valid multiple tags", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", "Account,Bank"), ("content", "static"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(200)
+    }
+    
+    scenario("Test OpenAPI endpoint with Account-Firehose tag and static content", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("content", "static"), ("tags", "Account-Firehose"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(200)
+    }
+    
+    scenario("Test OpenAPI endpoint with empty api-collection-id parameter", ApiEndpoint1, VersionOfApi) {
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("api-collection-id", ""))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(400)
+      responseGetOpenAPI.body.toString should include(InvalidApiCollectionIdParameter)
     }
     scenario(s"We will test ${ApiEndpoint1.name} Api -v5.1.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "v5.1.0" / "obp").GET
@@ -348,7 +394,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(401)
-      responseGetObp.toString contains(UserNotLoggedIn) should be (true)
+      responseGetObp.toString contains(AuthenticatedUserIsRequired) should be (true)
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0 - resource_docs_requires_role props- login in user", ApiEndpoint1, VersionOfApi) {
@@ -623,7 +669,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(401)
-      responseGetObp.toString contains(UserNotLoggedIn) should be (true)
+      responseGetObp.toString contains(AuthenticatedUserIsRequired) should be (true)
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -v4.0.0 - resource_docs_requires_role props- login in user", ApiEndpoint1, VersionOfApi) {

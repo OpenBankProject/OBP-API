@@ -50,7 +50,7 @@ import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import java.net.URI
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters.mapAsJavaMapConverter
+import scala.collection.JavaConverters._
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -228,6 +228,71 @@ object OAuth2Login extends RestHelper with MdcLoggable {
 
     def urlOfJwkSets: Box[String] = Constant.oauth2JwkSetUrl
 
+    /**
+      * Get all JWKS URLs from configuration.
+      * This is a helper method for trying multiple JWKS URLs when validating tokens.
+      * We need more than one JWKS URL if we have multiple OIDC providers configured etc.
+      * @return List of all configured JWKS URLs
+      */
+    protected def getAllJwksUrls: List[String] = {
+      val url: List[String] = Constant.oauth2JwkSetUrl.toList
+      url.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty)
+    }
+
+    /**
+      * Try to validate a JWT token with multiple JWKS URLs.
+      * This is a generic retry mechanism that works for both ID tokens and access tokens.
+      *
+      * @param token The JWT token to validate
+      * @param tokenType Description of token type for logging (e.g., "ID token", "access token")
+      * @param validateFunc Function that validates token against a JWKS URL
+      * @tparam T The type of claims returned (IDTokenClaimsSet or JWTClaimsSet)
+      * @return Boxed claims or failure
+      */
+    protected def tryValidateWithAllJwksUrls[T](
+      token: String,
+      tokenType: String,
+      validateFunc: (String, String) => Box[T]
+    ): Box[T] = {
+      logger.debug(s"tryValidateWithAllJwksUrls - attempting to validate $tokenType")
+
+      // Extract issuer for better error reporting
+      val actualIssuer = JwtUtil.getIssuer(token).getOrElse("NO_ISSUER_CLAIM")
+      logger.debug(s"tryValidateWithAllJwksUrls - JWT issuer claim: '$actualIssuer'")
+
+      // Get all JWKS URLs
+      val allJwksUrls = getAllJwksUrls
+
+      if (allJwksUrls.isEmpty) {
+        logger.debug(s"tryValidateWithAllJwksUrls - No JWKS URLs configured")
+        return Failure(Oauth2ThereIsNoUrlOfJwkSet)
+      }
+
+      logger.debug(s"tryValidateWithAllJwksUrls - Will try ${allJwksUrls.size} JWKS URL(s): $allJwksUrls")
+
+      // Try each JWKS URL until one succeeds
+      val results = allJwksUrls.map { url =>
+        logger.debug(s"tryValidateWithAllJwksUrls - Trying JWKS URL: '$url'")
+        val result = validateFunc(token, url)
+        result match {
+          case Full(_) =>
+            logger.debug(s"tryValidateWithAllJwksUrls - SUCCESS with JWKS URL: '$url'")
+          case Failure(msg, _, _) =>
+            logger.debug(s"tryValidateWithAllJwksUrls - FAILED with JWKS URL: '$url', reason: $msg")
+          case _ =>
+            logger.debug(s"tryValidateWithAllJwksUrls - FAILED with JWKS URL: '$url'")
+        }
+        result
+      }
+
+      // Return the first successful result, or the last failure
+      results.find(_.isDefined).getOrElse {
+        logger.debug(s"tryValidateWithAllJwksUrls - All ${allJwksUrls.size} JWKS URL(s) failed for issuer: '$actualIssuer'")
+        logger.debug(s"tryValidateWithAllJwksUrls - Tried URLs: $allJwksUrls")
+        results.lastOption.getOrElse(Failure(Oauth2ThereIsNoUrlOfJwkSet))
+      }
+    }
+
     def checkUrlOfJwkSets(identityProvider: String) = {
       val url: List[String] = Constant.oauth2JwkSetUrl.toList
       val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
@@ -310,47 +375,10 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }.getOrElse(false)
     }
     def validateIdToken(idToken: String): Box[IDTokenClaimsSet] = {
-      logger.debug(s"validateIdToken - attempting to validate ID token")
-
-      // Extract issuer for better error reporting
-      val actualIssuer = JwtUtil.getIssuer(idToken).getOrElse("NO_ISSUER_CLAIM")
-      logger.debug(s"validateIdToken - JWT issuer claim: '$actualIssuer'")
-
-      urlOfJwkSets match {
-        case Full(url) =>
-          logger.debug(s"validateIdToken - using JWKS URL: '$url'")
-          JwtUtil.validateIdToken(idToken, url)
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          logger.debug(s"validateIdToken - ParamFailure: $a, $b, $c, $apiFailure")
-          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
-          ParamFailure(a, b, c, apiFailure : APIFailure)
-        case Failure(msg, t, c) =>
-          logger.debug(s"validateIdToken - Failure getting JWKS URL: $msg")
-          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
-          if (msg.contains("OBP-20208")) {
-            logger.debug("validateIdToken - OBP-20208 Error Details:")
-            logger.debug(s"validateIdToken - JWT issuer claim: '$actualIssuer'")
-            logger.debug(s"validateIdToken - oauth2.jwk_set.url value: '${Constant.oauth2JwkSetUrl}'")
-            logger.debug("validateIdToken - Check that the JWKS URL configuration matches the JWT issuer")
-          }
-          Failure(msg, t, c)
-        case _ =>
-          logger.debug("validateIdToken - No JWKS URL available")
-          logger.debug(s"validateIdToken - JWT issuer was: '$actualIssuer'")
-          Failure(Oauth2ThereIsNoUrlOfJwkSet)
-      }
+      tryValidateWithAllJwksUrls(idToken, "ID token", JwtUtil.validateIdToken)
     }
     def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
-      urlOfJwkSets match {
-        case Full(url) =>
-          JwtUtil.validateAccessToken(accessToken, url)
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          ParamFailure(a, b, c, apiFailure : APIFailure)
-        case Failure(msg, t, c) =>
-          Failure(msg, t, c)
-        case _ =>
-          Failure(Oauth2ThereIsNoUrlOfJwkSet)
-      }
+      tryValidateWithAllJwksUrls(accessToken, "access token", JwtUtil.validateAccessToken)
     }
     /** New Style Endpoints
       * This function creates user based on "iss" and "sub" fields

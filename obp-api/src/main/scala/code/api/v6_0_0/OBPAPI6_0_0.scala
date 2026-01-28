@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0
 
+
+import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
 import code.api.util.VersionedOBPApis
@@ -77,11 +79,36 @@ object OBPAPI6_0_0 extends OBPRestHelper
   // Exclude v5.1.0 root endpoint since v6.0.0 has its own
   lazy val endpointsOf5_1_0_without_root = OBPAPI5_1_0.routes.filterNot(_ == Implementations5_1_0.root)
 
+  /* 
+   * IMPORTANT: Endpoint Exclusion Pattern
+   * 
+   * excludeEndpoints is used to filter out old endpoints when v6.0.0 has a DIFFERENT URL pattern.
+   * 
+   * WHEN TO EXCLUDE:
+   * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v6.0.0: /providers/:provider/users/:username)
+   * - The old endpoint should not be accessible via v6.0.0 at all
+   * 
+   * WHEN NOT TO EXCLUDE:
+   * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
+   * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
+   * - Excluding by function name would remove BOTH versions since they share the same name!
+   * 
+   * Why? The routing works as follows:
+   * 1. endpoints list = endpointsOf6_0_0 ++ endpointsOf5_1_0_without_root (contains BOTH old and new)
+   * 2. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
+   * 3. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
+   * 4. getAllowedEndpoints() filters endpoints to only those with matching ResourceDocs
+   * 
+   * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
+   */
   lazy val excludeEndpoints = 
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V600.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
       nameOf(Implementations4_0_0.lockUser) ::
+      // NOTE: getScannedApiVersions is NOT excluded here because it has the same URL in both v4.0.0 and v6.0.0
+      // collectResourceDocs() automatically deduplicates by (URL, HTTP method) and keeps the newest version (v6.0.0)
+      // Excluding by function name would incorrectly filter out BOTH versions since they share the same function name
       nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V600.
       nameOf(Implementations4_0_0.grantUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeUserAccessToView) ::

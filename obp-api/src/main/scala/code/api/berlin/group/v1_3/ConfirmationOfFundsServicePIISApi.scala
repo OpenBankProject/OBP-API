@@ -1,5 +1,6 @@
 package code.api.builder.ConfirmationOfFundsServicePIISApi
 
+import scala.language.implicitConversions
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.{JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
@@ -57,7 +58,7 @@ in the header. This field is contained but commented out in this specification. 
          """{
           "fundsAvailable" : true
          }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagBerlinGroupM :: Nil
      )
 

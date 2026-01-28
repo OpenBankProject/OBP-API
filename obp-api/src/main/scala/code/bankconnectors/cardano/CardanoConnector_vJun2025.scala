@@ -83,7 +83,7 @@ trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
                      |  $metadataJson
                      |}""".stripMargin
 
-      request = prepareHttpRequest(paramUrl, _root_.akka.http.scaladsl.model.HttpMethods.POST, _root_.akka.http.scaladsl.model.HttpProtocol("HTTP/1.1"), jsonToSend)
+      request = prepareHttpRequest(paramUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocol("HTTP/1.1"), jsonToSend)
       _ = logger.debug(s"CardanoConnector_vJun2025.makePaymentv210 request is : $request")
 
       response <- NewStyle.function.tryons(s"${ErrorMessages.UnknownError} Failed to make HTTP request to Cardano API", 500, callContext) {
@@ -91,7 +91,7 @@ trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
       }.flatten
 
       responseBody <- NewStyle.function.tryons(s"${ErrorMessages.UnknownError} Failed to extract response body", 500, callContext) {
-        response.entity.dataBytes.runFold(_root_.akka.util.ByteString(""))(_ ++ _).map(_.utf8String)
+        response.entity.dataBytes.runFold(_root_.org.apache.pekko.util.ByteString(""))(_ ++ _).map(_.utf8String)
       }.flatten
       
       _ <- Helper.booleanToFuture(s"${ErrorMessages.UnknownError} Cardano API returned error: ${response.status.value}", 500, callContext) {

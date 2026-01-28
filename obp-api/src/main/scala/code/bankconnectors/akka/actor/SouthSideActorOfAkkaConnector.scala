@@ -1,6 +1,6 @@
 package code.bankconnectors.akka.actor
 
-import akka.actor.{Actor, ActorLogging}
+import org.apache.pekko.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}

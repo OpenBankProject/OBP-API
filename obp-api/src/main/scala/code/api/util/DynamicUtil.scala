@@ -242,10 +242,10 @@ object DynamicUtil extends MdcLoggable{
       |import java.util.Date
       |import java.util.UUID.randomUUID
       |
-      |import _root_.akka.stream.StreamTcpException
-      |import akka.http.scaladsl.model.headers.RawHeader
-      |import akka.http.scaladsl.model.{HttpProtocol, _}
-      |import akka.util.ByteString
+      |import _root_.org.apache.pekko.stream.StreamTcpException
+      |import org.apache.pekko.http.scaladsl.model.headers.RawHeader
+      |import org.apache.pekko.http.scaladsl.model.{HttpProtocol, _}
+      |import org.apache.pekko.util.ByteString
       |import code.api.APIFailureNewStyle
       |import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
       |import code.api.cache.Caching

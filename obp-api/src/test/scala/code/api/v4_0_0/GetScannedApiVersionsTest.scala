@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api.v4_0_0
 
+import code.api.util.APIUtil
 import code.api.util.ApiRole._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement
@@ -33,7 +34,7 @@ import com.openbankproject.commons.model.ListResult
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.scalatest.Tag
 
-import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.collection.JavaConverters._
 class GetScannedApiVersionsTest extends V400ServerSetup {
 
   /**
@@ -46,8 +47,63 @@ class GetScannedApiVersionsTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations4_0_0.getScannedApiVersions))
 
+  feature("test props-api_disabled_versions,  Get all scanned API versions should works") {
+    scenario("We get all the scanned API versions with disabled versions filtered out", ApiEndpoint, VersionOfApi) {
+      //  api_disabled_versions=[OBPv3.0.0,BGv1.3]
+      setPropsValues("api_disabled_versions"-> "[OBPv3.0.0,BGv1.3]")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "api" / "versions").GET
 
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
+      val responseApiVersions = listResult.results
+      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+        version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
+      }
+
+      responseApiVersions should equal(scannedApiVersions)
+      
+      // Verify that disabled versions are not included
+      responseApiVersions.exists(_.fullyQualifiedVersion == "OBPv3.0.0") should equal(false)
+      responseApiVersions.exists(_.fullyQualifiedVersion == "BGv1.3") should equal(false)
+
+    }
+  }
+
+  feature("test props-api_enabled_versions,  Get all scanned API versions should works") {
+    scenario("We get all the scanned API versions with disabled versions filtered out", ApiEndpoint, VersionOfApi) {
+      //  api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
+      setPropsValues("api_enabled_versions"-> "[OBPv2.2.0,OBPv3.0.0,UKv2.0]")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "api" / "versions").GET
+
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
+      val responseApiVersions = listResult.results
+      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+        version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
+      }
+
+      responseApiVersions should equal(scannedApiVersions)
+
+      // Verify that disabled versions are not included
+      responseApiVersions.exists(_.fullyQualifiedVersion == "OBPv2.2.0") should equal(true)
+      responseApiVersions.exists(_.fullyQualifiedVersion == "OBPv3.0.0") should equal(true)
+      responseApiVersions.exists(_.fullyQualifiedVersion == "UKv2.0") should equal(true)
+
+    }
+  }
+  
   feature("Get all scanned API versions should works") {
+
     scenario("We get all the scanned API versions", ApiEndpoint, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
       When("We make a request v4.0.0")

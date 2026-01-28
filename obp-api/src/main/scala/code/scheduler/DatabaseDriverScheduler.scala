@@ -3,7 +3,7 @@ package code.scheduler
 import java.sql.SQLException
 import java.util.concurrent.TimeUnit
 
-import code.actorsystem.ObpLookupSystem
+import code.actorsystem.ObpActorSystem
 import code.util.Helper.MdcLoggable
 import net.liftweb.db.{DB, SuperConnection}
 
@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 
 object DatabaseDriverScheduler extends MdcLoggable {
 
-  private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
+  private lazy val actorSystem = ObpActorSystem.localActorSystem
   implicit lazy val executor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
 

@@ -87,7 +87,7 @@ trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
     }
 
     for {
-      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.akka.http.scaladsl.model.HttpMethods.POST, _root_.akka.http.scaladsl.model.HttpProtocol("HTTP/1.1"), payload)
+      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocol("HTTP/1.1"), payload)
       }
 
       response <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to call Ethereum RPC", 500, callContext) {
@@ -95,7 +95,7 @@ trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
       }.flatten
 
       body <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to read Ethereum RPC response", 500, callContext) {
-        response.entity.dataBytes.runFold(_root_.akka.util.ByteString(""))(_ ++ _).map(_.utf8String)
+        response.entity.dataBytes.runFold(_root_.org.apache.pekko.util.ByteString(""))(_ ++ _).map(_.utf8String)
       }.flatten
 
       _ <- Helper.booleanToFuture(ErrorMessages.UnknownError + s" Ethereum RPC returned error: ${response.status.value}", 500, callContext) {

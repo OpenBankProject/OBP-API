@@ -9,15 +9,22 @@ trait WebUiPropsT {
   def webUiPropsId: Option[String]
   def name: String
   def value: String
+  def source: Option[String]
 }
 
 case class WebUiPropsCommons(name: String,
-                             value: String, webUiPropsId: Option[String] = None) extends WebUiPropsT with JsonFieldReName
+                             value: String, 
+                             webUiPropsId: Option[String] = None,
+                             source: Option[String] = None) extends WebUiPropsT with JsonFieldReName
 
 object WebUiPropsCommons extends Converter[WebUiPropsT, WebUiPropsCommons]
 
+case class WebUiPropsPutJsonV600(value: String) extends JsonFieldReName
+
 trait WebUiPropsProvider {
   def getAll(): List[WebUiPropsT]
+
+  def getByName(name: String): Box[WebUiPropsT]
 
   def createOrUpdate(webUiProps: WebUiPropsT): Box[WebUiPropsT]
 

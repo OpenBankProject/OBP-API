@@ -6,11 +6,11 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
 import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, DAuth, OAuth2_OIDC, OAuth2_OIDC_FAPI}
-import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{BankAccountNotFound, AuthenticatedUserIsRequired}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
-import code.model.{Consumer, _}
+import code.model._
 import code.util.Helper.MdcLoggable
 import code.util.SecureLogging
 import code.views.Views
@@ -55,7 +55,12 @@ case class CallContext(
                         xRateLimitRemaining : Long = -1,
                         xRateLimitReset : Long = -1,
                         paginationOffset : Option[String] = None,
-                        paginationLimit : Option[String] = None
+                        paginationLimit : Option[String] = None,
+                        // Validated entities from ResourceDoc middleware (http4s)
+                        bank: Option[Bank] = None,
+                        bankAccount: Option[BankAccount] = None,
+                        view: Option[View] = None,
+                        counterparty: Option[CounterpartyTrait] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
@@ -147,9 +152,9 @@ case class CallContext(
   }
 
   // for endpoint body convenient get userId
-  def userId: String  = user.map(_.userId).openOrThrowException(UserNotLoggedIn)
-  def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(UserNotLoggedIn)
-  def loggedInUser: User = user.openOrThrowException(UserNotLoggedIn)
+  def userId: String  = user.map(_.userId).openOrThrowException(AuthenticatedUserIsRequired)
+  def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)
+  def loggedInUser: User = user.openOrThrowException(AuthenticatedUserIsRequired)
   // for endpoint body convenient get cc.callContext
   def callContext: Option[CallContext] = Option(this)
 

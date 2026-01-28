@@ -1,5 +1,6 @@
 package code
 
+import scala.language.implicitConversions
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.Narrative
@@ -16,6 +17,7 @@ import com.openbankproject.commons.model._
   * Bank -> Bank + BankEx
   */
 package object model {
+  import scala.language.implicitConversions
 
   implicit def toBankExtended(bank: Bank) = BankExtended(bank)
 

@@ -2,11 +2,12 @@ package code.ratelimiting
 
 import code.api.util.APIUtil
 import code.api.cache.Caching
+import code.api.Constant._
 
 import java.util.Date
 import java.util.UUID.randomUUID
 import code.util.{MappedUUID, UUIDString}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Full, Logger}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -19,8 +20,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object MappedRateLimitingProvider extends RateLimitingProviderTrait {
-  
+object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger {
+
   def getAll(): Future[List[RateLimiting]] = Future(RateLimiting.findAll())
   def getAllByConsumerId(consumerId: String, date: Option[Date] = None): Future[List[RateLimiting]] = Future {
     date match {
@@ -35,13 +36,13 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
           By_>(RateLimiting.ToDate, date)
         )
     }
-    
+
   }
-  def getByConsumerId(consumerId: String, 
-                      apiVersion: String, 
-                      apiName: String, 
+  def getByConsumerId(consumerId: String,
+                      apiVersion: String,
+                      apiName: String,
                       date: Option[Date] = None): Future[Box[RateLimiting]] = Future {
-    val result = 
+    val result =
       date match {
         case None =>
           RateLimiting.find( // 1st try: Consumer and Version and Name
@@ -168,6 +169,8 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
       }
     }
     val result = createRateLimit(RateLimiting.create)
+    // Invalidate cache when creating new rate limit
+    result.foreach(_ => Caching.invalidateRateLimitCache(consumerId))
     result
   }
   def createOrUpdateConsumerCallLimits(consumerId: String,
@@ -225,7 +228,7 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
                                perDay: Option[String],
                                perWeek: Option[String],
                                perMonth: Option[String]): Future[Box[RateLimiting]] = Future {
-    RateLimiting.find(
+    val result = RateLimiting.find(
       By(RateLimiting.RateLimitingId, rateLimitingId)
     ) map { c =>
       c.FromDate(fromDate)
@@ -246,54 +249,65 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
 
       c.saveMe()
     }
-  }
-
-  def deleteByRateLimitingId(rateLimitingId: String): Future[Box[Boolean]] = Future {
-    tryo {
-      RateLimiting.find(By(RateLimiting.RateLimitingId, rateLimitingId)) match {
-        case Full(rateLimiting) => rateLimiting.delete_!
-        case _ => false
-      }
-    }
+    // Invalidate cache when updating rate limit
+    result.foreach(rl => Caching.invalidateRateLimitCache(rl.consumerId))
+    result
   }
 
   def getByRateLimitingId(rateLimitingId: String): Future[Box[RateLimiting]] = Future {
     RateLimiting.find(By(RateLimiting.RateLimitingId, rateLimitingId))
   }
 
-  private def getActiveCallLimitsByConsumerIdAtDateCached(consumerId: String, currentDateWithHour: String): List[RateLimiting] = {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    // Create a proper Date object from the date_with_hour string (assuming 0 mins and 0 seconds)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
-    val localDateTime = LocalDateTime.parse(currentDateWithHour, formatter).withMinute(0).withSecond(0)
-    // Convert LocalDateTime to java.util.Date
-    val instant = localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant()
-    val date = Date.from(instant)
-    
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(3600 second) {
-        RateLimiting.findAll(
-          By(RateLimiting.ConsumerId, consumerId),
-          By_<=(RateLimiting.FromDate, date),
-          By_>=(RateLimiting.ToDate, date)
-        )
-      }
-    }
+  def deleteByRateLimitingId(rateLimitingId: String): Future[Box[Boolean]] = Future {
+    val rl = RateLimiting.find(By(RateLimiting.RateLimitingId, rateLimitingId))
+    val result = rl.map(_.delete_!)
+    // Invalidate cache when deleting rate limit
+    rl.foreach(r => Caching.invalidateRateLimitCache(r.consumerId))
+    result
   }
 
-  def getActiveCallLimitsByConsumerIdAtDate(consumerId: String, date: Date): Future[List[RateLimiting]] = Future {
-    def currentDateWithHour: String = {
-      val now = LocalDateTime.now()
+  private def getActiveCallLimitsByConsumerIdAtDateCached(consumerId: String, dateWithHour: String): List[RateLimiting] = {
+    // Cache key uses standardized prefix: rl_active_{consumerId}_{dateWithHour}
+    // Create Date objects for start and end of the hour from the date_with_hour string
+    // IMPORTANT: Hour format is in UTC for consistency across all servers
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
+    val localDateTime = LocalDateTime.parse(dateWithHour, formatter)
+
+    // Start of hour: 00 mins, 00 seconds (UTC)
+    val startOfHour = localDateTime.withMinute(0).withSecond(0)
+    val startInstant = startOfHour.atZone(java.time.ZoneOffset.UTC).toInstant()
+    val startDate = Date.from(startInstant)
+
+    // End of hour: 59 mins, 59 seconds (UTC)
+    val endOfHour = localDateTime.withMinute(59).withSecond(59)
+    val endInstant = endOfHour.atZone(java.time.ZoneOffset.UTC).toInstant()
+    val endDate = Date.from(endInstant)
+
+    val cacheKey = s"${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_${dateWithHour}"
+      Caching.memoizeSyncWithProvider(Some(cacheKey))(RATE_LIMIT_ACTIVE_CACHE_TTL second) {
+        // Find rate limits that are active at any point during this hour
+        // A rate limit is active if: fromDate <= endOfHour AND toDate >= startOfHour
+        debug(s"[RateLimiting] Query: consumerId=$consumerId, dateWithHour=$dateWithHour, startDate=$startDate, endDate=$endDate")
+        val results = RateLimiting.findAll(
+          By(RateLimiting.ConsumerId, consumerId),
+          By_<=(RateLimiting.FromDate, endDate),
+          By_>=(RateLimiting.ToDate, startDate)
+        )
+        debug(s"[RateLimiting] Found ${results.size} rate limits for consumerId=$consumerId at dateWithHour=$dateWithHour")
+        results
+      }
+  }
+
+  def getActiveCallLimitsByConsumerIdAtDate(consumerId: String, dateUtc: Date): Future[List[RateLimiting]] = Future {
+    // Convert the provided date parameter (not current time!) to hour format
+    // Date is timezone-agnostic (millis since epoch), we interpret it as UTC
+    def dateWithHour: String = {
+      val instant = dateUtc.toInstant()
+      val localDateTime = LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC)
       val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
-      now.format(formatter)
+      localDateTime.format(formatter)
     }
-    getActiveCallLimitsByConsumerIdAtDateCached(consumerId, currentDateWithHour)
+    getActiveCallLimitsByConsumerIdAtDateCached(consumerId, dateWithHour)
   }
 
 }

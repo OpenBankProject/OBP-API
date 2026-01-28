@@ -60,7 +60,7 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       val responseAnonymous = makePostRequest(requestAnonymous, write(properCardJson))
       And(s"We should get  401 and get the authentication error")
       responseAnonymous.code should equal(401)
-      responseAnonymous.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      responseAnonymous.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
 
 
       Then(s"We call the authentication user, but totally wrong Json format.")

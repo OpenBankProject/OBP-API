@@ -71,7 +71,7 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
   override def getAll(bankId: Option[String]): List[DynamicEndpointT] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (dynamicEndpointTTL second) {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (dynamicEndpointTTL.second) {
         if (bankId.isEmpty)
           DynamicEndpoint.findAll()
         else

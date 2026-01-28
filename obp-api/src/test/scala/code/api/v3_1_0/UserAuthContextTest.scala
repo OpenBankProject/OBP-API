@@ -64,8 +64,8 @@ class UserAuthContextTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(postUserAuthContextJson))
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -83,8 +83,8 @@ class UserAuthContextTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -102,8 +102,8 @@ class UserAuthContextTest extends V310ServerSetup {
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -121,8 +121,8 @@ class UserAuthContextTest extends V310ServerSetup {
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
-      And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")

@@ -55,7 +55,7 @@ object GetHtmlFromUrl extends MdcLoggable {
       logger.debug("jsVendorSupportHtml: " + jsVendorSupportHtml)
 
       // sleep for up to 5 seconds at development environment
-      if (Props.mode == Props.RunModes.Development) Thread.sleep(randomLong(3 seconds))
+      if (Props.mode == Props.RunModes.Development) Thread.sleep(randomLong(3.seconds))
 
       jsVendorSupportHtml
     }

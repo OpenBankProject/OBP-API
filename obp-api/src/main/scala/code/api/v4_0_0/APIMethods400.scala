@@ -1,20 +1,15 @@
 package code.api.v4_0_0
 
+import scala.language.reflectiveCalls
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{
-  jsonDynamicResourceDoc,
-  _
-}
-import code.api.dynamic.endpoint.helper.practise.{
-  DynamicEndpointCodeGenerator,
-  PractiseEndpoint
-}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
+import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
 import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper}
-import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -31,20 +26,11 @@ import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle.getUserCustomerLinks
-import code.api.util.newstyle.{
-  BalanceNewStyle,
-  UserCustomerLinkNewStyle,
-  ViewNewStyle
-}
+import code.api.util.newstyle.{BalanceNewStyle, UserCustomerLinkNewStyle, ViewNewStyle}
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{
-  CreateEntitlementJSON,
-  CreateUserCustomerLinkJson,
-  EntitlementJSONs,
-  JSONFactory200
-}
+import code.api.v2_0_0.{CreateEntitlementJSON, CreateUserCustomerLinkJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.{CreateScopeJson, JSONFactory300}
 import code.api.v3_1_0._
@@ -54,15 +40,10 @@ import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.LocalMappedConnectorInternal._
-import code.bankconnectors.{
-  Connector,
-  DynamicConnector,
-  InternalConnector,
-  LocalMappedConnectorInternal
-}
+import code.bankconnectors.{Connector, DynamicConnector, InternalConnector, LocalMappedConnectorInternal}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.{ConsentStatus, Consents}
-import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
+import code.dynamicEntity.DynamicEntityCommons
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.endpointMapping.EndpointMappingCommons
@@ -82,10 +63,7 @@ import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
-import code.webhook.{
-  BankAccountNotificationWebhookTrait,
-  SystemAccountNotificationWebhookTrait
-}
+import code.webhook.{BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.networknt.schema.ValidationMessage
@@ -110,10 +88,10 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util
 import java.util.{Calendar, Date}
+import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 
 trait APIMethods400 extends MdcLoggable {
   self: RestHelper =>
@@ -217,7 +195,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       adapterInfoJsonV300,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagApi),
       Some(List(canGetDatabaseInfo))
     )
@@ -249,7 +227,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       logoutLinkV400,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser)
     )
 
@@ -291,7 +269,7 @@ trait APIMethods400 extends MdcLoggable {
       callLimitPostJsonV400,
       callLimitPostJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -476,7 +454,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       doubleEntryTransactionJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -541,7 +519,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       doubleEntryTransactionJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -606,7 +584,7 @@ trait APIMethods400 extends MdcLoggable {
       settlementAccountResponseJson,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         $BankNotFound,
         InvalidAccountInitialBalance,
@@ -791,7 +769,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       settlementAccountsJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         $BankNotFound,
         UnknownError
@@ -855,7 +833,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -892,7 +870,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyJsonV200,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -938,7 +916,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyCounterpartyJSON,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -976,7 +954,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodySimpleJsonV400,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1015,7 +993,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodySEPAJsonV400,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1060,7 +1038,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyRefundJsonV400,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1093,7 +1071,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyFreeFormJSON,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1139,7 +1117,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyAgentJsonV400,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1315,7 +1293,7 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestBodyCardJsonV400,
       transactionRequestWithChargeJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1399,7 +1377,7 @@ trait APIMethods400 extends MdcLoggable {
       challengeAnswerJson400,
       transactionRequestWithChargeJSON210,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         InvalidAccountIdFormat,
         InvalidJsonFormat,
@@ -1569,7 +1547,7 @@ trait APIMethods400 extends MdcLoggable {
                           value = rejectReasonCode,
                           callContext = callContext
                         )
-                    } else Future.successful()
+                    } else Future.successful(())
                   rejectAdditionalInformation =
                     challengeAnswerJson.additional_information.getOrElse("")
                   _ <-
@@ -1585,7 +1563,7 @@ trait APIMethods400 extends MdcLoggable {
                           value = rejectAdditionalInformation,
                           callContext = callContext
                         )
-                    } else Future.successful()
+                    } else Future.successful(())
                   _ <- NewStyle.function.notifyTransactionRequest(
                     fromAccount,
                     toAccount,
@@ -1689,13 +1667,13 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestAttributeJsonV400,
       transactionRequestAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canCreateTransactionRequestAttributeAtOneBank))
     )
 
@@ -1761,13 +1739,13 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionRequestAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canGetTransactionRequestAttributeAtOneBank))
     )
 
@@ -1815,13 +1793,13 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionRequestAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canGetTransactionRequestAttributesAtOneBank))
     )
 
@@ -1869,13 +1847,13 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestAttributeJsonV400,
       transactionRequestAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canUpdateTransactionRequestAttributeAtOneBank))
     )
 
@@ -1953,12 +1931,12 @@ trait APIMethods400 extends MdcLoggable {
       transactionRequestAttributeDefinitionJsonV400,
       transactionRequestAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canCreateTransactionRequestAttributeDefinitionAtOneBank))
     )
 
@@ -2030,11 +2008,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionRequestAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canGetTransactionRequestAttributeDefinitionAtOneBank))
     )
 
@@ -2077,11 +2055,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
       Some(List(canDeleteTransactionRequestAttributeDefinitionAtOneBank))
     )
 
@@ -2123,7 +2101,7 @@ trait APIMethods400 extends MdcLoggable {
         List(dynamicEntityResponseBodyExample)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2169,7 +2147,7 @@ trait APIMethods400 extends MdcLoggable {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2243,6 +2221,14 @@ trait APIMethods400 extends MdcLoggable {
          |
          |FYI Dynamic Entities and Dynamic Endpoints are listed in the Resource Doc endpoints by adding content=dynamic to the path. They are cached differently to static endpoints.
          |
+         |**Discovering the generated endpoints:**
+         |
+         |After creating a Dynamic Entity, OBP automatically generates CRUD endpoints. To discover these endpoints programmatically, use:
+         |
+         |`GET /resource-docs/API_VERSION/obp?content=dynamic`
+         |
+         |This returns documentation for all dynamic endpoints including paths, schemas, and required roles.
+         |
          |For more information about Dynamic Entities see ${Glossary
           .getGlossaryItemLink("Dynamic-Entities")}
          |
@@ -2267,7 +2253,12 @@ trait APIMethods400 extends MdcLoggable {
          |
          |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
          |
-         |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |**The hasPersonalEntity flag:**
+         |
+         |* If `hasPersonalEntity` = **true** (default): OBP generates both regular endpoints AND personal 'my' endpoints. Data is user-scoped - each user only sees their own records via 'my' endpoints.
+         |* If `hasPersonalEntity` = **false**: OBP generates ONLY regular endpoints (no 'my' endpoints). Data is shared - all authorized users see the same records.
+         |
+         |This flag also affects authorization (role-based vs user-scoped) and whether cascade delete is allowed. See the Dynamic-Entities glossary for full details on data storage differences.
          |
          |$dynamicEntityNamingExplanation
          |
@@ -2411,7 +2402,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample.copy(bankId = None),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2447,6 +2438,14 @@ trait APIMethods400 extends MdcLoggable {
       |
       |FYI Dynamic Entities and Dynamic Endpoints are listed in the Resource Doc endpoints by adding content=dynamic to the path. They are cached differently to static endpoints.
       |
+         |**Discovering the generated endpoints:**
+         |
+         |After creating a Dynamic Entity, OBP automatically generates CRUD endpoints. To discover these endpoints programmatically, use:
+         |
+         |`GET /resource-docs/API_VERSION/obp?content=dynamic`
+         |
+         |This returns documentation for all dynamic endpoints including paths, schemas, and required roles.
+         |
          |For more information about Dynamic Entities see ${Glossary
           .getGlossaryItemLink("Dynamic-Entities")}
          |
@@ -2470,7 +2469,12 @@ trait APIMethods400 extends MdcLoggable {
          |
          |This endpoint returns all available reference types (both static OBP entities and dynamic entities) with example values showing the correct format.
          |
-         |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
+         |**The hasPersonalEntity flag:**
+         |
+         |* If `hasPersonalEntity` = **true** (default): OBP generates both regular endpoints AND personal 'my' endpoints. Data is user-scoped - each user only sees their own records via 'my' endpoints.
+         |* If `hasPersonalEntity` = **false**: OBP generates ONLY regular endpoints (no 'my' endpoints). Data is shared - all authorized users see the same records.
+         |
+         |This flag also affects authorization (role-based vs user-scoped) and whether cascade delete is allowed. See the Dynamic-Entities glossary for full details on data storage differences.
          |
          |$dynamicEntityNamingExplanation
          |
@@ -2615,7 +2619,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEntityResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2724,7 +2728,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample.copy(bankId = None),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEntityNotFoundByDynamicEntityId,
         InvalidJsonFormat,
@@ -2775,7 +2779,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEntityResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -2808,7 +2812,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2885,7 +2889,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2918,7 +2922,7 @@ trait APIMethods400 extends MdcLoggable {
         List(dynamicEntityResponseBodyExample)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi)
@@ -2975,7 +2979,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         DynamicEntityNotFoundByDynamicEntityId,
         UnknownError
@@ -3057,7 +3061,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi)
@@ -3147,7 +3151,7 @@ trait APIMethods400 extends MdcLoggable {
         "https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -3213,7 +3217,7 @@ trait APIMethods400 extends MdcLoggable {
       createAccountResponseJsonV310,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidAccountBalanceAmount,
         InvalidAccountInitialBalance,
@@ -3394,7 +3398,7 @@ trait APIMethods400 extends MdcLoggable {
       case (Nil | "root" :: Nil) JsonGet _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
         for {
-          _ <- Future() // Just start async call
+          _ <- Future(()) // Just start async call
         } yield {
           (
             JSONFactory400.getApiInfoJSON(
@@ -3419,7 +3423,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagApi),
       Some(List(canGetCallContext))
     )
@@ -3428,7 +3432,7 @@ trait APIMethods400 extends MdcLoggable {
       case "development" :: "call_context" :: Nil JsonGet _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
         for {
-          _ <- Future() // Just start async call
+          _ <- Future(()) // Just start async call
         } yield {
           (cc.callContext, HttpCode.`200`(cc.callContext))
         }
@@ -3447,7 +3451,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       EmptyBody,
-      List($UserNotLoggedIn, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagApi),
       Some(Nil)
     )
@@ -3457,7 +3461,7 @@ trait APIMethods400 extends MdcLoggable {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
@@ -3481,7 +3485,7 @@ trait APIMethods400 extends MdcLoggable {
       successMessage,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError,
         $BankAccountNotFound,
@@ -3556,7 +3560,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userLockStatusJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByProviderAndUsername,
         UserHasMissingRoles,
         UnknownError
@@ -3626,7 +3630,7 @@ trait APIMethods400 extends MdcLoggable {
       postCreateUserWithRolesJsonV400,
       entitlementsJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementIsBankRole,
@@ -3725,7 +3729,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       entitlementsJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank))
     )
@@ -3764,7 +3768,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       entitlementsJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForOneBank, canGetEntitlementsForAnyBank))
     )
@@ -3803,7 +3807,7 @@ trait APIMethods400 extends MdcLoggable {
       postAccountTagJSON,
       accountTagJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -3875,7 +3879,7 @@ trait APIMethods400 extends MdcLoggable {
       List(
         NoViewPermission,
         ViewNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -3927,7 +3931,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       accountTagsJSON,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         NoViewPermission,
@@ -3988,7 +3992,7 @@ trait APIMethods400 extends MdcLoggable {
          |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountJsonV400,
-      List($UserNotLoggedIn, $BankAccountNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
     )
     lazy val getCoreAccountById: OBPEndpoint = {
@@ -4050,7 +4054,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       moderatedAccountJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4118,7 +4122,7 @@ trait APIMethods400 extends MdcLoggable {
       bankAccountRoutingJson,
       moderatedAccountJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4223,7 +4227,7 @@ trait APIMethods400 extends MdcLoggable {
       bankAccountRoutingJson,
       moderatedAccountsJSON400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -4318,7 +4322,7 @@ trait APIMethods400 extends MdcLoggable {
       """Get the Balances for the Accounts of the current User at one bank.""",
       EmptyBody,
       accountBalancesV400Json,
-      List($UserNotLoggedIn, $BankNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
     )
 
@@ -4348,7 +4352,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       accountBalanceV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         CannotFindAccountAccess,
         UnknownError
@@ -4597,7 +4601,7 @@ trait APIMethods400 extends MdcLoggable {
       postCustomerPhoneNumberJsonV400,
       customerJsonV310,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -4649,7 +4653,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       userIdJsonV400,
-      List(UserNotLoggedIn, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser)
     )
 
@@ -4685,7 +4689,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundById,
         UnknownError
@@ -4758,7 +4762,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByProviderAndUsername,
         UnknownError
@@ -4817,7 +4821,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       usersJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserNotFoundByEmail,
         UnknownError
@@ -4861,7 +4865,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       usersJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4917,7 +4921,7 @@ trait APIMethods400 extends MdcLoggable {
       userInvitationPostJsonV400,
       userInvitationJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -5135,7 +5139,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userInvitationJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -5179,7 +5183,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userInvitationJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -5222,7 +5226,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5271,7 +5275,7 @@ trait APIMethods400 extends MdcLoggable {
       bankJson400,
       List(
         InvalidJsonFormat,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
@@ -5410,7 +5414,7 @@ trait APIMethods400 extends MdcLoggable {
       postDirectDebitJsonV400,
       directDebitJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         NoViewPermission,
@@ -5496,7 +5500,7 @@ trait APIMethods400 extends MdcLoggable {
       postDirectDebitJsonV400,
       directDebitJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         NoViewPermission,
@@ -5574,7 +5578,7 @@ trait APIMethods400 extends MdcLoggable {
       postStandingOrderJsonV400,
       standingOrderJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         NoViewPermission,
@@ -5682,7 +5686,7 @@ trait APIMethods400 extends MdcLoggable {
       postStandingOrderJsonV400,
       standingOrderJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         NoViewPermission,
@@ -5779,7 +5783,7 @@ trait APIMethods400 extends MdcLoggable {
       postAccountAccessJsonV400,
       viewJsonV300,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
@@ -5867,7 +5871,7 @@ trait APIMethods400 extends MdcLoggable {
       postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         SystemViewNotFound,
@@ -5954,7 +5958,7 @@ trait APIMethods400 extends MdcLoggable {
       postAccountAccessJsonV400,
       revokedJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
@@ -6046,7 +6050,7 @@ trait APIMethods400 extends MdcLoggable {
       postRevokeGrantAccountAccessJsonV400,
       revokedJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat,
         UserNotFoundById,
@@ -6124,12 +6128,12 @@ trait APIMethods400 extends MdcLoggable {
       customerAttributeJsonV400,
       customerAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(
         List(
           canCreateCustomerAttributeAtOneBank,
@@ -6204,12 +6208,12 @@ trait APIMethods400 extends MdcLoggable {
       customerAttributeJsonV400,
       customerAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(
         List(
           canUpdateCustomerAttributeAtOneBank,
@@ -6288,12 +6292,12 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customerAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(
         List(
           canGetCustomerAttributesAtOneBank,
@@ -6345,12 +6349,12 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customerAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(
         List(canGetCustomerAttributeAtOneBank, canGetCustomerAttributeAtAnyBank)
       )
@@ -6403,7 +6407,7 @@ trait APIMethods400 extends MdcLoggable {
         List(customerWithAttributesJsonV310)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -6463,13 +6467,13 @@ trait APIMethods400 extends MdcLoggable {
       transactionAttributeJsonV400,
       transactionAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canCreateTransactionAttributeAtOneBank))
     )
 
@@ -6536,13 +6540,13 @@ trait APIMethods400 extends MdcLoggable {
       transactionAttributeJsonV400,
       transactionAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canUpdateTransactionAttributeAtOneBank))
     )
 
@@ -6615,13 +6619,13 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canGetTransactionAttributesAtOneBank))
     )
 
@@ -6669,13 +6673,13 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canGetTransactionAttributeAtOneBank))
     )
 
@@ -6897,7 +6901,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionRequestWithChargeJSON210,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -6960,7 +6964,7 @@ trait APIMethods400 extends MdcLoggable {
       """.stripMargin,
       EmptyBody,
       basicAccountsJSON,
-      List($UserNotLoggedIn, $BankNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 
@@ -7028,7 +7032,7 @@ trait APIMethods400 extends MdcLoggable {
       ),
       consumerJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -7101,7 +7105,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customersJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -7148,7 +7152,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customersMinimalJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -7195,7 +7199,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       scopeJsons,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         EntitlementNotFound,
         ConsumerNotFoundByConsumerId,
         UnknownError
@@ -7254,7 +7258,7 @@ trait APIMethods400 extends MdcLoggable {
       SwaggerDefinitionsJSON.createScopeJson,
       scopeJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ConsumerNotFoundById,
         InvalidJsonFormat,
         IncorrectRoleName,
@@ -7364,12 +7368,12 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(
         List(
           canDeleteCustomerAttributeAtOneBank,
@@ -7412,7 +7416,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEndpointRequestBodyExample,
       dynamicEndpointResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEndpointExists,
         InvalidJsonFormat,
@@ -7452,7 +7456,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEndpointResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEndpointExists,
         InvalidJsonFormat,
@@ -7484,7 +7488,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEndpointHostJson400,
       dynamicEndpointHostJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEntityNotFoundByDynamicEntityId,
         InvalidJsonFormat,
@@ -7545,7 +7549,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEndpointHostJson400,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEntityNotFoundByDynamicEntityId,
         InvalidJsonFormat,
@@ -7584,7 +7588,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       dynamicEndpointResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEndpointNotFoundByDynamicEndpointId,
         InvalidJsonFormat,
@@ -7620,7 +7624,7 @@ trait APIMethods400 extends MdcLoggable {
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -7674,7 +7678,7 @@ trait APIMethods400 extends MdcLoggable {
       dynamicEndpointResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         DynamicEndpointNotFoundByDynamicEndpointId,
         InvalidJsonFormat,
@@ -7732,7 +7736,7 @@ trait APIMethods400 extends MdcLoggable {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -7776,7 +7780,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
@@ -7804,7 +7808,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
@@ -7834,7 +7838,7 @@ trait APIMethods400 extends MdcLoggable {
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -7875,7 +7879,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
@@ -7926,12 +7930,12 @@ trait APIMethods400 extends MdcLoggable {
       templateAttributeDefinitionJsonV400,
       templateAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(List(canCreateCustomerAttributeDefinitionAtOneBank))
     )
 
@@ -8006,12 +8010,12 @@ trait APIMethods400 extends MdcLoggable {
       accountAttributeDefinitionJsonV400,
       accountAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canCreateAccountAttributeDefinitionAtOneBank))
     )
 
@@ -8086,12 +8090,12 @@ trait APIMethods400 extends MdcLoggable {
       productAttributeDefinitionJsonV400,
       productAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canCreateProductAttributeDefinitionAtOneBank))
     )
 
@@ -8194,7 +8198,7 @@ trait APIMethods400 extends MdcLoggable {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canCreateProductAttribute))
     )
 
@@ -8276,7 +8280,7 @@ trait APIMethods400 extends MdcLoggable {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute))
     )
 
@@ -8356,7 +8360,7 @@ trait APIMethods400 extends MdcLoggable {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute))
     )
 
@@ -8403,7 +8407,7 @@ trait APIMethods400 extends MdcLoggable {
       productFeeJsonV400.copy(product_fee_id = None),
       productFeeResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -8466,7 +8470,7 @@ trait APIMethods400 extends MdcLoggable {
       productFeeJsonV400.copy(product_fee_id = None),
       productFeeResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -8616,7 +8620,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -8663,12 +8667,12 @@ trait APIMethods400 extends MdcLoggable {
       bankAttributeDefinitionJsonV400,
       bankAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
       Some(List(canCreateBankAttributeDefinitionAtOneBank))
     )
 
@@ -8760,7 +8764,7 @@ trait APIMethods400 extends MdcLoggable {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
       Some(List(canCreateBankAttribute))
     )
 
@@ -8818,12 +8822,12 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       bankAttributesResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
       Some(List(canGetBankAttribute))
     )
 
@@ -8854,12 +8858,12 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       bankAttributeResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagBank),
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
       Some(List(canGetBankAttribute))
     )
 
@@ -8899,7 +8903,7 @@ trait APIMethods400 extends MdcLoggable {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagBank)
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute)
     )
 
     lazy val updateBankAttribute: OBPEndpoint = {
@@ -8976,7 +8980,7 @@ trait APIMethods400 extends MdcLoggable {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagBank)
+      List(apiTagBank, apiTagBankAttribute, apiTagAttribute)
     )
 
     lazy val deleteBankAttribute: OBPEndpoint = {
@@ -9022,12 +9026,12 @@ trait APIMethods400 extends MdcLoggable {
       transactionAttributeDefinitionJsonV400,
       transactionAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canCreateTransactionAttributeDefinitionAtOneBank))
     )
 
@@ -9102,12 +9106,12 @@ trait APIMethods400 extends MdcLoggable {
       cardAttributeDefinitionJsonV400,
       cardAttributeDefinitionResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCard),
+      List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
       Some(List(canCreateCardAttributeDefinitionAtOneBank))
     )
 
@@ -9178,11 +9182,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canDeleteTransactionAttributeDefinitionAtOneBank))
     )
 
@@ -9221,11 +9225,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(List(canDeleteCustomerAttributeDefinitionAtOneBank))
     )
 
@@ -9262,11 +9266,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canDeleteAccountAttributeDefinitionAtOneBank))
     )
 
@@ -9303,11 +9307,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canDeleteProductAttributeDefinitionAtOneBank))
     )
 
@@ -9344,11 +9348,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagCard),
+      List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
       Some(List(canDeleteCardAttributeDefinitionAtOneBank))
     )
 
@@ -9385,11 +9389,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       productAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttributeDefinitionAtOneBank))
     )
 
@@ -9427,11 +9431,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customerAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagCustomer),
+      List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
       Some(List(canGetCustomerAttributeDefinitionAtOneBank))
     )
 
@@ -9469,11 +9473,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       accountAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canGetAccountAttributeDefinitionAtOneBank))
     )
 
@@ -9511,11 +9515,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       transactionAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagTransaction),
+      List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
       Some(List(canGetTransactionAttributeDefinitionAtOneBank))
     )
 
@@ -9558,11 +9562,11 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       cardAttributeDefinitionsResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagCard),
+      List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
       Some(List(canGetCardAttributeDefinitionAtOneBank))
     )
 
@@ -9600,7 +9604,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -9642,7 +9646,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userCustomerLinksJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -9686,7 +9690,7 @@ trait APIMethods400 extends MdcLoggable {
       createUserCustomerLinkJson,
       userCustomerLinkJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidBankIdFormat,
         $BankNotFound,
         InvalidJsonFormat,
@@ -9783,7 +9787,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userCustomerLinksJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -9826,7 +9830,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       customerAndUsersWithAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -9884,7 +9888,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       correlatedUsersResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -9963,7 +9967,7 @@ trait APIMethods400 extends MdcLoggable {
       postCustomerJsonV310,
       customerJsonV310,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         CustomerNumberAlreadyExists,
@@ -10054,7 +10058,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       accountsMinimalJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         CustomerNotFound,
         UnknownError
       ),
@@ -10109,7 +10113,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UserHasMissingRoles,
@@ -10163,7 +10167,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UserHasMissingRoles,
@@ -10205,7 +10209,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -10243,7 +10247,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UserHasMissingRoles,
@@ -10287,7 +10291,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         CustomerNotFoundByCustomerId,
         UserHasMissingRoles,
@@ -10333,7 +10337,7 @@ trait APIMethods400 extends MdcLoggable {
       postCounterpartyJson400,
       counterpartyWithMetadataJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
@@ -10480,7 +10484,7 @@ trait APIMethods400 extends MdcLoggable {
                   (account, callContext)
                 }
               } else
-                Future { (Full(), Some(cc)) }
+                Future { (Full(()), Some(cc)) }
 
             otherAccountRoutingSchemeOBPFormat =
               if (
@@ -10565,7 +10569,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
@@ -10636,7 +10640,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankAccountNotFound,
         $BankNotFound,
         InvalidAccountIdFormat,
@@ -10702,7 +10706,7 @@ trait APIMethods400 extends MdcLoggable {
       postCounterpartyJson400,
       counterpartyWithMetadataJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
@@ -10833,7 +10837,7 @@ trait APIMethods400 extends MdcLoggable {
                   (account, callContext)
                 }
               } else
-                Future { (Full(), Some(cc)) }
+                Future { (Full(()), Some(cc)) }
 
             otherAccountRoutingSchemeOBPFormat =
               if (
@@ -10915,7 +10919,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       counterpartiesJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -10994,7 +10998,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       counterpartiesJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         UnknownError
@@ -11064,7 +11068,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       counterpartyWithMetadataJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         $BankAccountNotFound,
         $UserNoPermissionAccessView,
@@ -11132,7 +11136,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       counterpartyWithMetadataJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
@@ -11216,7 +11220,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       counterpartyWithMetadataJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
@@ -11283,7 +11287,7 @@ trait APIMethods400 extends MdcLoggable {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         $BankNotFound,
         ConsentUserAlreadyAdded,
@@ -11373,7 +11377,7 @@ trait APIMethods400 extends MdcLoggable {
         status = "AUTHORISED"
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         InvalidJsonFormat,
         InvalidConnectorResponse,
@@ -11444,7 +11448,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       consentsJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -11488,7 +11492,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       consentInfosJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -11534,7 +11538,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       consentInfosJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -11574,7 +11578,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagUser)
@@ -11609,7 +11613,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       userWithAttributesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagUser),
@@ -11654,7 +11658,7 @@ trait APIMethods400 extends MdcLoggable {
       userAttributeJsonV400,
       userAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -11716,7 +11720,7 @@ trait APIMethods400 extends MdcLoggable {
       userAttributeJsonV400,
       userAttributeResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -11796,10 +11800,10 @@ trait APIMethods400 extends MdcLoggable {
         Future {
           val versions: List[ScannedApiVersion] =
             ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
-              version.urlPrefix.trim.nonEmpty
+              version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
             }
           (
-            ListResult("scanned_api_versions", versions),
+              ListResult("scanned_api_versions", versions),
             HttpCode.`200`(cc.callContext)
           )
         }
@@ -11820,7 +11824,7 @@ trait APIMethods400 extends MdcLoggable {
       postApiCollectionJson400,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UserNotFoundByUserId,
         UnknownError
@@ -11883,7 +11887,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -11924,7 +11928,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12074,7 +12078,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionsJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagApiCollection)
@@ -12114,7 +12118,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12156,7 +12160,7 @@ trait APIMethods400 extends MdcLoggable {
       postApiCollectionEndpointJson400,
       apiCollectionEndpointJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -12237,7 +12241,7 @@ trait APIMethods400 extends MdcLoggable {
       postApiCollectionEndpointJson400,
       apiCollectionEndpointJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -12312,7 +12316,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionEndpointJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12361,7 +12365,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionEndpointsJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagApiCollection)
@@ -12399,7 +12403,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionEndpointsJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12447,7 +12451,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       apiCollectionEndpointsJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12495,7 +12499,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12547,7 +12551,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12595,7 +12599,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -12644,7 +12648,7 @@ trait APIMethods400 extends MdcLoggable {
       postOrPutJsonSchemaV400,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -12708,7 +12712,7 @@ trait APIMethods400 extends MdcLoggable {
       postOrPutJsonSchemaV400,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -12763,7 +12767,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -12842,7 +12846,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       ListResult("json_schema_validations", responseJsonSchema :: Nil),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -12883,7 +12887,7 @@ trait APIMethods400 extends MdcLoggable {
          |""",
       EmptyBody,
       ListResult("json_schema_validations", responseJsonSchema :: Nil),
-      (if (jsonSchemaValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+      (if (jsonSchemaValidationRequiresRole) List($AuthenticatedUserIsRequired) else Nil)
         ::: List(
           UserHasMissingRoles,
           InvalidJsonFormat,
@@ -12895,7 +12899,7 @@ trait APIMethods400 extends MdcLoggable {
 
     // auth type validation related endpoints
     private val allowedAuthTypes =
-      AuthenticationType.values.filterNot(AuthenticationType.Anonymous ==)
+      AuthenticationType.values.filterNot(AuthenticationType.Anonymous.==)
     staticResourceDocs += ResourceDoc(
       createAuthenticationTypeValidation,
       implementedInApiVersion,
@@ -12910,7 +12914,7 @@ trait APIMethods400 extends MdcLoggable {
       allowedAuthTypes,
       JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -12968,7 +12972,7 @@ trait APIMethods400 extends MdcLoggable {
       allowedAuthTypes,
       JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13026,7 +13030,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13111,7 +13115,7 @@ trait APIMethods400 extends MdcLoggable {
         List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13163,7 +13167,7 @@ trait APIMethods400 extends MdcLoggable {
         "authentication_types_validations",
         List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))
       ),
-      (if (authenticationTypeValidationRequiresRole) List($UserNotLoggedIn)
+      (if (authenticationTypeValidationRequiresRole) List($AuthenticatedUserIsRequired)
        else Nil)
         ::: List(
           UserHasMissingRoles,
@@ -13188,7 +13192,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonScalaConnectorMethod.copy(connectorMethodId = None),
       jsonScalaConnectorMethod,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13257,7 +13261,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonScalaConnectorMethodMethodBody,
       jsonScalaConnectorMethod,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13323,7 +13327,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       jsonScalaConnectorMethod,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -13357,7 +13361,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       ListResult("connectors_methods", jsonScalaConnectorMethod :: Nil),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -13394,7 +13398,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
       jsonDynamicResourceDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13507,7 +13511,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
       jsonDynamicResourceDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13608,7 +13612,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13652,7 +13656,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       jsonDynamicResourceDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -13690,7 +13694,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -13728,7 +13732,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicResourceDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13858,7 +13862,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicResourceDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -13976,7 +13980,7 @@ trait APIMethods400 extends MdcLoggable {
       BooleanBody(true),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14021,7 +14025,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicResourceDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14060,7 +14064,7 @@ trait APIMethods400 extends MdcLoggable {
       ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14101,7 +14105,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonResourceDocFragment,
       jsonCodeTemplateJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -14173,7 +14177,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
       jsonDynamicMessageDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14240,7 +14244,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicMessageDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14310,7 +14314,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
       jsonDynamicMessageDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14378,7 +14382,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       jsonDynamicMessageDoc,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14416,7 +14420,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14451,7 +14455,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14495,7 +14499,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicMessageDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14564,7 +14568,7 @@ trait APIMethods400 extends MdcLoggable {
       jsonDynamicMessageDoc,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14603,7 +14607,7 @@ trait APIMethods400 extends MdcLoggable {
       ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14640,7 +14644,7 @@ trait APIMethods400 extends MdcLoggable {
       BooleanBody(true),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14685,7 +14689,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointMappingRequestBodyExample,
       endpointMappingResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14742,7 +14746,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointMappingRequestBodyExample,
       endpointMappingResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14810,7 +14814,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       endpointMappingResponseBodyExample,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14856,7 +14860,7 @@ trait APIMethods400 extends MdcLoggable {
         endpointMappingResponseBodyExample :: Nil
       ),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -14899,7 +14903,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       BooleanBody(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14947,7 +14951,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -14977,7 +14981,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -15008,7 +15012,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -15041,7 +15045,7 @@ trait APIMethods400 extends MdcLoggable {
       ),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -15070,7 +15074,7 @@ trait APIMethods400 extends MdcLoggable {
       BooleanBody(true),
       List(
         $BankNotFound,
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -15099,7 +15103,7 @@ trait APIMethods400 extends MdcLoggable {
       supportedCurrenciesJson,
       atmSupportedCurrenciesJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15154,7 +15158,7 @@ trait APIMethods400 extends MdcLoggable {
       supportedLanguagesJson,
       atmSupportedLanguagesJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15209,7 +15213,7 @@ trait APIMethods400 extends MdcLoggable {
       accessibilityFeaturesJson,
       atmAccessibilityFeaturesJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15265,7 +15269,7 @@ trait APIMethods400 extends MdcLoggable {
       atmServicesJson,
       atmServicesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15320,7 +15324,7 @@ trait APIMethods400 extends MdcLoggable {
       atmNotesJson,
       atmNotesResponseJson,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15375,7 +15379,7 @@ trait APIMethods400 extends MdcLoggable {
       atmLocationCategoriesJsonV400,
       atmLocationCategoriesResponseJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15429,7 +15433,7 @@ trait APIMethods400 extends MdcLoggable {
       atmJsonV400,
       atmJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15484,7 +15488,7 @@ trait APIMethods400 extends MdcLoggable {
       atmJsonV400.copy(id = None),
       atmJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15544,7 +15548,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       EmptyBody,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagATM),
@@ -15656,7 +15660,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       atmJsonV400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -15698,7 +15702,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointTagJson400,
       bankLevelEndpointTagResponseJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -15765,7 +15769,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointTagJson400,
       bankLevelEndpointTagResponseJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         EndpointTagNotFoundByEndpointTagId,
         InvalidJsonFormat,
@@ -15834,7 +15838,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       bankLevelEndpointTagResponseJson400 :: Nil,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -15874,7 +15878,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -15917,7 +15921,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointTagJson400,
       bankLevelEndpointTagResponseJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -15988,7 +15992,7 @@ trait APIMethods400 extends MdcLoggable {
       endpointTagJson400,
       bankLevelEndpointTagResponseJson400,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         EndpointTagNotFoundByEndpointTagId,
@@ -16061,7 +16065,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       bankLevelEndpointTagResponseJson400 :: Nil,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -16103,7 +16107,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       Full(true),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -16142,7 +16146,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       mySpaces,
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagUser)
@@ -16196,7 +16200,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       productsJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -16256,7 +16260,7 @@ trait APIMethods400 extends MdcLoggable {
       putProductJsonV400,
       productJsonV400.copy(attributes = None, fees = None),
       List(
-        $UserNotLoggedIn,
+        $AuthenticatedUserIsRequired,
         $BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -16341,7 +16345,7 @@ trait APIMethods400 extends MdcLoggable {
       EmptyBody,
       productJsonV400,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         ProductNotFoundByProductCode,
         UnknownError
@@ -16404,7 +16408,7 @@ trait APIMethods400 extends MdcLoggable {
       createMessageJsonV400,
       successMessage,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound
       ),
       List(apiTagMessage, apiTagCustomer, apiTagPerson),
@@ -16459,7 +16463,7 @@ trait APIMethods400 extends MdcLoggable {
         """,
       EmptyBody,
       customerMessagesJsonV400,
-      List(UserNotLoggedIn, $BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagMessage, apiTagCustomer),
       Some(List(canGetCustomerMessages))
     )
@@ -16610,7 +16614,7 @@ trait APIMethods400 extends MdcLoggable {
       accountNotificationWebhookPostJson,
       bankAccountNotificationWebhookJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         $BankNotFound,
         UnknownError
       ),
@@ -16747,7 +16751,7 @@ trait APIMethods400 extends MdcLoggable {
         s"$EntitlementAlreadyExists user_id($userId) ${duplicatedRoles.mkString(",")}"
       Helper.booleanToFuture(errorMessages, cc = callContext) { false }
     } else
-      Future.successful(Full())
+      Future.successful(Full(()))
   }
 
   /** This method will check all the roles the loggedIn user already has and the
@@ -16781,7 +16785,7 @@ trait APIMethods400 extends MdcLoggable {
             .mkString(",")}"
       Helper.booleanToFuture(errorMessages, cc = callContext) { false }
     } else
-      Future.successful(Full())
+      Future.successful(Full(()))
   }
 
   private def checkRoleBankIdMapping(

@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api
 
+import scala.language.reflectiveCalls
+import scala.language.implicitConversions
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil._

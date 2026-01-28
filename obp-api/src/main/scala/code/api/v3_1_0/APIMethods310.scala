@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import scala.language.reflectiveCalls
 import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -101,7 +102,7 @@ trait APIMethods310 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            _ <- Future() // Just start async call
+            _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory.getApiInfoJSON(OBPAPI3_1_0.version, OBPAPI3_1_0.versionStatus), HttpCode.`200`(cc.callContext))
           }
@@ -119,7 +120,7 @@ trait APIMethods310 {
       EmptyBody,
       checkbookOrdersJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         InvalidConnectorResponseForGetCheckbookOrdersFuture,
@@ -160,7 +161,7 @@ trait APIMethods310 {
       EmptyBody,
       creditCardOrderStatusResponseJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture,
@@ -243,7 +244,7 @@ trait APIMethods310 {
       EmptyBody,
       topApisJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidFilterParameterFormat,
         GetTopApisError,
@@ -330,7 +331,7 @@ trait APIMethods310 {
       EmptyBody,
       topConsumersJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidFilterParameterFormat,
         GetMetricsTopConsumersError,
@@ -391,7 +392,7 @@ trait APIMethods310 {
          |""".stripMargin,
       EmptyBody,
       customerJSONs,
-      List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagCustomer, apiTagFirehoseData),
       Some(List(canUseCustomerFirehoseAtAnyBank)))
 
@@ -441,7 +442,7 @@ trait APIMethods310 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canReadUserLockedStatus))
     )
@@ -480,7 +481,7 @@ trait APIMethods310 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canUnlockUser)))
 
@@ -529,7 +530,7 @@ trait APIMethods310 {
       callLimitPostJson,
       callLimitPostJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -588,7 +589,7 @@ trait APIMethods310 {
       EmptyBody,
       callLimitJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         InvalidConsumerId,
         ConsumerNotFoundByConsumerId,
@@ -635,7 +636,7 @@ trait APIMethods310 {
       EmptyBody,
       checkFundsAvailableJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         InvalidAmount,
@@ -700,7 +701,7 @@ trait APIMethods310 {
       EmptyBody,
       consumerJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         ConsumerNotFoundByConsumerId,
         UnknownError
@@ -737,7 +738,7 @@ trait APIMethods310 {
       EmptyBody,
       consumersJson310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UnknownError
       ),
       List(apiTagConsumer)
@@ -775,7 +776,7 @@ trait APIMethods310 {
       EmptyBody,
       consumersJson310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -936,7 +937,7 @@ trait APIMethods310 {
       EmptyBody,
       accountWebhooksJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -979,7 +980,7 @@ trait APIMethods310 {
       EmptyBody,
       configurationJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1011,7 +1012,7 @@ trait APIMethods310 {
       """.stripMargin,
       EmptyBody,
       adapterInfoJsonV300,
-      List(UserNotLoggedIn,UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired,UserHasMissingRoles, UnknownError),
       List(apiTagApi),
       Some(List(canGetAdapterInfo))
     )
@@ -1047,7 +1048,7 @@ trait APIMethods310 {
          |""",
       EmptyBody,
       transactionJsonV300,
-      List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       List(apiTagTransaction))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
@@ -1105,7 +1106,7 @@ trait APIMethods310 {
       EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         BankAccountNotFound,
         UserNoPermissionAccessView,
@@ -1157,7 +1158,7 @@ trait APIMethods310 {
       postCustomerJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         CustomerNumberAlreadyExists,
@@ -1270,7 +1271,7 @@ trait APIMethods310 {
       EmptyBody,
       customerWithAttributesJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
         UnknownError
@@ -1313,7 +1314,7 @@ trait APIMethods310 {
       postCustomerNumberJsonV310,
       customerWithAttributesJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
@@ -1357,7 +1358,7 @@ trait APIMethods310 {
       postUserAuthContextJson,
       userAuthContextJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         CreateUserAuthContextError,
         UnknownError
@@ -1399,7 +1400,7 @@ trait APIMethods310 {
       EmptyBody,
       userAuthContextsJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1438,7 +1439,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1476,7 +1477,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1513,7 +1514,7 @@ trait APIMethods310 {
       postTaxResidenceJsonV310,
       taxResidenceV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -1557,7 +1558,7 @@ trait APIMethods310 {
       EmptyBody,
       taxResidencesJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1595,7 +1596,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1635,7 +1636,7 @@ trait APIMethods310 {
       """.stripMargin,
       EmptyBody,
       entitlementJSonsV310,
-      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement))
 
 
@@ -1673,7 +1674,7 @@ trait APIMethods310 {
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -1730,7 +1731,7 @@ trait APIMethods310 {
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -1785,7 +1786,7 @@ trait APIMethods310 {
       EmptyBody,
       customerAddressesJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1824,7 +1825,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -1863,7 +1864,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      List(apiTagApi))
+      List(apiTagApi, apiTagOAuth, apiTagOIDC))
 
     lazy val getObpConnectorLoopback : OBPEndpoint = {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
@@ -1974,7 +1975,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canCreateProductAttribute))
     )
 
@@ -2033,7 +2034,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttribute))
     )
 
@@ -2075,7 +2076,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute))
     )
 
@@ -2135,7 +2136,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)))
 
     lazy val deleteProductAttribute : OBPEndpoint = {
@@ -2228,7 +2229,7 @@ trait APIMethods310 {
       EmptyBody,
       accountApplicationsJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2271,7 +2272,7 @@ trait APIMethods310 {
       EmptyBody,
       accountApplicationResponseJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2317,7 +2318,7 @@ trait APIMethods310 {
       accountApplicationUpdateStatusJson,
       accountApplicationResponseJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -2408,7 +2409,7 @@ trait APIMethods310 {
       postPutProductJsonV310,
       productJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -2482,7 +2483,7 @@ trait APIMethods310 {
       EmptyBody,
       productJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ProductNotFoundByProductCode,
         UnknownError
       ),
@@ -2537,7 +2538,7 @@ trait APIMethods310 {
       EmptyBody,
       childProductTreeJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         ProductNotFoundByProductCode,
         UnknownError
       ),
@@ -2590,7 +2591,7 @@ trait APIMethods310 {
       EmptyBody,
       productsJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         ProductNotFoundByProductCode,
         UnknownError
@@ -2663,11 +2664,11 @@ trait APIMethods310 {
       accountAttributeJson,
       accountAttributeResponseJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canCreateAccountAttributeAtOneBank))
     )
 
@@ -2736,11 +2737,11 @@ trait APIMethods310 {
       accountAttributeJson,
       accountAttributeResponseJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canUpdateAccountAttribute))
     )
 
@@ -2819,7 +2820,7 @@ trait APIMethods310 {
       putProductCollectionsV310,
       productCollectionsJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UserHasMissingRoles,
         UnknownError
@@ -2878,7 +2879,7 @@ trait APIMethods310 {
       EmptyBody,
       productCollectionJsonTreeV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -2920,7 +2921,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InsufficientAuthorisationToDeleteBranch,
         UnknownError
@@ -2968,7 +2969,7 @@ trait APIMethods310 {
       createMeetingJsonV310,
       meetingJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -2988,7 +2989,7 @@ trait APIMethods310 {
             //           These following are only for `tokbox` stuff, for now, just ignore it.
             //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
             //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
-            //            u <- cc.user ?~! UserNotLoggedIn
+            //            u <- cc.user ?~! AuthenticatedUserIsRequired
             //            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             //            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             //            postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
@@ -3046,7 +3047,7 @@ trait APIMethods310 {
       EmptyBody,
       meetingsJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError),
       List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
@@ -3084,7 +3085,7 @@ trait APIMethods310 {
       EmptyBody,
       meetingJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         MeetingNotFound,
         UnknownError
@@ -3156,7 +3157,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(UnknownError),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
@@ -3326,7 +3327,7 @@ trait APIMethods310 {
       postConsentEmailJsonV310,
       consentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -3405,7 +3406,7 @@ trait APIMethods310 {
       postConsentPhoneJsonV310,
       consentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -3483,7 +3484,7 @@ trait APIMethods310 {
       postConsentImplicitJsonV310,
       consentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
@@ -3686,7 +3687,7 @@ trait APIMethods310 {
         status = "INITIATED"
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         InvalidConnectorResponse,
@@ -3729,7 +3730,7 @@ trait APIMethods310 {
       EmptyBody,
       consentsJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -3774,7 +3775,7 @@ trait APIMethods310 {
       EmptyBody,
       revokedConsentJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -3819,7 +3820,7 @@ trait APIMethods310 {
       postUserAuthContextJson,
       userAuthContextUpdateJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         CreateUserAuthContextError,
         UnknownError
@@ -3865,7 +3866,7 @@ trait APIMethods310 {
       PostUserAuthContextUpdateJsonV310(answer = "12345678"),
       userAuthContextUpdateJson,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         InvalidJsonFormat,
         InvalidConnectorResponse,
@@ -3930,7 +3931,7 @@ trait APIMethods310 {
       EmptyBody,
       viewJSONV220,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankNotFound,
         UnknownError
       ),
@@ -3978,7 +3979,7 @@ trait APIMethods310 {
       SwaggerDefinitionsJSON.createSystemViewJsonV300,
       viewJsonV300,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -4022,7 +4023,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError,
         "user does not have owner access"
@@ -4064,7 +4065,7 @@ trait APIMethods310 {
       viewJsonV300,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         BankAccountNotFound,
         UnknownError
       ),
@@ -4111,7 +4112,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      List(apiTagApi))
+      List(apiTagApi, apiTagOAuth, apiTagOIDC))
 
     lazy val getOAuth2ServerJWKsURIs: OBPEndpoint = {
       case "jwks-uris" :: Nil JsonGet _ => {
@@ -4150,7 +4151,7 @@ trait APIMethods310 {
       )
     ,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4252,7 +4253,7 @@ trait APIMethods310 {
         Some("this-method-routing-Id")
       ),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidConnectorName,
@@ -4355,7 +4356,7 @@ trait APIMethods310 {
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx"))),
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("this-method-routing-Id")),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidConnectorName,
@@ -4433,7 +4434,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -4471,7 +4472,7 @@ trait APIMethods310 {
       putUpdateCustomerEmailJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4520,7 +4521,7 @@ trait APIMethods310 {
       putUpdateCustomerNumberJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4575,7 +4576,7 @@ trait APIMethods310 {
       putUpdateCustomerMobileNumberJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4624,7 +4625,7 @@ trait APIMethods310 {
       putUpdateCustomerIdentityJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4681,7 +4682,7 @@ trait APIMethods310 {
       putUpdateCustomerCreditLimitJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4730,7 +4731,7 @@ trait APIMethods310 {
       putUpdateCustomerCreditRatingAndSourceJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -4777,7 +4778,7 @@ trait APIMethods310 {
        """.stripMargin,
       updateAccountRequestJsonV310,
       updateAccountResponseJsonV310,
-      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound),
       List(apiTagAccount),
       Some(List(canUpdateAccount))
     )
@@ -4840,7 +4841,7 @@ trait APIMethods310 {
       createPhysicalCardJsonV310,
       physicalCardJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         AllowedValuesAre,
         UnknownError
@@ -4935,7 +4936,7 @@ trait APIMethods310 {
       updatePhysicalCardJsonV310,
       physicalCardJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         AllowedValuesAre,
         UnknownError
@@ -5020,7 +5021,7 @@ trait APIMethods310 {
         |${userAuthenticationMessage(true)}""".stripMargin,
       EmptyBody,
       physicalCardsJsonV310,
-      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired,BankNotFound, UnknownError),
       List(apiTagCard))
     lazy val getCardsForBank : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
@@ -5055,7 +5056,7 @@ trait APIMethods310 {
        """.stripMargin,
       EmptyBody,
       physicalCardWithAttributesJsonV310,
-      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired,BankNotFound, UnknownError),
       List(apiTagCard),
       Some(List(canGetCardsForBank)))
     lazy val getCardForBank : OBPEndpoint = {
@@ -5091,7 +5092,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         AllowedValuesAre,
         UnknownError
@@ -5143,11 +5144,11 @@ trait APIMethods310 {
         CardAttributeType.DOUBLE,
         cardAttributeValueExample.value),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCard))
+      List(apiTagCard, apiTagCardAttribute, apiTagAttribute))
 
     lazy val createCardAttribute : OBPEndpoint = {
       case "management"::"banks" :: bankId :: "cards" :: cardId :: "attribute" :: Nil JsonPost json -> _=> {
@@ -5214,11 +5215,11 @@ trait APIMethods310 {
         CardAttributeType.DOUBLE,
         cardAttributeValueExample.value),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagCard))
+      List(apiTagCard, apiTagCardAttribute, apiTagAttribute))
 
     lazy val updateCardAttribute : OBPEndpoint = {
       case "management"::"banks" :: bankId :: "cards" :: cardId :: "attributes" :: cardAttributeId :: Nil JsonPut json -> _=> {
@@ -5272,7 +5273,7 @@ trait APIMethods310 {
       putCustomerBranchJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5328,7 +5329,7 @@ trait APIMethods310 {
       putUpdateCustomerDataJsonV310,
       customerJsonV310,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5393,7 +5394,7 @@ trait APIMethods310 {
       List(
         InvalidJsonFormat,
         BankNotFound,
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         InvalidUserId,
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
@@ -5787,7 +5788,7 @@ trait APIMethods310 {
       )
       ,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5878,7 +5879,7 @@ trait APIMethods310 {
       WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
       WebUiPropsCommons( "webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
@@ -5924,7 +5925,7 @@ trait APIMethods310 {
       EmptyBody,
       EmptyBody,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),
@@ -5989,7 +5990,7 @@ trait APIMethods310 {
       putEnabledJSON,
       putEnabledJSON,
       List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       ),

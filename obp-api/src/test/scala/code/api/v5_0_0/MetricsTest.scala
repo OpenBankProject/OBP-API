@@ -28,7 +28,7 @@ package code.api.v5_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetMetricsAtOneBank
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_1_0.MetricsJson
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
 import code.entitlement.Entitlement
@@ -46,7 +46,7 @@ class MetricsTest extends V500ServerSetup {
   override def afterAll(): Unit = {
     super.afterAll()
   }
-  
+
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":
@@ -57,23 +57,26 @@ class MetricsTest extends V500ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.getMetricsAtBank))
 
+  lazy val apiEndpointName = nameOf(Implementations5_0_0.getMetricsAtBank)
+  lazy val versionName = ApiVersion.v5_0_0.toString
+
   lazy val bankId = testBankId1.value
 
   def getMetrics(consumerAndToken: Option[(Consumer, Token)], bankId: String): APIResponse = {
     val request = v5_0_0_Request / "management" / "metrics" / "banks" / bankId <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+
+  feature(s"test $apiEndpointName version $versionName - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response400 = getMetrics(None, bankId)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+  feature(s"test $apiEndpointName version $versionName - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response400 = getMetrics(user1, bankId)
@@ -82,7 +85,7 @@ class MetricsTest extends V500ServerSetup {
       response400.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
+  feature(s"test $apiEndpointName version $versionName - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetMetricsAtOneBank.toString)
@@ -92,5 +95,5 @@ class MetricsTest extends V500ServerSetup {
       response400.body.extract[MetricsJson]
     }
   }
-  
+
 }

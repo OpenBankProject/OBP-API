@@ -12,14 +12,16 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.20</scala.compiler>
-    <akka.version>2.5.32</akka.version>
+    <pekko.version>1.1.2</pekko.version>
     <avro.version>1.8.2</avro.version>
     <lift.version>3.5.0</lift.version>
-    <jetty.version>9.4.50.v20221201</jetty.version>
+    <http4s.version>0.23.30</http4s.version>
+    <jetty.version>9.4.58.v20250814</jetty.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
+    <maven.test.failure.ignore>false</maven.test.failure.ignore>
     <!-- vscaladoc settings -->
     <maven.scaladoc.vscaladocVersion>1.2-m1</maven.scaladoc.vscaladocVersion>
     <vscaladoc.links.liftweb.pathsufix>scaladocs/</vscaladoc.links.liftweb.pathsufix>
@@ -34,6 +36,7 @@
   <modules>
     <module>obp-commons</module>
     <module>obp-api</module>
+    <module>obp-http4s-runner</module>
   </modules>
 
   <repositories>
@@ -126,7 +129,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>4.3.1</version>
+          <version>4.8.1</version>
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
@@ -143,19 +146,13 @@
               <arg>-verbose</arg>
               <arg>-deprecation</arg>
               -->
+              <arg>-Ypartial-unification</arg>
             </args>
           </configuration>
           <executions>
             <execution>
               <goals>
                 <goal>compile</goal>
-                <goal>testCompile</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>scala-test-compile</id>
-              <phase>process-test-resources</phase>
-              <goals>
                 <goal>testCompile</goal>
               </goals>
             </execution>

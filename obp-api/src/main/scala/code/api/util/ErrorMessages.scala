@@ -75,6 +75,7 @@ object ErrorMessages {
   val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
   val DuplicateQueryParameters = "OBP-09016: Duplicate Query Parameters are not allowed."
   val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
+  val InvalidDynamicEntityName = "OBP-09018: Invalid entity_name format. Entity names must be lowercase with underscores (snake_case), e.g. 'customer_preferences'. No uppercase letters or spaces allowed."
 
 
   // General messages (OBP-10XXX)
@@ -84,6 +85,7 @@ object ErrorMessages {
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
   val InvalidCurrency = "OBP-10006: Invalid Currency Value."
+  val InvalidCacheNamespaceId = "OBP-10123: Invalid namespace_id."
   val IncorrectRoleName = "OBP-10007: Incorrect Role name:"
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
@@ -129,12 +131,17 @@ object ErrorMessages {
 
   val createFxCurrencyIssue = "OBP-10050: Cannot create FX currency. "
   val invalidLogLevel = "OBP-10051: Invalid log level. "
+  val InvalidContentParameter = "OBP-10052: Invalid content parameter. Valid values are: static, dynamic, all"
+  val InvalidTagsParameter = "OBP-10053: Invalid tags parameter. Tags cannot be empty when provided"
+  val InvalidFunctionsParameter = "OBP-10054: Invalid functions parameter. Functions cannot be empty when provided"
+  val InvalidApiCollectionIdParameter = "OBP-10055: Invalid api-collection-id parameter. API collection ID cannot be empty when provided"
+
 
 
 
 
   // Authentication / Authorisation / User messages (OBP-20XXX)
-  val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
+  val AuthenticatedUserIsRequired = "OBP-20001: User not logged in. Authentication is required!"
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing:"
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired:"
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
@@ -264,7 +271,7 @@ object ErrorMessages {
   val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
   val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
   val Oauth2ParseException = "OBP-20205: Parse error. "
-  val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
+  val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. OBP-API Admin should check the oauth2.jwk_set.url list contains the jwks url of the provider."
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
@@ -643,6 +650,16 @@ object ErrorMessages {
   val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
   val CannotFindUserInvitation = "OBP-37883: Cannot find user invitation."
 
+  // ABAC Rule related messages (OBP-38XXX)
+  val AbacRuleValidationFailed = "OBP-38001: ABAC rule validation failed. The rule code could not be validated."
+  val AbacRuleCompilationFailed = "OBP-38002: ABAC rule compilation failed. The rule code contains syntax errors or invalid Scala code."
+  val AbacRuleTypeMismatch = "OBP-38003: ABAC rule type mismatch. The rule code must return a Boolean value but returns a different type."
+  val AbacRuleSyntaxError = "OBP-38004: ABAC rule syntax error. The rule code contains invalid syntax."
+  val AbacRuleFieldReferenceError = "OBP-38005: ABAC rule field reference error. The rule code references fields or objects that do not exist."
+  val AbacRuleCodeEmpty = "OBP-38006: ABAC rule code must not be empty."
+  val AbacRuleNotFound = "OBP-38007: ABAC rule not found. Please specify a valid value for ABAC_RULE_ID."
+  val AbacRuleNotActive = "OBP-38008: ABAC rule is not active."
+  val AbacRuleExecutionFailed = "OBP-38009: ABAC rule execution failed. An error occurred while executing the rule."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -778,6 +795,7 @@ object ErrorMessages {
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
+  val CannotDeleteCascadePersonalEntity = "OBP-80002: Cannot delete cascade for personal entities (hasPersonalEntity=true). Please delete the records and definition separately."
 
   ///////////
 
@@ -827,7 +845,7 @@ object ErrorMessages {
 //    NotImplemented -> 501, // 400 or 501
     TooManyRequests -> 429,
     ResourceDoesNotExist -> 404,
-    UserNotLoggedIn -> 401,
+    AuthenticatedUserIsRequired -> 401,
     DirectLoginInvalidToken -> 401,
     InvalidLoginCredentials -> 401,
     UserNotFoundById -> 404,
@@ -882,7 +900,7 @@ object ErrorMessages {
   /**
    * validate method: APIUtil.authorizedAccess
    */
-  def $UserNotLoggedIn = UserNotLoggedIn
+  def $AuthenticatedUserIsRequired = AuthenticatedUserIsRequired
 
   /**
    * validate method: NewStyle.function.getBank

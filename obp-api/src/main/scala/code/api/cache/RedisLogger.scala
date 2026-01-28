@@ -73,12 +73,12 @@ object RedisLogger {
 
     /** Map a LogLevel to its required entitlements */
     def requiredRoles(level: LogLevel): List[ApiRole] = level match {
-      case TRACE   => List(canGetTraceLevelLogsAtAllBanks, canGetAllLevelLogsAtAllBanks)
-      case DEBUG   => List(canGetDebugLevelLogsAtAllBanks, canGetAllLevelLogsAtAllBanks)
-      case INFO    => List(canGetInfoLevelLogsAtAllBanks, canGetAllLevelLogsAtAllBanks)
-      case WARNING => List(canGetWarningLevelLogsAtAllBanks, canGetAllLevelLogsAtAllBanks)
-      case ERROR   => List(canGetErrorLevelLogsAtAllBanks, canGetAllLevelLogsAtAllBanks)
-      case ALL     => List(canGetAllLevelLogsAtAllBanks)
+      case TRACE   => List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)
+      case DEBUG   => List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)
+      case INFO    => List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)
+      case WARNING => List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)
+      case ERROR   => List(canGetSystemLogCacheError, canGetSystemLogCacheAll)
+      case ALL     => List(canGetSystemLogCacheAll)
     }
   }
 

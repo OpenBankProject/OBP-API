@@ -139,7 +139,7 @@ object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     val cacheTTL = APIUtil.getPropsAsIntValue("getDistinctProviders.cache.ttl.seconds", 3600)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL seconds) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds) {
         val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
         val (_, rows) = DB.runQuery(sql, List())
         rows.flatten

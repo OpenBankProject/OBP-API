@@ -1,5 +1,6 @@
 package code.api.STET.v1_4
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -65,7 +66,7 @@ In REDIRECT and DECOUPLED approach, this confirmation is not a prerequisite to t
   "psuAuthenticationFactor" : "JJKJKJ788GKJKJBK"
 }"""),
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -215,7 +216,7 @@ Since the modification request needs a PSU authentication before committing, the
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -280,7 +281,7 @@ The status information must be available during at least 30 calendar days after 
             """,
        EmptyBody,
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 
@@ -522,7 +523,7 @@ When the chosen authentication approach within the ASPSP answers is set to "EMBE
   }
 }"""),
        EmptyBody,
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("PISP") :: apiTagMockedData :: Nil
      )
 

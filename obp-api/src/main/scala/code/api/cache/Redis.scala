@@ -2,6 +2,7 @@ package code.api.cache
 
 import code.api.JedisMethod
 import code.api.util.APIUtil
+import code.api.Constant
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
@@ -54,6 +55,40 @@ object Redis extends MdcLoggable {
       // Non-SSL connection
       new JedisPool(poolConfig, url, port, timeout, password)
     }
+
+  // Redis startup health check
+  private def performStartupHealthCheck(): Unit = {
+    try {
+      val namespacePrefix = Constant.getGlobalCacheNamespacePrefix
+      logger.info(s"Redis startup health check: connecting to $url:$port")
+      logger.info(s"Global cache namespace prefix: '$namespacePrefix'")
+
+      val testKey = s"${namespacePrefix}obp_startup_test"
+      val testValue = s"OBP started at ${new java.util.Date()}"
+
+      // Write test key with 1 hour TTL
+      use(JedisMethod.SET, testKey, Some(3600), Some(testValue))
+
+      // Read it back
+      val readResult = use(JedisMethod.GET, testKey, None, None)
+
+      if (readResult.contains(testValue)) {
+        logger.info(s"Redis health check PASSED - connected to $url:$port")
+        logger.info(s"   Pool: max=${poolConfig.getMaxTotal}, idle=${poolConfig.getMaxIdle}")
+        logger.info(s"   Test key: $testKey")
+      } else {
+        logger.warn(s"WARNING: Redis health check FAILED - could not read back test key")
+      }
+    } catch {
+      case e: Throwable =>
+        logger.error(s"ERROR: Redis health check FAILED - ${e.getMessage}")
+        logger.error(s"   Redis may be unavailable at $url:$port")
+    }
+
+  }
+
+  // Run health check on startup
+  performStartupHealthCheck()
 
   def jedisPoolDestroy: Unit = jedisPool.destroy()
 
@@ -108,28 +143,28 @@ object Redis extends MdcLoggable {
 
   /**
    * this is the help method, which can be used to auto close all the jedisConnection
-   * 
-   * @param method can only be "get" or "set" 
+   *
+   * @param method can only be "get" or "set"
    * @param key the cache key
-   * @param ttlSeconds the ttl is option. 
-   *            if ttl == None, this means value will be cached forver 
+   * @param ttlSeconds the ttl is option.
+   *            if ttl == None, this means value will be cached forver
    *            if ttl == Some(0), this means turn off the cache, do not use cache at all
    *            if ttl == Some(Int), this mean the cache will be only cached for ttl seconds
    * @param value the cache value.
-   *              
+   *
    * @return
    */
   def use(method:JedisMethod.Value, key:String, ttlSeconds: Option[Int] = None, value:Option[String] = None) : Option[String] = {
-    
+
     //we will get the connection from jedisPool later, and will always close it in the finally clause.
     var jedisConnection = None:Option[Jedis]
-    
+
     if(ttlSeconds.equals(Some(0))){ // set ttl = 0, we will totally turn off the cache
       None
     }else{
       try {
         jedisConnection = Some(jedisPool.getResource())
-        
+
         val redisResult = if (method ==JedisMethod.EXISTS) {
           jedisConnection.head.exists(key).toString
         }else if (method == JedisMethod.FLUSHDB) {
@@ -145,13 +180,13 @@ object Redis extends MdcLoggable {
         } else if(method ==JedisMethod.SET && value.isDefined){
           if (ttlSeconds.isDefined) {//if set ttl, call `setex` method to set the expired seconds.
             jedisConnection.head.setex(key, ttlSeconds.get, value.get).toString
-          } else {//if do not set ttl, call `set` method, the cache will be forever. 
+          } else {//if do not set ttl, call `set` method, the cache will be forever.
             jedisConnection.head.set(key, value.get).toString
           }
-        } else {// the use()method parameters need to be set properly, it missing value in set, then will throw the exception. 
+        } else {// the use()method parameters need to be set properly, it missing value in set, then will throw the exception.
           throw new RuntimeException("Please check the Redis.use parameters, if the method == set, the value can not be None !!!")
         }
-        //change the null to Option 
+        //change the null to Option
         APIUtil.stringOrNone(redisResult)
       } catch {
         case e: Throwable =>
@@ -160,7 +195,41 @@ object Redis extends MdcLoggable {
         if (jedisConnection.isDefined && jedisConnection.get != null)
           jedisConnection.map(_.close())
       }
-    } 
+    }
+  }
+
+  /**
+   * Delete all Redis keys matching a pattern using KEYS command
+   * @param pattern Redis key pattern (e.g., "rl_active_CONSUMER123_*")
+   * @return Number of keys deleted
+   */
+  def deleteKeysByPattern(pattern: String): Int = {
+    var jedisConnection: Option[Jedis] = None
+    try {
+      jedisConnection = Some(jedisPool.getResource())
+      val jedis = jedisConnection.get
+
+      // Use keys command for pattern matching (acceptable for rate limiting cache which has limited keys)
+      // In production with millions of keys, consider using SCAN instead
+      val keys = jedis.keys(pattern)
+
+      val deletedCount = if (!keys.isEmpty) {
+        val keysArray = keys.toArray(new Array[String](keys.size()))
+        jedis.del(keysArray: _*).toInt
+      } else {
+        0
+      }
+
+      logger.info(s"Deleted $deletedCount Redis keys matching pattern: $pattern")
+      deletedCount
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Error deleting keys by pattern: $pattern", e)
+        0
+    } finally {
+      if (jedisConnection.isDefined && jedisConnection.get != null)
+        jedisConnection.map(_.close())
+    }
   }
 
   implicit val scalaCache = ScalaCache(RedisCache(url, port))
@@ -197,4 +266,51 @@ object Redis extends MdcLoggable {
     memoize(ttl)(f)
   }
 
+
+  /**
+   * Scan Redis keys matching a pattern using KEYS command
+   * Note: In production with large datasets, consider using SCAN instead
+   *
+   * @param pattern Redis pattern (e.g., "rl_counter_*", "rd_*")
+   * @return List of matching keys
+   */
+  def scanKeys(pattern: String): List[String] = {
+    var jedisConnection: Option[Jedis] = None
+    try {
+      jedisConnection = Some(jedisPool.getResource())
+      val jedis = jedisConnection.get
+
+      import scala.collection.JavaConverters._
+      val keys = jedis.keys(pattern)
+      keys.asScala.toList
+
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Error scanning Redis keys with pattern $pattern: ${e.getMessage}")
+        List.empty
+    } finally {
+      if (jedisConnection.isDefined && jedisConnection.get != null)
+        jedisConnection.foreach(_.close())
+    }
+  }
+
+  /**
+   * Count keys matching a pattern
+   *
+   * @param pattern Redis pattern (e.g., "rl_counter_*")
+   * @return Number of matching keys
+   */
+  def countKeys(pattern: String): Int = {
+    scanKeys(pattern).size
+  }
+
+  /**
+   * Get a sample key matching a pattern (first found)
+   *
+   * @param pattern Redis pattern
+   * @return Option of a sample key
+   */
+  def getSampleKey(pattern: String): Option[String] = {
+    scanKeys(pattern).headOption
+  }
 }

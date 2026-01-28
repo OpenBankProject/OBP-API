@@ -1,11 +1,12 @@
 package code.api.dynamic.endpoint.helper
 
-import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
+import scala.language.existentials
+import org.apache.pekko.http.scaladsl.model.{HttpMethods, HttpMethod => PekkoHttpMethod}
 import code.DynamicData.{DynamicDataProvider, DynamicDataT}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CommonUtil, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, ApiVersion}
 import com.openbankproject.commons.util.Functions.Memo
@@ -171,7 +172,7 @@ object DynamicEndpointHelper extends RestHelper {
      * @param r HttpRequest
      * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
-    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
+    def unapply(r: Req): Option[(String, JValue, PekkoHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
       
       val requestUri = r.request.uri //eg: `/obp/dynamic-endpoint/fashion-brand-list/BRAND_ID`
       val partPath = r.path.partPath //eg: List("fashion-brand-list","BRAND_ID"), the dynamic is from OBP URL, not in the partPath now.
@@ -179,7 +180,7 @@ object DynamicEndpointHelper extends RestHelper {
       if (!testResponse_?(r) || !requestUri.startsWith(s"/${ApiStandards.obp.toString}/${ApiShortVersions.`dynamic-endpoint`.toString}"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
         None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
       else {
-        val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
+        val pekkoHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
         val urlQueryParameters = r.params
         // url that match original swagger endpoint.
@@ -230,7 +231,7 @@ object DynamicEndpointHelper extends RestHelper {
 
             val Some(role::_) = doc.roles
             val requestBodyJValue = body(r).getOrElse(JNothing)
-            Full(s"""$serverUrl$url""", requestBodyJValue, akkaHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse, bankId)
+            Full(s"""$serverUrl$url""", requestBodyJValue, pekkoHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse, bankId)
           }
 
       }
@@ -323,7 +324,7 @@ object DynamicEndpointHelper extends RestHelper {
       val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
       val (successCode, successResponseBody: Product) = getResponseExample(openAPI, op.getResponses)
       val errorResponseBodies: List[String] = List(
-        UserNotLoggedIn,
+        AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UnknownError
       )
@@ -677,7 +678,7 @@ object DynamicEndpointHelper extends RestHelper {
         schemas += schema
       }
       // check whether this schema already recurse two times
-      if(schemas.count(schema ==) > 3) {
+      if(schemas.count(schema.==) > 3) {
         return JObject(Nil)
       }
 

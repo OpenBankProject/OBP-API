@@ -110,7 +110,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeDeleteRequest(revokeConsentUrl("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint6 version $VersionOfApi - Authorized access") {
@@ -129,7 +129,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeGetRequest(getMyConsentAtBank("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint8 version $VersionOfApi - Authenticated access") {
@@ -147,7 +147,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeGetRequest(getMyConsent("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $getMyConsents version $VersionOfApi - Authenticated access") {
@@ -166,7 +166,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeGetRequest(getConsentsAtBAnk("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint9 version $VersionOfApi - Authenticated access") {
@@ -185,7 +185,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeGetRequest(getConsents("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $GetConsents version $VersionOfApi - Authenticated access") {
@@ -214,7 +214,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makePutRequest(updateConsentStatusByConsent("whatever"), write(consentStatus))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -224,7 +224,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makeDeleteRequest(revokeMyConsentUrl("xxxx"))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   
@@ -255,7 +255,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val response510 = makePutRequest(updateConsentPayloadByConsent("whatever"), write(consentStatus))
       Then("We should get a 401")
       response510.code should equal(401)
-      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+      response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Authenticated access") {

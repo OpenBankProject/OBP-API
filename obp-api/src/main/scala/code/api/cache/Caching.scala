@@ -88,5 +88,28 @@ object Caching extends MdcLoggable {
   def setStaticSwaggerDocCache(key:String, value: String)= {
     use(JedisMethod.SET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
   }
+  /**
+   * Invalidate all rate limit cache entries for a specific consumer.
+   * Uses pattern matching to delete all cache keys with prefix: rl_active_{consumerId}_*
+   *
+   * @param consumerId The consumer ID whose rate limit cache should be invalidated
+   * @return Number of cache keys deleted
+   */
+  def invalidateRateLimitCache(consumerId: String): Int = {
+    val pattern = s"${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_*"
+    Redis.deleteKeysByPattern(pattern)
+  }
+
+  /**
+   * Invalidate ALL rate limit cache entries for ALL consumers.
+   * Use with caution - this clears the entire rate limiting cache namespace.
+   *
+   * @return Number of cache keys deleted
+   */
+  def invalidateAllRateLimitCache(): Int = {
+    val pattern = s"${RATE_LIMIT_ACTIVE_PREFIX}*"
+    Redis.deleteKeysByPattern(pattern)
+  }
+
   
 }

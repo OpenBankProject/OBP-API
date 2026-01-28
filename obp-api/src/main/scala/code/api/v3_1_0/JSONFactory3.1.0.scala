@@ -809,15 +809,16 @@ object JSONFactory310{
   def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
     BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
-  def createCallLimitJson(consumer: Consumer, rateLimits: List[((Option[Long], Option[Long]), LimitCallPeriod)]) : CallLimitJson = {
+  def createCallLimitJson(consumer: Consumer, rateLimits: List[((Option[Long], Option[Long], String), LimitCallPeriod)]) : CallLimitJson = {
     val redisRateLimit = rateLimits match {
       case Nil => None
       case _   =>
-        def getInfo(period: RateLimitingPeriod.Value): Option[RateLimit] = {
+        def getCallCounterForPeriod(period: RateLimitingPeriod.Value): Option[RateLimit] = {
           rateLimits.filter(_._2 == period) match {
             case x :: Nil =>
               x._1 match {
-                case (Some(x), Some(y)) => Some(RateLimit(Some(x), Some(y)))
+                case (Some(x), Some(y), _) => Some(RateLimit(Some(x), Some(y)))
+                // Ignore status field for v3.1.0 API (backward compatibility)
                 case _                  => None
 
               }
@@ -826,12 +827,12 @@ object JSONFactory310{
         }
         Some(
           RedisCallLimitJson(
-            getInfo(RateLimitingPeriod.PER_SECOND),
-            getInfo(RateLimitingPeriod.PER_MINUTE),
-            getInfo(RateLimitingPeriod.PER_HOUR),
-            getInfo(RateLimitingPeriod.PER_DAY),
-            getInfo(RateLimitingPeriod.PER_WEEK),
-            getInfo(RateLimitingPeriod.PER_MONTH)
+            getCallCounterForPeriod(RateLimitingPeriod.PER_SECOND),
+            getCallCounterForPeriod(RateLimitingPeriod.PER_MINUTE),
+            getCallCounterForPeriod(RateLimitingPeriod.PER_HOUR),
+            getCallCounterForPeriod(RateLimitingPeriod.PER_DAY),
+            getCallCounterForPeriod(RateLimitingPeriod.PER_WEEK),
+            getCallCounterForPeriod(RateLimitingPeriod.PER_MONTH)
           )
         )
     }
@@ -1074,7 +1075,7 @@ object JSONFactory310{
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
      userId => (userId, UserX.findByUserId(userId).map(_.name))
-    } toMap;
+    }.toMap;
 
     EntitlementJSonsV310(
       tr.map(e =>

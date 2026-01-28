@@ -1,5 +1,6 @@
 package code.api.BahrainOBF.v1_0_0
 
+import scala.language.implicitConversions
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
 import code.api.util.ApiTag
@@ -41,7 +42,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
             """,
        json.parse(""""""),
        json.parse("""{ }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -49,7 +50,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
        case "file-payment-consents" :: consentId:: "file" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{ }"""), callContext)
            }
@@ -68,7 +69,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
             """,
        json.parse("""{ }"""),
        json.parse(""""""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -76,7 +77,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
        case "file-payment-consents" :: consentId:: "file" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse(""""""), callContext)
            }
@@ -158,7 +159,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -166,7 +167,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
        case "file-payment-consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {
@@ -340,7 +341,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
     }
   }
 }"""),
-       List(UserNotLoggedIn, UnknownError),
+       List(AuthenticatedUserIsRequired, UnknownError),
        ApiTag("File Payment Consents") :: apiTagMockedData :: Nil
      )
 
@@ -348,7 +349,7 @@ object APIMethods_FilePaymentConsentsApi extends RestHelper {
        case "file-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (Full(u), callContext) <- authenticatedAccess(cc, AuthenticatedUserIsRequired)
              } yield {
             (json.parse("""{
   "Meta" : {

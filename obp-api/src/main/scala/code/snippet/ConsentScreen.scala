@@ -45,7 +45,7 @@ import net.liftweb.util.Helpers._
 import sh.ory.hydra.api.AdminApi
 import sh.ory.hydra.model.{AcceptConsentRequest, RejectRequest}
 
-import scala.jdk.CollectionConverters.seqAsJavaListConverter
+import scala.collection.JavaConverters._
 import scala.xml.NodeSeq
 
 

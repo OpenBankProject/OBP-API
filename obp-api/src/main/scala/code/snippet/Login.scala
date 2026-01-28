@@ -48,7 +48,7 @@ class Login {
     } else {
       ".logout [href]" #> {
         if(APIUtil.getPropsAsBoolValue("sso.enabled", false)) {
-          val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:8082")
+          val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "http://localhost:5174")
           apiExplorerUrl + "/obp-api-logout"
         } else {
           AuthUser.logoutPath.foldLeft("")(_ + "/" + _)

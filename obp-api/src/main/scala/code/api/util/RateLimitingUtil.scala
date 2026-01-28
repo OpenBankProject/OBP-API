@@ -1,6 +1,11 @@
 package code.api.util
 
+import java.util.Date
+import code.ratelimiting.{RateLimiting, RateLimitingDI}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import code.api.{APIFailureNewStyle, JedisMethod}
+import code.api.Constant._
 import code.api.cache.Redis
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.TooManyRequests
@@ -71,33 +76,150 @@ object RateLimitingJson {
 
 object RateLimitingUtil extends MdcLoggable {
   import code.api.util.RateLimitingPeriod._
-  
-  def useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
 
-  private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + "_" + RateLimitingPeriod.toString(period)
+  /** State of a rate limiting counter from Redis */
+  case class RateLimitCounterState(
+    calls: Option[Long],       // Current counter value
+    ttl: Option[Long],         // Time to live in seconds
+    status: String             // ACTIVE, NO_COUNTER, EXPIRED, REDIS_UNAVAILABLE
+  )
 
+  def useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", true)
+
+  /** Get system default rate limits from properties. Used when no RateLimiting records exist for a consumer.
+    * @param consumerId The consumer ID
+    * @return RateLimit with system property defaults (default to -1 if not set)
+    */
+  /** THE SINGLE SOURCE OF TRUTH for active rate limits.
+    * This is the ONLY function that should be called to get active rate limits.
+    * Used by BOTH enforcement (AfterApiAuth) and API reporting (APIMethods600).
+    *
+    * @param consumerId The consumer ID
+    * @param date The date to check active limits for
+    * @return Future containing (aggregated CallLimit, List of rate_limiting_ids that contributed)
+    */
+  def getActiveRateLimitsWithIds(consumerId: String, date: Date): Future[(CallLimit, List[String])] = {
+    def getActiveRateLimitings(consumerId: String): Future[List[RateLimiting]] = {
+      useConsumerLimits match {
+        case true => RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, date)
+        case false => Future(List.empty)
+      }
+    }
+
+    def aggregateRateLimits(rateLimitRecords: List[RateLimiting]): CallLimit = {
+      def sumLimits(values: List[Long]): Long = {
+        val positiveValues = values.filter(_ > 0)
+        if (positiveValues.isEmpty) -1 else positiveValues.sum
+      }
+
+      if (rateLimitRecords.nonEmpty) {
+        RateLimitingJson.CallLimit(
+          consumerId,
+          rateLimitRecords.find(_.apiName.isDefined).flatMap(_.apiName),
+          rateLimitRecords.find(_.apiVersion.isDefined).flatMap(_.apiVersion),
+          rateLimitRecords.find(_.bankId.isDefined).flatMap(_.bankId),
+          sumLimits(rateLimitRecords.map(_.perSecondCallLimit)),
+          sumLimits(rateLimitRecords.map(_.perMinuteCallLimit)),
+          sumLimits(rateLimitRecords.map(_.perHourCallLimit)),
+          sumLimits(rateLimitRecords.map(_.perDayCallLimit)),
+          sumLimits(rateLimitRecords.map(_.perWeekCallLimit)),
+          sumLimits(rateLimitRecords.map(_.perMonthCallLimit))
+        )
+      } else {
+        // No records found - return system defaults
+        RateLimitingJson.CallLimit(
+          consumerId,
+          None,
+          None,
+          None,
+          APIUtil.getPropsAsLongValue("rate_limiting_per_second", -1),
+          APIUtil.getPropsAsLongValue("rate_limiting_per_minute", -1),
+          APIUtil.getPropsAsLongValue("rate_limiting_per_hour", -1),
+          APIUtil.getPropsAsLongValue("rate_limiting_per_day", -1),
+          APIUtil.getPropsAsLongValue("rate_limiting_per_week", -1),
+          APIUtil.getPropsAsLongValue("rate_limiting_per_month", -1)
+        )
+      }
+    }
+
+    for {
+      rateLimitRecords <- getActiveRateLimitings(consumerId)
+    } yield {
+      val callLimit = aggregateRateLimits(rateLimitRecords)
+      val ids = rateLimitRecords.map(_.rateLimitingId)
+      (callLimit, ids)
+    }
+  }
+
+
+  /**
+   * Single source of truth for reading rate limit counter state from Redis.
+   * All rate limiting functions should call this instead of accessing Redis directly.
+   * 
+   * @param consumerKey The consumer ID
+   * @param period The time period (PER_SECOND, PER_MINUTE, etc.)
+   * @return RateLimitCounterState with calls, ttl, and status
+   */
+  private def getCounterState(consumerKey: String, period: LimitCallPeriod): RateLimitCounterState = {
+    val key = createUniqueKey(consumerKey, period)
+    
+    // Read TTL and value from Redis (2 operations)
+    val ttlOpt: Option[Long] = Redis.use(JedisMethod.TTL, key).map(_.toLong)
+    val valueOpt: Option[Long] = Redis.use(JedisMethod.GET, key).map(_.toLong)
+    
+    // Determine status based on Redis TTL response
+    val status = ttlOpt match {
+      case Some(ttl) if ttl > 0 => "ACTIVE"        // Counter running with time remaining
+      case Some(-2) => "NO_COUNTER"                // Key does not exist, never been set
+      case Some(ttl) if ttl <= 0 => "EXPIRED"      // Key expired (TTL=0) or no expiry (TTL=-1)
+      case None => "REDIS_UNAVAILABLE"             // Redis connection failed
+    }
+    
+    // Normalize calls value
+    val calls = ttlOpt match {
+      case Some(-2) => Some(0L)                    // Key doesn't exist -> 0 calls
+      case Some(ttl) if ttl <= 0 => Some(0L)       // Expired or invalid -> 0 calls
+      case Some(_) => valueOpt.orElse(Some(0L))    // Active key -> return value or 0
+      case None => Some(0L)                        // Redis unavailable -> 0 calls
+    }
+    
+    // Normalize TTL value
+    val normalizedTtl = ttlOpt match {
+      case Some(-2) => Some(0L)                    // Key doesn't exist -> 0 TTL
+      case Some(ttl) if ttl <= 0 => Some(0L)       // Expired -> 0 TTL
+      case Some(ttl) => Some(ttl)                  // Active -> actual TTL
+      case None => Some(0L)                        // Redis unavailable -> 0 TTL
+    }
+    
+    RateLimitCounterState(calls, normalizedTtl, status)
+  }
+  private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = CALL_COUNTER_PREFIX + consumerKey + "_" + RateLimitingPeriod.toString(period)
   private def underConsumerLimits(consumerKey: String, period: LimitCallPeriod, limit: Long): Boolean = {
+
     if (useConsumerLimits) {
-      try {
-        (limit) match {
-          case l if l > 0 => // Redis is available and limit is set
-            val key = createUniqueKey(consumerKey, period)
-            val exists = Redis.use(JedisMethod.EXISTS,key).map(_.toBoolean).get
-            exists match {
-              case true =>
-                val underLimit = Redis.use(JedisMethod.GET,key).get.toLong + 1 <= limit // +1 means we count the current call as well. We increment later i.e after successful call.
-                underLimit
-              case false => // In case that key does not exist we return successful result
-                true
-            }
-          case _ =>
-            // Rate Limiting for a Consumer <= 0 implies successful result
-            // Or any other unhandled case implies successful result
-            true
-        }
-      } catch {
-        case e : Throwable =>
-          logger.error(s"Redis issue: $e")
+      (limit) match {
+        case l if l > 0 => // Limit is set, check against Redis counter
+          val state = getCounterState(consumerKey, period)
+          state.status match {
+            case "ACTIVE" =>
+              // Counter is active, check if we're under limit
+              // +1 means we count the current call as well. We increment later i.e after successful call.
+              state.calls.getOrElse(0L) + 1 <= limit
+            case "NO_COUNTER" | "EXPIRED" =>
+              // No counter or expired -> allow (first call or period expired)
+              true
+            case "REDIS_UNAVAILABLE" =>
+              // Redis unavailable -> fail open (allow request)
+              logger.warn(s"Redis unavailable when checking rate limit for consumer $consumerKey, period $period - allowing request")
+              true
+            case _ =>
+              // Unknown status -> fail open (allow request)
+              logger.warn(s"Unknown status '${state.status}' when checking rate limit for consumer $consumerKey, period $period - allowing request")
+              true
+          }
+        case _ =>
+          // Rate Limiting for a Consumer <= 0 implies successful result
+          // Or any other unhandled case implies successful result
           true
       }
     } else {
@@ -105,79 +227,87 @@ object RateLimitingUtil extends MdcLoggable {
     }
   }
 
+  /**
+   * Increment API call counter for a consumer after successful rate limit check.
+   * Called after the request passes all rate limit checks to update the counters.
+   * 
+   * @param consumerKey The consumer ID or IP address
+   * @param period The time period (PER_SECOND, PER_MINUTE, etc.)
+   * @param limit The rate limit value (-1 means disabled)
+   * @return (TTL in seconds, current counter value) or (-1, -1) on error/disabled
+   */
   private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
     if (useConsumerLimits) {
-      try {
-        (limit) match {
-          case -1 => // Limit is not set for the period
-            val key = createUniqueKey(consumerKey, period)
-            Redis.use(JedisMethod.DELETE, key)
-            (-1, -1)
-          case _ => // Redis is available and limit is set
-            val key = createUniqueKey(consumerKey, period)
-            val ttl =  Redis.use(JedisMethod.TTL, key).get.toInt
-            ttl match {
-              case -2 => // if the Key does not exists, -2 is returned
-                val seconds =  RateLimitingPeriod.toSeconds(period).toInt
-                Redis.use(JedisMethod.SET,key, Some(seconds), Some("1"))
-                (seconds, 1)
-              case _ => // otherwise increment the counter
-                val cnt = Redis.use(JedisMethod.INCR,key).get.toInt
-                (ttl, cnt)
-            }
-        }
-      } catch {
-        case e : Throwable =>
-          logger.error(s"Redis issue: $e")
+      val key = createUniqueKey(consumerKey, period)
+      (limit) match {
+        case -1 => // Limit is disabled for this period
+          Redis.use(JedisMethod.DELETE, key)
           (-1, -1)
+        case _ => // Limit is enabled, increment counter
+          val ttlOpt = Redis.use(JedisMethod.TTL, key).map(_.toInt)
+          ttlOpt match {
+            case Some(-2) => // Key does not exist, create it
+              val seconds = RateLimitingPeriod.toSeconds(period).toInt
+              Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
+              (seconds, 1)
+            case Some(ttl) if ttl > 0 => // Key exists with TTL, increment it
+              val cnt = Redis.use(JedisMethod.INCR, key).map(_.toInt).getOrElse(1)
+              (ttl, cnt)
+            case Some(ttl) if ttl <= 0 => // Key expired or has no expiry (shouldn't happen)
+              logger.warn(s"Unexpected TTL state ($ttl) for consumer $consumerKey, period $period - recreating counter")
+              val seconds = RateLimitingPeriod.toSeconds(period).toInt
+              Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
+              (seconds, 1)
+            case None => // Redis unavailable
+              logger.error(s"Redis unavailable when incrementing counter for consumer $consumerKey, period $period")
+              (-1, -1)
+          }
       }
     } else {
       (-1, -1)
     }
   }
 
+  /**
+   * Get remaining TTL (time to live) for a rate limit counter.
+   * Used to populate X-Rate-Limit-Reset header when rate limit is exceeded.
+   * 
+   * NOTE: This function could be further optimized by eliminating it entirely.
+   * We already call getCounterState() in underConsumerLimits(), so we could 
+   * cache/reuse that TTL value instead of making another Redis call here.
+   * 
+   * @param consumerKey The consumer ID or IP address
+   * @param period The time period
+   * @return Seconds until counter resets, or 0 if no counter exists
+   */
   private def ttl(consumerKey: String, period: LimitCallPeriod): Long = {
-    val key = createUniqueKey(consumerKey, period)
-    val ttl = Redis.use(JedisMethod.TTL, key).get.toInt
-    ttl match {
-      case -2 => // if the Key does not exists, -2 is returned
-        0
-      case _ => // otherwise increment the counter
-        ttl
-    }
+    val state = getCounterState(consumerKey, period)
+    state.ttl.getOrElse(0L)
   }
 
 
 
-  def consumerRateLimitState(consumerKey: String): immutable.Seq[((Option[Long], Option[Long]), LimitCallPeriod)] = {
-
-    def getInfo(consumerKey: String, period: LimitCallPeriod): ((Option[Long], Option[Long]), LimitCallPeriod) = {
-      val key = createUniqueKey(consumerKey, period)
-
-      // get TTL
-      val ttlOpt: Option[Long] = Redis.use(JedisMethod.TTL, key).map(_.toLong)
-
-      // get value (assuming string storage)
-      val valueOpt: Option[Long] = Redis.use(JedisMethod.GET, key).map(_.toLong)
-
-      ((valueOpt, ttlOpt), period)
+  def consumerRateLimitState(consumerKey: String): immutable.Seq[((Option[Long], Option[Long], String), LimitCallPeriod)] = {
+    def getCallCounterForPeriod(consumerKey: String, period: LimitCallPeriod): ((Option[Long], Option[Long], String), LimitCallPeriod) = {
+      val state = getCounterState(consumerKey, period)
+      ((state.calls, state.ttl, state.status), period)
     }
 
-    getInfo(consumerKey, RateLimitingPeriod.PER_SECOND) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_MINUTE) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_HOUR) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_DAY) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_WEEK) ::
-    getInfo(consumerKey, RateLimitingPeriod.PER_MONTH) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_SECOND) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_MINUTE) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_HOUR) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_DAY) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_WEEK) ::
+    getCallCounterForPeriod(consumerKey, RateLimitingPeriod.PER_MONTH) ::
       Nil
   }
 
   /**
     * Rate limiting guard that enforces API call limits for both authorized and anonymous access.
-    * 
+    *
     * This is the main rate limiting enforcement function that controls access to OBP API endpoints.
     * It operates in two modes depending on whether the caller is authenticated or anonymous.
-    * 
+    *
     * AUTHORIZED ACCESS (with valid consumer credentials):
     * - Enforces limits across 6 time periods: per second, minute, hour, day, week, and month
     * - Uses consumer_id as the rate limiting key (simplified for current implementation)
@@ -186,28 +316,28 @@ object RateLimitingUtil extends MdcLoggable {
     * - Stores counters in Redis with TTL matching the time period
     * - Returns 429 status with appropriate error message when any limit is exceeded
     * - Lower period limits take precedence in error messages (e.g., per-second over per-minute)
-    * 
+    *
     * ANONYMOUS ACCESS (no consumer credentials):
     * - Only enforces per-hour limits (configurable via "user_consumer_limit_anonymous_access", default: 1000)
     * - Uses client IP address as the rate limiting key
     * - Designed to prevent abuse while allowing reasonable anonymous usage
-    * 
+    *
     * REDIS STORAGE MECHANISM:
     * - Keys format: {consumer_id}_{PERIOD} (e.g., "consumer123_PER_MINUTE")
     * - Values: current call count within the time window
     * - TTL: automatically expires keys when time period ends
     * - Atomic operations ensure thread-safe counter increments
-    * 
+    *
     * RATE LIMIT HEADERS:
     * - Sets X-Rate-Limit-Limit: maximum allowed requests for the period
     * - Sets X-Rate-Limit-Reset: seconds until the limit resets (TTL)
     * - Sets X-Rate-Limit-Remaining: requests remaining in current period
-    * 
+    *
     * ERROR HANDLING:
     * - Redis connectivity issues default to allowing the request (fail-open)
     * - Rate limiting can be globally disabled via "use_consumer_limits" property
     * - Malformed or missing limits default to unlimited access
-    * 
+    *
     * @param userAndCallContext Tuple containing (Box[User], Option[CallContext]) from authentication
     * @return Same tuple structure, either with updated rate limit headers or rate limit exceeded error
     */

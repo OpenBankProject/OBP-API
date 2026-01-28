@@ -41,7 +41,7 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").POST
       val response = makePostRequest(request, write(bankAccountBalanceRequestJsonV510))
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("403 Forbidden (no role)", Create, VersionOfApi) {

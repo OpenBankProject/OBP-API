@@ -1889,7 +1889,7 @@ api_enabled_endpoints=[
   OBPv5.1.0-updateConsumerRedirectUrl,
   OBPv5.1.0-enableDisableConsumers,
   OBPv5.1.0-deleteConsumer,
-  OBPv6.0.0-getActiveCallLimitsAtDate,
+  OBPv6.0.0-getActiveRateLimitsAtDate,
   OBPv6.0.0-updateRateLimits,
   OBPv5.1.0-getMetrics,
   OBPv5.1.0-getAggregateMetrics,
@@ -2784,7 +2784,9 @@ POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views
 
 ### 8.4 Rate Limiting
 
-**Overview:** Protect API resources from abuse and ensure fair usage
+**Overview:** Protect API resources from abuse and ensure fair usage.
+
+For comprehensive details on Rate Limiting architecture, aggregation logic, and the single source of truth implementation, see the **Rate Limiting** entry in the API Glossary.
 
 **Configuration:**
 
@@ -2796,23 +2798,59 @@ use_consumer_limits=true
 cache.redis.url=127.0.0.1
 cache.redis.port=6379
 
-# Anonymous access limit (per minute)
-user_consumer_limit_anonymous_access=60
+# Anonymous access limit (per hour)
+user_consumer_limit_anonymous_access=1000
 ```
 
-**Setting Consumer Limits:**
+**Managing Rate Limits:**
+
+Create rate limits:
+
+```bash
+POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits
+{
+  "from_date": "2024-01-01T00:00:00Z",
+  "to_date": "2024-12-31T23:59:59Z",
+  "per_second_rate_limit": "10",
+  "per_minute_rate_limit": "100",
+  "per_hour_rate_limit": "1000",
+  "per_day_rate_limit": "10000",
+  "per_week_rate_limit": "50000",
+  "per_month_rate_limit": "200000"
+}
+```
+
+Update rate limits:
 
 ```bash
 PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
 {
-  "per_second_call_limit": "10",
-  "per_minute_call_limit": "100",
-  "per_hour_call_limit": "1000",
-  "per_day_call_limit": "10000",
-  "per_week_call_limit": "50000",
-  "per_month_call_limit": "200000"
+  "from_date": "2024-01-01T00:00:00Z",
+  "to_date": "2024-12-31T23:59:59Z",
+  "per_second_rate_limit": "10",
+  "per_minute_rate_limit": "100",
+  "per_hour_rate_limit": "1000",
+  "per_day_rate_limit": "10000",
+  "per_week_rate_limit": "50000",
+  "per_month_rate_limit": "200000"
 }
 ```
+
+Query active rate limits (current date/time):
+
+```bash
+GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits
+```
+
+Query active rate limits for a specific hour:
+
+```bash
+GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR
+```
+
+Where `DATE_WITH_HOUR` is in format `YYYY-MM-DD-HH` in **UTC timezone** (e.g., `2025-12-31-13` for hour 13:00-13:59 UTC on Dec 31, 2025).
+
+Rate limits are cached and queried at hour-level granularity for performance. All hours are interpreted in UTC for consistency.
 
 **Rate Limit Headers:**
 
@@ -2826,6 +2864,13 @@ X-Rate-Limit-Reset: 45
   "error": "OBP-10018: Too Many Requests. We only allow 100 requests per minute for this Consumer."
 }
 ```
+
+**Key Concepts:**
+
+- **Multiple Records**: Consumers can have multiple overlapping rate limit records
+- **Aggregation**: Active limits are summed together (positive values only)
+- **Single Source of Truth**: `RateLimitingUtil.getActiveRateLimitsWithIds()` calculates all active limits consistently
+- **Unlimited**: A value of `-1` means unlimited for that time period
 
 ### 8.5 Security Best Practices
 
@@ -2884,6 +2929,7 @@ For comprehensive use case examples and implementation guides, see the dedicated
 - **Variable Recurring Payments (VRP)** - Enable authorized applications to make multiple payments to a beneficiary over time with varying amounts, subject to pre-defined limits. See [use_cases.md](use_cases.md#1-variable-recurring-payments-vrp) for full details.
 
 **Coming Soon:**
+
 - Account Aggregation
 - Payment Initiation Services (PIS)
 - Account Information Services (AIS)

@@ -35,7 +35,15 @@ object ClassScanUtils {
     */
   def getSubTypeObjects[T:TypeTag]: List[T] = {
     val clazz = ReflectUtils.typeTagToClass[T]
-    finder.getClasses().filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
+    val classes = try {
+      finder.getClasses().toList
+    } catch {
+      case _: UnsupportedOperationException =>
+        // ASM version is too old for some class files (e.g. requires ASM7). In that case,
+        // skip scanned APIs instead of failing the whole application.
+        Seq.empty
+    }
+    classes.filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
   }
 
   /**
@@ -43,14 +51,22 @@ object ClassScanUtils {
     * @param predict check whether include this type in the result
     * @return all fit type names
     */
-  def findTypes(predict: ClassInfo => Boolean): List[String] = finder.getClasses()
-    .filter(predict)
-    .map(it => {
-      val name = it.name
-      if(name.endsWith("$")) name.substring(0, name.length - 1)
-      else name
-    }) //some companion type name ends with $, it added by scalac, should remove from class name
-    .toList
+  def findTypes(predict: ClassInfo => Boolean): List[String] = {
+    val classes = try {
+      finder.getClasses().toList
+    } catch {
+      case _: UnsupportedOperationException =>
+        Seq.empty
+    }
+    classes
+      .filter(predict)
+      .map(it => {
+        val name = it.name
+        if(name.endsWith("$")) name.substring(0, name.length - 1)
+        else name
+      }) //some companion type name ends with $, it added by scalac, should remove from class name
+      .toList
+  }
 
   /**
     * get given class exists jar Files
@@ -71,7 +87,13 @@ object ClassScanUtils {
     */
   def getMappers(packageName:String = ""): Seq[ClassInfo] = {
     val mapperInterface = "net.liftweb.mapper.LongKeyedMapper"
-    val infos = finder.getClasses().filter(it => it.interfaces.contains(mapperInterface))
+    val classes = try {
+      finder.getClasses().toList
+    } catch {
+      case _: UnsupportedOperationException =>
+        Seq.empty
+    }
+    val infos = classes.filter(it => it.interfaces.contains(mapperInterface))
     if(StringUtils.isNoneBlank()) {
       infos.filter(classInfo => classInfo.name.startsWith(packageName))
     } else {

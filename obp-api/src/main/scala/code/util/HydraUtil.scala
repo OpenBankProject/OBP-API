@@ -15,7 +15,7 @@ import sh.ory.hydra.model.OAuth2Client
 import sh.ory.hydra.{ApiClient, Configuration}
 
 import scala.collection.immutable.List
-import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
+import scala.collection.JavaConverters._
 
 object HydraUtil extends MdcLoggable{
 
