@@ -334,6 +334,18 @@ case class StoredProcedureConnectorHealthJsonV600(
     error_message: Option[String]
 )
 
+case class BankJsonV600(
+    bank_id: String,
+    short_name: String,
+    full_name: String,
+    logo: String,
+    website: String,
+    bank_routings: List[BankRoutingJsonV121],
+    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+)
+
+case class BanksJsonV600(banks: List[BankJsonV600])
+
 case class PostCustomerJsonV600(
     legal_name: String,
     customer_number: Option[String] = None,
@@ -1395,6 +1407,34 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       max_lifetime_ms = config.getMaxLifetime,
       keepalive_time_ms = config.getKeepaliveTime
     )
+  }
+
+  def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJsonV600 = {
+    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
+    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
+    val routings = bank.bankRoutingScheme match {
+      case "OBP" => bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case "BIC" => obp :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case _ => obp :: bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+    }
+    BankJsonV600(
+      bank_id = stringOrNull(bank.bankId.value),
+      short_name = stringOrNull(bank.shortName),
+      full_name = stringOrNull(bank.fullName),
+      logo = stringOrNull(bank.logoUrl),
+      website = stringOrNull(bank.websiteUrl),
+      bank_routings = routings.filter(a => stringOrNull(a.address) != null),
+      attributes = Option(
+        attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
+          name = a.name,
+          value = a.value)
+        )
+      )
+    )
+  }
+
+  def createBanksJsonV600(banks: List[Bank]): BanksJsonV600 = {
+    BanksJsonV600(banks.map(bank => createBankJsonV600(bank, Nil)))
   }
 
   /**

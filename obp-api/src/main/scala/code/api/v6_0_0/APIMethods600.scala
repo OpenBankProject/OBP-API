@@ -23,7 +23,8 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_1_0.{JSONFactory310, PostCustomerNumberJsonV310}
-import code.api.v4_0_0.CallLimitPostJsonV400
+import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CallLimitPostJsonV400}
 import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
@@ -914,6 +915,89 @@ trait APIMethods600 {
             )
             (result, HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBanks,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |- bank_id used as parameter in URLs
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |
+        |User Authentication is Optional. The User need not be logged in.
+        |""",
+      EmptyBody,
+      BanksJsonV600(List(BankJsonV600(
+        bank_id = "gh.29.uk",
+        short_name = "short_name",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ))),
+      List(UnknownError),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBanks: OBPEndpoint = {
+      case "banks" :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+        } yield {
+          (JSONFactory600.createBanksJsonV600(banks), HttpCode.`200`(callContext))
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |- bank_id: The unique identifier of this bank
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |""",
+      EmptyBody,
+      BankJsonV600(
+        bank_id = "gh.29.uk",
+        short_name = "short_name",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ),
+      List(UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+          (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+        } yield {
+          (JSONFactory600.createBankJsonV600(bank, attributes), HttpCode.`200`(callContext))
+        }
       }
     }
 
