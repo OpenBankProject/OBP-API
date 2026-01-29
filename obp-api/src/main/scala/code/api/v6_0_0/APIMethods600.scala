@@ -30,11 +30,12 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
+import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -846,6 +847,71 @@ trait APIMethods600 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, canGetDatabasePoolInfo, callContext)
           } yield {
             val result = JSONFactory600.createDatabasePoolInfoJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getStoredProcedureConnectorHealth,
+      implementedInApiVersion,
+      nameOf(getStoredProcedureConnectorHealth),
+      "GET",
+      "/system/connectors/stored_procedure_vDec2019/health",
+      "Get Stored Procedure Connector Health",
+      """Returns health status of the stored procedure connector including:
+        |
+        |- Connection status (ok/error)
+        |- Database server name: identifies which backend node handled the request (useful for load balancer diagnostics)
+        |- Server IP address
+        |- Database name
+        |- Response time in milliseconds
+        |- Error message (if any)
+        |
+        |Supports database-specific queries for: SQL Server, PostgreSQL, Oracle, and MySQL/MariaDB.
+        |
+        |This endpoint is useful for diagnosing connectivity issues, especially when the database is behind a load balancer
+        |and you need to identify which node is responding or experiencing SSL certificate issues.
+        |
+        |Note: This endpoint may take a long time to respond if the database connection is slow or experiencing issues.
+        |The response time depends on the connection pool timeout and JDBC driver settings.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      StoredProcedureConnectorHealthJsonV600(
+        status = "ok",
+        server_name = Some("DBSERVER01"),
+        server_ip = Some("10.0.1.50"),
+        database_name = Some("obp_adapter"),
+        response_time_ms = 45,
+        error_message = None
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConnector, apiTagSystem, apiTagApi),
+      Some(List(canGetConnectorHealth))
+    )
+
+    lazy val getStoredProcedureConnectorHealth: OBPEndpoint = {
+      case "system" :: "connectors" :: "stored_procedure_vDec2019" :: "health" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConnectorHealth, callContext)
+          } yield {
+            val health = StoredProcedureUtils.getHealth()
+            val result = StoredProcedureConnectorHealthJsonV600(
+              status = health.status,
+              server_name = health.serverName,
+              server_ip = health.serverIp,
+              database_name = health.databaseName,
+              response_time_ms = health.responseTimeMs,
+              error_message = health.errorMessage
+            )
             (result, HttpCode.`200`(callContext))
           }
       }
@@ -7081,6 +7147,77 @@ trait APIMethods600 {
             HttpCode.`200`(cc.callContext)
           )
         }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      verifyUserCredentials,
+      implementedInApiVersion,
+      nameOf(verifyUserCredentials),
+      "POST",
+      "/users/verify-credentials",
+      "Verify User Credentials",
+      s"""Verify a user's credentials (username, password, provider) and return user information if valid.
+         |
+         |This endpoint validates the provided credentials without creating a token or session.
+         |It can be used to verify user credentials in external systems.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""",
+      PostVerifyUserCredentialsJsonV600(
+        username = "username",
+        password = "password",
+        provider = Constant.localIdentityProvider
+      ),
+      userJsonV200,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        InvalidLoginCredentials,
+        UsernameHasBeenLocked,
+        UnknownError
+      ),
+      List(apiTagUser),
+      Some(List(canVerifyUserCredentials))
+    )
+
+    lazy val verifyUserCredentials: OBPEndpoint = {
+      case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
+              json.extract[PostVerifyUserCredentialsJsonV600]
+            }
+            // Validate credentials using the existing AuthUser mechanism
+            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+            // Check if account is locked
+            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
+              resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+            }
+            // Check if credentials are valid
+            resourceUserId <- Future {
+              resourceUserIdBox
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+            }
+            // Get the user object
+            user <- Future {
+              Users.users.vend.getUserByResourceUserId(resourceUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+            }
+            // Verify provider matches if specified and not empty
+            _ <- Helper.booleanToFuture(InvalidLoginCredentials, 401, callContext) {
+              postedData.provider.isEmpty || user.provider == postedData.provider
+            }
+          } yield {
+            (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
+          }
       }
     }
 
