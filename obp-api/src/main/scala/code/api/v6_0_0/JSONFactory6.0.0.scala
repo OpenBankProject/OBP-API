@@ -325,6 +325,15 @@ case class DatabasePoolInfoJsonV600(
     keepalive_time_ms: Long
 )
 
+case class StoredProcedureConnectorHealthJsonV600(
+    status: String,
+    server_name: Option[String],
+    server_ip: Option[String],
+    database_name: Option[String],
+    response_time_ms: Long,
+    error_message: Option[String]
+)
+
 case class PostCustomerJsonV600(
     legal_name: String,
     customer_number: Option[String] = None,

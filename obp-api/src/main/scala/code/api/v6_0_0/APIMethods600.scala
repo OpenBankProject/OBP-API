@@ -35,6 +35,7 @@ import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
+import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -846,6 +847,71 @@ trait APIMethods600 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, canGetDatabasePoolInfo, callContext)
           } yield {
             val result = JSONFactory600.createDatabasePoolInfoJsonV600()
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getStoredProcedureConnectorHealth,
+      implementedInApiVersion,
+      nameOf(getStoredProcedureConnectorHealth),
+      "GET",
+      "/system/connectors/stored_procedure_vDec2019/health",
+      "Get Stored Procedure Connector Health",
+      """Returns health status of the stored procedure connector including:
+        |
+        |- Connection status (ok/error)
+        |- Database server name: identifies which backend node handled the request (useful for load balancer diagnostics)
+        |- Server IP address
+        |- Database name
+        |- Response time in milliseconds
+        |- Error message (if any)
+        |
+        |Supports database-specific queries for: SQL Server, PostgreSQL, Oracle, and MySQL/MariaDB.
+        |
+        |This endpoint is useful for diagnosing connectivity issues, especially when the database is behind a load balancer
+        |and you need to identify which node is responding or experiencing SSL certificate issues.
+        |
+        |Note: This endpoint may take a long time to respond if the database connection is slow or experiencing issues.
+        |The response time depends on the connection pool timeout and JDBC driver settings.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      StoredProcedureConnectorHealthJsonV600(
+        status = "ok",
+        server_name = Some("DBSERVER01"),
+        server_ip = Some("10.0.1.50"),
+        database_name = Some("obp_adapter"),
+        response_time_ms = 45,
+        error_message = None
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConnector, apiTagSystem, apiTagApi),
+      Some(List(canGetConnectorHealth))
+    )
+
+    lazy val getStoredProcedureConnectorHealth: OBPEndpoint = {
+      case "system" :: "connectors" :: "stored_procedure_vDec2019" :: "health" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConnectorHealth, callContext)
+          } yield {
+            val health = StoredProcedureUtils.getHealth()
+            val result = StoredProcedureConnectorHealthJsonV600(
+              status = health.status,
+              server_name = health.serverName,
+              server_ip = health.serverIp,
+              database_name = health.databaseName,
+              response_time_ms = health.responseTimeMs,
+              error_message = health.errorMessage
+            )
             (result, HttpCode.`200`(callContext))
           }
       }

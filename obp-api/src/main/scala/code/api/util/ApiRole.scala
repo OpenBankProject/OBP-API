@@ -412,6 +412,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetDatabasePoolInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDatabasePoolInfo = CanGetDatabasePoolInfo()
 
+  case class CanGetConnectorHealth(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConnectorHealth = CanGetConnectorHealth()
+
 
   case class CanGetCacheNamespaces(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCacheNamespaces = CanGetCacheNamespaces()
