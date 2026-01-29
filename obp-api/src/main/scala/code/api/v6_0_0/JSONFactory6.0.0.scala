@@ -91,6 +91,15 @@ case class VerifyOidcClientResponseJsonV600(
     redirect_uris: Option[List[String]] = None
 )
 
+// OIDC Client Get (metadata lookup without secret verification)
+case class GetOidcClientResponseJsonV600(
+    client_id: String,
+    client_name: String,
+    consumer_id: String,
+    redirect_uris: List[String],
+    enabled: Boolean
+)
+
 case class CallLimitPostJsonV600(
     from_date: java.util.Date,
     to_date: java.util.Date,

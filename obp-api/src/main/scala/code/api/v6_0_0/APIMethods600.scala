@@ -31,7 +31,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -7454,6 +7454,69 @@ trait APIMethods600 {
               case _ =>
                 (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
             }
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getOidcClient,
+      implementedInApiVersion,
+      nameOf(getOidcClient),
+      "GET",
+      "/oidc/clients/CLIENT_ID",
+      "Get OIDC Client",
+      s"""Gets an OIDC/OAuth2 client's metadata by client_id.
+         |
+         |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      EmptyBody,
+      GetOidcClientResponseJsonV600(
+        client_id = "abc123def456",
+        client_name = "My Application",
+        consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        redirect_uris = List("https://app.example.com/callback"),
+        enabled = true
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canGetOidcClient))
+    )
+
+    lazy val getOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: clientId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
+            }
+            consumer <- NewStyle.function.tryons(s"OBP-OIDC-003: Client not found: $clientId", 404, callContext) {
+              consumerBox match {
+                case Full(c) => c
+                case _ => throw new RuntimeException("Client not found")
+              }
+            }
+          } yield {
+            val redirectUris = Option(consumer.redirectURL.get)
+              .filter(_.nonEmpty)
+              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+              .getOrElse(List.empty)
+            (GetOidcClientResponseJsonV600(
+              client_id = clientId,
+              client_name = consumer.name.get,
+              consumer_id = consumer.consumerId.get,
+              redirect_uris = redirectUris,
+              enabled = consumer.isActive.get
+            ), HttpCode.`200`(callContext))
           }
       }
     }
