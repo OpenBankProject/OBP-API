@@ -5,6 +5,7 @@ import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.ResourceDocMiddleware
@@ -19,6 +20,8 @@ import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.model.ProductCode
 import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import dispatch.{Http => DispatchHttp, as => DispatchAs, url => DispatchUrl}
+import java.nio.charset.StandardCharsets
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import org.http4s._
@@ -54,6 +57,8 @@ object Http4s500 {
   object Implementations5_0_0 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
+    private val prefixPathString = s"/${ApiPathZero.toString}/${implementedInApiVersion.toString}"
+    private val liftProxyBaseUrl = APIUtil.getPropsValue("http4s.lift_proxy_base_url", "http://localhost:8080")
 
     resourceDocs += ResourceDoc(
       null,
@@ -219,6 +224,42 @@ object Http4s500 {
         }
     }
 
+    private def proxyToLift(req: Request[IO]): IO[Response[IO]] = {
+      val targetUrl = liftProxyBaseUrl.stripSuffix("/") + req.uri.renderString
+      val filteredHeaders = req.headers.headers
+        .filterNot(h => {
+          val name = h.name.toString.toLowerCase
+          name == "host" || name == "content-length" || name == "transfer-encoding"
+        })
+        .map(h => h.name.toString -> h.value)
+        .toMap
+
+      for {
+        body <- req.bodyText.compile.string
+        dispatchReq = (
+          DispatchUrl(targetUrl)
+            .setMethod(req.method.name)
+            .setBodyEncoding(StandardCharsets.UTF_8)
+            .setBody(body)
+            <:< filteredHeaders
+        )
+        liftResp <- IO.fromFuture(IO(DispatchHttp.default(dispatchReq > DispatchAs.Response(p => p))))
+        status = org.http4s.Status.fromInt(liftResp.getStatusCode).getOrElse(org.http4s.Status.InternalServerError)
+        responseBody = liftResp.getResponseBody
+        correlationHeader = Option(liftResp.getHeader("Correlation-Id")).filter(_.nonEmpty)
+        base = Response[IO](status).withEntity(responseBody)
+        withCorrelation = correlationHeader match {
+          case Some(value) => base.putHeaders(Header.Raw(org.typelevel.ci.CIString("Correlation-Id"), value))
+          case None => base
+        }
+      } yield withCorrelation
+    }
+
+    val proxy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req if req.uri.path.renderString.startsWith(prefixPathString) =>
+        proxyToLift(req)
+    }
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -226,6 +267,7 @@ object Http4s500 {
           .orElse(getBank(req))
           .orElse(getProducts(req))
           .orElse(getProduct(req))
+          .orElse(proxy(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =

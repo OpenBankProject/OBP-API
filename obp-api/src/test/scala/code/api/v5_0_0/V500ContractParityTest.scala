@@ -3,10 +3,13 @@ package code.api.v5_0_0
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
+import code.api.util.APIUtil.OAuth._
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.JsonParser.parse
 import org.http4s.{Method, Request, Status, Uri}
+import org.http4s.Header
+import org.typelevel.ci.CIString
 import org.scalatest.Tag
 
 class V500ContractParityTest extends V500ServerSetup {
@@ -146,16 +149,48 @@ class V500ContractParityTest extends V500ServerSetup {
 
       liftResponse.body match {
         case JObject(fields) =>
-          toFieldMap(fields).get("message") should not be empty
+          toFieldMap(fields).get("message").isDefined shouldBe true
         case _ =>
           fail("Expected Lift JSON object for missing product error")
       }
 
       http4sJson match {
         case JObject(fields) =>
-          toFieldMap(fields).get("message") should not be empty
+          toFieldMap(fields).get("message").isDefined shouldBe true
         case _ =>
           fail("Expected http4s JSON object for missing product error")
+      }
+    }
+
+    scenario("private accounts endpoint is served (proxy parity)", V500ContractParityTag) {
+      val bankId = APIUtil.defaultBankId
+      val liftResponse = getPrivateAccounts(bankId, user1)
+      val liftReq = (v5_0_0_Request / "banks" / bankId / "accounts" / "private").GET <@(user1)
+      val reqData = extractParamsAndHeaders(liftReq, "", "")
+
+      val baseRequest = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString(s"/obp/v5.0.0/banks/$bankId/accounts/private")
+      )
+      val request = reqData.headers.foldLeft(baseRequest) { case (r, (k, v)) =>
+        r.putHeaders(Header.Raw(CIString(k), v))
+      }
+
+      val response = Http4s500.wrappedRoutesV500Services.orNotFound.run(request).unsafeRunSync()
+      val http4sStatus = response.status
+      val body = response.as[String].unsafeRunSync()
+      val http4sJson = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+
+      liftResponse.code should equal(http4sStatus.code)
+
+      http4sJson match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("accounts") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected accounts field to be an array")
+          }
+        case _ =>
+          fail("Expected http4s JSON object for private accounts endpoint")
       }
     }
   }
