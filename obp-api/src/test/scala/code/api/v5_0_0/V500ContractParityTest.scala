@@ -178,10 +178,12 @@ class V500ContractParityTest extends V500ServerSetup {
 
       val response = Http4s500.wrappedRoutesV500Services.orNotFound.run(request).unsafeRunSync()
       val http4sStatus = response.status
+      val correlationHeader = response.headers.get(CIString("Correlation-Id"))
       val body = response.as[String].unsafeRunSync()
       val http4sJson = if (body.trim.isEmpty) JObject(Nil) else parse(body)
 
       liftResponse.code should equal(http4sStatus.code)
+      correlationHeader.isDefined shouldBe true
 
       http4sJson match {
         case JObject(fields) =>
