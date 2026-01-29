@@ -23,7 +23,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_1_0.{JSONFactory310, PostCustomerNumberJsonV310}
-import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CallLimitPostJsonV400}
 import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v5_0_0.JSONFactory500
@@ -998,6 +998,91 @@ trait APIMethods600 {
         } yield {
           (JSONFactory600.createBankJsonV600(bank, attributes), HttpCode.`200`(callContext))
         }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionsForBankAccount,
+      implementedInApiVersion,
+      nameOf(getTransactionsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
+      "Get Transactions for Account (Full)",
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |Authentication is required if the view is not public.
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |**Note:** This v6.0.0 endpoint returns `bank_id` directly in both `this_account` and `other_account` objects,
+        |making it easier to identify which bank each account belongs to without parsing the `bank_routing` object.
+        |
+        |""",
+      EmptyBody,
+      TransactionsJsonV600(List(TransactionJsonV600(
+        transaction_id = "123",
+        this_account = ThisAccountJsonV600(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+          bank_routing = BankRoutingJsonV121("OBP", "gh.29.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+          holders = List(AccountHolderJSON("John Doe", false))
+        ),
+        other_account = OtherAccountJsonV600(
+          bank_id = "other.bank.uk",
+          account_id = "counterparty-123",
+          holder = AccountHolderJSON("Jane Smith", false),
+          bank_routing = BankRoutingJsonV121("OBP", "other.bank.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "counterparty-123")),
+          metadata = null
+        ),
+        details = TransactionDetailsJSON(
+          `type` = "SEPA",
+          description = "Payment for services",
+          posted = new java.util.Date(),
+          completed = new java.util.Date(),
+          new_balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+          value = AmountOfMoneyJsonV121("EUR", "100.00")
+        ),
+        metadata = null,
+        transaction_attributes = Nil
+      ))),
+      List(
+        FilterSortDirectionError,
+        FilterOffersetError,
+        FilterLimitError,
+        FilterDateFormatError,
+        AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagAccount)
+    )
+
+    lazy val getTransactionsForBankAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user, callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
+            (params, callContext) <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders, callContext)
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, callContext, params) map {
+              connectorEmptyResponse(_, callContext)
+            }
+            moderatedTransactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => code.api.v3_0_0.ModeratedTransactionWithAttributes(transaction, attributes._1))
+            ))
+          } yield {
+            (JSONFactory600.createTransactionsJsonV600(moderatedTransactionsWithAttributes), HttpCode.`200`(callContext))
+          }
       }
     }
 

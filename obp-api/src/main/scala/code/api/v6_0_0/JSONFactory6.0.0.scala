@@ -16,17 +16,19 @@ package code.api.v6_0_0
 import code.api.util.APIUtil.stringOrNull
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
-import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{
   CustomerAttributeResponseJsonV300,
+  ModeratedTransactionWithAttributes,
   UserJsonV300,
   ViewJSON300,
   ViewsJSON300
 }
-import code.api.v3_1_0.{RateLimit, RedisCallLimitJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, RateLimit, RedisCallLimitJson}
+import code.api.v4_0_0.TransactionAttributeResponseJson
 import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, UserAgreementJson}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -525,6 +527,37 @@ case class AbacPolicyJsonV600(
 
 case class AbacPoliciesJsonV600(
     policies: List[AbacPolicyJsonV600]
+)
+
+// Transaction JSON structures for v6.0.0 - with bank_id included directly
+case class ThisAccountJsonV600(
+    bank_id: String,
+    account_id: String,
+    bank_routing: BankRoutingJsonV121,
+    account_routings: List[AccountRoutingJsonV121],
+    holders: List[AccountHolderJSON]
+)
+
+case class OtherAccountJsonV600(
+    bank_id: String,
+    account_id: String,
+    holder: AccountHolderJSON,
+    bank_routing: BankRoutingJsonV121,
+    account_routings: List[AccountRoutingJsonV121],
+    metadata: OtherAccountMetadataJSON
+)
+
+case class TransactionJsonV600(
+    transaction_id: String,
+    this_account: ThisAccountJsonV600,
+    other_account: OtherAccountJsonV600,
+    details: TransactionDetailsJSON,
+    metadata: TransactionMetadataJSON,
+    transaction_attributes: List[TransactionAttributeResponseJson]
+)
+
+case class TransactionsJsonV600(
+    transactions: List[TransactionJsonV600]
 )
 
 // HATEOAS-style links for dynamic entity discoverability
@@ -1594,6 +1627,77 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
       Nil
+    )
+  }
+
+  // Transaction v6.0.0 factory methods
+
+  import code.api.util.APIUtil.stringOptionOrNull
+  import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createTransactionCommentJSON, createTransactionTagJSON, createTransactionImageJSON, createLocationJSON, createAccountHolderJSON}
+  import code.api.v3_0_0.JSONFactory300.createOtherAccountMetaDataJSON
+  import code.api.v4_0_0.JSONFactory400.createTransactionAttributeJson
+  import code.model.{ModeratedBankAccount, ModeratedOtherBankAccount, ModeratedTransaction, ModeratedTransactionMetadata}
+
+  def createTransactionsJsonV600(moderatedTransactionsWithAttributes: List[ModeratedTransactionWithAttributes]): TransactionsJsonV600 = {
+    TransactionsJsonV600(moderatedTransactionsWithAttributes.map(t => createTransactionJsonV600(t.transaction, t.transactionAttributes)))
+  }
+
+  def createTransactionJsonV600(transaction: ModeratedTransaction, transactionAttributes: List[TransactionAttribute]): TransactionJsonV600 = {
+    TransactionJsonV600(
+      transaction_id = transaction.id.value,
+      this_account = transaction.bankAccount.map(createThisAccountJsonV600).getOrElse(null),
+      other_account = transaction.otherBankAccount.map(createOtherAccountJsonV600).getOrElse(null),
+      details = createTransactionDetailsJsonV600(transaction),
+      metadata = transaction.metadata.map(createTransactionMetadataJsonV600).getOrElse(null),
+      transaction_attributes = transactionAttributes.map(createTransactionAttributeJson)
+    )
+  }
+
+  def createThisAccountJsonV600(bankAccount: ModeratedBankAccount): ThisAccountJsonV600 = {
+    ThisAccountJsonV600(
+      bank_id = bankAccount.bankId.value,
+      account_id = bankAccount.accountId.value,
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme), stringOptionOrNull(bankAccount.bankRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress))),
+      holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
+    )
+  }
+
+  def createOtherAccountJsonV600(bankAccount: ModeratedOtherBankAccount): OtherAccountJsonV600 = {
+    // Extract bank_id from bank_routing when scheme is "OBP", otherwise use the address as best effort
+    val bankId = bankAccount.bankRoutingScheme match {
+      case Some("OBP") => stringOptionOrNull(bankAccount.bankRoutingAddress)
+      case _ => stringOptionOrNull(bankAccount.bankRoutingAddress) // Best effort - use address
+    }
+
+    OtherAccountJsonV600(
+      bank_id = bankId,
+      account_id = bankAccount.id,
+      holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
+      bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme), stringOptionOrNull(bankAccount.bankRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress))),
+      metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
+    )
+  }
+
+  def createTransactionDetailsJsonV600(transaction: ModeratedTransaction): TransactionDetailsJSON = {
+    TransactionDetailsJSON(
+      `type` = stringOptionOrNull(transaction.transactionType),
+      description = stringOptionOrNull(transaction.description),
+      posted = transaction.startDate.getOrElse(null),
+      completed = transaction.finishDate.getOrElse(null),
+      new_balance = createAmountOfMoneyJSON(transaction.currency, transaction.balance),
+      value = createAmountOfMoneyJSON(transaction.currency, transaction.amount.map(_.toString))
+    )
+  }
+
+  def createTransactionMetadataJsonV600(metadata: ModeratedTransactionMetadata): TransactionMetadataJSON = {
+    TransactionMetadataJSON(
+      narrative = stringOptionOrNull(metadata.ownerComment),
+      comments = metadata.comments.map(_.map(createTransactionCommentJSON)).getOrElse(null),
+      tags = metadata.tags.map(_.map(createTransactionTagJSON)).getOrElse(null),
+      images = metadata.images.map(_.map(createTransactionImageJSON)).getOrElse(null),
+      where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
     )
   }
 
