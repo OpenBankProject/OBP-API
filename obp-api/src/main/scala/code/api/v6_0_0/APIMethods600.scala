@@ -938,7 +938,7 @@ trait APIMethods600 {
       EmptyBody,
       BanksJsonV600(List(BankJsonV600(
         bank_id = "gh.29.uk",
-        short_name = "short_name",
+        bank_code = "bank_code",
         full_name = "full_name",
         logo = "logo",
         website = "www.openbankproject.com",
@@ -978,7 +978,7 @@ trait APIMethods600 {
       EmptyBody,
       BankJsonV600(
         bank_id = "gh.29.uk",
-        short_name = "short_name",
+        bank_code = "bank_code",
         full_name = "full_name",
         logo = "logo",
         website = "www.openbankproject.com",
@@ -1728,8 +1728,9 @@ trait APIMethods600 {
               json.extract[PostBankJson600]
             }
 
+            // TODO: Improve this error message to not hardcode "16" - should reference the max length from checkOptionalShortString function
             checkShortStringValue = APIUtil.checkOptionalShortString(postJson.bank_id)
-            _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID: $checkShortStringValue BANK_ID must contain only characters A-Z, a-z, 0-9, -, _, . and be max 16 characters.", cc = cc.callContext) {
               checkShortStringValue == SILENCE_IS_GOLDEN
             }
 

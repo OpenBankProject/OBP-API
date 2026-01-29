@@ -336,7 +336,7 @@ case class StoredProcedureConnectorHealthJsonV600(
 
 case class BankJsonV600(
     bank_id: String,
-    short_name: String,
+    bank_code: String,
     full_name: String,
     logo: String,
     website: String,
@@ -1419,7 +1419,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     }
     BankJsonV600(
       bank_id = stringOrNull(bank.bankId.value),
-      short_name = stringOrNull(bank.shortName),
+      bank_code = stringOrNull(bank.shortName),
       full_name = stringOrNull(bank.fullName),
       logo = stringOrNull(bank.logoUrl),
       website = stringOrNull(bank.websiteUrl),
