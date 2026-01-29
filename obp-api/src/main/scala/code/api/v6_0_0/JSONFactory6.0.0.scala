@@ -78,6 +78,19 @@ case class CurrentConsumerJsonV600(
     call_counters: RedisCallCountersJsonV600
 )
 
+// OIDC Client Verification models (V600)
+case class VerifyOidcClientRequestJsonV600(
+    client_id: String,
+    client_secret: String
+)
+
+case class VerifyOidcClientResponseJsonV600(
+    valid: Boolean,
+    client_id: Option[String] = None,
+    consumer_id: Option[String] = None,
+    redirect_uris: Option[List[String]] = None
+)
+
 case class CallLimitPostJsonV600(
     from_date: java.util.Date,
     to_date: java.util.Date,

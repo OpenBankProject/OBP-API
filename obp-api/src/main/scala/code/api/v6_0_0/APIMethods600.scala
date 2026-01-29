@@ -31,13 +31,14 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model._
@@ -7387,6 +7388,71 @@ trait APIMethods600 {
             }
           } yield {
             (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      verifyOidcClient,
+      implementedInApiVersion,
+      nameOf(verifyOidcClient),
+      "POST",
+      "/oidc/clients/verify",
+      "Verify OIDC Client",
+      s"""Verifies an OIDC/OAuth2 client's credentials.
+         |
+         |Returns `valid: true` if the client_id and client_secret match an active consumer.
+         |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      VerifyOidcClientRequestJsonV600(
+        client_id = "abc123def456",
+        client_secret = "supersecret123"
+      ),
+      VerifyOidcClientResponseJsonV600(
+        valid = true,
+        client_id = Some("abc123def456"),
+        consumer_id = Some("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"),
+        redirect_uris = Some(List("https://app.example.com/callback"))
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canVerifyOidcClient))
+    )
+
+    lazy val verifyOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: "verify" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
+              json.extract[VerifyOidcClientRequestJsonV600]
+            }
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id)
+            }
+          } yield {
+            consumerBox match {
+              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL.get)
+                  .filter(_.nonEmpty)
+                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                (VerifyOidcClientResponseJsonV600(
+                  valid = true,
+                  client_id = Some(postedData.client_id),
+                  consumer_id = Some(consumer.consumerId.get),
+                  redirect_uris = redirectUris
+                ), HttpCode.`200`(callContext))
+              case _ =>
+                (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
+            }
           }
       }
     }
