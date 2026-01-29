@@ -3,6 +3,7 @@ package code.api.v1_4_0
 import code.api.Constant.{CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, LOCALISED_RESOURCE_DOC_PREFIX}
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
+import code.api.Constant
 import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
@@ -568,7 +569,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
        val technology =
          if (includeTechnology) {
-           Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) "http4s" else "lift")
+           Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) Constant.TECHNOLOGY_HTTP4S else Constant.TECHNOLOGY_LIFTWEB)
          } else {
            None
          }

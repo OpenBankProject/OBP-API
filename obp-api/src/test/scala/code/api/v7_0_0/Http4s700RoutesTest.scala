@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import code.api.Constant
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
@@ -252,7 +253,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
                   toFieldMap(rdFields).get("implemented_by") match {
                     case Some(JObject(implFields)) =>
                       toFieldMap(implFields).get("technology") match {
-                        case Some(JString(value)) => value == "http4s"
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_HTTP4S
                         case _ => false
                       }
                     case _ => false
@@ -289,7 +290,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
                   toFieldMap(rdFields).get("implemented_by") match {
                     case Some(JObject(implFields)) =>
                       toFieldMap(implFields).get("technology") match {
-                        case Some(JString(value)) => value == "http4s"
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_HTTP4S
                         case _ => false
                       }
                     case _ => false
@@ -301,7 +302,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
                   toFieldMap(rdFields).get("implemented_by") match {
                     case Some(JObject(implFields)) =>
                       toFieldMap(implFields).get("technology") match {
-                        case Some(JString(value)) => value == "lift"
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_LIFTWEB
                         case _ => false
                       }
                     case _ => false

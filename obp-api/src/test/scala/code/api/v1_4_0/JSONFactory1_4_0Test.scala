@@ -1,7 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.usersJsonV400
-
+import code.api.Constant
 import java.util.Date
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{APIUtil, ExampleValue}
@@ -131,13 +131,13 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
       json1.implemented_by.technology shouldBe None
 
       val json2 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
-      json2.implemented_by.technology shouldBe Some("lift")
+      json2.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
     }
 
     scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
       val http4sDoc: ResourceDoc = code.api.v7_0_0.Http4s700.resourceDocs.head
       val json = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, true, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
-      json.implemented_by.technology shouldBe Some("http4s")
+      json.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
     }
 
     scenario("createTypedBody should work well, no exception is good enough") {

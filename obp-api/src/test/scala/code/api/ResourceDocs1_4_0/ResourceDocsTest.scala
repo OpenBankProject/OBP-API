@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.Constant
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.OAuth._
@@ -104,7 +105,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
-      responseDocs.resource_docs.head.implemented_by.technology shouldBe Some("lift")
+      responseDocs.resource_docs.head.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }

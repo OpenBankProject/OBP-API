@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.Constant
 import code.setup.{PropsReset, ServerSetup}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.{JArray, JNothing, JNull, JString}
@@ -20,7 +21,7 @@ class ResourceDocsTechnologyTest extends ServerSetup with PropsReset {
       (response.body \ "resource_docs") match {
         case JArray(docs) =>
           val technology = docs.head \ "implemented_by" \ "technology"
-          technology should equal(JString("lift"))
+          technology should equal(JString(Constant.TECHNOLOGY_LIFTWEB))
         case _ =>
           fail("Expected resource_docs field to be an array")
       }
