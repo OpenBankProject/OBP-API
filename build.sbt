@@ -17,11 +17,18 @@ ThisBuild / semanticdbVersion := "4.13.9"
 
 // Fix dependency conflicts
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-java8-compat" % VersionScheme.Always
 
 lazy val liftVersion = "3.5.0"
 lazy val akkaVersion = "2.5.32"
 lazy val jettyVersion = "9.4.50.v20221201"
 lazy val avroVersion = "1.8.2"
+lazy val pekkoVersion = "1.4.0"
+lazy val pekkoHttpVersion = "1.3.0"
+lazy val http4sVersion = "0.23.30"
+lazy val catsEffectVersion = "3.5.7"
+lazy val ip4sVersion = "3.7.0"
+lazy val jakartaMailVersion = "2.0.1"
 
 lazy val commonSettings = Seq(
   resolvers ++= Seq(
@@ -42,8 +49,8 @@ lazy val obpCommons = (project in file("obp-commons"))
       "net.liftweb" %% "lift-util" % liftVersion,
       "net.liftweb" %% "lift-mapper" % liftVersion,
       "org.scala-lang" % "scala-reflect" % "2.12.20",
-      "org.scalatest" %% "scalatest" % "3.2.15" % Test,
-      "org.scalactic" %% "scalactic" % "3.2.15",
+      "org.scalatest" %% "scalatest" % "3.0.9" % Test,
+      "org.scalactic" %% "scalactic" % "3.0.9",
       "net.liftweb" %% "lift-json" % liftVersion,
       "com.alibaba" % "transmittable-thread-local" % "2.11.5",
       "org.apache.commons" % "commons-lang3" % "3.12.0",
@@ -95,6 +102,20 @@ lazy val obpApi = (project in file("obp-api"))
       "com.typesafe.akka" %% "akka-remote" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-http-core" % "10.1.6",
+
+      // Pekko (ActorSystem + Pekko HTTP used by OBP runtime components)
+      "org.apache.pekko" %% "pekko-actor" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-remote" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-http" % pekkoHttpVersion,
+
+      // http4s (v7.0.0 experimental stack)
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+      "com.comcast" %% "ip4s-core" % ip4sVersion,
+      "org.http4s" %% "http4s-core" % http4sVersion,
+      "org.http4s" %% "http4s-dsl" % http4sVersion,
+      "org.http4s" %% "http4s-ember-server" % http4sVersion,
       
       // Avro
       "com.sksamuel.avro4s" %% "avro4s-core" % avroVersion,
@@ -164,6 +185,9 @@ lazy val obpApi = (project in file("obp-api"))
       // RabbitMQ
       "com.rabbitmq" % "amqp-client" % "5.22.0",
       "net.liftmodules" %% "amqp_3.1" % "1.5.0",
+
+      // Blockchain (Ethereum raw transaction decoding)
+      "org.web3j" % "core" % "4.14.0",
       
       // Elasticsearch
       "org.elasticsearch" % "elasticsearch" % "8.14.0",
@@ -175,6 +199,7 @@ lazy val obpApi = (project in file("obp-api"))
       // Utilities
       "cglib" % "cglib" % "3.3.0",
       "com.sun.activation" % "jakarta.activation" % "1.2.2",
+      "com.sun.mail" % "jakarta.mail" % jakartaMailVersion,
       "com.nulab-inc" % "zxcvbn" % "1.9.0",
       
       // Testing - temporarily disabled due to version incompatibility
@@ -192,7 +217,7 @@ lazy val obpApi = (project in file("obp-api"))
       
       // Test dependencies
       "junit" % "junit" % "4.13.2" % Test,
-      "org.scalatest" %% "scalatest" % "3.2.15" % Test,
+      "org.scalatest" %% "scalatest" % "3.0.9" % Test,
       "org.seleniumhq.selenium" % "htmlunit-driver" % "2.36.0" % Test,
       "org.testcontainers" % "rabbitmq" % "1.20.3" % Test
     )

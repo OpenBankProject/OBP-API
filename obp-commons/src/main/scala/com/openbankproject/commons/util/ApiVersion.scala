@@ -143,6 +143,8 @@ object ApiVersion {
   val berlinGroupV13 = ScannedApiVersion("berlin-group", "BG", "v1.3")
   val mxofV100 = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
   val cnbv9 = ScannedApiVersion("CNBV9", "CNBV9", "v1.0.0")
+  val bahrainObfV100 = ScannedApiVersion("BAHRAIN-OBF", "BAHRAIN-OBF", "v1.0.0")
+  val auOpenBankingV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
 
   /**
    * the ApiPathZero value must be got by obp-api project, so here is a workaround, let obp-api project modify this value

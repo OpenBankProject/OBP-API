@@ -2,6 +2,7 @@ package code.api.util.http4s
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ApiTag.ResourceDocTag
+import com.openbankproject.commons.util.ApiShortVersions
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JObject
 import org.http4s._
@@ -25,6 +26,8 @@ import scala.collection.mutable.ArrayBuffer
 class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThen {
   
   object ResourceDocMatcherTag extends Tag("ResourceDocMatcher")
+  private val v700 = ApiShortVersions.`v7.0.0`.toString
+  private val base = s"/obp/$v700"
   
   // Helper to create minimal ResourceDoc for testing
   private def createResourceDoc(
@@ -56,8 +59,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks", "getBanks")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      When(s"Matching a GET request to $base/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -71,8 +74,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("POST", "/banks", "createBank")
       )
       
-      When("Matching a POST request to /obp/v7.0.0/banks")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      When(s"Matching a POST request to $base/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("POST", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -86,8 +89,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/management/metrics", "getMetrics")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/management/metrics")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/management/metrics")
+      When(s"Matching a GET request to $base/management/metrics")
+      val path = Uri.Path.unsafeFromString(s"$base/management/metrics")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -101,8 +104,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks", "getBanks")
       )
       
-      When("Matching a POST request to /obp/v7.0.0/banks")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      When(s"Matching a POST request to $base/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("POST", path, resourceDocs)
       
       Then("Should return None")
@@ -115,8 +118,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks", "getBanks")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/accounts")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/accounts")
+      When(s"Matching a GET request to $base/accounts")
+      val path = Uri.Path.unsafeFromString(s"$base/accounts")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should return None")
@@ -132,8 +135,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/gh.29.de")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de")
+      When(s"Matching a GET request to $base/banks/gh.29.de")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -147,8 +150,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID/accounts", "getBankAccounts")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/test-bank-1/accounts")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/test-bank-1/accounts")
+      When(s"Matching a GET request to $base/banks/test-bank-1/accounts")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/test-bank-1/accounts")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -160,8 +163,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       Given("A matched ResourceDoc with BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
-      When("Extracting path parameters from /obp/v7.0.0/banks/gh.29.de")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de")
+      When(s"Extracting path parameters from $base/banks/gh.29.de")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should extract BANK_ID value")
@@ -178,8 +181,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID", "getBankAccount")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/gh.29.de/accounts/test1")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1")
+      When(s"Matching a GET request to $base/banks/gh.29.de/accounts/test1")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -191,8 +194,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       Given("A matched ResourceDoc with BANK_ID and ACCOUNT_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID", "getBankAccount")
       
-      When("Extracting path parameters from /obp/v7.0.0/banks/gh.29.de/accounts/test1")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1")
+      When(s"Extracting path parameters from $base/banks/gh.29.de/accounts/test1")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should extract both BANK_ID and ACCOUNT_ID values")
@@ -208,8 +211,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions", "getTransactions")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/test-bank/accounts/acc-123/transactions")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/test-bank/accounts/acc-123/transactions")
+      When(s"Matching a GET request to $base/banks/test-bank/accounts/acc-123/transactions")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/test-bank/accounts/acc-123/transactions")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -226,8 +229,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "getTransactionsForView")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/transactions")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/transactions")
+      When(s"Matching a GET request to $base/banks/gh.29.de/accounts/test1/owner/transactions")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1/owner/transactions")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -239,8 +242,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       Given("A matched ResourceDoc with BANK_ID, ACCOUNT_ID and VIEW_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "getTransactionsForView")
       
-      When("Extracting path parameters from /obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/transactions")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/transactions")
+      When(s"Extracting path parameters from $base/banks/gh.29.de/accounts/test1/owner/transactions")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1/owner/transactions")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should extract all three parameter values")
@@ -258,8 +261,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account", "getAccountForView")
       )
       
-      When("Matching a GET request to /obp/v7.0.0/banks/test-bank/accounts/acc-1/public/account")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/test-bank/accounts/acc-1/public/account")
+      When(s"Matching a GET request to $base/banks/test-bank/accounts/acc-1/public/account")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/test-bank/accounts/acc-1/public/account")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -277,7 +280,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a GET request with counterparty ID")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/counterparties/ff010868-ac7d-4f96-9fc5-70dd5757e891")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1/owner/counterparties/ff010868-ac7d-4f96-9fc5-70dd5757e891")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -290,7 +293,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID", "getCounterparty")
       
       When("Extracting path parameters")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts/test1/owner/counterparties/ff010868-ac7d-4f96-9fc5-70dd5757e891")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts/test1/owner/counterparties/ff010868-ac7d-4f96-9fc5-70dd5757e891")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should extract all parameter values including COUNTERPARTY_ID")
@@ -311,7 +314,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a DELETE request")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/management/counterparties/counterparty-123")
+      val path = Uri.Path.unsafeFromString(s"$base/management/counterparties/counterparty-123")
       val result = ResourceDocMatcher.findResourceDoc("DELETE", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -331,7 +334,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a request that doesn't match any ResourceDoc")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/accounts")
+      val path = Uri.Path.unsafeFromString(s"$base/accounts")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should return None")
@@ -344,8 +347,8 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
         createResourceDoc("GET", "/banks", "getBanks")
       )
       
-      When("Matching a DELETE request to /obp/v7.0.0/banks")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      When(s"Matching a DELETE request to $base/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("DELETE", path, resourceDocs)
       
       Then("Should return None")
@@ -359,7 +362,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a request with different segment count")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should return None")
@@ -373,7 +376,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a request with different literal segment")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/transactions")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/transactions")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should return None")
@@ -388,7 +391,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       
       When("Extracting path parameters")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should return empty map")
@@ -400,7 +403,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
       When("Extracting path parameters with special characters")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de-test_bank")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de-test_bank")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should extract the full value including special characters")
@@ -413,7 +416,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
       When("Extracting parameters from path with different segment count")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/accounts")
+      val path = Uri.Path.unsafeFromString(s"$base/accounts")
       val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
       
       Then("Should return empty map due to segment count mismatch")
@@ -458,9 +461,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       val originalContext = code.api.util.CallContext(
         correlationId = "test-correlation-id",
-        url = "/obp/v7.0.0/banks",
+        url = s"$base/banks",
         verb = "GET",
-        implementedInVersion = "v7.0.0"
+        implementedInVersion = v700
       )
       
       When("Attaching ResourceDoc to CallContext")
@@ -486,7 +489,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a specific request")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks/gh.29.de/accounts")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.de/accounts")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should select the most specific matching ResourceDoc")
@@ -502,7 +505,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching a request")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should return the first matching ResourceDoc")
@@ -520,7 +523,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching with lowercase get")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/banks")
+      val path = Uri.Path.unsafeFromString(s"$base/banks")
       val result = ResourceDocMatcher.findResourceDoc("get", path, resourceDocs)
       
       Then("Should find the matching ResourceDoc")
@@ -535,7 +538,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       )
       
       When("Matching with different case /Banks")
-      val path = Uri.Path.unsafeFromString("/obp/v7.0.0/Banks")
+      val path = Uri.Path.unsafeFromString(s"$base/Banks")
       val result = ResourceDocMatcher.findResourceDoc("GET", path, resourceDocs)
       
       Then("Should not match (case-sensitive)")
