@@ -10,6 +10,7 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.ApiShortVersions
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import org.http4s._
@@ -86,7 +87,7 @@ object ResourceDocMiddleware extends MdcLoggable {
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       // Build initial CallContext from request
-      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, "v7.0.0")).flatMap { cc =>
+      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, ApiShortVersions.`v7.0.0`.toString)).flatMap { cc =>
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocs) match {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)

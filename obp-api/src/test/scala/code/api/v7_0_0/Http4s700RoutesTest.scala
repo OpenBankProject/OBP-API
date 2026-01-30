@@ -1,9 +1,10 @@
 package code.api.v7_0_0
 
+import code.api.Constant
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, InvalidApiVersionString, UserHasMissingRoles}
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
@@ -246,13 +247,100 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
-            case Some(JArray(_)) =>
-              succeed
+            case Some(JArray(resourceDocs)) =>
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_HTTP4S
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe true
             case _ =>
               fail("Expected resource_docs field to be an array")
           }
         case _ =>
           fail("Expected JSON object for resource-docs endpoint")
+      }
+    }
+
+    scenario("Return only http4s technology endpoints", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request")
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
+      )
+
+      When("Running through wrapped routes")
+      val (status, json) = runAndParseJson(request)
+
+      Then("Response is 200 OK and includes no lift endpoints")
+      status shouldBe Status.Ok
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("resource_docs") match {
+            case Some(JArray(resourceDocs)) =>
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_HTTP4S
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe true
+              resourceDocs.exists {
+                case JObject(rdFields) =>
+                  toFieldMap(rdFields).get("implemented_by") match {
+                    case Some(JObject(implFields)) =>
+                      toFieldMap(implFields).get("technology") match {
+                        case Some(JString(value)) => value == Constant.TECHNOLOGY_LIFTWEB
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                case _ => false
+              } shouldBe false
+            case _ =>
+              fail("Expected resource_docs field to be an array")
+          }
+        case _ =>
+          fail("Expected JSON object for resource-docs endpoint")
+      }
+    }
+
+    scenario("Reject requesting non-v7 API version docs", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/resource-docs/v6.0.0/obp request")
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val request = Request[IO](
+        method = Method.GET,
+        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v6.0.0/obp")
+      )
+
+      When("Running through wrapped routes")
+      val (status, json) = runAndParseJson(request)
+
+      Then("Response is 400 Bad Request")
+      status.code shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(InvalidApiVersionString)
+              message should include("v6.0.0")
+            case _ =>
+              fail("Expected message field as JSON string for invalid-version response")
+          }
+        case _ =>
+          fail("Expected JSON object for invalid-version response")
       }
     }
 

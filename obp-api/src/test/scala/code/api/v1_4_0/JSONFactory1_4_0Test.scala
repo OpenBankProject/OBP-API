@@ -1,13 +1,13 @@
 package code.api.v1_4_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.usersJsonV400
-
+import code.api.Constant
 import java.util.Date
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{APIUtil, ExampleValue}
+import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v3_0_0.OBPAPI3_0_0
-import code.setup.DefaultUsers
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json._
 import org.everit.json.schema.loader.SchemaLoader
@@ -44,7 +44,8 @@ case class AllCases(
   jvalues: List[JValue]= List(APIUtil.defaultJValue)
 )
 
-class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
+class JSONFactory1_4_0Test extends code.setup.ServerSetup {
+  override implicit val formats: Formats = CustomJsonFormats.formats
   feature("Test JSONFactory1_4_0") {
 
     scenario("prepareDescription should work well, extract the parameters from URL") {
@@ -116,12 +117,27 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
       val result: ResourceDocJson = JSONFactory1_4_0.createLocalisedResourceDocJson(resourceDoc,false, None, 
-        urlParameters, "JSON request body fields:", "JSON response body fields:")
+        includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
     }
 
     scenario("createResourceDocsJson should work well, no exception is good enough") {
       val resourceDoc: mutable.Seq[ResourceDoc] = OBPAPI3_0_0.allResourceDocs
       val result = JSONFactory1_4_0.createResourceDocsJson(resourceDoc.toList, false, None)
+    }
+
+    scenario("Technology field should be None unless includeTechnology=true") {
+      val liftDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(0)
+      val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
+      json1.implemented_by.technology shouldBe None
+
+      val json2 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
+      json2.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
+    }
+
+    scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
+      val http4sDoc: ResourceDoc = code.api.v7_0_0.Http4s700.resourceDocs.head
+      val json = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, true, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
+      json.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
     }
 
     scenario("createTypedBody should work well, no exception is good enough") {
