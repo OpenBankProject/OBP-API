@@ -59,7 +59,7 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
     header.map(_.value.trim.nonEmpty).getOrElse(false) shouldBe true
   }
 
-  feature("Http4s Lift bridge parity across versions and auth") {
+  feature("Http4s liftweb bridge parity across versions and auth") {
 
     scenario("legacy v2.0.0 banks parity", Http4sLiftBridgeParityTag) {
       val liftResponse = makeGetRequest((baseRequest / "obp" / "v2.0.0" / "banks").GET)

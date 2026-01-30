@@ -42,7 +42,7 @@ class V500ContractParityTest extends V500ServerSetup {
     }
   }
 
-  feature("V500 Lift vs http4s parity") {
+  feature("V500 liftweb vs http4s parity") {
 
     scenario("root returns consistent status and key fields", V500ContractParityTag) {
       val liftResponse = makeGetRequest((v5_0_0_Request / "root").GET)
@@ -58,7 +58,7 @@ class V500ContractParityTest extends V500ServerSetup {
           keys should contain("git_commit")
           keys should contain("connector")
         case _ =>
-          fail("Expected Lift JSON object for root endpoint")
+          fail("Expected liftweb JSON object for root endpoint")
       }
 
       http4sJson match {
@@ -83,10 +83,10 @@ class V500ContractParityTest extends V500ServerSetup {
         case JObject(fields) =>
           toFieldMap(fields).get("banks") match {
             case Some(JArray(_)) => succeed
-            case _ => fail("Expected Lift banks field to be an array")
+            case _ => fail("Expected liftweb banks field to be an array")
           }
         case _ =>
-          fail("Expected Lift JSON object for banks endpoint")
+          fail("Expected liftweb JSON object for banks endpoint")
       }
 
       http4sJson match {
@@ -122,10 +122,10 @@ class V500ContractParityTest extends V500ServerSetup {
         case JObject(fields) =>
           toFieldMap(fields).get("products") match {
             case Some(JArray(_)) => succeed
-            case _ => fail("Expected Lift products field to be an array")
+            case _ => fail("Expected liftweb products field to be an array")
           }
         case _ =>
-          fail("Expected Lift JSON object for products endpoint")
+          fail("Expected liftweb JSON object for products endpoint")
       }
 
       http4sJson match {
@@ -151,7 +151,7 @@ class V500ContractParityTest extends V500ServerSetup {
         case JObject(fields) =>
           toFieldMap(fields).get("message").isDefined shouldBe true
         case _ =>
-          fail("Expected Lift JSON object for missing product error")
+          fail("Expected liftweb JSON object for missing product error")
       }
 
       http4sJson match {
