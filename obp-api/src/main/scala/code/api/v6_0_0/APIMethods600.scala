@@ -30,7 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
@@ -1037,7 +1037,7 @@ trait APIMethods600 {
           holder = AccountHolderJSON("Jane Smith", false),
           bank_routing = BankRoutingJsonV121("OBP", "other.bank.uk"),
           account_routings = List(AccountRoutingJsonV121("OBP", "counterparty-123")),
-          metadata = null
+          metadata = otherAccountMetadataJSON
         ),
         details = TransactionDetailsJSON(
           `type` = "SEPA",
@@ -1047,7 +1047,7 @@ trait APIMethods600 {
           new_balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
           value = AmountOfMoneyJsonV121("EUR", "100.00")
         ),
-        metadata = null,
+        metadata = transactionMetadataJSON,
         transaction_attributes = Nil
       ))),
       List(
@@ -7517,6 +7517,184 @@ trait APIMethods600 {
               redirect_uris = redirectUris,
               enabled = consumer.isActive.get
             ), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // Featured API Collections Management Endpoints
+
+    staticResourceDocs += ResourceDoc(
+      createFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(createFeaturedApiCollection),
+      "POST",
+      "/management/api-collections/featured",
+      "Create Featured Api Collection",
+      s"""Add an API Collection to the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      postFeaturedApiCollectionJsonV600,
+      featuredApiCollectionJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiCollectionNotFound,
+        FeaturedApiCollectionAlreadyExists,
+        CreateFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val createFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostFeaturedApiCollectionJsonV600", 400, callContext) {
+              json.extract[PostFeaturedApiCollectionJsonV600]
+            }
+            // Verify the API Collection exists and is sharable
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(postJson.api_collection_id, callContext)
+            _ <- Helper.booleanToFuture(s"$ApiCollectionNotFound The API Collection must be sharable to be featured.", cc=callContext) {
+              apiCollection.isSharable
+            }
+            // Check it's not already featured
+            _ <- NewStyle.function.checkFeaturedApiCollectionDoesNotExist(postJson.api_collection_id, callContext)
+            // Create the featured entry
+            (featuredApiCollection, callContext) <- NewStyle.function.createFeaturedApiCollection(
+              postJson.api_collection_id,
+              postJson.sort_order,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionJsonV600(featuredApiCollection), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getFeaturedApiCollectionsAdmin,
+      implementedInApiVersion,
+      nameOf(getFeaturedApiCollectionsAdmin),
+      "GET",
+      "/management/api-collections/featured",
+      "Get Featured Api Collections (Admin)",
+      s"""Get all featured API collections with their sort order (admin view).
+         |
+         |This endpoint returns the featured collections stored in the database with their sort order.
+         |It is intended for administrators to manage the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      featuredApiCollectionsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val getFeaturedApiCollectionsAdmin: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            (featuredApiCollections, callContext) <- NewStyle.function.getAllFeaturedApiCollectionsAdmin(callContext)
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionsJsonV600(featuredApiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(updateFeaturedApiCollection),
+      "PUT",
+      "/management/api-collections/featured/API_COLLECTION_ID",
+      "Update Featured Api Collection",
+      s"""Update the sort order of a featured API collection.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      putFeaturedApiCollectionJsonV600,
+      featuredApiCollectionJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        FeaturedApiCollectionNotFound,
+        UpdateFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val updateFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: apiCollectionId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutFeaturedApiCollectionJsonV600", 400, callContext) {
+              json.extract[PutFeaturedApiCollectionJsonV600]
+            }
+            (updatedFeaturedApiCollection, callContext) <- NewStyle.function.updateFeaturedApiCollection(
+              apiCollectionId,
+              putJson.sort_order,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionJsonV600(updatedFeaturedApiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(deleteFeaturedApiCollection),
+      "DELETE",
+      "/management/api-collections/featured/API_COLLECTION_ID",
+      "Delete Featured Api Collection",
+      s"""Remove an API Collection from the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        FeaturedApiCollectionNotFound,
+        DeleteFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val deleteFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: apiCollectionId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            (_, callContext) <- NewStyle.function.deleteFeaturedApiCollectionByApiCollectionId(apiCollectionId, callContext)
+          } yield {
+            (Full(true), HttpCode.`204`(callContext))
           }
       }
     }

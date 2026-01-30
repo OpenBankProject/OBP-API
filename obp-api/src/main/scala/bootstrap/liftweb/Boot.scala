@@ -49,6 +49,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
+import code.featuredapicollection.FeaturedApiCollection
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
@@ -1118,6 +1119,7 @@ object ToSchemify {
     MappedUserRefreshes,
     ApiCollection,
     ApiCollectionEndpoint,
+    FeaturedApiCollection,
     JsonSchemaValidation,
     AuthenticationTypeValidation,
     ConnectorMethod,
