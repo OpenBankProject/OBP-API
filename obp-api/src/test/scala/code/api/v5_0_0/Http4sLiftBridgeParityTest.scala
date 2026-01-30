@@ -6,14 +6,54 @@ import code.api.ResponseHeader
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.OAuth._
 import code.api.util.http4s.Http4sLiftWebBridge
+import code.consumer.Consumers
+import code.model.dataAccess.AuthUser
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonParser.parse
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers._
 import org.http4s.{Header, Headers, Method, Request, Status, Uri}
 import org.scalatest.Tag
 import org.typelevel.ci.CIString
 
 class Http4sLiftBridgeParityTest extends V500ServerSetup {
+
+  // Create a test user with known password for DirectLogin testing
+  private val testUsername = "http4s_bridge_test_user"
+  private val testPassword = "TestPassword123!"
+  private val testConsumerKey = randomString(40).toLowerCase
+  private val testConsumerSecret = randomString(40).toLowerCase
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    
+    // Create AuthUser if not exists
+    if (AuthUser.find(By(AuthUser.username, testUsername)).isEmpty) {
+      AuthUser.create
+        .email(s"$testUsername@test.com")
+        .username(testUsername)
+        .password(testPassword)
+        .validated(true)
+        .firstName("Http4s")
+        .lastName("TestUser")
+        .saveMe
+    }
+    
+    // Create Consumer if not exists
+    if (Consumers.consumers.vend.getConsumerByConsumerKey(testConsumerKey).isEmpty) {
+      Consumers.consumers.vend.createConsumer(
+        Some(testConsumerKey),
+        Some(testConsumerSecret),
+        Some(true),
+        Some("http4s bridge test app"),
+        None,
+        Some("test application for http4s bridge parity"),
+        Some(s"$testUsername@test.com"),
+        None, None, None, None, None
+      )
+    }
+  }
 
   object Http4sLiftBridgeParityTag extends Tag("Http4sLiftBridgeParity")
 
@@ -94,7 +134,7 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
       assertCorrelationId(http4sHeaders)
     }
 
-    scenario("DirectLogin parity", Http4sLiftBridgeParityTag) {
+    scenario("DirectLogin parity - missing auth header", Http4sLiftBridgeParityTag) {
       val liftReq = (baseRequest / "my" / "logins" / "direct").POST
       val liftResponse = makePostRequest(liftReq, "")
       val reqData = extractParamsAndHeaders(liftReq, "", "")
@@ -102,6 +142,40 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
 
       liftResponse.code should equal(http4sStatus.code)
       (hasField(http4sJson, "error") || hasField(http4sJson, "message")) shouldBe true
+      assertCorrelationId(http4sHeaders)
+    }
+
+    scenario("DirectLogin parity - with valid credentials returns 201", Http4sLiftBridgeParityTag) {
+      // Use the test user with known password created in beforeAll
+      val directLoginHeader = s"""DirectLogin username="$testUsername", password="$testPassword", consumer_key="$testConsumerKey""""
+
+      val liftReq = (baseRequest / "my" / "logins" / "direct").POST
+        .setHeader("Authorization", directLoginHeader)
+        .setHeader("Content-Type", "application/json")
+
+      val liftResponse = makePostRequest(liftReq, "")
+
+      val reqData = ReqData(
+        url = s"http://${server.host}:${server.port}/my/logins/direct",
+        method = "POST",
+        body = "",
+        body_encoding = "UTF-8",
+        headers = Map(
+          "Authorization" -> directLoginHeader,
+          "Content-Type" -> "application/json"
+        ),
+        query_params = Map.empty,
+        form_params = Map.empty
+      )
+      val (http4sStatus, http4sJson, http4sHeaders) = runHttp4s(reqData)
+
+      // Both should return 201 Created
+      liftResponse.code should equal(201)
+      http4sStatus.code should equal(201)
+      liftResponse.code should equal(http4sStatus.code)
+      
+      // Both should have a token field
+      hasField(http4sJson, "token") shouldBe true
       assertCorrelationId(http4sHeaders)
     }
   }
