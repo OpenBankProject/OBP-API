@@ -23,20 +23,22 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_1_0.{JSONFactory310, PostCustomerNumberJsonV310}
-import code.api.v4_0_0.CallLimitPostJsonV400
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CallLimitPostJsonV400}
 import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model._
@@ -917,6 +919,174 @@ trait APIMethods600 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getBanks,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |- bank_id used as parameter in URLs
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |
+        |User Authentication is Optional. The User need not be logged in.
+        |""",
+      EmptyBody,
+      BanksJsonV600(List(BankJsonV600(
+        bank_id = "gh.29.uk",
+        bank_code = "bank_code",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ))),
+      List(UnknownError),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBanks: OBPEndpoint = {
+      case "banks" :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+        } yield {
+          (JSONFactory600.createBanksJsonV600(banks), HttpCode.`200`(callContext))
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |- bank_id: The unique identifier of this bank
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |""",
+      EmptyBody,
+      BankJsonV600(
+        bank_id = "gh.29.uk",
+        bank_code = "bank_code",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ),
+      List(UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+          (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+        } yield {
+          (JSONFactory600.createBankJsonV600(bank, attributes), HttpCode.`200`(callContext))
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionsForBankAccount,
+      implementedInApiVersion,
+      nameOf(getTransactionsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
+      "Get Transactions for Account (Full)",
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |Authentication is required if the view is not public.
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |**Note:** This v6.0.0 endpoint returns `bank_id` directly in both `this_account` and `other_account` objects,
+        |making it easier to identify which bank each account belongs to without parsing the `bank_routing` object.
+        |
+        |""",
+      EmptyBody,
+      TransactionsJsonV600(List(TransactionJsonV600(
+        transaction_id = "123",
+        this_account = ThisAccountJsonV600(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+          bank_routing = BankRoutingJsonV121("OBP", "gh.29.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+          holders = List(AccountHolderJSON("John Doe", false))
+        ),
+        other_account = OtherAccountJsonV600(
+          bank_id = "other.bank.uk",
+          account_id = "counterparty-123",
+          holder = AccountHolderJSON("Jane Smith", false),
+          bank_routing = BankRoutingJsonV121("OBP", "other.bank.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "counterparty-123")),
+          metadata = null
+        ),
+        details = TransactionDetailsJSON(
+          `type` = "SEPA",
+          description = "Payment for services",
+          posted = new java.util.Date(),
+          completed = new java.util.Date(),
+          new_balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+          value = AmountOfMoneyJsonV121("EUR", "100.00")
+        ),
+        metadata = null,
+        transaction_attributes = Nil
+      ))),
+      List(
+        FilterSortDirectionError,
+        FilterOffersetError,
+        FilterLimitError,
+        FilterDateFormatError,
+        AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagAccount)
+    )
+
+    lazy val getTransactionsForBankAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user, callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
+            (params, callContext) <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders, callContext)
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, callContext, params) map {
+              connectorEmptyResponse(_, callContext)
+            }
+            moderatedTransactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => code.api.v3_0_0.ModeratedTransactionWithAttributes(transaction, attributes._1))
+            ))
+          } yield {
+            (JSONFactory600.createTransactionsJsonV600(moderatedTransactionsWithAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     lazy val getCurrentConsumer: OBPEndpoint = {
       case "consumers" :: "current" :: Nil JsonGet _ => {
         cc => {
@@ -1644,8 +1814,9 @@ trait APIMethods600 {
               json.extract[PostBankJson600]
             }
 
+            // TODO: Improve this error message to not hardcode "16" - should reference the max length from checkOptionalShortString function
             checkShortStringValue = APIUtil.checkOptionalShortString(postJson.bank_id)
-            _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID: $checkShortStringValue BANK_ID must contain only characters A-Z, a-z, 0-9, -, _, . and be max 16 characters.", cc = cc.callContext) {
               checkShortStringValue == SILENCE_IS_GOLDEN
             }
 
@@ -7217,6 +7388,135 @@ trait APIMethods600 {
             }
           } yield {
             (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      verifyOidcClient,
+      implementedInApiVersion,
+      nameOf(verifyOidcClient),
+      "POST",
+      "/oidc/clients/verify",
+      "Verify OIDC Client",
+      s"""Verifies an OIDC/OAuth2 client's credentials.
+         |
+         |Returns `valid: true` if the client_id and client_secret match an active consumer.
+         |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      VerifyOidcClientRequestJsonV600(
+        client_id = "abc123def456",
+        client_secret = "supersecret123"
+      ),
+      VerifyOidcClientResponseJsonV600(
+        valid = true,
+        client_id = Some("abc123def456"),
+        consumer_id = Some("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"),
+        redirect_uris = Some(List("https://app.example.com/callback"))
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canVerifyOidcClient))
+    )
+
+    lazy val verifyOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: "verify" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
+              json.extract[VerifyOidcClientRequestJsonV600]
+            }
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id)
+            }
+          } yield {
+            consumerBox match {
+              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL.get)
+                  .filter(_.nonEmpty)
+                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                (VerifyOidcClientResponseJsonV600(
+                  valid = true,
+                  client_id = Some(postedData.client_id),
+                  consumer_id = Some(consumer.consumerId.get),
+                  redirect_uris = redirectUris
+                ), HttpCode.`200`(callContext))
+              case _ =>
+                (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
+            }
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getOidcClient,
+      implementedInApiVersion,
+      nameOf(getOidcClient),
+      "GET",
+      "/oidc/clients/CLIENT_ID",
+      "Get OIDC Client",
+      s"""Gets an OIDC/OAuth2 client's metadata by client_id.
+         |
+         |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      EmptyBody,
+      GetOidcClientResponseJsonV600(
+        client_id = "abc123def456",
+        client_name = "My Application",
+        consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        redirect_uris = List("https://app.example.com/callback"),
+        enabled = true
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canGetOidcClient))
+    )
+
+    lazy val getOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: clientId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
+            }
+            consumer <- NewStyle.function.tryons(s"OBP-OIDC-003: Client not found: $clientId", 404, callContext) {
+              consumerBox match {
+                case Full(c) => c
+                case _ => throw new RuntimeException("Client not found")
+              }
+            }
+          } yield {
+            val redirectUris = Option(consumer.redirectURL.get)
+              .filter(_.nonEmpty)
+              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+              .getOrElse(List.empty)
+            (GetOidcClientResponseJsonV600(
+              client_id = clientId,
+              client_name = consumer.name.get,
+              consumer_id = consumer.consumerId.get,
+              redirect_uris = redirectUris,
+              enabled = consumer.isActive.get
+            ), HttpCode.`200`(callContext))
           }
       }
     }
