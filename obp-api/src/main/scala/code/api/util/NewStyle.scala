@@ -13,6 +13,7 @@ import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransaction
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
+import code.featuredapicollection.{FeaturedApiCollectionTrait, MappedFeaturedApiCollectionsProvider}
 import code.atmattribute.AtmAttribute
 import code.authtypevalidation.{AuthenticationTypeValidationProvider, JsonAuthTypeValidation}
 import code.bankattribute.BankAttribute
@@ -3715,11 +3716,35 @@ object NewStyle extends MdcLoggable{
     }
 
     def getFeaturedApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
-      //we get the getFeaturedApiCollectionIds from props, and remove the deplication there.
-      val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
-      //We filter the isDefined and is isSharable collections.
-      val apiCollections = featuredApiCollectionIds.map(MappedApiCollectionsProvider.getApiCollectionById).filter(_.isDefined).filter(_.head.isSharable).map(_.head)
-      Future{(apiCollections.sortBy(_.apiCollectionName), callContext)}
+      // First get featured collections from database, sorted by sortOrder
+      val dbFeaturedApiCollections = MappedFeaturedApiCollectionsProvider.getAllFeaturedApiCollections()
+      val dbApiCollectionIds = dbFeaturedApiCollections.map(_.apiCollectionId).toSet
+
+      // Get actual ApiCollections for database featured entries
+      val dbApiCollections = dbFeaturedApiCollections
+        .map(f => MappedApiCollectionsProvider.getApiCollectionById(f.apiCollectionId))
+        .filter(_.isDefined)
+        .filter(_.head.isSharable)
+        .map(_.head)
+
+      // Get props-based featured IDs that are NOT in database
+      val propsApiCollectionIds = APIUtil.getPropsValue("featured_api_collection_ids", "")
+        .split(",")
+        .map(_.trim)
+        .filter(_.nonEmpty)
+        .toList
+        .filterNot(dbApiCollectionIds.contains)
+
+      // Get actual ApiCollections for props entries and sort them by name
+      val propsApiCollections = propsApiCollectionIds
+        .map(MappedApiCollectionsProvider.getApiCollectionById)
+        .filter(_.isDefined)
+        .filter(_.head.isSharable)
+        .map(_.head)
+        .sortBy(_.apiCollectionName)
+
+      // Merge: database entries first (preserve sortOrder), then props entries (sorted by name)
+      Future{(dbApiCollections ++ propsApiCollections, callContext)}
     }
     
     def createApiCollection(
@@ -3810,6 +3835,69 @@ object NewStyle extends MdcLoggable{
     def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
       Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById) "), callContext)
+      }
+    }
+
+    // Featured API Collections functions
+    def createFeaturedApiCollection(
+      apiCollectionId: String,
+      sortOrder: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[FeaturedApiCollectionTrait] = {
+      Future(MappedFeaturedApiCollectionsProvider.createFeaturedApiCollection(apiCollectionId, sortOrder)) map {
+        i => (unboxFullOrFail(i, callContext, CreateFeaturedApiCollectionError), callContext)
+      }
+    }
+
+    def getFeaturedApiCollectionByApiCollectionId(
+      apiCollectionId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[FeaturedApiCollectionTrait] = {
+      Future(MappedFeaturedApiCollectionsProvider.getFeaturedApiCollectionByApiCollectionId(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$FeaturedApiCollectionNotFound Current API_COLLECTION_ID($apiCollectionId)"), callContext)
+      }
+    }
+
+    def getAllFeaturedApiCollectionsAdmin(callContext: Option[CallContext]): OBPReturnType[List[FeaturedApiCollectionTrait]] = {
+      Future(MappedFeaturedApiCollectionsProvider.getAllFeaturedApiCollections(), callContext)
+    }
+
+    def updateFeaturedApiCollection(
+      apiCollectionId: String,
+      sortOrder: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[FeaturedApiCollectionTrait] = {
+      Future {
+        val featured = MappedFeaturedApiCollectionsProvider.getFeaturedApiCollectionByApiCollectionId(apiCollectionId)
+        featured.flatMap { f =>
+          MappedFeaturedApiCollectionsProvider.updateFeaturedApiCollection(f.featuredApiCollectionId, sortOrder)
+        }
+      } map {
+        i => (unboxFullOrFail(i, callContext, s"$UpdateFeaturedApiCollectionError Current API_COLLECTION_ID($apiCollectionId)"), callContext)
+      }
+    }
+
+    def deleteFeaturedApiCollectionByApiCollectionId(
+      apiCollectionId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Future(MappedFeaturedApiCollectionsProvider.deleteFeaturedApiCollectionByApiCollectionId(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteFeaturedApiCollectionError Current API_COLLECTION_ID($apiCollectionId)"), callContext)
+      }
+    }
+
+    def checkFeaturedApiCollectionDoesNotExist(
+      apiCollectionId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Future {
+        val existing = MappedFeaturedApiCollectionsProvider.getFeaturedApiCollectionByApiCollectionId(apiCollectionId)
+        existing match {
+          case net.liftweb.common.Full(_) =>
+            throw new RuntimeException(FeaturedApiCollectionAlreadyExists)
+          case _ =>
+            (true, callContext)
+        }
       }
     }
 

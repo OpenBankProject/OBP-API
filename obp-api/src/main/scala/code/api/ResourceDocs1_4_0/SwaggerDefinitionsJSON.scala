@@ -5175,6 +5175,12 @@ object SwaggerDefinitionsJSON {
   lazy val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   lazy val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
 
+  // Featured API Collections (v6.0.0)
+  lazy val postFeaturedApiCollectionJsonV600 = PostFeaturedApiCollectionJsonV600(apiCollectionIdExample.value, 1)
+  lazy val putFeaturedApiCollectionJsonV600 = PutFeaturedApiCollectionJsonV600(1)
+  lazy val featuredApiCollectionJsonV600 = FeaturedApiCollectionJsonV600(featuredApiCollectionIdExample.value, apiCollectionIdExample.value, 1)
+  lazy val featuredApiCollectionsJsonV600 = FeaturedApiCollectionsJsonV600(List(featuredApiCollectionJsonV600))
+
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
   

@@ -377,7 +377,10 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetAllApiCollections(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllApiCollections = CanGetAllApiCollections()
-  
+
+  case class CanManageFeaturedApiCollections(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canManageFeaturedApiCollections = CanManageFeaturedApiCollections()
+
   case class CanGetCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCounterpartyAtAnyBank = CanGetCounterpartyAtAnyBank()
   

@@ -31,6 +31,7 @@ import code.api.v3_1_0.{AccountAttributeResponseJson, RateLimit, RedisCallLimitJ
 import code.api.v4_0_0.TransactionAttributeResponseJson
 import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, UserAgreementJson}
 import code.entitlement.Entitlement
+import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.users.UserAgreement
@@ -631,6 +632,26 @@ case class UpdateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],
     schema: net.liftweb.json.JsonAST.JObject
+)
+
+// Featured API Collections (v6.0.0)
+case class PostFeaturedApiCollectionJsonV600(
+    api_collection_id: String,
+    sort_order: Int
+)
+
+case class PutFeaturedApiCollectionJsonV600(
+    sort_order: Int
+)
+
+case class FeaturedApiCollectionJsonV600(
+    featured_api_collection_id: String,
+    api_collection_id: String,
+    sort_order: Int
+)
+
+case class FeaturedApiCollectionsJsonV600(
+    featured_api_collections: List[FeaturedApiCollectionJsonV600]
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
@@ -1256,6 +1277,24 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       rules: List[code.abacrule.AbacRuleTrait]
   ): AbacRulesJsonV600 = {
     AbacRulesJsonV600(rules.map(createAbacRuleJsonV600))
+  }
+
+  def createFeaturedApiCollectionJsonV600(
+      featuredApiCollection: FeaturedApiCollectionTrait
+  ): FeaturedApiCollectionJsonV600 = {
+    FeaturedApiCollectionJsonV600(
+      featured_api_collection_id = featuredApiCollection.featuredApiCollectionId,
+      api_collection_id = featuredApiCollection.apiCollectionId,
+      sort_order = featuredApiCollection.sortOrder
+    )
+  }
+
+  def createFeaturedApiCollectionsJsonV600(
+      featuredApiCollections: List[FeaturedApiCollectionTrait]
+  ): FeaturedApiCollectionsJsonV600 = {
+    FeaturedApiCollectionsJsonV600(
+      featuredApiCollections.map(createFeaturedApiCollectionJsonV600)
+    )
   }
 
   def createCacheNamespaceJsonV600(
