@@ -655,6 +655,11 @@ case class FeaturedApiCollectionsJsonV600(
     featured_api_collections: List[FeaturedApiCollectionJsonV600]
 )
 
+// Response for popular API endpoints (operation IDs only)
+case class PopularApisJsonV600(
+    operation_ids: List[String]
+)
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createRedisCallCountersJson(

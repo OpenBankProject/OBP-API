@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, RateLimitingUtil}
+import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -31,7 +31,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PopularApisJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -7695,6 +7695,74 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.deleteFeaturedApiCollectionByApiCollectionId(apiCollectionId, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getPopularApis,
+      implementedInApiVersion,
+      nameOf(getPopularApis),
+      "GET",
+      "/api/popular-endpoints",
+      "Get Popular Endpoints",
+      s"""Returns the operation IDs of the 50 most popular endpoints based on usage metrics.
+         |
+         |This endpoint is public and does not require authentication.
+         |
+         |The response contains a simple list of operation_id strings, ordered by popularity (most called first).
+         |
+         |This includes endpoints from all API standards: OBP, Berlin Group, UK Open Banking, STET, Polish API, etc.
+         |
+         |Example operation_id formats:
+         |* OBP: OBPv4.0.0-getBanks
+         |* Berlin Group: BGv1.3-getAccountList
+         |* UK Open Banking: UKv3.1-getAccounts
+         |
+         |""".stripMargin,
+      EmptyBody,
+      PopularApisJsonV600(
+        operation_ids = List(
+          "OBPv4.0.0-getBanks",
+          "OBPv4.0.0-getBank",
+          "BGv1.3-getAccountList"
+        )
+      ),
+      List(
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi)
+    )
+
+    lazy val getPopularApis: OBPEndpoint = {
+      case "api" :: "popular-endpoints" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            // Get top 50 APIs - use default date range (all time) with limit of 50
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            // Add limit=50 to the query params
+            limitParams = List(OBPLimit(50))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            queryParamsWithLimit = obpQueryParams ++ limitParams
+            topApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(queryParamsWithLimit) map {
+              unboxFullOrFail(_, callContext, UnknownError)
+            }
+          } yield {
+            // Build lookup map from (partialFunctionName, shortVersion) -> operationId
+            // This handles OBP, Berlin Group, UK Open Banking, and other standards correctly
+            val allDocs = APIUtil.getAllResourceDocs
+            val lookupMap: Map[(String, String), String] = allDocs.map { doc =>
+              // Extract short version (e.g., "v4.0.0" from "OBPv4.0.0" or "v1.3" from "BGv1.3")
+              val shortVersion = doc.implementedInApiVersion.toString
+              (doc.partialFunctionName, shortVersion) -> doc.operationId
+            }.toMap
+
+            // Convert TopApi to operation_id, looking up correct format for each standard
+            val operationIds = topApis.flatMap { api =>
+              lookupMap.get((api.ImplementedByPartialFunction, api.implementedInVersion))
+            }
+            (PopularApisJsonV600(operationIds), HttpCode.`200`(callContext))
           }
       }
     }
