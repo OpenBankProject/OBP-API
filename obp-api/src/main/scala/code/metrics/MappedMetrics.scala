@@ -1,7 +1,8 @@
 package code.metrics
 
 import java.sql.{PreparedStatement, Timestamp}
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone}
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
@@ -184,6 +185,23 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       case Some(value) => s"$value"
       case None => "null"
     }
+  }
+
+  /**
+   * Formats a Date as an ISO 8601 timestamp string for use in SQL queries.
+   * Uses the format yyyy-MM-dd'T'HH:mm:ss.SSS with the 'T' separator, which is
+   * universally safe across databases (PostgreSQL, SQL Server, H2, etc.).
+   *
+   * The 'T' separator is critical for SQL Server compatibility - without it,
+   * SQL Server may misinterpret the date based on regional/language settings.
+   *
+   * @param date The date to format
+   * @return ISO 8601 formatted timestamp string (e.g., "2024-01-15T10:30:45.123")
+   */
+  private def sqlTimestamp(date: Date): String = {
+    val sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
+    sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+    sdf.format(date)
   }
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
@@ -378,11 +396,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeUrlPatternsQueriesSql = s"$includeUrlPatternsQueries" 
       
       val result = {
-        val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)  
+        val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better.
+          s"""SELECT count(*), avg(duration), min(duration), max(duration)
               FROM metric
-              WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
-              AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+              WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
+              AND date_c <= '${sqlTimestamp(toDate.get)}'
               AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
               AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
               AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
@@ -399,10 +417,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
         else
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)  
+          s"""SELECT count(*), avg(duration), min(duration), max(duration)
             FROM metric
-            WHERE date_c >= '${new Timestamp(fromDate.get.getTime)}' 
-            AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+            WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
+            AND date_c <= '${sqlTimestamp(toDate.get)}'
             AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
             AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
             AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
@@ -493,10 +511,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         val otherDbLimit = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
         val sqlQuery: String =
           s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
-                FROM metric 
-                WHERE 
-                date_c >= '${new Timestamp(fromDate.get.getTime)}' AND
-                date_c <= '${new Timestamp(toDate.get.getTime)}'
+                FROM metric
+                WHERE
+                date_c >= '${sqlTimestamp(fromDate.get)}' AND
+                date_c <= '${sqlTimestamp(toDate.get)}'
                 AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
                 AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
                 AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
@@ -578,10 +596,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         val sqlQuery =
           s"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, metric.appname as appname, 
                 consumer.developeremail as email, consumer.consumerid as consumerid  
-                FROM metric, consumer 
-                WHERE metric.appname = consumer.name  
-                AND date_c >= '${new Timestamp(fromDate.get.getTime)}'
-                AND date_c <= '${new Timestamp(toDate.get.getTime)}'
+                FROM metric, consumer
+                WHERE metric.appname = consumer.name
+                AND date_c >= '${sqlTimestamp(fromDate.get)}'
+                AND date_c <= '${sqlTimestamp(toDate.get)}'
                 AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${sqlFriendly(consumerId)})
                 AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
                 AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
