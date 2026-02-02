@@ -2224,6 +2224,9 @@ trait APIMethods510 {
          |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ")}.
          |
          |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
+         |
+         |Examples:
+         |
          |For example:
          |GET /obp/v4.0.0/users/current HTTP/1.1
          |Host: 127.0.0.1:8080
