@@ -271,11 +271,6 @@
       <version>2.4.9</version>
     </dependency>
     <dependency>
-      <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-stream_${scala.version}</artifactId>
-      <version>2.5.32</version>
-    </dependency>
-    <dependency>
       <groupId>io.prometheus</groupId>
       <artifactId>simpleclient</artifactId>
       <version>0.16.0</version>
@@ -299,12 +294,21 @@
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-remote_${scala.version}</artifactId>
       <version>${akka.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>netty</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-stream_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-slf4j_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-http_${scala.version}</artifactId>
+      <version>10.5.3</version>
     </dependency>
     <dependency>
       <groupId>com.sksamuel.avro4s</groupId>
@@ -337,11 +341,6 @@
       <groupId>com.github.cb372</groupId>
       <artifactId>scalacache-guava_${scala.version}</artifactId>
       <version>0.9.3</version>
-    </dependency>
-    <dependency>
-      <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-slf4j_${scala.version}</artifactId>
-      <version>${akka.version}</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.github.dwickern/scala-nameof_2.11 -->
     <dependency>
