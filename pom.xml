@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
@@ -12,7 +12,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.20</scala.compiler>
-    <akka.version>2.6.21</akka.version>
+    <akka.version>2.5.32</akka.version>
     <avro.version>1.11.4</avro.version>
     <lift.version>3.5.0</lift.version>
     <jetty.version>9.4.50.v20221201</jetty.version>
@@ -66,7 +66,7 @@
   <pluginRepositories>
     <pluginRepository>
       <id>org.sonatype.oss.groups.public</id>
-    <name>Sonatype Public</name>
+      <name>Sonatype Public</name>
       <url>https://oss.sonatype.org/content/groups/public</url>
     </pluginRepository>
   </pluginRepositories>
@@ -129,7 +129,7 @@
           <version>4.9.5</version>
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
-<!--            <charset>${project.build.sourceEncoding}</charset>-->
+            <!--            <charset>${project.build.sourceEncoding}</charset>-->
             <displayCmd>true</displayCmd>
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
@@ -178,97 +178,97 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
-        <plugin>
-          <groupId>net.alchim31.maven</groupId>
-          <artifactId>scala-maven-plugin</artifactId>
-          <configuration>
-            <compilerPlugins>
-              <!--scala 2.12.x need the paradise plugin to support macros annotation, 2.13.x value not need this plugin,
-              just add -Ymacro-annotations flag -->
-              <compilerPlugin>
-                <groupId>org.scalamacros</groupId>
-                <artifactId>paradise_${scala.compiler}</artifactId>
-                <version>2.1.1</version>
-              </compilerPlugin>
-            </compilerPlugins>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.1</version>
-          <executions>
-            <execution>
-              <id>default-copy-resources</id>
-              <phase>process-resources</phase>
-              <goals>
-                <goal>copy-resources</goal>
-              </goals>
-              <configuration>
-                <overwrite>true</overwrite>
-                <outputDirectory>${project.build.directory}</outputDirectory>
-                <resources>
-                  <resource>
-                    <directory>${project.basedir}/src</directory>
-                    <includes>
-                      <include>packageLinkDefs.properties</include>
-                    </includes>
-                    <filtering>true</filtering>
-                  </resource>
-                </resources>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <version>6.1.26</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-idea-plugin</artifactId>
-          <version>2.2.1</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-eclipse-plugin</artifactId>
-          <version>2.10</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-            <additionalProjectnatures>
-              <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-            </additionalProjectnatures>
-            <additionalBuildcommands>
-              <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-            </additionalBuildcommands>
-            <classpathContainers>
-              <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
-              <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-            </classpathContainers>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>pl.project13.maven</groupId>
-          <artifactId>git-commit-id-plugin</artifactId>
-          <version>4.9.10</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>revision</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-            <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
-            <failOnNoGitDirectory>false</failOnNoGitDirectory>
-          </configuration>
-        </plugin>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <configuration>
+          <compilerPlugins>
+            <!--scala 2.12.x need the paradise plugin to support macros annotation, 2.13.x value not need this plugin,
+            just add -Ymacro-annotations flag -->
+            <compilerPlugin>
+              <groupId>org.scalamacros</groupId>
+              <artifactId>paradise_${scala.compiler}</artifactId>
+              <version>2.1.1</version>
+            </compilerPlugin>
+          </compilerPlugins>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>default-copy-resources</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <overwrite>true</overwrite>
+              <outputDirectory>${project.build.directory}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src</directory>
+                  <includes>
+                    <include>packageLinkDefs.properties</include>
+                  </includes>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.mortbay.jetty</groupId>
+        <artifactId>maven-jetty-plugin</artifactId>
+        <version>6.1.26</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-idea-plugin</artifactId>
+        <version>2.2.1</version>
+        <configuration>
+          <downloadSources>true</downloadSources>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-eclipse-plugin</artifactId>
+        <version>2.10</version>
+        <configuration>
+          <downloadSources>true</downloadSources>
+          <additionalProjectnatures>
+            <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
+          </additionalProjectnatures>
+          <additionalBuildcommands>
+            <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
+          </additionalBuildcommands>
+          <classpathContainers>
+            <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
+            <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+          </classpathContainers>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>4.9.10</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+          <failOnNoGitDirectory>false</failOnNoGitDirectory>
+        </configuration>
+      </plugin>
 
 
       <plugin>
@@ -276,8 +276,8 @@
         <artifactId>maven-site-plugin</artifactId>
         <version>3.7.1</version>
       </plugin>
-      
-      </plugins>
+
+    </plugins>
   </build>
   <reporting>
     <plugins>
