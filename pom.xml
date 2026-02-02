@@ -12,7 +12,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.20</scala.compiler>
-    <akka.version>2.5.32</akka.version>
+    <akka.version>2.6.21</akka.version>
     <avro.version>1.11.4</avro.version>
     <lift.version>3.5.0</lift.version>
     <jetty.version>9.4.50.v20221201</jetty.version>
