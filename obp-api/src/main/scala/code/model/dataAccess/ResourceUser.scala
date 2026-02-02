@@ -31,7 +31,7 @@ import java.util.UUID.randomUUID
 
 import code.api.Constant
 import code.api.cache.Caching
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DBUtil}
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import com.tesobe.CacheKeyFromArguments
@@ -141,7 +141,8 @@ object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds) {
         val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
-        val (_, rows) = DB.runQuery(sql, List())
+        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
+        val (_, rows) = DBUtil.runQuery(sql)
         rows.flatten
       }
     }

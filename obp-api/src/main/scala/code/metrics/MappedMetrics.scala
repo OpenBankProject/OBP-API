@@ -436,7 +436,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
             AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
             AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
             """.stripMargin
-        val (_, rows) = DB.runQuery(sqlQuery, List())
+        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
+        val (_, rows) = DBUtil.runQuery(sqlQuery)
         logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlQuery --:  " + sqlQuery)
         logger.info(s"getAllAggregateMetricsBox - Query executed, returned ${rows.length} rows")
         val sqlResult = rows.map(
@@ -504,13 +505,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       
       val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
-      val result: List[TopApi] = {
+      val result: Box[List[TopApi]] = tryo {
         // MS SQL server has the specific syntax for limiting number of rows
         val msSqlLimit = if (dbUrl.contains("sqlserver")) s"TOP ($limit)" else s""
         // TODO Make it work in case of Oracle database
         val otherDbLimit = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
         val sqlQuery: String =
-          s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
+          s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion
                 FROM metric
                 WHERE
                 date_c >= '${sqlTimestamp(fromDate.get)}' AND
@@ -522,29 +523,35 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("null")})
                 AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("null")})
                 AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("null")})
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null)
+                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null)
                 AND (${trueOrFalse(httpStatusCode.isEmpty)} or httpcode = ${sqlFriendlyInt(httpStatusCode)})
                 AND (${trueOrFalse(excludeUrlPatterns.isEmpty)} or (url NOT LIKE ($excludeUrlPatternsQueries)))
                 AND (${trueOrFalse(excludeAppNames.isEmpty)} or appname not in ($excludeAppNamesNumberList))
                 AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty)} or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
-                GROUP BY metric.implementedbypartialfunction, metric.implementedinversion 
+                GROUP BY metric.implementedbypartialfunction, metric.implementedinversion
                 ORDER BY count(*) DESC
                 ${otherDbLimit}
                 """.stripMargin
 
-        val (_, rows) = DB.runQuery(sqlQuery, List())
+        logger.debug(s"getTopApisFuture SQL query: $sqlQuery")
+        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
+        val (_, rows) = DBUtil.runQuery(sqlQuery)
+        logger.debug(s"getTopApisFuture returned ${rows.length} rows")
+        if (rows.nonEmpty) {
+          logger.debug(s"getTopApisFuture first row sample: ${rows.head}")
+        }
         val sqlResult =
           rows.map { rs => // Map result to case class
             TopApi(
-              rs(0).toInt,
+              tryo(rs(0).toInt).getOrElse(0), // Safe conversion with fallback
               rs(1),
               rs(2)
             )
           }
         sqlResult
       }
-      tryo(result)
+      result
     }}
   }}
 
@@ -591,11 +598,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val msSqlLimit = if (dbUrl.contains("sqlserver")) s"TOP ($limit)" else s""
       // TODO Make it work in case of Oracle database
       val otherDbLimit: String = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
-
       val result: List[TopConsumer] = {
         val sqlQuery =
-          s"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, metric.appname as appname, 
-                consumer.developeremail as email, consumer.consumerid as consumerid  
+          s"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, metric.appname as appname,
+                consumer.developeremail as email, consumer.consumerid as consumerid
                 FROM metric, consumer
                 WHERE metric.appname = consumer.name
                 AND date_c >= '${sqlTimestamp(fromDate.get)}'
@@ -613,11 +619,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
                 AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
                 AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
-                GROUP BY appname,	consumer.developeremail, consumer.id,	consumer.consumerid
+                GROUP BY appname, consumer.developeremail, consumer.id, consumer.consumerid
                 ORDER BY count DESC
                 ${otherDbLimit}
                 """.stripMargin
-        val (_, rows) = DB.runQuery(sqlQuery, List())
+        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
+        val (_, rows) = DBUtil.runQuery(sqlQuery)
         val sqlResult =
           rows.map { rs => // Map result to case class
             TopConsumer(
