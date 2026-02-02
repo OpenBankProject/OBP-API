@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import doobie._
 import doobie.implicits._
+import doobie.implicits.javasql._  // Provides Meta instances for java.sql.Timestamp
 import code.api.util.{DBUtil, DoobieUtil}
 
 import java.util.Date
