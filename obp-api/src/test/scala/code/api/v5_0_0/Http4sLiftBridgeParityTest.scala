@@ -3,14 +3,22 @@ package code.api.v5_0_0
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.ResponseHeader
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createSystemViewJsonV500
+import code.api.v5_0_0.ViewJsonV500
 import code.api.berlin.group.ConstantsBG
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
 import code.api.util.http4s.Http4sLiftWebBridge
 import code.consumer.Consumers
+import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
+import code.views.system.AccountAccess
+import com.openbankproject.commons.model.UpdateViewJSON
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonParser.parse
+import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.http4s.{Header, Headers, Method, Request, Status, Uri}
@@ -206,6 +214,90 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
       // Both should have a token field
       hasField(http4sJson, "token") shouldBe true
       assertCorrelationId(http4sHeaders)
+    }
+
+    scenario("System views CRUD parity", Http4sLiftBridgeParityTag) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateSystemView.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
+
+      val viewId = "v" + APIUtil.generateUUID()
+      val createBody = createSystemViewJsonV500.copy(name = viewId).copy(metadata_view = viewId).toCreateViewJson
+      val createJson = write(createBody)
+
+      val liftCreateReq = (baseRequest / "system-views").POST <@(user1)
+      val liftCreateResponse = makePostRequest(liftCreateReq, createJson)
+      val createReqData = extractParamsAndHeaders(
+        liftCreateReq,
+        createJson,
+        "UTF-8",
+        Map("Content-Type" -> "application/json")
+      )
+      val (http4sCreateStatus, http4sCreateJson, http4sCreateHeaders) = runHttp4s(createReqData)
+      liftCreateResponse.code should equal(http4sCreateStatus.code)
+      jsonKeysLower(liftCreateResponse.body) should equal(jsonKeysLower(http4sCreateJson))
+      assertCorrelationId(http4sCreateHeaders)
+      val createdView = liftCreateResponse.body.extract[ViewJsonV500]
+
+      val liftGetReq = (baseRequest / "system-views" / createdView.id).GET <@(user1)
+      val liftGetResponse = makeGetRequest(liftGetReq)
+      val getReqData = extractParamsAndHeaders(liftGetReq, "", "UTF-8")
+      val (http4sGetStatus, http4sGetJson, http4sGetHeaders) = runHttp4s(getReqData)
+      liftGetResponse.code should equal(http4sGetStatus.code)
+      jsonKeysLower(liftGetResponse.body) should equal(jsonKeysLower(http4sGetJson))
+      assertCorrelationId(http4sGetHeaders)
+
+      val updateBody = UpdateViewJSON(
+        description = "crud-updated",
+        metadata_view = createdView.metadata_view,
+        is_public = createdView.is_public,
+        is_firehose = Some(true),
+        which_alias_to_use = "public",
+        hide_metadata_if_alias_used = !createdView.hide_metadata_if_alias_used,
+        allowed_actions = List("can_see_images", "can_delete_comment"),
+        can_grant_access_to_views = Some(createdView.can_grant_access_to_views),
+        can_revoke_access_to_views = Some(createdView.can_revoke_access_to_views)
+      )
+      val updateJson = write(updateBody)
+      val liftUpdateReq = (baseRequest / "system-views" / createdView.id).PUT <@(user1)
+      val liftUpdateResponse = makePutRequest(liftUpdateReq, updateJson)
+      val updateReqData = extractParamsAndHeaders(
+        liftUpdateReq,
+        updateJson,
+        "UTF-8",
+        Map("Content-Type" -> "application/json")
+      )
+      val (http4sUpdateStatus, http4sUpdateJson, http4sUpdateHeaders) = runHttp4s(updateReqData)
+      liftUpdateResponse.code should equal(http4sUpdateStatus.code)
+      jsonKeysLower(liftUpdateResponse.body) should equal(jsonKeysLower(http4sUpdateJson))
+      assertCorrelationId(http4sUpdateHeaders)
+
+      val liftGetAfterUpdateReq = (baseRequest / "system-views" / createdView.id).GET <@(user1)
+      val liftGetAfterUpdateResponse = makeGetRequest(liftGetAfterUpdateReq)
+      val getAfterUpdateReqData = extractParamsAndHeaders(liftGetAfterUpdateReq, "", "UTF-8")
+      val (http4sGetAfterUpdateStatus, http4sGetAfterUpdateJson, http4sGetAfterUpdateHeaders) = runHttp4s(getAfterUpdateReqData)
+      liftGetAfterUpdateResponse.code should equal(http4sGetAfterUpdateStatus.code)
+      jsonKeysLower(liftGetAfterUpdateResponse.body) should equal(jsonKeysLower(http4sGetAfterUpdateJson))
+      assertCorrelationId(http4sGetAfterUpdateHeaders)
+
+      AccountAccess.findAll(
+        By(AccountAccess.view_id, createdView.id),
+        By(AccountAccess.user_fk, resourceUser1.id.get)
+      ).forall(_.delete_!)
+      val liftDeleteReq = (baseRequest / "system-views" / createdView.id).DELETE <@(user1)
+      val liftDeleteResponse = makeDeleteRequest(liftDeleteReq)
+      val deleteReqData = extractParamsAndHeaders(liftDeleteReq, "", "UTF-8")
+      val (http4sDeleteStatus, _, http4sDeleteHeaders) = runHttp4s(deleteReqData)
+      liftDeleteResponse.code should equal(http4sDeleteStatus.code)
+      assertCorrelationId(http4sDeleteHeaders)
+
+      val liftGetAfterDeleteReq = (baseRequest / "system-views" / createdView.id).GET <@(user1)
+      val liftGetAfterDeleteResponse = makeGetRequest(liftGetAfterDeleteReq)
+      val getAfterDeleteReqData = extractParamsAndHeaders(liftGetAfterDeleteReq, "", "UTF-8")
+      val (http4sGetAfterDeleteStatus, _, http4sGetAfterDeleteHeaders) = runHttp4s(getAfterDeleteReqData)
+      liftGetAfterDeleteResponse.code should equal(http4sGetAfterDeleteStatus.code)
+      assertCorrelationId(http4sGetAfterDeleteHeaders)
     }
   }
 }
