@@ -27,7 +27,7 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    
+
     // Create AuthUser if not exists
     if (AuthUser.find(By(AuthUser.username, testUsername)).isEmpty) {
       AuthUser.create
@@ -39,7 +39,7 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
         .lastName("TestUser")
         .saveMe
     }
-    
+
     // Create Consumer if not exists
     if (Consumers.consumers.vend.getConsumerByConsumerKey(testConsumerKey).isEmpty) {
       Consumers.consumers.vend.createConsumer(
@@ -99,26 +99,55 @@ class Http4sLiftBridgeParityTest extends V500ServerSetup {
     header.map(_.value.trim.nonEmpty).getOrElse(false) shouldBe true
   }
 
+  private val standardVersions = List(
+    "v1.2.1",
+    "v1.3.0",
+    "v1.4.0",
+    "v2.0.0",
+    "v2.1.0",
+    "v2.2.0",
+    "v3.0.0",
+    "v3.1.0",
+    "v4.0.0",
+    "v5.0.0",
+    "v5.1.0",
+    "v6.0.0"
+  )
+
+  private val ukOpenBankingVersions = List("v2.0", "v3.1")
+
+  private def runBanksParity(version: String): Unit = {
+    val liftReq = (baseRequest / "obp" / version / "banks").GET
+    val liftResponse = makeGetRequest(liftReq)
+    val reqData = extractParamsAndHeaders(liftReq, "", "")
+    val (http4sStatus, http4sJson, http4sHeaders) = runHttp4s(reqData)
+
+    liftResponse.code should equal(http4sStatus.code)
+    jsonKeysLower(liftResponse.body) should equal(jsonKeysLower(http4sJson))
+    assertCorrelationId(http4sHeaders)
+  }
+
+  private def runUkOpenBankingAccountsParity(version: String): Unit = {
+    val liftReq = (baseRequest / "open-banking" / version / "accounts").GET <@(user1)
+    val liftResponse = makeGetRequest(liftReq)
+    val reqData = extractParamsAndHeaders(liftReq, "", "")
+    val (http4sStatus, _, http4sHeaders) = runHttp4s(reqData)
+
+    liftResponse.code should equal(http4sStatus.code)
+    assertCorrelationId(http4sHeaders)
+  }
+
   feature("Http4s liftweb bridge parity across versions and auth") {
-
-    scenario("legacy v2.0.0 banks parity", Http4sLiftBridgeParityTag) {
-      val liftResponse = makeGetRequest((baseRequest / "obp" / "v2.0.0" / "banks").GET)
-      val reqData = extractParamsAndHeaders((baseRequest / "obp" / "v2.0.0" / "banks").GET, "", "")
-      val (http4sStatus, http4sJson, http4sHeaders) = runHttp4s(reqData)
-
-      liftResponse.code should equal(http4sStatus.code)
-      hasField(http4sJson, "banks") shouldBe true
-      assertCorrelationId(http4sHeaders)
+    standardVersions.foreach { version =>
+      scenario(s"OBP $version banks parity", Http4sLiftBridgeParityTag) {
+        runBanksParity(version)
+      }
     }
 
-    scenario("UK Open Banking accounts parity", Http4sLiftBridgeParityTag) {
-      val liftReq = (baseRequest / "open-banking" / "v2.0" / "accounts").GET <@(user1)
-      val liftResponse = makeGetRequest(liftReq)
-      val reqData = extractParamsAndHeaders(liftReq, "", "")
-      val (http4sStatus, http4sJson, http4sHeaders) = runHttp4s(reqData)
-
-      liftResponse.code should equal(http4sStatus.code)
-      assertCorrelationId(http4sHeaders)
+    ukOpenBankingVersions.foreach { version =>
+      scenario(s"UK Open Banking $version accounts parity", Http4sLiftBridgeParityTag) {
+        runUkOpenBankingAccountsParity(version)
+      }
     }
 
     scenario("Berlin Group accounts parity", Http4sLiftBridgeParityTag) {
