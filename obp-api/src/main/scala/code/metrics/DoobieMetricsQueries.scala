@@ -249,7 +249,7 @@ object DoobieMetricsQueries {
    * Build WHERE clause conditions from filter options.
    */
   private def buildFilterConditions(filters: MetricsQueryFilters, isNewVersion: Boolean): Fragment = {
-    val conditions = List(
+    val simpleConditions = List(
       filters.consumerId.map(v => fr"AND consumerid = $v"),
       filters.userId.map(v => fr"AND userid = $v"),
       filters.implementedByPartialFunction.map(v => fr"AND implementedbypartialfunction = $v"),
@@ -265,7 +265,111 @@ object DoobieMetricsQueries {
       }
     ).flatten
 
-    conditions.foldLeft(fr"")(_ ++ _)
+    // Handle exclude/include app names
+    val appNameCondition = if (isNewVersion) {
+      filters.includeAppNames.filter(_.nonEmpty).map { names =>
+        buildInClause("appname", names)
+      }
+    } else {
+      filters.excludeAppNames.filter(_.nonEmpty).map { names =>
+        buildNotInClause("appname", names)
+      }
+    }
+
+    // Handle exclude/include implemented by partial functions
+    val partialFunctionCondition = if (isNewVersion) {
+      filters.includeImplementedByPartialFunctions.filter(_.nonEmpty).map { names =>
+        buildInClause("implementedbypartialfunction", names)
+      }
+    } else {
+      filters.excludeImplementedByPartialFunctions.filter(_.nonEmpty).map { names =>
+        buildNotInClause("implementedbypartialfunction", names)
+      }
+    }
+
+    // Handle exclude/include URL patterns
+    val urlPatternCondition = if (isNewVersion) {
+      filters.includeUrlPatterns.filter(_.nonEmpty).map { patterns =>
+        buildLikeClause("url", patterns)
+      }
+    } else {
+      filters.excludeUrlPatterns.filter(_.nonEmpty).map { patterns =>
+        buildNotLikeClause("url", patterns)
+      }
+    }
+
+    val allConditions = simpleConditions ++
+      appNameCondition.toList ++
+      partialFunctionCondition.toList ++
+      urlPatternCondition.toList
+
+    allConditions.foldLeft(fr"")(_ ++ _)
+  }
+
+  /**
+   * Build a NOT IN clause for excluding values.
+   */
+  private def buildNotInClause(column: String, values: List[String]): Fragment = {
+    if (values.isEmpty) {
+      fr""
+    } else {
+      val columnFr = Fragment.const(column)
+      val valueFragments = values.map(v => fr"$v")
+      val inList = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
+      fr"AND" ++ columnFr ++ fr"NOT IN (" ++ inList ++ fr")"
+    }
+  }
+
+  /**
+   * Build an IN clause for including values.
+   */
+  private def buildInClause(column: String, values: List[String]): Fragment = {
+    if (values.isEmpty) {
+      fr""
+    } else {
+      val columnFr = Fragment.const(column)
+      val valueFragments = values.map(v => fr"$v")
+      val inList = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
+      fr"AND" ++ columnFr ++ fr"IN (" ++ inList ++ fr")"
+    }
+  }
+
+  /**
+   * Build a NOT LIKE clause for excluding URL patterns.
+   */
+  private def buildNotLikeClause(column: String, patterns: List[String]): Fragment = {
+    if (patterns.isEmpty || (patterns.size == 1 && patterns.head.isEmpty)) {
+      fr""
+    } else {
+      val columnFr = Fragment.const(column)
+      val notLikeConditions = patterns.filter(_.nonEmpty).map { pattern =>
+        columnFr ++ fr"NOT LIKE $pattern"
+      }
+      if (notLikeConditions.isEmpty) {
+        fr""
+      } else {
+        fr"AND (" ++ notLikeConditions.reduceLeft((a, b) => a ++ fr"AND" ++ b) ++ fr")"
+      }
+    }
+  }
+
+  /**
+   * Build a LIKE clause for including URL patterns.
+   */
+  private def buildLikeClause(column: String, patterns: List[String]): Fragment = {
+    if (patterns.isEmpty || (patterns.size == 1 && patterns.head.isEmpty)) {
+      fr""
+    } else {
+      val columnFr = Fragment.const(column)
+      val likeConditions = patterns.filter(_.nonEmpty).map { pattern =>
+        columnFr ++ fr"LIKE $pattern"
+      }
+      if (likeConditions.isEmpty) {
+        fr""
+      } else {
+        fr"AND (" ++ likeConditions.reduceLeft((a, b) => a ++ fr"OR" ++ b) ++ fr")"
+      }
+    }
   }
 }
 

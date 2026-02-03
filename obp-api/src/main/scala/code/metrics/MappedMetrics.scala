@@ -467,13 +467,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Uses Doobie for type-safe database queries with proper JDBC type handling (including SQL Server NVARCHAR)
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{
-  /**                                                                                        
+  /**
   * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
   * is just a temporary value field with UUID values in order to prevent any ambiguity.
-  * The real value will be assigned by Macro during compile time at this line of a code:   
+  * The real value will be assigned by Macro during compile time at this line of a code:
   * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
-  */                                                                                       
+  */
   var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
   val cacheTTL = determineMetricsCacheTTL(queryParams)
   CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
@@ -495,61 +496,32 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
-      
-      val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
-      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-      val excludeImplementedByPartialFunctionsNumberList = 
-        excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
 
-      val excludeUrlPatternsQueries: String = extendLikeQuery(excludeUrlPatternsList, false)
-      
-      val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
+      // Build MetricsQueryFilters for Doobie
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = excludeAppNames,
+        excludeUrlPatterns = excludeUrlPatterns,
+        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
+      )
 
       val result: Box[List[TopApi]] = tryo {
-        // MS SQL server has the specific syntax for limiting number of rows
-        val msSqlLimit = if (dbUrl.contains("sqlserver")) s"TOP ($limit)" else s""
-        // TODO Make it work in case of Oracle database
-        val otherDbLimit = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
-        val sqlQuery: String =
-          s"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion
-                FROM metric
-                WHERE
-                date_c >= '${sqlTimestamp(fromDate.get)}' AND
-                date_c <= '${sqlTimestamp(toDate.get)}'
-                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("null")})
-                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("null")})
-                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("null")})
-                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("null")})
-                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("null")})
-                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("null")})
-                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("null")})
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null)
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null)
-                AND (${trueOrFalse(httpStatusCode.isEmpty)} or httpcode = ${sqlFriendlyInt(httpStatusCode)})
-                AND (${trueOrFalse(excludeUrlPatterns.isEmpty)} or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalse(excludeAppNames.isEmpty)} or appname not in ($excludeAppNamesNumberList))
-                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty)} or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsNumberList))
-                GROUP BY metric.implementedbypartialfunction, metric.implementedinversion
-                ORDER BY count(*) DESC
-                ${otherDbLimit}
-                """.stripMargin
-
-        logger.debug(s"getTopApisFuture SQL query: $sqlQuery")
-        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-        val (_, rows) = DBUtil.runQuery(sqlQuery)
-        logger.debug(s"getTopApisFuture returned ${rows.length} rows")
-        if (rows.nonEmpty) {
-          logger.debug(s"getTopApisFuture first row sample: ${rows.head}")
+        logger.debug(s"getTopApisFuture using Doobie with filters: $filters, limit: $limit")
+        val topApis = DoobieMetricsQueries.getTopApis(fromDate.get, toDate.get, limit, filters)
+        logger.debug(s"getTopApisFuture returned ${topApis.length} rows")
+        if (topApis.nonEmpty) {
+          logger.debug(s"getTopApisFuture first row sample: ${topApis.head}")
         }
-        val sqlResult =
-          rows.map { rs => // Map result to case class
-            TopApi(
-              tryo(rs(0).toInt).getOrElse(0), // Safe conversion with fallback
-              rs(1),
-              rs(2)
-            )
-          }
-        sqlResult
+        topApis
       }
       result
     }}

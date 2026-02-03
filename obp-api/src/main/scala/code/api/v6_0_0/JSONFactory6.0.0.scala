@@ -278,6 +278,17 @@ case class ProvidersJsonV600(providers: List[String])
 
 case class ConnectorMethodNamesJsonV600(connector_method_names: List[String])
 
+case class ConnectorNamesJsonV600(connector_names: List[String])
+
+case class TopApiJsonV600(
+    count: Int,
+    implemented_by_partial_function: String,
+    implemented_in_version: String,
+    operation_id: String
+)
+
+case class TopApisJsonV600(top_apis: List[TopApiJsonV600])
+
 case class CacheNamespaceJsonV600(
     prefix: String,
     description: String,
@@ -881,6 +892,18 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       methodNames: List[String]
   ): ConnectorMethodNamesJsonV600 = {
     ConnectorMethodNamesJsonV600(methodNames.sorted)
+  }
+
+  def createConnectorNamesJson(
+      connectorNames: List[String]
+  ): ConnectorNamesJsonV600 = {
+    ConnectorNamesJsonV600(connectorNames.sorted)
+  }
+
+  def createTopApisJsonV600(
+      topApis: List[TopApiJsonV600]
+  ): TopApisJsonV600 = {
+    TopApisJsonV600(topApis)
   }
 
   def createBankJSON600(

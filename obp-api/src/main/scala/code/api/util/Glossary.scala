@@ -4763,6 +4763,17 @@ object Glossary extends MdcLoggable  {
 				 |- ABAC_Object_Properties_Reference - Property reference
 				 |""".stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "Tenancy-Model-Open-Bank-Project",
+		description =
+			s"""
+				 |The Open Bank Project (OBP) supports multi-bank operation within a single deployment, with banks acting as the primary domain and isolation boundary. Integration behaviour can be configured per bank, including connector routing based on bank_id.
+				 |
+				 |For SaaS deployments requiring a "dedicated tenant", OBP typically applies tenancy at the deployment level, using separate runtimes, databases, and secrets to meet regulatory and operational isolation requirements common in banking environments.
+				 |
+				 |Centralised operations across multiple deployments are achieved through automated platform tooling (e.g. CI/CD, configuration management, monitoring, logging, and backups), providing a unified operational experience even when tenants are deployed separately.
+				 |""".stripMargin)
+
 	private def getContentFromMarkdownFile(path: String): String = {
 		val source = scala.io.Source.fromFile(path)
 		val lines: String = try source.mkString finally source.close()

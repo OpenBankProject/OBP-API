@@ -2000,6 +2000,177 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getConnectorNames,
+      implementedInApiVersion,
+      nameOf(getConnectorNames),
+      "GET",
+      "/system/connectors",
+      "Get Connectors",
+      s"""Get the list of available connector names.
+         |
+         |Returns a sorted list of all connector names that can be used with the `connector` property in props.
+         |
+         |## Available Connectors
+         |
+         |The OBP-API supports multiple connectors for accessing banking data:
+         |
+         |* **mapped** - Local database connector using Lift Mapper ORM
+         |* **akka_vDec2018** - Akka-based connector for remote banking systems
+         |* **rest_vMar2019** - REST connector for external APIs
+         |* **stored_procedure_vDec2019** - Stored procedure connector for database-native operations
+         |* **rabbitmq_vOct2024** - RabbitMQ message queue connector
+         |* **cardano_vJun2025** - Cardano blockchain connector
+         |* **ethereum_vSept2025** - Ethereum blockchain connector
+         |* **star** - Star connector (special routing connector)
+         |* **proxy** - Proxy connector (for testing)
+         |* **internal** - Internal dynamic connector
+         |
+         |## Use Case
+         |
+         |Use this endpoint to discover which connectors are available when configuring the OBP-API.
+         |The connector is typically set via the `connector` property in your props file.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetConnectorNames entitlement is required.
+         |
+      """.stripMargin,
+      EmptyBody,
+      ConnectorNamesJsonV600(List("mapped", "akka_vDec2018", "rest_vMar2019", "stored_procedure_vDec2019")),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConnector, apiTagSystem, apiTagApi),
+      Some(List(canGetConnectorNames))
+    )
+
+    lazy val getConnectorNames: OBPEndpoint = {
+      case "system" :: "connectors" :: Nil JsonGet _ =>
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConnectorNames, callContext)
+          } yield {
+            // Get the connector names from the Connector object's nameToConnector map
+            // Also include "star" which is handled separately in getConnectorInstance
+            val connectorNames = code.bankconnectors.Connector.nameToConnector.keys.toList :+ "star"
+            (JSONFactory600.createConnectorNamesJson(connectorNames), HttpCode.`200`(callContext))
+          }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getTopAPIs,
+      implementedInApiVersion,
+      nameOf(getTopAPIs),
+      "GET",
+      "/management/metrics/top-apis",
+      "Get Top APIs",
+      s"""Get metrics about the most popular APIs. e.g.: total count, response time (in ms), etc.
+         |
+         |This v6.0.0 version includes the **operation_id** field which uniquely identifies each API endpoint
+         |across different API standards (OBP, Berlin Group, UK Open Banking, etc.).
+         |
+         |Should be able to filter on the following fields:
+         |
+         |eg: /management/metrics/top-apis?from_date=$epochTimeString&to_date=$DefaultToDateString&consumer_id=5
+         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+         |&verb=GET&anon=false&app_name=MapperPostman
+         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |1 from_date (defaults to one year ago): eg:from_date=$epochTimeString
+         |
+         |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
+         |
+         |3 consumer_id (if null ignore)
+         |
+         |4 user_id (if null ignore)
+         |
+         |5 anon (if null ignore) only support two values: true (return where user_id is null) or false (return where user_id is not null)
+         |
+         |6 url (if null ignore), note: can not contain '&'.
+         |
+         |7 app_name (if null ignore)
+         |
+         |8 implemented_by_partial_function (if null ignore)
+         |
+         |9 implemented_in_version (if null ignore)
+         |
+         |10 verb (if null ignore)
+         |
+         |11 correlation_id (if null ignore)
+         |
+         |12 duration (if null ignore) non digit chars will be silently omitted
+         |
+         |13 exclude_app_names (if null ignore). eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |14 exclude_url_patterns (if null ignore). You can design your own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
+         |
+         |15 exclude_implemented_by_partial_functions (if null ignore). eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanReadMetrics entitlement is required.
+         |
+      """.stripMargin,
+      EmptyBody,
+      TopApisJsonV600(List(
+        TopApiJsonV600(1000, "getBanks", "v4.0.0", "OBPv4.0.0-getBanks"),
+        TopApiJsonV600(500, "getBank", "v4.0.0", "OBPv4.0.0-getBank"),
+        TopApiJsonV600(250, "getAccountList", "v1.3", "BGv1.3-getAccountList")
+      )),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopApisError,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi),
+      Some(List(canReadMetrics))
+    )
+
+    lazy val getTopAPIs: OBPEndpoint = {
+      case "management" :: "metrics" :: "top-apis" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            topApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
+              unboxFullOrFail(_, callContext, GetTopApisError)
+            }
+          } yield {
+            // Build lookup map from (partialFunctionName, shortVersion) -> operationId
+            // This handles OBP, Berlin Group, UK Open Banking, and other standards correctly
+            val allDocs = APIUtil.getAllResourceDocs
+            val lookupMap: Map[(String, String), String] = allDocs.map { doc =>
+              val shortVersion = doc.implementedInApiVersion.toString
+              (doc.partialFunctionName, shortVersion) -> doc.operationId
+            }.toMap
+
+            // Convert TopApi to TopApiJsonV600 with operation_id
+            val topApisWithOperationId = topApis.map { api =>
+              val operationId = lookupMap.getOrElse(
+                (api.ImplementedByPartialFunction, api.implementedInVersion),
+                s"${api.implementedInVersion}-${api.ImplementedByPartialFunction}" // Fallback format
+              )
+              TopApiJsonV600(
+                count = api.count,
+                implemented_by_partial_function = api.ImplementedByPartialFunction,
+                implemented_in_version = api.implementedInVersion,
+                operation_id = operationId
+              )
+            }
+            (JSONFactory600.createTopApisJsonV600(topApisWithOperationId), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       getScannedApiVersions,
       implementedInApiVersion,
       nameOf(getScannedApiVersions),
