@@ -31,7 +31,7 @@ import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PopularApisJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PopularApisJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -2000,15 +2000,21 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getConnectorNames,
+      getConnectors,
       implementedInApiVersion,
-      nameOf(getConnectorNames),
+      nameOf(getConnectors),
       "GET",
       "/system/connectors",
       "Get Connectors",
-      s"""Get the list of available connector names.
+      s"""Get the list of connectors and their availability for method routing.
          |
-         |Returns a sorted list of all connector names that can be used with the `connector` property in props.
+         |Returns a sorted list of all connectors with their availability status for use in Method Routing.
+         |
+         |## Response Fields
+         |
+         |* **connector_name** - The name of the connector
+         |* **is_available_in_method_routing** - Whether this connector can be used in Method Routing configuration.
+         |  This depends on the `connector` and `starConnector_supported_types` props settings.
          |
          |## Available Connectors
          |
@@ -2027,8 +2033,9 @@ trait APIMethods600 {
          |
          |## Use Case
          |
-         |Use this endpoint to discover which connectors are available when configuring the OBP-API.
-         |The connector is typically set via the `connector` property in your props file.
+         |Use this endpoint to discover which connectors are available when configuring Method Routing.
+         |A connector is available for method routing if it matches the `connector` prop setting,
+         |or if `connector=star` and the connector is listed in `starConnector_supported_types`.
          |
          |${userAuthenticationMessage(true)}
          |
@@ -2036,7 +2043,12 @@ trait APIMethods600 {
          |
       """.stripMargin,
       EmptyBody,
-      ConnectorNamesJsonV600(List("mapped", "akka_vDec2018", "rest_vMar2019", "stored_procedure_vDec2019")),
+      ConnectorsJsonV600(List(
+        ConnectorInfoJsonV600("mapped", true),
+        ConnectorInfoJsonV600("akka_vDec2018", false),
+        ConnectorInfoJsonV600("rest_vMar2019", true),
+        ConnectorInfoJsonV600("stored_procedure_vDec2019", false)
+      )),
       List(
         $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -2046,7 +2058,7 @@ trait APIMethods600 {
       Some(List(canGetConnectorNames))
     )
 
-    lazy val getConnectorNames: OBPEndpoint = {
+    lazy val getConnectors: OBPEndpoint = {
       case "system" :: "connectors" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
@@ -2056,7 +2068,13 @@ trait APIMethods600 {
             // Get the connector names from the Connector object's nameToConnector map
             // Also include "star" which is handled separately in getConnectorInstance
             val connectorNames = code.bankconnectors.Connector.nameToConnector.keys.toList :+ "star"
-            (JSONFactory600.createConnectorNamesJson(connectorNames), HttpCode.`200`(callContext))
+            val connectorInfos = connectorNames.map { name =>
+              ConnectorInfoJsonV600(
+                connector_name = name,
+                is_available_in_method_routing = NewStyle.function.getConnectorByName(name).isDefined
+              )
+            }
+            (JSONFactory600.createConnectorsJson(connectorInfos), HttpCode.`200`(callContext))
           }
     }
 
