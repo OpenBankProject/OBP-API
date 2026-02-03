@@ -190,12 +190,20 @@ trait SendServerRequests {
           case _ =>
         }
 
-        val parsedBody = tryo {
-          parse(body)
-        }
-        parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
-          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+        // Handle YAML responses: don't try to parse as JSON. Wrap YAML as a JString so tests
+        // that expect a JValue can still receive the body.
+        val contentTypeList = response.getHeaders("Content-Type").asScala.toList.map(_.toLowerCase)
+        val isYaml = contentTypeList.exists(_.contains("yaml"))
+        if (isYaml) {
+          APIResponse(response.getStatusCode, JString(body), Some(response.getHeaders()))
+        } else {
+          val parsedBody = tryo {
+            parse(body)
+          }
+          parsedBody match {
+            case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
+            case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+          }
         }
       }
   }
