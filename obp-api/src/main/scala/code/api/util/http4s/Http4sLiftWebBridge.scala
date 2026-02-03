@@ -40,13 +40,14 @@ object Http4sLiftWebBridge extends MdcLoggable {
   def dispatch(req: Request[IO]): IO[Response[IO]] = {
     val uri = req.uri.renderString
     val method = req.method.name
-    logger.debug(s"Http4sLiftBridge dispatching: $method $uri")
+    logger.debug(s"Http4sLiftBridge dispatching: $method $uri, S.inStatefulScope_? = ${S.inStatefulScope_?}")
     for {
       bodyBytes <- req.body.compile.to(Array)
       liftReq = buildLiftReq(req, bodyBytes)
       liftResp <- IO {
         val session = LiftRules.statelessSession.vend.apply(liftReq)
         S.init(Full(liftReq), session) {
+          logger.debug(s"Http4sLiftBridge inside S.init, S.inStatefulScope_? = ${S.inStatefulScope_?}")
           try {
             runLiftDispatch(liftReq)
           } catch {
@@ -58,6 +59,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
       }
       http4sResponse <- liftResponseToHttp4s(liftResp)
     } yield {
+      logger.debug(s"[BRIDGE] Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       logger.debug(s"Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       ensureStandardHeaders(req, http4sResponse)
     }
@@ -65,17 +67,32 @@ object Http4sLiftWebBridge extends MdcLoggable {
 
   private def runLiftDispatch(req: Req): LiftResponse = {
     val handlers = LiftRules.statelessDispatch.toList ++ LiftRules.dispatch.toList
+    logger.debug(s"[BRIDGE] runLiftDispatch: ${req.request.method} ${req.request.uri}, handlers count: ${handlers.size}")
+    logger.debug(s"[BRIDGE] Checking if any handler is defined for this request...")
+    handlers.zipWithIndex.foreach { case (pf, idx) =>
+      val isDefined = pf.isDefinedAt(req)
+      if (isDefined) {
+        logger.debug(s"[BRIDGE] Handler $idx is defined for this request!")
+      }
+    }
+    logger.debug(s"Http4sLiftBridge runLiftDispatch: ${req.request.method} ${req.request.uri}, handlers count: ${handlers.size}")
     val handler = handlers.collectFirst { case pf if pf.isDefinedAt(req) => pf(req) }
+    logger.debug(s"Http4sLiftBridge handler found: ${handler.isDefined}")
     handler match {
       case Some(run) =>
         try {
           run() match {
-            case Full(resp) => resp
+            case Full(resp) => 
+              logger.debug(s"Http4sLiftBridge handler returned Full response")
+              resp
             case ParamFailure(_, _, _, apiFailure: APIFailure) =>
+              logger.debug(s"Http4sLiftBridge handler returned ParamFailure: ${apiFailure.msg}")
               APIUtil.errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
             case Failure(msg, _, _) =>
+              logger.debug(s"Http4sLiftBridge handler returned Failure: $msg")
               APIUtil.errorJsonResponse(msg)
             case Empty =>
+              logger.debug(s"Http4sLiftBridge handler returned Empty")
               NotFoundResponse()
           }
         } catch {
@@ -83,7 +100,9 @@ object Http4sLiftWebBridge extends MdcLoggable {
           case e if e.getClass.getName == "net.liftweb.http.rest.ContinuationException" =>
             resolveContinuation(e)
         }
-      case None => NotFoundResponse()
+      case None => 
+        logger.debug(s"Http4sLiftBridge no handler found for: ${req.request.method} ${req.request.uri}")
+        NotFoundResponse()
     }
   }
 
@@ -111,13 +130,19 @@ object Http4sLiftWebBridge extends MdcLoggable {
       headerParams = headers,
       queryParams = params
     )
-    Req(
+    val liftReq = Req(
       httpRequest,
       LiftRules.statelessRewrite.toList,
       Nil,
       LiftRules.statelessReqTest.toList,
       System.nanoTime()
     )
+    val contentType = headers.find(_.name.equalsIgnoreCase("Content-Type")).map(_.values.mkString(",")).getOrElse("none")
+    val authHeader = headers.find(_.name.equalsIgnoreCase("Authorization")).map(_.values.mkString(",")).getOrElse("none")
+    val bodySize = body.length
+    logger.debug(s"[BRIDGE] buildLiftReq: method=${liftReq.request.method}, uri=${liftReq.request.uri}, path=${liftReq.path.partPath.mkString("/")}, wholePath=${liftReq.path.wholePath.mkString("/")}, contentType=$contentType, authHeader=$authHeader, bodySize=$bodySize")
+    logger.debug(s"Http4sLiftBridge buildLiftReq: method=${liftReq.request.method}, uri=${liftReq.request.uri}, path=${liftReq.path.partPath.mkString("/")}")
+    liftReq
   }
 
   private def http4sHeadersToParams(headers: List[Header.Raw]): List[HTTPParam] = {
