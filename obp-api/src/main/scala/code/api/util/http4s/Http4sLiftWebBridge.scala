@@ -140,7 +140,9 @@ object Http4sLiftWebBridge extends MdcLoggable {
     val contentType = headers.find(_.name.equalsIgnoreCase("Content-Type")).map(_.values.mkString(",")).getOrElse("none")
     val authHeader = headers.find(_.name.equalsIgnoreCase("Authorization")).map(_.values.mkString(",")).getOrElse("none")
     val bodySize = body.length
-    logger.debug(s"[BRIDGE] buildLiftReq: method=${liftReq.request.method}, uri=${liftReq.request.uri}, path=${liftReq.path.partPath.mkString("/")}, wholePath=${liftReq.path.wholePath.mkString("/")}, contentType=$contentType, authHeader=$authHeader, bodySize=$bodySize")
+    val bodyPreview = if (body.length > 0) new String(body.take(200), "UTF-8") else "empty"
+    logger.debug(s"[BRIDGE] buildLiftReq: method=${liftReq.request.method}, uri=${liftReq.request.uri}, path=${liftReq.path.partPath.mkString("/")}, wholePath=${liftReq.path.wholePath.mkString("/")}, contentType=$contentType, authHeader=$authHeader, bodySize=$bodySize, bodyPreview=$bodyPreview")
+    logger.debug(s"[BRIDGE] Req.json = ${liftReq.json}, Req.body = ${liftReq.body}")
     logger.debug(s"Http4sLiftBridge buildLiftReq: method=${liftReq.request.method}, uri=${liftReq.request.uri}, path=${liftReq.path.partPath.mkString("/")}")
     liftReq
   }
