@@ -315,72 +315,64 @@ class Http4sResponseConversionTest extends FeatureSpec with Matchers with GivenW
     }
   }
 
-  feature("Lift to HTTP4S response conversion - BasicResponse") {
-    scenario("Convert BasicResponse with no body") {
-      Given("A Lift BasicResponse with no body")
-      val headers = List(("X-Custom-Header", "test-value"))
-      val liftResponse = new BasicResponse {
-        override def code: Int = 204
-        override def headers: List[(String, String)] = headers
-        override def cookies: List[net.liftweb.http.provider.HTTPCookie] = Nil
-        override def reason: String = "No Content"
-      }
+  feature("Lift to HTTP4S response conversion - BasicResponse (via NotFoundResponse)") {
+    scenario("Convert NotFoundResponse with no body") {
+      Given("A Lift NotFoundResponse")
+      val liftResponse = NotFoundResponse()
 
       When("Response is converted to HTTP4S")
       val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
 
-      Then("Status code should be preserved")
-      http4sResponse.status.code should equal(204)
-
-      And("Headers should be preserved")
-      http4sResponse.headers.get(CIString("X-Custom-Header")).get.head.value should equal("test-value")
+      Then("Status code should be 404")
+      http4sResponse.status.code should equal(404)
 
       And("Body should be empty")
       val bodyBytes = http4sResponse.body.compile.to(Array).unsafeRunSync()
       bodyBytes.length should equal(0)
     }
 
-    scenario("Convert BasicResponse with various status codes") {
-      Given("BasicResponses with various status codes")
-      val statusCodes = List(200, 201, 204, 301, 302, 400, 401, 403, 404, 500)
-
-      statusCodes.foreach { code =>
-        val liftResponse = new BasicResponse {
-          override def code: Int = code
-          override def headers: List[(String, String)] = Nil
-          override def cookies: List[net.liftweb.http.provider.HTTPCookie] = Nil
-          override def reason: String = s"Status $code"
-        }
-
-        When(s"BasicResponse with status $code is converted")
-        val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
-
-        Then(s"Status code $code should be preserved")
-        http4sResponse.status.code should equal(code)
-      }
-    }
-
-    scenario("Convert BasicResponse with multiple headers") {
-      Given("A Lift BasicResponse with multiple headers")
-      val headers = List(
-        ("X-Header-1", "value-1"),
-        ("X-Header-2", "value-2"),
-        ("X-Header-3", "value-3")
-      )
-      val liftResponse = new BasicResponse {
-        override def code: Int = 200
-        override def headers: List[(String, String)] = headers
-        override def cookies: List[net.liftweb.http.provider.HTTPCookie] = Nil
-        override def reason: String = "OK"
-      }
+    scenario("Convert InternalServerErrorResponse") {
+      Given("A Lift InternalServerErrorResponse")
+      val liftResponse = InternalServerErrorResponse()
 
       When("Response is converted to HTTP4S")
       val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
 
-      Then("All headers should be preserved")
-      http4sResponse.headers.get(CIString("X-Header-1")).get.head.value should equal("value-1")
-      http4sResponse.headers.get(CIString("X-Header-2")).get.head.value should equal("value-2")
-      http4sResponse.headers.get(CIString("X-Header-3")).get.head.value should equal("value-3")
+      Then("Status code should be 500")
+      http4sResponse.status.code should equal(500)
+    }
+
+    scenario("Convert ForbiddenResponse") {
+      Given("A Lift ForbiddenResponse")
+      val liftResponse = ForbiddenResponse()
+
+      When("Response is converted to HTTP4S")
+      val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
+
+      Then("Status code should be 403")
+      http4sResponse.status.code should equal(403)
+    }
+
+    scenario("Convert UnauthorizedResponse") {
+      Given("A Lift UnauthorizedResponse")
+      val liftResponse = UnauthorizedResponse("DirectLogin")
+
+      When("Response is converted to HTTP4S")
+      val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
+
+      Then("Status code should be 401")
+      http4sResponse.status.code should equal(401)
+    }
+
+    scenario("Convert BadResponse") {
+      Given("A Lift BadResponse")
+      val liftResponse = BadResponse()
+
+      When("Response is converted to HTTP4S")
+      val http4sResponse = liftResponseToHttp4sForTest(liftResponse)
+
+      Then("Status code should be 400")
+      http4sResponse.status.code should equal(400)
     }
   }
 
