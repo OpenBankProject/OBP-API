@@ -28,17 +28,22 @@ package code.api.util
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import net.liftweb.json.JsonAST.JValue
+import com.fasterxml.jackson.core.{JsonGenerator, JsonFactory}
+import net.liftweb.json.JsonAST.{JObject, JArray, JBool, JNull, JNothing, JDouble, JInt, JString, JField, JValue}
 import net.liftweb.json._
 import net.liftweb.json.compactRender
 import code.util.Helper.MdcLoggable
 import scala.util.{Try, Success, Failure}
+import java.io.{OutputStream, InputStream, PipedInputStream, PipedOutputStream}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Utility object for YAML conversion operations
  * 
  * This utility provides methods to convert Lift's JValue objects to YAML format
- * using Jackson's YAML support.
+ * using Jackson's YAML support. It provides both simple string-based conversion
+ * and streaming conversion APIs to avoid building huge intermediate strings.
  */
 object YAMLUtils extends MdcLoggable {
 
@@ -46,21 +51,121 @@ object YAMLUtils extends MdcLoggable {
   private val yamlMapper = new ObjectMapper(new YAMLFactory())
 
   /**
-   * Converts a JValue to YAML string
+   * Convert a Lift JValue by writing it token-by-token to a Jackson JsonGenerator.
+   * This avoids creating a very large intermediate JSON string.
+   */
+  private def writeJValueToGenerator(gen: JsonGenerator, j: JValue): Unit = {
+    j match {
+      case JObject(fields) =>
+        gen.writeStartObject()
+        fields.foreach {
+          case JField(name, value) =>
+            gen.writeFieldName(name)
+            writeJValueToGenerator(gen, value)
+        }
+        gen.writeEndObject()
+      case JArray(items) =>
+        gen.writeStartArray()
+        items.foreach(item => writeJValueToGenerator(gen, item))
+        gen.writeEndArray()
+      case JString(s) =>
+        gen.writeString(s)
+      case JInt(num) =>
+        // Jackson supports BigInteger via writeNumber(String)
+        gen.writeNumber(num.toString)
+      case JDouble(d) =>
+        gen.writeNumber(d)
+      // JDecimal is not available in this Lift version; high-precision decimals will
+      // fall through to the fallback case (written via compactRender) or be represented
+      // as JDouble/JInt depending on creation site.
+      case JBool(b) =>
+        gen.writeBoolean(b)
+      case JNull | JNothing =>
+        gen.writeNull()
+      case other =>
+        // fallback: write compact rendering as string
+        gen.writeString(compactRender(other))
+    }
+  }
+
+  /**
+   * Stream a JValue as YAML into a supplied OutputStream.
+   * The caller is responsible for closing the OutputStream when appropriate.
+   *
+   * @param jValue the JValue to serialize
+   * @param out the OutputStream to write YAML bytes to
+   * @return Try[Unit] indicating success or failure
+   */
+  def jValueToYAMLStream(jValue: JValue, out: OutputStream): Try[Unit] = {
+    Try {
+      val gen = yamlMapper.getFactory.createGenerator(out)
+      try {
+        writeJValueToGenerator(gen, jValue)
+        gen.flush()
+      } finally {
+        // Do not close the provided OutputStream here; just close the generator
+        try { gen.close() } catch { case _: Throwable => }
+      }
+    }.recoverWith {
+      case ex: Exception =>
+        logger.error(s"Failed to stream JValue to YAML: ${ex.getMessage}", ex)
+        Failure(new RuntimeException(s"YAML streaming failed: ${ex.getMessage}", ex))
+    }
+  }
+
+  /**
+   * Provide an InputStream that streams YAML representation of the provided JValue.
+   * Writing is performed on a background thread into a PipedOutputStream connected to
+   * the returned PipedInputStream. Caller must close the InputStream when done.
+   *
+   * @param jValue the JValue to serialize
+   * @return Try[InputStream] that will yield the YAML bytes
+   */
+  def jValueToYAMLInputStream(jValue: JValue): Try[InputStream] = {
+    Try {
+      val in = new PipedInputStream(64 * 1024)
+      val out = new PipedOutputStream(in)
+      // Write in a background thread so the caller can read as we generate
+      val writerThread = new Thread(new Runnable {
+        override def run(): Unit = {
+          try {
+            jValueToYAMLStream(jValue, out) match {
+              case Success(_) => // done
+              case Failure(e) =>
+                // attempt to write an error message into the stream so the reader sees something useful
+                try {
+                  val msg = s"# Error generating YAML: ${e.getMessage}\n"
+                  out.write(msg.getBytes("UTF-8"))
+                } catch { case _: Throwable => }
+            }
+          } finally {
+            try { out.close() } catch { case _: Throwable => }
+          }
+        }
+      }, "yaml-stream-writer")
+      writerThread.setDaemon(true)
+      writerThread.start()
+      in
+    }.recoverWith {
+      case ex: Exception =>
+        logger.error(s"Failed to create YAML InputStream: ${ex.getMessage}", ex)
+        Failure(new RuntimeException(s"Failed to create YAML InputStream: ${ex.getMessage}", ex))
+    }
+  }
+
+  /**
+   * Converts a JValue to YAML string (keeps compatibility). This method uses the streaming
+   * generator internally but still accumulates into a String (for callers that need a String).
+   * Prefer streaming APIs for large documents.
    * 
    * @param jValue The Lift JValue to convert
    * @return Try containing the YAML string or error
    */
   def jValueToYAML(jValue: JValue): Try[String] = {
     Try {
-      // First convert JValue to JSON string
-      val jsonString = compactRender(jValue)
-      
-      // Parse JSON string to Jackson JsonNode
-      val jsonNode: JsonNode = jsonMapper.readTree(jsonString)
-      
-      // Convert JsonNode to YAML string
-      yamlMapper.writeValueAsString(jsonNode)
+      val baos = new java.io.ByteArrayOutputStream()
+      jValueToYAMLStream(jValue, baos).get
+      baos.toString("UTF-8")
     }.recoverWith {
       case ex: Exception =>
         logger.error(s"Failed to convert JValue to YAML: ${ex.getMessage}", ex)
