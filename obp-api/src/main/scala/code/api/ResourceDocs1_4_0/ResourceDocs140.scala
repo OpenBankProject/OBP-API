@@ -149,6 +149,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   object ResourceDocs600 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
     val version: ApiVersion = ApiVersion.v6_0_0 
     val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
+    override def includeTechnologyInResponse: Boolean = true
     val routes: Seq[OBPEndpoint] = List(
       ImplementationsResourceDocs.getResourceDocsObpV400,
       ImplementationsResourceDocs.getResourceDocsSwagger,
@@ -206,7 +207,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
                     case _ if (apiCollectionIdParam.isDefined) =>
                       val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                       val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                      val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale)
+                      val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
                       resourceDocsJson.resource_docs
                     case _ =>
                       contentParam match {

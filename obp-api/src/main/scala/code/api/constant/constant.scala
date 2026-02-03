@@ -654,6 +654,11 @@ object Constant extends MdcLoggable {
     CAN_GRANT_ACCESS_TO_VIEWS,
     CAN_REVOKE_ACCESS_TO_VIEWS,
   )
+
+
+  final val TECHNOLOGY_LIFTWEB = "liftweb"
+  final val TECHNOLOGY_HTTP4S = "http4s"
+
 }
 
 

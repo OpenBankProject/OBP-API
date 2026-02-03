@@ -1283,7 +1283,7 @@ object JSONFactory400 {
           ).mkString("")
           
           val otpViaApiPath = Constant.HostName + List(
-            "/obp/v4.0.0/banks/",
+            s"/obp/${ApiVersion.v4_0_0}/banks/",
             stringOrNull(tr.from.bank_id),
             "/accounts/",
             stringOrNull(tr.from.account_id),
@@ -2072,4 +2072,3 @@ object JSONFactory400 {
     }
   }
 }
-

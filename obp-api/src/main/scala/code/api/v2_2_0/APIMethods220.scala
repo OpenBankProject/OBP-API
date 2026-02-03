@@ -306,6 +306,8 @@ trait APIMethods220 {
         |
         |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)
         |
+        |**Public Access:** This endpoint can be made publicly accessible (no authentication required) by setting the property `apiOptions.getCurrentFxRateIsPublic=true` in the props file.
+        |
       """.stripMargin,
       EmptyBody,
       fXRateJSON,
