@@ -7,6 +7,7 @@ on: [push]
 env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
+  JAVA_TOOL_OPTIONS: -Xmx3G -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
 
 jobs:
   build:
