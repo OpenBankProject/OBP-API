@@ -1,18 +1,13 @@
 package code.api.util.http4s
 
 import cats.effect._
-import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.ErrorMessages._
 import code.api.util.CallContext
-import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
-import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
+import com.openbankproject.commons.model.{Bank, User}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json.{Extraction, compactRender}
-import net.liftweb.json.JsonDSL._
 import org.http4s._
 import org.http4s.dsl.io._
-import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 import org.typelevel.vault.Key
 
@@ -91,8 +86,8 @@ object Http4sRequestAttributes {
    * - Ok response creation
    */
   object EndpointHelpers {
-    import net.liftweb.json.{Extraction, Formats}
     import net.liftweb.json.JsonAST.prettyRender
+    import net.liftweb.json.{Extraction, Formats}
     
     /**
      * Execute Future-based business logic and return JSON response.
@@ -343,10 +338,14 @@ object ResourceDocMatcher {
     resourceDocs: ArrayBuffer[ResourceDoc]
   ): Option[ResourceDoc] = {
     val pathString = path.renderString
+    // Extract API version from path (e.g., "v5.0.0" from "/obp/v5.0.0/banks")
+    val apiVersion = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
     // Strip the API prefix (/obp/vX.X.X) from the path for matching
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
     resourceDocs.find { doc =>
-      doc.requestVerb.equalsIgnoreCase(verb) && matchesUrlTemplate(strippedPath, doc.requestUrl)
+      doc.requestVerb.equalsIgnoreCase(verb) && 
+      doc.implementedInApiVersion.toString == apiVersion &&
+      matchesUrlTemplate(strippedPath, doc.requestUrl)
     }
   }
   

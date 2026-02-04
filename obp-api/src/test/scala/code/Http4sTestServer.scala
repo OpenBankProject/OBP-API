@@ -6,9 +6,7 @@ import code.api.util.APIUtil
 import code.api.util.http4s.Http4sApp
 import com.comcast.ip4s._
 import net.liftweb.common.Logger
-import org.http4s._
 import org.http4s.ember.server._
-import org.http4s.implicits._
 
 import scala.concurrent.duration._
 
@@ -26,7 +24,9 @@ import scala.concurrent.duration._
  *   val http4sServer = Http4sTestServer
  *   val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
  */
-object Http4sTestServer extends Logger {
+object Http4sTestServer {
+
+  private val logger = Logger("code.Http4sTestServer")
 
   val host = "127.0.0.1"
   val port = APIUtil.getPropsAsIntValue("http4s.test.port", 8087)

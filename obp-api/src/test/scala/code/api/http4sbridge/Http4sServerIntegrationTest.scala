@@ -140,7 +140,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
   feature("HTTP4S v7.0.0 Native Endpoints") {
     
     scenario("GET /obp/v7.0.0/root returns API info", Http4sServerIntegrationTag) {
-      pending // TODO: Investigate route matching issue - returns 404
       When("We request the root endpoint")
       val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/root")
       
@@ -154,7 +153,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
     }
 
     scenario("GET /obp/v7.0.0/banks returns banks list", Http4sServerIntegrationTag) {
-      pending // TODO: Investigate route matching issue - returns 404
       When("We request banks list")
       val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/banks")
       
@@ -225,7 +223,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
     }
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID returns specific bank", Http4sServerIntegrationTag) {
-      pending // TODO: Investigate route matching issue - returns 404
       When("We request a specific bank")
       val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de")
       
@@ -238,7 +235,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
     }
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID/products returns products", Http4sServerIntegrationTag) {
-      pending // TODO: Investigate route matching issue - returns 404
       When("We request products for a bank")
       val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de/products")
       
@@ -251,7 +247,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
     }
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID/products/PRODUCT_CODE returns specific product", Http4sServerIntegrationTag) {
-      pending // TODO: Investigate route matching issue - returns 404
       When("We request a specific product")
       // First get a product code from the products list
       val (_, productsBody) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de/products")
