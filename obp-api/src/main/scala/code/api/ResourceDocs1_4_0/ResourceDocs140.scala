@@ -11,7 +11,7 @@ import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.openbankproject.commons.model.enums.ContentParam.{DYNAMIC, STATIC}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-import net.liftweb.http.{GetRequest, InMemoryResponse, PlainTextResponse, Req, S, StreamingResponse}
+import net.liftweb.http.{GetRequest, InMemoryResponse, PlainTextResponse, Req, S}
 
 
 object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
@@ -198,15 +198,10 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
               )
               val cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
               
-              if (cacheValueFromRedis.isDefined) {
-                // If we already have a cached YAML string, serve it as before.
-                val yamlString = cacheValueFromRedis.get
-                val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType, (ResponseHeader.`Correlation-Id` -> getCorrelationId()))
-                val bytes = yamlString.getBytes("UTF-8")
-                InMemoryResponse(bytes, headers, Nil, 200)
+              val yamlString = if (cacheValueFromRedis.isDefined) {
+                cacheValueFromRedis.get
               } else {
-                // Generate OpenAPI JSON JValue (this may be large) but stream YAML generation to avoid
-                // building a huge YAML string in memory.
+                // Generate OpenAPI JSON and convert to YAML
                 val openApiJValue = try {
                   val resourceDocsJsonFiltered = locale match {
                     case _ if (apiCollectionIdParam.isDefined) =>
@@ -236,30 +231,14 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
                     throw e
                 }
                 
-                // Attempt to obtain an InputStream that streams YAML
-                YAMLUtils.jValueToYAMLInputStream(openApiJValue) match {
-                  case scala.util.Success(in) =>
-                    val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType, (ResponseHeader.`Correlation-Id` -> getCorrelationId()))
-                    // StreamingResponse takes a function that returns an InputStream when called by Lift
-                    // StreamingResponse constructor expects: data, onEnd, size, headers, cookies, code
-                    // Provide the InputStream directly as `data`, an onEnd that closes the stream,
-                    // -1L for unknown size, the headers, empty cookies list, and HTTP 200 code.
-                    StreamingResponse(in, () => { try { in.close() } catch { case _: Throwable => () } }, -1L, headers, Nil, 200)
-                  case scala.util.Failure(e) =>
-                    logger.error(s"Error streaming OpenAPI YAML: ${e.getMessage}", e)
-                    // Fallback: try a safe conversion to a string (may be memory heavy) and return that, or an error.
-                    // We attempt a safe string conversion as a last resort.
-                    val yamlResult = YAMLUtils.jValueToYAMLSafe(openApiJValue, s"# Error converting OpenAPI to YAML: ${openApiJValue.toString}")
-                    if (yamlResult.nonEmpty) {
-                      Caching.setStaticSwaggerDocCache(cacheKey, yamlResult)
-                      val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType, (ResponseHeader.`Correlation-Id` -> getCorrelationId()))
-                      val bytes = yamlResult.getBytes("UTF-8")
-                      InMemoryResponse(bytes, headers, Nil, 200)
-                    } else {
-                      PlainTextResponse(s"Error generating OpenAPI YAML: ${e.getMessage}", 500)
-                    }
-                }
+                val yamlResult = YAMLUtils.jValueToYAMLSafe(openApiJValue, s"# Error converting OpenAPI to YAML: ${openApiJValue.toString}")
+                Caching.setStaticSwaggerDocCache(cacheKey, yamlResult)
+                yamlResult
               }
+              
+              val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType, (ResponseHeader.`Correlation-Id` -> getCorrelationId()))
+              val bytes = yamlString.getBytes("UTF-8")
+              InMemoryResponse(bytes, headers, Nil, 200)
             }
           } catch {
             case _: Exception =>
