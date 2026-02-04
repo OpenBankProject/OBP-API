@@ -5,6 +5,7 @@ import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil
 import code.api.util.http4s.Http4sApp
 import com.comcast.ip4s._
+import net.liftweb.common.Logger
 import org.http4s._
 import org.http4s.ember.server._
 import org.http4s.implicits._
@@ -25,7 +26,7 @@ import scala.concurrent.duration._
  *   val http4sServer = Http4sTestServer
  *   val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
  */
-object Http4sTestServer {
+object Http4sTestServer extends Logger {
 
   val host = "127.0.0.1"
   val port = APIUtil.getPropsAsIntValue("http4s.test.port", 8087)
@@ -43,7 +44,7 @@ object Http4sTestServer {
    */
   private def startServer(): Unit = synchronized {
     if (!isStarted) {
-      println(s"[HTTP4S TEST SERVER] Starting on $host:$port")
+      logger.info(s"[HTTP4S TEST SERVER] Starting on $host:$port")
       
       // Ensure Lift is initialized first (done by TestServer)
       // This is critical - Lift must be fully initialized before HTTP4S bridge can work
@@ -70,7 +71,7 @@ object Http4sTestServer {
       Thread.sleep(2000)
       
       isStarted = true
-      println(s"[HTTP4S TEST SERVER] Started successfully on $host:$port")
+      logger.info(s"[HTTP4S TEST SERVER] Started successfully on $host:$port")
     }
   }
 
@@ -80,11 +81,11 @@ object Http4sTestServer {
    */
   def stopServer(): Unit = synchronized {
     if (isStarted) {
-      println("[HTTP4S TEST SERVER] Stopping...")
+      logger.info("[HTTP4S TEST SERVER] Stopping...")
       serverFiber.foreach(_.cancel.unsafeRunSync())
       serverFiber = None
       isStarted = false
-      println("[HTTP4S TEST SERVER] Stopped")
+      logger.info("[HTTP4S TEST SERVER] Stopped")
     }
   }
 
