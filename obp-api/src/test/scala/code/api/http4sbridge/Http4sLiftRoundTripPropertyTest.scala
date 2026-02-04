@@ -1,9 +1,10 @@
-package code.api.v5_0_0
+package code.api.http4sbridge
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.ResponseHeader
 import code.api.berlin.group.ConstantsBG
+import code.api.v5_0_0.V500ServerSetup
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.http4s.Http4sLiftWebBridge
