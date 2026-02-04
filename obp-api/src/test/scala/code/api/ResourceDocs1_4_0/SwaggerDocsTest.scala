@@ -311,8 +311,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
         "resource_docs_requires_role" -> "false",
       )
       val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET
-      val params = ("tags", "Consumer") :: Nil
-      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI, params)
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
       responseGetOpenAPI.code should equal(200)
     }
 
