@@ -1,15 +1,11 @@
 package bootstrap.http4s
 
-import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.util.APIUtil
-import code.api.util.http4s.Http4sLiftWebBridge
+import code.api.util.http4s.Http4sApp
 import com.comcast.ip4s._
-import org.http4s._
 import org.http4s.ember.server._
-import org.http4s.implicits._
 
-import scala.language.higherKinds
 object Http4sServer extends IOApp {
 
   //Start OBP relevant objects and settings; this step MUST be executed first
@@ -19,17 +15,8 @@ object Http4sServer extends IOApp {
   val port = APIUtil.getPropsAsIntValue("http4s.port",8086)
   val host = APIUtil.getPropsValue("http4s.host","127.0.0.1")
   
-  type HttpF[A] = OptionT[IO, A]
-
-  private val baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req)
-      .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))
-      .orElse(Http4sLiftWebBridge.routes.run(req))
-  }
-
-  val services: HttpRoutes[IO] = Http4sLiftWebBridge.withStandardHeaders(baseServices)
-
-  val httpApp: Kleisli[IO, Request[IO], Response[IO]] = (services).orNotFound
+  // Use shared httpApp configuration (same as tests)
+  val httpApp = Http4sApp.httpApp
   
   override def run(args: List[String]): IO[ExitCode] = EmberServerBuilder
     .default[IO]

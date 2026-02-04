@@ -3,7 +3,7 @@ package code
 import cats.effect._
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil
-import code.api.util.http4s.Http4sLiftWebBridge
+import code.api.util.http4s.Http4sApp
 import com.comcast.ip4s._
 import org.http4s._
 import org.http4s.ember.server._
@@ -16,6 +16,10 @@ import scala.concurrent.duration._
  * 
  * Follows the same pattern as TestServer (Jetty/Lift) but for HTTP4S.
  * Started once when first accessed, shared across all test classes.
+ * 
+ * IMPORTANT: This reuses Http4sApp.httpApp (same as production) to ensure
+ * tests run against the exact same server configuration as production.
+ * This eliminates code duplication and ensures we test the real server.
  * 
  * Usage in tests:
  *   val http4sServer = Http4sTestServer
@@ -34,22 +38,6 @@ object Http4sTestServer {
   private var isStarted: Boolean = false
 
   /**
-   * Build HTTP4S routes (same as Http4sServer.scala)
-   */
-  private def buildHttpApp: HttpApp[IO] = {
-    type HttpF[A] = cats.data.OptionT[IO, A]
-    
-    val baseServices: HttpRoutes[IO] = cats.data.Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-      code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req)
-        .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))
-        .orElse(Http4sLiftWebBridge.routes.run(req))
-    }
-    
-    val services: HttpRoutes[IO] = Http4sLiftWebBridge.withStandardHeaders(baseServices)
-    services.orNotFound
-  }
-
-  /**
    * Start the HTTP4S server in background
    * Called automatically on first access
    */
@@ -61,11 +49,12 @@ object Http4sTestServer {
       // This is critical - Lift must be fully initialized before HTTP4S bridge can work
       val _ = TestServer.server
       
+      // Use the shared Http4sApp.httpApp to ensure we test the exact same configuration as production
       val serverResource = EmberServerBuilder
         .default[IO]
         .withHost(Host.fromString(host).getOrElse(ipv4"127.0.0.1"))
         .withPort(Port.fromInt(port).getOrElse(port"8087"))
-        .withHttpApp(buildHttpApp)
+        .withHttpApp(Http4sApp.httpApp)  // Reuse production httpApp - single source of truth!
         .withShutdownTimeout(1.second)
         .build
       
