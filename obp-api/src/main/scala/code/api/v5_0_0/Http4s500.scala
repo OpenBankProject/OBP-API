@@ -20,6 +20,7 @@ import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import org.http4s._
 import org.http4s.dsl.io._
+import org.typelevel.ci.CIString
 import scala.collection.mutable.ArrayBuffer
 import scala.language.{higherKinds, implicitConversions}
 
@@ -229,4 +230,30 @@ object Http4s500 {
   }
 
   val wrappedRoutesV500Services: HttpRoutes[IO] = Implementations5_0_0.allRoutesWithMiddleware
+  
+  // Wrap routes with JSON not-found handler for better error responses
+  val wrappedRoutesV500ServicesWithJsonNotFound: HttpRoutes[IO] = {
+    import code.api.util.APIUtil
+    import code.api.util.ErrorMessages
+    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      wrappedRoutesV500Services(req).orElse {
+        OptionT.liftF(IO.pure {
+          val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
+          Response[IO](status = Status.NotFound)
+            .withEntity(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).toResponse.data)
+            .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
+        })
+      }
+    }
+  }
+  
+  // Combined routes with bridge fallback for testing proxy parity
+  // This mimics the production server behavior where unimplemented endpoints fall back to Lift
+  val wrappedRoutesV500ServicesWithBridge: HttpRoutes[IO] = {
+    import code.api.util.http4s.Http4sLiftWebBridge
+    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      wrappedRoutesV500Services(req)
+        .orElse(Http4sLiftWebBridge.routes.run(req))
+    }
+  }
 }

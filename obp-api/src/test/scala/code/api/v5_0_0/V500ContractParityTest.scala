@@ -21,7 +21,7 @@ class V500ContractParityTest extends V500ServerSetup {
       method = Method.GET,
       uri = Uri.unsafeFromString(path)
     )
-    val response = Http4s500.wrappedRoutesV500Services.orNotFound.run(request).unsafeRunSync()
+    val response = Http4s500.wrappedRoutesV500ServicesWithJsonNotFound.orNotFound.run(request).unsafeRunSync()
     val body = response.as[String].unsafeRunSync()
     val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
     (response.status, json)
@@ -176,7 +176,7 @@ class V500ContractParityTest extends V500ServerSetup {
         r.putHeaders(Header.Raw(CIString(k), v))
       }
 
-      val response = Http4s500.wrappedRoutesV500Services.orNotFound.run(request).unsafeRunSync()
+      val response = Http4s500.wrappedRoutesV500ServicesWithBridge.orNotFound.run(request).unsafeRunSync()
       val http4sStatus = response.status
       val correlationHeader = response.headers.get(CIString("Correlation-Id"))
       val body = response.as[String].unsafeRunSync()

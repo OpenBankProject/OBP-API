@@ -182,11 +182,11 @@ class Http4sRequestConversionPropertyTest extends FeatureSpec
         val path = randomPath()
         
         // Build URI with query parameters
+        // Note: withQueryParam replaces values, so we need to add all values at once
         var uri = Uri.unsafeFromString(s"http://localhost:8086$path")
         queryParams.foreach { case (key, values) =>
-          values.foreach { value =>
-            uri = uri.withQueryParam(key, value)
-          }
+          // Add all values for this key at once to create multi-value parameter
+          uri = uri.withQueryParam(key, values)
         }
         
         When("Request is converted to Lift Req")
@@ -548,11 +548,11 @@ class Http4sRequestConversionPropertyTest extends FeatureSpec
         val body = randomBody()
         
         // Build URI with query parameters
+        // Note: withQueryParam replaces values, so we need to add all values at once
         var uri = Uri.unsafeFromString(s"http://localhost:8086$path")
         queryParams.foreach { case (key, values) =>
-          values.foreach { value =>
-            uri = uri.withQueryParam(key, value)
-          }
+          // Add all values for this key at once to create multi-value parameter
+          uri = uri.withQueryParam(key, values)
         }
         
         When("Request is converted to Lift Req")

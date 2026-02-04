@@ -92,8 +92,9 @@ object Http4sLiftWebBridge extends MdcLoggable {
               logger.debug(s"Http4sLiftBridge handler returned Failure: $msg")
               APIUtil.errorJsonResponse(msg)
             case Empty =>
-              logger.debug(s"Http4sLiftBridge handler returned Empty")
-              NotFoundResponse()
+              logger.debug(s"Http4sLiftBridge handler returned Empty - returning JSON 404")
+              val contentType = req.request.headers("Content-Type").headOption.getOrElse("")
+              APIUtil.errorJsonResponse(s"${code.api.util.ErrorMessages.InvalidUri}Current Url is (${req.request.uri}), Current Content-Type Header is ($contentType)", 404)
           }
         } catch {
           case JsonResponseException(jsonResponse) => jsonResponse
@@ -101,8 +102,9 @@ object Http4sLiftWebBridge extends MdcLoggable {
             resolveContinuation(e)
         }
       case None => 
-        logger.debug(s"Http4sLiftBridge no handler found for: ${req.request.method} ${req.request.uri}")
-        NotFoundResponse()
+        logger.debug(s"Http4sLiftBridge no handler found - returning JSON 404 for: ${req.request.method} ${req.request.uri}")
+        val contentType = req.request.headers("Content-Type").headOption.getOrElse("")
+        APIUtil.errorJsonResponse(s"${code.api.util.ErrorMessages.InvalidUri}Current Url is (${req.request.uri}), Current Content-Type Header is ($contentType)", 404)
     }
   }
 
@@ -304,11 +306,19 @@ object Http4sLiftWebBridge extends MdcLoggable {
     def headers: List[HTTPParam] = headerParams
     def contextPath: String = ""
     def context: HTTPContext = Http4sLiftContext
-    def contentType: net.liftweb.common.Box[String] = req.contentType.map(_.mediaType.toString)
+    def contentType: net.liftweb.common.Box[String] = {
+      req.contentType.map(_.mediaType.toString) match {
+        case Some(ct) => Full(ct)
+        case None => headerParams.find(_.name.equalsIgnoreCase("Content-Type")).flatMap(_.values.headOption) match {
+          case Some(ct) => Full(ct)
+          case None => Empty
+        }
+      }
+    }
     def uri: String = uriPath
     def url: String = req.uri.renderString
     def queryString: net.liftweb.common.Box[String] = if (uriQuery.nonEmpty) Full(uriQuery) else Empty
-    def param(name: String): List[String] = req.uri.query.multiParams.getOrElse(name, Nil).toList
+    def param(name: String): List[String] = queryParams.find(_.name == name).map(_.values).getOrElse(Nil)
     def params: List[HTTPParam] = queryParams
     def paramNames: List[String] = queryParams.map(_.name).distinct
     def session: HTTPSession = sessionValue
