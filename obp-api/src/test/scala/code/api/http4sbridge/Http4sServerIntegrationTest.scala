@@ -1,7 +1,7 @@
 package code.api.http4sbridge
 
 import code.Http4sTestServer
-import code.setup.{DefaultUsers, ServerSetup}
+import code.setup.{DefaultUsers, ServerSetup, ServerSetupWithTestData}
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
@@ -25,7 +25,7 @@ import scala.concurrent.duration._
  * 
  * The server starts automatically when first accessed and stops on JVM shutdown.
  */
-class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
+class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with ServerSetupWithTestData{
 
   object Http4sServerIntegrationTag extends Tag("Http4sServerIntegration")
 
@@ -175,7 +175,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
 
     scenario("GET /obp/v7.0.0/banks/BANK_ID/cards requires authentication", Http4sServerIntegrationTag) {
       When("We request cards for a specific bank without authentication")
-      val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/banks/gh.29.de/cards")
+      val (status, body) = makeHttp4sGetRequest(s"/obp/v7.0.0/banks/testBank0/cards")
       
       Then("We should get a 401 response")
       status should equal(401)
@@ -224,19 +224,19 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID returns specific bank", Http4sServerIntegrationTag) {
       When("We request a specific bank")
-      val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de")
+      val (status, body) = makeHttp4sGetRequest(s"/obp/v5.0.0/banks/testBank0")
       
       Then("We should get a 200 response")
       status should equal(200)
       
       And("Response should contain bank info")
       val json = parse(body)
-      (json \ "id").extract[String] should equal("gh.29.de")
+      (json \ "id").extract[String] should equal(s"testBank0")
     }
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID/products returns products", Http4sServerIntegrationTag) {
       When("We request products for a bank")
-      val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de/products")
+      val (status, body) = makeHttp4sGetRequest(s"/obp/v5.0.0/banks/testBank0/products")
       
       Then("We should get a 200 response")
       status should equal(200)
@@ -249,13 +249,13 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers {
     scenario("GET /obp/v5.0.0/banks/BANK_ID/products/PRODUCT_CODE returns specific product", Http4sServerIntegrationTag) {
       When("We request a specific product")
       // First get a product code from the products list
-      val (_, productsBody) = makeHttp4sGetRequest("/obp/v5.0.0/banks/gh.29.de/products")
+      val (_, productsBody) = makeHttp4sGetRequest(s"/obp/v5.0.0/banks/testBank0/products")
       val productsJson = parse(productsBody)
       val products = (productsJson \ "products").children
       
       if (products.nonEmpty) {
         val productCode = (products.head \ "code").extract[String]
-        val (status, body) = makeHttp4sGetRequest(s"/obp/v5.0.0/banks/gh.29.de/products/$productCode")
+        val (status, body) = makeHttp4sGetRequest(s"/obp/v5.0.0/banks/testBank0/products/$productCode")
         
         Then("We should get a 200 response")
         status should equal(200)
