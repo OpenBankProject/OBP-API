@@ -579,20 +579,29 @@ generate_summary() {
         echo "" >> "${FAILED_TESTS_FILE}"
 
         # Extract test class names from failures
-        grep -B 20 "\*\*\* FAILED \*\*\*" "${detail_log}" | \
-          grep -E "^[A-Z][a-zA-Z0-9_]+:" | sed 's/:$//' | \
-          sort -u | \
-          while read test_class; do
-            # Try to find package by searching for the class in test files
-            package=$(find obp-api/src/test/scala -name "${test_class}.scala" | \
-                      sed 's|obp-api/src/test/scala/||' | \
-                      sed 's|/|.|g' | \
-                      sed 's|.scala$||' | \
-                      head -1)
-            if [ -n "$package" ]; then
-              echo "$package" >> "${FAILED_TESTS_FILE}"
-            fi
-          done
+        # For each failure, find the most recent test class name before it
+        grep -n "\*\*\* FAILED \*\*\*" "${detail_log}" | cut -d: -f1 | while read failure_line; do
+          # Find the most recent line with pattern "TestClassName:" before this failure
+          test_class=$(grep -n "^[A-Z][a-zA-Z0-9_]*Test:" "${detail_log}" | \
+                       awk -F: -v target="$failure_line" '$1 < target' | \
+                       tail -1 | \
+                       cut -d: -f2 | \
+                       sed 's/:$//')
+          
+          if [ -n "$test_class" ]; then
+            echo "$test_class"
+          fi
+        done | sort -u | while read test_class; do
+          # Try to find package by searching for the class in test files
+          package=$(find obp-api/src/test/scala -name "${test_class}.scala" | \
+                    sed 's|obp-api/src/test/scala/||' | \
+                    sed 's|/|.|g' | \
+                    sed 's|.scala$||' | \
+                    head -1)
+          if [ -n "$package" ]; then
+            echo "$package" >> "${FAILED_TESTS_FILE}"
+          fi
+        done
 
         log_message "Failed test classes saved to: ${FAILED_TESTS_FILE}"
         log_message ""
