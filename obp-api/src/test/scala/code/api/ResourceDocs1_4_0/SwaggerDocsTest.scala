@@ -310,7 +310,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       setPropsValues(
         "resource_docs_requires_role" -> "false",
       )
-      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", "Consumer"))
       val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
       responseGetOpenAPI.code should equal(200)
     }
@@ -319,7 +319,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
-      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", "Consumer"))
       val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
       responseGetOpenAPI.code should equal(401)
       responseGetOpenAPI.body.toString should include(AuthenticatedUserIsRequired)
@@ -329,7 +329,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       setPropsValues(
         "resource_docs_requires_role" -> "false",
       )
-      val requestGetOpenAPIYAML = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi.yaml").GET
+      val requestGetOpenAPIYAML = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi.yaml").GET <<? List(("tags", "Consumer"))
       val responseGetOpenAPIYAML = makeGetRequest(requestGetOpenAPIYAML)
       responseGetOpenAPIYAML.code should equal(200)
       // body should be non-empty YAML
