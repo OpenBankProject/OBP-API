@@ -1854,7 +1854,7 @@ trait APIMethods310 {
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
-      s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (WIP)
+      s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
          |
          |${userAuthenticationMessage(true)}
          |

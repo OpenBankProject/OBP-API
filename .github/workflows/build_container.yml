@@ -2,16 +2,9 @@ name: Build and publish container develop
 
 # read-write repo token
 # access to secrets
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - "*"
-      - "**"
-#      - develop
+on: [push]
 
 env:
-  ## Sets environment variable
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
 
@@ -19,12 +12,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      # Label used to access the service container
       redis:
-        # Docker Hub image
         image: redis
         ports:
-          # Opens tcp port 6379 on the host and service container
           - 6379:6379
         # Set health checks to wait until redis has started
         options: >-
@@ -127,15 +117,13 @@ jobs:
           path: push/
 
       - name: Build the Docker image
-        if: github.repository == 'OpenBankProject/OBP-API'
+        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: |
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
           if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
             docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
-            # docker build . --file .github/Dockerfile_PreBuild_OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}-OC
           else
             docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
-            # docker build . --file .github/Dockerfile_PreBuild_OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA-OC --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}-OC
           fi
           docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }} --all-tags
           echo docker done
@@ -143,23 +131,19 @@ jobs:
       - uses: sigstore/cosign-installer@4d14d7f17e7112af04ea6108fbb4bfc714c00390
 
       - name: Write signing key to disk (only needed for `cosign sign --key`)
-        if: github.repository == 'OpenBankProject/OBP-API'
+        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
 
       - name: Sign container image
-        if: github.repository == 'OpenBankProject/OBP-API'
+        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: |
           cosign sign -y --key cosign.key \
             docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
           cosign sign -y --key cosign.key \
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA
-          # cosign sign -y --key cosign.key \
-          #             docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}-OC
           if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
             cosign sign -y --key cosign.key \
                         docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest
-          #   cosign sign -y --key cosign.key \
-          #              docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC
           fi
         env:
           COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"

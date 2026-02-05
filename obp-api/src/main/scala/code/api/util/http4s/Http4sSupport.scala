@@ -101,9 +101,14 @@ object Http4sRequestAttributes {
     def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       for {
-        result <- IO.fromFuture(IO(f(cc)))
-        jsonString = prettyRender(Extraction.decompose(result))
-        response <- Ok(jsonString)
+        attempted <- IO.fromFuture(IO(f(cc))).attempt
+        response <- attempted match {
+          case Right(result) =>
+            val jsonString = prettyRender(Extraction.decompose(result))
+            Ok(jsonString)
+          case Left(error) =>
+            ErrorResponseConverter.toHttp4sResponse(error, cc)
+        }
       } yield response
     }
     

@@ -9,7 +9,7 @@ import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.ApiRole.canGetCardsForBank
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{Http4sRequestAttributes, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{RequestOps, EndpointHelpers}
 import code.api.util.{ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_3_0.JSONFactory1_3_0
@@ -26,6 +26,7 @@ import org.http4s.dsl.io._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
+import code.util.Helper
 
 object Http4s700 {
 
@@ -201,25 +202,39 @@ object Http4s700 {
 
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
+        implicit val cc: CallContext = req.callContext
+        val queryParams = req.uri.query.multiParams
+        val tags = queryParams
+          .get("tags")
+          .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
+        val functions = queryParams
+          .get("functions")
+          .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
+        val localeParam = queryParams
+          .get("locale")
+          .flatMap(_.headOption)
+          .orElse(queryParams.get("language").flatMap(_.headOption))
+          .map(_.trim)
+          .filter(_.nonEmpty)
+
         EndpointHelpers.executeAndRespond(req) { _ =>
-          val queryParams = req.uri.query.multiParams
-          val tags = queryParams
-            .get("tags")
-            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
-          val functions = queryParams
-            .get("functions")
-            .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
-          val localeParam = queryParams
-            .get("locale")
-            .flatMap(_.headOption)
-            .orElse(queryParams.get("language").flatMap(_.headOption))
-            .map(_.trim)
-            .filter(_.nonEmpty)
           for {
-            requestedApiVersion <- Future(ApiVersionUtils.valueOf(requestedApiVersionString))
-            resourceDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
-            filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, tags, functions)
-          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam)
+            requestedApiVersion <- NewStyle.function.tryons(
+              failMsg = s"$InvalidApiVersionString Current value: $requestedApiVersionString",
+              failCode = 400,
+              callContext = Some(cc)
+            ) {
+              ApiVersionUtils.valueOf(requestedApiVersionString)
+            }
+            _ <- Helper.booleanToFuture(
+              failMsg = s"$InvalidApiVersionString This server supports only ${ApiVersion.v7_0_0}. Current value: $requestedApiVersionString",
+              failCode = 400,
+              cc = Some(cc)
+            ) {
+              requestedApiVersion == ApiVersion.v7_0_0
+            }
+            http4sOnlyDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs.toList, tags, functions)
+          } yield JSONFactory1_4_0.createResourceDocsJson(http4sOnlyDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
     }
 

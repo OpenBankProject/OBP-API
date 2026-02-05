@@ -106,28 +106,79 @@ trait DefaultUsers {
   // Create resource user, need provider 
   val defaultProvider = Constant.HostName
   
+  private def getOrCreateResourceUser(
+    provider: String,
+    providerId: String,
+    createdByConsentId: Option[String],
+    name: String,
+    email: String,
+    userId: Option[String],
+    company: String
+  ): ResourceUser = {
+    UserX.findByProviderId(provider = provider, idGivenByProvider = providerId)
+      .map(_.asInstanceOf[ResourceUser])
+      .getOrElse {
+        try {
+          UserX
+            .createResourceUser(
+              provider = provider,
+              providerId = Some(providerId),
+              createdByConsentId = createdByConsentId,
+              name = Some(name),
+              email = Some(email),
+              userId = userId,
+              company = Some(company)
+            )
+            .openOrThrowException(attemptedToOpenAnEmptyBox)
+        } catch {
+          case e: Throwable =>
+            UserX.findByProviderId(provider = provider, idGivenByProvider = providerId)
+              .map(_.asInstanceOf[ResourceUser])
+              .getOrElse(throw e)
+        }
+      }
+  }
+
   // create some resource user for test purposes
-  lazy val resourceUser1 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser1Name).map(_.asInstanceOf[ResourceUser])
-    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser1Name), createdByConsentId= None, name= Some(resourceUser1Name),
-      email= Some("resourceUser1@123.com"), userId= userId1, company = Some("Tesobe GmbH"))
-      .openOrThrowException(attemptedToOpenAnEmptyBox)
-    )
+  lazy val resourceUser1 = getOrCreateResourceUser(
+    provider = defaultProvider,
+    providerId = resourceUser1Name,
+    createdByConsentId = None,
+    name = resourceUser1Name,
+    email = "resourceUser1@123.com",
+    userId = userId1,
+    company = "Tesobe GmbH"
+  )
   
-  lazy val resourceUser2 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser2Name).map(_.asInstanceOf[ResourceUser])
-    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser2Name), createdByConsentId= None, 
-      name= Some(resourceUser2Name),email= Some("resourceUser2@123.com"), userId= userId2, company = Some("Tesobe GmbH"))
-      .openOrThrowException(attemptedToOpenAnEmptyBox)
-    )
+  lazy val resourceUser2 = getOrCreateResourceUser(
+    provider = defaultProvider,
+    providerId = resourceUser2Name,
+    createdByConsentId = None,
+    name = resourceUser2Name,
+    email = "resourceUser2@123.com",
+    userId = userId2,
+    company = "Tesobe GmbH"
+  )
   
-  lazy val resourceUser3 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser3Name).map(_.asInstanceOf[ResourceUser])
-    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser3Name), createdByConsentId= None, 
-      name= Some(resourceUser3Name),email= Some("resourceUser3@123.com"), userId= userId3, company = Some("Tesobe GmbH"))
-      .openOrThrowException(attemptedToOpenAnEmptyBox))
+  lazy val resourceUser3 = getOrCreateResourceUser(
+    provider = defaultProvider,
+    providerId = resourceUser3Name,
+    createdByConsentId = None,
+    name = resourceUser3Name,
+    email = "resourceUser3@123.com",
+    userId = userId3,
+    company = "Tesobe GmbH"
+  )
   
-  lazy val resourceUser4 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser4Name).map(_.asInstanceOf[ResourceUser])
-    .getOrElse(UserX.createResourceUser(provider = GatewayLogin.gateway, providerId = Some(resourceUser4Name), createdByConsentId= Some("simonr"), name= Some(resourceUser4Name), 
-      email= Some("resourceUser4@123.com"), userId=userId4, company = Some("Tesobe GmbH"))
-      .openOrThrowException(attemptedToOpenAnEmptyBox))
+  lazy val resourceUser4 = getOrCreateResourceUser(
+    provider = GatewayLogin.gateway,
+    providerId = resourceUser4Name,
+    createdByConsentId = Some("simonr"),
+    name = resourceUser4Name,
+    email = "resourceUser4@123.com",
+    userId = userId4,
+    company = "Tesobe GmbH"
+  )
 
   // create the tokens in database, we only need token-key and token-secretAllCases
   lazy val testToken1 = Tokens.tokens.vend.createToken(

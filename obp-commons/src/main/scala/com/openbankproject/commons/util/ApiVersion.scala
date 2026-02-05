@@ -143,11 +143,12 @@ object ApiVersion {
   val berlinGroupV13 = ScannedApiVersion("berlin-group", "BG", "v1.3")
   val mxofV100 = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
   val cnbv9 = ScannedApiVersion("CNBV9", "CNBV9", "v1.0.0")
+  val bahrainObfV100 = ScannedApiVersion("BAHRAIN-OBF", "BAHRAIN-OBF", "v1.0.0")
+  val auOpenBankingV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
   val ukOpenBankingV20 = ScannedApiVersion("open-banking", "UK", "v2.0")
   val ukOpenBankingV31 = ScannedApiVersion("open-banking", "UK", "v3.1")
   val stetV14 = ScannedApiVersion("stet", "STET", "v1.4")
   val cdsAuV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
-  val bahrainObfV100 = ScannedApiVersion("BAHRAIN-OBF", "BAHRAIN-OBF", "v1.0.0")
   val polishApiV2111 = ScannedApiVersion("polish-api", "PAPI", "v2.1.1.1")
 
   /**

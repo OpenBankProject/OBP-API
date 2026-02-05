@@ -200,6 +200,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetAnyUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyUser = CanGetAnyUser()
 
+  case class CanVerifyUserCredentials(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canVerifyUserCredentials = CanVerifyUserCredentials()
+
   case class CanCreateAnyTransactionRequest(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAnyTransactionRequest = CanCreateAnyTransactionRequest()
 
@@ -278,6 +281,12 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetCurrentConsumer(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCurrentConsumer = CanGetCurrentConsumer()
+
+  case class CanVerifyOidcClient(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canVerifyOidcClient = CanVerifyOidcClient()
+
+  case class CanGetOidcClient(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetOidcClient = CanGetOidcClient()
 
   case class CanCreateTransactionType(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateTransactionType = CanCreateTransactionType()
@@ -368,7 +377,10 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetAllApiCollections(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllApiCollections = CanGetAllApiCollections()
-  
+
+  case class CanManageFeaturedApiCollections(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canManageFeaturedApiCollections = CanManageFeaturedApiCollections()
+
   case class CanGetCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCounterpartyAtAnyBank = CanGetCounterpartyAtAnyBank()
   
@@ -408,6 +420,9 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetDatabasePoolInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDatabasePoolInfo = CanGetDatabasePoolInfo()
+
+  case class CanGetConnectorHealth(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConnectorHealth = CanGetConnectorHealth()
 
 
   case class CanGetCacheNamespaces(requiresBankId: Boolean = false) extends ApiRole

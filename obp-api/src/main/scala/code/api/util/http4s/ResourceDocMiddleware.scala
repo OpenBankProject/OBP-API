@@ -10,6 +10,7 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.ApiShortVersions
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import org.http4s._
@@ -87,7 +88,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
         case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
-        case _ => "v7.0.0"
+        case _ => ApiShortVersions.`v7.0.0`.toString
       }
       // Build initial CallContext from request
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
