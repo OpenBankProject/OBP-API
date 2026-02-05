@@ -2,22 +2,22 @@ package code.api.util.http4s
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.{APIFailure, JsonResponseException, ResponseHeader}
 import code.api.util.APIUtil
+import code.api.{APIFailure, JsonResponseException, ResponseHeader}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.actor.LAFuture
-import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
+import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.provider.{HTTPContext, HTTPParam, HTTPProvider, HTTPRequest, HTTPSession, HTTPCookie, RetryState}
+import net.liftweb.http.provider._
 import org.http4s._
 import org.typelevel.ci.CIString
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream}
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
-import java.util.{Locale, UUID}
 import java.util.concurrent.ConcurrentHashMap
+import java.util.{Locale, UUID}
 import scala.collection.JavaConverters._
 
 object Http4sLiftWebBridge extends MdcLoggable {
@@ -68,6 +68,8 @@ object Http4sLiftWebBridge extends MdcLoggable {
   private def runLiftDispatch(req: Req): LiftResponse = {
     val handlers = LiftRules.statelessDispatch.toList ++ LiftRules.dispatch.toList
     logger.debug(s"[BRIDGE] runLiftDispatch: ${req.request.method} ${req.request.uri}, handlers count: ${handlers.size}")
+    logger.debug(s"[BRIDGE] Request contentType: ${req.request.contentType}")
+    logger.debug(s"[BRIDGE] Request body available: ${req.body.isDefined}, json available: ${req.json.isDefined}")
     logger.debug(s"[BRIDGE] Checking if any handler is defined for this request...")
     handlers.zipWithIndex.foreach { case (pf, idx) =>
       val isDefined = pf.isDefinedAt(req)
@@ -307,12 +309,20 @@ object Http4sLiftWebBridge extends MdcLoggable {
     def contextPath: String = ""
     def context: HTTPContext = Http4sLiftContext
     def contentType: net.liftweb.common.Box[String] = {
-      req.contentType.map(_.mediaType.toString) match {
-        case Some(ct) => Full(ct)
-        case None => headerParams.find(_.name.equalsIgnoreCase("Content-Type")).flatMap(_.values.headOption) match {
-          case Some(ct) => Full(ct)
-          case None => Empty
-        }
+      // First try to get from http4s contentType
+      req.contentType match {
+        case Some(ct) => 
+          // Content-Type header contains mediaType and optional charset
+          // Convert to string format that Lift expects (e.g., "application/json")
+          val mediaTypeStr = ct.mediaType.mainType + "/" + ct.mediaType.subType
+          val charsetStr = ct.charset.map(cs => s"; charset=${cs.nioCharset.name}").getOrElse("")
+          Full(mediaTypeStr + charsetStr)
+        case None => 
+          // Fallback to Content-Type header
+          headerParams.find(_.name.equalsIgnoreCase("Content-Type")).flatMap(_.values.headOption) match {
+            case Some(ct) => Full(ct)
+            case None => Empty
+          }
       }
     }
     def uri: String = uriPath
