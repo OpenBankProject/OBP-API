@@ -1,33 +1,54 @@
 package code.api.v7_0_0
 
-import cats.effect.IO
-import cats.effect.unsafe.implicits.global
+import code.Http4sTestServer
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
 import code.setup.ServerSetupWithTestData
+import dispatch.Defaults._
+import dispatch._
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.JsonParser.parse
-import org.http4s._
-import org.http4s.dsl.io._
-import org.http4s.implicits._
 import org.scalatest.Tag
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+/**
+ * HTTP4S v7.0.0 Routes Integration Test
+ * 
+ * Uses Http4sTestServer (singleton) to test v7.0.0 endpoints through real HTTP requests.
+ * This ensures we test the complete server stack including middleware, error handling, etc.
+ */
 class Http4s700RoutesTest extends ServerSetupWithTestData {
   
   object Http4s700RoutesTag extends Tag("Http4s700Routes")
 
-  private def runAndParseJson(request: Request[IO]): (Status, JValue) = {
-    val response = Http4s700.wrappedRoutesV700Services.orNotFound.run(request).unsafeRunSync()
-    val body = response.as[String].unsafeRunSync()
-    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-    (response.status, json)
-  }
+  // Use Http4sTestServer for full integration testing
+  private val http4sServer = Http4sTestServer
+  private val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
 
-  private def withDirectLoginToken(request: Request[IO], token: String): Request[IO] = {
-    request.withHeaders(
-      Header.Raw(org.typelevel.ci.CIString("DirectLogin"), s"token=$token")
-    )
+  private def makeHttpRequest(path: String, headers: Map[String, String] = Map.empty): (Int, JValue) = {
+    val request = url(s"$baseUrl$path")
+    val requestWithHeaders = headers.foldLeft(request) { case (req, (key, value)) =>
+      req.addHeader(key, value)
+    }
+    
+    try {
+      val response = Http.default(requestWithHeaders.setHeader("Accept", "*/*") > as.Response(p => (p.getStatusCode, p.getResponseBody)))
+      val (statusCode, body) = Await.result(response, 10.seconds)
+      val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+      (statusCode, json)
+    } catch {
+      case e: java.util.concurrent.ExecutionException =>
+        val statusPattern = """(\d{3})""".r
+        statusPattern.findFirstIn(e.getCause.getMessage) match {
+          case Some(code) => (code.toInt, JObject(Nil))
+          case None => throw e
+        }
+      case e: Exception =>
+        throw e
+    }
   }
 
   private def toFieldMap(fields: List[JField]): Map[String, JValue] = {
@@ -38,16 +59,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
     scenario("Return API info JSON", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/root request")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/root")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/root")
 
       Then("Response is 200 OK with API info fields")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           val keys = fields.map(_.name)
@@ -65,16 +81,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
     scenario("Return banks list JSON", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/banks request")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/banks")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/banks")
 
       Then("Response is 200 OK with banks array")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           val valueOpt = toFieldMap(fields).get("banks")
@@ -95,16 +106,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
     scenario("Reject unauthenticated access to cards", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/cards request without auth headers")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/cards")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/cards")
 
       Then("Response is 401 Unauthorized with appropriate error message")
-      status.code shouldBe 401
+      statusCode shouldBe 401
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
@@ -120,17 +126,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
     scenario("Return cards list JSON when authenticated", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/cards request with DirectLogin header")
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/cards")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/cards", headers)
 
       Then("Response is 200 OK with cards array")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("cards") match {
@@ -149,17 +150,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val bankId = testBankId1.value
       addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
 
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString(s"/obp/v7.0.0/banks/$bankId/cards?limit=10&offset=0")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards?limit=10&offset=0", headers)
 
       Then("Response is 200 OK with cards array")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("cards") match {
@@ -173,17 +169,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Reject bank cards access when missing required role", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/banks/BANK_ID/cards request with DirectLogin header but no role")
       val bankId = testBankId1.value
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString(s"/obp/v7.0.0/banks/$bankId/cards")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
 
       Then("Response is 403 Forbidden")
-      status.code shouldBe 403
+      statusCode shouldBe 403
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
@@ -203,17 +195,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val bankId = "non-existing-bank-id"
       addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
 
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString(s"/obp/v7.0.0/banks/$bankId/cards")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
 
       Then("Response is 404 Not Found with BankNotFound message")
-      status.code shouldBe 404
+      statusCode shouldBe 404
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
@@ -233,16 +220,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Allow public access when resource docs role is not required", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request without auth headers")
       setPropsValues("resource_docs_requires_role" -> "false")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
 
       Then("Response is 200 OK with resource_docs array")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
@@ -259,16 +242,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Reject unauthenticated access when resource docs role is required", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request without auth headers and role required")
       setPropsValues("resource_docs_requires_role" -> "true")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
 
       Then("Response is 401 Unauthorized")
-      status.code shouldBe 401
+      statusCode shouldBe 401
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
@@ -285,17 +264,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Reject access when authenticated but missing canReadResourceDoc role", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp request with auth but no canReadResourceDoc role")
       setPropsValues("resource_docs_requires_role" -> "true")
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp", headers)
 
       Then("Response is 403 Forbidden")
-      status.code shouldBe 403
+      statusCode shouldBe 403
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
@@ -315,17 +290,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       setPropsValues("resource_docs_requires_role" -> "true")
       addEntitlement("", resourceUser1.userId, canReadResourceDoc.toString)
 
-      val baseRequest = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp")
-      )
-      val request = withDirectLoginToken(baseRequest, token1.value)
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp", headers)
 
       Then("Response is 200 OK with resource_docs array")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
@@ -342,16 +312,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Filter docs by tags parameter", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp?tags=Card request")
       setPropsValues("resource_docs_requires_role" -> "false")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp?tags=Card")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp?tags=Card")
 
       Then("Response is 200 OK and all returned docs contain Card tag")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
@@ -381,16 +347,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Filter docs by functions parameter", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/resource-docs/v7.0.0/obp?functions=getBanks request")
       setPropsValues("resource_docs_requires_role" -> "false")
-      val request = Request[IO](
-        method = Method.GET,
-        uri = Uri.unsafeFromString("/obp/v7.0.0/resource-docs/v7.0.0/obp?functions=getBanks")
-      )
-
-      When("Running through wrapped routes")
-      val (status, json) = runAndParseJson(request)
+      
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp?functions=getBanks")
 
       Then("Response is 200 OK and includes GET /banks")
-      status shouldBe Status.Ok
+      statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("resource_docs") match {
