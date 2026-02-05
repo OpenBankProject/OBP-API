@@ -10,11 +10,14 @@ import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.{ErrorResponseConverter, ResourceDocMiddleware}
 import code.api.util.{CustomJsonFormats, NewStyle}
+import code.api.util.newstyle.ViewNewStyle
+import code.api.util.ApiRole._
 import code.api.v4_0_0.JSONFactory400
+import code.api.v5_0_0.{CreateViewJsonV500, JSONFactory500, UpdateViewJsonV500}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
-import com.openbankproject.commons.model.{BankId, ProductCode}
+import com.openbankproject.commons.model.{BankId, ProductCode, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
@@ -216,6 +219,183 @@ object Http4s500 {
         }
     }
 
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View",
+      s"""Create a system view
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanCreateSystemView entitlement.
+         |
+         |The 'allowed_actions' field is a list containing the names of the actions allowed through this view.
+         |All the actions contained in the list will be set to `true` on the view creation, the rest will be set to `false`.
+         |
+         |System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+         |""",
+      createSystemViewJsonV500,
+      viewJsonV500,
+      List(
+        AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        SystemViewCannotBePublicError,
+        InvalidSystemViewFormat,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canCreateSystemView)),
+      http4sPartialFunction = Some(createSystemView)
+    )
+
+    val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "system-views" =>
+        implicit val ioRuntime: cats.effect.unsafe.IORuntime = cats.effect.unsafe.implicits.global
+        executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            bodyString <- req.as[String].unsafeToFuture()
+            createViewJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the CreateViewJsonV500",
+              400,
+              Some(cc)
+            ) {
+              net.liftweb.json.parse(bodyString).extract[CreateViewJsonV500]
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              SystemViewCannotBePublicError,
+              failCode = 400,
+              cc = Some(cc)
+            )(createViewJson.is_public == false)
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidSystemViewFormat Current view_name (${createViewJson.name})",
+              cc = Some(cc)
+            )(code.api.util.APIUtil.isValidSystemViewName(createViewJson.name))
+            view <- ViewNewStyle.createSystemView(createViewJson.toCreateViewJson, Some(cc))
+          } yield JSONFactory500.createViewJsonV500(view)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getSystemView),
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)}
+         |""",
+      EmptyBody,
+      viewJsonV500,
+      List(
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canGetSystemView)),
+      http4sPartialFunction = Some(getSystemView)
+    )
+
+    val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system-views" / viewId =>
+        executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            view <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+          } yield JSONFactory500.createViewJsonV500(view)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View",
+      s"""Update an existing system view
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanUpdateSystemView entitlement.
+         |
+         |The json sent is the same as during view creation, with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateSystemViewJson500,
+      viewJsonV500,
+      List(
+        InvalidJsonFormat,
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        SystemViewCannotBePublicError,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canUpdateSystemView)),
+      http4sPartialFunction = Some(updateSystemView)
+    )
+
+    val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "system-views" / viewId =>
+        implicit val ioRuntime: cats.effect.unsafe.IORuntime = cats.effect.unsafe.implicits.global
+        executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            bodyString <- req.as[String].unsafeToFuture()
+            updateJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV500",
+              400,
+              Some(cc)
+            ) {
+              net.liftweb.json.parse(bodyString).extract[UpdateViewJsonV500]
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              SystemViewCannotBePublicError,
+              failCode = 400,
+              cc = Some(cc)
+            )(updateJson.is_public == false)
+            _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, Some(cc))
+          } yield JSONFactory500.createViewJsonV500(updatedView)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteSystemView),
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      s"""Deletes the system view specified by VIEW_ID
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanDeleteSystemView entitlement.
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canDeleteSystemView)),
+      http4sPartialFunction = Some(deleteSystemView)
+    )
+
+    val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
+        executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+            result <- ViewNewStyle.deleteSystemView(ViewId(viewId), Some(cc))
+          } yield result
+        }
+    }
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -223,6 +403,10 @@ object Http4s500 {
           .orElse(getBank(req))
           .orElse(getProducts(req))
           .orElse(getProduct(req))
+          .orElse(createSystemView(req))
+          .orElse(getSystemView(req))
+          .orElse(updateSystemView(req))
+          .orElse(deleteSystemView(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
