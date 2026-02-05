@@ -276,16 +276,17 @@ object Http4sLiftWebBridge extends MdcLoggable {
   }
 
   private final class Http4sLiftSession(val sessionId: String) extends HTTPSession {
-    private val attributesStore = scala.collection.mutable.Map.empty[String, Any]
-    private var maxInactive: Long = 0L
+    // Thread-safe attribute store using ConcurrentHashMap
+    private val attributesStore = new ConcurrentHashMap[String, Any]()
+    @volatile private var maxInactive: Long = 0L
     private val createdAt: Long = System.currentTimeMillis()
     def link(liftSession: LiftSession): Unit = ()
     def unlink(liftSession: LiftSession): Unit = ()
     def maxInactiveInterval: Long = maxInactive
     def setMaxInactiveInterval(interval: Long): Unit = { maxInactive = interval }
     def lastAccessedTime: Long = createdAt
-    def setAttribute(name: String, value: Any): Unit = attributesStore.update(name, value)
-    def attribute(name: String): Any = attributesStore.getOrElse(name, null)
+    def setAttribute(name: String, value: Any): Unit = attributesStore.put(name, value)
+    def attribute(name: String): Any = attributesStore.get(name)
     def removeAttribute(name: String): Unit = attributesStore.remove(name)
     def terminate: Unit = ()
   }
