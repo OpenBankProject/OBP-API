@@ -2,8 +2,8 @@ package code.api.v6_0_0
 
 import scala.language.reflectiveCalls
 import code.accountattribute.AccountAttributeX
-import code.api.Constant
-import code.api.{DirectLogin, ObpApiFailure}
+import code.api.Constant._
+import code.api.{Constant, DirectLogin, ObpApiFailure}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.{Caching, Redis}
 import code.api.util.APIUtil._
@@ -21,7 +21,7 @@ import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
-import code.api.v2_0_0.JSONFactory200
+import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
 import code.api.v3_1_0.{JSONFactory310, PostCustomerNumberJsonV310}
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CallLimitPostJsonV400}
@@ -30,8 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PopularApisJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
@@ -219,6 +218,159 @@ trait APIMethods600 {
             val accountsJson = JSONFactory300.createFirehoseCoreBankAccountJSON(List(moderatedAccount), Some(attributes))
             (accountsJson, HttpCode.`200`(callContext))
           }
+    }
+
+    // --- GET Accounts at Bank (v6.0.0 with account_id) ---
+    staticResourceDocs += ResourceDoc(
+      getAccountsAtBank,
+      implementedInApiVersion,
+      nameOf(getAccountsAtBank),
+      "GET",
+      "/banks/BANK_ID/accounts",
+      "Get Accounts at Bank",
+      s"""
+         |Returns the list of accounts at BANK_ID that the user has access to.
+         |For each account the API returns the account ID and the views available to the user.
+         |Each account must have at least one private View.
+         |
+         |This v6.0.0 version returns `account_id` instead of `id` for consistency with other v6.0.0 endpoints.
+         |
+         |Optional request parameters for filtering with attributes:
+         |URL params example: /banks/some-bank-id/accounts?limit=50&offset=1
+         |
+         |${userAuthenticationMessage(true)}
+         |
+       """.stripMargin,
+      EmptyBody,
+      BasicAccountsJsonV600(List(BasicAccountJsonV600(
+        account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        bank_id = "gh.29.uk",
+        label = "My Account",
+        views_available = List(BasicViewJson("owner", "Owner", false))
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
+    )
+
+    lazy val getAccountsAtBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (Full(u), bank, callContext) <- SS.userBank
+          (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
+            Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+          }
+          params <- Future {
+            req.params
+              .filterNot(_._1 == PARAM_TIMESTAMP)
+              .filterNot(_._1 == PARAM_LOCALE)
+          }
+          privateAccountAccess2 <-
+            if (params.isEmpty || privateAccountAccess.isEmpty) {
+              Future.successful(privateAccountAccess)
+            } else {
+              AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bankId, params)
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  privateAccountAccess.filter(aa =>
+                    accountIds.contains(aa.account_id.get)
+                  )
+                }
+            }
+          (availablePrivateAccounts, callContext2) <- bank.privateAccountsFuture(
+            privateAccountAccess2,
+            callContext
+          )
+        } yield {
+          val accountsJson = availablePrivateAccounts.map { account =>
+            val viewsAvailable = privateViewsUserCanAccessAtOneBank
+              .filter(v => v.bankId == bankId && v.accountId == account.accountId)
+              .map(v => BasicViewJson(v.viewId.value, v.name, v.isPublic))
+            JSONFactory600.createBasicAccountJsonV600(account, viewsAvailable)
+          }
+          (BasicAccountsJsonV600(accountsJson), HttpCode.`200`(callContext2))
+        }
+      }
+    }
+
+    // --- GET Account by Id (Core) (v6.0.0 with account_id) ---
+    staticResourceDocs += ResourceDoc(
+      getCoreAccountByIdV600,
+      implementedInApiVersion,
+      nameOf(getCoreAccountByIdV600),
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get Account by Id (Core)",
+      s"""Information returned about the account specified by ACCOUNT_ID:
+         |
+         |* Number - The human readable account number given by the bank that identifies the account.
+         |* Label - A label given by the owner of the account
+         |* Owners - Users that own this account
+         |* Type - The type of account
+         |* Balance - Currency and Value
+         |* Account Routings - A list that might include IBAN or national account identifiers
+         |* Account Rules - A list that might include Overdraft and other bank specific rules
+         |* Tags - A list of Tags assigned to this account
+         |
+         |This call returns the owner view and requires access to that view.
+         |
+         |This v6.0.0 version returns `account_id` instead of `id` for consistency with other v6.0.0 endpoints.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ModeratedCoreAccountJsonV600(
+        account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        bank_id = "gh.29.uk",
+        label = "My Account",
+        number = "123456",
+        product_code = "CURRENT",
+        balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+        account_routings = List(AccountRoutingJsonV121("IBAN", "DE89370400440532013000")),
+        views_basic = List("owner")
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getCoreAccountByIdV600: OBPEndpoint = {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (user @ Full(u), account, callContext) <- SS.userAccount
+          view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(
+            u,
+            BankIdAccountId(account.bankId, account.accountId),
+            callContext
+          )
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(
+            account,
+            view,
+            user,
+            callContext
+          )
+        } yield {
+          val availableViews: List[View] =
+            Views.views.vend.privateViewsUserCanAccessForAccount(
+              u,
+              BankIdAccountId(account.bankId, account.accountId)
+            )
+          (
+            JSONFactory600.createModeratedCoreAccountJsonV600(moderatedAccount, availableViews),
+            HttpCode.`200`(callContext)
+          )
+        }
+      }
     }
 
     staticResourceDocs += ResourceDoc(
@@ -595,6 +747,62 @@ trait APIMethods600 {
       apiTagConsumer :: apiTagApi :: Nil,
       Some(List(canGetCurrentConsumer))
     )
+
+    staticResourceDocs += ResourceDoc(
+      getConsumer,
+      implementedInApiVersion,
+      nameOf(getConsumer),
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID.
+         |
+         |This endpoint returns all consumer fields including:
+         |- Basic info: consumer_id, app_name, app_type, description, developer_email, company
+         |- OAuth: consumer_key, redirect_url
+         |- Status: enabled, created
+         |- Certificate: certificate_pem, certificate_info (subject, issuer, validity dates, PSD2 roles)
+         |- Branding: logo_url
+         |- Creator: created_by_user details
+         |- Rate limits: active_rate_limits showing current rate limiting configuration
+         |- Call counters: call_counters showing current API call usage from Redis
+         |
+         |Note: consumer_secret is never returned for security reasons.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      consumerJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ConsumerNotFoundByConsumerId,
+        UnknownError
+      ),
+      List(apiTagConsumer),
+      Some(List(canGetConsumers))
+    )
+
+    lazy val getConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConsumers, callContext)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            // Get rate limits and call counters
+            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            date = new java.util.Date()
+            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            activeRateLimitsJson = JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date)
+            callCountersJson = JSONFactory600.createRedisCallCountersJson(currentConsumerCallCounters)
+          } yield {
+            (JSONFactory600.createConsumerJsonV600(consumer, None, activeRateLimitsJson, callCountersJson), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       invalidateCacheNamespace,

@@ -18,7 +18,7 @@ import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{BasicViewJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{
   CustomerAttributeResponseJsonV300,
@@ -33,6 +33,7 @@ import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, UserAgreementJson}
 import code.entitlement.Entitlement
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
+import code.model.ModeratedBankAccountCore
 import code.model.dataAccess.ResourceUser
 import code.users.UserAgreement
 import code.util.Helper.MdcLoggable
@@ -76,6 +77,26 @@ case class CurrentConsumerJsonV600(
     app_type: String,
     description: String,
     consumer_id: String,
+    active_rate_limits: ActiveRateLimitsJsonV600,
+    call_counters: RedisCallCountersJsonV600
+)
+
+// Full Consumer details for management endpoints (V600)
+case class ConsumerJsonV600(
+    consumer_id: String,
+    consumer_key: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    certificate_info: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String],
     active_rate_limits: ActiveRateLimitsJsonV600,
     call_counters: RedisCallCountersJsonV600
 )
@@ -284,6 +305,30 @@ case class ConnectorInfoJsonV600(
 )
 
 case class ConnectorsJsonV600(connectors: List[ConnectorInfoJsonV600])
+
+// Basic Account with account_id instead of id for v6.0.0 consistency
+case class BasicAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  label: String,
+  views_available: List[BasicViewJson]
+)
+
+case class BasicAccountsJsonV600(
+  accounts: List[BasicAccountJsonV600]
+)
+
+// Moderated Core Account with account_id instead of id for v6.0.0 consistency
+case class ModeratedCoreAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  product_code: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
+  views_basic: List[String]
+)
 
 case class TopApiJsonV600(
     count: Int,
@@ -704,6 +749,43 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
+  def createConsumerJsonV600(
+      c: code.model.Consumer,
+      certificateInfo: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+      activeRateLimits: ActiveRateLimitsJsonV600,
+      callCounters: RedisCallCountersJsonV600
+  ): ConsumerJsonV600 = {
+    val resourceUserJSON = code.users.Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case net.liftweb.common.Full(resourceUser) => code.api.v2_1_0.ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJsonV600(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      company = c.company.get,
+      redirect_url = c.redirectURL.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get,
+      logo_url = if (c.logoUrl.get == null || c.logoUrl.get.isEmpty) None else Some(c.logoUrl.get),
+      active_rate_limits = activeRateLimits,
+      call_counters = callCounters
+    )
+  }
+
   def createUserInfoJSON(
       current_user: UserV600,
       onBehalfOfUser: Option[UserV600]
@@ -903,6 +985,40 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       connectorInfos: List[ConnectorInfoJsonV600]
   ): ConnectorsJsonV600 = {
     ConnectorsJsonV600(connectorInfos.sortBy(_.connector_name))
+  }
+
+  def createBasicAccountJsonV600(account: BankAccount, viewsAvailable: List[BasicViewJson]): BasicAccountJsonV600 = {
+    BasicAccountJsonV600(
+      account_id = account.accountId.value,
+      bank_id = account.bankId.value,
+      label = account.label,
+      views_available = viewsAvailable
+    )
+  }
+
+  def createBasicAccountsJsonV600(accounts: List[BasicAccountJsonV600]): BasicAccountsJsonV600 = {
+    BasicAccountsJsonV600(accounts)
+  }
+
+  def createModeratedCoreAccountJsonV600(
+    account: ModeratedBankAccountCore,
+    availableViews: List[View]
+  ): ModeratedCoreAccountJsonV600 = {
+    ModeratedCoreAccountJsonV600(
+      account_id = account.accountId.value,
+      bank_id = account.bankId.value,
+      label = account.label.getOrElse(""),
+      number = account.number.getOrElse(""),
+      product_code = account.accountType.getOrElse(""),
+      balance = AmountOfMoneyJsonV121(
+        account.currency.getOrElse(""),
+        account.balance.getOrElse("").toString
+      ),
+      account_routings = account.accountRoutings.map(r =>
+        AccountRoutingJsonV121(scheme = r.scheme, address = r.address)
+      ),
+      views_basic = availableViews.map(_.viewId.value)
+    )
   }
 
   def createTopApisJsonV600(
