@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
+import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -2370,19 +2370,19 @@ trait APIMethods600 {
               unboxFullOrFail(_, callContext, GetTopApisError)
             }
           } yield {
-            // Build lookup map from (partialFunctionName, shortVersion) -> operationId
+            // Build lookup map from partialFunctionName -> operationId
             // This handles OBP, Berlin Group, UK Open Banking, and other standards correctly
             val allDocs = APIUtil.getAllResourceDocs
-            val lookupMap: Map[(String, String), String] = allDocs.map { doc =>
-              val shortVersion = doc.implementedInApiVersion.toString
-              (doc.partialFunctionName, shortVersion) -> doc.operationId
+            val lookupMap: Map[String, String] = allDocs.map { doc =>
+              doc.partialFunctionName -> doc.operationId
             }.toMap
 
             // Convert TopApi to TopApiJsonV600 with operation_id
             val topApisWithOperationId = topApis.map { api =>
               val operationId = lookupMap.getOrElse(
-                (api.ImplementedByPartialFunction, api.implementedInVersion),
-                s"${api.implementedInVersion}-${api.ImplementedByPartialFunction}" // Fallback format
+                api.ImplementedByPartialFunction,
+                scala.util.Try(APIUtil.buildOperationId(ApiVersionUtils.valueOf(api.implementedInVersion), api.ImplementedByPartialFunction))
+                  .getOrElse(s"${api.implementedInVersion}-${api.ImplementedByPartialFunction}")
               )
               TopApiJsonV600(
                 count = api.count,
@@ -2952,7 +2952,7 @@ trait APIMethods600 {
          |
       """.stripMargin,
       EmptyBody,
-      metricsJsonV510,
+      metricsJsonV600,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -2990,7 +2990,12 @@ trait APIMethods600 {
               }
             }
           } yield {
-            (JSONFactory510.createMetricsJson(metrics), HttpCode.`200`(callContext))
+            // Build lookup map from partialFunctionName -> operationId
+            val allDocs = APIUtil.getAllResourceDocs
+            val lookupMap: Map[String, String] = allDocs.map { doc =>
+              doc.partialFunctionName -> doc.operationId
+            }.toMap
+            (JSONFactory600.createMetricsJsonV600(metrics, lookupMap), HttpCode.`200`(callContext))
           }
         }
       }
@@ -8146,18 +8151,20 @@ trait APIMethods600 {
               unboxFullOrFail(_, callContext, UnknownError)
             }
           } yield {
-            // Build lookup map from (partialFunctionName, shortVersion) -> operationId
+            // Build lookup map from partialFunctionName -> operationId
             // This handles OBP, Berlin Group, UK Open Banking, and other standards correctly
             val allDocs = APIUtil.getAllResourceDocs
-            val lookupMap: Map[(String, String), String] = allDocs.map { doc =>
-              // Extract short version (e.g., "v4.0.0" from "OBPv4.0.0" or "v1.3" from "BGv1.3")
-              val shortVersion = doc.implementedInApiVersion.toString
-              (doc.partialFunctionName, shortVersion) -> doc.operationId
+            val lookupMap: Map[String, String] = allDocs.map { doc =>
+              doc.partialFunctionName -> doc.operationId
             }.toMap
 
             // Convert TopApi to operation_id, looking up correct format for each standard
             val operationIds = topApis.flatMap { api =>
-              lookupMap.get((api.ImplementedByPartialFunction, api.implementedInVersion))
+              lookupMap.get(api.ImplementedByPartialFunction)
+                .orElse(
+                  scala.util.Try(Some(APIUtil.buildOperationId(ApiVersionUtils.valueOf(api.implementedInVersion), api.ImplementedByPartialFunction)))
+                    .getOrElse(None)
+                )
             }
             (PopularApisJsonV600(operationIds), HttpCode.`200`(callContext))
           }

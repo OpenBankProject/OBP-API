@@ -339,6 +339,26 @@ case class TopApiJsonV600(
 
 case class TopApisJsonV600(top_apis: List[TopApiJsonV600])
 
+case class MetricJsonV600(
+    user_id: String,
+    url: String,
+    date: Date,
+    user_name: String,
+    app_name: String,
+    developer_email: String,
+    implemented_by_partial_function: String,
+    implemented_in_version: String,
+    consumer_id: String,
+    verb: String,
+    correlation_id: String,
+    duration: Long,
+    source_ip: String,
+    target_ip: String,
+    response_body: net.liftweb.json.JValue,
+    operation_id: String
+)
+case class MetricsJsonV600(metrics: List[MetricJsonV600])
+
 case class CacheNamespaceJsonV600(
     prefix: String,
     description: String,
@@ -1025,6 +1045,36 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       topApis: List[TopApiJsonV600]
   ): TopApisJsonV600 = {
     TopApisJsonV600(topApis)
+  }
+
+  def createMetricJsonV600(metric: code.metrics.APIMetric, lookupMap: Map[String, String]): MetricJsonV600 = {
+    val operationId = lookupMap.getOrElse(
+      metric.getImplementedByPartialFunction(),
+      scala.util.Try(code.api.util.APIUtil.buildOperationId(code.api.util.ApiVersionUtils.valueOf(metric.getImplementedInVersion()), metric.getImplementedByPartialFunction()))
+        .getOrElse(s"${metric.getImplementedInVersion()}-${metric.getImplementedByPartialFunction()}")
+    )
+    MetricJsonV600(
+      user_id = metric.getUserId(),
+      user_name = metric.getUserName(),
+      developer_email = metric.getDeveloperEmail(),
+      app_name = metric.getAppName(),
+      url = metric.getUrl(),
+      date = metric.getDate(),
+      consumer_id = metric.getConsumerId(),
+      verb = metric.getVerb(),
+      implemented_in_version = metric.getImplementedInVersion(),
+      implemented_by_partial_function = metric.getImplementedByPartialFunction(),
+      correlation_id = metric.getCorrelationId(),
+      duration = metric.getDuration(),
+      source_ip = metric.getSourceIp(),
+      target_ip = metric.getTargetIp(),
+      response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
+      operation_id = operationId
+    )
+  }
+
+  def createMetricsJsonV600(metrics: List[code.metrics.APIMetric], lookupMap: Map[String, String]): MetricsJsonV600 = {
+    MetricsJsonV600(metrics.map(createMetricJsonV600(_, lookupMap)))
   }
 
   def createBankJSON600(

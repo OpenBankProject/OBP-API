@@ -58,6 +58,7 @@ import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v5_1_0.OBPAPI5_1_0
+import code.api.v6_0_0.OBPAPI6_0_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -5015,7 +5016,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
   
-  lazy val allStaticResourceDocs = (OBPAPI5_1_0.allResourceDocs
+  lazy val allStaticResourceDocs = (OBPAPI6_0_0.allResourceDocs
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
     ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs

@@ -3088,6 +3088,27 @@ object SwaggerDefinitionsJSON {
   lazy val metricsJsonV510 = MetricsJsonV510(
     metrics = List(metricJson510)
   )
+  lazy val metricJsonV600 = MetricJsonV600(
+    user_id = ExampleValue.userIdExample.value,
+    url = "www.openbankproject.com",
+    date = DateWithDayExampleObject,
+    user_name = "OBP",
+    app_name = "SOFI",
+    developer_email = ExampleValue.emailExample.value,
+    implemented_by_partial_function = "getBanks",
+    implemented_in_version = "v210",
+    consumer_id = "123",
+    verb = "get",
+    correlation_id = "v8ho6h5ivel3uq7a5zcnv0w1",
+    duration = 39,
+    source_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
+    target_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
+    response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
+    operation_id = "OBPv4.0.0-getBanks"
+  )
+  lazy val metricsJsonV600 = MetricsJsonV600(
+    metrics = List(metricJsonV600)
+  )
 
   lazy val branchJsonPut = BranchJsonPutV210("gh.29.fi", "OBP",
     addressJsonV140,
