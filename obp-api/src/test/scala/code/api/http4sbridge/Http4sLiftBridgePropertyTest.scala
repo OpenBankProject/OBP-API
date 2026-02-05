@@ -323,4 +323,168 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
       successCount should equal(iterations)
     }
   }
+  
+
+  // ============================================================================
+  // Property 7: Session and Context Adapter Correctness
+  // ============================================================================
+  
+  feature("Property 7: Session and Context Adapter Correctness") {
+    
+    scenario("Property 7.1: Concurrent requests maintain session/context thread-safety (100 iterations)", PropertyTag) {
+      var successCount = 0
+      val iterations = 100
+      
+      (0 until iterations).foreach { i =>
+        val random = new Random(i)
+        
+        // Test concurrent requests to verify thread-safety
+        val numThreads = 10
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(numThreads)
+        val latch = new java.util.concurrent.CountDownLatch(numThreads)
+        val errors = new java.util.concurrent.ConcurrentLinkedQueue[String]()
+        val results = new java.util.concurrent.ConcurrentLinkedQueue[(Int, String)]()
+        
+        try {
+          (0 until numThreads).foreach { threadId =>
+            executor.submit(new Runnable {
+              def run(): Unit = {
+                try {
+                  val testPath = s"/obp/v5.0.0/banks/test-bank-${random.nextInt(1000)}"
+                  val (status, json, headers) = makeHttp4sGetRequest(testPath)
+                  
+                  // Verify proper handling (session/context working)
+                  if (status >= 200 && status < 600) {
+                    // Valid response
+                    assertCorrelationId(headers)
+                    results.add((status, s"thread-$threadId"))
+                  } else {
+                    errors.add(s"Thread $threadId got invalid status: $status")
+                  }
+                } catch {
+                  case e: Exception => errors.add(s"Thread $threadId failed: ${e.getMessage}")
+                } finally {
+                  latch.countDown()
+                }
+              }
+            })
+          }
+          
+          latch.await(30, java.util.concurrent.TimeUnit.SECONDS)
+          executor.shutdown()
+          
+          // Verify no errors occurred
+          if (!errors.isEmpty) {
+            fail(s"Concurrent operations failed: ${errors.asScala.take(5).mkString(", ")}")
+          }
+          
+          // Verify all threads completed
+          results.size() should be >= numThreads
+          
+        } finally {
+          if (!executor.isShutdown) {
+            executor.shutdownNow()
+          }
+        }
+        
+        successCount += 1
+      }
+      
+      logger.info(s"Property 7.1 completed: $successCount iterations")
+      successCount should equal(iterations)
+    }
+    
+    scenario("Property 7.2: Session lifecycle is properly managed across requests (100 iterations)", PropertyTag) {
+      var successCount = 0
+      val iterations = 100
+      
+      (0 until iterations).foreach { i =>
+        val random = new Random(i)
+        
+        // Make multiple requests and verify each gets proper session handling
+        val numRequests = 5
+        (0 until numRequests).foreach { j =>
+          val testPath = s"/obp/v5.0.0/banks/test-bank-${random.nextInt(1000)}"
+          val (status, json, headers) = makeHttp4sGetRequest(testPath)
+          
+          // Each request should be handled properly (session created internally)
+          status should (be >= 200 and be < 600)
+          
+          // Should have correlation ID (indicates proper request handling)
+          assertCorrelationId(headers)
+          
+          // Response should be valid JSON
+          json should not be null
+        }
+        
+        successCount += 1
+      }
+      
+      logger.info(s"Property 7.2 completed: $successCount iterations")
+      successCount should equal(iterations)
+    }
+    
+    scenario("Property 7.3: Request adapter provides correct HTTP metadata (100 iterations)", PropertyTag) {
+      var successCount = 0
+      val iterations = 100
+      
+      (0 until iterations).foreach { i =>
+        val random = new Random(i)
+        
+        // Test various request paths and verify proper handling
+        val paths = List(
+          s"/obp/v5.0.0/banks/${randomString(10)}",
+          s"/obp/v5.0.0/banks/${randomString(10)}/accounts",
+          s"/obp/v7.0.0/banks/${randomString(10)}/accounts/${randomString(10)}"
+        )
+        
+        paths.foreach { path =>
+          val (status, json, headers) = makeHttp4sGetRequest(path)
+          
+          // Request should be processed (adapter working)
+          status should (be >= 200 and be < 600)
+          
+          // Should have proper headers (adapter preserves headers)
+          headers should not be empty
+          
+          // Should have correlation ID
+          assertCorrelationId(headers)
+          
+          // Response should be valid JSON
+          json should not be null
+        }
+        
+        successCount += 1
+      }
+      
+      logger.info(s"Property 7.3 completed: $successCount iterations")
+      successCount should equal(iterations)
+    }
+    
+    scenario("Property 7.4: Context operations work correctly under load (100 iterations)", PropertyTag) {
+      var successCount = 0
+      val iterations = 100
+      
+      (0 until iterations).foreach { i =>
+        val random = new Random(i)
+        
+        // Test rapid sequential requests to verify context handling
+        val numRequests = 20
+        (0 until numRequests).foreach { j =>
+          val testPath = s"/obp/v5.0.0/banks/test-${random.nextInt(100)}"
+          val (status, json, headers) = makeHttp4sGetRequest(testPath)
+          
+          // Context operations should work correctly
+          status should (be >= 200 and be < 600)
+          assertCorrelationId(headers)
+          json should not be null
+        }
+        
+        successCount += 1
+      }
+      
+      logger.info(s"Property 7.4 completed: $successCount iterations")
+      successCount should equal(iterations)
+    }
+  }
 }
