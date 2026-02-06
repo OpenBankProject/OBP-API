@@ -164,6 +164,37 @@ object Http4sRequestAttributes {
         response <- Ok(jsonString)
       } yield response
     }
+
+    /**
+     * Execute Future-based business logic with error handling.
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     *
+     * Unlike executeAndRespond, this takes a by-name Future (not CallContext => Future),
+     * and catches all exceptions including APIFailureNewStyle.
+     */
+    def executeFuture[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f)).attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Ok(jsonString)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
+    }
+
+    /**
+     * Execute Future-based business logic with error handling.
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureCreated[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f)).attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
+    }
   }
 }
 

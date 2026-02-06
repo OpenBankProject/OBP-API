@@ -8,7 +8,7 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, getProductsIsPublic}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.{ErrorResponseConverter, ResourceDocMiddleware}
+import code.api.util.http4s.{ResourceDocMiddleware}
 import code.api.util.{CustomJsonFormats, NewStyle}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.ApiRole._
@@ -33,19 +33,6 @@ object Http4s500 {
 
   implicit val formats: Formats = CustomJsonFormats.formats
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
-
-  private def okJson[A](a: A): IO[Response[IO]] = {
-    val jsonString = prettyRender(Extraction.decompose(a))
-    Ok(jsonString)
-  }
-
-  private def executeFuture[A](req: Request[IO])(f: => scala.concurrent.Future[A]): IO[Response[IO]] = {
-    implicit val cc: code.api.util.CallContext = req.callContext
-    IO.fromFuture(IO(f)).attempt.flatMap {
-      case Right(result) => okJson(result)
-      case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
-    }
-  }
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_0_0
   val versionStatus: String = ApiVersionStatus.STABLE.toString
@@ -177,7 +164,7 @@ object Http4s500 {
 
     val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "products" =>
-        executeFuture(req) {
+        EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
           val params = req.uri.query.multiParams.toList.map { case (k, vs) =>
             GetProductsParam(k, vs.toList)
@@ -207,7 +194,7 @@ object Http4s500 {
 
     val getProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "products" / productCode =>
-        executeFuture(req) {
+        EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
           val bankIdObj = BankId(bankId)
           val productCodeObj = ProductCode(productCode)
@@ -251,11 +238,10 @@ object Http4s500 {
 
     val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "system-views" =>
-        implicit val ioRuntime: cats.effect.unsafe.IORuntime = cats.effect.unsafe.implicits.global
-        executeFuture(req) {
+        EndpointHelpers.executeFutureCreated(req) {
           implicit val cc = req.callContext
+          val bodyString = cc.httpBody.getOrElse("")
           for {
-            bodyString <- req.as[String].unsafeToFuture()
             createViewJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the CreateViewJsonV500",
               400,
@@ -302,7 +288,7 @@ object Http4s500 {
 
     val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "system-views" / viewId =>
-        executeFuture(req) {
+        EndpointHelpers.executeFuture(req) {
           implicit val cc = req.callContext
           for {
             view <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
@@ -339,11 +325,10 @@ object Http4s500 {
 
     val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "system-views" / viewId =>
-        implicit val ioRuntime: cats.effect.unsafe.IORuntime = cats.effect.unsafe.implicits.global
-        executeFuture(req) {
+        EndpointHelpers.executeFuture(req) {
           implicit val cc = req.callContext
+          val bodyString = cc.httpBody.getOrElse("")
           for {
-            bodyString <- req.as[String].unsafeToFuture()
             updateJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV500",
               400,
@@ -387,7 +372,7 @@ object Http4s500 {
 
     val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
-        executeFuture(req) {
+        EndpointHelpers.executeFuture(req) {
           implicit val cc = req.callContext
           for {
             _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
