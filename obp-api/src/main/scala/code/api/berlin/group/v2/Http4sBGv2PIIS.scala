@@ -36,7 +36,7 @@ object Http4sBGv2PIIS extends MdcLoggable {
     implementedInApiVersion,
     nameOf(postConfirmationOfFunds),
     "POST",
-    "/v2/funds-confirmations",
+    "/funds-confirmations",
     "Confirmation of Funds Request",
     "Checks whether a specific amount is available on an account.",
     EmptyBody,
