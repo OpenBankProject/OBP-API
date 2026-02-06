@@ -27,7 +27,7 @@ object Http4sBGv2PIS extends MdcLoggable {
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion2
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  val bgV2Prefix = Root / "v2"
+  val bgV2Prefix = Root / ConstantsBG.berlinGroupVersion2.urlPrefix / ConstantsBG.berlinGroupVersion2.apiShortVersion
 
   // ── POST /v2/payments/{payment-product} ───────────────────────────
 
@@ -42,7 +42,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation("sepa-credit-transfers"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(initiatePayment)
   )
 
@@ -64,7 +64,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation("sepa-credit-transfers"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(initiateBulkPayment)
   )
 
@@ -86,7 +86,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation("sepa-credit-transfers"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(initiatePeriodicPayment)
   )
 
@@ -109,7 +109,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockBulkPaymentExtendedStatus("sepa-credit-transfers", "PAYMENT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getBulkPaymentExtendedStatus)
   )
 
@@ -131,7 +131,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockPaymentStatus,
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getPaymentStatus)
   )
 
@@ -154,7 +154,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockPaymentDetails("payments", "sepa-credit-transfers", "PAYMENT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getPayment)
   )
 
@@ -177,7 +177,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     EmptyBody,
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(deletePayment)
   )
 
@@ -200,7 +200,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockAuthorisationStart("payments/sepa-credit-transfers", "PAYMENT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(startAuthorisation)
   )
 
@@ -225,7 +225,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockAuthorisationSubResources("payments/sepa-credit-transfers", "PAYMENT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getAuthorisationSubResources)
   )
 
@@ -250,7 +250,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockAuthorisationStatus("AUTHORISATION_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getAuthorisationStatus)
   )
 
@@ -274,7 +274,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockUpdatePsuData("AUTHORISATION_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(updatePsuData)
   )
 
@@ -298,7 +298,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockUpdateDebtorAccount("PAYMENT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIS :: Nil,
+    apiTagPSD2PIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(updateResourceWithDebtorAccount)
   )
 

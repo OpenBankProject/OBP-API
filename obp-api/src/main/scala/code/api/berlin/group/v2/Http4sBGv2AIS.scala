@@ -27,7 +27,7 @@ object Http4sBGv2AIS extends MdcLoggable {
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion2
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  val bgV2Prefix = Root / "v2"
+  val bgV2Prefix = Root / ConstantsBG.berlinGroupVersion2.urlPrefix / ConstantsBG.berlinGroupVersion2.apiShortVersion
 
   // ── GET /v2/accounts ──────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockAccountList,
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getAccountList)
   )
 
@@ -64,7 +64,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockAccountDetails("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getAccountDetails)
   )
 
@@ -86,7 +86,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockBalances("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getAccountBalances)
   )
 
@@ -108,7 +108,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockTransactions("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getTransactionList)
   )
 
@@ -130,7 +130,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockTransactionDetails("ACCOUNT_ID", "TRANSACTION_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getTransactionDetails)
   )
 
@@ -152,7 +152,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockCardAccountList,
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getCardAccountList)
   )
 
@@ -174,7 +174,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockCardAccountDetails("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getCardAccountDetails)
   )
 
@@ -196,7 +196,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockCardAccountBalances("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getCardAccountBalances)
   )
 
@@ -218,7 +218,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockCardAccountTransactions("ACCOUNT_ID"),
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2AIS :: Nil,
+    apiTagPSD2AIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(getCardAccountTransactionList)
   )
 

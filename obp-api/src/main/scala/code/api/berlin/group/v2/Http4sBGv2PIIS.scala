@@ -27,7 +27,7 @@ object Http4sBGv2PIIS extends MdcLoggable {
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion2
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  val bgV2Prefix = Root / "v2"
+  val bgV2Prefix = Root / ConstantsBG.berlinGroupVersion2.urlPrefix / ConstantsBG.berlinGroupVersion2.apiShortVersion
 
   // ── POST /v2/funds-confirmations ──────────────────────────────────
 
@@ -42,7 +42,7 @@ object Http4sBGv2PIIS extends MdcLoggable {
     EmptyBody,
     JSONFactory_BERLIN_GROUP_v2.mockFundsConfirmation,
     List(UnknownError),
-    apiTagBerlinGroupM :: apiTagPSD2PIIS :: Nil,
+    apiTagPSD2PIIS :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(postConfirmationOfFunds)
   )
 
