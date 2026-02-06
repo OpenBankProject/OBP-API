@@ -4259,7 +4259,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
-      Some(List(canGetTransactionRequestAtAnyBank))
+      Some(List(canGetTransactionRequestAtOneBank, canGetTransactionRequestAtAnyBank))
     )
 
     lazy val getTransactionRequestById: OBPEndpoint = {
@@ -4267,7 +4267,9 @@ trait APIMethods510 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, cc.callContext)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(transactionRequest.from.bank_id, u.userId, canGetTransactionRequestAtOneBank :: canGetTransactionRequestAtAnyBank :: Nil, callContext)
           } yield {
             val json = JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
             (json, HttpCode.`200`(callContext))
@@ -4377,7 +4379,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagTransactionRequest),
-      Some(List(canUpdateTransactionRequestStatusAtAnyBank))
+      Some(List(canUpdateTransactionRequestStatusAtOneBank, canUpdateTransactionRequestStatusAtAnyBank))
     )
 
     lazy val updateTransactionRequestStatus : OBPEndpoint = {
@@ -4386,11 +4388,14 @@ trait APIMethods510 {
           implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostTransactionRequestStatusJsonV510"
           for {
-            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostTransactionRequestStatusJsonV510]
             }
-            _ <- NewStyle.function.saveTransactionRequestStatusImpl(transactionRequestId, postedData.status, cc.callContext)
-            (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, cc.callContext)
+            (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(existingTransactionRequest.from.bank_id, u.userId, canUpdateTransactionRequestStatusAtOneBank :: canUpdateTransactionRequestStatusAtAnyBank :: Nil, callContext)
+            _ <- NewStyle.function.saveTransactionRequestStatusImpl(transactionRequestId, postedData.status, callContext)
+            (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
           } yield {
             (TransactionRequestStatusJsonV510(transactionRequest.id.value, transactionRequest.status), HttpCode.`200`(callContext))
           }
