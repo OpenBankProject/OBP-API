@@ -2,6 +2,7 @@ package code.api.berlin.group.v2
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import code.api.berlin.group.ConstantsBG
 import code.util.Helper.MdcLoggable
 import org.http4s._
 import org.http4s.implicits._
@@ -17,6 +18,7 @@ class Http4sBGv2AISTest extends FlatSpec with Matchers with MdcLoggable {
   object AISTag extends Tag("BerlinGroupV2_AIS")
 
   private val routes = Http4sBGv2AIS.routes
+  private val prefix = s"/${ConstantsBG.berlinGroupVersion2.urlPrefix}/${ConstantsBG.berlinGroupVersion2.apiShortVersion}"
 
   private def runRequest(method: Method, uri: String): (Status, String) = {
     val req = Request[IO](method, Uri.unsafeFromString(uri))
@@ -27,40 +29,40 @@ class Http4sBGv2AISTest extends FlatSpec with Matchers with MdcLoggable {
 
   // ── Account endpoints ─────────────────────────────────────────────
 
-  "GET /v2/accounts" should "return 200 with account list JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/accounts")
+  s"GET $prefix/accounts" should "return 200 with account list JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/accounts")
     status shouldBe Status.Ok
     body should include("accounts")
     body should include("resourceId")
     body should include("iban")
   }
 
-  "GET /v2/accounts/{account-id}" should "return 200 with account details JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/accounts/test-account-123")
+  s"GET $prefix/accounts/{account-id}" should "return 200 with account details JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/accounts/test-account-123")
     status shouldBe Status.Ok
     body should include("resourceId")
     body should include("test-account-123")
     body should include("cashAccountType")
   }
 
-  "GET /v2/accounts/{account-id}/balances" should "return 200 with balance JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/accounts/test-account-123/balances")
+  s"GET $prefix/accounts/{account-id}/balances" should "return 200 with balance JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/accounts/test-account-123/balances")
     status shouldBe Status.Ok
     body should include("balances")
     body should include("balanceAmount")
     body should include("balanceType")
   }
 
-  "GET /v2/accounts/{account-id}/transactions" should "return 200 with transaction list JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/accounts/test-account-123/transactions")
+  s"GET $prefix/accounts/{account-id}/transactions" should "return 200 with transaction list JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/accounts/test-account-123/transactions")
     status shouldBe Status.Ok
     body should include("booked")
     body should include("pending")
     body should include("transactionId")
   }
 
-  "GET /v2/accounts/{account-id}/transactions/{txId}" should "return 200 with transaction details JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/accounts/test-account-123/transactions/tx-456")
+  s"GET $prefix/accounts/{account-id}/transactions/{txId}" should "return 200 with transaction details JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/accounts/test-account-123/transactions/tx-456")
     status shouldBe Status.Ok
     body should include("transactionId")
     body should include("tx-456")
@@ -69,30 +71,30 @@ class Http4sBGv2AISTest extends FlatSpec with Matchers with MdcLoggable {
 
   // ── Card Account endpoints ────────────────────────────────────────
 
-  "GET /v2/card-accounts" should "return 200 with card account list JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/card-accounts")
+  s"GET $prefix/card-accounts" should "return 200 with card account list JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/card-accounts")
     status shouldBe Status.Ok
     body should include("cardAccounts")
     body should include("maskedPan")
   }
 
-  "GET /v2/card-accounts/{account-id}" should "return 200 with card account details JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/card-accounts/card-123")
+  s"GET $prefix/card-accounts/{account-id}" should "return 200 with card account details JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/card-accounts/card-123")
     status shouldBe Status.Ok
     body should include("resourceId")
     body should include("card-123")
     body should include("maskedPan")
   }
 
-  "GET /v2/card-accounts/{account-id}/balances" should "return 200 with card balance JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/card-accounts/card-123/balances")
+  s"GET $prefix/card-accounts/{account-id}/balances" should "return 200 with card balance JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/card-accounts/card-123/balances")
     status shouldBe Status.Ok
     body should include("balances")
     body should include("balanceAmount")
   }
 
-  "GET /v2/card-accounts/{account-id}/transactions" should "return 200 with card transaction list JSON" taggedAs AISTag in {
-    val (status, body) = runRequest(Method.GET, "/v2/card-accounts/card-123/transactions")
+  s"GET $prefix/card-accounts/{account-id}/transactions" should "return 200 with card transaction list JSON" taggedAs AISTag in {
+    val (status, body) = runRequest(Method.GET, s"$prefix/card-accounts/card-123/transactions")
     status shouldBe Status.Ok
     body should include("booked")
     body should include("transactionId")

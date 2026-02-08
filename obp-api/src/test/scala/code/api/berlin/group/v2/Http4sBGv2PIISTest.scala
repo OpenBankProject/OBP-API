@@ -2,6 +2,7 @@ package code.api.berlin.group.v2
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import code.api.berlin.group.ConstantsBG
 import code.util.Helper.MdcLoggable
 import org.http4s._
 import org.http4s.implicits._
@@ -17,6 +18,7 @@ class Http4sBGv2PIISTest extends FlatSpec with Matchers with MdcLoggable {
   object PIISTag extends Tag("BerlinGroupV2_PIIS")
 
   private val routes = Http4sBGv2PIIS.routes
+  private val prefix = s"/${ConstantsBG.berlinGroupVersion2.urlPrefix}/${ConstantsBG.berlinGroupVersion2.apiShortVersion}"
 
   private def runRequest(method: Method, uri: String): (Status, String) = {
     val req = Request[IO](method, Uri.unsafeFromString(uri))
@@ -25,8 +27,8 @@ class Http4sBGv2PIISTest extends FlatSpec with Matchers with MdcLoggable {
     (resp.status, body)
   }
 
-  "POST /v2/funds-confirmations" should "return 200 with funds confirmation JSON" taggedAs PIISTag in {
-    val (status, body) = runRequest(Method.POST, "/v2/funds-confirmations")
+  s"POST $prefix/funds-confirmations" should "return 200 with funds confirmation JSON" taggedAs PIISTag in {
+    val (status, body) = runRequest(Method.POST, s"$prefix/funds-confirmations")
     status shouldBe Status.Ok
     body should include("fundsAvailable")
   }
