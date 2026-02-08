@@ -2651,9 +2651,9 @@ trait APIMethods600 {
          |- ❌ `exclude_implemented_by_partial_functions` - NOT supported (returns error)
          |
          |Use `include_*` parameters instead (all optional):
-         |- ✅ `include_app_names` - Optional - include only these apps
-         |- ✅ `include_url_patterns` - Optional - include only URLs matching these patterns
-         |- ✅ `include_implemented_by_partial_functions` - Optional - include only these functions
+         |- `include_app_names` - Optional - include only these apps
+         |- `include_url_patterns` - Optional - include only URLs matching these patterns
+         |- `include_implemented_by_partial_functions` - Optional - include only these functions
          |
          |1 from_date e.g.:from_date=$DateWithMsExampleString
          |   **DEFAULT**: If not provided, automatically set to now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes (keeps queries in recent data zone)

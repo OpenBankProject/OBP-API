@@ -31,7 +31,7 @@ import org.scalatest.Tag
  */
 class MessageDocsJsonSchemaTest extends V600ServerSetup {
 
-  // Jackson ObjectMapper for converting between Lift JSON and Jackson JsonNode
+  // Jackson ObjectMapper for converting between liftweb JSON and Jackson JsonNode
   private val mapper = new ObjectMapper()
 
   override def beforeAll(): Unit = {

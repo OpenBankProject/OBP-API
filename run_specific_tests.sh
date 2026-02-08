@@ -66,8 +66,11 @@ mkdir -p "${LOG_DIR}"
 # Read tests from file if it exists, otherwise use SPECIFIC_TESTS array
 if [ -f "${FAILED_TESTS_FILE}" ]; then
   echo "Reading test classes from: ${FAILED_TESTS_FILE}"
-  # Read non-empty, non-comment lines from file into array
-  mapfile -t SPECIFIC_TESTS < <(grep -v '^\s*#' "${FAILED_TESTS_FILE}" | grep -v '^\s*$')
+  # Read non-empty, non-comment lines from file into array (macOS compatible)
+  SPECIFIC_TESTS=()
+  while IFS= read -r line; do
+    SPECIFIC_TESTS+=("$line")
+  done < <(grep -v '^\s*#' "${FAILED_TESTS_FILE}" | grep -v '^\s*$')
   echo "Loaded ${#SPECIFIC_TESTS[@]} test(s) from file"
   echo ""
 fi
@@ -103,17 +106,47 @@ TEST_ARG="${SPECIFIC_TESTS[*]}"
 # Start time
 START_TIME=$(date +%s)
 
-# Run tests
-# NOTE: We use -Dsuites (NOT -Dtest) because obp-api uses scalatest-maven-plugin
-# The -Dtest parameter only works with maven-surefire-plugin (JUnit tests)
-# ScalaTest requires the -Dsuites parameter with full package paths
-echo "Executing: mvn -pl obp-api test -Dsuites=\"$TEST_ARG\""
+# Run tests individually (running multiple tests together doesn't work with scalatest:test)
+# We use mvn test with -T 4 for parallel compilation
+echo "Running ${#SPECIFIC_TESTS[@]} test(s) individually..."
 echo ""
 
-if mvn -pl obp-api test -Dsuites="$TEST_ARG" 2>&1 | tee "${DETAIL_LOG}"; then
-  TEST_RESULT="SUCCESS"
-else
+TOTAL_TESTS=0
+TOTAL_PASSED=0
+TOTAL_FAILED=0
+FAILED_TEST_NAMES=()
+
+# Clear the detail log
+> "${DETAIL_LOG}"
+
+for test_class in "${SPECIFIC_TESTS[@]}"; do
+  echo "=========================================="
+  echo "Running: $test_class"
+  echo "=========================================="
+  
+  # Run test and capture output
+  if mvn -pl obp-api test -T 4 -Dsuites="$test_class" 2>&1 | tee -a "${DETAIL_LOG}"; then
+    echo "✓ $test_class completed"
+  else
+    echo "✗ $test_class FAILED"
+    FAILED_TEST_NAMES+=("$test_class")
+  fi
+  echo ""
+done
+
+# Parse results from log
+TOTAL_TESTS=$(grep -c "Total number of tests run:" "${DETAIL_LOG}" || echo 0)
+if [ "$TOTAL_TESTS" -gt 0 ]; then
+  # Sum up all test counts
+  TOTAL_PASSED=$(grep "Tests: succeeded" "${DETAIL_LOG}" | sed -E 's/.*succeeded ([0-9]+).*/\1/' | awk '{s+=$1} END {print s}')
+  TOTAL_FAILED=$(grep "Tests: succeeded" "${DETAIL_LOG}" | sed -E 's/.*failed ([0-9]+).*/\1/' | awk '{s+=$1} END {print s}')
+fi
+
+# Determine overall result
+if [ ${#FAILED_TEST_NAMES[@]} -gt 0 ]; then
   TEST_RESULT="FAILURE"
+else
+  TEST_RESULT="SUCCESS"
 fi
 
 # End time
@@ -130,9 +163,28 @@ DURATION_SEC=$((DURATION % 60))
   echo "Result:   ${TEST_RESULT}"
   echo "Duration: ${DURATION_MIN}m ${DURATION_SEC}s"
   echo ""
+  echo "Test Classes Run: ${#SPECIFIC_TESTS[@]}"
+  if [ -n "$TOTAL_PASSED" ] && [ "$TOTAL_PASSED" != "0" ]; then
+    echo "Tests Passed: $TOTAL_PASSED"
+  fi
+  if [ -n "$TOTAL_FAILED" ] && [ "$TOTAL_FAILED" != "0" ]; then
+    echo "Tests Failed: $TOTAL_FAILED"
+  fi
+  echo ""
+  if [ ${#FAILED_TEST_NAMES[@]} -gt 0 ]; then
+    echo "Failed Test Classes:"
+    for failed_test in "${FAILED_TEST_NAMES[@]}"; do
+      echo "  ✗ $failed_test"
+    done
+    echo ""
+  fi
   echo "Tests Run:"
   for test in "${SPECIFIC_TESTS[@]}"; do
-    echo "  - $test"
+    if [[ " ${FAILED_TEST_NAMES[@]} " =~ " ${test} " ]]; then
+      echo "  ✗ $test"
+    else
+      echo "  ✓ $test"
+    fi
   done
   echo ""
   echo "Logs:"

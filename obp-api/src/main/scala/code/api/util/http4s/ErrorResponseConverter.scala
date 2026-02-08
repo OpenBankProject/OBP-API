@@ -1,9 +1,11 @@
 package code.api.util.http4s
 
 import cats.effect._
+import code.api.APIFailureNewStyle
 import code.api.util.ErrorMessages._
 import code.api.util.CallContext
-import net.liftweb.json.{JInt, JString, parseOpt}
+import net.liftweb.common.{Failure => LiftFailure}
+import net.liftweb.json.JsonParser.parse
 import net.liftweb.json.compactRender
 import net.liftweb.json.JsonDSL._
 import org.http4s._
@@ -29,8 +31,19 @@ object ErrorResponseConverter {
   
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
-  private val internalFieldsFailCode = "failCode"
-  private val internalFieldsFailMsg = "failMsg"
+
+  private def tryExtractApiFailureFromExceptionMessage(error: Throwable): Option[APIFailureNewStyle] = {
+    val msg = Option(error.getMessage).getOrElse("").trim
+    if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
+      try {
+        Some(parse(msg).extract[APIFailureNewStyle])
+      } catch {
+        case _: Throwable => None
+      }
+    } else {
+      None
+    }
+  }
   
   /**
    * OBP standard error response format.
@@ -52,20 +65,43 @@ object ErrorResponseConverter {
    * Convert any error to http4s Response[IO].
    */
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
-    parseApiFailureFromExceptionMessage(error).map { failure =>
-      createErrorResponse(failure.code, failure.message, callContext)
-    }.getOrElse {
-      unknownErrorToResponse(error, callContext)
+    error match {
+      case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
+      case _ =>
+        tryExtractApiFailureFromExceptionMessage(error) match {
+          case Some(apiFailure) => apiFailureToResponse(apiFailure, callContext)
+          case None => unknownErrorToResponse(error, callContext)
+        }
     }
   }
   
-  private def parseApiFailureFromExceptionMessage(error: Throwable): Option[OBPErrorResponse] = {
-    Option(error.getMessage).flatMap(parseOpt).flatMap { json =>
-      (json \ internalFieldsFailCode, json \ internalFieldsFailMsg) match {
-        case (JInt(code), JString(message)) => Some(OBPErrorResponse(code.toInt, message))
-        case _ => None
-      }
-    }
+  /**
+   * Convert APIFailureNewStyle to http4s Response.
+   * Uses failCode as HTTP status and failMsg as error message.
+   */
+  def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
+    val errorJson = OBPErrorResponse(failure.failCode, failure.failMsg)
+    val status = org.http4s.Status.fromInt(failure.failCode).getOrElse(org.http4s.Status.BadRequest)
+    IO.pure(
+      Response[IO](status)
+        .withEntity(toJsonString(errorJson))
+        .withContentType(jsonContentType)
+        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
+    )
+  }
+  
+  /**
+   * Convert Lift Box Failure to http4s Response.
+   * Returns 400 Bad Request with failure message.
+   */
+  def boxFailureToResponse(failure: LiftFailure, callContext: CallContext): IO[Response[IO]] = {
+    val errorJson = OBPErrorResponse(400, failure.msg)
+    IO.pure(
+      Response[IO](org.http4s.Status.BadRequest)
+        .withEntity(toJsonString(errorJson))
+        .withContentType(jsonContentType)
+        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
+    )
   }
   
   /**
@@ -73,7 +109,7 @@ object ErrorResponseConverter {
    * Returns 500 Internal Server Error.
    */
   def unknownErrorToResponse(e: Throwable, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(500, UnknownError)
+    val errorJson = OBPErrorResponse(500, s"$UnknownError: ${e.getMessage}")
     IO.pure(
       Response[IO](org.http4s.Status.InternalServerError)
         .withEntity(toJsonString(errorJson))

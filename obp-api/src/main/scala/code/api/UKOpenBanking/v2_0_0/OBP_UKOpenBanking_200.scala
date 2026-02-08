@@ -33,7 +33,7 @@ import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil
 import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
-import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
 
 /*
@@ -43,7 +43,7 @@ This file defines which endpoints from all the versions are available in v1
 
 object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with ScannedApis{
 
-  override val apiVersion = ScannedApiVersion("open-banking", "UK", "v2.0")
+  override val apiVersion = ApiVersion.ukOpenBankingV20
   val versionStatus = ApiVersionStatus.DRAFT.toString
 
   val allEndpoints = 

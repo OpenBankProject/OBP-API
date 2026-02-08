@@ -86,8 +86,12 @@ object ResourceDocMiddleware extends MdcLoggable {
    */
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
+        case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
+        case _ => ApiShortVersions.`v7.0.0`.toString
+      }
       // Build initial CallContext from request
-      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, ApiShortVersions.`v7.0.0`.toString)).flatMap { cc =>
+      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocs) match {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
