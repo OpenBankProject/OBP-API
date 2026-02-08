@@ -66,6 +66,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
   // We add previous APIMethods so we have access to the Resource Docs
   self: OBPRestHelper =>
 
+  def includeTechnologyInResponse: Boolean = false
+
   val ImplementationsResourceDocs = new Object() {
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
@@ -350,7 +352,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         // Filter
         val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames)
         // Format the data as json
-        JSONFactory1_4_0.createResourceDocsJson(rdFiltered, isVersion4OrHigher, locale)
+        JSONFactory1_4_0.createResourceDocsJson(rdFiltered, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
       }
     }
 
@@ -504,7 +506,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
                 val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                 val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale)
+                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
                 val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
                 resourceDocsJsonJValue.map(successJsonResponse(_))
               }
@@ -713,7 +715,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   case _ if (apiCollectionIdParam.isDefined) =>
                     val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                     val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale)
+                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
                     resourceDocsJson.resource_docs
                   case _ =>
                     contentParam match {
@@ -907,7 +909,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   case _ if (apiCollectionIdParam.isDefined) =>
                     val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                     val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale)
+                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
                     resourceDocsJson.resource_docs
                   case _ =>
                     contentParam match {
@@ -1261,4 +1263,3 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
 }
-

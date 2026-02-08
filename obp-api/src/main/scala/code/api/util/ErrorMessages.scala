@@ -436,6 +436,12 @@ object ErrorMessages {
   val ApiCollectionEndpointAlreadyExists = "OBP-30085: The ApiCollectionEndpoint is already exists."
   val ApiCollectionAlreadyExists = "OBP-30086: The ApiCollection is already exists."
 
+  val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
+  val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
+  val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."
+  val DeleteFeaturedApiCollectionError = "OBP-30403: Could not delete FeaturedApiCollection."
+  val FeaturedApiCollectionAlreadyExists = "OBP-30404: The ApiCollection is already featured."
+
   val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
 
   val InvalidAuthContextUpdateRequestKey = "OBP-30088: Invalid Auth Context Update Request Key."

@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.Glossary
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, RateLimitingUtil}
+import code.api.util.{APIUtil, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -23,19 +23,22 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_1_0.{JSONFactory310, PostCustomerNumberJsonV310}
-import code.api.v4_0_0.CallLimitPostJsonV400
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CallLimitPostJsonV400}
 import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson}
-import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createCallLimitJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.{AbacRuleJsonV600, AbacRuleResultJsonV600, AbacRulesJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CreateAbacRuleJsonV600, CreateDynamicEntityRequestJsonV600, CurrentConsumerJsonV600, DynamicEntityDefinitionJsonV600, DynamicEntityDefinitionWithCountJsonV600, DynamicEntitiesWithCountJsonV600, DynamicEntityLinksJsonV600, ExecuteAbacRuleJsonV600, GetOidcClientResponseJsonV600, InMemoryCacheStatusJsonV600, MyDynamicEntitiesJsonV600, PopularApisJsonV600, PostVerifyUserCredentialsJsonV600, RedisCacheStatusJsonV600, RelatedLinkJsonV600, UpdateAbacRuleJsonV600, UpdateDynamicEntityRequestJsonV600, VerifyOidcClientRequestJsonV600, VerifyOidcClientResponseJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.APIMetrics
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
+import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model._
@@ -851,6 +854,239 @@ trait APIMethods600 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getStoredProcedureConnectorHealth,
+      implementedInApiVersion,
+      nameOf(getStoredProcedureConnectorHealth),
+      "GET",
+      "/system/connectors/stored_procedure_vDec2019/health",
+      "Get Stored Procedure Connector Health",
+      """Returns health status of the stored procedure connector including:
+        |
+        |- Connection status (ok/error)
+        |- Database server name: identifies which backend node handled the request (useful for load balancer diagnostics)
+        |- Server IP address
+        |- Database name
+        |- Response time in milliseconds
+        |- Error message (if any)
+        |
+        |Supports database-specific queries for: SQL Server, PostgreSQL, Oracle, and MySQL/MariaDB.
+        |
+        |This endpoint is useful for diagnosing connectivity issues, especially when the database is behind a load balancer
+        |and you need to identify which node is responding or experiencing SSL certificate issues.
+        |
+        |Note: This endpoint may take a long time to respond if the database connection is slow or experiencing issues.
+        |The response time depends on the connection pool timeout and JDBC driver settings.
+        |
+        |Authentication is Required
+        |""",
+      EmptyBody,
+      StoredProcedureConnectorHealthJsonV600(
+        status = "ok",
+        server_name = Some("DBSERVER01"),
+        server_ip = Some("10.0.1.50"),
+        database_name = Some("obp_adapter"),
+        response_time_ms = 45,
+        error_message = None
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagConnector, apiTagSystem, apiTagApi),
+      Some(List(canGetConnectorHealth))
+    )
+
+    lazy val getStoredProcedureConnectorHealth: OBPEndpoint = {
+      case "system" :: "connectors" :: "stored_procedure_vDec2019" :: "health" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConnectorHealth, callContext)
+          } yield {
+            val health = StoredProcedureUtils.getHealth()
+            val result = StoredProcedureConnectorHealthJsonV600(
+              status = health.status,
+              server_name = health.serverName,
+              server_ip = health.serverIp,
+              database_name = health.databaseName,
+              response_time_ms = health.responseTimeMs,
+              error_message = health.errorMessage
+            )
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBanks,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |- bank_id used as parameter in URLs
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |
+        |User Authentication is Optional. The User need not be logged in.
+        |""",
+      EmptyBody,
+      BanksJsonV600(List(BankJsonV600(
+        bank_id = "gh.29.uk",
+        bank_code = "bank_code",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ))),
+      List(UnknownError),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBanks: OBPEndpoint = {
+      case "banks" :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+        } yield {
+          (JSONFactory600.createBanksJsonV600(banks), HttpCode.`200`(callContext))
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |- bank_id: The unique identifier of this bank
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |""",
+      EmptyBody,
+      BankJsonV600(
+        bank_id = "gh.29.uk",
+        bank_code = "bank_code",
+        full_name = "full_name",
+        logo = "logo",
+        website = "www.openbankproject.com",
+        bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+        attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+      ),
+      List(UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil
+    )
+
+    lazy val getBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+          (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+        } yield {
+          (JSONFactory600.createBankJsonV600(bank, attributes), HttpCode.`200`(callContext))
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getTransactionsForBankAccount,
+      implementedInApiVersion,
+      nameOf(getTransactionsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
+      "Get Transactions for Account (Full)",
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |Authentication is required if the view is not public.
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |**Note:** This v6.0.0 endpoint returns `bank_id` directly in both `this_account` and `other_account` objects,
+        |making it easier to identify which bank each account belongs to without parsing the `bank_routing` object.
+        |
+        |""",
+      EmptyBody,
+      TransactionsJsonV600(List(TransactionJsonV600(
+        transaction_id = "123",
+        this_account = ThisAccountJsonV600(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+          bank_routing = BankRoutingJsonV121("OBP", "gh.29.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+          holders = List(AccountHolderJSON("John Doe", false))
+        ),
+        other_account = OtherAccountJsonV600(
+          bank_id = "other.bank.uk",
+          account_id = "counterparty-123",
+          holder = AccountHolderJSON("Jane Smith", false),
+          bank_routing = BankRoutingJsonV121("OBP", "other.bank.uk"),
+          account_routings = List(AccountRoutingJsonV121("OBP", "counterparty-123")),
+          metadata = otherAccountMetadataJSON
+        ),
+        details = TransactionDetailsJSON(
+          `type` = "SEPA",
+          description = "Payment for services",
+          posted = new java.util.Date(),
+          completed = new java.util.Date(),
+          new_balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+          value = AmountOfMoneyJsonV121("EUR", "100.00")
+        ),
+        metadata = transactionMetadataJSON,
+        transaction_attributes = Nil
+      ))),
+      List(
+        FilterSortDirectionError,
+        FilterOffersetError,
+        FilterLimitError,
+        FilterDateFormatError,
+        AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagAccount)
+    )
+
+    lazy val getTransactionsForBankAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (user, callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
+            (params, callContext) <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders, callContext)
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, callContext, params) map {
+              connectorEmptyResponse(_, callContext)
+            }
+            moderatedTransactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
+              NewStyle.function.getTransactionAttributes(
+                bankId,
+                transaction.id,
+                cc.callContext: Option[CallContext]).map(attributes => code.api.v3_0_0.ModeratedTransactionWithAttributes(transaction, attributes._1))
+            ))
+          } yield {
+            (JSONFactory600.createTransactionsJsonV600(moderatedTransactionsWithAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     lazy val getCurrentConsumer: OBPEndpoint = {
       case "consumers" :: "current" :: Nil JsonGet _ => {
         cc => {
@@ -1578,8 +1814,9 @@ trait APIMethods600 {
               json.extract[PostBankJson600]
             }
 
+            // TODO: Improve this error message to not hardcode "16" - should reference the max length from checkOptionalShortString function
             checkShortStringValue = APIUtil.checkOptionalShortString(postJson.bank_id)
-            _ <- Helper.booleanToFuture(failMsg = s"$checkShortStringValue.", cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID: $checkShortStringValue BANK_ID must contain only characters A-Z, a-z, 0-9, -, _, . and be max 16 characters.", cc = cc.callContext) {
               checkShortStringValue == SILENCE_IS_GOLDEN
             }
 
@@ -1800,18 +2037,18 @@ trait APIMethods600 {
       ListResult(
         "scanned_api_versions",
         List(
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.2.1", fully_qualified_version = "OBPv1.2.1", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.3.0", fully_qualified_version = "OBPv1.3.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v1.4.0", fully_qualified_version = "OBPv1.4.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.0.0", fully_qualified_version = "OBPv2.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.1.0", fully_qualified_version = "OBPv2.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v2.2.0", fully_qualified_version = "OBPv2.2.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.0.0", fully_qualified_version = "OBPv3.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v3.1.0", fully_qualified_version = "OBPv3.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v4.0.0", fully_qualified_version = "OBPv4.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.0.0", fully_qualified_version = "OBPv5.0.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v5.1.0", fully_qualified_version = "OBPv5.1.0", is_active = true),
-          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = "v6.0.0", fully_qualified_version = "OBPv6.0.0", is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_2_1.toString, fully_qualified_version = ApiVersion.v1_2_1.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_3_0.toString, fully_qualified_version = ApiVersion.v1_3_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_4_0.toString, fully_qualified_version = ApiVersion.v1_4_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_0_0.toString, fully_qualified_version = ApiVersion.v2_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_1_0.toString, fully_qualified_version = ApiVersion.v2_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_2_0.toString, fully_qualified_version = ApiVersion.v2_2_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_0_0.toString, fully_qualified_version = ApiVersion.v3_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_1_0.toString, fully_qualified_version = ApiVersion.v3_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v4_0_0.toString, fully_qualified_version = ApiVersion.v4_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_0_0.toString, fully_qualified_version = ApiVersion.v5_0_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_1_0.toString, fully_qualified_version = ApiVersion.v5_1_0.fullyQualifiedVersion, is_active = true),
+          ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v6_0_0.toString, fully_qualified_version = ApiVersion.v6_0_0.fullyQualifiedVersion, is_active = true),
           ScannedApiVersionJsonV600(url_prefix = "berlin-group", api_standard = "BG", api_short_version = "v1.3", fully_qualified_version = "BGv1.3", is_active = false)
         )
       ),
@@ -4289,7 +4526,7 @@ trait APIMethods600 {
     lazy val getWebUiProp: OBPEndpoint = {
       case "webui-props" :: webUiPropName :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          logger.info(s"========== GET /obp/v6.0.0/webui-props/$webUiPropName (SINGLE PROP) called ==========")
+          logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props/$webUiPropName (SINGLE PROP) called ==========")
           val active = ObpS.param("active").getOrElse("false")
           for {
             invalidMsg <- Future(s"""$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: ${active} """)
@@ -4391,7 +4628,7 @@ trait APIMethods600 {
       case "webui-props":: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           val what = ObpS.param("what").getOrElse("active")
-          logger.info(s"========== GET /obp/v6.0.0/webui-props (ALL PROPS) called with what=$what ==========")
+          logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props (ALL PROPS) called with what=$what ==========")
           for {
             callContext <- Future.successful(cc.callContext)
             _ <- NewStyle.function.tryons(s"""$InvalidFilterParameterFormat `what` must be one of: active, database, config. Current value: $what""", 400, callContext) {
@@ -4417,11 +4654,11 @@ trait APIMethods600 {
                 explicitWebUiPropsWithSource ++ configPropsNotInDatabase
             }
           } yield {
-            logger.info(s"========== GET /obp/v6.0.0/webui-props returning ${result.size} records ==========")
+            logger.info(s"========== GET /obp/${ApiVersion.v6_0_0}/webui-props returning ${result.size} records ==========")
             result.foreach { prop =>
               logger.info(s"  - name: ${prop.name}, value: ${prop.value}, webUiPropsId: ${prop.webUiPropsId}")
             }
-            logger.info(s"========== END GET /obp/v6.0.0/webui-props ==========")
+            logger.info(s"========== END GET /obp/${ApiVersion.v6_0_0}/webui-props ==========")
             (ListResult("webui_props", result), HttpCode.`200`(callContext))
           }
       }
@@ -6983,11 +7220,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )
@@ -7047,11 +7284,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", "/obp/v6.0.0/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", "/obp/v6.0.0/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", "/obp/v6.0.0/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )
@@ -7081,6 +7318,452 @@ trait APIMethods600 {
             HttpCode.`200`(cc.callContext)
           )
         }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      verifyUserCredentials,
+      implementedInApiVersion,
+      nameOf(verifyUserCredentials),
+      "POST",
+      "/users/verify-credentials",
+      "Verify User Credentials",
+      s"""Verify a user's credentials (username, password, provider) and return user information if valid.
+         |
+         |This endpoint validates the provided credentials without creating a token or session.
+         |It can be used to verify user credentials in external systems.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""",
+      PostVerifyUserCredentialsJsonV600(
+        username = "username",
+        password = "password",
+        provider = Constant.localIdentityProvider
+      ),
+      userJsonV200,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        InvalidLoginCredentials,
+        UsernameHasBeenLocked,
+        UnknownError
+      ),
+      List(apiTagUser),
+      Some(List(canVerifyUserCredentials))
+    )
+
+    lazy val verifyUserCredentials: OBPEndpoint = {
+      case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
+              json.extract[PostVerifyUserCredentialsJsonV600]
+            }
+            // Validate credentials using the existing AuthUser mechanism
+            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+            // Check if account is locked
+            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
+              resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+            }
+            // Check if credentials are valid
+            resourceUserId <- Future {
+              resourceUserIdBox
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+            }
+            // Get the user object
+            user <- Future {
+              Users.users.vend.getUserByResourceUserId(resourceUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+            }
+            // Verify provider matches if specified and not empty
+            _ <- Helper.booleanToFuture(InvalidLoginCredentials, 401, callContext) {
+              postedData.provider.isEmpty || user.provider == postedData.provider
+            }
+          } yield {
+            (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      verifyOidcClient,
+      implementedInApiVersion,
+      nameOf(verifyOidcClient),
+      "POST",
+      "/oidc/clients/verify",
+      "Verify OIDC Client",
+      s"""Verifies an OIDC/OAuth2 client's credentials.
+         |
+         |Returns `valid: true` if the client_id and client_secret match an active consumer.
+         |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      VerifyOidcClientRequestJsonV600(
+        client_id = "abc123def456",
+        client_secret = "supersecret123"
+      ),
+      VerifyOidcClientResponseJsonV600(
+        valid = true,
+        client_id = Some("abc123def456"),
+        consumer_id = Some("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"),
+        redirect_uris = Some(List("https://app.example.com/callback"))
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canVerifyOidcClient))
+    )
+
+    lazy val verifyOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: "verify" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
+              json.extract[VerifyOidcClientRequestJsonV600]
+            }
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id)
+            }
+          } yield {
+            consumerBox match {
+              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL.get)
+                  .filter(_.nonEmpty)
+                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                (VerifyOidcClientResponseJsonV600(
+                  valid = true,
+                  client_id = Some(postedData.client_id),
+                  consumer_id = Some(consumer.consumerId.get),
+                  redirect_uris = redirectUris
+                ), HttpCode.`200`(callContext))
+              case _ =>
+                (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
+            }
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getOidcClient,
+      implementedInApiVersion,
+      nameOf(getOidcClient),
+      "GET",
+      "/oidc/clients/CLIENT_ID",
+      "Get OIDC Client",
+      s"""Gets an OIDC/OAuth2 client's metadata by client_id.
+         |
+         |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      EmptyBody,
+      GetOidcClientResponseJsonV600(
+        client_id = "abc123def456",
+        client_name = "My Application",
+        consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+        redirect_uris = List("https://app.example.com/callback"),
+        enabled = true
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
+      Some(List(canGetOidcClient))
+    )
+
+    lazy val getOidcClient: OBPEndpoint = {
+      case "oidc" :: "clients" :: clientId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
+            consumerBox <- Future {
+              Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
+            }
+            consumer <- NewStyle.function.tryons(s"OBP-OIDC-003: Client not found: $clientId", 404, callContext) {
+              consumerBox match {
+                case Full(c) => c
+                case _ => throw new RuntimeException("Client not found")
+              }
+            }
+          } yield {
+            val redirectUris = Option(consumer.redirectURL.get)
+              .filter(_.nonEmpty)
+              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+              .getOrElse(List.empty)
+            (GetOidcClientResponseJsonV600(
+              client_id = clientId,
+              client_name = consumer.name.get,
+              consumer_id = consumer.consumerId.get,
+              redirect_uris = redirectUris,
+              enabled = consumer.isActive.get
+            ), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // Featured API Collections Management Endpoints
+
+    staticResourceDocs += ResourceDoc(
+      createFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(createFeaturedApiCollection),
+      "POST",
+      "/management/api-collections/featured",
+      "Create Featured Api Collection",
+      s"""Add an API Collection to the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      postFeaturedApiCollectionJsonV600,
+      featuredApiCollectionJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiCollectionNotFound,
+        FeaturedApiCollectionAlreadyExists,
+        CreateFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val createFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostFeaturedApiCollectionJsonV600", 400, callContext) {
+              json.extract[PostFeaturedApiCollectionJsonV600]
+            }
+            // Verify the API Collection exists and is sharable
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(postJson.api_collection_id, callContext)
+            _ <- Helper.booleanToFuture(s"$ApiCollectionNotFound The API Collection must be sharable to be featured.", cc=callContext) {
+              apiCollection.isSharable
+            }
+            // Check it's not already featured
+            _ <- NewStyle.function.checkFeaturedApiCollectionDoesNotExist(postJson.api_collection_id, callContext)
+            // Create the featured entry
+            (featuredApiCollection, callContext) <- NewStyle.function.createFeaturedApiCollection(
+              postJson.api_collection_id,
+              postJson.sort_order,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionJsonV600(featuredApiCollection), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getFeaturedApiCollectionsAdmin,
+      implementedInApiVersion,
+      nameOf(getFeaturedApiCollectionsAdmin),
+      "GET",
+      "/management/api-collections/featured",
+      "Get Featured Api Collections (Admin)",
+      s"""Get all featured API collections with their sort order (admin view).
+         |
+         |This endpoint returns the featured collections stored in the database with their sort order.
+         |It is intended for administrators to manage the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      featuredApiCollectionsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val getFeaturedApiCollectionsAdmin: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            (featuredApiCollections, callContext) <- NewStyle.function.getAllFeaturedApiCollectionsAdmin(callContext)
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionsJsonV600(featuredApiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(updateFeaturedApiCollection),
+      "PUT",
+      "/management/api-collections/featured/API_COLLECTION_ID",
+      "Update Featured Api Collection",
+      s"""Update the sort order of a featured API collection.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      putFeaturedApiCollectionJsonV600,
+      featuredApiCollectionJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        FeaturedApiCollectionNotFound,
+        UpdateFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val updateFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: apiCollectionId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutFeaturedApiCollectionJsonV600", 400, callContext) {
+              json.extract[PutFeaturedApiCollectionJsonV600]
+            }
+            (updatedFeaturedApiCollection, callContext) <- NewStyle.function.updateFeaturedApiCollection(
+              apiCollectionId,
+              putJson.sort_order,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createFeaturedApiCollectionJsonV600(updatedFeaturedApiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteFeaturedApiCollection,
+      implementedInApiVersion,
+      nameOf(deleteFeaturedApiCollection),
+      "DELETE",
+      "/management/api-collections/featured/API_COLLECTION_ID",
+      "Delete Featured Api Collection",
+      s"""Remove an API Collection from the featured list.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        FeaturedApiCollectionNotFound,
+        DeleteFeaturedApiCollectionError,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagApi),
+      Some(List(canManageFeaturedApiCollections))
+    )
+
+    lazy val deleteFeaturedApiCollection: OBPEndpoint = {
+      case "management" :: "api-collections" :: "featured" :: apiCollectionId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canManageFeaturedApiCollections, callContext)
+            (_, callContext) <- NewStyle.function.deleteFeaturedApiCollectionByApiCollectionId(apiCollectionId, callContext)
+          } yield {
+            (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getPopularApis,
+      implementedInApiVersion,
+      nameOf(getPopularApis),
+      "GET",
+      "/api/popular-endpoints",
+      "Get Popular Endpoints",
+      s"""Returns the operation IDs of the 50 most popular endpoints based on usage metrics.
+         |
+         |This endpoint is public and does not require authentication.
+         |
+         |The response contains a simple list of operation_id strings, ordered by popularity (most called first).
+         |
+         |This includes endpoints from all API standards: OBP, Berlin Group, UK Open Banking, STET, Polish API, etc.
+         |
+         |Example operation_id formats:
+         |* OBP: OBPv4.0.0-getBanks
+         |* Berlin Group: BGv1.3-getAccountList
+         |* UK Open Banking: UKv3.1-getAccounts
+         |
+         |""".stripMargin,
+      EmptyBody,
+      PopularApisJsonV600(
+        operation_ids = List(
+          "OBPv4.0.0-getBanks",
+          "OBPv4.0.0-getBank",
+          "BGv1.3-getAccountList"
+        )
+      ),
+      List(
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi)
+    )
+
+    lazy val getPopularApis: OBPEndpoint = {
+      case "api" :: "popular-endpoints" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            // Get top 50 APIs - use default date range (all time) with limit of 50
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            // Add limit=50 to the query params
+            limitParams = List(OBPLimit(50))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            queryParamsWithLimit = obpQueryParams ++ limitParams
+            topApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(queryParamsWithLimit) map {
+              unboxFullOrFail(_, callContext, UnknownError)
+            }
+          } yield {
+            // Build lookup map from (partialFunctionName, shortVersion) -> operationId
+            // This handles OBP, Berlin Group, UK Open Banking, and other standards correctly
+            val allDocs = APIUtil.getAllResourceDocs
+            val lookupMap: Map[(String, String), String] = allDocs.map { doc =>
+              // Extract short version (e.g., "v4.0.0" from "OBPv4.0.0" or "v1.3" from "BGv1.3")
+              val shortVersion = doc.implementedInApiVersion.toString
+              (doc.partialFunctionName, shortVersion) -> doc.operationId
+            }.toMap
+
+            // Convert TopApi to operation_id, looking up correct format for each standard
+            val operationIds = topApis.flatMap { api =>
+              lookupMap.get((api.ImplementedByPartialFunction, api.implementedInVersion))
+            }
+            (PopularApisJsonV600(operationIds), HttpCode.`200`(callContext))
+          }
       }
     }
 

@@ -49,6 +49,112 @@ object StoredProcedureUtils extends MdcLoggable{
   }
 
 
+  /**
+   * Health check case class for stored procedure connector
+   */
+  case class StoredProcedureConnectorHealth(
+    status: String,
+    serverName: Option[String],
+    serverIp: Option[String],
+    databaseName: Option[String],
+    responseTimeMs: Long,
+    errorMessage: Option[String]
+  )
+
+  /**
+   * Perform a health check on the stored procedure connector.
+   * Executes a database-specific query to verify connectivity and identify the backend node.
+   * Supports: SQL Server, PostgreSQL, Oracle, and MySQL.
+   */
+  def getHealth(): StoredProcedureConnectorHealth = {
+    val startTime = System.currentTimeMillis()
+    try {
+      val (serverName, serverIp, databaseName) = scalikeDB readOnly { implicit session =>
+        val driver = APIUtil.getPropsValue("stored_procedure_connector.driver", "")
+
+        if (driver.contains("sqlserver")) {
+          // Microsoft SQL Server
+          val result = sql"""
+            SELECT
+              @@SERVERNAME AS server_name,
+              CAST(CONNECTIONPROPERTY('local_net_address') AS VARCHAR(50)) AS server_ip,
+              DB_NAME() AS database_name
+          """.map(rs => (
+            Option(rs.string("server_name")),
+            Option(rs.string("server_ip")),
+            Option(rs.string("database_name"))
+          )).single.apply()
+          result.getOrElse((None, None, None))
+        } else if (driver.contains("postgresql")) {
+          // PostgreSQL
+          val result = sql"""
+            SELECT
+              inet_server_addr()::text AS server_ip,
+              current_database() AS database_name,
+              (SELECT setting FROM pg_settings WHERE name = 'cluster_name') AS server_name
+          """.map(rs => (
+            rs.stringOpt("server_name"),
+            rs.stringOpt("server_ip"),
+            rs.stringOpt("database_name")
+          )).single.apply()
+          result.getOrElse((None, None, None))
+        } else if (driver.contains("oracle")) {
+          // Oracle
+          val result = sql"""
+            SELECT
+              SYS_CONTEXT('USERENV', 'SERVER_HOST') AS server_name,
+              SYS_CONTEXT('USERENV', 'IP_ADDRESS') AS server_ip,
+              SYS_CONTEXT('USERENV', 'DB_NAME') AS database_name
+            FROM DUAL
+          """.map(rs => (
+            Option(rs.string("server_name")),
+            Option(rs.string("server_ip")),
+            Option(rs.string("database_name"))
+          )).single.apply()
+          result.getOrElse((None, None, None))
+        } else if (driver.contains("mysql") || driver.contains("mariadb")) {
+          // MySQL / MariaDB
+          val result = sql"""
+            SELECT
+              @@hostname AS server_name,
+              @@bind_address AS server_ip,
+              DATABASE() AS database_name
+          """.map(rs => (
+            Option(rs.string("server_name")),
+            Option(rs.string("server_ip")),
+            Option(rs.string("database_name"))
+          )).single.apply()
+          result.getOrElse((None, None, None))
+        } else {
+          // Generic fallback - just test connectivity
+          sql"SELECT 1".map(_ => ()).single.apply()
+          (None, None, None)
+        }
+      }
+      val responseTime = System.currentTimeMillis() - startTime
+      StoredProcedureConnectorHealth(
+        status = "ok",
+        serverName = serverName,
+        serverIp = serverIp,
+        databaseName = databaseName,
+        responseTimeMs = responseTime,
+        errorMessage = None
+      )
+    } catch {
+      case e: Exception =>
+        val responseTime = System.currentTimeMillis() - startTime
+        logger.error(s"Stored procedure connector health check failed: ${e.getMessage}", e)
+        StoredProcedureConnectorHealth(
+          status = "error",
+          serverName = None,
+          serverIp = None,
+          databaseName = None,
+          responseTimeMs = responseTime,
+          errorMessage = Some(e.getMessage)
+        )
+    }
+  }
+
   def callProcedure[T: Manifest](procedureName: String, outBound: TopicTrait): Box[T] = {
     val procedureParam: String = write(outBound) // convert OutBound to json string
     logger.debug(s"${StoredProcedureConnector_vDec2019.toString} outBoundJson: $procedureName = $procedureParam" )

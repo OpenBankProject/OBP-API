@@ -1796,7 +1796,8 @@ object SwaggerDefinitionsJSON {
 
   lazy val implementedByJson = ImplementedByJson(
     version = "1_4_0",
-    function = "getBranches"
+    function = "getBranches",
+    technology = None
   )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   lazy val canCreateCustomerSwagger = CanCreateCustomer()
@@ -4018,7 +4019,7 @@ object SwaggerDefinitionsJSON {
   lazy val topApiJson = TopApiJson(
     count = 7076,
     Implemented_by_partial_function = "getBanks",
-    implemented_in_version = "v1.2.1"
+    implemented_in_version = ApiVersion.v1_2_1.toString
   )
   
   lazy val topApisJson = TopApisJson(List(topApiJson))
@@ -4129,7 +4130,7 @@ object SwaggerDefinitionsJSON {
   lazy val callLimitPostJsonV600 = CallLimitPostJsonV600(
     from_date = DateWithDayExampleObject,
     to_date = DateWithDayExampleObject,
-    api_version = Some("v6.0.0"),
+    api_version = Some(ApiVersion.v6_0_0.toString),
     api_name = Some("getConsumerCallLimits"),
     bank_id = None,
     per_second_call_limit = "100",
@@ -4144,7 +4145,7 @@ object SwaggerDefinitionsJSON {
     rate_limiting_id = "80e1e0b2-d8bf-4f85-a579-e69ef36e3305",
     from_date = DateWithDayExampleObject,
     to_date = DateWithDayExampleObject,
-    api_version = Some("v6.0.0"),
+    api_version = Some(ApiVersion.v6_0_0.toString),
     api_name = Some("getConsumerCallLimits"),
     bank_id = None,
     per_second_call_limit = "100",
@@ -5128,7 +5129,7 @@ object SwaggerDefinitionsJSON {
     user_id = userIdExample.value,
     allowed_attempts =3,
     challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
-    link = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge"
+    link = s"/obp/${ApiVersion.v4_0_0}/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge"
   )
   lazy val transactionRequestWithChargeJSON400 = TransactionRequestWithChargeJSON400(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
@@ -5174,6 +5175,12 @@ object SwaggerDefinitionsJSON {
 
   lazy val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   lazy val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
+
+  // Featured API Collections (v6.0.0)
+  lazy val postFeaturedApiCollectionJsonV600 = PostFeaturedApiCollectionJsonV600(apiCollectionIdExample.value, 1)
+  lazy val putFeaturedApiCollectionJsonV600 = PutFeaturedApiCollectionJsonV600(1)
+  lazy val featuredApiCollectionJsonV600 = FeaturedApiCollectionJsonV600(featuredApiCollectionIdExample.value, apiCollectionIdExample.value, 1)
+  lazy val featuredApiCollectionsJsonV600 = FeaturedApiCollectionsJsonV600(List(featuredApiCollectionJsonV600))
 
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")

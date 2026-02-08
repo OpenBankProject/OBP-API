@@ -65,30 +65,56 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   }
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-    BankAccountRouting.create
-      .BankId(bankId.value)
-      .AccountId(accountId.value)
-      .AccountRoutingScheme(AccountRoutingScheme.IBAN.toString)
-      .AccountRoutingAddress(iban4j.Iban.random().toString())
-      .saveMe
-    BankAccountRouting.create
-      .BankId(bankId.value)
-      .AccountId(accountId.value)
-      .AccountRoutingScheme("AccountId")
-      .AccountRoutingAddress(accountId.value)
-      .saveMe
-    MappedBankAccount.create
-      .bank(bankId.value)
-      .theAccountId(accountId.value)
-      .accountCurrency(currency.toUpperCase)
-      .accountBalance(900000000)
-      .holder(randomString(4))
-      .accountLastUpdate(now)
-      .accountName(randomString(4))
-      .accountNumber(randomString(4))
-      .accountLabel(randomString(4))
-      .mBranchId(randomString(4))   
-      .saveMe
+    def getOrCreateRouting(scheme: String, address: String): Unit = {
+      val existing = BankAccountRouting.find(
+        By(BankAccountRouting.BankId, bankId.value),
+        By(BankAccountRouting.AccountId, accountId.value),
+        By(BankAccountRouting.AccountRoutingScheme, scheme)
+      )
+      if (!existing.isDefined) {
+        try {
+          BankAccountRouting.create
+            .BankId(bankId.value)
+            .AccountId(accountId.value)
+            .AccountRoutingScheme(scheme)
+            .AccountRoutingAddress(address)
+            .saveMe
+        } catch {
+          case _: Throwable =>
+        }
+      }
+      ()
+    }
+
+    getOrCreateRouting(AccountRoutingScheme.IBAN.toString, iban4j.Iban.random().toString())
+    getOrCreateRouting("AccountId", accountId.value)
+
+    val existingAccount = MappedBankAccount.find(
+      By(MappedBankAccount.bank, bankId.value),
+      By(MappedBankAccount.theAccountId, accountId.value)
+    )
+    existingAccount.openOr {
+      try {
+        MappedBankAccount.create
+          .bank(bankId.value)
+          .theAccountId(accountId.value)
+          .accountCurrency(currency.toUpperCase)
+          .accountBalance(900000000)
+          .holder(randomString(4))
+          .accountLastUpdate(now)
+          .accountName(randomString(4))
+          .accountNumber(randomString(4))
+          .accountLabel(randomString(4))
+          .mBranchId(randomString(4))
+          .saveMe
+      } catch {
+        case _: Throwable =>
+          MappedBankAccount.find(
+            By(MappedBankAccount.bank, bankId.value),
+            By(MappedBankAccount.theAccountId, accountId.value)
+          ).openOrThrowException(attemptedToOpenAnEmptyBox)
+      }
+    }
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {

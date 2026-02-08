@@ -207,16 +207,30 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
      */
     def valUniqueExternally(msg: => String)(uniqueUsername: String): List[FieldError] ={
       if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
-        Connector.connector.vend.checkExternalUserExists(uniqueUsername, None).map(_.sub) match {
+        logger.info(s"valUniqueExternally: calling checkExternalUserExists for username: $uniqueUsername")
+        val connectorResult = Connector.connector.vend.checkExternalUserExists(uniqueUsername, None)
+        logger.info(s"valUniqueExternally: checkExternalUserExists returned: ${connectorResult.getClass.getSimpleName}")
+        connectorResult.map(_.sub) match {
           case Full(returnedUsername) => // Get the username via connector
+            logger.info(s"valUniqueExternally: checkExternalUserExists returned username: $returnedUsername")
             if(uniqueUsername == returnedUsername) { // Username is NOT unique
+              logger.info(s"valUniqueExternally: username $uniqueUsername already exists externally")
               List(FieldError(this, Text(msg))) // provide the error message
-            } else { 
+            } else {
+              logger.info(s"valUniqueExternally: username $uniqueUsername is unique (returned different: $returnedUsername)")
               Nil // All good. Allow username creation
             }
           case ParamFailure(message,_,_,APIFailure(errorMessage, errorCode)) if errorMessage.contains("NO DATA") => // Cannot get the username via connector
+            logger.info(s"valUniqueExternally: checkExternalUserExists returned NO DATA for username: $uniqueUsername - allowing creation")
             Nil // All good. Allow username creation
+          case Failure(failureMsg, exception, chain) =>
+            logger.warn(s"valUniqueExternally: checkExternalUserExists failed for username: $uniqueUsername, message: $failureMsg, exception: ${exception.map(_.getMessage)}, chain: $chain")
+            List(FieldError(this, Text(msg)))
+          case Empty =>
+            logger.warn(s"valUniqueExternally: checkExternalUserExists returned Empty for username: $uniqueUsername")
+            List(FieldError(this, Text(msg)))
           case _ => // Any other case we provide error message
+            logger.warn(s"valUniqueExternally: checkExternalUserExists returned unexpected result for username: $uniqueUsername")
             List(FieldError(this, Text(msg)))
         }
       } else {
@@ -932,8 +946,12 @@ import net.liftweb.util.Helpers._
     * @return Return the authUser
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
-    Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
+    logger.info(s"checkExternalUserViaConnector: calling checkExternalUserCredentials for username: $username")
+    val connectorResult = Connector.connector.vend.checkExternalUserCredentials(username, password, None)
+    logger.info(s"checkExternalUserViaConnector: checkExternalUserCredentials returned: ${connectorResult.getClass.getSimpleName}")
+    connectorResult match {
       case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContexts)) =>
+        logger.info(s"checkExternalUserViaConnector: successful response for sub: $sub, iss: $iss, email: $email")
         val user = findAuthUserByUsernameAndProvider(sub, iss) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
@@ -969,7 +987,14 @@ import net.liftweb.util.Helpers._
           case None => // Do nothing
         }
         Full(user)
+      case Failure(msg, exception, chain) =>
+        logger.warn(s"checkExternalUserViaConnector: checkExternalUserCredentials failed for username: $username, message: $msg, exception: ${exception.map(_.getMessage)}, chain: $chain")
+        Empty
+      case Empty =>
+        logger.warn(s"checkExternalUserViaConnector: checkExternalUserCredentials returned Empty for username: $username")
+        Empty
       case _ =>
+        logger.warn(s"checkExternalUserViaConnector: checkExternalUserCredentials returned unexpected result for username: $username")
         Empty
     }
   }
