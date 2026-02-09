@@ -47,7 +47,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 object ApiCollector extends OBPRestHelper with MdcLoggable with ScannedApis {
   //please modify these three parameter if it is not correct.
-  override val apiVersion = ApiVersion.auOpenBankingV100
+  override val apiVersion = ApiVersion.cdsAuV100
   val versionStatus = ApiVersionStatus.DRAFT.toString
 
   private[this] val endpoints =

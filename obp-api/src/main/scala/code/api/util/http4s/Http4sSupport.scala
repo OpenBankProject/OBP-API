@@ -1,18 +1,13 @@
 package code.api.util.http4s
 
 import cats.effect._
-import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.ErrorMessages._
 import code.api.util.CallContext
-import com.openbankproject.commons.model.{Bank, BankAccount, BankId, AccountId, ViewId, BankIdAccountId, CounterpartyTrait, User, View}
-import net.liftweb.common.{Box, Empty, Full, Failure => LiftFailure}
+import com.openbankproject.commons.model.{Bank, User}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json.{Extraction, compactRender}
-import net.liftweb.json.JsonDSL._
 import org.http4s._
 import org.http4s.dsl.io._
-import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 import org.typelevel.vault.Key
 
@@ -91,88 +86,100 @@ object Http4sRequestAttributes {
    * - Ok response creation
    */
   object EndpointHelpers {
-    import net.liftweb.json.{Extraction, Formats}
     import net.liftweb.json.JsonAST.prettyRender
-    
+    import net.liftweb.json.{Extraction, Formats}
+
+    private def toJsonOk[A](result: A)(implicit formats: Formats): IO[Response[IO]] = {
+      val jsonString = prettyRender(Extraction.decompose(result))
+      Ok(jsonString)
+    }
+
     /**
      * Execute Future-based business logic and return JSON response.
-     * 
-     * Handles: Future execution, JSON conversion, Ok response.
-     * 
-     * @param req http4s request
-     * @param f Business logic: CallContext => Future[A]
-     * @return IO[Response[IO]] with JSON body
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
     def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      for {
-        attempted <- IO.fromFuture(IO(f(cc))).attempt
-        response <- attempted match {
-          case Right(result) =>
-            val jsonString = prettyRender(Extraction.decompose(result))
-            Ok(jsonString)
-          case Left(error) =>
-            ErrorResponseConverter.toHttp4sResponse(error, cc)
-        }
-      } yield response
+      IO.fromFuture(IO(f(cc))).attempt.flatMap {
+        case Right(result) => toJsonOk(result)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
     }
     
     /**
      * Execute business logic requiring validated User.
-     * 
-     * Extracts User from CallContext, executes logic, returns JSON response.
-     * 
-     * @param req http4s request
-     * @param f Business logic: (User, CallContext) => Future[A]
-     * @return IO[Response[IO]] with JSON body
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
     def withUser[A](req: Request[IO])(f: (User, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      for {
+      val io = for {
         user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         result <- IO.fromFuture(IO(f(user, cc)))
-        jsonString = prettyRender(Extraction.decompose(result))
-        response <- Ok(jsonString)
-      } yield response
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
     }
     
     /**
      * Execute business logic requiring validated Bank.
-     * 
-     * Extracts Bank from CallContext, executes logic, returns JSON response.
-     * 
-     * @param req http4s request
-     * @param f Business logic: (Bank, CallContext) => Future[A]
-     * @return IO[Response[IO]] with JSON body
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
     def withBank[A](req: Request[IO])(f: (Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      for {
+      val io = for {
         bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
         result <- IO.fromFuture(IO(f(bank, cc)))
-        jsonString = prettyRender(Extraction.decompose(result))
-        response <- Ok(jsonString)
-      } yield response
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
     }
     
     /**
      * Execute business logic requiring both User and Bank.
-     * 
-     * Extracts both from CallContext, executes logic, returns JSON response.
-     * 
-     * @param req http4s request
-     * @param f Business logic: (User, Bank, CallContext) => Future[A]
-     * @return IO[Response[IO]] with JSON body
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
     def withUserAndBank[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      for {
+      val io = for {
         user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
         result <- IO.fromFuture(IO(f(user, bank, cc)))
-        jsonString = prettyRender(Extraction.decompose(result))
-        response <- Ok(jsonString)
-      } yield response
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
+    }
+
+    /**
+     * Execute Future-based business logic with error handling.
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     * Takes a by-name Future (caller manages CallContext themselves).
+     */
+    def executeFuture[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f)).attempt.flatMap {
+        case Right(result) => toJsonOk(result)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
+    }
+
+    /**
+     * Execute Future-based business logic with error handling.
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureCreated[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f)).attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString)
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+      }
     }
   }
 }
@@ -348,10 +355,14 @@ object ResourceDocMatcher {
     resourceDocs: ArrayBuffer[ResourceDoc]
   ): Option[ResourceDoc] = {
     val pathString = path.renderString
+    // Extract API version from path (e.g., "v5.0.0" from "/obp/v5.0.0/banks")
+    val apiVersion = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
     // Strip the API prefix (/obp/vX.X.X) from the path for matching
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
     resourceDocs.find { doc =>
-      doc.requestVerb.equalsIgnoreCase(verb) && matchesUrlTemplate(strippedPath, doc.requestUrl)
+      doc.requestVerb.equalsIgnoreCase(verb) && 
+      doc.implementedInApiVersion.toString == apiVersion &&
+      matchesUrlTemplate(strippedPath, doc.requestUrl)
     }
   }
   

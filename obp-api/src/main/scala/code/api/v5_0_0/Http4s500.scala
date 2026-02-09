@@ -1,0 +1,428 @@
+package code.api.v5_0_0
+
+import cats.data.{Kleisli, OptionT}
+import cats.effect._
+import code.api.Constant._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, getProductsIsPublic}
+import code.api.util.ApiTag._
+import code.api.util.ErrorMessages._
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.http4s.{ResourceDocMiddleware}
+import code.api.util.{CustomJsonFormats, NewStyle}
+import code.api.util.newstyle.ViewNewStyle
+import code.api.util.ApiRole._
+import code.api.v4_0_0.JSONFactory400
+import code.api.v5_0_0.{CreateViewJsonV500, JSONFactory500, UpdateViewJsonV500}
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
+import com.openbankproject.commons.model.{BankId, ProductCode, ViewId}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import net.liftweb.json.JsonAST.prettyRender
+import net.liftweb.json.{Extraction, Formats}
+import org.http4s._
+import org.http4s.dsl.io._
+import org.typelevel.ci.CIString
+import scala.collection.mutable.ArrayBuffer
+import scala.language.{higherKinds, implicitConversions}
+
+object Http4s500 {
+
+  type HttpF[A] = OptionT[IO, A]
+
+  implicit val formats: Formats = CustomJsonFormats.formats
+  implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
+
+  val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_0_0
+  val versionStatus: String = ApiVersionStatus.STABLE.toString
+  val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
+
+  object Implementations5_0_0 {
+
+    val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(root),
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
+      List(
+        UnknownError,
+        MandatoryPropertyIsNotSet
+      ),
+      apiTagApi :: Nil,
+      http4sPartialFunction = Some(root)
+    )
+
+    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "root" =>
+        val responseJson = convertAnyToJsonString(
+          JSONFactory400.getApiInfoJSON(OBPAPI5_0_0.version, OBPAPI5_0_0.versionStatus)
+        )
+        Ok(responseJson)
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |* ID used as parameter in URLs
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      EmptyBody,
+      banksJSON,
+      List(
+        UnknownError
+      ),
+      apiTagBank :: Nil,
+      http4sPartialFunction = Some(getBanks)
+    )
+
+    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+          } yield JSONFactory400.createBanksJson(banks)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Bank code and full name of bank
+        |* Logo URL
+        |* Website""",
+      EmptyBody,
+      bankJson500,
+      List(
+        UnknownError,
+        BankNotFound
+      ),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      http4sPartialFunction = Some(getBank)
+    )
+
+    val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId =>
+        EndpointHelpers.withBank(req) { (bank, cc) =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(BankId(bankId), Some(cc))
+          } yield JSONFactory500.createBankJSON500(bank, attributes)
+        }
+    }
+
+    private val productsAuthErrorBodies =
+      if (getProductsIsPublic) List(BankNotFound, UnknownError)
+      else List(AuthenticatedUserIsRequired, BankNotFound, UnknownError)
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getProducts),
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Get products offered by the bank specified by BANK_ID.
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productsJsonV400,
+      productsAuthErrorBodies,
+      List(apiTagProduct),
+      http4sPartialFunction = Some(getProducts)
+    )
+
+    val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "products" =>
+        EndpointHelpers.executeFuture(req) {
+          val cc = req.callContext
+          val params = req.uri.query.multiParams.toList.map { case (k, vs) =>
+            GetProductsParam(k, vs.toList)
+          }
+          for {
+            (products, callContext) <- NewStyle.function.getProducts(BankId(bankId), params, Some(cc))
+          } yield JSONFactory400.createProductsJson(products)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE.
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productJsonV400,
+      productsAuthErrorBodies ::: List(ProductNotFoundByProductCode),
+      List(apiTagProduct),
+      http4sPartialFunction = Some(getProduct)
+    )
+
+    val getProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "products" / productCode =>
+        EndpointHelpers.executeFuture(req) {
+          val cc = req.callContext
+          val bankIdObj = BankId(bankId)
+          val productCodeObj = ProductCode(productCode)
+          for {
+            (product, callContext) <- NewStyle.function.getProduct(bankIdObj, productCodeObj, Some(cc))
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankIdObj, productCodeObj, callContext)
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(bankIdObj, productCodeObj, callContext)
+          } yield JSONFactory400.createProductJson(product, productAttributes, productFees)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View",
+      s"""Create a system view
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanCreateSystemView entitlement.
+         |
+         |The 'allowed_actions' field is a list containing the names of the actions allowed through this view.
+         |All the actions contained in the list will be set to `true` on the view creation, the rest will be set to `false`.
+         |
+         |System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+         |""",
+      createSystemViewJsonV500,
+      viewJsonV500,
+      List(
+        AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        SystemViewCannotBePublicError,
+        InvalidSystemViewFormat,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canCreateSystemView)),
+      http4sPartialFunction = Some(createSystemView)
+    )
+
+    val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "system-views" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc = req.callContext
+          val bodyString = cc.httpBody.getOrElse("")
+          for {
+            createViewJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the CreateViewJsonV500",
+              400,
+              Some(cc)
+            ) {
+              net.liftweb.json.parse(bodyString).extract[CreateViewJsonV500]
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              SystemViewCannotBePublicError,
+              failCode = 400,
+              cc = Some(cc)
+            )(createViewJson.is_public == false)
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidSystemViewFormat Current view_name (${createViewJson.name})",
+              cc = Some(cc)
+            )(code.api.util.APIUtil.isValidSystemViewName(createViewJson.name))
+            view <- ViewNewStyle.createSystemView(createViewJson.toCreateViewJson, Some(cc))
+          } yield JSONFactory500.createViewJsonV500(view)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getSystemView),
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)}
+         |""",
+      EmptyBody,
+      viewJsonV500,
+      List(
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canGetSystemView)),
+      http4sPartialFunction = Some(getSystemView)
+    )
+
+    val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system-views" / viewId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            view <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+          } yield JSONFactory500.createViewJsonV500(view)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View",
+      s"""Update an existing system view
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanUpdateSystemView entitlement.
+         |
+         |The json sent is the same as during view creation, with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateSystemViewJson500,
+      viewJsonV500,
+      List(
+        InvalidJsonFormat,
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        SystemViewCannotBePublicError,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canUpdateSystemView)),
+      http4sPartialFunction = Some(updateSystemView)
+    )
+
+    val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "system-views" / viewId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc = req.callContext
+          val bodyString = cc.httpBody.getOrElse("")
+          for {
+            updateJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV500",
+              400,
+              Some(cc)
+            ) {
+              net.liftweb.json.parse(bodyString).extract[UpdateViewJsonV500]
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              SystemViewCannotBePublicError,
+              failCode = 400,
+              cc = Some(cc)
+            )(updateJson.is_public == false)
+            _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, Some(cc))
+          } yield JSONFactory500.createViewJsonV500(updatedView)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteSystemView),
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      s"""Deletes the system view specified by VIEW_ID
+         |
+         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanDeleteSystemView entitlement.
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        AuthenticatedUserIsRequired,
+        SystemViewNotFound,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canDeleteSystemView)),
+      http4sPartialFunction = Some(deleteSystemView)
+    )
+
+    val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc = req.callContext
+          for {
+            _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
+            result <- ViewNewStyle.deleteSystemView(ViewId(viewId), Some(cc))
+          } yield result
+        }
+    }
+
+    val allRoutes: HttpRoutes[IO] =
+      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+        root(req)
+          .orElse(getBanks(req))
+          .orElse(getBank(req))
+          .orElse(getProducts(req))
+          .orElse(getProduct(req))
+          .orElse(createSystemView(req))
+          .orElse(getSystemView(req))
+          .orElse(updateSystemView(req))
+          .orElse(deleteSystemView(req))
+      }
+
+    val allRoutesWithMiddleware: HttpRoutes[IO] =
+      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+  }
+
+  val wrappedRoutesV500Services: HttpRoutes[IO] = Implementations5_0_0.allRoutesWithMiddleware
+  
+  // Wrap routes with JSON not-found handler for better error responses
+  val wrappedRoutesV500ServicesWithJsonNotFound: HttpRoutes[IO] = {
+    import code.api.util.APIUtil
+    import code.api.util.ErrorMessages
+    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      wrappedRoutesV500Services(req).orElse {
+        OptionT.liftF(IO.pure {
+          val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
+          Response[IO](status = Status.NotFound)
+            .withEntity(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).toResponse.data)
+            .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
+        })
+      }
+    }
+  }
+  
+  // Combined routes with bridge fallback for testing proxy parity
+  // This mimics the production server behavior where unimplemented endpoints fall back to Lift
+  val wrappedRoutesV500ServicesWithBridge: HttpRoutes[IO] = {
+    import code.api.util.http4s.Http4sLiftWebBridge
+    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      wrappedRoutesV500Services(req)
+        .orElse(Http4sLiftWebBridge.routes.run(req))
+    }
+  }
+}
