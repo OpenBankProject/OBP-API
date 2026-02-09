@@ -139,7 +139,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
         Then(s"we test the $ApiEndpoint6- OBPv400")
         val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
   
-        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv4.0.0-getBanks")
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv6.0.0-getBanks")
   
         val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
         Then("We should get a 201")
