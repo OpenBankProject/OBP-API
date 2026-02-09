@@ -41,18 +41,27 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.6.0</version>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
         <configuration>
-          <archive>
-            <manifest>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
               <mainClass>bootstrap.http4s.Http4sServer</mainClass>
-            </manifest>
-          </archive>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-          <appendAssemblyId>false</appendAssemblyId>
+            </transformer>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>reference.conf</resource>
+            </transformer>
+          </transformers>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+              </excludes>
+            </filter>
+          </filters>
           <finalName>obp-http4s-runner</finalName>
         </configuration>
         <executions>
@@ -60,7 +69,7 @@
             <id>make-fat-jar</id>
             <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>shade</goal>
             </goals>
           </execution>
         </executions>
