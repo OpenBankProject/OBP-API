@@ -377,7 +377,8 @@ case class MeetingCommons(
 
 object MeetingCommons extends Converter[Meeting, MeetingCommons]
 
-case class ProductCommons(bankId: BankId,
+case class ProductCommons(productId: String,
+                       bankId: BankId,
                        code : ProductCode,
                        parentProductCode : ProductCode,
                        name : String,

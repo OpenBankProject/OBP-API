@@ -5443,6 +5443,22 @@ object SwaggerDefinitionsJSON {
 
   lazy val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400.copy(attributes = None, fees = None)))
 
+  lazy val productJsonV600 = ProductJsonV600(
+    product_id = productIdExample.value,
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = moreInfoUrlExample.value,
+    terms_and_conditions_url = termsAndConditionsUrlExample.value,
+    description = descriptionExample.value,
+    meta = metaJson,
+    attributes = Some(List(productAttributeResponseJson)),
+    fees = Some(List(productFeeJsonV400))
+  )
+
+  lazy val productsJsonV600 = ProductsJsonV600(products = List(productJsonV600.copy(attributes = None, fees = None)))
+
   lazy val putProductJsonV400 = PutProductJsonV400(
     parent_product_code = parentProductCodeExample.value,
     name = productNameExample.value,

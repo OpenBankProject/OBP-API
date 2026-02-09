@@ -461,6 +461,7 @@ trait BerlinGroupTransactionRequestCommonBodyJson {
 }
 
 trait Product {
+  def productId: String
   def code : ProductCode
   def parentProductCode : ProductCode
   def bankId : BankId

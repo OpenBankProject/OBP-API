@@ -17,7 +17,7 @@ import code.api.util.APIUtil.stringOrNull
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, createMetaJson}
 import code.api.v2_0_0.{BasicViewJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{
@@ -27,9 +27,9 @@ import code.api.v3_0_0.{
   ViewJSON300,
   ViewsJSON300
 }
-import code.api.v3_1_0.{AccountAttributeResponseJson, RateLimit, RedisCallLimitJson}
-import code.api.v4_0_0.TransactionAttributeResponseJson
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, UserAgreementJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RateLimit, RedisCallLimitJson}
+import code.api.v3_1_0.JSONFactory310.createProductAttributesJson
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
 import code.entitlement.Entitlement
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
@@ -741,7 +741,68 @@ case class PopularApisJsonV600(
     operation_ids: List[String]
 )
 
+case class ProductJsonV600(
+  product_id: String,
+  bank_id: String,
+  product_code: String,
+  parent_product_code: String,
+  name: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  description: String,
+  meta: MetaJsonV140,
+  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
+  fees: Option[List[ProductFeeJsonV400]]
+)
+
+case class ProductsJsonV600(products: List[ProductJsonV600])
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
+
+  def createProductJson(product: Product) : ProductJsonV600 = {
+    ProductJsonV600(
+      product_id = product.productId,
+      bank_id = product.bankId.toString,
+      product_code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      None,
+      None
+    )
+  }
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV600 = {
+    ProductsJsonV600(productsList.map(createProductJson))
+  }
+
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees: List[ProductFeeTrait]) : ProductJsonV600 = {
+    ProductJsonV600(
+      product_id = product.productId,
+      bank_id = product.bankId.toString,
+      product_code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      attributes = Some(createProductAttributesJson(productAttributes)),
+      fees = Some(productFees.map(productFee => ProductFeeJsonV400(
+        product_fee_id = Some(productFee.productFeeId),
+        name = productFee.name,
+        is_active = productFee.isActive,
+        more_info = productFee.moreInfo,
+        value = ProductFeeValueJsonV400(
+          currency = productFee.currency,
+          amount = productFee.amount,
+          frequency = productFee.frequency,
+          `type` = productFee.`type`
+        ))))
+    )
+  }
 
   def createRedisCallCountersJson(
     // Convert list to map for easy lookup by period
