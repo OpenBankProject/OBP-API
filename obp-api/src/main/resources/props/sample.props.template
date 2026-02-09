@@ -1613,7 +1613,7 @@ ethereum.rpc.url=http://127.0.0.1:8545
 
 
 ##########################################################
-#                      Redis Logging                     #
+#                      Redis Logging  Log Cache          #
 ##########################################################
 ## Enable Redis logging (true/false)
 redis_logging_enabled = false

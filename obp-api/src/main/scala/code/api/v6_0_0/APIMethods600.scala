@@ -33,7 +33,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
-import code.metrics.APIMetrics
+import code.metrics.{APIMetrics, ConnectorCountsRedis}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
@@ -52,6 +52,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.UserAttributeType
@@ -8167,6 +8168,608 @@ trait APIMethods600 {
                 )
             }
             (PopularApisJsonV600(operationIds), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getConnectorCallCounts,
+      implementedInApiVersion,
+      nameOf(getConnectorCallCounts),
+      "GET",
+      "/management/connector/metrics/counts",
+      "Get Connector Call Counts",
+      s"""Returns per-hour Redis counters for connector outbound and inbound messages.
+         |
+         |This provides real-time visibility into which connector methods are being called
+         |and how many responses (success/failure) are being received.
+         |
+         |Counters automatically reset every hour (rolling window).
+         |The ttl_seconds field shows when the current hour window resets.
+         |
+         |Requires the props: write_connector_metrics_redis=true
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ConnectorCountsJsonV600(
+        connector_counts = List(
+          ConnectorCountJsonV600(
+            connector_name = "mapped",
+            method_name = "getBank",
+            per_hour_outbound_count = 152,
+            per_hour_inbound_success_count = 150,
+            per_hour_inbound_failure_count = 2,
+            ttl_seconds = 2847
+          )
+        )
+      ),
+      List(
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi),
+      Some(List(canReadMetrics))
+    )
+
+    lazy val getConnectorCallCounts: OBPEndpoint = {
+      case "management" :: "connector" :: "metrics" :: "counts" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canReadMetrics, callContext)
+          } yield {
+            val counts = ConnectorCountsRedis.getAllCounts()
+            val json = ConnectorCountsJsonV600(
+              connector_counts = counts.map(c => ConnectorCountJsonV600(
+                connector_name = c.connector_name,
+                method_name = c.method_name,
+                per_hour_outbound_count = c.per_hour_outbound_count,
+                per_hour_inbound_success_count = c.per_hour_inbound_success_count,
+                per_hour_inbound_failure_count = c.per_hour_inbound_failure_count,
+                ttl_seconds = c.ttl_seconds
+              ))
+            )
+            (json, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProducts,
+      implementedInApiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* More info URL
+         |* Terms And Conditions URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |
+         |The combination of bank_id and product_code is unique.
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+         |
+         |Authentication is Optional""".stripMargin,
+      EmptyBody,
+      productsJsonV600,
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct)
+    )
+    lazy val getProducts: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => { cc =>
+        {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            (products, callContext) <- NewStyle.function.getProducts(
+              bankId,
+              params,
+              callContext
+            )
+          } yield {
+            (
+              JSONFactory600.createProductsJson(products),
+              HttpCode.`200`(callContext)
+            )
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* Description
+         |* Meta
+         |* Attributes
+         |* Fees
+         |
+         |The combination of bank_id and product_code is unique.
+         |
+         |Authentication is Optional""".stripMargin,
+      EmptyBody,
+      productJsonV600,
+      List(
+        AuthenticatedUserIsRequired,
+        $BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(
+            productCode
+          ) :: Nil JsonGet _ => { cc =>
+        {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            (product, callContext) <- NewStyle.function.getProduct(
+              bankId,
+              productCode,
+              callContext
+            )
+            (productAttributes, callContext) <- NewStyle.function
+              .getProductAttributesByBankAndCode(
+                bankId,
+                productCode,
+                callContext
+              )
+
+            (productFees, callContext) <- NewStyle.function
+              .getProductFeesFromProvider(bankId, productCode, callContext)
+
+          } yield {
+            (
+              JSONFactory600.createProductJson(
+                product,
+                productAttributes,
+                productFees
+              ),
+              HttpCode.`200`(callContext)
+            )
+          }
+        }
+      }
+    }
+
+    // Api Product Endpoints (independent of CBS)
+
+    staticResourceDocs += ResourceDoc(
+      createApiProduct,
+      implementedInApiVersion,
+      nameOf(createApiProduct),
+      "POST",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+      "Create Api Product",
+      s"""Create an Api Product for the Bank.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      postPutApiProductJsonV600,
+      apiProductJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        CreateApiProductError,
+        UnknownError
+      ),
+      List(apiTagApiProduct),
+      Some(List(canCreateApiProduct))
+    )
+
+    lazy val createApiProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canCreateApiProduct, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostPutApiProductJsonV600", 400, callContext) {
+              json.extract[PostPutApiProductJsonV600]
+            }
+            (apiProduct, callContext) <- NewStyle.function.createOrUpdateApiProduct(
+              bankId.value,
+              apiProductCode,
+              postJson.parent_api_product_code.getOrElse(""),
+              postJson.name,
+              postJson.category.getOrElse(""),
+              postJson.more_info_url.getOrElse(""),
+              postJson.terms_and_conditions_url.getOrElse(""),
+              postJson.description.getOrElse(""),
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createApiProductJsonV600(apiProduct, None), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createOrUpdateApiProduct,
+      implementedInApiVersion,
+      nameOf(createOrUpdateApiProduct),
+      "PUT",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+      "Create or Update Api Product",
+      s"""Create or Update an Api Product for the Bank.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      postPutApiProductJsonV600,
+      apiProductJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        CreateApiProductError,
+        UnknownError
+      ),
+      List(apiTagApiProduct),
+      Some(List(canUpdateApiProduct))
+    )
+
+    lazy val createOrUpdateApiProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateApiProduct, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostPutApiProductJsonV600", 400, callContext) {
+              json.extract[PostPutApiProductJsonV600]
+            }
+            (apiProduct, callContext) <- NewStyle.function.createOrUpdateApiProduct(
+              bankId.value,
+              apiProductCode,
+              postJson.parent_api_product_code.getOrElse(""),
+              postJson.name,
+              postJson.category.getOrElse(""),
+              postJson.more_info_url.getOrElse(""),
+              postJson.terms_and_conditions_url.getOrElse(""),
+              postJson.description.getOrElse(""),
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createApiProductJsonV600(apiProduct, None), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiProduct,
+      implementedInApiVersion,
+      nameOf(getApiProduct),
+      "GET",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+      "Get Api Product",
+      s"""Get an Api Product by BANK_ID and API_PRODUCT_CODE.
+         |
+         |Returns the Api Product with its attributes.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      apiProductJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiProductNotFound,
+        UnknownError
+      ),
+      List(apiTagApiProduct),
+      Some(List(canGetApiProduct))
+    )
+
+    lazy val getApiProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (apiProduct, callContext) <- NewStyle.function.getApiProductByBankIdAndCode(bankId.value, apiProductCode, callContext)
+            (attributes, callContext) <- NewStyle.function.getApiProductAttributesByBankIdAndCode(bankId.value, apiProductCode, callContext)
+          } yield {
+            (JSONFactory600.createApiProductJsonV600(apiProduct, Some(attributes)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiProducts,
+      implementedInApiVersion,
+      nameOf(getApiProducts),
+      "GET",
+      "/banks/BANK_ID/api-products",
+      "Get Api Products",
+      s"""Get Api Products for the Bank.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      apiProductsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApiProduct),
+      Some(List(canGetApiProduct))
+    )
+
+    lazy val getApiProducts: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (apiProducts, callContext) <- NewStyle.function.getApiProductsByBankId(bankId.value, callContext)
+          } yield {
+            (JSONFactory600.createApiProductsJsonV600(apiProducts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteApiProduct,
+      implementedInApiVersion,
+      nameOf(deleteApiProduct),
+      "DELETE",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+      "Delete Api Product",
+      s"""Delete an Api Product by BANK_ID and API_PRODUCT_CODE.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiProductNotFound,
+        DeleteApiProductError,
+        UnknownError
+      ),
+      List(apiTagApiProduct),
+      Some(List(canDeleteApiProduct))
+    )
+
+    lazy val deleteApiProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteApiProduct, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.deleteApiProduct(bankId.value, apiProductCode, callContext)
+          } yield {
+            (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // Api Product Attribute Endpoints
+
+    staticResourceDocs += ResourceDoc(
+      createApiProductAttribute,
+      implementedInApiVersion,
+      nameOf(createApiProductAttribute),
+      "POST",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute",
+      "Create Api Product Attribute",
+      s"""Create an Api Product Attribute.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      apiProductAttributeJsonV600,
+      apiProductAttributeResponseJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        ApiProductNotFound,
+        CreateApiProductAttributeError,
+        UnknownError
+      ),
+      List(apiTagApiProductAttribute),
+      Some(List(canCreateApiProductAttribute))
+    )
+
+    lazy val createApiProductAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: "attribute" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canCreateApiProductAttribute, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.getApiProductByBankIdAndCode(bankId.value, apiProductCode, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ApiProductAttributeJsonV600", 400, callContext) {
+              json.extract[ApiProductAttributeJsonV600]
+            }
+            (attribute, callContext) <- NewStyle.function.createOrUpdateApiProductAttribute(
+              bankId.value,
+              apiProductCode,
+              None,
+              postJson.name,
+              postJson.`type`,
+              postJson.value,
+              postJson.is_active,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createApiProductAttributeResponseJsonV600(attribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateApiProductAttribute,
+      implementedInApiVersion,
+      nameOf(updateApiProductAttribute),
+      "PUT",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+      "Update Api Product Attribute",
+      s"""Update an Api Product Attribute.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      apiProductAttributeJsonV600,
+      apiProductAttributeResponseJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        ApiProductNotFound,
+        ApiProductAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagApiProductAttribute),
+      Some(List(canUpdateApiProductAttribute))
+    )
+
+    lazy val updateApiProductAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: "attributes" :: apiProductAttributeId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateApiProductAttribute, callContext)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.getApiProductByBankIdAndCode(bankId.value, apiProductCode, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ApiProductAttributeJsonV600", 400, callContext) {
+              json.extract[ApiProductAttributeJsonV600]
+            }
+            (attribute, callContext) <- NewStyle.function.createOrUpdateApiProductAttribute(
+              bankId.value,
+              apiProductCode,
+              Some(apiProductAttributeId),
+              postJson.name,
+              postJson.`type`,
+              postJson.value,
+              postJson.is_active,
+              callContext
+            )
+          } yield {
+            (JSONFactory600.createApiProductAttributeResponseJsonV600(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiProductAttribute,
+      implementedInApiVersion,
+      nameOf(getApiProductAttribute),
+      "GET",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+      "Get Api Product Attribute",
+      s"""Get an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      apiProductAttributeResponseJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiProductAttributeNotFound,
+        UnknownError
+      ),
+      List(apiTagApiProductAttribute),
+      Some(List(canGetApiProductAttribute))
+    )
+
+    lazy val getApiProductAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: "attributes" :: apiProductAttributeId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProductAttribute, callContext)
+            (attribute, callContext) <- NewStyle.function.getApiProductAttributeById(apiProductAttributeId, callContext)
+          } yield {
+            (JSONFactory600.createApiProductAttributeResponseJsonV600(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteApiProductAttribute,
+      implementedInApiVersion,
+      nameOf(deleteApiProductAttribute),
+      "DELETE",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+      "Delete Api Product Attribute",
+      s"""Delete an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ApiProductAttributeNotFound,
+        DeleteApiProductAttributeError,
+        UnknownError
+      ),
+      List(apiTagApiProductAttribute),
+      Some(List(canDeleteApiProductAttribute))
+    )
+
+    lazy val deleteApiProductAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: "attributes" :: apiProductAttributeId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteApiProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.deleteApiProductAttribute(apiProductAttributeId, callContext)
+          } yield {
+            (Full(true), HttpCode.`204`(callContext))
           }
       }
     }

@@ -31,6 +31,8 @@ import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWi
 import code.api.v3_1_0.JSONFactory310.createProductAttributesJson
 import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
 import code.entitlement.Entitlement
+import code.apiproduct.ApiProductTrait
+import code.apiproductattribute.ApiProductAttributeTrait
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
 import code.model.ModeratedBankAccountCore
@@ -741,6 +743,19 @@ case class PopularApisJsonV600(
     operation_ids: List[String]
 )
 
+case class ConnectorCountJsonV600(
+  connector_name: String,
+  method_name: String,
+  per_hour_outbound_count: Long,
+  per_hour_inbound_success_count: Long,
+  per_hour_inbound_failure_count: Long,
+  ttl_seconds: Long
+)
+
+case class ConnectorCountsJsonV600(
+  connector_counts: List[ConnectorCountJsonV600]
+)
+
 case class ProductJsonV600(
   product_id: String,
   bank_id: String,
@@ -756,6 +771,48 @@ case class ProductJsonV600(
 )
 
 case class ProductsJsonV600(products: List[ProductJsonV600])
+
+// Api Product (independent of CBS)
+case class PostPutApiProductJsonV600(
+  parent_api_product_code: Option[String],
+  name: String,
+  category: Option[String],
+  more_info_url: Option[String],
+  terms_and_conditions_url: Option[String],
+  description: Option[String]
+)
+
+case class ApiProductJsonV600(
+  api_product_id: String,
+  bank_id: String,
+  api_product_code: String,
+  parent_api_product_code: String,
+  name: String,
+  category: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  description: String,
+  attributes: Option[List[ApiProductAttributeResponseJsonV600]]
+)
+
+case class ApiProductsJsonV600(api_products: List[ApiProductJsonV600])
+
+case class ApiProductAttributeJsonV600(
+  name: String,
+  `type`: String,
+  value: String,
+  is_active: Option[Boolean]
+)
+
+case class ApiProductAttributeResponseJsonV600(
+  bank_id: String,
+  api_product_code: String,
+  api_product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+  is_active: Option[Boolean]
+)
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
@@ -2021,6 +2078,44 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       images = metadata.images.map(_.map(createTransactionImageJSON)).getOrElse(null),
       where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
     )
+  }
+
+  def createApiProductAttributeResponseJsonV600(
+    attribute: ApiProductAttributeTrait
+  ): ApiProductAttributeResponseJsonV600 = {
+    ApiProductAttributeResponseJsonV600(
+      bank_id = attribute.bankId,
+      api_product_code = attribute.apiProductCode,
+      api_product_attribute_id = attribute.apiProductAttributeId,
+      name = attribute.name,
+      `type` = attribute.attributeType,
+      value = attribute.value,
+      is_active = attribute.isActive
+    )
+  }
+
+  def createApiProductJsonV600(
+    product: ApiProductTrait,
+    attributes: Option[List[ApiProductAttributeTrait]]
+  ): ApiProductJsonV600 = {
+    ApiProductJsonV600(
+      api_product_id = product.apiProductId,
+      bank_id = product.bankId,
+      api_product_code = product.apiProductCode,
+      parent_api_product_code = product.parentApiProductCode,
+      name = product.name,
+      category = product.category,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      description = product.description,
+      attributes = attributes.map(_.map(createApiProductAttributeResponseJsonV600))
+    )
+  }
+
+  def createApiProductsJsonV600(
+    products: List[ApiProductTrait]
+  ): ApiProductsJsonV600 = {
+    ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
   }
 
 }

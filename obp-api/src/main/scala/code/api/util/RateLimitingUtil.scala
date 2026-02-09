@@ -361,7 +361,7 @@ object RateLimitingUtil extends MdcLoggable {
       }
       userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
         .map(_.copy(xRateLimitReset = z._1))
-        .map(_.copy(xRateLimitRemaining = limit - z._2))
+        .map(_.copy(xRateLimitRemaining = Math.max(0, limit - z._2)))
     }
     // Helper function to set rate limit headers for anonymous access
     def setXRateLimitsAnonymous(id: String, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
@@ -371,7 +371,7 @@ object RateLimitingUtil extends MdcLoggable {
       }
       userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
         .map(_.copy(xRateLimitReset = z._1))
-        .map(_.copy(xRateLimitRemaining = limit - z._2))
+        .map(_.copy(xRateLimitRemaining = Math.max(0, limit - z._2)))
     }
 
     // Helper function to create rate limit exceeded response with remaining TTL for authorized users

@@ -13,8 +13,9 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
   val BankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
+  // Have to repeat the constructor parameters from the trait
   case class ProductImpl(bankId: BankId,
-                        code : ProductCode, 
+                        code : ProductCode,
                         parentProductCode : ProductCode,
                         name : String,
                         category: String,

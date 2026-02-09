@@ -5223,6 +5223,44 @@ object SwaggerDefinitionsJSON {
   lazy val featuredApiCollectionJsonV600 = FeaturedApiCollectionJsonV600(featuredApiCollectionIdExample.value, apiCollectionIdExample.value, 1)
   lazy val featuredApiCollectionsJsonV600 = FeaturedApiCollectionsJsonV600(List(featuredApiCollectionJsonV600))
 
+  // Api Product (v6.0.0)
+  lazy val apiProductAttributeResponseJsonV600 = ApiProductAttributeResponseJsonV600(
+    bank_id = bankIdExample.value,
+    api_product_code = productCodeExample.value,
+    api_product_attribute_id = "api-product-attribute-id-123",
+    name = "OVERDRAFT_LIMIT",
+    `type` = "STRING",
+    value = "10000",
+    is_active = Some(true)
+  )
+  lazy val apiProductAttributeJsonV600 = ApiProductAttributeJsonV600(
+    name = "OVERDRAFT_LIMIT",
+    `type` = "STRING",
+    value = "10000",
+    is_active = Some(true)
+  )
+  lazy val postPutApiProductJsonV600 = PostPutApiProductJsonV600(
+    parent_api_product_code = Some(""),
+    name = "ApiProduct1",
+    category = Some("category1"),
+    more_info_url = Some("https://example.com/more-info"),
+    terms_and_conditions_url = Some("https://example.com/terms"),
+    description = Some("Description of the product")
+  )
+  lazy val apiProductJsonV600 = ApiProductJsonV600(
+    api_product_id = "api-product-id-123",
+    bank_id = bankIdExample.value,
+    api_product_code = productCodeExample.value,
+    parent_api_product_code = "",
+    name = "ApiProduct1",
+    category = "category1",
+    more_info_url = "https://example.com/more-info",
+    terms_and_conditions_url = "https://example.com/terms",
+    description = "Description of the product",
+    attributes = Some(List(apiProductAttributeResponseJsonV600))
+  )
+  lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
+
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
   

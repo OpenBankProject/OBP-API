@@ -12,6 +12,8 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
+import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
+import code.apiproductattribute.{ApiProductAttributeTrait, MappedApiProductAttributesProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, MappedFeaturedApiCollectionsProvider}
 import code.atmattribute.AtmAttribute
@@ -3799,6 +3801,76 @@ object NewStyle extends MdcLoggable{
     def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
       Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId) "), callContext)
+      }
+    }
+
+    def getApiProductByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[ApiProductTrait] = {
+      Future(MappedApiProductsProvider.getApiProductByBankIdAndCode(bankId, apiProductCode)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductNotFound Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
+      }
+    }
+
+    def getApiProductsByBankId(bankId: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductTrait]] = {
+      Future(MappedApiProductsProvider.getApiProductsByBankId(bankId), callContext)
+    }
+
+    def createOrUpdateApiProduct(
+      bankId: String,
+      apiProductCode: String,
+      parentApiProductCode: String,
+      name: String,
+      category: String,
+      moreInfoUrl: String,
+      termsAndConditionsUrl: String,
+      description: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[ApiProductTrait] = {
+      Future(MappedApiProductsProvider.createOrUpdateApiProduct(
+        bankId, apiProductCode, parentApiProductCode, name, category,
+        moreInfoUrl, termsAndConditionsUrl, description
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiProductError), callContext)
+      }
+    }
+
+    def deleteApiProduct(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductsProvider.deleteApiProduct(bankId, apiProductCode)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductError Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
+      }
+    }
+
+    def getApiProductAttributeById(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[ApiProductAttributeTrait] = {
+      Future(MappedApiProductAttributesProvider.getApiProductAttributeById(apiProductAttributeId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductAttributeNotFound Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
+      }
+    }
+
+    def getApiProductAttributesByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductAttributeTrait]] = {
+      Future(MappedApiProductAttributesProvider.getApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductAttributeNotFound Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
+      }
+    }
+
+    def createOrUpdateApiProductAttribute(
+      bankId: String,
+      apiProductCode: String,
+      apiProductAttributeId: Option[String],
+      name: String,
+      attributeType: String,
+      value: String,
+      isActive: Option[Boolean],
+      callContext: Option[CallContext]
+    ): OBPReturnType[ApiProductAttributeTrait] = {
+      Future(MappedApiProductAttributesProvider.createOrUpdateApiProductAttribute(
+        bankId, apiProductCode, apiProductAttributeId, name, attributeType, value, isActive
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiProductAttributeError), callContext)
+      }
+    }
+
+    def deleteApiProductAttribute(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductAttributesProvider.deleteApiProductAttribute(apiProductAttributeId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
       }
     }
 

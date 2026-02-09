@@ -31,7 +31,11 @@ object ConnectorMetricsProvider extends SimpleInjector {
 
 trait ConnectorMetricsProvider {
 
-  def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit
+  def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit = {
+    saveConnectorMetric(connectorName, functionName, correlationId, date, duration, "", true)
+  }
+  def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long,
+                          requestParams: String, isSuccessful: Boolean): Unit
   def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[ConnectorMetric]
   def bulkDeleteConnectorMetrics(): Boolean
 
@@ -44,5 +48,7 @@ trait ConnectorMetric {
   def getCorrelationId(): String
   def getDate(): Date
   def getDuration(): Long
+  def getRequestParams(): String
+  def getIsSuccessful(): Boolean
 
 }

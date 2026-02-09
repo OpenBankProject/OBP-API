@@ -3404,7 +3404,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
       result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
+        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
@@ -3460,7 +3460,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
       result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
+        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)

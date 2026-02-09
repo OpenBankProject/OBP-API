@@ -661,6 +661,23 @@ object ApiRole extends MdcLoggable{
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
 
+  case class CanCreateApiProduct(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateApiProduct = CanCreateApiProduct()
+  case class CanUpdateApiProduct(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateApiProduct = CanUpdateApiProduct()
+  case class CanGetApiProduct(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetApiProduct = CanGetApiProduct()
+  case class CanDeleteApiProduct(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteApiProduct = CanDeleteApiProduct()
+  case class CanCreateApiProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateApiProductAttribute = CanCreateApiProductAttribute()
+  case class CanUpdateApiProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateApiProductAttribute = CanUpdateApiProductAttribute()
+  case class CanGetApiProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetApiProductAttribute = CanGetApiProductAttribute()
+  case class CanDeleteApiProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteApiProductAttribute = CanDeleteApiProductAttribute()
+
   case class CanCreateSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateSystemView = CanCreateSystemView()
   case class CanUpdateSystemView(requiresBankId: Boolean = false) extends ApiRole

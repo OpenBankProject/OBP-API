@@ -578,7 +578,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //gets a particular bank handled by this connector
-  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = writeMetricEndpointTiming {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = {
     MappedBank
       .find(By(MappedBank.permalink, bankId.value))
       .map(
@@ -587,14 +587,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
             .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
       ).map(bank => (bank, callContext))
-  }("getBank")
+  }
 
   override def getBank(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = Future {
     getBankLegacy(bankId, callContext)
   }
 
 
-  override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = writeMetricEndpointTiming {
+  override def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = {
     Full(MappedBank
       .findAll()
       .map(
@@ -605,7 +605,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       ),
       callContext
     )
-  }("getBanks")
+  }
 
   override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = Future {
     getBanksLegacy(callContext)
