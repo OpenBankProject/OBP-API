@@ -436,6 +436,13 @@ object ErrorMessages {
   val ApiCollectionEndpointAlreadyExists = "OBP-30085: The ApiCollectionEndpoint is already exists."
   val ApiCollectionAlreadyExists = "OBP-30086: The ApiCollection is already exists."
 
+  val ApiProductNotFound = "OBP-30500: ApiProduct not found. Please specify a valid value for BANK_ID and API_PRODUCT_CODE."
+  val CreateApiProductError = "OBP-30501: Could not create ApiProduct."
+  val DeleteApiProductError = "OBP-30502: Could not delete ApiProduct."
+  val ApiProductAttributeNotFound = "OBP-30503: ApiProductAttribute not found. Please specify a valid value for API_PRODUCT_ATTRIBUTE_ID."
+  val CreateApiProductAttributeError = "OBP-30504: Could not create ApiProductAttribute."
+  val DeleteApiProductAttributeError = "OBP-30505: Could not delete ApiProductAttribute."
+
   val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
   val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
   val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."

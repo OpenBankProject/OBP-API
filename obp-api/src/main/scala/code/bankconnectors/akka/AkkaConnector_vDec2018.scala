@@ -2746,7 +2746,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = (
      InBoundGetProducts(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext, status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCommons(bankId=BankId(bankIdExample.value),
+      data=List( ProductCommons(
+      bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,
@@ -2783,7 +2784,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = (
      InBoundGetProduct(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext, status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= ProductCommons(bankId=BankId(bankIdExample.value),
+      data= ProductCommons(
+      bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,
@@ -5607,7 +5609,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode=collectionCodeExample.value,
       memberProductCode=memberProductCodeExample.value),
-      product= ProductCommons(bankId=BankId(bankIdExample.value),
+      product= ProductCommons(
+      bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,

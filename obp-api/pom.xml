@@ -445,6 +445,19 @@
         </exclusion>
       </exclusions>
     </dependency>
+
+    <!-- Doobie - Pure functional JDBC layer for raw SQL queries -->
+    <!-- Handles all JDBC types correctly (including SQL Server NVARCHAR) -->
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-core_${scala.version}</artifactId>
+      <version>1.0.0-RC4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-hikari_${scala.version}</artifactId>
+      <version>1.0.0-RC4</version>
+    </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>

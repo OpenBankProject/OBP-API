@@ -292,7 +292,7 @@ object ExampleValue {
   lazy val sortOrderExample = ConnectorField("1", "The sort order for displaying featured API collections. Lower numbers appear first.")
   glossaryItems += makeGlossaryItem("FeaturedApiCollection.sortOrder", sortOrderExample)
 
-  lazy val operationIdExample = ConnectorField("OBPv4.0.0-getBanks", "A uniquely identify the obp endpoint on OBP instance, you can get it from Get Resource endpoints.")
+  lazy val operationIdExample = ConnectorField("OBPv6.0.0-getBanks", "A uniquely identify the obp endpoint on OBP instance, you can get it from Get Resource endpoints.")
   glossaryItems += makeGlossaryItem("ApiCollectionEndpoint.operationId", operationIdExample)
 
   lazy val tagNameExample = ConnectorField("BankAccountTag1", "The endpoint tag name")
@@ -1025,6 +1025,9 @@ object ExampleValue {
 
   lazy val relatesToKycCheckIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("relates_to_kyc_check_id", relatesToKycCheckIdExample)
+
+  lazy val productIdExample = ConnectorField("product-id-example-uuid", "The UUID of the product")
+  glossaryItems += makeGlossaryItem("product_id", productIdExample)
 
   lazy val productCodeExample = ConnectorField("1234BW", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_code", productCodeExample)

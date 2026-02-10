@@ -31,12 +31,11 @@ import java.util.UUID.randomUUID
 
 import code.api.Constant
 import code.api.cache.Caching
-import code.api.util.{APIUtil, DBUtil}
+import code.api.util.{APIUtil, DoobieQueries}
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.mapper._
-import net.liftweb.mapper.DB
 
 import scala.concurrent.duration._
 
@@ -140,10 +139,8 @@ object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     val cacheTTL = APIUtil.getPropsAsIntValue("getDistinctProviders.cache.ttl.seconds", 3600)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds) {
-        val sql = "SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"
-        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-        val (_, rows) = DBUtil.runQuery(sql)
-        rows.flatten
+        // Use Doobie for type-safe query with proper JDBC type handling (including SQL Server NVARCHAR)
+        DoobieQueries.getDistinctProviders
       }
     }
   }

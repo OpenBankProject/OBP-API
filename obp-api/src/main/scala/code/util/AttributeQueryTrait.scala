@@ -1,6 +1,6 @@
 package code.util
 
-import code.api.util.DBUtil
+import code.api.util.DoobieQueries
 import com.openbankproject.commons.model.BankId
 import net.liftweb.mapper.{BaseMappedField, BaseMetaMapper}
 
@@ -39,48 +39,20 @@ trait AttributeQueryTrait { self: BaseMetaMapper =>
    */
   def getParentIdByParams(bankId: BankId, params: Map[String, List[String]]): List[String] = {
     if (params.isEmpty) {
-      val sql = s"SELECT DISTINCT attr.$parentIdColumn FROM $tableName attr where attr.$bankIdColumn = ? "
-      // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-      val (_, list) = DBUtil.runQuery(sql, List(bankId.value))
-      list.flatten
+      // Use Doobie for type-safe query with proper JDBC type handling (including SQL Server NVARCHAR)
+      DoobieQueries.getDistinctParentIds(tableName, parentIdColumn, bankIdColumn, bankId.value)
     } else {
-      val paramList = params.toList
-      val parameters = paramList.flatMap { kv =>
-        val (name, values) = kv
-        name :: values
-      }
+      // Use Doobie for type-safe query with proper JDBC type handling (including SQL Server NVARCHAR)
+      val results: List[(String, String, String)] = DoobieQueries.getParentIdWithAttributes(
+        tableName, parentIdColumn, nameColumn, valueColumn, bankIdColumn, bankId.value, params
+      )
 
-
-      val sqlParametersFilter = paramList.map { kv =>
-        val (_, values) = kv
-        if (values.size == 1) {
-          s"($nameColumn = ? AND $valueColumn = ?)"
-        } else {
-          //For lift framework not support in query, here just express in operation: mname = ? and mvalue in (?, ?, ?)
-          val valueExp = values.map(_ => "?").mkString(", ")
-          s"( $nameColumn = ? AND $valueColumn in ($valueExp) )"
-        }
-      }.mkString(" OR ")
-
-      val sql =
-        s""" SELECT attr.$parentIdColumn, attr.$nameColumn, attr.$valueColumn
-           |    FROM $tableName attr
-           |    WHERE attr.$bankIdColumn = ?
-           |     AND ($sqlParametersFilter)
-           |""".stripMargin
-
-      // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-      val (columnNames: List[String], list: List[List[String]]) = DBUtil.runQuery(sql, bankId.value :: parameters)
-      val columnNamesLowerCase = columnNames.map(_.toLowerCase)
-      val parentIdIndex = columnNamesLowerCase.indexOf(parentIdColumn.toLowerCase)
-      val nameIndex = columnNamesLowerCase.indexOf(nameColumn.toLowerCase)
-      val valueIndex = columnNamesLowerCase.indexOf(valueColumn.toLowerCase)
-
-      val parentIdToAttributes: Map[String, List[List[String]]] = list.groupBy(_.apply(parentIdIndex))
+      // Group by parentId and filter
+      val parentIdToAttributes: Map[String, List[(String, String, String)]] = results.groupBy(_._1)
 
       val parentIdToNameValues: Map[String, Map[String, String]] = parentIdToAttributes.mapValues(rows => {
-        rows.map { row =>
-          row(nameIndex) -> row(valueIndex)
+        rows.map { case (_, name, value) =>
+          name -> value
         }.toMap
       })
 

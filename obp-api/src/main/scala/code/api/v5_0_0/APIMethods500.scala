@@ -1674,6 +1674,7 @@ trait APIMethods500 {
       "Create Product",
       s"""Create or Update Product for the Bank.
          |
+         |The combination of bank_id and product_code is unique. If a Product already exists for the bank_id and product_code, it will be updated.
          |
          |Typical Super Family values / Asset classes are:
          |

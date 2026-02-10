@@ -17,8 +17,8 @@ import code.api.util.APIUtil.stringOrNull
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, createMetaJson}
+import code.api.v2_0_0.{BasicViewJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{
   CustomerAttributeResponseJsonV300,
@@ -27,12 +27,15 @@ import code.api.v3_0_0.{
   ViewJSON300,
   ViewsJSON300
 }
-import code.api.v3_1_0.{AccountAttributeResponseJson, RateLimit, RedisCallLimitJson}
-import code.api.v4_0_0.TransactionAttributeResponseJson
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, UserAgreementJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RateLimit, RedisCallLimitJson}
+import code.api.v3_1_0.JSONFactory310.createProductAttributesJson
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
 import code.entitlement.Entitlement
+import code.apiproduct.ApiProductTrait
+import code.apiproductattribute.ApiProductAttributeTrait
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
+import code.model.ModeratedBankAccountCore
 import code.model.dataAccess.ResourceUser
 import code.users.UserAgreement
 import code.util.Helper.MdcLoggable
@@ -76,6 +79,26 @@ case class CurrentConsumerJsonV600(
     app_type: String,
     description: String,
     consumer_id: String,
+    active_rate_limits: ActiveRateLimitsJsonV600,
+    call_counters: RedisCallCountersJsonV600
+)
+
+// Full Consumer details for management endpoints (V600)
+case class ConsumerJsonV600(
+    consumer_id: String,
+    consumer_key: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    certificate_info: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String],
     active_rate_limits: ActiveRateLimitsJsonV600,
     call_counters: RedisCallCountersJsonV600
 )
@@ -277,6 +300,66 @@ case class BankJson600(
 case class ProvidersJsonV600(providers: List[String])
 
 case class ConnectorMethodNamesJsonV600(connector_method_names: List[String])
+
+case class ConnectorInfoJsonV600(
+  connector_name: String,
+  is_available_in_method_routing: Boolean
+)
+
+case class ConnectorsJsonV600(connectors: List[ConnectorInfoJsonV600])
+
+// Basic Account with account_id instead of id for v6.0.0 consistency
+case class BasicAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  label: String,
+  views_available: List[BasicViewJson]
+)
+
+case class BasicAccountsJsonV600(
+  accounts: List[BasicAccountJsonV600]
+)
+
+// Moderated Core Account with account_id instead of id for v6.0.0 consistency
+case class ModeratedCoreAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  product_code: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
+  views_basic: List[String]
+)
+
+case class TopApiJsonV600(
+    count: Int,
+    implemented_by_partial_function: String,
+    implemented_in_version: String,
+    operation_id: String
+)
+
+case class TopApisJsonV600(top_apis: List[TopApiJsonV600])
+
+case class MetricJsonV600(
+    user_id: String,
+    url: String,
+    date: Date,
+    user_name: String,
+    app_name: String,
+    developer_email: String,
+    implemented_by_partial_function: String,
+    implemented_in_version: String,
+    consumer_id: String,
+    verb: String,
+    correlation_id: String,
+    duration: Long,
+    source_ip: String,
+    target_ip: String,
+    response_body: net.liftweb.json.JValue,
+    operation_id: String
+)
+case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
 case class CacheNamespaceJsonV600(
     prefix: String,
@@ -660,6 +743,62 @@ case class PopularApisJsonV600(
     operation_ids: List[String]
 )
 
+case class ConnectorCountJsonV600(
+  connector_name: String,
+  method_name: String,
+  per_hour_outbound_count: Long,
+  per_hour_inbound_success_count: Long,
+  per_hour_inbound_failure_count: Long,
+  ttl_seconds: Long
+)
+
+case class ConnectorCountsJsonV600(
+  enabled: Boolean,
+  connector_counts: List[ConnectorCountJsonV600]
+)
+
+// Api Product (independent of CBS)
+case class PostPutApiProductJsonV600(
+  parent_api_product_code: Option[String],
+  name: String,
+  category: Option[String],
+  more_info_url: Option[String],
+  terms_and_conditions_url: Option[String],
+  description: Option[String]
+)
+
+case class ApiProductJsonV600(
+  api_product_id: String,
+  bank_id: String,
+  api_product_code: String,
+  parent_api_product_code: String,
+  name: String,
+  category: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  description: String,
+  attributes: Option[List[ApiProductAttributeResponseJsonV600]]
+)
+
+case class ApiProductsJsonV600(api_products: List[ApiProductJsonV600])
+
+case class ApiProductAttributeJsonV600(
+  name: String,
+  `type`: String,
+  value: String,
+  is_active: Option[Boolean]
+)
+
+case class ApiProductAttributeResponseJsonV600(
+  bank_id: String,
+  api_product_code: String,
+  api_product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+  is_active: Option[Boolean]
+)
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createRedisCallCountersJson(
@@ -685,6 +824,43 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       getCallCounterForPeriod(RateLimitingPeriod.PER_DAY),
       getCallCounterForPeriod(RateLimitingPeriod.PER_WEEK),
       getCallCounterForPeriod(RateLimitingPeriod.PER_MONTH)
+    )
+  }
+
+  def createConsumerJsonV600(
+      c: code.model.Consumer,
+      certificateInfo: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+      activeRateLimits: ActiveRateLimitsJsonV600,
+      callCounters: RedisCallCountersJsonV600
+  ): ConsumerJsonV600 = {
+    val resourceUserJSON = code.users.Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+      case net.liftweb.common.Full(resourceUser) => code.api.v2_1_0.ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJsonV600(
+      consumer_id = c.consumerId.get,
+      consumer_key = c.key.get,
+      app_name = c.name.get,
+      app_type = c.appType.toString(),
+      description = c.description.get,
+      developer_email = c.developerEmail.get,
+      company = c.company.get,
+      redirect_url = c.redirectURL.get,
+      certificate_pem = c.clientCertificate.get,
+      certificate_info = certificateInfo,
+      created_by_user = resourceUserJSON,
+      enabled = c.isActive.get,
+      created = c.createdAt.get,
+      logo_url = if (c.logoUrl.get == null || c.logoUrl.get.isEmpty) None else Some(c.logoUrl.get),
+      active_rate_limits = activeRateLimits,
+      call_counters = callCounters
     )
   }
 
@@ -881,6 +1057,82 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       methodNames: List[String]
   ): ConnectorMethodNamesJsonV600 = {
     ConnectorMethodNamesJsonV600(methodNames.sorted)
+  }
+
+  def createConnectorsJson(
+      connectorInfos: List[ConnectorInfoJsonV600]
+  ): ConnectorsJsonV600 = {
+    ConnectorsJsonV600(connectorInfos.sortBy(_.connector_name))
+  }
+
+  def createBasicAccountJsonV600(account: BankAccount, viewsAvailable: List[BasicViewJson]): BasicAccountJsonV600 = {
+    BasicAccountJsonV600(
+      account_id = account.accountId.value,
+      bank_id = account.bankId.value,
+      label = account.label,
+      views_available = viewsAvailable
+    )
+  }
+
+  def createBasicAccountsJsonV600(accounts: List[BasicAccountJsonV600]): BasicAccountsJsonV600 = {
+    BasicAccountsJsonV600(accounts)
+  }
+
+  def createModeratedCoreAccountJsonV600(
+    account: ModeratedBankAccountCore,
+    availableViews: List[View]
+  ): ModeratedCoreAccountJsonV600 = {
+    ModeratedCoreAccountJsonV600(
+      account_id = account.accountId.value,
+      bank_id = account.bankId.value,
+      label = account.label.getOrElse(""),
+      number = account.number.getOrElse(""),
+      product_code = account.accountType.getOrElse(""),
+      balance = AmountOfMoneyJsonV121(
+        account.currency.getOrElse(""),
+        account.balance.getOrElse("").toString
+      ),
+      account_routings = account.accountRoutings.map(r =>
+        AccountRoutingJsonV121(scheme = r.scheme, address = r.address)
+      ),
+      views_basic = availableViews.map(_.viewId.value)
+    )
+  }
+
+  def createTopApisJsonV600(
+      topApis: List[TopApiJsonV600]
+  ): TopApisJsonV600 = {
+    TopApisJsonV600(topApis)
+  }
+
+  def createMetricJsonV600(metric: code.metrics.APIMetric, lookupMap: Map[String, String]): MetricJsonV600 = {
+    val operationId = lookupMap.getOrElse(
+      metric.getImplementedByPartialFunction(),
+      scala.util.Try(code.api.util.APIUtil.buildOperationId(code.api.util.ApiVersionUtils.valueOf(metric.getImplementedInVersion()), metric.getImplementedByPartialFunction()))
+        .getOrElse(s"${metric.getImplementedInVersion()}-${metric.getImplementedByPartialFunction()}")
+    )
+    MetricJsonV600(
+      user_id = metric.getUserId(),
+      user_name = metric.getUserName(),
+      developer_email = metric.getDeveloperEmail(),
+      app_name = metric.getAppName(),
+      url = metric.getUrl(),
+      date = metric.getDate(),
+      consumer_id = metric.getConsumerId(),
+      verb = metric.getVerb(),
+      implemented_in_version = metric.getImplementedInVersion(),
+      implemented_by_partial_function = metric.getImplementedByPartialFunction(),
+      correlation_id = metric.getCorrelationId(),
+      duration = metric.getDuration(),
+      source_ip = metric.getSourceIp(),
+      target_ip = metric.getTargetIp(),
+      response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
+      operation_id = operationId
+    )
+  }
+
+  def createMetricsJsonV600(metrics: List[code.metrics.APIMetric], lookupMap: Map[String, String]): MetricsJsonV600 = {
+    MetricsJsonV600(metrics.map(createMetricJsonV600(_, lookupMap)))
   }
 
   def createBankJSON600(
@@ -1766,6 +2018,44 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       images = metadata.images.map(_.map(createTransactionImageJSON)).getOrElse(null),
       where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
     )
+  }
+
+  def createApiProductAttributeResponseJsonV600(
+    attribute: ApiProductAttributeTrait
+  ): ApiProductAttributeResponseJsonV600 = {
+    ApiProductAttributeResponseJsonV600(
+      bank_id = attribute.bankId,
+      api_product_code = attribute.apiProductCode,
+      api_product_attribute_id = attribute.apiProductAttributeId,
+      name = attribute.name,
+      `type` = attribute.attributeType,
+      value = attribute.value,
+      is_active = attribute.isActive
+    )
+  }
+
+  def createApiProductJsonV600(
+    product: ApiProductTrait,
+    attributes: Option[List[ApiProductAttributeTrait]]
+  ): ApiProductJsonV600 = {
+    ApiProductJsonV600(
+      api_product_id = product.apiProductId,
+      bank_id = product.bankId,
+      api_product_code = product.apiProductCode,
+      parent_api_product_code = product.parentApiProductCode,
+      name = product.name,
+      category = product.category,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      description = product.description,
+      attributes = attributes.map(_.map(createApiProductAttributeResponseJsonV600))
+    )
+  }
+
+  def createApiProductsJsonV600(
+    products: List[ApiProductTrait]
+  ): ApiProductsJsonV600 = {
+    ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
   }
 
 }
