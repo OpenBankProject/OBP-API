@@ -10,6 +10,7 @@ object ConstantsBG {
     case Full(props) => berlinGroupV13.copy(apiShortVersion = props)
     case _ => berlinGroupV13
   }
+  val berlinGroupVersion2: ScannedApiVersion = ScannedApiVersion("berlin-group", "BG", "v2")
   object SigningBasketsStatus extends Enumeration {
     type SigningBasketsStatus = Value
     // Only the codes

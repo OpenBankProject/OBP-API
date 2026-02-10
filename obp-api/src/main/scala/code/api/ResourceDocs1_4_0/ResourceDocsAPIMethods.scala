@@ -22,6 +22,7 @@ import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.berlin.group.ConstantsBG
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -122,6 +123,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.resourceDocs
+        case ConstantsBG.`berlinGroupVersion2` => code.api.berlin.group.v2.Http4sBGv2.resourceDocs
         case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
@@ -144,6 +146,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.v7_0_0 => Nil
+        case ConstantsBG.`berlinGroupVersion2` => Nil
         case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
         case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
@@ -172,6 +175,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // Only return the resource docs that have available routes
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
+        case ConstantsBG.`berlinGroupVersion2` => resourceDocs
         case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
       }
 

@@ -35,7 +35,7 @@ import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -47,7 +47,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 object OBP_STET_1_4 extends OBPRestHelper with MdcLoggable with ScannedApis {
   //please modify these three parameter if it is not correct.
-  override val apiVersion = ScannedApiVersion("stet", "STET", "v1.4")
+  override val apiVersion = ApiVersion.stetV14
   val versionStatus = ApiVersionStatus.DRAFT.toString
 
   private[this] val endpoints =

@@ -16,7 +16,7 @@ import scala.collection.mutable
 object SecureLogging {
 
   /**
-   * ✅ Conditional inclusion helper using APIUtil.getPropsAsBoolValue
+   * Conditional inclusion helper using APIUtil.getPropsAsBoolValue
    */
   private def conditionalPattern(
                                   prop: String,
@@ -26,7 +26,7 @@ object SecureLogging {
   }
 
   /**
-   * ✅ Toggleable sensitive patterns
+   * Toggleable sensitive patterns
    */
   private lazy val sensitivePatterns: List[(Pattern, String)] = {
     val patterns = Seq(
@@ -174,7 +174,7 @@ object SecureLogging {
   }
 
   /**
-   * ✅ Test method to demonstrate the masking functionality.
+   * Test method to demonstrate the masking functionality.
    */
   def testMasking(): List[(String, String)] = {
     val testMessages = List(
@@ -198,7 +198,7 @@ object SecureLogging {
   }
 
   /**
-   * ✅ Print test results to console for manual verification.
+   * Print test results to console for manual verification.
    */
   def printTestResults(): Unit = {
     println("\n=== SecureLogging Test Results ===")
