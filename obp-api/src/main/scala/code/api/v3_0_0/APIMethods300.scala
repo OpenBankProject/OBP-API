@@ -1922,7 +1922,7 @@ trait APIMethods300 {
         UnknownError
       ),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
-      Some(List(canGetEntitlementRequestsAtAnyBank)))
+      Some(List(canGetEntitlementRequestsAtOneBank, canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getAllEntitlementRequests : OBPEndpoint = {
       case "entitlement-requests" :: Nil JsonGet _ => {
@@ -1961,7 +1961,7 @@ trait APIMethods300 {
         UnknownError
       ),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
-      Some(List(canGetEntitlementRequestsAtAnyBank)))
+      Some(List(canGetEntitlementRequestsAtOneBank, canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getEntitlementRequests : OBPEndpoint = {
       case "users" :: userId :: "entitlement-requests" :: Nil JsonGet _ => {
@@ -2035,16 +2035,19 @@ trait APIMethods300 {
         UnknownError
       ),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
-      Some(List(canDeleteEntitlementRequestsAtAnyBank)))
+      Some(List(canDeleteEntitlementRequestsAtOneBank, canDeleteEntitlementRequestsAtAnyBank)))
 
     lazy val deleteEntitlementRequest : OBPEndpoint = {
       case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          val allowedEntitlements = canDeleteEntitlementRequestsAtAnyBank :: Nil
+          val allowedEntitlements = canDeleteEntitlementRequestsAtOneBank :: canDeleteEntitlementRequestsAtAnyBank :: Nil
           val allowedEntitlementsTxt = UserHasMissingRoles + allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)("", u.userId, allowedEntitlements, callContext)
+            entitlementRequest <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestFuture(entitlementRequestId) map {
+              connectorEmptyResponse(_, callContext)
+            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(entitlementRequest.bankId, u.userId, allowedEntitlements, callContext)
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
               connectorEmptyResponse(_, callContext)
             }
@@ -2349,7 +2352,8 @@ trait APIMethods300 {
       EmptyBody,
       EmptyBody,
       List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagConsumer))
+      List(apiTagScope, apiTagConsumer),
+      Some(List(canDeleteScopeAtOneBank, canDeleteScopeAtAnyBank)))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2359,13 +2363,15 @@ trait APIMethods300 {
             consumer <- Future{callContext.get.consumer} map {
               x => unboxFullOrFail(x, callContext, InvalidConsumerCredentials)
             }
-            _ <- Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank, callContext)}  map ( fullBoxOrException(_))
             scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
               x => unboxFullOrFail(x, callContext, msg)
             }
+            _ <- Future {NewStyle.function.hasEntitlementAndScope(scope.bankId, u.userId, consumer.id.get.toString, canDeleteScopeAtOneBank, callContext)} map (fullBoxOrException(_)) recoverWith {
+              case _ => Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank, callContext)} map (fullBoxOrException(_))
+            }
             _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope, cc=callContext) { scope.scopeId ==scopeId }
-            _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
+            _ <- Future {Scope.scope.vend.deleteScope(Full(scope))}
           } yield
             (JsRaw(""), HttpCode.`200`(callContext))
       }

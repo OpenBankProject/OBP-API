@@ -186,16 +186,45 @@ trait SendServerRequests {
         // Check that every response has a correlationId at Response Header
         val list = response.getHeaders(ResponseHeader.`Correlation-Id`).asScala.toList
         list match {
-          case Nil => throw new Exception(s"There is no ${ResponseHeader.`Correlation-Id`} in response header. Couldn't parse response from ${req.url} : $body")
+          case Nil =>
+            // Improve diagnostic information: include HTTP status, all response headers and a snippet of the body.
+            val status = response.getStatusCode
+            val headersStr = try {
+              // response.getHeaders().entries() returns a Java collection of header entries
+              response.getHeaders().entries().asScala.map(h => s"${h.getKey}: ${h.getValue}").mkString(", ")
+            } catch {
+              case _: Throwable => "unable to read headers"
+            }
+            val bodySnippet = if (body == null) {
+              ""
+            } else {
+              val maxLen = 1000
+              if (body.length > maxLen) body.take(maxLen) + "..." else body
+            }
+            throw new Exception(
+              s"""There is no ${ResponseHeader.`Correlation-Id`} in response header.
+                 |Couldn't parse response from ${req.url}
+                 |status=$status
+                 |headers=[$headersStr]
+                 |body-snippet=${bodySnippet}""".stripMargin
+            )
           case _ =>
         }
 
-        val parsedBody = tryo {
-          parse(body)
-        }
-        parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
-          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+        // Handle YAML responses: don't try to parse as JSON. Wrap YAML as a JString so tests
+        // that expect a JValue can still receive the body.
+        val contentTypeList = response.getHeaders("Content-Type").asScala.toList.map(_.toLowerCase)
+        val isYaml = contentTypeList.exists(_.contains("yaml"))
+        if (isYaml) {
+          APIResponse(response.getStatusCode, JString(body), Some(response.getHeaders()))
+        } else {
+          val parsedBody = tryo {
+            parse(body)
+          }
+          parsedBody match {
+            case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
+            case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+          }
         }
       }
   }

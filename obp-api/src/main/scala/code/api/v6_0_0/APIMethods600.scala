@@ -3860,6 +3860,7 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetRolesWithEntitlementCountsAtAllBanks, callContext)
 
             // Get all available roles
             allRoles = ApiRole.availableRoles.sorted

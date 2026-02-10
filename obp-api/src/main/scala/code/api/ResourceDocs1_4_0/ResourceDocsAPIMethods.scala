@@ -681,6 +681,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           implicit val ec = EndpointContext(Some(cc))
           val (resourceDocTags, partialFunctions, locale, contentParam,  apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
           for {
+            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
+              authenticatedAccess(cc)
+            } else {
+              anonymousAccess(cc)
+            }
+            _ <- if (resourceDocsRequireRole) {
+              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+            } else {
+              Future(())
+            }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
@@ -874,6 +884,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               }
             } else {
               Future.successful(true)
+            }
+            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
+              authenticatedAccess(cc)
+            } else {
+              anonymousAccess(cc)
+            }
+            _ <- if (resourceDocsRequireRole) {
+              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+            } else {
+              Future(())
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
               ApiVersionUtils.valueOf(requestedApiVersionString)

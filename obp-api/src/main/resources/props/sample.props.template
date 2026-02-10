@@ -1048,6 +1048,8 @@ featured_apis=elasticSearchWarehouseV300
 # rabbitmq_connector.username=obp
 # rabbitmq_connector.password=obp
 # rabbitmq_connector.virtual_host=/
+# rabbitmq_connector.request_queue=obp_rpc_queue
+# rabbitmq_connector.response_queue_prefix=obp_reply_queue
 # -- RabbitMQ Adapter --------------------------------------------
 #rabbitmq.adapter.enabled=false
 

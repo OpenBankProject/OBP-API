@@ -1,9 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.setup.{DefaultUsers, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
+import code.api.util.APIUtil.OAuth._
+import code.entitlement.Entitlement
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
@@ -256,4 +259,83 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
     
     (errors, warnings, allMessages)
   }
-} 
+
+  // Additional tests to verify that the Swagger/OpenAPI endpoints respect the resource_docs_requires_role prop.
+  // These are minimal checks that mirror the behaviour validated elsewhere (Lift/http4s tests).
+  feature(s"Swagger & OpenAPI access control for resource_docs_requires_role") {
+    scenario("Swagger - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "false",
+      )
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "swagger").GET
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      responseGetSwagger.code should equal(200)
+    }
+
+    scenario("Swagger - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "swagger").GET
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      // Lift endpoints typically return 401 with AuthenticatedUserIsRequired message when auth required
+      responseGetSwagger.code should equal(401)
+      responseGetSwagger.body.toString should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("Swagger - authenticated but missing role gets 403", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "swagger").GET <@ (user1)
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      responseGetSwagger.code should equal(403)
+      responseGetSwagger.body.toString should include(UserHasMissingRoles)
+      responseGetSwagger.body.toString should include(ApiRole.canReadResourceDoc.toString())
+    }
+
+    scenario("Swagger - authenticated and entitled canReadResourceDoc returns 200", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      // grant the entitlement to the resource user used in tests
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canReadResourceDoc.toString)
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "swagger").GET <@ (user1)
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      responseGetSwagger.code should equal(200)
+    }
+
+    // OpenAPI JSON checks (v6.0.0 used elsewhere for OpenAPI tests)
+    scenario("OpenAPI JSON - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "false",
+      )
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", "Consumer"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(200)
+    }
+
+    scenario("OpenAPI JSON - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      val requestGetOpenAPI = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi").GET <<? List(("tags", "Consumer"))
+      val responseGetOpenAPI = makeGetRequest(requestGetOpenAPI)
+      responseGetOpenAPI.code should equal(401)
+      responseGetOpenAPI.body.toString should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("OpenAPI YAML - raw response: public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "false",
+      )
+      val requestGetOpenAPIYAML = (ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "openapi.yaml").GET <<? List(("tags", "Consumer"))
+      val responseGetOpenAPIYAML = makeGetRequest(requestGetOpenAPIYAML)
+      responseGetOpenAPIYAML.code should equal(200)
+      // body should be non-empty YAML
+      responseGetOpenAPIYAML.body.toString.trim.nonEmpty should be (true)
+    }
+
+  }
+
+}

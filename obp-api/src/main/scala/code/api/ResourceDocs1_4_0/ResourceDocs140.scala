@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import scala.language.reflectiveCalls
 import code.api.Constant.HostName
-import code.api.OBPRestHelper
+import code.api.{OBPRestHelper, ResponseHeader}
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiVersionUtils, YAMLUtils}
@@ -236,7 +236,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
                 yamlResult
               }
               
-              val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType)
+              val headers = List("Content-Type" -> YAMLUtils.getYAMLContentType, (ResponseHeader.`Correlation-Id` -> getCorrelationId()))
               val bytes = yamlString.getBytes("UTF-8")
               InMemoryResponse(bytes, headers, Nil, 200)
             }
