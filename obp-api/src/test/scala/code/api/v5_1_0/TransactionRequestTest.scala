@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.Constant
 import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanGetTransactionRequestAtAnyBank, CanUpdateTransactionRequestStatusAtAnyBank}
+import code.api.util.ApiRole.{CanGetTransactionRequestAtAnyBank, CanGetTransactionRequestAtOneBank, CanUpdateTransactionRequestStatusAtAnyBank, CanUpdateTransactionRequestStatusAtOneBank}
 import code.api.v2_1_0.{CounterpartyIdJson, TransactionRequestBodyCounterpartyJSON, TransactionRequestWithChargeJSONs210}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
@@ -184,10 +184,10 @@ class TransactionRequestTest extends V510ServerSetup {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").GET <@(user1)
       val response510 = makeGetRequest(request510)
-      Then("We should get a 401")
-      Then("error should be " + UserHasMissingRoles + CanGetTransactionRequestAtAnyBank)
+      Then("We should get a 403")
+      Then("error should start " + UserHasMissingRoles + CanGetTransactionRequestAtOneBank + " or " + CanGetTransactionRequestAtAnyBank)
       response510.code should equal(403)
-      response510.body.extract[ErrorMessage].message should be(UserHasMissingRoles + CanGetTransactionRequestAtAnyBank)
+      response510.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetTransactionRequestAtOneBank + " or " + CanGetTransactionRequestAtAnyBank)
     }
   }
 
@@ -209,10 +209,10 @@ class TransactionRequestTest extends V510ServerSetup {
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").PUT <@(user1)
       val putJson = PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString)
       val response510 = makePutRequest(request510, write(putJson))
-      Then("We should get a 401")
-      Then("error should be " + UserHasMissingRoles + CanUpdateTransactionRequestStatusAtAnyBank)
+      Then("We should get a 403")
+      Then("error should start with " + UserHasMissingRoles + CanUpdateTransactionRequestStatusAtOneBank + " or " + CanUpdateTransactionRequestStatusAtAnyBank)
       response510.code should equal(403)
-      response510.body.extract[ErrorMessage].message should be(UserHasMissingRoles + CanUpdateTransactionRequestStatusAtAnyBank)
+      response510.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanUpdateTransactionRequestStatusAtOneBank + " or " + CanUpdateTransactionRequestStatusAtAnyBank)
     }
   }
 
