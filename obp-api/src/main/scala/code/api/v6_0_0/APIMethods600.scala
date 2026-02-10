@@ -3860,6 +3860,7 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetRolesWithEntitlementCountsAtAllBanks, callContext)
 
             // Get all available roles
             allRoles = ApiRole.availableRoles.sorted
@@ -3940,7 +3941,7 @@ trait APIMethods600 {
       nameOf(addUserToGroup),
       "POST",
       "/users/USER_ID/group-entitlements",
-      "Grant User Group Entitlements",
+      "Grant User Membership to Group Entitlements",
       s"""Grant the User Group Entitlements.
          |
          |This endpoint creates entitlements for every Role in the Group. If the user
@@ -8245,139 +8246,6 @@ trait APIMethods600 {
       }
     }
 
-    staticResourceDocs += ResourceDoc(
-      getProducts,
-      implementedInApiVersion,
-      "getProducts",
-      "GET",
-      "/banks/BANK_ID/products",
-      "Get Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
-         |
-         |* Name
-         |* Code
-         |* Parent Product Code
-         |* More info URL
-         |* Terms And Conditions URL
-         |* Description
-         |* Terms and Conditions
-         |* License the data under this endpoint is released under
-         |
-         |The combination of bank_id and product_code is unique.
-         |
-         |Can filter with attributes name and values.
-         |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
-         |
-         |Authentication is Optional""".stripMargin,
-      EmptyBody,
-      productsJsonV600,
-      List(
-        AuthenticatedUserIsRequired,
-        BankNotFound,
-        UnknownError
-      ),
-      List(apiTagProduct)
-    )
-    lazy val getProducts: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => { cc =>
-        {
-          implicit val ec = EndpointContext(Some(cc))
-          for {
-            (_, callContext) <- getProductsIsPublic match {
-              case false => authenticatedAccess(cc)
-              case true  => anonymousAccess(cc)
-            }
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
-            (products, callContext) <- NewStyle.function.getProducts(
-              bankId,
-              params,
-              callContext
-            )
-          } yield {
-            (
-              JSONFactory600.createProductsJson(products),
-              HttpCode.`200`(callContext)
-            )
-          }
-        }
-      }
-    }
-
-    staticResourceDocs += ResourceDoc(
-      getProduct,
-      implementedInApiVersion,
-      nameOf(getProduct),
-      "GET",
-      "/banks/BANK_ID/products/PRODUCT_CODE",
-      "Get Bank Product",
-      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
-         |
-         |* Name
-         |* Code
-         |* Parent Product Code
-         |* More info URL
-         |* Description
-         |* Terms and Conditions
-         |* Description
-         |* Meta
-         |* Attributes
-         |* Fees
-         |
-         |The combination of bank_id and product_code is unique.
-         |
-         |Authentication is Optional""".stripMargin,
-      EmptyBody,
-      productJsonV600,
-      List(
-        AuthenticatedUserIsRequired,
-        $BankNotFound,
-        ProductNotFoundByProductCode,
-        UnknownError
-      ),
-      List(apiTagProduct)
-    )
-
-    lazy val getProduct: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "products" :: ProductCode(
-            productCode
-          ) :: Nil JsonGet _ => { cc =>
-        {
-          implicit val ec = EndpointContext(Some(cc))
-          for {
-            (_, callContext) <- getProductsIsPublic match {
-              case false => authenticatedAccess(cc)
-              case true  => anonymousAccess(cc)
-            }
-            (product, callContext) <- NewStyle.function.getProduct(
-              bankId,
-              productCode,
-              callContext
-            )
-            (productAttributes, callContext) <- NewStyle.function
-              .getProductAttributesByBankAndCode(
-                bankId,
-                productCode,
-                callContext
-              )
-
-            (productFees, callContext) <- NewStyle.function
-              .getProductFeesFromProvider(bankId, productCode, callContext)
-
-          } yield {
-            (
-              JSONFactory600.createProductJson(
-                product,
-                productAttributes,
-                productFees
-              ),
-              HttpCode.`200`(callContext)
-            )
-          }
-        }
-      }
-    }
-
     // Api Product Endpoints (independent of CBS)
 
     staticResourceDocs += ResourceDoc(
@@ -8424,6 +8292,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {
@@ -8476,6 +8353,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {
@@ -8605,6 +8491,7 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteApiProduct, callContext)
             _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.deleteApiProductAttributesByBankIdAndCode(bankId.value, apiProductCode, callContext)
             (_, callContext) <- NewStyle.function.deleteApiProduct(bankId.value, apiProductCode, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))

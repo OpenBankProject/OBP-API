@@ -2316,8 +2316,8 @@ object SwaggerDefinitionsJSON {
       verb = "get",
       correlation_id = "v8ho6h5ivel3uq7a5zcnv0w1",
       duration = 39,
-      source_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
-      target_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
+      source_ip = "2001:db8:1234:5678::1",
+      target_ip = "2001:db8:1234:5678::1",
       response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}""")
   )
 
@@ -5245,7 +5245,16 @@ object SwaggerDefinitionsJSON {
     category = Some("category1"),
     more_info_url = Some("https://example.com/more-info"),
     terms_and_conditions_url = Some("https://example.com/terms"),
-    description = Some("Description of the product")
+    description = Some("Description of the product"),
+    collection_id = Some("collection-abc"),
+    monthly_subscription_currency = Some("EUR"),
+    monthly_subscription_amount = Some("9.99"),
+    per_second_call_limit = Some(10L),
+    per_minute_call_limit = Some(100L),
+    per_hour_call_limit = Some(1000L),
+    per_day_call_limit = Some(10000L),
+    per_week_call_limit = Some(50000L),
+    per_month_call_limit = Some(200000L)
   )
   lazy val apiProductJsonV600 = ApiProductJsonV600(
     api_product_id = "api-product-id-123",
@@ -5257,6 +5266,15 @@ object SwaggerDefinitionsJSON {
     more_info_url = "https://example.com/more-info",
     terms_and_conditions_url = "https://example.com/terms",
     description = "Description of the product",
+    collection_id = "collection-abc",
+    monthly_subscription_currency = "EUR",
+    monthly_subscription_amount = "9.99",
+    per_second_call_limit = 10L,
+    per_minute_call_limit = 100L,
+    per_hour_call_limit = 1000L,
+    per_day_call_limit = 10000L,
+    per_week_call_limit = 50000L,
+    per_month_call_limit = 200000L,
     attributes = Some(List(apiProductAttributeResponseJsonV600))
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
@@ -5480,21 +5498,6 @@ object SwaggerDefinitionsJSON {
   )
 
   lazy val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400.copy(attributes = None, fees = None)))
-
-  lazy val productJsonV600 = ProductJsonV600(
-    bank_id = bankIdExample.value,
-    product_code = productCodeExample.value,
-    parent_product_code = parentProductCodeExample.value,
-    name = productNameExample.value,
-    more_info_url = moreInfoUrlExample.value,
-    terms_and_conditions_url = termsAndConditionsUrlExample.value,
-    description = descriptionExample.value,
-    meta = metaJson,
-    attributes = Some(List(productAttributeResponseJson)),
-    fees = Some(List(productFeeJsonV400))
-  )
-
-  lazy val productsJsonV600 = ProductsJsonV600(products = List(productJsonV600.copy(attributes = None, fees = None)))
 
   lazy val putProductJsonV400 = PutProductJsonV400(
     parent_product_code = parentProductCodeExample.value,

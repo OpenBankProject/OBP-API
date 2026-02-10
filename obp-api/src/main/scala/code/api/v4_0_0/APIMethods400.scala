@@ -10063,7 +10063,7 @@ trait APIMethods400 extends MdcLoggable {
         UnknownError
       ),
       List(apiTagAccount),
-      Some(List(canGetAccountsMinimalForCustomerAtAnyBank))
+      Some(List(canGetAccountsMinimalForCustomerAtOneBank, canGetAccountsMinimalForCustomerAtAnyBank))
     )
 
     lazy val getAccountsMinimalByCustomerId: OBPEndpoint = {
@@ -10071,10 +10071,12 @@ trait APIMethods400 extends MdcLoggable {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            (_, callContext) <- getCustomerByCustomerId(
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (customer, callContext) <- getCustomerByCustomerId(
               customerId,
-              cc.callContext
+              callContext
             )
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(customer.bankId, u.userId, canGetAccountsMinimalForCustomerAtOneBank :: canGetAccountsMinimalForCustomerAtAnyBank :: Nil, callContext)
             (userCustomerLinks, callContext) <- getUserCustomerLinks(
               customerId,
               callContext

@@ -757,21 +757,6 @@ case class ConnectorCountsJsonV600(
   connector_counts: List[ConnectorCountJsonV600]
 )
 
-case class ProductJsonV600(
-  bank_id: String,
-  product_code: String,
-  parent_product_code: String,
-  name: String,
-  more_info_url: String,
-  terms_and_conditions_url: String,
-  description: String,
-  meta: MetaJsonV140,
-  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
-  fees: Option[List[ProductFeeJsonV400]]
-)
-
-case class ProductsJsonV600(products: List[ProductJsonV600])
-
 // Api Product (independent of CBS)
 case class PostPutApiProductJsonV600(
   parent_api_product_code: Option[String],
@@ -779,7 +764,16 @@ case class PostPutApiProductJsonV600(
   category: Option[String],
   more_info_url: Option[String],
   terms_and_conditions_url: Option[String],
-  description: Option[String]
+  description: Option[String],
+  collection_id: Option[String],
+  monthly_subscription_currency: Option[String],
+  monthly_subscription_amount: Option[String],
+  per_second_call_limit: Option[Long],
+  per_minute_call_limit: Option[Long],
+  per_hour_call_limit: Option[Long],
+  per_day_call_limit: Option[Long],
+  per_week_call_limit: Option[Long],
+  per_month_call_limit: Option[Long]
 )
 
 case class ApiProductJsonV600(
@@ -792,6 +786,15 @@ case class ApiProductJsonV600(
   more_info_url: String,
   terms_and_conditions_url: String,
   description: String,
+  collection_id: String,
+  monthly_subscription_currency: String,
+  monthly_subscription_amount: String,
+  per_second_call_limit: Long,
+  per_minute_call_limit: Long,
+  per_hour_call_limit: Long,
+  per_day_call_limit: Long,
+  per_week_call_limit: Long,
+  per_month_call_limit: Long,
   attributes: Option[List[ApiProductAttributeResponseJsonV600]]
 )
 
@@ -815,49 +818,6 @@ case class ApiProductAttributeResponseJsonV600(
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
-
-  def createProductJson(product: Product) : ProductJsonV600 = {
-    ProductJsonV600(
-      bank_id = product.bankId.toString,
-      product_code = product.code.value,
-      parent_product_code = product.parentProductCode.value,
-      name = product.name,
-      more_info_url = product.moreInfoUrl,
-      terms_and_conditions_url = product.termsAndConditionsUrl,
-      description = product.description,
-      meta = createMetaJson(product.meta),
-      None,
-      None
-    )
-  }
-  def createProductsJson(productsList: List[Product]) : ProductsJsonV600 = {
-    ProductsJsonV600(productsList.map(createProductJson))
-  }
-
-  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees: List[ProductFeeTrait]) : ProductJsonV600 = {
-    ProductJsonV600(
-      bank_id = product.bankId.toString,
-      product_code = product.code.value,
-      parent_product_code = product.parentProductCode.value,
-      name = product.name,
-      more_info_url = product.moreInfoUrl,
-      terms_and_conditions_url = product.termsAndConditionsUrl,
-      description = product.description,
-      meta = createMetaJson(product.meta),
-      attributes = Some(createProductAttributesJson(productAttributes)),
-      fees = Some(productFees.map(productFee => ProductFeeJsonV400(
-        product_fee_id = Some(productFee.productFeeId),
-        name = productFee.name,
-        is_active = productFee.isActive,
-        more_info = productFee.moreInfo,
-        value = ProductFeeValueJsonV400(
-          currency = productFee.currency,
-          amount = productFee.amount,
-          frequency = productFee.frequency,
-          `type` = productFee.`type`
-        ))))
-    )
-  }
 
   def createRedisCallCountersJson(
     // Convert list to map for easy lookup by period
@@ -2106,6 +2066,15 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
       description = product.description,
+      collection_id = product.collectionId,
+      monthly_subscription_currency = product.monthlySubscriptionCurrency,
+      monthly_subscription_amount = product.monthlySubscriptionAmount,
+      per_second_call_limit = product.perSecondCallLimit,
+      per_minute_call_limit = product.perMinuteCallLimit,
+      per_hour_call_limit = product.perHourCallLimit,
+      per_day_call_limit = product.perDayCallLimit,
+      per_week_call_limit = product.perWeekCallLimit,
+      per_month_call_limit = product.perMonthCallLimit,
       attributes = attributes.map(_.map(createApiProductAttributeResponseJsonV600))
     )
   }
