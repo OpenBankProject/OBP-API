@@ -4755,7 +4755,7 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(resetPasswordUrl),
       "POST",
-      "/management/user/reset-password-url",
+      "/users/password-reset",
       "Create Password Reset URL and Send Email",
       s"""Create a password reset URL for a user and automatically send it via email.
          |
@@ -4798,7 +4798,7 @@ trait APIMethods600 {
     )
 
     lazy val resetPasswordUrl: OBPEndpoint = {
-      case "management" :: "user" :: "reset-password-url" :: Nil JsonPost json -> _ => {
+      case "users" :: "password-reset" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
