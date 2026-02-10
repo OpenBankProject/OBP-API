@@ -2409,9 +2409,9 @@ trait APIMethods600 {
          |**IMPORTANT: v6.0.0+ Breaking Change**
          |
          |This version does NOT support the old `exclude_*` parameters:
-         |- ❌ `exclude_app_names` - NOT supported (returns error)
-         |- ❌ `exclude_url_patterns` - NOT supported (returns error)
-         |- ❌ `exclude_implemented_by_partial_functions` - NOT supported (returns error)
+         |-  `exclude_app_names` - NOT supported (returns error)
+         |-  `exclude_url_patterns` - NOT supported (returns error)
+         |-  `exclude_implemented_by_partial_functions` - NOT supported (returns error)
          |
          |Use `include_*` parameters instead (all optional):
          |- `include_app_names` - Optional - include only these apps

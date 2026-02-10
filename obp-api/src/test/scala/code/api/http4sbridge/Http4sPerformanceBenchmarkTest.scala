@@ -393,7 +393,7 @@ class Http4sPerformanceBenchmarkTest extends V500ServerSetup {
       sb.append("| Endpoint | Lift avg (ms) | HTTP4S avg (ms) | Lift p95 (ms) | HTTP4S p95 (ms) | Overhead | Status |\n")
       sb.append("|----------|--------------|----------------|--------------|----------------|----------|--------|\n")
       latencyResults.foreach { r =>
-        val status = if (r.passed) "✅ PASS" else "❌ FAIL"
+        val status = if (r.passed) "Pass" else " FAIL"
         sb.append(f"| ${r.endpoint} | ${r.liftMetrics.avg}%.1f | ${r.http4sMetrics.avg}%.1f | ${r.liftMetrics.p95}%.1f | ${r.http4sMetrics.p95}%.1f | ${r.overheadPercent}%.1f%% | $status |\n")
       }
       sb.append("\n")
@@ -406,7 +406,7 @@ class Http4sPerformanceBenchmarkTest extends V500ServerSetup {
       sb.append("| Test | Lift avg (ms) | HTTP4S avg (ms) | Lift p95 (ms) | HTTP4S p95 (ms) | Overhead | Status |\n")
       sb.append("|------|--------------|----------------|--------------|----------------|----------|--------|\n")
       concurrentResults.foreach { r =>
-        val status = if (r.passed) "✅ PASS" else "❌ FAIL"
+        val status = if (r.passed) "Pass" else " FAIL"
         sb.append(f"| ${r.endpoint} | ${r.liftMetrics.avg}%.1f | ${r.http4sMetrics.avg}%.1f | ${r.liftMetrics.p95}%.1f | ${r.http4sMetrics.p95}%.1f | ${r.overheadPercent}%.1f%% | $status |\n")
       }
       sb.append("\n")
@@ -419,7 +419,7 @@ class Http4sPerformanceBenchmarkTest extends V500ServerSetup {
       sb.append("| Test | Lift avg (ms) | HTTP4S avg (ms) | Overhead | Status |\n")
       sb.append("|------|--------------|----------------|----------|--------|\n")
       throughputResults.foreach { r =>
-        val status = if (r.passed) "✅ PASS" else "❌ FAIL"
+        val status = if (r.passed) "Pass" else " FAIL"
         sb.append(f"| ${r.endpoint} | ${r.liftMetrics.avg}%.1f | ${r.http4sMetrics.avg}%.1f | ${r.overheadPercent}%.1f%% | $status |\n")
       }
       sb.append("\n")
@@ -444,12 +444,12 @@ class Http4sPerformanceBenchmarkTest extends V500ServerSetup {
     // Conclusion
     sb.append("## Conclusion\n\n")
     if (passedCount == totalCount) {
-      sb.append("✅ **All performance benchmarks passed.** HTTP4S response times are within acceptable overhead of Lift baseline.\n\n")
+      sb.append("yes **All performance benchmarks passed.** HTTP4S response times are within acceptable overhead of Lift baseline.\n\n")
       sb.append("- Requirement 7.1 (response times within tolerance): **SATISFIED**\n")
       sb.append("- Requirement 7.2 (concurrent request handling): **SATISFIED**\n")
       sb.append("- Requirement 7.3 (resource usage): **SATISFIED** (same JVM, shared resources)\n")
     } else {
-      sb.append(s"⚠️ **${totalCount - passedCount} benchmark(s) exceeded the overhead threshold.** Review detailed metrics above.\n\n")
+      sb.append(s" **${totalCount - passedCount} benchmark(s) exceeded the overhead threshold.** Review detailed metrics above.\n\n")
       sb.append("- Requirement 7.1 (response times within tolerance): **NEEDS REVIEW**\n")
       sb.append("- Requirement 7.2 (concurrent request handling): **NEEDS REVIEW**\n")
       sb.append("- Requirement 7.3 (resource usage): **NEEDS REVIEW**\n")
