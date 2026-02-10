@@ -757,21 +757,6 @@ case class ConnectorCountsJsonV600(
   connector_counts: List[ConnectorCountJsonV600]
 )
 
-case class ProductJsonV600(
-  bank_id: String,
-  product_code: String,
-  parent_product_code: String,
-  name: String,
-  more_info_url: String,
-  terms_and_conditions_url: String,
-  description: String,
-  meta: MetaJsonV140,
-  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
-  fees: Option[List[ProductFeeJsonV400]]
-)
-
-case class ProductsJsonV600(products: List[ProductJsonV600])
-
 // Api Product (independent of CBS)
 case class PostPutApiProductJsonV600(
   parent_api_product_code: Option[String],
@@ -815,49 +800,6 @@ case class ApiProductAttributeResponseJsonV600(
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
-
-  def createProductJson(product: Product) : ProductJsonV600 = {
-    ProductJsonV600(
-      bank_id = product.bankId.toString,
-      product_code = product.code.value,
-      parent_product_code = product.parentProductCode.value,
-      name = product.name,
-      more_info_url = product.moreInfoUrl,
-      terms_and_conditions_url = product.termsAndConditionsUrl,
-      description = product.description,
-      meta = createMetaJson(product.meta),
-      None,
-      None
-    )
-  }
-  def createProductsJson(productsList: List[Product]) : ProductsJsonV600 = {
-    ProductsJsonV600(productsList.map(createProductJson))
-  }
-
-  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees: List[ProductFeeTrait]) : ProductJsonV600 = {
-    ProductJsonV600(
-      bank_id = product.bankId.toString,
-      product_code = product.code.value,
-      parent_product_code = product.parentProductCode.value,
-      name = product.name,
-      more_info_url = product.moreInfoUrl,
-      terms_and_conditions_url = product.termsAndConditionsUrl,
-      description = product.description,
-      meta = createMetaJson(product.meta),
-      attributes = Some(createProductAttributesJson(productAttributes)),
-      fees = Some(productFees.map(productFee => ProductFeeJsonV400(
-        product_fee_id = Some(productFee.productFeeId),
-        name = productFee.name,
-        is_active = productFee.isActive,
-        more_info = productFee.moreInfo,
-        value = ProductFeeValueJsonV400(
-          currency = productFee.currency,
-          amount = productFee.amount,
-          frequency = productFee.frequency,
-          `type` = productFee.`type`
-        ))))
-    )
-  }
 
   def createRedisCallCountersJson(
     // Convert list to map for easy lookup by period
