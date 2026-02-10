@@ -88,6 +88,10 @@ package object bankconnectors extends MdcLoggable {
               // Record detailed metric to DB
               if (getPropsAsBoolValue("write_connector_metrics", false)) {
                 val params = extractKeyParams(args)
+                // TODO: The correlation_id should be passed down from the REST API layer
+                // so that one REST call with a correlation_id results in multiple connector
+                // metric records each sharing the same correlation_id. Currently getCorrelationId()
+                // relies on Lift's S.containerSession which is unavailable inside this Future.
                 val correlationId = getCorrelationId()
                 Future {
                   ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
@@ -104,6 +108,7 @@ package object bankconnectors extends MdcLoggable {
 
             if (getPropsAsBoolValue("write_connector_metrics", false)) {
               val params = extractKeyParams(args)
+              // TODO: Same as above — correlation_id should come from the REST API layer.
               val correlationId = getCorrelationId()
               Future {
                 ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
