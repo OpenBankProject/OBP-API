@@ -440,6 +440,9 @@ object ConnectorBuilderUtil {
       "getBankAccountBalanceById",
       "createOrUpdateBankAccountBalance",
       "deleteBankAccountBalance",
+      "checkExternalUserCredentials",// this is not a standard connector method.
+      "checkExternalUserExists", // this is not a standard connector method. 
+      "getCurrentFxRate", // this is speical method
     ).distinct
 
   /**
@@ -452,7 +455,7 @@ object ConnectorBuilderUtil {
     "createOrUpdateAtm",
     "createOrUpdateProduct",
     "createOrUpdateFXRate",
-    "getCurrentFxRate",
+//    "getCurrentFxRate",
     "getCounterpartyFromTransaction",
     "getCounterpartiesFromTransaction",
   ).distinct
@@ -468,8 +471,6 @@ object ConnectorBuilderUtil {
     "createDynamicEndpoint",
     "getDynamicEndpoint",
     "getDynamicEndpoints",
-    "checkExternalUserCredentials",// this is not a standard connector method.
-    "checkExternalUserExists", // this is not a standard connector method. 
     "getBankAccountByRoutingLegacy",
     "getAccountRoutingsByScheme",
     "getAccountRouting",
