@@ -28,6 +28,11 @@ trait ApiProductAttributesProvider {
   def deleteApiProductAttribute(
     apiProductAttributeId: String
   ): Box[Boolean]
+
+  def deleteApiProductAttributesByBankIdAndCode(
+    bankId: String,
+    apiProductCode: String
+  ): Box[Boolean]
 }
 
 object MappedApiProductAttributesProvider extends MdcLoggable with ApiProductAttributesProvider {
@@ -106,5 +111,18 @@ object MappedApiProductAttributesProvider extends MdcLoggable with ApiProductAtt
     apiProductAttributeId: String
   ): Box[Boolean] = {
     ApiProductAttribute.find(By(ApiProductAttribute.ApiProductAttributeId, apiProductAttributeId)).map(_.delete_!)
+  }
+
+  override def deleteApiProductAttributesByBankIdAndCode(
+    bankId: String,
+    apiProductCode: String
+  ): Box[Boolean] = {
+    tryo {
+      ApiProductAttribute.findAll(
+        By(ApiProductAttribute.BankId, bankId),
+        By(ApiProductAttribute.ApiProductCode, apiProductCode)
+      ).foreach(_.delete_!)
+      true
+    }
   }
 }

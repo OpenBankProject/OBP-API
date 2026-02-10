@@ -8490,6 +8490,7 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteApiProduct, callContext)
             _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.deleteApiProductAttributesByBankIdAndCode(bankId.value, apiProductCode, callContext)
             (_, callContext) <- NewStyle.function.deleteApiProduct(bankId.value, apiProductCode, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))

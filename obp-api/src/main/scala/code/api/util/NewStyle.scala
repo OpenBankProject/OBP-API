@@ -3886,6 +3886,12 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    def deleteApiProductAttributesByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductAttributesProvider.deleteApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
+      }
+    }
+
     def createApiCollectionEndpoint(
       apiCollectionId: String,
       operationId: String,
