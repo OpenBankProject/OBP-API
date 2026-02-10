@@ -4974,6 +4974,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
+  val getApiProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getApiProductsIsPublic", true)
 
   val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
   

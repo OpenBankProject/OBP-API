@@ -8391,7 +8391,7 @@ trait APIMethods600 {
         CreateApiProductError,
         UnknownError
       ),
-      List(apiTagApiProduct),
+      List(apiTagApi, apiTagApiProduct),
       Some(List(canCreateApiProduct))
     )
 
@@ -8443,7 +8443,7 @@ trait APIMethods600 {
         CreateApiProductError,
         UnknownError
       ),
-      List(apiTagApiProduct),
+      List(apiTagApi, apiTagApiProduct),
       Some(List(canUpdateApiProduct))
     )
 
@@ -8485,27 +8485,32 @@ trait APIMethods600 {
          |
          |Returns the Api Product with its attributes.
          |
-         |Authentication is Required.
+         |${userAuthenticationMessage(!getApiProductsIsPublic)}
          |
          |""".stripMargin,
       EmptyBody,
       apiProductJsonV600,
-      List(
-        $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
-        ApiProductNotFound,
-        UnknownError
-      ),
-      List(apiTagApiProduct),
-      Some(List(canGetApiProduct))
+      if (getApiProductsIsPublic) List(ApiProductNotFound, UnknownError) else List(UserHasMissingRoles, ApiProductNotFound, UnknownError),
+      List(apiTagApi, apiTagApiProduct),
+      if (getApiProductsIsPublic) None else Some(List(canGetApiProduct))
     )
 
     lazy val getApiProduct: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+            (_, callContext) <- getApiProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            _ <- if (!getApiProductsIsPublic) {
+              for {
+                (Full(u), callContext) <- authenticatedAccess(cc)
+                _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+              } yield callContext
+            } else {
+              Future.successful(callContext)
+            }
             _ <- NewStyle.function.getBank(bankId, callContext)
             (apiProduct, callContext) <- NewStyle.function.getApiProductByBankIdAndCode(bankId.value, apiProductCode, callContext)
             (attributes, callContext) <- NewStyle.function.getApiProductAttributesByBankIdAndCode(bankId.value, apiProductCode, callContext)
@@ -8524,26 +8529,32 @@ trait APIMethods600 {
       "Get Api Products",
       s"""Get Api Products for the Bank.
          |
-         |Authentication is Required.
+         |${userAuthenticationMessage(!getApiProductsIsPublic)}
          |
          |""".stripMargin,
       EmptyBody,
       apiProductsJsonV600,
-      List(
-        $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
-        UnknownError
-      ),
-      List(apiTagApiProduct),
-      Some(List(canGetApiProduct))
+      if (getApiProductsIsPublic) List(UnknownError) else List(UserHasMissingRoles, UnknownError),
+      List(apiTagApi, apiTagApiProduct),
+      if (getApiProductsIsPublic) None else Some(List(canGetApiProduct))
     )
 
     lazy val getApiProducts: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "api-products" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+            (_, callContext) <- getApiProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            _ <- if (!getApiProductsIsPublic) {
+              for {
+                (Full(u), callContext) <- authenticatedAccess(cc)
+                _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProduct, callContext)
+              } yield callContext
+            } else {
+              Future.successful(callContext)
+            }
             _ <- NewStyle.function.getBank(bankId, callContext)
             (apiProducts, callContext) <- NewStyle.function.getApiProductsByBankId(bankId.value, callContext)
           } yield {
@@ -8573,7 +8584,7 @@ trait APIMethods600 {
         DeleteApiProductError,
         UnknownError
       ),
-      List(apiTagApiProduct),
+      List(apiTagApi, apiTagApiProduct),
       Some(List(canDeleteApiProduct))
     )
 
@@ -8615,7 +8626,7 @@ trait APIMethods600 {
         CreateApiProductAttributeError,
         UnknownError
       ),
-      List(apiTagApiProductAttribute),
+      List(apiTagApi, apiTagApiProductAttribute),
       Some(List(canCreateApiProductAttribute))
     )
 
@@ -8668,7 +8679,7 @@ trait APIMethods600 {
         ApiProductAttributeNotFound,
         UnknownError
       ),
-      List(apiTagApiProductAttribute),
+      List(apiTagApi, apiTagApiProductAttribute),
       Some(List(canUpdateApiProductAttribute))
     )
 
@@ -8708,27 +8719,32 @@ trait APIMethods600 {
       "Get Api Product Attribute",
       s"""Get an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.
          |
-         |Authentication is Required.
+         |${userAuthenticationMessage(!getApiProductsIsPublic)}
          |
          |""".stripMargin,
       EmptyBody,
       apiProductAttributeResponseJsonV600,
-      List(
-        $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
-        ApiProductAttributeNotFound,
-        UnknownError
-      ),
-      List(apiTagApiProductAttribute),
-      Some(List(canGetApiProductAttribute))
+      if (getApiProductsIsPublic) List(ApiProductAttributeNotFound, UnknownError) else List(UserHasMissingRoles, ApiProductAttributeNotFound, UnknownError),
+      List(apiTagApi, apiTagApiProductAttribute),
+      if (getApiProductsIsPublic) None else Some(List(canGetApiProductAttribute))
     )
 
     lazy val getApiProductAttribute: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "api-products" :: apiProductCode :: "attributes" :: apiProductAttributeId :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProductAttribute, callContext)
+            (_, callContext) <- getApiProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            _ <- if (!getApiProductsIsPublic) {
+              for {
+                (Full(u), callContext) <- authenticatedAccess(cc)
+                _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetApiProductAttribute, callContext)
+              } yield callContext
+            } else {
+              Future.successful(callContext)
+            }
             (attribute, callContext) <- NewStyle.function.getApiProductAttributeById(apiProductAttributeId, callContext)
           } yield {
             (JSONFactory600.createApiProductAttributeResponseJsonV600(attribute), HttpCode.`200`(callContext))
@@ -8757,7 +8773,7 @@ trait APIMethods600 {
         DeleteApiProductAttributeError,
         UnknownError
       ),
-      List(apiTagApiProductAttribute),
+      List(apiTagApi, apiTagApiProductAttribute),
       Some(List(canDeleteApiProductAttribute))
     )
 
