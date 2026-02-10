@@ -66,6 +66,13 @@ package object bankconnectors extends MdcLoggable {
           // Consider refactoring invokeMethod to accept a pre-resolved connectorName to avoid the duplicate lookup.
           val (_, connectorName) = getConnectorNameAndMethodRouting(methodName, argNameToValue)
 
+          // Extract correlationId from CallContext before entering any Future callback,
+          // because Lift's S.containerSession is unavailable in async contexts.
+          val correlationId: String = args.collectFirst {
+            case Some(cc: CallContext) => cc.correlationId
+            case Full(cc: CallContext) => cc.correlationId
+          }.getOrElse(getCorrelationId()) // fallback to Lift session if no CallContext in args
+
           // Record outbound (before call)
           ConnectorCountsRedis.incrementOutbound(connectorName, methodName)
           val t0 = System.currentTimeMillis()
@@ -88,11 +95,6 @@ package object bankconnectors extends MdcLoggable {
               // Record detailed metric to DB
               if (getPropsAsBoolValue("write_connector_metrics", false)) {
                 val params = extractKeyParams(args)
-                // TODO: The correlation_id should be passed down from the REST API layer
-                // so that one REST call with a correlation_id results in multiple connector
-                // metric records each sharing the same correlation_id. Currently getCorrelationId()
-                // relies on Lift's S.containerSession which is unavailable inside this Future.
-                val correlationId = getCorrelationId()
                 Future {
                   ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
                     connectorName, methodName, correlationId, now, duration, params, isSuccess)
@@ -108,8 +110,6 @@ package object bankconnectors extends MdcLoggable {
 
             if (getPropsAsBoolValue("write_connector_metrics", false)) {
               val params = extractKeyParams(args)
-              // TODO: Same as above — correlation_id should come from the REST API layer.
-              val correlationId = getCorrelationId()
               Future {
                 ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
                   connectorName, methodName, correlationId, now, duration, params, isSuccess)
