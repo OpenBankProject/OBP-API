@@ -3095,6 +3095,77 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Berlin Group Mandatory Headers",
+		description =
+			s"""
+|OBP validates mandatory HTTP request headers for Berlin Group (NextGenPSD2) API endpoints.
+|
+|When a request targets a Berlin Group endpoint (identified by the Berlin Group URL prefix), OBP checks for the presence of required headers before processing the request.
+|
+|## Mandatory Headers
+|
+|The following headers are required on all Berlin Group API requests by default:
+|
+|* **Content-Type** - The media type of the request body
+|* **Date** - The date and time of the request (must be a valid RFC 7231 date)
+|* **Digest** - A digest of the request body for integrity verification
+|* **PSU-Device-ID** - UUID of the device used by the Payment Service User (PSU)
+|* **PSU-Device-Name** - Name of the device used by the PSU
+|* **PSU-IP-Address** - IP address of the PSU device
+|* **Signature** - Digital signature of the request (keyId must match the serial number from the TPP certificate)
+|* **TPP-Signature-Certificate** - The certificate used by the TPP to sign the request
+|* **X-Request-ID** - UUID that uniquely identifies the request (must not be reused for POST requests that returned 201)
+|
+|## Additional Consent Headers
+|
+|When creating a consent (POST to /consents), the following additional header is required:
+|
+|* **TPP-Redirect-URI** - URI to redirect the PSU to after consent authorization
+|
+|## TPP Requests Without PSU Involvement
+|
+|For background/batch requests where no PSU is directly involved, set:
+|
+|* PSU-IP-Address: 0.0.0.0
+|* PSU-Device-ID: no-psu-involved
+|* PSU-Device-Name: no-psu-involved
+|
+|This enables OBP to apply different consent frequency rules for TPP-initiated requests.
+|
+|## Configuration
+|
+|The mandatory headers can be customized in the Props file:
+|
+|* `berlin_group_mandatory_headers` - Comma-separated list of mandatory header names. Set to empty to disable header checks.
+|* `berlin_group_mandatory_header_consent` - Additional headers required for consent creation endpoints.
+|
+|Example Props configuration:
+|
+|    # Use default mandatory headers
+|    #berlin_group_mandatory_headers = Content-Type,Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID
+|    #berlin_group_mandatory_header_consent = TPP-Redirect-URI
+|
+|    # Disable mandatory header checks (e.g. for testing)
+|    berlin_group_mandatory_headers =
+|    berlin_group_mandatory_header_consent =
+|
+|## Validation Chain
+|
+|OBP performs the following validation steps on Berlin Group requests in order:
+|
+|1. **Missing headers check** - Returns HTTP 400 if any mandatory headers are absent
+|2. **Date format check** - Validates the Date header conforms to RFC 7231
+|3. **X-Request-ID format check** - Validates the X-Request-ID is a valid UUID
+|4. **X-Request-ID uniqueness check** - Ensures the X-Request-ID has not been used in a previous successful POST (201) request
+|5. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
+|6. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
+|
+|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256) with HTTP status 400.
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
 		title = "API Collection",
 		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
