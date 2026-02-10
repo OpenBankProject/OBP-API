@@ -3166,6 +3166,158 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Berlin Group Transaction and Consent Lifecycle",
+		description =
+			s"""
+|OBP provides background schedulers that automatically manage the lifecycle of Berlin Group transactions and consents.
+|
+|## Outdated Transactions
+|
+|Berlin Group payment transactions with status "received" (RCVD) that remain unprocessed beyond a configured time threshold are automatically rejected by a background scheduler task.
+|
+|* `berlin_group_outdated_transactions_time_in_seconds` - Time in seconds after which a "received" transaction is considered outdated. Default: **300** (5 minutes).
+|* `berlin_group_outdated_transactions_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated transactions. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Reject transactions stuck in "received" status for more than 5 minutes, checking every 60 seconds
+|    berlin_group_outdated_transactions_time_in_seconds = 300
+|    berlin_group_outdated_transactions_interval_in_seconds = 60
+|
+|## Outdated Consents
+|
+|Berlin Group consents with status "received" that remain unfinished (e.g. the PSU never completed the SCA flow) beyond a configured time threshold are automatically rejected.
+|
+|* `berlin_group_outdated_consents_time_in_seconds` - Time in seconds after which an unfinished consent is considered outdated. Default: **300** (5 minutes).
+|* `berlin_group_outdated_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Reject consents stuck in "received" status for more than 5 minutes, checking every 60 seconds
+|    berlin_group_outdated_consents_time_in_seconds = 300
+|    berlin_group_outdated_consents_interval_in_seconds = 60
+|
+|## Expired Consents
+|
+|Berlin Group consents with status "valid" whose `validUntil` date has passed are automatically transitioned to "expired" status.
+|
+|* `berlin_group_expired_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for expired consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Check for expired consents every 120 seconds
+|    berlin_group_expired_consents_interval_in_seconds = 120
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group URL and Path Configuration",
+		description =
+			s"""
+|OBP allows customization of the URL paths used for Berlin Group (NextGenPSD2) API endpoints.
+|
+|## Canonical Path
+|
+|* `berlin_group_version_1_canonical_path` - Overrides the version segment of the Berlin Group v1 URL path. By default, the built-in path is `v1.3` (i.e. endpoints are served at `/berlin-group/v1.3/...`). Setting this property changes the version segment.
+|
+|Example:
+|
+|    # Serve Berlin Group endpoints at /berlin-group/v1.3.12/...
+|    berlin_group_version_1_canonical_path = v1.3.12
+|
+|## Alias Path
+|
+|* `berlin_group_v1_3_alias_path` - Defines an alternative URL prefix under which Berlin Group v1.3 endpoints are also available. The format must be `xxx/yyy`. When set, all Berlin Group v1.3 endpoints are duplicated under this alternative path.
+|
+|Example:
+|
+|    # Also serve Berlin Group endpoints at /0.6/v1/...
+|    berlin_group_v1_3_alias_path = 0.6/v1
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group Response Formatting",
+		description =
+			s"""
+|OBP provides several configuration options to control how Berlin Group API responses are formatted.
+|
+|## Account Name Visibility
+|
+|* `BG_v1312_show_account_name` - Boolean flag that controls whether the `name` field is included in Berlin Group account responses (at `/berlin-group/v1.3/accounts` and `/berlin-group/v1.3/accounts/{accountId}`). Default: **true**.
+|
+|Some implementations may require omitting the account name for privacy or compliance reasons.
+|
+|Example:
+|
+|    # Hide account names in Berlin Group responses
+|    BG_v1312_show_account_name = false
+|
+|## Amount Sign Removal
+|
+|* `BG_remove_sign_of_amounts` - Boolean flag that controls whether the sign (positive/negative indicator) is removed from transaction amount values in Berlin Group responses. Default: **false**.
+|
+|When enabled, amounts such as "-100.00" are returned as "100.00". This can be useful when the sign is conveyed by other means (e.g. booked vs pending lists, or credit/debit indicators).
+|
+|Example:
+|
+|    # Remove the sign from transaction amounts
+|    BG_remove_sign_of_amounts = true
+|
+|## Error Message Path Visibility
+|
+|* `berlin_group_error_message_show_path` - Boolean flag that controls whether the request URL path is included in Berlin Group error response messages. Default: **true**.
+|
+|When enabled, error responses include the `path` field showing which URL triggered the error. This can be disabled for privacy or security reasons.
+|
+|Example:
+|
+|    # Hide the request path in error messages
+|    berlin_group_error_message_show_path = false
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group Consent Settings",
+		description =
+			s"""
+|OBP provides configuration options for Berlin Group consent creation and SCA (Strong Customer Authentication) flows.
+|
+|## Frequency Per Day Limit
+|
+|* `berlin_group_frequency_per_day_upper_limit` - Maximum allowed value for the `frequencyPerDay` field when creating a Berlin Group consent. Default: **4**.
+|
+|When a TPP creates a consent, the requested `frequencyPerDay` must be greater than 0 and less than or equal to this upper limit. For one-off access consents, the frequency must be exactly 1.
+|
+|Example:
+|
+|    # Allow up to 10 requests per day per consent
+|    berlin_group_frequency_per_day_upper_limit = 10
+|
+|## ASPSP SCA Approach
+|
+|* `berlin_group_aspsp_sca_approach` - Defines the SCA approach advertised by the ASPSP (Account Servicing Payment Service Provider) in the `ASPSP-SCA-Approach` response header for consent creation endpoints. Default: **redirect**.
+|
+|Possible values include:
+|
+|* `redirect` - The PSU is redirected to the ASPSP for authentication
+|* `embedded` - Authentication is performed within the TPP interface
+|* `decoupled` - Authentication is performed on a separate device/channel
+|
+|This header is returned in the response to POST `/consents` requests to inform the TPP which SCA method the ASPSP supports.
+|
+|Example:
+|
+|    # Use embedded SCA approach
+|    berlin_group_aspsp_sca_approach = embedded
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
 		title = "API Collection",
 		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
