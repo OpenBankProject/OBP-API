@@ -3940,7 +3940,7 @@ trait APIMethods600 {
       nameOf(addUserToGroup),
       "POST",
       "/users/USER_ID/group-entitlements",
-      "Grant User Group Entitlements",
+      "Grant User Membership to Group Entitlements",
       s"""Grant the User Group Entitlements.
          |
          |This endpoint creates entitlements for every Role in the Group. If the user
