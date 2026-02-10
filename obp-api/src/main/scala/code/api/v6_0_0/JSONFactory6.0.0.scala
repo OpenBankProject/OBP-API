@@ -757,7 +757,6 @@ case class ConnectorCountsJsonV600(
 )
 
 case class ProductJsonV600(
-  product_id: String,
   bank_id: String,
   product_code: String,
   parent_product_code: String,
@@ -818,7 +817,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createProductJson(product: Product) : ProductJsonV600 = {
     ProductJsonV600(
-      product_id = product.productId,
       bank_id = product.bankId.toString,
       product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,
@@ -837,7 +835,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees: List[ProductFeeTrait]) : ProductJsonV600 = {
     ProductJsonV600(
-      product_id = product.productId,
       bank_id = product.bankId.toString,
       product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,

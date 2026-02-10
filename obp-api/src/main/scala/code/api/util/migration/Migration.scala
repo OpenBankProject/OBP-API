@@ -107,7 +107,6 @@ object Migration extends MdcLoggable {
       addUniqueIndexOnResourceUserUserId()
       addIndexOnMappedMetricUserId()
       alterRoleNameLength()
-      generateAndPopulateMissingProductUUIDs(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -552,17 +551,6 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterRoleNameLength)
       runOnce(name) {
         MigrationOfRoleNameFieldLength.alterRoleNameLength(name)
-      }
-    }
-    private def generateAndPopulateMissingProductUUIDs(startedBeforeSchemifier: Boolean): Boolean = {
-      if(startedBeforeSchemifier == true) {
-        logger.warn(s"Migration.database.generateAndPopulateMissingProductUUIDs(true) cannot be run before Schemifier.")
-        true
-      } else {
-        val name = nameOf(generateAndPopulateMissingProductUUIDs(startedBeforeSchemifier))
-        runOnce(name) {
-          MigrationOfProduct.populateMissingProductUUIDs(name)
-        }
       }
     }
   }

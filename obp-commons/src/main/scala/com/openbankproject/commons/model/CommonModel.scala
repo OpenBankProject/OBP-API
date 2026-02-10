@@ -377,8 +377,7 @@ case class MeetingCommons(
 
 object MeetingCommons extends Converter[Meeting, MeetingCommons]
 
-case class ProductCommons(override val productId: String,
-                       bankId: BankId,
+case class ProductCommons(bankId: BankId,
                        code : ProductCode,
                        parentProductCode : ProductCode,
                        name : String,

@@ -1,7 +1,7 @@
 package code.products
 
 import com.openbankproject.commons.model.Product
-import code.util.{MappedUUID, UUIDString}
+import code.util.UUIDString
 import com.openbankproject.commons.model.{BankId, License, Meta, ProductCode}
 import net.liftweb.mapper._
 
@@ -26,8 +26,6 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   override def getSingleton = MappedProduct
 
-  object mProductId extends MappedUUID(this)
-
   object mBankId extends UUIDString(this) // combination of this
   object mCode extends MappedString(this, 50)   // and this is unique
   object mParentProductCode extends MappedString(this, 50)   // and this is unique
@@ -50,7 +48,6 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   object mLicenseId extends UUIDString(this) // This are common open data fields in OBP, add class for them?
   object mLicenseName extends MappedString(this, 255)
 
-  override def productId: String = mProductId.get
   override def bankId: BankId = BankId(mBankId.get)
 
   override def code: ProductCode = ProductCode(mCode.get)
