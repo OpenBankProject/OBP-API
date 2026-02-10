@@ -177,6 +177,9 @@ object Redis extends MdcLoggable {
           jedisConnection.head.del(key).toString
         }else if (method ==JedisMethod.GET) {
           jedisConnection.head.get(key)
+        } else if (method == JedisMethod.SCAN) {
+          import scala.collection.JavaConverters._
+          jedisConnection.head.keys(key).asScala.mkString(",")
         } else if(method ==JedisMethod.SET && value.isDefined){
           if (ttlSeconds.isDefined) {//if set ttl, call `setex` method to set the expired seconds.
             jedisConnection.head.setex(key, ttlSeconds.get, value.get).toString

@@ -92,7 +92,7 @@ object ConnectorCountsRedis extends MdcLoggable {
 
       // Scan for outbound keys
       val outboundPattern = s"${outboundPrefix}*_PER_HOUR"
-      val outboundKeys = Redis.use(JedisMethod.SCAN, outboundPattern).map(_.split(",").toList.filter(_.nonEmpty)).getOrElse(List.empty)
+      val outboundKeys = Redis.scanKeys(outboundPattern)
 
       // Build a map of connectorName_methodName -> outbound count
       val outboundMap: Map[String, Long] = outboundKeys.flatMap { key =>
@@ -104,7 +104,7 @@ object ConnectorCountsRedis extends MdcLoggable {
 
       // Scan for inbound keys
       val inboundPattern = s"${inboundPrefix}*_PER_HOUR"
-      val inboundKeys = Redis.use(JedisMethod.SCAN, inboundPattern).map(_.split(",").toList.filter(_.nonEmpty)).getOrElse(List.empty)
+      val inboundKeys = Redis.scanKeys(inboundPattern)
 
       // Build maps for success and failure inbound counts
       val inboundSuccessMap = scala.collection.mutable.Map[String, Long]()

@@ -753,6 +753,7 @@ case class ConnectorCountJsonV600(
 )
 
 case class ConnectorCountsJsonV600(
+  enabled: Boolean,
   connector_counts: List[ConnectorCountJsonV600]
 )
 

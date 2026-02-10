@@ -8187,13 +8187,22 @@ trait APIMethods600 {
          |Counters automatically reset every hour (rolling window).
          |The ttl_seconds field shows when the current hour window resets.
          |
-         |Requires the props: write_connector_metrics_redis=true
+         |Requires the prop: write_connector_metrics_redis=true
+         |
+         |Redis key format:
+         |
+         |- Outbound (before connector call): {instance}_{env}_connector_outbound_{version}_{connectorName}_{methodName}_PER_HOUR
+         |- Inbound success (after connector call): {instance}_{env}_connector_inbound_{version}_{connectorName}_{methodName}_success_PER_HOUR
+         |- Inbound failure (after connector call): {instance}_{env}_connector_inbound_{version}_{connectorName}_{methodName}_failure_PER_HOUR
+         |
+         |For example: obp_dev_connector_outbound_1_star_getBanks_PER_HOUR
          |
          |Authentication is Required
          |
          |""".stripMargin,
       EmptyBody,
       ConnectorCountsJsonV600(
+        enabled = true,
         connector_counts = List(
           ConnectorCountJsonV600(
             connector_name = "mapped",
@@ -8221,6 +8230,7 @@ trait APIMethods600 {
           } yield {
             val counts = ConnectorCountsRedis.getAllCounts()
             val json = ConnectorCountsJsonV600(
+              enabled = ConnectorCountsRedis.isEnabled,
               connector_counts = counts.map(c => ConnectorCountJsonV600(
                 connector_name = c.connector_name,
                 method_name = c.method_name,
