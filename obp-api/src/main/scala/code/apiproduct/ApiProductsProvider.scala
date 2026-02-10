@@ -14,7 +14,16 @@ trait ApiProductsProvider {
     category: String,
     moreInfoUrl: String,
     termsAndConditionsUrl: String,
-    description: String
+    description: String,
+    collectionId: String,
+    monthlySubscriptionCurrency: String,
+    monthlySubscriptionAmount: String,
+    perSecondCallLimit: Long,
+    perMinuteCallLimit: Long,
+    perHourCallLimit: Long,
+    perDayCallLimit: Long,
+    perWeekCallLimit: Long,
+    perMonthCallLimit: Long
   ): Box[ApiProductTrait]
 
   def getApiProductByBankIdAndCode(
@@ -42,7 +51,16 @@ object MappedApiProductsProvider extends MdcLoggable with ApiProductsProvider {
     category: String,
     moreInfoUrl: String,
     termsAndConditionsUrl: String,
-    description: String
+    description: String,
+    collectionId: String,
+    monthlySubscriptionCurrency: String,
+    monthlySubscriptionAmount: String,
+    perSecondCallLimit: Long,
+    perMinuteCallLimit: Long,
+    perHourCallLimit: Long,
+    perDayCallLimit: Long,
+    perWeekCallLimit: Long,
+    perMonthCallLimit: Long
   ): Box[ApiProductTrait] = {
     val existing = ApiProduct.find(
       By(ApiProduct.BankId, bankId),
@@ -58,6 +76,15 @@ object MappedApiProductsProvider extends MdcLoggable with ApiProductsProvider {
             .MoreInfoUrl(moreInfoUrl)
             .TermsAndConditionsUrl(termsAndConditionsUrl)
             .Description(description)
+            .CollectionId(collectionId)
+            .MonthlySubscriptionCurrency(monthlySubscriptionCurrency)
+            .MonthlySubscriptionAmount(monthlySubscriptionAmount)
+            .PerSecondCallLimit(perSecondCallLimit)
+            .PerMinuteCallLimit(perMinuteCallLimit)
+            .PerHourCallLimit(perHourCallLimit)
+            .PerDayCallLimit(perDayCallLimit)
+            .PerWeekCallLimit(perWeekCallLimit)
+            .PerMonthCallLimit(perMonthCallLimit)
             .saveMe()
         )
       case _ =>
@@ -72,6 +99,15 @@ object MappedApiProductsProvider extends MdcLoggable with ApiProductsProvider {
             .MoreInfoUrl(moreInfoUrl)
             .TermsAndConditionsUrl(termsAndConditionsUrl)
             .Description(description)
+            .CollectionId(collectionId)
+            .MonthlySubscriptionCurrency(monthlySubscriptionCurrency)
+            .MonthlySubscriptionAmount(monthlySubscriptionAmount)
+            .PerSecondCallLimit(perSecondCallLimit)
+            .PerMinuteCallLimit(perMinuteCallLimit)
+            .PerHourCallLimit(perHourCallLimit)
+            .PerDayCallLimit(perDayCallLimit)
+            .PerWeekCallLimit(perWeekCallLimit)
+            .PerMonthCallLimit(perMonthCallLimit)
             .saveMe()
         )
     }

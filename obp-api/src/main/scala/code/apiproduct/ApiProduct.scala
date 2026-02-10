@@ -15,6 +15,15 @@ class ApiProduct extends ApiProductTrait with LongKeyedMapper[ApiProduct] with I
   object MoreInfoUrl extends MappedString(this, 2000)
   object TermsAndConditionsUrl extends MappedString(this, 2000)
   object Description extends MappedString(this, 2000)
+  object CollectionId extends MappedString(this, 50)
+  object MonthlySubscriptionCurrency extends MappedString(this, 3)
+  object MonthlySubscriptionAmount extends MappedString(this, 50)
+  object PerSecondCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  object PerMinuteCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  object PerHourCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  object PerDayCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  object PerWeekCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  object PerMonthCallLimit extends MappedLong(this) { override def defaultValue = -1L }
 
   override def apiProductId: String = ApiProductId.get
   override def bankId: String = BankId.get
@@ -25,6 +34,15 @@ class ApiProduct extends ApiProductTrait with LongKeyedMapper[ApiProduct] with I
   override def moreInfoUrl: String = MoreInfoUrl.get
   override def termsAndConditionsUrl: String = TermsAndConditionsUrl.get
   override def description: String = Description.get
+  override def collectionId: String = CollectionId.get
+  override def monthlySubscriptionCurrency: String = MonthlySubscriptionCurrency.get
+  override def monthlySubscriptionAmount: String = MonthlySubscriptionAmount.get
+  override def perSecondCallLimit: Long = PerSecondCallLimit.get
+  override def perMinuteCallLimit: Long = PerMinuteCallLimit.get
+  override def perHourCallLimit: Long = PerHourCallLimit.get
+  override def perDayCallLimit: Long = PerDayCallLimit.get
+  override def perWeekCallLimit: Long = PerWeekCallLimit.get
+  override def perMonthCallLimit: Long = PerMonthCallLimit.get
 }
 
 object ApiProduct extends ApiProduct with LongKeyedMetaMapper[ApiProduct] {
@@ -41,4 +59,13 @@ trait ApiProductTrait {
   def moreInfoUrl: String
   def termsAndConditionsUrl: String
   def description: String
+  def collectionId: String
+  def monthlySubscriptionCurrency: String
+  def monthlySubscriptionAmount: String
+  def perSecondCallLimit: Long
+  def perMinuteCallLimit: Long
+  def perHourCallLimit: Long
+  def perDayCallLimit: Long
+  def perWeekCallLimit: Long
+  def perMonthCallLimit: Long
 }

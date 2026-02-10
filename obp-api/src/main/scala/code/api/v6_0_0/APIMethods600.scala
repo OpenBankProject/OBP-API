@@ -3941,7 +3941,7 @@ trait APIMethods600 {
       nameOf(addUserToGroup),
       "POST",
       "/users/USER_ID/group-entitlements",
-      "Grant User Group Entitlements",
+      "Grant User Membership to Group Entitlements",
       s"""Grant the User Group Entitlements.
          |
          |This endpoint creates entitlements for every Role in the Group. If the user
@@ -8292,6 +8292,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {
@@ -8344,6 +8353,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {
@@ -8473,6 +8491,7 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteApiProduct, callContext)
             _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.deleteApiProductAttributesByBankIdAndCode(bankId.value, apiProductCode, callContext)
             (_, callContext) <- NewStyle.function.deleteApiProduct(bankId.value, apiProductCode, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))

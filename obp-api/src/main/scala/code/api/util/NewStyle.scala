@@ -3823,11 +3823,23 @@ object NewStyle extends MdcLoggable{
       moreInfoUrl: String,
       termsAndConditionsUrl: String,
       description: String,
+      collectionId: String,
+      monthlySubscriptionCurrency: String,
+      monthlySubscriptionAmount: String,
+      perSecondCallLimit: Long,
+      perMinuteCallLimit: Long,
+      perHourCallLimit: Long,
+      perDayCallLimit: Long,
+      perWeekCallLimit: Long,
+      perMonthCallLimit: Long,
       callContext: Option[CallContext]
     ): OBPReturnType[ApiProductTrait] = {
       Future(MappedApiProductsProvider.createOrUpdateApiProduct(
         bankId, apiProductCode, parentApiProductCode, name, category,
-        moreInfoUrl, termsAndConditionsUrl, description
+        moreInfoUrl, termsAndConditionsUrl, description,
+        collectionId, monthlySubscriptionCurrency, monthlySubscriptionAmount,
+        perSecondCallLimit, perMinuteCallLimit, perHourCallLimit,
+        perDayCallLimit, perWeekCallLimit, perMonthCallLimit
       )) map {
         i => (unboxFullOrFail(i, callContext, CreateApiProductError), callContext)
       }
@@ -3871,6 +3883,12 @@ object NewStyle extends MdcLoggable{
     def deleteApiProductAttribute(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Future(MappedApiProductAttributesProvider.deleteApiProductAttribute(apiProductAttributeId)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
+      }
+    }
+
+    def deleteApiProductAttributesByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductAttributesProvider.deleteApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
       }
     }
 

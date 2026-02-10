@@ -764,7 +764,16 @@ case class PostPutApiProductJsonV600(
   category: Option[String],
   more_info_url: Option[String],
   terms_and_conditions_url: Option[String],
-  description: Option[String]
+  description: Option[String],
+  collection_id: Option[String],
+  monthly_subscription_currency: Option[String],
+  monthly_subscription_amount: Option[String],
+  per_second_call_limit: Option[Long],
+  per_minute_call_limit: Option[Long],
+  per_hour_call_limit: Option[Long],
+  per_day_call_limit: Option[Long],
+  per_week_call_limit: Option[Long],
+  per_month_call_limit: Option[Long]
 )
 
 case class ApiProductJsonV600(
@@ -777,6 +786,15 @@ case class ApiProductJsonV600(
   more_info_url: String,
   terms_and_conditions_url: String,
   description: String,
+  collection_id: String,
+  monthly_subscription_currency: String,
+  monthly_subscription_amount: String,
+  per_second_call_limit: Long,
+  per_minute_call_limit: Long,
+  per_hour_call_limit: Long,
+  per_day_call_limit: Long,
+  per_week_call_limit: Long,
+  per_month_call_limit: Long,
   attributes: Option[List[ApiProductAttributeResponseJsonV600]]
 )
 
@@ -2048,6 +2066,15 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
       description = product.description,
+      collection_id = product.collectionId,
+      monthly_subscription_currency = product.monthlySubscriptionCurrency,
+      monthly_subscription_amount = product.monthlySubscriptionAmount,
+      per_second_call_limit = product.perSecondCallLimit,
+      per_minute_call_limit = product.perMinuteCallLimit,
+      per_hour_call_limit = product.perHourCallLimit,
+      per_day_call_limit = product.perDayCallLimit,
+      per_week_call_limit = product.perWeekCallLimit,
+      per_month_call_limit = product.perMonthCallLimit,
       attributes = attributes.map(_.map(createApiProductAttributeResponseJsonV600))
     )
   }
