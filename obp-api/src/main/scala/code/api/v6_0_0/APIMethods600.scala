@@ -8291,6 +8291,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {
@@ -8343,6 +8352,15 @@ trait APIMethods600 {
               postJson.more_info_url.getOrElse(""),
               postJson.terms_and_conditions_url.getOrElse(""),
               postJson.description.getOrElse(""),
+              postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""),
+              postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L),
+              postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L),
+              postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L),
+              postJson.per_month_call_limit.getOrElse(-1L),
               callContext
             )
           } yield {

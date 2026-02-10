@@ -3823,11 +3823,23 @@ object NewStyle extends MdcLoggable{
       moreInfoUrl: String,
       termsAndConditionsUrl: String,
       description: String,
+      collectionId: String,
+      monthlySubscriptionCurrency: String,
+      monthlySubscriptionAmount: String,
+      perSecondCallLimit: Long,
+      perMinuteCallLimit: Long,
+      perHourCallLimit: Long,
+      perDayCallLimit: Long,
+      perWeekCallLimit: Long,
+      perMonthCallLimit: Long,
       callContext: Option[CallContext]
     ): OBPReturnType[ApiProductTrait] = {
       Future(MappedApiProductsProvider.createOrUpdateApiProduct(
         bankId, apiProductCode, parentApiProductCode, name, category,
-        moreInfoUrl, termsAndConditionsUrl, description
+        moreInfoUrl, termsAndConditionsUrl, description,
+        collectionId, monthlySubscriptionCurrency, monthlySubscriptionAmount,
+        perSecondCallLimit, perMinuteCallLimit, perHourCallLimit,
+        perDayCallLimit, perWeekCallLimit, perMonthCallLimit
       )) map {
         i => (unboxFullOrFail(i, callContext, CreateApiProductError), callContext)
       }
