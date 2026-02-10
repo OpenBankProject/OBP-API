@@ -16195,6 +16195,8 @@ trait APIMethods400 extends MdcLoggable {
          |* Terms and Conditions
          |* License the data under this endpoint is released under
          |
+         |The combination of bank_id and product_code is unique.
+         |
          |Can filter with attributes name and values.
          |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
          |
@@ -16342,6 +16344,8 @@ trait APIMethods400 extends MdcLoggable {
          |* Meta
          |* Attributes
          |* Fees
+         |
+         |The combination of bank_id and product_code is unique.
          |
          |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,

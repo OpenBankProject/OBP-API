@@ -221,6 +221,8 @@ object Constant extends MdcLoggable {
   final val METRICS_STABLE_NAMESPACE = "metrics_stable"
   final val METRICS_RECENT_NAMESPACE = "metrics_recent"
   final val ABAC_RULE_NAMESPACE = "abac_rule"
+  final val CONNECTOR_OUTBOUND_NAMESPACE = "connector_outbound"
+  final val CONNECTOR_INBOUND_NAMESPACE = "connector_inbound"
 
   // List of all versioned cache namespaces
   final val ALL_CACHE_NAMESPACES = List(
@@ -234,7 +236,9 @@ object Constant extends MdcLoggable {
     CONNECTOR_NAMESPACE,
     METRICS_STABLE_NAMESPACE,
     METRICS_RECENT_NAMESPACE,
-    ABAC_RULE_NAMESPACE
+    ABAC_RULE_NAMESPACE,
+    CONNECTOR_OUTBOUND_NAMESPACE,
+    CONNECTOR_INBOUND_NAMESPACE
   )
 
   // Cache key prefixes with global namespace and versioning for easy invalidation
@@ -265,6 +269,10 @@ object Constant extends MdcLoggable {
 
   // ABAC Cache Prefixes (with global namespace and versioning)
   def ABAC_RULE_PREFIX: String = getVersionedCachePrefix(ABAC_RULE_NAMESPACE)
+
+  // Connector Metrics Redis Counter Prefixes (with global namespace and versioning)
+  def CONNECTOR_OUTBOUND_PREFIX: String = getVersionedCachePrefix(CONNECTOR_OUTBOUND_NAMESPACE)
+  def CONNECTOR_INBOUND_PREFIX: String = getVersionedCachePrefix(CONNECTOR_INBOUND_NAMESPACE)
 
   // ABAC Policy Constants
   final val ABAC_POLICY_ACCOUNT_ACCESS = "account-access"

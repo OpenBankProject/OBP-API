@@ -230,8 +230,7 @@ object ConnectorBuilderUtil {
       if(doCache && methodName.matches("^(get|check|validate).+")) {
         signature = signature.replaceFirst("""(\b\S+)\s*:\s*Option\[CallContext\]""", "@CacheKeyOmit callContext: Option[CallContext]")
         body =
-          s"""saveConnectorMetric {
-             |    /**
+          s"""    /**
              |      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
              |      * is just a temporary value field with UUID values in order to prevent any ambiguity.
              |      * The real value will be assigned by Macro during compile time at this line of a code:
@@ -245,7 +244,6 @@ object ConnectorBuilderUtil {
              |
              |        }
              |      }
-             |    }("$methodName")
              |""".stripMargin
       }
       s"""

@@ -14,13 +14,16 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
 
   val cachedAllConnectorMetrics = APIUtil.getPropsValue(s"ConnectorMetrics.cache.ttl.seconds.getAllConnectorMetrics", "7").toInt
 
-  override def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long): Unit = {
+  override def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long,
+                                   requestParams: String, isSuccessful: Boolean): Unit = {
     MappedConnectorMetric.create
       .connectorName(connectorName)
       .functionName(functionName)
       .date(date)
       .duration(duration)
       .correlationId(correlationId)
+      .requestParams(requestParams)
+      .isSuccessful(isSuccessful)
       .save
   }
 
@@ -71,14 +74,18 @@ class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedC
   object correlationId extends MappedUUID(this)
   object date extends MappedDateTime(this)
   object duration extends MappedLong(this)
+  object requestParams extends MappedString(this, 1024)
+  object isSuccessful extends MappedBoolean(this)
 
   override def getConnectorName(): String = connectorName.get
   override def getFunctionName(): String = functionName.get
   override def getCorrelationId(): String = correlationId.get
   override def getDate(): Date = date.get
   override def getDuration(): Long = duration.get
+  override def getRequestParams(): String = requestParams.get
+  override def getIsSuccessful(): Boolean = isSuccessful.get
 }
 
 object MappedConnectorMetric extends MappedConnectorMetric with LongKeyedMetaMapper[MappedConnectorMetric] {
-  override def dbIndexes = Index(connectorName) :: Index(functionName) :: Index(date) :: Index(correlationId) :: super.dbIndexes
+  override def dbIndexes = Index(connectorName) :: Index(functionName) :: Index(date) :: Index(correlationId) :: Index(isSuccessful) :: super.dbIndexes
 }

@@ -230,38 +230,39 @@ object RateLimitingUtil extends MdcLoggable {
   /**
    * Increment API call counter for a consumer after successful rate limit check.
    * Called after the request passes all rate limit checks to update the counters.
-   * 
+   *
+   * Counters are ALWAYS incremented regardless of limit value. This provides visibility
+   * into consumer activity even when rate limiting is disabled (limit = -1), which is
+   * useful for monitoring which apps are active and verifying the counting infrastructure.
+   *
    * @param consumerKey The consumer ID or IP address
    * @param period The time period (PER_SECOND, PER_MINUTE, etc.)
-   * @param limit The rate limit value (-1 means disabled)
-   * @return (TTL in seconds, current counter value) or (-1, -1) on error/disabled
+   * @param limit The rate limit value (-1 means disabled, but counter still incremented)
+   * @return (TTL in seconds, current counter value) or (-1, -1) on Redis error
    */
   private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
     if (useConsumerLimits) {
       val key = createUniqueKey(consumerKey, period)
-      (limit) match {
-        case -1 => // Limit is disabled for this period
-          Redis.use(JedisMethod.DELETE, key)
+      // Always increment counters regardless of limit value.
+      // This provides visibility into consumer activity even when rate limiting is disabled (limit = -1).
+      // Useful for monitoring which apps are active and verifying that call counting infrastructure works.
+      val ttlOpt = Redis.use(JedisMethod.TTL, key).map(_.toInt)
+      ttlOpt match {
+        case Some(-2) => // Key does not exist, create it
+          val seconds = RateLimitingPeriod.toSeconds(period).toInt
+          Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
+          (seconds, 1)
+        case Some(ttl) if ttl > 0 => // Key exists with TTL, increment it
+          val cnt = Redis.use(JedisMethod.INCR, key).map(_.toInt).getOrElse(1)
+          (ttl, cnt)
+        case Some(ttl) if ttl <= 0 => // Key expired or has no expiry (shouldn't happen)
+          logger.warn(s"Unexpected TTL state ($ttl) for consumer $consumerKey, period $period - recreating counter")
+          val seconds = RateLimitingPeriod.toSeconds(period).toInt
+          Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
+          (seconds, 1)
+        case None => // Redis unavailable
+          logger.error(s"Redis unavailable when incrementing counter for consumer $consumerKey, period $period")
           (-1, -1)
-        case _ => // Limit is enabled, increment counter
-          val ttlOpt = Redis.use(JedisMethod.TTL, key).map(_.toInt)
-          ttlOpt match {
-            case Some(-2) => // Key does not exist, create it
-              val seconds = RateLimitingPeriod.toSeconds(period).toInt
-              Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
-              (seconds, 1)
-            case Some(ttl) if ttl > 0 => // Key exists with TTL, increment it
-              val cnt = Redis.use(JedisMethod.INCR, key).map(_.toInt).getOrElse(1)
-              (ttl, cnt)
-            case Some(ttl) if ttl <= 0 => // Key expired or has no expiry (shouldn't happen)
-              logger.warn(s"Unexpected TTL state ($ttl) for consumer $consumerKey, period $period - recreating counter")
-              val seconds = RateLimitingPeriod.toSeconds(period).toInt
-              Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
-              (seconds, 1)
-            case None => // Redis unavailable
-              logger.error(s"Redis unavailable when incrementing counter for consumer $consumerKey, period $period")
-              (-1, -1)
-          }
       }
     } else {
       (-1, -1)
@@ -360,7 +361,7 @@ object RateLimitingUtil extends MdcLoggable {
       }
       userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
         .map(_.copy(xRateLimitReset = z._1))
-        .map(_.copy(xRateLimitRemaining = limit - z._2))
+        .map(_.copy(xRateLimitRemaining = Math.max(0, limit - z._2)))
     }
     // Helper function to set rate limit headers for anonymous access
     def setXRateLimitsAnonymous(id: String, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
@@ -370,7 +371,7 @@ object RateLimitingUtil extends MdcLoggable {
       }
       userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
         .map(_.copy(xRateLimitReset = z._1))
-        .map(_.copy(xRateLimitRemaining = limit - z._2))
+        .map(_.copy(xRateLimitRemaining = Math.max(0, limit - z._2)))
     }
 
     // Helper function to create rate limit exceeded response with remaining TTL for authorized users

@@ -681,6 +681,7 @@ supported_locales = en_GB,es_ES,ro_RO
 apiOptions.getBranchesIsPublic = true
 apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
+apiOptions.getApiProductsIsPublic = true
 apiOptions.getTransactionTypesIsPublic = true
 apiOptions.getCurrentFxRateIsPublic = true
 
@@ -1615,7 +1616,7 @@ ethereum.rpc.url=http://127.0.0.1:8545
 
 
 ##########################################################
-#                      Redis Logging                     #
+#                      Redis Logging  Log Cache          #
 ##########################################################
 ## Enable Redis logging (true/false)
 redis_logging_enabled = false

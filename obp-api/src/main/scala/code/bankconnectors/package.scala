@@ -6,26 +6,28 @@ import java.util.regex.Pattern
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.api.{APIFailureNewStyle, ApiVersionHolder}
 import code.api.util.{CallContext, FutureUtil, NewStyle}
+import code.api.util.APIUtil.{canOpenFuture, fullBoxOrException, getCorrelationId, getPropsAsBoolValue}
+import code.api.util.ErrorMessages.{InvalidConnectorResponseForMissingRequiredValues, ServiceIsTooBusy}
 import code.methodrouting.{MethodRouting, MethodRoutingT}
+import code.metrics.{ConnectorMetricsProvider, ConnectorCountsRedis}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{AccountId, BankId}
 import com.openbankproject.commons.util.ReflectUtils.{findMethodByArgs, getConstructorArgs}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.common.{Box, Empty, EmptyBox, Full, ParamFailure}
+import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
+import net.liftweb.util.Helpers.now
+import net.liftweb.util.ThreadGlobal
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.GenTraversableOnce
+import scala.concurrent.Future
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
-import code.api.util.ErrorMessages.{InvalidConnectorResponseForMissingRequiredValues, ServiceIsTooBusy}
-import code.api.util.APIUtil.{canOpenFuture, fullBoxOrException}
+import scala.util.{Success => TrySuccess, Failure => TryFailure}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import com.openbankproject.commons.util.ReflectUtils._
 import com.openbankproject.commons.util.Functions.Implicits._
-import net.liftweb.util.ThreadGlobal
-
-import scala.collection.GenTraversableOnce
-import scala.concurrent.Future
 
 package object bankconnectors extends MdcLoggable {
 
@@ -58,7 +60,63 @@ package object bankconnectors extends MdcLoggable {
           }
           connectorMethodResult
         } else {
+          val methodName = method.getName
+          val argNameToValue: Array[(String, AnyRef)] = method.getParameters.map(_.getName).zip(args)
+          // TODO: getConnectorNameAndMethodRouting is also called inside invokeMethod.
+          // Consider refactoring invokeMethod to accept a pre-resolved connectorName to avoid the duplicate lookup.
+          val (_, connectorName) = getConnectorNameAndMethodRouting(methodName, argNameToValue)
+
+          // Record outbound (before call)
+          ConnectorCountsRedis.incrementOutbound(connectorName, methodName)
+          val t0 = System.currentTimeMillis()
+
           val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
+
+          // Track metrics for Future results
+          if (connectorMethodResult.isInstanceOf[Future[_]]) {
+            val future = connectorMethodResult.asInstanceOf[Future[Any]]
+            future.onComplete { result =>
+              val duration = System.currentTimeMillis() - t0
+              val isSuccess = result match {
+                case TrySuccess(value) => !isFailureBox(value)
+                case TryFailure(_) => false
+              }
+
+              // Record inbound
+              ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
+
+              // Record detailed metric to DB
+              if (getPropsAsBoolValue("write_connector_metrics", false)) {
+                val params = extractKeyParams(args)
+                // TODO: The correlation_id should be passed down from the REST API layer
+                // so that one REST call with a correlation_id results in multiple connector
+                // metric records each sharing the same correlation_id. Currently getCorrelationId()
+                // relies on Lift's S.containerSession which is unavailable inside this Future.
+                val correlationId = getCorrelationId()
+                Future {
+                  ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
+                    connectorName, methodName, correlationId, now, duration, params, isSuccess)
+                }
+              }
+            }
+          } else {
+            // Non-future (legacy Box) result - track synchronously
+            val duration = System.currentTimeMillis() - t0
+            val isSuccess = !isFailureBox(connectorMethodResult)
+
+            ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
+
+            if (getPropsAsBoolValue("write_connector_metrics", false)) {
+              val params = extractKeyParams(args)
+              // TODO: Same as above — correlation_id should come from the REST API layer.
+              val correlationId = getCorrelationId()
+              Future {
+                ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
+                  connectorName, methodName, correlationId, now, duration, params, isSuccess)
+              }
+            }
+          }
+
           if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
             FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
           }
@@ -362,5 +420,36 @@ package object bankconnectors extends MdcLoggable {
                 .mkString(s"INTERNAL-$InvalidConnectorResponseForMissingRequiredValues The missing fields: [", ", ", "]")
     logger.error(message)
     ParamFailure(message, Empty, Empty, APIFailureNewStyle(message, 400, cc.map(_.toLight)))
+  }
+
+  /**
+   * Extract key parameters (bankId, accountId) from connector method args as a compact JSON string.
+   * Max 1024 characters to fit in the DB field.
+   */
+  private def extractKeyParams(args: Array[AnyRef]): String = {
+    try {
+      val params = scala.collection.mutable.Map[String, String]()
+      args.foreach {
+        case bankId: BankId => params("bankId") = bankId.value
+        case accountId: AccountId => params("accountId") = accountId.value
+        case _ => // skip other types
+      }
+      if (params.isEmpty) ""
+      else {
+        val json = params.map { case (k, v) => s""""$k":"$v"""" }.mkString("{", ",", "}")
+        if (json.length > 1024) json.substring(0, 1024) else json
+      }
+    } catch {
+      case _: Throwable => ""
+    }
+  }
+
+  /**
+   * Check if a connector result value represents a failure (Failure or Empty Box).
+   */
+  private def isFailureBox(value: Any): Boolean = value match {
+    case _: EmptyBox => true
+    case (_: EmptyBox, _) => true
+    case _ => false
   }
 }
