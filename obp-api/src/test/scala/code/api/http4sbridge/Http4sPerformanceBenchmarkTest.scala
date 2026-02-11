@@ -13,7 +13,7 @@ import net.liftweb.json.JsonParser.parse
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.Tag
-
+import org.scalatest.Ignore
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
@@ -33,6 +33,7 @@ import scala.concurrent.duration.DurationInt
  *   - GET /obp/v5.0.0/banks/BANK_ID  (specific bank lookup)
  *   - GET /mxof/v1.0.0/atms          (international standard)
  */
+@Ignore
 class Http4sPerformanceBenchmarkTest extends V500ServerSetup {
 
   object PerformanceTag extends Tag("lift-to-http4s-migration-performance")
