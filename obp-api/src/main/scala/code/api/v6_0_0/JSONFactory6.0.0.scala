@@ -14,6 +14,7 @@
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.stringOrNull
+import code.metrics.MappedConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
@@ -816,6 +817,28 @@ case class ApiProductAttributeResponseJsonV600(
   value: String,
   is_active: Option[Boolean]
 )
+
+case class ConnectorTraceJsonV600(
+  connector_trace_id: Long,
+  correlation_id: String,
+  connector_name: String,
+  function_name: String,
+  bank_id: String,
+  outbound_message: String,
+  inbound_message: String,
+  date: Date,
+  duration: Long,
+  is_successful: Boolean,
+  user_id: String,
+  http_verb: String,
+  url: String
+)
+
+case class ConnectorTracesJsonV600(
+  connector_traces: List[ConnectorTraceJsonV600]
+)
+
+case class ConfigPropJsonV600(name: String, value: String)
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
@@ -2083,6 +2106,28 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     products: List[ApiProductTrait]
   ): ApiProductsJsonV600 = {
     ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
+  }
+
+  def createConnectorTraceJsonV600(trace: MappedConnectorTrace): ConnectorTraceJsonV600 = {
+    ConnectorTraceJsonV600(
+      connector_trace_id = trace.id.get,
+      correlation_id = trace.correlationId.get,
+      connector_name = trace.connectorName.get,
+      function_name = trace.functionName.get,
+      bank_id = trace.bankId.get,
+      outbound_message = trace.outboundMessage.get,
+      inbound_message = trace.inboundMessage.get,
+      date = trace.date.get,
+      duration = trace.duration.get,
+      is_successful = trace.isSuccessful.get,
+      user_id = trace.userId.get,
+      http_verb = trace.httpVerb.get,
+      url = trace.url.get
+    )
+  }
+
+  def createConnectorTracesJsonV600(traces: List[MappedConnectorTrace]): ConnectorTracesJsonV600 = {
+    ConnectorTracesJsonV600(traces.map(createConnectorTraceJsonV600))
   }
 
 }
