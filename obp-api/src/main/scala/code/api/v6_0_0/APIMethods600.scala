@@ -48,7 +48,7 @@ import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
 import code.views.system.ViewDefinition
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
-import code.dynamicEntity.DynamicEntityCommons
+import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider, DynamicEntityT}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -63,7 +63,7 @@ import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, JsonParser}
-import net.liftweb.json.JsonAST.{JArray, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
 import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
@@ -5829,13 +5829,16 @@ trait APIMethods600 {
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID and all its data records.
          |
          |This endpoint performs a cascade delete:
-         |1. Deletes all data records associated with the dynamic entity
-         |2. Deletes the dynamic entity definition itself
+         |1. Automatically backs up the entity definition and all data records to a ZZ_BAK_ prefixed entity (e.g. my_entity is backed up to ZZ_BAK_my_entity). If a previous ZZ_BAK_ backup exists, it is overwritten.
+         |2. Deletes all data records associated with the dynamic entity
+         |3. Deletes the dynamic entity definition itself
+         |
+         |Note: Entities whose name already starts with ZZ_BAK_ are not backed up again (to avoid infinite backup chains).
          |
          |This operation is only allowed for non-personal entities (hasPersonalEntity=false).
          |For personal entities (hasPersonalEntity=true), you must delete the records and definition separately.
          |
-         |Use with caution - this operation cannot be undone.
+         |
          |
          |For more information see ${Glossary.getGlossaryItemLink(
           "Dynamic-Entities"
@@ -5859,6 +5862,59 @@ trait APIMethods600 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEntityCascadeMethod(None, dynamicEntityId, cc)
+      }
+    }
+
+    private def backupDynamicEntity(
+        entity: DynamicEntityT,
+        backupName: String,
+        dataRecords: JArray
+    ): Unit = {
+      // Clean up any existing backup
+      DynamicEntityProvider.connectorMethodProvider.vend
+        .getByEntityName(entity.bankId, backupName).foreach { existingBackup =>
+          // Delete old backup data
+          DynamicDataProvider.connectorMethodProvider.vend
+            .getAll(entity.bankId, backupName, None, false)
+            .foreach { record =>
+              DynamicDataProvider.connectorMethodProvider.vend.delete(
+                entity.bankId, backupName, record.dynamicDataId.getOrElse(""), None, false
+              )
+            }
+          // Delete old backup definition
+          DynamicEntityProvider.connectorMethodProvider.vend.delete(existingBackup)
+        }
+
+      // Create backup entity definition (rename top-level key in metadataJson)
+      val originalMetadata = json.parse(entity.metadataJson).asInstanceOf[JObject]
+      val backupMetadata = JObject(originalMetadata.obj.map {
+        case JField(name, value) if name == entity.entityName => JField(backupName, value)
+        case other => other
+      })
+      val backupEntity = DynamicEntityCommons(
+        entityName = backupName,
+        metadataJson = json.compactRender(backupMetadata),
+        dynamicEntityId = None,
+        userId = entity.userId,
+        bankId = entity.bankId,
+        hasPersonalEntity = entity.hasPersonalEntity
+      )
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(backupEntity)
+
+      // Copy data records
+      val originalIdField = DynamicEntityHelper.createEntityId(entity.entityName)
+      val backupIdField = DynamicEntityHelper.createEntityId(backupName)
+      dataRecords.arr.foreach { record =>
+        val recordObj = record.asInstanceOf[JObject]
+        val transformedFields = recordObj.obj.map {
+          case JField(name, _) if name == originalIdField =>
+            JField(backupIdField, JString(java.util.UUID.randomUUID().toString))
+          case other => other
+        }
+        DynamicDataProvider.connectorMethodProvider.vend.save(
+          entity.bankId, backupName, JObject(transformedFields),
+          Some(entity.userId), entity.hasPersonalEntity
+        )
       }
     }
 
@@ -5894,6 +5950,12 @@ trait APIMethods600 {
           box.asInstanceOf[Box[JArray]],
           entity.entityName
         )
+        // Backup entity and data before deletion (skip if already a backup entity)
+        _ <- Future {
+          if (!entity.entityName.startsWith("ZZ_BAK_")) {
+            backupDynamicEntity(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+          }
+        }
         // Delete all data records
         _ <- Future.sequence {
           resultList.arr.map { record =>
@@ -8799,6 +8861,175 @@ trait APIMethods600 {
           } yield {
             (ListResult("config_props", configProps), HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    // Backup Dynamic Entity Endpoints
+
+    private def computeBackupName(bankId: Option[String], baseName: String): String = {
+      val firstCandidate = s"${baseName}_BAK"
+      if (DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, firstCandidate).isEmpty) {
+        firstCandidate
+      } else {
+        var suffix = 2
+        var candidate = s"${baseName}_BAK$suffix"
+        while (DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, candidate).isDefined) {
+          suffix += 1
+          candidate = s"${baseName}_BAK$suffix"
+        }
+        candidate
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      backupSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(backupSystemDynamicEntity),
+      "POST",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+      "Backup System Level Dynamic Entity",
+      s"""Create a backup copy of a system level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |This endpoint creates a backup of the dynamic entity definition and all its data records.
+         |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+         |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+         |
+         |The calling user will be granted CanGetDynamicEntity_<BackupEntityName> on the newly created backup entity.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "my_entity_BAK",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = false,
+        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canBackupSystemDynamicEntity))
+    )
+    lazy val backupSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: "backup" :: Nil JsonPost _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          backupDynamicEntityMethod(None, dynamicEntityId, cc)
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      backupBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(backupBankLevelDynamicEntity),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+      "Backup Bank Level Dynamic Entity",
+      s"""Create a backup copy of a bank level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |This endpoint creates a backup of the dynamic entity definition and all its data records.
+         |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+         |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+         |
+         |The calling user will be granted CanGetDynamicEntity_<BackupEntityName> on the newly created backup entity.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "my_entity_BAK",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = false,
+        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canBackupBankLevelDynamicEntity))
+    )
+    lazy val backupBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-entities" :: dynamicEntityId :: "backup" :: Nil JsonPost _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          backupDynamicEntityMethod(Some(bankId.value), dynamicEntityId, cc)
+      }
+    }
+
+    private def backupDynamicEntityMethod(
+        bankId: Option[String],
+        dynamicEntityId: String,
+        cc: CallContext
+    ) = {
+      for {
+        // Get the dynamic entity definition
+        (entity, _) <- NewStyle.function.getDynamicEntityById(
+          bankId,
+          dynamicEntityId,
+          cc.callContext
+        )
+        // Check CanGetDynamicEntity_<EntityName> role
+        canGetRole = DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
+        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, cc.callContext)
+
+        // Get all data records for this entity
+        (box, _) <- NewStyle.function.invokeDynamicConnector(
+          GET_ALL,
+          entity.entityName,
+          None,
+          None,
+          entity.bankId,
+          None,
+          None,
+          false,
+          cc.callContext
+        )
+        resultList: JArray = unboxResult(
+          box.asInstanceOf[Box[JArray]],
+          entity.entityName
+        )
+
+        // Compute backup name with _BAK, _BAK2, _BAK3 etc.
+        backupName = computeBackupName(entity.bankId, entity.entityName)
+
+        // Perform the backup
+        _ <- Future { backupDynamicEntity(entity, backupName, resultList) }
+
+        // Grant CanGet role on the backup entity to the calling user
+        backupCanGetRole = DynamicEntityInfo.canGetRole(backupName, entity.bankId)
+        _ <- Future {
+          Entitlement.entitlement.vend.addEntitlement(
+            entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString()
+          )
+        }
+
+        // Fetch the created backup entity to return it
+        backupEntity <- Future {
+          DynamicEntityProvider.connectorMethodProvider.vend
+            .getByEntityName(entity.bankId, backupName)
+            .openOrThrowException("Backup entity not found after creation")
+        }
+      } yield {
+        val commonsData: DynamicEntityCommons = backupEntity
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`201`(cc.callContext)
+        )
       }
     }
 
