@@ -1354,10 +1354,17 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       error_message: String
   )
 
+  case class OrphanedDynamicEntityJsonV600(
+      entity_name: String,
+      bank_id: String,
+      record_count: Long
+  )
+
   case class DynamicEntityDiagnosticsJsonV600(
       scanned_entities: List[String],
       issues: List[DynamicEntityIssueJsonV600],
-      total_issues: Int
+      total_issues: Int,
+      orphaned_entities: List[OrphanedDynamicEntityJsonV600]
   )
 
   case class ReferenceTypeJsonV600(
