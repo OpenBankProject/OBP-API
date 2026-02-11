@@ -8696,8 +8696,6 @@ trait APIMethods600 {
       "Get Connector Traces",
       s"""Get connector traces which capture the full outbound/inbound messages for each connector call.
          |
-         |This endpoint requires the CanGetConnectorTrace role.
-         |
          |Connector tracing must be enabled via the write_connector_trace=true property.
          |
          |Filters Part 1.*filtering* parameters to GET /management/connector/traces
@@ -8741,7 +8739,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorTrace, callContext)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             traces <- Future(ConnectorTraceProvider.getAllConnectorTraces(obpQueryParams))
@@ -8782,7 +8779,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfigProps, callContext)
             configProps = getConfigPropsPairs.map { case (key, value) =>
               ConfigPropJsonV600(key, maskSensitivePropValue(key, value))
             }
