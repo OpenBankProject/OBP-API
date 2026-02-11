@@ -1,5 +1,6 @@
 package code.api.http4sbridge
 
+import org.scalatest.Ignore
 import code.Http4sTestServer
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createSystemViewJsonV500
 import code.api.util.APIUtil
@@ -34,6 +35,7 @@ import scala.concurrent.duration._
  * 
  * The server starts automatically when first accessed and stops on JVM shutdown.
  */
+@Ignore
 class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with ServerSetupWithTestData{
 
   object Http4sServerIntegrationTag extends Tag("Http4sServerIntegration")

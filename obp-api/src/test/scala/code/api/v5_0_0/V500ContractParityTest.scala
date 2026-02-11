@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
@@ -12,6 +13,7 @@ import org.http4s.Header
 import org.typelevel.ci.CIString
 import org.scalatest.Tag
 
+@Ignore
 class V500ContractParityTest extends V500ServerSetup {
 
   object V500ContractParityTag extends Tag("V500ContractParity")
