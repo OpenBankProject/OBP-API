@@ -3932,6 +3932,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     proPairs
   }
 
+  def getConfigPropsPairs: List[(String, String)] = {
+    val filepath = this.getClass.getResource("/props/sample.props.template").getPath
+    val bufferedSource: BufferedSource = scala.io.Source.fromFile(filepath)
+    try {
+      val keys: List[String] = (for {
+        line <- bufferedSource.getLines.toList
+        trimmed = line.trim
+        if trimmed.nonEmpty
+        if !trimmed.startsWith("webui_") && !trimmed.startsWith("#webui_")
+        cleaned = if (trimmed.startsWith("#")) trimmed.substring(1).trim else trimmed
+        if cleaned.contains("=") && !cleaned.startsWith("#")
+        parts = cleaned.split("=", 2)
+        key = parts(0).trim
+        if key.nonEmpty
+      } yield key).distinct
+      keys.map { key =>
+        (key, getPropsValue(key).openOr(""))
+      }
+    } finally {
+      bufferedSource.close()
+    }
+  }
+
+  private val sensitivePropsPatterns = List("password", "secret", "passphrase", "credential", "token_secret")
+
+  def maskSensitivePropValue(key: String, value: String): String = {
+    if (sensitivePropsPatterns.exists(p => key.toLowerCase.contains(p)) && value.nonEmpty) "****"
+    else value
+  }
+
   /**
    * This function is used to centralize generation of UUID values
    * @return UUID as a String value

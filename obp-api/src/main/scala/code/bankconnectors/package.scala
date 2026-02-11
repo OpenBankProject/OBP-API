@@ -9,7 +9,7 @@ import code.api.util.{CallContext, FutureUtil, NewStyle}
 import code.api.util.APIUtil.{canOpenFuture, fullBoxOrException, getCorrelationId, getPropsAsBoolValue}
 import code.api.util.ErrorMessages.{InvalidConnectorResponseForMissingRequiredValues, ServiceIsTooBusy}
 import code.methodrouting.{MethodRouting, MethodRoutingT}
-import code.metrics.{ConnectorMetricsProvider, ConnectorCountsRedis}
+import code.metrics.{ConnectorTraceProvider, ConnectorMetricsProvider, ConnectorCountsRedis}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
@@ -100,6 +100,21 @@ package object bankconnectors extends MdcLoggable {
                     connectorName, methodName, correlationId, now, duration, params, isSuccess)
                 }
               }
+
+              // Record connector trace (outbound/inbound messages)
+              if (getPropsAsBoolValue("write_connector_trace", false)) {
+                val outbound = serializeOutboundArgs(method, args)
+                val inbound = serializeInboundResult(result)
+                val correlationId = getCorrelationId()
+                val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
+                val bankIdValue = extractBankIdFromArgs(args)
+                Future {
+                  ConnectorTraceProvider.saveConnectorTrace(
+                    correlationId, connectorName, methodName, bankIdValue,
+                    outbound, inbound, now, duration, isSuccess,
+                    detailUserId, detailHttpVerb, detailApiUrl)
+                }
+              }
             }
           } else {
             // Non-future (legacy Box) result - track synchronously
@@ -113,6 +128,21 @@ package object bankconnectors extends MdcLoggable {
               Future {
                 ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
                   connectorName, methodName, correlationId, now, duration, params, isSuccess)
+              }
+            }
+
+            // Record connector trace (outbound/inbound messages)
+            if (getPropsAsBoolValue("write_connector_trace", false)) {
+              val outbound = serializeOutboundArgs(method, args)
+              val inbound = serializeInboundResult(TrySuccess(connectorMethodResult))
+              val correlationId = getCorrelationId()
+              val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
+              val bankIdValue = extractBankIdFromArgs(args)
+              Future {
+                ConnectorTraceProvider.saveConnectorTrace(
+                  correlationId, connectorName, methodName, bankIdValue,
+                  outbound, inbound, now, duration, isSuccess,
+                  detailUserId, detailHttpVerb, detailApiUrl)
               }
             }
           }
@@ -438,6 +468,87 @@ package object bankconnectors extends MdcLoggable {
       else {
         val json = params.map { case (k, v) => s""""$k":"$v"""" }.mkString("{", ",", "}")
         if (json.length > 1024) json.substring(0, 1024) else json
+      }
+    } catch {
+      case _: Throwable => ""
+    }
+  }
+
+  /**
+   * Serialize method arguments to a JSON string for connector trace.
+   * Filters out CallContext to avoid capturing session data.
+   */
+  private def serializeOutboundArgs(method: Method, args: Array[AnyRef]): String = {
+    try {
+      val paramNames = method.getParameters.map(_.getName)
+      val filtered = paramNames.zip(args).filterNot {
+        case (_, v) => v.isInstanceOf[Option[_]] && v.asInstanceOf[Option[_]].exists(_.isInstanceOf[CallContext])
+        case _ => false
+      }.filterNot {
+        case (_, v) => v.isInstanceOf[CallContext]
+        case _ => false
+      }
+      filtered.map { case (name, value) =>
+        s"$name=${Option(value).map(_.toString).getOrElse("null")}"
+      }.mkString(", ")
+    } catch {
+      case e: Throwable => s"Failed to serialize args: ${e.getMessage}"
+    }
+  }
+
+  /**
+   * Serialize the result of a connector call for connector trace.
+   * Extracts data from Box[(T, Option[CallContext])] tuples, filtering out CallContext.
+   */
+  private def serializeInboundResult(result: scala.util.Try[Any]): String = {
+    try {
+      val value = result match {
+        case TrySuccess(Full((data, Some(_: CallContext)))) => data
+        case TrySuccess(Full((data, None))) => data
+        case TrySuccess(Full(data)) => data
+        case TrySuccess((data, Some(_: CallContext))) => data
+        case TrySuccess((data, None)) => data
+        case TrySuccess(data) => data
+        case TryFailure(e) => s"Exception: ${e.getMessage}"
+      }
+      Option(value).map(_.toString).getOrElse("null")
+    } catch {
+      case e: Throwable => s"Failed to serialize result: ${e.getMessage}"
+    }
+  }
+
+  /**
+   * Extract userId, httpVerb, and url from the CallContext found in method args.
+   */
+  private def extractCallContextInfo(args: Array[AnyRef]): (String, String, String) = {
+    try {
+      val cc: Option[CallContext] = args.collectFirst {
+        case Some(cc: CallContext) => cc
+        case Full(cc: CallContext) => cc
+      }
+      cc match {
+        case Some(callContext) =>
+          val userId = callContext.user.map(_.userId).getOrElse("")
+          val httpVerb = callContext.verb
+          val apiUrl = callContext.url
+          (userId, httpVerb, apiUrl)
+        case None => ("", "", "")
+      }
+    } catch {
+      case _: Throwable => ("", "", "")
+    }
+  }
+
+  /**
+   * Extract bankId from method args for connector trace.
+   */
+  private def extractBankIdFromArgs(args: Array[AnyRef]): String = {
+    try {
+      args.collectFirst {
+        case bankId: BankId => bankId.value
+      }.getOrElse {
+        // Try nested search
+        args.toStream.map(findBankIdIn(_)).find(_.isDefined).flatten.getOrElse("")
       }
     } catch {
       case _: Throwable => ""

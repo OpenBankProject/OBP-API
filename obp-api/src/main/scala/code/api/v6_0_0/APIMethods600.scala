@@ -33,7 +33,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
-import code.metrics.{APIMetrics, ConnectorCountsRedis}
+import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
@@ -4756,7 +4756,7 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(resetPasswordUrl),
       "POST",
-      "/management/user/reset-password-url",
+      "/users/password-reset",
       "Create Password Reset URL and Send Email",
       s"""Create a password reset URL for a user and automatically send it via email.
          |
@@ -4799,7 +4799,7 @@ trait APIMethods600 {
     )
 
     lazy val resetPasswordUrl: OBPEndpoint = {
-      case "management" :: "user" :: "reset-password-url" :: Nil JsonPost json -> _ => {
+      case "users" :: "password-reset" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8683,6 +8683,111 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.deleteApiProductAttribute(apiProductAttributeId, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getConnectorTraces,
+      implementedInApiVersion,
+      nameOf(getConnectorTraces),
+      "GET",
+      "/management/connector/traces",
+      "Get Connector Traces",
+      s"""Get connector traces which capture the full outbound/inbound messages for each connector call.
+         |
+         |This endpoint requires the CanGetConnectorTrace role.
+         |
+         |Connector tracing must be enabled via the write_connector_trace=true property.
+         |
+         |Filters Part 1.*filtering* parameters to GET /management/connector/traces
+         |
+         |Should be able to filter on the following fields:
+         |
+         |eg: /management/connector/traces?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 1000) eg:limit=2000
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 connector_name (if null ignore)
+         |
+         |6 function_name (if null ignore)
+         |
+         |7 correlation_id (if null ignore)
+         |
+         |8 bank_id (if null ignore)
+         |
+         |9 user_id (if null ignore)
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      connectorTracesJsonV600,
+      List(
+        InvalidDateFormat,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi),
+      Some(List(canGetConnectorTrace)))
+
+    lazy val getConnectorTraces: OBPEndpoint = {
+      case "management" :: "connector" :: "traces" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorTrace, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            traces <- Future(ConnectorTraceProvider.getAllConnectorTraces(obpQueryParams))
+          } yield {
+            (JSONFactory600.createConnectorTracesJsonV600(traces), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getConfigProps,
+      implementedInApiVersion,
+      nameOf(getConfigProps),
+      "GET",
+      "/management/config-props",
+      "Get Config Props",
+      s"""Get the configuration properties (non-WebUI) and their runtime values.
+         |
+         |This endpoint reads all property keys from the sample.props.template file
+         |(excluding webui_ properties) and returns their current runtime values.
+         |
+         |Sensitive properties (containing password, secret, passphrase, credential, token_secret)
+         |will have their values masked as ****.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      configPropsJsonV600,
+      List(
+        UnknownError
+      ),
+      List(apiTagApi),
+      Some(List(canGetConfigProps)))
+
+    lazy val getConfigProps: OBPEndpoint = {
+      case "management" :: "config-props" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfigProps, callContext)
+            configProps = getConfigPropsPairs.map { case (key, value) =>
+              ConfigPropJsonV600(key, maskSensitivePropValue(key, value))
+            }
+          } yield {
+            (ListResult("config_props", configProps), HttpCode.`200`(callContext))
           }
       }
     }

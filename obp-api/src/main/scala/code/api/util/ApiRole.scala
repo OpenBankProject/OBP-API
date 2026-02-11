@@ -456,6 +456,12 @@ object ApiRole extends MdcLoggable{
   case class CanGetConnectorMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorMetrics = CanGetConnectorMetrics()
 
+  case class CanGetConnectorTrace(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConnectorTrace = CanGetConnectorTrace()
+
+  case class CanGetConfigProps(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConfigProps = CanGetConfigProps()
+
   case class CanDeleteEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEntitlementRequestsAtAnyBank = CanDeleteEntitlementRequestsAtAnyBank()
 

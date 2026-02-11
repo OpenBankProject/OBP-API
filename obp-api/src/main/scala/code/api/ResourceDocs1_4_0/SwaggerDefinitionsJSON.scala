@@ -6077,6 +6077,31 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value
   )
   
+  lazy val connectorTraceJsonV600 = ConnectorTraceJsonV600(
+    connector_trace_id = 1,
+    correlation_id = "12345-abcde",
+    connector_name = "mapped",
+    function_name = "getBanks",
+    bank_id = "gh.29.uk",
+    outbound_message = """{"bankId":"gh.29.uk"}""",
+    inbound_message = """{"status":"Success","data":[{"bankId":"gh.29.uk","shortName":"Test Bank"}]}""",
+    date = DateWithDayExampleObject,
+    duration = 150,
+    is_successful = true,
+    user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9f0",
+    http_verb = "GET",
+    url = "/obp/v6.0.0/banks"
+  )
+
+  lazy val connectorTracesJsonV600 = ConnectorTracesJsonV600(
+    connector_traces = List(connectorTraceJsonV600)
+  )
+
+  lazy val configPropsJsonV600 = ListResult(
+    "config_props",
+    List(ConfigPropJsonV600("connector", "star"), ConfigPropJsonV600("write_metrics", "true"))
+  )
+
   // HOLD sample (V600)
   lazy val transactionRequestBodyHoldJsonV600 = TransactionRequestBodyHoldJsonV600(
     value = amountOfMoneyJsonV121,
