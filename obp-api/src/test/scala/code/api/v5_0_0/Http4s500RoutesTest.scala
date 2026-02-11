@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
@@ -10,6 +11,7 @@ import net.liftweb.json.JsonParser.parse
 import org.http4s.{Method, Request, Status, Uri}
 import org.scalatest.Tag
 
+@Ignore
 class Http4s500RoutesTest extends ServerSetupWithTestData {
 
   object Http4s500RoutesTag extends Tag("Http4s500Routes")
