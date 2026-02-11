@@ -681,9 +681,9 @@
           <configuration>
             <fork>true</fork>
             <jvmArgs>
-              <jvmArg>-Xms4G</jvmArg>
-              <jvmArg>-Xmx12G</jvmArg>
-              <jvmArg>-XX:MaxMetaspaceSize=4G</jvmArg>
+              <jvmArg>-Xms2G</jvmArg>
+              <jvmArg>-Xmx4G</jvmArg>
+              <jvmArg>-XX:MaxMetaspaceSize=1G</jvmArg>
               <jvmArg>-XX:+UseG1GC</jvmArg>
             </jvmArgs>
             <args>
