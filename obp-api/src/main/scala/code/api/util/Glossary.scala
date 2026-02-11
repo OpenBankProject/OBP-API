@@ -3095,6 +3095,229 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Berlin Group Mandatory Headers",
+		description =
+			s"""
+|OBP validates mandatory HTTP request headers for Berlin Group (NextGenPSD2) API endpoints.
+|
+|When a request targets a Berlin Group endpoint (identified by the Berlin Group URL prefix), OBP checks for the presence of required headers before processing the request.
+|
+|## Mandatory Headers
+|
+|The following headers are required on all Berlin Group API requests by default:
+|
+|* **Content-Type** - The media type of the request body
+|* **Date** - The date and time of the request (must be a valid RFC 7231 date)
+|* **Digest** - A digest of the request body for integrity verification
+|* **PSU-Device-ID** - UUID of the device used by the Payment Service User (PSU)
+|* **PSU-Device-Name** - Name of the device used by the PSU
+|* **PSU-IP-Address** - IP address of the PSU device
+|* **Signature** - Digital signature of the request (keyId must match the serial number from the TPP certificate)
+|* **TPP-Signature-Certificate** - The certificate used by the TPP to sign the request
+|* **X-Request-ID** - UUID that uniquely identifies the request (must not be reused for POST requests that returned 201)
+|
+|## Additional Consent Headers
+|
+|When creating a consent (POST to /consents), the following additional header is required:
+|
+|* **TPP-Redirect-URI** - URI to redirect the PSU to after consent authorization
+|
+|## TPP Requests Without PSU Involvement
+|
+|For background/batch requests where no PSU is directly involved, set:
+|
+|* PSU-IP-Address: 0.0.0.0
+|* PSU-Device-ID: no-psu-involved
+|* PSU-Device-Name: no-psu-involved
+|
+|This enables OBP to apply different consent frequency rules for TPP-initiated requests.
+|
+|## Configuration
+|
+|The mandatory headers can be customized in the Props file:
+|
+|* `berlin_group_mandatory_headers` - Comma-separated list of mandatory header names. Set to empty to disable header checks.
+|* `berlin_group_mandatory_header_consent` - Additional headers required for consent creation endpoints.
+|
+|Example Props configuration:
+|
+|    # Use default mandatory headers
+|    #berlin_group_mandatory_headers = Content-Type,Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID
+|    #berlin_group_mandatory_header_consent = TPP-Redirect-URI
+|
+|    # Disable mandatory header checks (e.g. for testing)
+|    berlin_group_mandatory_headers =
+|    berlin_group_mandatory_header_consent =
+|
+|## Validation Chain
+|
+|OBP performs the following validation steps on Berlin Group requests in order:
+|
+|1. **Missing headers check** - Returns HTTP 400 if any mandatory headers are absent
+|2. **Date format check** - Validates the Date header conforms to RFC 7231
+|3. **X-Request-ID format check** - Validates the X-Request-ID is a valid UUID
+|4. **X-Request-ID uniqueness check** - Ensures the X-Request-ID has not been used in a previous successful POST (201) request
+|5. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
+|6. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
+|
+|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256) with HTTP status 400.
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group Transaction and Consent Lifecycle",
+		description =
+			s"""
+|OBP provides background schedulers that automatically manage the lifecycle of Berlin Group transactions and consents.
+|
+|## Outdated Transactions
+|
+|Berlin Group payment transactions with status "received" (RCVD) that remain unprocessed beyond a configured time threshold are automatically rejected by a background scheduler task.
+|
+|* `berlin_group_outdated_transactions_time_in_seconds` - Time in seconds after which a "received" transaction is considered outdated. Default: **300** (5 minutes).
+|* `berlin_group_outdated_transactions_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated transactions. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Reject transactions stuck in "received" status for more than 5 minutes, checking every 60 seconds
+|    berlin_group_outdated_transactions_time_in_seconds = 300
+|    berlin_group_outdated_transactions_interval_in_seconds = 60
+|
+|## Outdated Consents
+|
+|Berlin Group consents with status "received" that remain unfinished (e.g. the PSU never completed the SCA flow) beyond a configured time threshold are automatically rejected.
+|
+|* `berlin_group_outdated_consents_time_in_seconds` - Time in seconds after which an unfinished consent is considered outdated. Default: **300** (5 minutes).
+|* `berlin_group_outdated_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Reject consents stuck in "received" status for more than 5 minutes, checking every 60 seconds
+|    berlin_group_outdated_consents_time_in_seconds = 300
+|    berlin_group_outdated_consents_interval_in_seconds = 60
+|
+|## Expired Consents
+|
+|Berlin Group consents with status "valid" whose `validUntil` date has passed are automatically transitioned to "expired" status.
+|
+|* `berlin_group_expired_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for expired consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|
+|Example:
+|
+|    # Check for expired consents every 120 seconds
+|    berlin_group_expired_consents_interval_in_seconds = 120
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group URL and Path Configuration",
+		description =
+			s"""
+|OBP allows customization of the URL paths used for Berlin Group (NextGenPSD2) API endpoints.
+|
+|## Canonical Path
+|
+|* `berlin_group_version_1_canonical_path` - Overrides the version segment of the Berlin Group v1 URL path. By default, the built-in path is `v1.3` (i.e. endpoints are served at `/berlin-group/v1.3/...`). Setting this property changes the version segment.
+|
+|Example:
+|
+|    # Serve Berlin Group endpoints at /berlin-group/v1.3.12/...
+|    berlin_group_version_1_canonical_path = v1.3.12
+|
+|## Alias Path
+|
+|* `berlin_group_v1_3_alias_path` - Defines an alternative URL prefix under which Berlin Group v1.3 endpoints are also available. The format must be `xxx/yyy`. When set, all Berlin Group v1.3 endpoints are duplicated under this alternative path.
+|
+|Example:
+|
+|    # Also serve Berlin Group endpoints at /0.6/v1/...
+|    berlin_group_v1_3_alias_path = 0.6/v1
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group Response Formatting",
+		description =
+			s"""
+|OBP provides several configuration options to control how Berlin Group API responses are formatted.
+|
+|## Account Name Visibility
+|
+|* `BG_v1312_show_account_name` - Boolean flag that controls whether the `name` field is included in Berlin Group account responses (at `/berlin-group/v1.3/accounts` and `/berlin-group/v1.3/accounts/{accountId}`). Default: **true**.
+|
+|Some implementations may require omitting the account name for privacy or compliance reasons.
+|
+|Example:
+|
+|    # Hide account names in Berlin Group responses
+|    BG_v1312_show_account_name = false
+|
+|## Amount Sign Removal
+|
+|* `BG_remove_sign_of_amounts` - Boolean flag that controls whether the sign (positive/negative indicator) is removed from transaction amount values in Berlin Group responses. Default: **false**.
+|
+|When enabled, amounts such as "-100.00" are returned as "100.00". This can be useful when the sign is conveyed by other means (e.g. booked vs pending lists, or credit/debit indicators).
+|
+|Example:
+|
+|    # Remove the sign from transaction amounts
+|    BG_remove_sign_of_amounts = true
+|
+|## Error Message Path Visibility
+|
+|* `berlin_group_error_message_show_path` - Boolean flag that controls whether the request URL path is included in Berlin Group error response messages. Default: **true**.
+|
+|When enabled, error responses include the `path` field showing which URL triggered the error. This can be disabled for privacy or security reasons.
+|
+|Example:
+|
+|    # Hide the request path in error messages
+|    berlin_group_error_message_show_path = false
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Berlin Group Consent Settings",
+		description =
+			s"""
+|OBP provides configuration options for Berlin Group consent creation and SCA (Strong Customer Authentication) flows.
+|
+|## Frequency Per Day Limit
+|
+|* `berlin_group_frequency_per_day_upper_limit` - Maximum allowed value for the `frequencyPerDay` field when creating a Berlin Group consent. Default: **4**.
+|
+|When a TPP creates a consent, the requested `frequencyPerDay` must be greater than 0 and less than or equal to this upper limit. For one-off access consents, the frequency must be exactly 1.
+|
+|Example:
+|
+|    # Allow up to 10 requests per day per consent
+|    berlin_group_frequency_per_day_upper_limit = 10
+|
+|## ASPSP SCA Approach
+|
+|* `berlin_group_aspsp_sca_approach` - Defines the SCA approach advertised by the ASPSP (Account Servicing Payment Service Provider) in the `ASPSP-SCA-Approach` response header for consent creation endpoints. Default: **redirect**.
+|
+|Possible values include:
+|
+|* `redirect` - The PSU is redirected to the ASPSP for authentication
+|* `embedded` - Authentication is performed within the TPP interface
+|* `decoupled` - Authentication is performed on a separate device/channel
+|
+|This header is returned in the response to POST `/consents` requests to inform the TPP which SCA method the ASPSP supports.
+|
+|Example:
+|
+|    # Use embedded SCA approach
+|    berlin_group_aspsp_sca_approach = embedded
+|
+ """)
+
+
+	glossaryItems += GlossaryItem(
 		title = "API Collection",
 		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
