@@ -807,6 +807,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetDynamicEntityDiagnostics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEntityDiagnostics = CanGetDynamicEntityDiagnostics()
 
+  case class CanCleanupOrphanedDynamicEntityRecords(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCleanupOrphanedDynamicEntityRecords = CanCleanupOrphanedDynamicEntityRecords()
+
   case class CanGetDynamicEntityReferenceTypes(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEntityReferenceTypes = CanGetDynamicEntityReferenceTypes()
 

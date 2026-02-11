@@ -30,7 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -1435,6 +1435,94 @@ trait APIMethods600 {
             }
             val response = DynamicEntityDiagnosticsJsonV600(result.scannedEntities, issuesJson, result.issues.length, orphanedJson)
             (response, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      cleanupOrphanedDynamicEntityRecords,
+      implementedInApiVersion,
+      nameOf(cleanupOrphanedDynamicEntityRecords),
+      "DELETE",
+      "/management/diagnostics/dynamic-entities/orphaned-records",
+      "Cleanup Orphaned Dynamic Entity Records",
+      s"""Delete orphaned dynamic entity data records.
+         |
+         |Orphaned records are rows in the DynamicData table whose entityName/bankId combination
+         |has no matching Dynamic Entity definition. These can accumulate when entity definitions
+         |are deleted but their data records are not cleaned up.
+         |
+         |This endpoint first identifies all orphaned records (using the same detection logic as
+         |GET /management/diagnostics/dynamic-entities), then deletes them.
+         |
+         |**Response Format:**
+         |* `deleted_orphaned_entities` - List of orphaned entity groups that were deleted, each with:
+         |  * `entity_name` - Name of the orphaned entity
+         |  * `bank_id` - Bank ID (or empty string for system-level)
+         |  * `record_count` - Number of records that were deleted for this entity group
+         |* `total_records_deleted` - Total count of all deleted records
+         |
+         |Authentication is Required
+         |
+         |**Required Role:** `CanCleanupOrphanedDynamicEntityRecords`
+         |""",
+      EmptyBody,
+      CleanupOrphanedDynamicEntityResponseJsonV600(
+        deleted_orphaned_entities = List(
+          OrphanedDynamicEntityJsonV600(
+            entity_name = "OldEntity",
+            bank_id = "gh.29.uk",
+            record_count = 42
+          )
+        ),
+        total_records_deleted = 42
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi),
+      Some(List(canCleanupOrphanedDynamicEntityRecords))
+    )
+
+    lazy val cleanupOrphanedDynamicEntityRecords: OBPEndpoint = {
+      case "management" :: "diagnostics" :: "dynamic-entities" :: "orphaned-records" :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCleanupOrphanedDynamicEntityRecords, callContext)
+          } yield {
+            // Get all entity definitions (both bank and system level)
+            val definitions = DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(None, true)
+            // Identify orphaned records
+            val orphaned = DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
+            // Delete orphaned data records for each orphaned entity group
+            var totalDeleted: Long = 0
+            orphaned.foreach { orphan =>
+              val bankIdOption = if (orphan.bankId.isEmpty) None else Some(orphan.bankId)
+              val records = bankIdOption match {
+                case None =>
+                  DynamicData.findAll(
+                    By(DynamicData.DynamicEntityName, orphan.entityName),
+                    NullRef(DynamicData.BankId)
+                  )
+                case Some(bid) =>
+                  DynamicData.findAll(
+                    By(DynamicData.DynamicEntityName, orphan.entityName),
+                    By(DynamicData.BankId, bid)
+                  )
+              }
+              records.foreach { record =>
+                record.delete_!
+                totalDeleted += 1
+              }
+            }
+            // Build response
+            val orphanedJson = orphaned.map { o =>
+              OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount)
+            }
+            (CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted), HttpCode.`200`(callContext))
           }
       }
     }
@@ -5474,8 +5562,8 @@ trait APIMethods600 {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
          |    }
          |  }
          |}
@@ -5484,12 +5572,13 @@ trait APIMethods600 {
          |**Important:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5497,7 +5586,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5555,8 +5644,8 @@ trait APIMethods600 {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
          |    }
          |  }
          |}
@@ -5565,12 +5654,13 @@ trait APIMethods600 {
          |**Important:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5578,7 +5668,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -5626,21 +5716,23 @@ trait APIMethods600 {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5648,7 +5740,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5695,21 +5787,23 @@ trait APIMethods600 {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5717,7 +5811,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -5765,21 +5859,23 @@ trait APIMethods600 {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Important:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5787,7 +5883,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,

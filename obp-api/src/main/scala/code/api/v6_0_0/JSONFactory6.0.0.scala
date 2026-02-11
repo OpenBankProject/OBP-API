@@ -1367,6 +1367,11 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       orphaned_entities: List[OrphanedDynamicEntityJsonV600]
   )
 
+  case class CleanupOrphanedDynamicEntityResponseJsonV600(
+      deleted_orphaned_entities: List[OrphanedDynamicEntityJsonV600],
+      total_records_deleted: Long
+  )
+
   case class ReferenceTypeJsonV600(
       type_name: String,
       example_value: String,
