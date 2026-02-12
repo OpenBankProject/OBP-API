@@ -117,7 +117,8 @@ class MappedClassNameTest extends FeatureSpec {
       "code.signingbaskets.MappedSigningBasketConsent",
       "code.signingbaskets.MappedSigningBasket",
       "code.signingbaskets.MappedSigningBasketPayment",
-      "code.CustomerDependants.MappedCustomerDependant")
+      "code.metrics.MappedConnectorTrace",
+    )
 
   val newMappedTypes = ClassScanUtils.findTypes{ info =>
     val typeName = info.name

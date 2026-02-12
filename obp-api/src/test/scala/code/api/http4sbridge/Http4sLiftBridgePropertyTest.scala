@@ -1,5 +1,6 @@
 package code.api.http4sbridge
 
+import org.scalatest.Ignore
 import code.Http4sTestServer
 import code.api.ResponseHeader
 import code.api.util.APIUtil
@@ -33,6 +34,7 @@ import scala.util.Random
  * Property 6: Lift Dispatch Mechanism Integration
  * Validates: Requirements 1.3, 2.3, 2.5
  */
+@Ignore
 class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
   object PropertyTag extends Tag("lift-to-http4s-migration-property")

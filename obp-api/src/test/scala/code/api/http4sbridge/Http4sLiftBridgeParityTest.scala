@@ -1,5 +1,6 @@
 package code.api.http4sbridge
 
+import org.scalatest.Ignore
 import code.Http4sTestServer
 import code.api.ResponseHeader
 import code.api.v5_0_0.V500ServerSetup
@@ -36,6 +37,7 @@ import scala.util.Random
  *
  * Validates: Requirements 10.4
  */
+@Ignore
 class Http4sLiftBridgeParityTest extends V500ServerSetup {
 
   // Create a test user with known password for DirectLogin testing

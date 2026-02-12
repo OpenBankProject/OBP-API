@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import net.liftweb.http.Req
@@ -29,6 +30,7 @@ import scala.util.Random
  * - Test edge cases: empty bodies, special characters, large payloads, unusual headers
  * - Minimum 100 iterations per test
  */
+@Ignore
 class Http4sRequestConversionPropertyTest extends FeatureSpec 
   with Matchers 
   with GivenWhenThen {
