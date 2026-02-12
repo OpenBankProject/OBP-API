@@ -5559,6 +5559,8 @@ trait APIMethods600 {
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
@@ -5575,12 +5577,16 @@ trait APIMethods600 {
          |* Each property MUST include an `example` field with a valid example value.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5590,6 +5596,8 @@ trait APIMethods600 {
         bank_id = None,
         has_personal_entity = true,
         has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5645,6 +5653,8 @@ trait APIMethods600 {
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
@@ -5661,12 +5671,16 @@ trait APIMethods600 {
          |* Each property MUST include an `example` field with a valid example value.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
         has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5676,6 +5690,8 @@ trait APIMethods600 {
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
         has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5721,6 +5737,8 @@ trait APIMethods600 {
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5737,6 +5755,8 @@ trait APIMethods600 {
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
@@ -5796,6 +5816,8 @@ trait APIMethods600 {
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5812,6 +5834,8 @@ trait APIMethods600 {
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
@@ -5872,6 +5896,8 @@ trait APIMethods600 {
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
          |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5888,6 +5914,8 @@ trait APIMethods600 {
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
          |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(

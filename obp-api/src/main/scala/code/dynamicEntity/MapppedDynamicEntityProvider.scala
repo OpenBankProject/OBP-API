@@ -68,6 +68,8 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .BankId(dynamicEntity.bankId.getOrElse(null))
           .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .HasPublicAccess(dynamicEntity.hasPublicAccess)
+          .HasCommunityAccess(dynamicEntity.hasCommunityAccess)
+          .PersonalRequiresRole(dynamicEntity.personalRequiresRole)
           .saveMe()
       } catch {
         case e : Throwable =>
@@ -101,6 +103,8 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   object BankId extends MappedString(this, 255)
   object HasPersonalEntity extends MappedBoolean(this)
   object HasPublicAccess extends MappedBoolean(this)
+  object HasCommunityAccess extends MappedBoolean(this)
+  object PersonalRequiresRole extends MappedBoolean(this)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
@@ -109,6 +113,8 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
   override def hasPersonalEntity: Boolean = HasPersonalEntity.get
   override def hasPublicAccess: Boolean = HasPublicAccess.get
+  override def hasCommunityAccess: Boolean = HasCommunityAccess.get
+  override def personalRequiresRole: Boolean = PersonalRequiresRole.get
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {

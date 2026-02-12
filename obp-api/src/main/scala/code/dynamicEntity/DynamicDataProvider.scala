@@ -40,6 +40,11 @@ trait DynamicDataProvider {
   def getAll(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT]
   def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[Boolean]
   def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean
+
+  // Community access methods - return ALL records regardless of userId/IsPersonalEntity
+  def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT]
+  def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject]
+  def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT]
 }
 
 

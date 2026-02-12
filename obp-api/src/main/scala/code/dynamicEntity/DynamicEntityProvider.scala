@@ -38,6 +38,8 @@ trait DynamicEntityT {
   def userId: String
   def hasPersonalEntity: Boolean
   def hasPublicAccess: Boolean
+  def hasCommunityAccess: Boolean
+  def personalRequiresRole: Boolean
 
   /**
    * Add Option(bank_id) to Dynamic Entity.
@@ -384,7 +386,9 @@ case class DynamicEntityCommons(entityName: String,
                                 userId: String,
                                 bankId: Option[String] ,
                                 hasPersonalEntity: Boolean,
-                                hasPublicAccess: Boolean = false
+                                hasPublicAccess: Boolean = false,
+                                hasCommunityAccess: Boolean = false,
+                                personalRequiresRole: Boolean = false
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -429,7 +433,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     val fields = jsonObject.obj
 
     // Known flag field names at the root level (not the entity definition itself)
-    val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess")
+    val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
 
     // validate root object fields
     val fieldsSize = fields.size
@@ -440,6 +444,10 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     val hasPersonalEntityValue: Boolean = fields.filter(_.name == "hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
     // Determine the value of hasPublicAccess; use the field's boolean value if provided, otherwise default to false
     val hasPublicAccessValue: Boolean = fields.filter(_.name == "hasPublicAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
+    // Determine the value of hasCommunityAccess; use the field's boolean value if provided, otherwise default to false
+    val hasCommunityAccessValue: Boolean = fields.filter(_.name == "hasCommunityAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
+    // Determine the value of personalRequiresRole; use the field's boolean value if provided, otherwise default to false
+    val personalRequiresRoleValue: Boolean = fields.filter(_.name == "personalRequiresRole").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
 
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
     checkFormat(entityFields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have exactly one entity field (plus optional flags: ${knownFlagFields.mkString(", ")}), but current root objects: ${fields.map(_.name).mkString(",  ")}")
@@ -553,7 +561,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
@@ -563,7 +571,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * example case classes, as an example schema of DynamicEntity, for request body example usage
  * @param FooBar
  */
-case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None, hasPersonalEntity:Boolean = true, hasPublicAccess: Boolean = false)
+case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None, hasPersonalEntity:Boolean = true, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false)
 case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)

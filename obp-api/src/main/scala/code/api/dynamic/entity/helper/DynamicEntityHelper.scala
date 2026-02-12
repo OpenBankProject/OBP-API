@@ -90,11 +90,38 @@ object PublicEntityName {
   }
 }
 
+object CommunityEntityName {
+  // unapply result structure: (BankId, entityName, id)
+  // Only matches entities where hasCommunityAccess = true
+  def unapply(url: List[String]): Option[(Option[String], String, String)] = url match {
+
+    //eg: /community/FooBar21
+    case "community" :: entityName :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasCommunityAccess)
+        .map(_ => (None, entityName, ""))
+    //eg: /community/FooBar21/FOO_BAR21_ID
+    case "community" :: entityName :: id :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasCommunityAccess)
+        .map(_ => (None, entityName, id))
+
+    //eg: /banks/BANK_ID/community/FooBar21
+    case "banks" :: bankId :: "community" :: entityName :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasCommunityAccess)
+        .map(_ => (Some(bankId), entityName, ""))
+    //eg: /banks/BANK_ID/community/FooBar21/FOO_BAR21_ID
+    case "banks" :: bankId :: "community" :: entityName :: id :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasCommunityAccess)
+        .map(_ => (Some(bankId), entityName, id))
+
+    case _ => None
+  }
+}
+
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
@@ -335,6 +362,10 @@ object DynamicEntityHelper {
     )
 
     if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
+      val personalRequiresRole = dynamicEntityInfo.personalRequiresRole
+      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError) else List(AuthenticatedUserIsRequired, UnknownError)
+      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)
+
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
         endPoint,
         implementedInApiVersion,
@@ -357,11 +388,9 @@ object DynamicEntityHelper {
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getExampleList,
-        List(
-          AuthenticatedUserIsRequired,
-          UnknownError
-        ),
+        myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
         createdByBankId= dynamicEntityInfo.bankId
       )
 
@@ -383,11 +412,9 @@ object DynamicEntityHelper {
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
-        List(
-          AuthenticatedUserIsRequired,
-          UnknownError
-        ),
+        myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
         createdByBankId= dynamicEntityInfo.bankId
       )
 
@@ -410,12 +437,9 @@ object DynamicEntityHelper {
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
-        List(
-          AuthenticatedUserIsRequired,
-          InvalidJsonFormat,
-          UnknownError
-        ),
+        myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canCreateRole)) else None,
         createdByBankId= dynamicEntityInfo.bankId
         )
 
@@ -438,13 +462,9 @@ object DynamicEntityHelper {
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
-        List(
-          AuthenticatedUserIsRequired,
-          InvalidJsonFormat,
-          UnknownError
-        ),
+        myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
-        Some(List(dynamicEntityInfo.canUpdateRole)),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
         createdByBankId= dynamicEntityInfo.bankId
       )
 
@@ -464,11 +484,9 @@ object DynamicEntityHelper {
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
-        List(
-          AuthenticatedUserIsRequired,
-          UnknownError
-        ),
+        myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canDeleteRole)) else None,
         createdByBankId= dynamicEntityInfo.bankId
       )
     }
@@ -533,6 +551,72 @@ object DynamicEntityHelper {
       )
     }
 
+    val hasCommunityAccess = dynamicEntityInfo.hasCommunityAccess
+    if(hasCommunityAccess) {
+      val communityResourceDocUrl = if(bankId.isDefined) s"/banks/${bankId.getOrElse("")}/community/$entityName" else s"/community/$entityName"
+      val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
+
+      resourceDocs += (DynamicEntityOperation.GET_ALL, communitySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildGetAllFunctionName(bankId, s"Community$entityName"),
+        "GET",
+        s"$communityResourceDocUrl",
+        s"Get Community $splitName List",
+        s"""Get Community $splitName List. Returns ALL records (personal + non-personal from all users).
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |Authentication is Required
+           |
+           |Can do filter on the fields
+           |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
+           |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+           |""".stripMargin,
+        EmptyBody,
+        dynamicEntityInfo.getExampleList,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        Some(List(dynamicEntityInfo.canGetRole)),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+
+      resourceDocs += (DynamicEntityOperation.GET_ONE, communitySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildGetOneFunctionName(bankId, s"Community$entityName"),
+        "GET",
+        s"$communityResourceDocUrl/$idNameInUrl",
+        s"Get Community $splitName by id",
+        s"""Get Community $splitName by id. Returns the record regardless of ownership.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |Authentication is Required
+           |""".stripMargin,
+        EmptyBody,
+        dynamicEntityInfo.getSingleExample,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        Some(List(dynamicEntityInfo.canGetRole)),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+    }
+
     resourceDocs
   }
 
@@ -582,7 +666,7 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false) {
 
   import net.liftweb.json
 
