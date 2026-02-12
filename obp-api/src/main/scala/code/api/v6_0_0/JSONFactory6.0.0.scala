@@ -14,7 +14,7 @@
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.stringOrNull
-import code.metrics.MappedConnectorTrace
+import code.metrics.ConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
@@ -2108,7 +2108,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
   }
 
-  def createConnectorTraceJsonV600(trace: MappedConnectorTrace): ConnectorTraceJsonV600 = {
+  def createConnectorTraceJsonV600(trace: ConnectorTrace): ConnectorTraceJsonV600 = {
     ConnectorTraceJsonV600(
       connector_trace_id = trace.id.get,
       correlation_id = trace.correlationId.get,
@@ -2126,7 +2126,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createConnectorTracesJsonV600(traces: List[MappedConnectorTrace]): ConnectorTracesJsonV600 = {
+  def createConnectorTracesJsonV600(traces: List[ConnectorTrace]): ConnectorTracesJsonV600 = {
     ConnectorTracesJsonV600(traces.map(createConnectorTraceJsonV600))
   }
 

@@ -98,7 +98,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
-import code.metrics.{MappedConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive}
+import code.metrics.{ConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
@@ -1162,7 +1162,7 @@ object ToSchemify {
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,
-    MappedConnectorTrace,
+    ConnectorTrace,
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
     MappedScope,
