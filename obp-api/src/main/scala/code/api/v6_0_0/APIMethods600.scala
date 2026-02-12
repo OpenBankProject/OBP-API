@@ -9038,7 +9038,7 @@ trait APIMethods600 {
          |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
          |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
          |
-         |The calling user will be granted CanGetDynamicEntity_<BackupEntityName> on the newly created backup entity.
+         |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
          |
@@ -9083,7 +9083,7 @@ trait APIMethods600 {
          |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
          |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
          |
-         |The calling user will be granted CanGetDynamicEntity_<BackupEntityName> on the newly created backup entity.
+         |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
          |
