@@ -872,7 +872,8 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
               bank match {
                 case obj: JObject =>
                   val keys: Set[String] = obj.obj.map(_.name).toSet
-                  keys should (contain("id") or contain("bank_id"))
+                  if (version == "v6.0.0") keys should contain("bank_id")
+                  else keys should contain("id")
                 case other =>
                   fail(s"$version /banks array element is not a JObject: $other")
               }

@@ -328,7 +328,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400User2.code should equal(400)
       val errorMessage = response400User2.body.extract[ErrorMessage].message
       errorMessage contains DynamicEntityInstanceValidateFail should be (true)
-      errorMessage contains "The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects:" should be (true)
+      errorMessage contains "The Json root object should have exactly one entity field" should be (true)
     }
     
     scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity, test2 ", ApiEndpoint1, VersionOfApi) {
@@ -341,7 +341,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400User2.code should equal(400)
       val errorMessage = response400User2.body.extract[ErrorMessage].message
       errorMessage contains DynamicEntityInstanceValidateFail should be (true)
-      errorMessage contains "The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects:" should be (true)
+      errorMessage contains "The Json root object should have exactly one entity field" should be (true)
     }
 
     scenario("We will test the successful cases " , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {

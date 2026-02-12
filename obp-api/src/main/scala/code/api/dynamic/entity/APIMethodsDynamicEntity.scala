@@ -5,7 +5,7 @@ import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
 import code.api.dynamic.endpoint.helper.MockResponseHolder
-import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo, EntityName}
+import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
@@ -112,7 +112,8 @@ trait APIMethodsDynamicEntity {
               }
             }
 
-          _ <- if (isPersonalEntity) {
+          personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+          _ <- if (isPersonalEntity && !personalRequiresRole) {
             Future.successful(true)
           } else {
             NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
@@ -126,7 +127,7 @@ trait APIMethodsDynamicEntity {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, 
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
             Some(u.userId),
             isPersonalEntity,
             Some(cc)
@@ -196,7 +197,8 @@ trait APIMethodsDynamicEntity {
               }
             }
 
-          _ <- if (isPersonalEntity) {
+          personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+          _ <- if (isPersonalEntity && !personalRequiresRole) {
             Future.successful(true)
           } else {
             NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
@@ -254,7 +256,8 @@ trait APIMethodsDynamicEntity {
                 ("", callContext)
               }
             }
-          _ <- if (isPersonalEntity) {
+          personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+          _ <- if (isPersonalEntity && !personalRequiresRole) {
             Future.successful(true)
           } else {
             NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
@@ -308,7 +311,7 @@ trait APIMethodsDynamicEntity {
           DynamicEntityHelper.operationToResourceDoc.get(operation -> mySplitNameWithBankId)
         else
           DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
-          
+
         val operationId = resourceDoc.map(_.operationId).orNull
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
 
@@ -326,7 +329,8 @@ trait APIMethodsDynamicEntity {
               }
             }
 
-          _ <- if (isPersonalEntity) {
+          personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+          _ <- if (isPersonalEntity && !personalRequiresRole) {
             Future.successful(true)
           } else {
             NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)
@@ -346,8 +350,8 @@ trait APIMethodsDynamicEntity {
             Some(cc)
           )
           _ <- Helper.booleanToFuture(
-            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""), 
-            404, 
+            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
+            404,
             cc = callContext
           ) {
             box.isDefined
@@ -360,6 +364,158 @@ trait APIMethodsDynamicEntity {
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
           (deleteResult, HttpCode.`200`(Some(cc)))
+        }
+      }
+    }
+
+    // Public endpoint for dynamic entities with hasPublicAccess = true
+    // Read-only (GET only), no authentication required, no role checks
+    lazy val publicEndpoint: OBPEndpoint = {
+      case PublicEntityName(bankId, entityName, id) JsonGet req => { cc =>
+        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
+        val isGetAll = StringUtils.isBlank(id)
+
+        val splitName = entityName
+        val splitNameWithBankId = if (bankId.isDefined)
+          s"""$splitName(${bankId.getOrElse("")})"""
+        else
+          s"""$splitName"""
+        val publicSplitNameWithBankId = s"Public$splitNameWithBankId"
+
+        val operation: DynamicEntityOperation = if (StringUtils.isBlank(id)) GET_ALL else GET_ONE
+        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> publicSplitNameWithBankId)
+        val operationId = resourceDoc.map(_.operationId).orNull
+        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
+        // process before authentication interceptor, get intercept result
+        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
+        if (beforeInterceptResult.isDefined) beforeInterceptResult
+        else for {
+          (_, callContext) <- anonymousAccess(callContext)
+
+          (_, callContext) <-
+            if (bankId.isDefined) {
+              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
+            } else {
+              Future.successful {
+                ("", callContext)
+              }
+            }
+
+          // No entitlement checks for public endpoints
+          // Pass userId=None and isPersonalEntity=false
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
+            None,
+            false,
+            Some(cc)
+          )
+
+          _ <- Helper.booleanToFuture(
+            s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '${id}'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
+            404,
+            cc = callContext
+          ) {
+            box.isDefined
+          }
+        } yield {
+          val jValue = if (isGetAll) {
+            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+            if (bankId.isDefined) {
+              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
+              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
+              bankIdJobject merge result
+            } else {
+              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
+              result
+            }
+          } else {
+            val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+            if (bankId.isDefined) {
+              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
+              val result: JObject = (singleName -> singleObject)
+              bankIdJobject merge result
+            } else {
+              val result: JObject = (singleName -> singleObject)
+              result
+            }
+          }
+          (jValue, HttpCode.`200`(Some(cc)))
+        }
+      }
+    }
+
+    // Community endpoint for dynamic entities with hasCommunityAccess = true
+    // Read-only (GET only), authentication required, CanGet role required
+    // Returns ALL records (personal + non-personal from all users)
+    lazy val communityEndpoint: OBPEndpoint = {
+      case CommunityEntityName(bankId, entityName, id) JsonGet req => { cc =>
+        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
+        val isGetAll = StringUtils.isBlank(id)
+
+        val splitName = entityName
+        val splitNameWithBankId = if (bankId.isDefined)
+          s"""$splitName(${bankId.getOrElse("")})"""
+        else
+          s"""$splitName"""
+        val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
+
+        val operation: DynamicEntityOperation = if (StringUtils.isBlank(id)) GET_ALL else GET_ONE
+        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> communitySplitNameWithBankId)
+        val operationId = resourceDoc.map(_.operationId).orNull
+        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
+        // process before authentication interceptor, get intercept result
+        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
+        if (beforeInterceptResult.isDefined) beforeInterceptResult
+        else for {
+          (Full(u), callContext) <- authenticatedAccess(callContext)
+
+          (_, callContext) <-
+            if (bankId.isDefined) {
+              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
+            } else {
+              Future.successful {
+                ("", callContext)
+              }
+            }
+
+          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
+
+          // process after authentication interceptor, get intercept result
+          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+          })
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
+            jsonResponse.isEmpty
+          }
+        } yield {
+          val jValue = if (isGetAll) {
+            val resultList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJsonCommunity(bankId, entityName)
+            val resultArray = JArray(resultList)
+            if (bankId.isDefined) {
+              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
+              val result: JObject = (listName -> filterDynamicObjects(resultArray, req))
+              bankIdJobject merge result
+            } else {
+              val result: JObject = (listName -> filterDynamicObjects(resultArray, req))
+              result
+            }
+          } else {
+            val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
+            val singleObject: JValue = singleResult match {
+              case Full(data) => net.liftweb.json.parse(data.dataJson)
+              case _ => throw new RuntimeException(s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""))
+            }
+            if (bankId.isDefined) {
+              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
+              val result: JObject = (singleName -> singleObject)
+              bankIdJobject merge result
+            } else {
+              val result: JObject = (singleName -> singleObject)
+              result
+            }
+          }
+          (jValue, HttpCode.`200`(Some(cc)))
         }
       }
     }

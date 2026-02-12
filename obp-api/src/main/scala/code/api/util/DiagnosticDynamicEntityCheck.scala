@@ -1,13 +1,14 @@
 package code.api.util
 
 import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.DynamicData.{DynamicData, DynamicDataT}
 import code.dynamicEntity.DynamicEntityT
 import net.liftweb.json._
 import org.apache.commons.lang3.StringUtils
 
 /**
  * Diagnostic utility to identify dynamic entities with malformed boolean field examples
- * This helps troubleshoot Swagger generation issues where boolean fields have invalid example values
+ * and orphaned dynamic entity records (data rows with no matching definition).
  */
 object DiagnosticDynamicEntityCheck {
 
@@ -19,9 +20,16 @@ object DiagnosticDynamicEntityCheck {
     errorMessage: String
   )
 
+  case class OrphanedEntityInfo(
+    entityName: String,
+    bankId: String,
+    recordCount: Long
+  )
+
   case class DiagnosticResult(
     issues: List[BooleanFieldIssue],
-    scannedEntities: List[String]
+    scannedEntities: List[String],
+    orphanedEntities: List[OrphanedEntityInfo]
   )
 
   /**
@@ -137,7 +145,46 @@ object DiagnosticDynamicEntityCheck {
       s"${entity.entityName} $bankIdStr"
     }
 
-    DiagnosticResult(issues.toList, scannedEntityNames)
+    // Check for orphaned records: data rows whose entityName has no matching definition.
+    // This is done outside the definition loop — we start from the data side.
+    val orphanedEntities = checkOrphanedRecords(dynamicEntities)
+
+    DiagnosticResult(issues.toList, scannedEntityNames, orphanedEntities)
+  }
+
+  /**
+   * Find orphaned dynamic entity records — rows in DynamicData whose entityName
+   * does not match any current DynamicEntity definition.
+   * Starts from the data side: gets all distinct (entityName, bankId) pairs from
+   * DynamicData, then checks each against the known definitions.
+   */
+  def checkOrphanedRecords(definitions: List[DynamicEntityT]): List[OrphanedEntityInfo] = {
+    try {
+      // Build a set of known (entityName, bankId) pairs from definitions
+      val definedEntities: Set[(String, Option[String])] = definitions.map { entity =>
+        (entity.entityName, entity.bankId)
+      }.toSet
+
+      // Get all data records and group by (entityName, bankId)
+      val allDataRecords = DynamicData.findAll()
+      val grouped = allDataRecords.groupBy { record =>
+        (record.dynamicEntityName, Option(record.BankId.get).filter(_.nonEmpty))
+      }
+
+      // Find groups that have no matching definition
+      grouped.flatMap { case ((entityName, bankId), records) =>
+        if (!definedEntities.contains((entityName, bankId))) {
+          Some(OrphanedEntityInfo(
+            entityName = entityName,
+            bankId = bankId.getOrElse(""),
+            recordCount = records.size.toLong
+          ))
+        } else None
+      }.toList.sortBy(o => (o.entityName, o.bankId))
+    } catch {
+      case e: Throwable =>
+        List(OrphanedEntityInfo("ERROR", "", 0))
+    }
   }
 
   /**

@@ -559,49 +559,55 @@ generate_summary() {
     # Show failed tests if any (only actual test failures, not application ERROR logs)
     if [ "${FAILED}" != "0" ] && [ "${FAILED}" != "UNKNOWN" ]; then
         log_message "Failed Tests:"
-        # Look for ScalaTest failure markers, not application ERROR logs
-        grep -E "\*\*\* FAILED \*\*\*|\*\*\* RUN ABORTED \*\*\*" "${detail_log}" | head -50 >> "${summary_log}"
+
+        # Display failed scenario names (strip ANSI codes for clean output)
+        sed 's/\x1b\[[0-9;]*m//g' "${detail_log}" | \
+            grep "\*\*\* FAILED \*\*\*" | \
+            sed 's/^[[:space:]]*/  /' | \
+            sort -u | head -50 | while IFS= read -r line; do
+            log_message "$line"
+        done
         log_message ""
 
-        # Extract failed test class names and save to file for run_specific_tests.sh
-        # Look backwards from "*** FAILED ***" to find the test class name
-        # ScalaTest prints: "TestClassName:" before scenarios
-        > "${FAILED_TESTS_FILE}"  # Clear/create file
-        echo "# Failed test classes from last run" >> "${FAILED_TESTS_FILE}"
-        echo "# Last updated: $(date '+%Y-%m-%d %H:%M')" >> "${FAILED_TESTS_FILE}"
-        echo "#" >> "${FAILED_TESTS_FILE}"
-        echo "# Format: One test class per line with full package path" >> "${FAILED_TESTS_FILE}"
-        echo "# Example: code.api.v6_0_0.RateLimitsTest" >> "${FAILED_TESTS_FILE}"
-        echo "#" >> "${FAILED_TESTS_FILE}"
-        echo "# Usage: ./run_specific_tests.sh will read this file and run only these tests" >> "${FAILED_TESTS_FILE}"
-        echo "#" >> "${FAILED_TESTS_FILE}"
-        echo "# Lines starting with # are ignored (comments)" >> "${FAILED_TESTS_FILE}"
-        echo "" >> "${FAILED_TESTS_FILE}"
+        # Write header to failed tests file
+        > "${FAILED_TESTS_FILE}"
+        cat >> "${FAILED_TESTS_FILE}" <<'HEADER'
+# Failed test classes from last run
+# Format: One test class per line with full package path
+# Usage: ./run_specific_tests.sh will read this file and run only these tests
+HEADER
 
-        # Extract test class names from failures
-        # For each failure, find the most recent test class name before it
-        grep -n "\*\*\* FAILED \*\*\*" "${detail_log}" | cut -d: -f1 | while read failure_line; do
-          # Find the most recent line with pattern "TestClassName:" before this failure
-          test_class=$(grep -n "^[A-Z][a-zA-Z0-9_]*Test:" "${detail_log}" | \
-                       awk -F: -v target="$failure_line" '$1 < target' | \
-                       tail -1 | \
-                       cut -d: -f2 | \
-                       sed 's/:$//')
-          
-          if [ -n "$test_class" ]; then
-            echo "$test_class"
-          fi
-        done | sort -u | while read test_class; do
-          # Try to find package by searching for the class in test files
-          package=$(find obp-api/src/test/scala -name "${test_class}.scala" | \
-                    sed 's|obp-api/src/test/scala/||' | \
-                    sed 's|/|.|g' | \
-                    sed 's|.scala$||' | \
-                    head -1)
-          if [ -n "$package" ]; then
-            echo "$package" >> "${FAILED_TESTS_FILE}"
-          fi
-        done
+        # Extract failed test class names using two strategies:
+        # 1. From assertion lines: (TestFile.scala:NNN) appears within ~10 lines after *** FAILED ***
+        # 2. From class headers: ScalaTest prints "TestClassName:" before scenarios
+        local tmp_classes="${LOG_DIR}/failed_classes.tmp"
+        local stripped_log="${LOG_DIR}/stripped.tmp"
+        sed 's/\x1b\[[0-9;]*m//g' "${detail_log}" > "${stripped_log}"
+
+        # Strategy 1: Extract from assertion file references
+        grep -A 10 "\*\*\* FAILED \*\*\*" "${stripped_log}" | \
+            sed -n 's/.*(\([A-Za-z0-9_]*\)\.scala:[0-9]*).*/\1/p' > "${tmp_classes}"
+
+        # Strategy 2: For failures without file references, find the test class header
+        # ScalaTest prints "ClassName:" before its scenarios
+        grep -n "\*\*\* FAILED \*\*\*" "${stripped_log}" | cut -d: -f1 | while read failure_line; do
+            head -n "$failure_line" "${stripped_log}" | \
+                grep -E '^[A-Z][a-zA-Z0-9_]*(Test|Tests|Suite):$' | \
+                tail -1 | sed 's/:$//'
+        done >> "${tmp_classes}"
+
+        sort -u "${tmp_classes}" -o "${tmp_classes}"
+        rm -f "${stripped_log}"
+
+        # Look up full package path for each test class
+        while IFS= read -r test_class; do
+            package=$(find obp-api/src/test/scala -name "${test_class}.scala" 2>/dev/null | \
+                sed 's|obp-api/src/test/scala/||' | sed 's|/|.|g' | sed 's|\.scala$||' | head -1)
+            if [ -n "$package" ]; then
+                echo "$package" >> "${FAILED_TESTS_FILE}"
+            fi
+        done < "${tmp_classes}"
+        rm -f "${tmp_classes}"
 
         log_message "Failed test classes saved to: ${FAILED_TESTS_FILE}"
         log_message ""
