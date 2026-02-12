@@ -44,7 +44,7 @@ import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 /**
- * Test suite for Password Reset URL endpoint (POST /obp/v6.0.0/management/user/reset-password-url)
+ * Test suite for Password Reset URL endpoint (POST /obp/v6.0.0/management/user/password-reset)
  * 
  * Tests cover:
  * - Unauthorized access (no authentication)
