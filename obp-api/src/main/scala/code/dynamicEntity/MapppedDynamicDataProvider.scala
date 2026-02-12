@@ -129,6 +129,49 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     get(bankId, entityName, id, userId, isPersonalEntity).map(_.asInstanceOf[DynamicData].delete_!)
   }
 
+  // Community access: return ALL records regardless of userId/IsPersonalEntity
+  override def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT] = {
+    if (bankId.isEmpty) {
+      DynamicData.findAll(
+        By(DynamicData.DynamicEntityName, entityName),
+        NullRef(DynamicData.BankId),
+      )
+    } else {
+      DynamicData.findAll(
+        By(DynamicData.DynamicEntityName, entityName),
+        By(DynamicData.BankId, bankId.get),
+      )
+    }
+  }
+
+  override def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject] = {
+    getAllCommunity(bankId, entityName)
+      .map(it => json.parse(it.dataJson))
+      .map(_.asInstanceOf[JObject])
+  }
+
+  override def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT] = {
+    if (bankId.isEmpty) {
+      DynamicData.find(
+        By(DynamicData.DynamicDataId, id),
+        By(DynamicData.DynamicEntityName, entityName),
+        NullRef(DynamicData.BankId)
+      ) match {
+        case Full(dynamicData) => Full(dynamicData)
+        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
+      }
+    } else {
+      DynamicData.find(
+        By(DynamicData.DynamicDataId, id),
+        By(DynamicData.DynamicEntityName, entityName),
+        By(DynamicData.BankId, bankId.get),
+      ) match {
+        case Full(dynamicData) => Full(dynamicData)
+        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId=${bankId.get}")
+      }
+    }
+  }
+
   override def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean = {
     if(bankId.isEmpty && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.find(

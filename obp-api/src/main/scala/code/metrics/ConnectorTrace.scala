@@ -5,8 +5,8 @@ import java.util.Date
 import code.api.util._
 import net.liftweb.mapper._
 
-class MappedConnectorTrace extends LongKeyedMapper[MappedConnectorTrace] with IdPK {
-  override def getSingleton = MappedConnectorTrace
+class ConnectorTrace extends LongKeyedMapper[ConnectorTrace] with IdPK {
+  override def getSingleton = ConnectorTrace
 
   object correlationId extends MappedString(this, 256)
   object connectorName extends MappedString(this, 64)
@@ -22,7 +22,7 @@ class MappedConnectorTrace extends LongKeyedMapper[MappedConnectorTrace] with Id
   object url extends MappedString(this, 2000)
 }
 
-object MappedConnectorTrace extends MappedConnectorTrace with LongKeyedMetaMapper[MappedConnectorTrace] {
+object ConnectorTrace extends ConnectorTrace with LongKeyedMetaMapper[ConnectorTrace] {
   override def dbTableName = "connector_trace"
   override def dbIndexes = Index(correlationId) :: Index(connectorName) :: Index(functionName) ::
     Index(date) :: Index(userId) :: Index(bankId) :: super.dbIndexes
@@ -44,7 +44,7 @@ object ConnectorTraceProvider {
     httpVerb: String,
     url: String
   ): Unit = {
-    MappedConnectorTrace.create
+    ConnectorTrace.create
       .correlationId(correlationId)
       .connectorName(connectorName)
       .functionName(functionName)
@@ -60,29 +60,29 @@ object ConnectorTraceProvider {
       .save
   }
 
-  def getAllConnectorTraces(queryParams: List[OBPQueryParam]): List[MappedConnectorTrace] = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedConnectorTrace](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedConnectorTrace](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedConnectorTrace.date, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedConnectorTrace.date, date) }.headOption
-    val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedConnectorTrace.correlationId, value) }.headOption
-    val functionName = queryParams.collect { case OBPFunctionName(value) => By(MappedConnectorTrace.functionName, value) }.headOption
-    val connectorName = queryParams.collect { case OBPConnectorName(value) => By(MappedConnectorTrace.connectorName, value) }.headOption
-    val userId = queryParams.collect { case OBPUserId(value) => By(MappedConnectorTrace.userId, value) }.headOption
-    val bankId = queryParams.collect { case OBPBankId(value) => By(MappedConnectorTrace.bankId, value) }.headOption
+  def getAllConnectorTraces(queryParams: List[OBPQueryParam]): List[ConnectorTrace] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ConnectorTrace](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[ConnectorTrace](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(ConnectorTrace.date, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(ConnectorTrace.date, date) }.headOption
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(ConnectorTrace.correlationId, value) }.headOption
+    val functionName = queryParams.collect { case OBPFunctionName(value) => By(ConnectorTrace.functionName, value) }.headOption
+    val connectorName = queryParams.collect { case OBPConnectorName(value) => By(ConnectorTrace.connectorName, value) }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => By(ConnectorTrace.userId, value) }.headOption
+    val bankId = queryParams.collect { case OBPBankId(value) => By(ConnectorTrace.bankId, value) }.headOption
     val ordering = queryParams.collect {
       case OBPOrdering(_, direction) =>
         direction match {
-          case OBPAscending => OrderBy(MappedConnectorTrace.date, Ascending)
-          case OBPDescending => OrderBy(MappedConnectorTrace.date, Descending)
+          case OBPAscending => OrderBy(ConnectorTrace.date, Ascending)
+          case OBPDescending => OrderBy(ConnectorTrace.date, Descending)
         }
     }
-    val optionalParams: Seq[QueryParam[MappedConnectorTrace]] = Seq(
+    val optionalParams: Seq[QueryParam[ConnectorTrace]] = Seq(
       limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering,
       correlationId.toSeq, functionName.toSeq, connectorName.toSeq,
       userId.toSeq, bankId.toSeq
     ).flatten
 
-    MappedConnectorTrace.findAll(optionalParams: _*)
+    ConnectorTrace.findAll(optionalParams: _*)
   }
 }

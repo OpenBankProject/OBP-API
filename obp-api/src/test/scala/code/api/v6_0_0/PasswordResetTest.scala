@@ -77,7 +77,7 @@ class PasswordResetTest extends V600ServerSetup {
   feature("Reset password url v6.0.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST
       val response600 = makePostRequest(request600, write(postJson))
       Then("We should get a 401")
       response600.code should equal(401)
@@ -89,7 +89,7 @@ class PasswordResetTest extends V600ServerSetup {
   feature("Reset password url v6.0.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without a Role " + canCreateResetPasswordUrl)
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson))
       Then("We should get a 403")
       response600.code should equal(403)
@@ -102,7 +102,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
       Then("We should get a 201")
       response600.code should equal(201)
@@ -120,7 +120,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(false).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0 with unvalidated user")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
       val response600 = makePostRequest(request600, write(testJson))
       Then("We should get a 400")
@@ -139,7 +139,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0 with mismatched email")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, wrongEmail, resourceUser.map(_.userId).getOrElse(""))
       val response600 = makePostRequest(request600, write(testJson))
       Then("We should get a 400")
@@ -153,7 +153,7 @@ class PasswordResetTest extends V600ServerSetup {
     scenario("We will call the endpoint with non-existent user", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       When("We make a request v6.0.0 with non-existent user")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
       val nonExistentJson = JSONFactory600.PostResetPasswordUrlJsonV600("nonexistent@tesobe.com", "nonexistent@tesobe.com", UUID.randomUUID.toString)
       val response600 = makePostRequest(request600, write(nonExistentJson))
       Then("We should get a 400")

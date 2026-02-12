@@ -50,7 +50,7 @@ object OBPAPIDynamicEntity extends OBPRestHelper with MdcLoggable with Versioned
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEntity.resourceDocs)
 
-  val routes : List[OBPEndpoint] = List(ImplementationsDynamicEntity.genericEndpoint) 
+  val routes : List[OBPEndpoint] = List(ImplementationsDynamicEntity.publicEndpoint, ImplementationsDynamicEntity.communityEndpoint, ImplementationsDynamicEntity.genericEndpoint)
 
   routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))
   
