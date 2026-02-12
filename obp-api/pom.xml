@@ -683,6 +683,7 @@
             <jvmArgs>
               <jvmArg>-Xms2G</jvmArg>
               <jvmArg>-Xmx4G</jvmArg>
+              <jvmArg>-Xss4m</jvmArg>
               <jvmArg>-XX:MaxMetaspaceSize=1G</jvmArg>
               <jvmArg>-XX:+UseG1GC</jvmArg>
             </jvmArgs>
