@@ -682,6 +682,7 @@ case class DynamicEntityDefinitionJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
+    has_public_access: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -697,6 +698,7 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
+    has_public_access: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
     record_count: Long
 )
@@ -709,6 +711,7 @@ case class DynamicEntitiesWithCountJsonV600(
 case class CreateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],  // defaults to true if not provided
+    has_public_access: Option[Boolean] = None,  // defaults to false if not provided
     schema: net.liftweb.json.JsonAST.JObject
 )
 
@@ -716,6 +719,7 @@ case class CreateDynamicEntityRequestJsonV600(
 case class UpdateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],
+    has_public_access: Option[Boolean] = None,
     schema: net.liftweb.json.JsonAST.JObject
 )
 
@@ -1910,6 +1914,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
+          has_public_access = entity.hasPublicAccess,
           schema = schemaObj,
           _links = Some(links)
         )
@@ -1951,6 +1956,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
+          has_public_access = entity.hasPublicAccess,
           schema = schema,
           record_count = recordCount
         )
@@ -1979,11 +1985,13 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     import net.liftweb.json.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+    val hasPublicAccess = request.has_public_access.getOrElse(false)
 
-    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    // Build the internal format: entity name as dynamic key + flags
     JObject(
       JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      JField("hasPublicAccess", JBool(hasPublicAccess)) ::
       Nil
     )
   }
@@ -1993,11 +2001,13 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     import net.liftweb.json.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+    val hasPublicAccess = request.has_public_access.getOrElse(false)
 
-    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    // Build the internal format: entity name as dynamic key + flags
     JObject(
       JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      JField("hasPublicAccess", JBool(hasPublicAccess)) ::
       Nil
     )
   }

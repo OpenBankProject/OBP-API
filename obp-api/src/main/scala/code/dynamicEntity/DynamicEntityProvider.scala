@@ -37,6 +37,7 @@ trait DynamicEntityT {
    */
   def userId: String
   def hasPersonalEntity: Boolean
+  def hasPublicAccess: Boolean
 
   /**
    * Add Option(bank_id) to Dynamic Entity.
@@ -382,7 +383,8 @@ case class DynamicEntityCommons(entityName: String,
                                 dynamicEntityId: Option[String] = None,
                                 userId: String,
                                 bankId: Option[String] ,
-                                hasPersonalEntity: Boolean
+                                hasPersonalEntity: Boolean,
+                                hasPublicAccess: Boolean = false
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -426,22 +428,27 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     val fields = jsonObject.obj
 
-    // validate root object fields: allowed sizes are 1 or 2, order agnostic
+    // Known flag field names at the root level (not the entity definition itself)
+    val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess")
+
+    // validate root object fields
     val fieldsSize = fields.size
-    // Check whether the hasPersonalEntity field exists in the root object (does not check its value)
-    val hasPersonalEntityField = fields.exists(_.name == "hasPersonalEntity")
+    val flagFields = fields.filter(f => knownFlagFields.contains(f.name))
+    val entityFields = fields.filterNot(f => knownFlagFields.contains(f.name))
+
     // Determine the value of hasPersonalEntity; use the field's boolean value if provided, otherwise default to true
     val hasPersonalEntityValue: Boolean = fields.filter(_.name == "hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
-    
+    // Determine the value of hasPublicAccess; use the field's boolean value if provided, otherwise default to false
+    val hasPublicAccessValue: Boolean = fields.filter(_.name == "hasPublicAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
+
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
-    checkFormat(fieldsSize <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should have at most two fields: entity and hasPersonalEntity, but current root objects: ${fields.map(_.name).mkString(",  ")}")
+    checkFormat(entityFields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have exactly one entity field (plus optional flags: ${knownFlagFields.mkString(", ")}), but current root objects: ${fields.map(_.name).mkString(",  ")}")
     checkFormat(
-      (fieldsSize == 1 && fields(0).name != "hasPersonalEntity") ||
-      (fieldsSize == 2 && hasPersonalEntityField),
-      s"$DynamicEntityInstanceValidateFail The Json root object should contain one entity or two fields: the entity and hasPersonalEntity, in any order. Current root objects: ${fields.map(_.name).mkString(",  ")}"
+      flagFields.forall(f => knownFlagFields.contains(f.name)),
+      s"$DynamicEntityInstanceValidateFail Unknown flag fields. Allowed flags: ${knownFlagFields.mkString(", ")}. Current root objects: ${fields.map(_.name).mkString(",  ")}"
     )
-    
-    val JField(entityName, metadataJson) = fields.filter(_.name!="hasPersonalEntity").head
+
+    val JField(entityName, metadataJson) = entityFields.head
     
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name
@@ -546,7 +553,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
@@ -556,7 +563,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * example case classes, as an example schema of DynamicEntity, for request body example usage
  * @param FooBar
  */
-case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None, hasPersonalEntity:Boolean = true)
+case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None, hasPersonalEntity:Boolean = true, hasPublicAccess: Boolean = false)
 case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)

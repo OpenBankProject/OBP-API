@@ -5558,6 +5558,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
@@ -5569,15 +5570,17 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
+        has_public_access = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5586,6 +5589,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
+        has_public_access = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5640,6 +5644,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
@@ -5651,15 +5656,17 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
+        has_public_access = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5668,6 +5675,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
+        has_public_access = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5712,6 +5720,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5724,14 +5733,16 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
+        has_public_access = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5740,6 +5751,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
+        has_public_access = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5783,6 +5795,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5795,14 +5808,16 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
+        has_public_access = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5811,6 +5826,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
+        has_public_access = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
@@ -5855,6 +5871,7 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
@@ -5867,14 +5884,16 @@ trait APIMethods600 {
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
          |
          |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
+        has_public_access = Some(false),
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
@@ -5883,6 +5902,7 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
+        has_public_access = false,
         schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
