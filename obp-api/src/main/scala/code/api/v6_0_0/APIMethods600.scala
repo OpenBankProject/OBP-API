@@ -30,7 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -5081,6 +5081,97 @@ trait APIMethods600 {
 
             (
               ResetPasswordUrlAnonymousResponseJsonV600("If the account exists, a password reset email has been sent."),
+              HttpCode.`201`(callContext)
+            )
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      resetPasswordComplete,
+      implementedInApiVersion,
+      nameOf(resetPasswordComplete),
+      "POST",
+      "/users/password",
+      "Complete Password Reset",
+      s"""Complete a password reset using the token received via email.
+         |
+         |Authentication is NOT Required.
+         |
+         |After requesting a password reset email (via POST /management/user/reset-password-url or
+         |POST /users/password-reset-url), the user receives an email with a reset link containing a token.
+         |
+         |This endpoint accepts that token along with a new password and completes the password reset.
+         |
+         |Required fields:
+         |- token: The unique reset token from the password reset email
+         |- new_password: The new password (must meet strong password requirements)
+         |
+         |The token is single-use. Once the password is reset, the token is invalidated.
+         |
+         |""".stripMargin,
+      PostResetPasswordCompleteJsonV600(
+        "a1b2c3d4e5f67890abcdef1234567890",
+        "NewStr0ng!Password"
+      ),
+      ResetPasswordCompleteResponseJsonV600(
+        "Password has been reset successfully."
+      ),
+      List(
+        InvalidJsonFormat,
+        InvalidStrongPasswordFormat,
+        UnknownError
+      ),
+      List(apiTagUser),
+      Some(List())
+    )
+
+    lazy val resetPasswordComplete: OBPEndpoint = {
+      case "users" :: "password" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            _ <- Helper.booleanToFuture(
+              failMsg = ErrorMessages.NotAllowedEndpoint,
+              cc = callContext
+            ) {
+              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
+            }
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordCompleteJsonV600]}",
+              400,
+              callContext
+            ) {
+              json.extract[PostResetPasswordCompleteJsonV600]
+            }
+            token = postedData.token.trim
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat Token cannot be empty", cc = callContext) {
+              token.nonEmpty
+            }
+            // Validate password strength
+            _ <- Helper.booleanToFuture(ErrorMessages.InvalidStrongPasswordFormat, 400, callContext) {
+              fullPasswordValidation(postedData.new_password)
+            }
+            // Find user by reset token
+            authUserBox <- Future {
+              code.model.dataAccess.AuthUser.findUserByValidationToken(token)
+            }
+            user <- NewStyle.function.tryons(
+              s"$UnknownError Invalid or expired reset token",
+              400,
+              callContext
+            ) {
+              authUserBox.openOrThrowException("User not found")
+            }
+          } yield {
+            // Set the new password
+            user.password.set(postedData.new_password)
+            // Reset the unique ID token to invalidate the reset link
+            user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+            user.save
+
+            (
+              ResetPasswordCompleteResponseJsonV600("Password has been reset successfully."),
               HttpCode.`201`(callContext)
             )
           }

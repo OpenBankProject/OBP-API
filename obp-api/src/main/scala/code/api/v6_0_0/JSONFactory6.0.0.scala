@@ -1499,6 +1499,13 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   case class ResetPasswordUrlAnonymousResponseJsonV600(message: String)
 
+  case class PostResetPasswordCompleteJsonV600(
+      token: String,
+      new_password: String
+  )
+
+  case class ResetPasswordCompleteResponseJsonV600(message: String)
+
   case class ScannedApiVersionJsonV600(
       url_prefix: String,
       api_standard: String,
