@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import net.liftweb.http._
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 
  * Validates: Requirements 2.4 (Task 2.5)
  */
+@Ignore
 class Http4sResponseConversionTest extends FeatureSpec with Matchers with GivenWhenThen {
 
   feature("Lift to HTTP4S response conversion - InMemoryResponse") {

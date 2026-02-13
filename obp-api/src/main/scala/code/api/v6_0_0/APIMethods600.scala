@@ -30,10 +30,10 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
-import code.metrics.{APIMetrics, ConnectorCountsRedis}
+import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.bankconnectors.LocalMappedConnectorInternal._
@@ -48,7 +48,7 @@ import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
 import code.views.system.ViewDefinition
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
-import code.dynamicEntity.DynamicEntityCommons
+import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider, DynamicEntityT}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -63,7 +63,7 @@ import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, JsonParser}
-import net.liftweb.json.JsonAST.{JArray, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
 import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
@@ -1391,7 +1391,14 @@ trait APIMethods600 {
             error_message = "Boolean field has invalid example value. Expected 'true' or 'false', got: 'malformed_value'"
           )
         ),
-        total_issues = 1
+        total_issues = 1,
+        orphaned_entities = List(
+          OrphanedDynamicEntityJsonV600(
+            entity_name = "OldEntity",
+            bank_id = "gh.29.uk",
+            record_count = 42
+          )
+        )
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -1419,8 +1426,103 @@ trait APIMethods600 {
                 error_message = issue.errorMessage
               )
             }
-            val response = DynamicEntityDiagnosticsJsonV600(result.scannedEntities, issuesJson, result.issues.length)
+            val orphanedJson = result.orphanedEntities.map { orphan =>
+              OrphanedDynamicEntityJsonV600(
+                entity_name = orphan.entityName,
+                bank_id = orphan.bankId,
+                record_count = orphan.recordCount
+              )
+            }
+            val response = DynamicEntityDiagnosticsJsonV600(result.scannedEntities, issuesJson, result.issues.length, orphanedJson)
             (response, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      cleanupOrphanedDynamicEntityRecords,
+      implementedInApiVersion,
+      nameOf(cleanupOrphanedDynamicEntityRecords),
+      "DELETE",
+      "/management/diagnostics/dynamic-entities/orphaned-records",
+      "Cleanup Orphaned Dynamic Entity Records",
+      s"""Delete orphaned dynamic entity data records.
+         |
+         |Orphaned records are rows in the DynamicData table whose entityName/bankId combination
+         |has no matching Dynamic Entity definition. These can accumulate when entity definitions
+         |are deleted but their data records are not cleaned up.
+         |
+         |This endpoint first identifies all orphaned records (using the same detection logic as
+         |GET /management/diagnostics/dynamic-entities), then deletes them.
+         |
+         |**Response Format:**
+         |* `deleted_orphaned_entities` - List of orphaned entity groups that were deleted, each with:
+         |  * `entity_name` - Name of the orphaned entity
+         |  * `bank_id` - Bank ID (or empty string for system-level)
+         |  * `record_count` - Number of records that were deleted for this entity group
+         |* `total_records_deleted` - Total count of all deleted records
+         |
+         |Authentication is Required
+         |
+         |**Required Role:** `CanCleanupOrphanedDynamicEntityRecords`
+         |""",
+      EmptyBody,
+      CleanupOrphanedDynamicEntityResponseJsonV600(
+        deleted_orphaned_entities = List(
+          OrphanedDynamicEntityJsonV600(
+            entity_name = "OldEntity",
+            bank_id = "gh.29.uk",
+            record_count = 42
+          )
+        ),
+        total_records_deleted = 42
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicEntity, apiTagApi),
+      Some(List(canCleanupOrphanedDynamicEntityRecords))
+    )
+
+    lazy val cleanupOrphanedDynamicEntityRecords: OBPEndpoint = {
+      case "management" :: "diagnostics" :: "dynamic-entities" :: "orphaned-records" :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCleanupOrphanedDynamicEntityRecords, callContext)
+          } yield {
+            // Get all entity definitions (both bank and system level)
+            val definitions = DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(None, true)
+            // Identify orphaned records
+            val orphaned = DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
+            // Delete orphaned data records for each orphaned entity group
+            var totalDeleted: Long = 0
+            orphaned.foreach { orphan =>
+              val bankIdOption = if (orphan.bankId.isEmpty) None else Some(orphan.bankId)
+              val records = bankIdOption match {
+                case None =>
+                  DynamicData.findAll(
+                    By(DynamicData.DynamicEntityName, orphan.entityName),
+                    NullRef(DynamicData.BankId)
+                  )
+                case Some(bid) =>
+                  DynamicData.findAll(
+                    By(DynamicData.DynamicEntityName, orphan.entityName),
+                    By(DynamicData.BankId, bid)
+                  )
+              }
+              records.foreach { record =>
+                record.delete_!
+                totalDeleted += 1
+              }
+            }
+            // Build response
+            val orphanedJson = orphaned.map { o =>
+              OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount)
+            }
+            (CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4756,7 +4858,7 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(resetPasswordUrl),
       "POST",
-      "/management/user/reset-password-url",
+      "/users/password-reset",
       "Create Password Reset URL and Send Email",
       s"""Create a password reset URL for a user and automatically send it via email.
          |
@@ -4799,7 +4901,7 @@ trait APIMethods600 {
     )
 
     lazy val resetPasswordUrl: OBPEndpoint = {
-      case "management" :: "user" :: "reset-password-url" :: Nil JsonPost json -> _ => {
+      case "users" :: "password-reset" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -5456,26 +5558,36 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5483,7 +5595,10 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5537,26 +5652,36 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:**
+         |**Note:**
          |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
          |* Each property MUST include an `example` field with a valid example value.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       CreateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5564,7 +5689,10 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -5608,25 +5736,34 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Note:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5634,7 +5771,8 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5677,25 +5815,34 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Note:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5703,7 +5850,8 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = Some("gh.29.uk"),
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $BankNotFound,
@@ -5747,25 +5895,34 @@ trait APIMethods600 {
          |{
          |  "entity_name": "customer_preferences",
          |  "has_personal_entity": true,
+         |  "has_public_access": false,
+         |  "has_community_access": false,
+         |  "personal_requires_role": false,
          |  "schema": {
          |    "description": "User preferences updated",
          |    "required": ["theme"],
          |    "properties": {
-         |      "theme": {"type": "string", "example": "dark"},
-         |      "language": {"type": "string", "example": "en"},
-         |      "notifications_enabled": {"type": "boolean", "example": "true"}
+         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
          |    }
          |  }
          |}
          |```
          |
-         |**Important:** The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |**Note:**
+         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
          |
          |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
       UpdateDynamicEntityRequestJsonV600(
         entity_name = "customer_preferences",
         has_personal_entity = Some(true),
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       DynamicEntityDefinitionJsonV600(
         dynamic_entity_id = "abc-123-def",
@@ -5773,7 +5930,8 @@ trait APIMethods600 {
         user_id = "user-456",
         bank_id = None,
         has_personal_entity = true,
-        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "example": "dark"}, "language": {"type": "string", "example": "en"}, "notifications_enabled": {"type": "boolean", "example": "true"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5815,13 +5973,16 @@ trait APIMethods600 {
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID and all its data records.
          |
          |This endpoint performs a cascade delete:
-         |1. Deletes all data records associated with the dynamic entity
-         |2. Deletes the dynamic entity definition itself
+         |1. Automatically backs up the entity definition and all data records to a ZZ_BAK_ prefixed entity (e.g. my_entity is backed up to ZZ_BAK_my_entity). If a previous ZZ_BAK_ backup exists, it is overwritten.
+         |2. Deletes all data records associated with the dynamic entity
+         |3. Deletes the dynamic entity definition itself
+         |
+         |Note: Entities whose name already starts with ZZ_BAK_ are not backed up again (to avoid infinite backup chains).
          |
          |This operation is only allowed for non-personal entities (hasPersonalEntity=false).
          |For personal entities (hasPersonalEntity=true), you must delete the records and definition separately.
          |
-         |Use with caution - this operation cannot be undone.
+         |
          |
          |For more information see ${Glossary.getGlossaryItemLink(
           "Dynamic-Entities"
@@ -5845,6 +6006,59 @@ trait APIMethods600 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           deleteDynamicEntityCascadeMethod(None, dynamicEntityId, cc)
+      }
+    }
+
+    private def backupDynamicEntity(
+        entity: DynamicEntityT,
+        backupName: String,
+        dataRecords: JArray
+    ): Unit = {
+      // Clean up any existing backup
+      DynamicEntityProvider.connectorMethodProvider.vend
+        .getByEntityName(entity.bankId, backupName).foreach { existingBackup =>
+          // Delete old backup data
+          DynamicDataProvider.connectorMethodProvider.vend
+            .getAll(entity.bankId, backupName, None, false)
+            .foreach { record =>
+              DynamicDataProvider.connectorMethodProvider.vend.delete(
+                entity.bankId, backupName, record.dynamicDataId.getOrElse(""), None, false
+              )
+            }
+          // Delete old backup definition
+          DynamicEntityProvider.connectorMethodProvider.vend.delete(existingBackup)
+        }
+
+      // Create backup entity definition (rename top-level key in metadataJson)
+      val originalMetadata = json.parse(entity.metadataJson).asInstanceOf[JObject]
+      val backupMetadata = JObject(originalMetadata.obj.map {
+        case JField(name, value) if name == entity.entityName => JField(backupName, value)
+        case other => other
+      })
+      val backupEntity = DynamicEntityCommons(
+        entityName = backupName,
+        metadataJson = json.compactRender(backupMetadata),
+        dynamicEntityId = None,
+        userId = entity.userId,
+        bankId = entity.bankId,
+        hasPersonalEntity = entity.hasPersonalEntity
+      )
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(backupEntity)
+
+      // Copy data records
+      val originalIdField = DynamicEntityHelper.createEntityId(entity.entityName)
+      val backupIdField = DynamicEntityHelper.createEntityId(backupName)
+      dataRecords.arr.foreach { record =>
+        val recordObj = record.asInstanceOf[JObject]
+        val transformedFields = recordObj.obj.map {
+          case JField(name, _) if name == originalIdField =>
+            JField(backupIdField, JString(java.util.UUID.randomUUID().toString))
+          case other => other
+        }
+        DynamicDataProvider.connectorMethodProvider.vend.save(
+          entity.bankId, backupName, JObject(transformedFields),
+          Some(entity.userId), entity.hasPersonalEntity
+        )
       }
     }
 
@@ -5880,6 +6094,12 @@ trait APIMethods600 {
           box.asInstanceOf[Box[JArray]],
           entity.entityName
         )
+        // Backup entity and data before deletion (skip if already a backup entity)
+        _ <- Future {
+          if (!entity.entityName.startsWith("ZZ_BAK_")) {
+            backupDynamicEntity(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+          }
+        }
         // Delete all data records
         _ <- Future.sequence {
           resultList.arr.map { record =>
@@ -8676,6 +8896,276 @@ trait APIMethods600 {
           } yield {
             (Full(true), HttpCode.`204`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getConnectorTraces,
+      implementedInApiVersion,
+      nameOf(getConnectorTraces),
+      "GET",
+      "/management/connector/traces",
+      "Get Connector Traces",
+      s"""Get connector traces which capture the full outbound/inbound messages for each connector call.
+         |
+         |Connector tracing must be enabled via the write_connector_trace=true property.
+         |
+         |Filters Part 1.*filtering* parameters to GET /management/connector/traces
+         |
+         |Should be able to filter on the following fields:
+         |
+         |eg: /management/connector/traces?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 1000) eg:limit=2000
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 connector_name (if null ignore)
+         |
+         |6 function_name (if null ignore)
+         |
+         |7 correlation_id (if null ignore)
+         |
+         |8 bank_id (if null ignore)
+         |
+         |9 user_id (if null ignore)
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      connectorTracesJsonV600,
+      List(
+        InvalidDateFormat,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi),
+      Some(List(canGetConnectorTrace)))
+
+    lazy val getConnectorTraces: OBPEndpoint = {
+      case "management" :: "connector" :: "traces" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            traces <- Future(ConnectorTraceProvider.getAllConnectorTraces(obpQueryParams))
+          } yield {
+            (JSONFactory600.createConnectorTracesJsonV600(traces), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getConfigProps,
+      implementedInApiVersion,
+      nameOf(getConfigProps),
+      "GET",
+      "/management/config-props",
+      "Get Config Props",
+      s"""Get the configuration properties (non-WebUI) and their runtime values.
+         |
+         |This endpoint reads all property keys from the sample.props.template file
+         |(excluding webui_ properties) and returns their current runtime values.
+         |
+         |Sensitive properties (containing password, secret, passphrase, credential, token_secret)
+         |will have their values masked as ****.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      configPropsJsonV600,
+      List(
+        UnknownError
+      ),
+      List(apiTagApi),
+      Some(List(canGetConfigProps)))
+
+    lazy val getConfigProps: OBPEndpoint = {
+      case "management" :: "config-props" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            configProps = getConfigPropsPairs.map { case (key, value) =>
+              ConfigPropJsonV600(key, maskSensitivePropValue(key, value))
+            }
+          } yield {
+            (ListResult("config_props", configProps), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // Backup Dynamic Entity Endpoints
+
+    private def computeBackupName(bankId: Option[String], baseName: String): String = {
+      val firstCandidate = s"${baseName}_BAK"
+      if (DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, firstCandidate).isEmpty) {
+        firstCandidate
+      } else {
+        var suffix = 2
+        var candidate = s"${baseName}_BAK$suffix"
+        while (DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, candidate).isDefined) {
+          suffix += 1
+          candidate = s"${baseName}_BAK$suffix"
+        }
+        candidate
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      backupSystemDynamicEntity,
+      implementedInApiVersion,
+      nameOf(backupSystemDynamicEntity),
+      "POST",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+      "Backup System Level Dynamic Entity",
+      s"""Create a backup copy of a system level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |This endpoint creates a backup of the dynamic entity definition and all its data records.
+         |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+         |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+         |
+         |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "my_entity_BAK",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = false,
+        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canBackupSystemDynamicEntity))
+    )
+    lazy val backupSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: "backup" :: Nil JsonPost _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          backupDynamicEntityMethod(None, dynamicEntityId, cc)
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      backupBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(backupBankLevelDynamicEntity),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+      "Backup Bank Level Dynamic Entity",
+      s"""Create a backup copy of a bank level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |This endpoint creates a backup of the dynamic entity definition and all its data records.
+         |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+         |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+         |
+         |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "my_entity_BAK",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = false,
+        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      Some(List(canBackupBankLevelDynamicEntity))
+    )
+    lazy val backupBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-entities" :: dynamicEntityId :: "backup" :: Nil JsonPost _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          backupDynamicEntityMethod(Some(bankId.value), dynamicEntityId, cc)
+      }
+    }
+
+    private def backupDynamicEntityMethod(
+        bankId: Option[String],
+        dynamicEntityId: String,
+        cc: CallContext
+    ) = {
+      for {
+        // Get the dynamic entity definition
+        (entity, _) <- NewStyle.function.getDynamicEntityById(
+          bankId,
+          dynamicEntityId,
+          cc.callContext
+        )
+        // Check CanGetDynamicEntity_<EntityName> role
+        canGetRole = DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
+        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, cc.callContext)
+
+        // Get all data records for this entity
+        (box, _) <- NewStyle.function.invokeDynamicConnector(
+          GET_ALL,
+          entity.entityName,
+          None,
+          None,
+          entity.bankId,
+          None,
+          None,
+          false,
+          cc.callContext
+        )
+        resultList: JArray = unboxResult(
+          box.asInstanceOf[Box[JArray]],
+          entity.entityName
+        )
+
+        // Compute backup name with _BAK, _BAK2, _BAK3 etc.
+        backupName = computeBackupName(entity.bankId, entity.entityName)
+
+        // Perform the backup
+        _ <- Future { backupDynamicEntity(entity, backupName, resultList) }
+
+        // Grant CanGet role on the backup entity to the calling user
+        backupCanGetRole = DynamicEntityInfo.canGetRole(backupName, entity.bankId)
+        _ <- Future {
+          Entitlement.entitlement.vend.addEntitlement(
+            entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString()
+          )
+        }
+
+        // Fetch the created backup entity to return it
+        backupEntity <- Future {
+          DynamicEntityProvider.connectorMethodProvider.vend
+            .getByEntityName(entity.bankId, backupName)
+            .openOrThrowException("Backup entity not found after creation")
+        }
+      } yield {
+        val commonsData: DynamicEntityCommons = backupEntity
+        (
+          JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
+          HttpCode.`201`(cc.callContext)
+        )
       }
     }
 

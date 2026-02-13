@@ -14,6 +14,7 @@
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.stringOrNull
+import code.metrics.ConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
@@ -681,6 +682,9 @@ case class DynamicEntityDefinitionJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
+    has_public_access: Boolean = false,
+    has_community_access: Boolean = false,
+    personal_requires_role: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -696,6 +700,9 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     user_id: String,
     bank_id: Option[String],
     has_personal_entity: Boolean,
+    has_public_access: Boolean = false,
+    has_community_access: Boolean = false,
+    personal_requires_role: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
     record_count: Long
 )
@@ -708,6 +715,9 @@ case class DynamicEntitiesWithCountJsonV600(
 case class CreateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],  // defaults to true if not provided
+    has_public_access: Option[Boolean] = None,  // defaults to false if not provided
+    has_community_access: Option[Boolean] = None,  // defaults to false if not provided
+    personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
     schema: net.liftweb.json.JsonAST.JObject
 )
 
@@ -715,6 +725,9 @@ case class CreateDynamicEntityRequestJsonV600(
 case class UpdateDynamicEntityRequestJsonV600(
     entity_name: String,
     has_personal_entity: Option[Boolean],
+    has_public_access: Option[Boolean] = None,
+    has_community_access: Option[Boolean] = None,
+    personal_requires_role: Option[Boolean] = None,
     schema: net.liftweb.json.JsonAST.JObject
 )
 
@@ -816,6 +829,28 @@ case class ApiProductAttributeResponseJsonV600(
   value: String,
   is_active: Option[Boolean]
 )
+
+case class ConnectorTraceJsonV600(
+  connector_trace_id: Long,
+  correlation_id: String,
+  connector_name: String,
+  function_name: String,
+  bank_id: String,
+  outbound_message: String,
+  inbound_message: String,
+  date: Date,
+  duration: Long,
+  is_successful: Boolean,
+  user_id: String,
+  http_verb: String,
+  url: String
+)
+
+case class ConnectorTracesJsonV600(
+  connector_traces: List[ConnectorTraceJsonV600]
+)
+
+case class ConfigPropJsonV600(name: String, value: String)
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
@@ -1331,10 +1366,22 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       error_message: String
   )
 
+  case class OrphanedDynamicEntityJsonV600(
+      entity_name: String,
+      bank_id: String,
+      record_count: Long
+  )
+
   case class DynamicEntityDiagnosticsJsonV600(
       scanned_entities: List[String],
       issues: List[DynamicEntityIssueJsonV600],
-      total_issues: Int
+      total_issues: Int,
+      orphaned_entities: List[OrphanedDynamicEntityJsonV600]
+  )
+
+  case class CleanupOrphanedDynamicEntityResponseJsonV600(
+      deleted_orphaned_entities: List[OrphanedDynamicEntityJsonV600],
+      total_records_deleted: Long
   )
 
   case class ReferenceTypeJsonV600(
@@ -1840,7 +1887,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val dynamicKeyName = fullJson.obj.find(_.name != "hasPersonalEntity").map(_.name)
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
+        val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
             s"Dynamic entity key mismatch: stored entityName='${entity.entityName}' but dynamic key='${dynamicKeyName.getOrElse("none")}'"
@@ -1875,6 +1923,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
+          has_public_access = entity.hasPublicAccess,
+          has_community_access = entity.hasCommunityAccess,
+          personal_requires_role = entity.personalRequiresRole,
           schema = schemaObj,
           _links = Some(links)
         )
@@ -1899,7 +1950,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val dynamicKeyName = fullJson.obj.find(_.name != "hasPersonalEntity").map(_.name)
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
+        val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
             s"Dynamic entity key mismatch: stored entityName='${entity.entityName}' but dynamic key='${dynamicKeyName.getOrElse("none")}'"
@@ -1916,6 +1968,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           user_id = entity.userId,
           bank_id = entity.bankId,
           has_personal_entity = entity.hasPersonalEntity,
+          has_public_access = entity.hasPublicAccess,
+          has_community_access = entity.hasCommunityAccess,
+          personal_requires_role = entity.personalRequiresRole,
           schema = schema,
           record_count = recordCount
         )
@@ -1944,11 +1999,17 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     import net.liftweb.json.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+    val hasPublicAccess = request.has_public_access.getOrElse(false)
+    val hasCommunityAccess = request.has_community_access.getOrElse(false)
+    val personalRequiresRole = request.personal_requires_role.getOrElse(false)
 
-    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    // Build the internal format: entity name as dynamic key + flags
     JObject(
       JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      JField("hasPublicAccess", JBool(hasPublicAccess)) ::
+      JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
+      JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       Nil
     )
   }
@@ -1958,11 +2019,17 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     import net.liftweb.json.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
+    val hasPublicAccess = request.has_public_access.getOrElse(false)
+    val hasCommunityAccess = request.has_community_access.getOrElse(false)
+    val personalRequiresRole = request.personal_requires_role.getOrElse(false)
 
-    // Build the internal format: entity name as dynamic key + hasPersonalEntity
+    // Build the internal format: entity name as dynamic key + flags
     JObject(
       JField(request.entity_name, request.schema) ::
       JField("hasPersonalEntity", JBool(hasPersonalEntity)) ::
+      JField("hasPublicAccess", JBool(hasPublicAccess)) ::
+      JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
+      JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       Nil
     )
   }
@@ -2083,6 +2150,28 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     products: List[ApiProductTrait]
   ): ApiProductsJsonV600 = {
     ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
+  }
+
+  def createConnectorTraceJsonV600(trace: ConnectorTrace): ConnectorTraceJsonV600 = {
+    ConnectorTraceJsonV600(
+      connector_trace_id = trace.id.get,
+      correlation_id = trace.correlationId.get,
+      connector_name = trace.connectorName.get,
+      function_name = trace.functionName.get,
+      bank_id = trace.bankId.get,
+      outbound_message = trace.outboundMessage.get,
+      inbound_message = trace.inboundMessage.get,
+      date = trace.date.get,
+      duration = trace.duration.get,
+      is_successful = trace.isSuccessful.get,
+      user_id = trace.userId.get,
+      http_verb = trace.httpVerb.get,
+      url = trace.url.get
+    )
+  }
+
+  def createConnectorTracesJsonV600(traces: List[ConnectorTrace]): ConnectorTracesJsonV600 = {
+    ConnectorTracesJsonV600(traces.map(createConnectorTraceJsonV600))
   }
 
 }

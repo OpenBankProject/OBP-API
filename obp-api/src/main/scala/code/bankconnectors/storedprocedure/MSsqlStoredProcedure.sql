@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2024-10-30T12:20:39Z
+-- auto generated MS sql server procedures script, create on 2026-02-10T14:42:15Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -170,7 +170,7 @@ this is example of parameter @outbound_json
          "name":"NAME",
          "version":"version string",
          "git_commit":"git_commit",
-         "date":"date String"
+         "date":"1100-01-01T01:01:01.000Z"
        }
      }'
 	);
@@ -1407,7 +1407,7 @@ this is example of parameter @outbound_json
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
        "scaMethod":"SMS",
        "scaStatus":"received",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "authenticationMethodId":"string"
      }'
 */
@@ -1447,12 +1447,15 @@ this is example of parameter @outbound_json
            "salt":"string",
            "successful":true,
            "challengeType":"",
-           "consentId":"",
+           "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
            "basketId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
            "authenticationMethodId":"string",
-           "attemptCounter":123
+           "attemptCounter":123,
+           "challengePurpose":"string",
+           "challengeContextHash":"string",
+           "challengeContextStructure":"string"
          }
        ]
      }'
@@ -1597,7 +1600,7 @@ this is example of parameter @outbound_json
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
        "scaMethod":"SMS",
        "scaStatus":"received",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "basketId":"",
        "authenticationMethodId":"string"
      }'
@@ -1638,12 +1641,15 @@ this is example of parameter @outbound_json
            "salt":"string",
            "successful":true,
            "challengeType":"",
-           "consentId":"",
+           "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
            "basketId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
            "authenticationMethodId":"string",
-           "attemptCounter":123
+           "attemptCounter":123,
+           "challengePurpose":"string",
+           "challengeContextHash":"string",
+           "challengeContextStructure":"string"
          }
        ]
      }'
@@ -2117,7 +2123,7 @@ this is example of parameter @outbound_json
          }
        },
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "hashOfSuppliedAnswer":"a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
      }'
@@ -2157,12 +2163,15 @@ this is example of parameter @outbound_json
          "salt":"string",
          "successful":true,
          "challengeType":"",
-         "consentId":"",
+         "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
          "basketId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
          "authenticationMethodId":"string",
-         "attemptCounter":123
+         "attemptCounter":123,
+         "challengePurpose":"string",
+         "challengeContextHash":"string",
+         "challengeContextStructure":"string"
        }
      }'
 	);
@@ -2300,7 +2309,7 @@ this is example of parameter @outbound_json
          }
        },
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "basketId":"",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "hashOfSuppliedAnswer":"a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
@@ -2341,12 +2350,15 @@ this is example of parameter @outbound_json
          "salt":"string",
          "successful":true,
          "challengeType":"",
-         "consentId":"",
+         "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
          "basketId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
          "authenticationMethodId":"string",
-         "attemptCounter":123
+         "attemptCounter":123,
+         "challengePurpose":"string",
+         "challengeContextHash":"string",
+         "challengeContextStructure":"string"
        }
      }'
 	);
@@ -2484,7 +2496,7 @@ this is example of parameter @outbound_json
          }
        },
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "suppliedAnswer":"123456",
        "suppliedAnswerType":"PLAIN_TEXT_VALUE"
@@ -2525,12 +2537,15 @@ this is example of parameter @outbound_json
          "salt":"string",
          "successful":true,
          "challengeType":"",
-         "consentId":"",
+         "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
          "basketId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
          "authenticationMethodId":"string",
-         "attemptCounter":123
+         "attemptCounter":123,
+         "challengePurpose":"string",
+         "challengeContextHash":"string",
+         "challengeContextStructure":"string"
        }
      }'
 	);
@@ -2668,7 +2683,7 @@ this is example of parameter @outbound_json
          }
        },
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
-       "consentId":"",
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
        "basketId":"",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "suppliedAnswer":"123456",
@@ -2710,12 +2725,15 @@ this is example of parameter @outbound_json
          "salt":"string",
          "successful":true,
          "challengeType":"",
-         "consentId":"",
+         "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
          "basketId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
          "authenticationMethodId":"string",
-         "attemptCounter":123
+         "attemptCounter":123,
+         "challengePurpose":"string",
+         "challengeContextHash":"string",
+         "challengeContextStructure":"string"
        }
      }'
 	);
@@ -2891,12 +2909,15 @@ this is example of parameter @outbound_json
            "salt":"string",
            "successful":true,
            "challengeType":"",
-           "consentId":"",
+           "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
            "basketId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
            "authenticationMethodId":"string",
-           "attemptCounter":123
+           "attemptCounter":123,
+           "challengePurpose":"string",
+           "challengeContextHash":"string",
+           "challengeContextStructure":"string"
          }
        ]
      }'
@@ -3034,7 +3055,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "consentId":""
+       "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947"
      }'
 */
 
@@ -3073,12 +3094,15 @@ this is example of parameter @outbound_json
            "salt":"string",
            "successful":true,
            "challengeType":"",
-           "consentId":"",
+           "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
            "basketId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
            "authenticationMethodId":"string",
-           "attemptCounter":123
+           "attemptCounter":123,
+           "challengePurpose":"string",
+           "challengeContextHash":"string",
+           "challengeContextStructure":"string"
          }
        ]
      }'
@@ -3255,12 +3279,15 @@ this is example of parameter @outbound_json
            "salt":"string",
            "successful":true,
            "challengeType":"",
-           "consentId":"",
+           "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
            "basketId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
            "authenticationMethodId":"string",
-           "attemptCounter":123
+           "attemptCounter":123,
+           "challengePurpose":"string",
+           "challengeContextHash":"string",
+           "challengeContextStructure":"string"
          }
        ]
      }'
@@ -3436,12 +3463,15 @@ this is example of parameter @outbound_json
          "salt":"string",
          "successful":true,
          "challengeType":"",
-         "consentId":"",
+         "consentId":"9d429899-24f5-42c8-8565-943ffa6a7947",
          "basketId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
          "authenticationMethodId":"string",
-         "attemptCounter":123
+         "attemptCounter":123,
+         "challengePurpose":"string",
+         "challengeContextHash":"string",
+         "challengeContextStructure":"string"
        }
      }'
 	);
@@ -3981,6 +4011,371 @@ GO
  
 
 
+-- drop procedure obp_check_external_user_credentials
+DROP PROCEDURE IF EXISTS obp_check_external_user_credentials;
+GO
+-- create procedure obp_check_external_user_credentials
+CREATE PROCEDURE obp_check_external_user_credentials
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "username":"felixsmith",
+       "password":"password"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "aud":"String",
+         "exp":"60",
+         "iat":"60",
+         "iss":"String",
+         "sub":"felixsmith",
+         "azp":"string",
+         "email":"felixsmith@example.com",
+         "emailVerified":"String",
+         "name":"felixsmith",
+         "userAuthContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_check_external_user_exists
+DROP PROCEDURE IF EXISTS obp_check_external_user_exists;
+GO
+-- create procedure obp_check_external_user_exists
+CREATE PROCEDURE obp_check_external_user_exists
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "username":"felixsmith"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "aud":"String",
+         "exp":"60",
+         "iat":"60",
+         "iss":"String",
+         "sub":"felixsmith",
+         "azp":"string",
+         "email":"felixsmith@example.com",
+         "emailVerified":"String",
+         "name":"felixsmith",
+         "userAuthContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
 -- drop procedure obp_get_bank_account_by_iban
 DROP PROCEDURE IF EXISTS obp_get_bank_account_by_iban;
 GO
@@ -4304,7 +4699,7 @@ this is example of parameter @outbound_json
        "bankId":{
          "value":"gh.29.uk"
        },
-       "scheme":"scheme value",
+       "scheme":"OBP",
        "address":""
      }'
 */
@@ -4953,7 +5348,7 @@ this is example of parameter @outbound_json
                "currency":"EUR",
                "amount":"50.89"
              },
-             "balanceType":"string"
+             "balanceType":"openingBooked"
            }
          ],
          "overallBalance":{
@@ -5346,6 +5741,385 @@ GO
  
 
 
+-- drop procedure obp_get_accounts_held
+DROP PROCEDURE IF EXISTS obp_get_accounts_held;
+GO
+-- create procedure obp_get_accounts_held
+CREATE PROCEDURE obp_get_accounts_held
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "bankId":{
+         "value":"gh.29.uk"
+       },
+       "user":{
+         "userPrimaryKey":{
+           "value":123
+         },
+         "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+         "idGivenByProvider":"string",
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "accountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           }
+         }
+       ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_accounts_held_by_user
+DROP PROCEDURE IF EXISTS obp_get_accounts_held_by_user;
+GO
+-- create procedure obp_get_accounts_held_by_user
+CREATE PROCEDURE obp_get_accounts_held_by_user
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "user":{
+         "userPrimaryKey":{
+           "value":123
+         },
+         "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+         "idGivenByProvider":"string",
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "accountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           }
+         }
+       ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
 -- drop procedure obp_check_bank_account_exists
 DROP PROCEDURE IF EXISTS obp_check_bank_account_exists;
 GO
@@ -5710,14 +6484,14 @@ this is example of parameter @outbound_json
        "data":{
          "createdByUserId":"",
          "name":"ACCOUNT_MANAGEMENT_FEE",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"",
-         "otherAccountRoutingAddress":"",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"",
          "otherAccountSecondaryRoutingAddress":"",
          "otherBankRoutingScheme":"",
@@ -5902,14 +6676,14 @@ this is example of parameter @outbound_json
        "data":{
          "createdByUserId":"",
          "name":"ACCOUNT_MANAGEMENT_FEE",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"",
-         "otherAccountRoutingAddress":"",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"",
          "otherAccountSecondaryRoutingAddress":"",
          "otherBankRoutingScheme":"",
@@ -6092,14 +6866,14 @@ this is example of parameter @outbound_json
        "data":{
          "createdByUserId":"",
          "name":"ACCOUNT_MANAGEMENT_FEE",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"",
-         "otherAccountRoutingAddress":"",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"",
          "otherAccountSecondaryRoutingAddress":"",
          "otherBankRoutingScheme":"",
@@ -6288,14 +7062,14 @@ this is example of parameter @outbound_json
        "data":{
          "createdByUserId":"",
          "name":"ACCOUNT_MANAGEMENT_FEE",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"",
-         "otherAccountRoutingAddress":"",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"",
          "otherAccountSecondaryRoutingAddress":"",
          "otherBankRoutingScheme":"",
@@ -6487,14 +7261,14 @@ this is example of parameter @outbound_json
          {
            "createdByUserId":"",
            "name":"ACCOUNT_MANAGEMENT_FEE",
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
            "currency":"EUR",
            "thisBankId":"",
            "thisAccountId":"",
            "thisViewId":"",
            "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "otherAccountRoutingScheme":"",
-           "otherAccountRoutingAddress":"",
+           "otherAccountRoutingScheme":"IBAN",
+           "otherAccountRoutingAddress":"DE89370400440532013000",
            "otherAccountSecondaryRoutingScheme":"",
            "otherAccountSecondaryRoutingAddress":"",
            "otherBankRoutingScheme":"",
@@ -6735,6 +7509,8 @@ this is example of parameter @outbound_json
              "thisAccountId":{
                "value":""
              },
+             "otherAccountRoutingScheme":"IBAN",
+             "otherAccountRoutingAddress":"DE89370400440532013000",
              "isBeneficiary":false
            },
            "transactionType":"DEBIT",
@@ -6743,7 +7519,8 @@ this is example of parameter @outbound_json
            "description":"The piano lession-Invoice No:68",
            "startDate":"2019-09-07T00:00:00Z",
            "finishDate":"2019-09-08T00:00:00Z",
-           "balance":"10"
+           "balance":"10",
+           "status":" COMPLETED"
          }
        ]
      }'
@@ -6889,8 +7666,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"",
-       "toDate":""
+       "fromDate":"1100-01-01T01:01:01.000Z",
+       "toDate":"1100-01-01T01:01:01.000Z"
      }'
 */
 
@@ -6973,15 +7750,15 @@ this is example of parameter @outbound_json
              },
              "otherBankRoutingScheme":"",
              "otherBankRoutingAddress":"",
-             "otherAccountRoutingScheme":"",
-             "otherAccountRoutingAddress":"",
+             "otherAccountRoutingScheme":"IBAN",
+             "otherAccountRoutingAddress":"DE89370400440532013000",
              "otherAccountProvider":"",
              "isBeneficiary":false
            },
            "transactionType":"DEBIT",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
            "startDate":"2020-01-27T00:00:00Z",
            "finishDate":"2020-01-27T00:00:00Z",
            "balance":"10"
@@ -7210,6 +7987,8 @@ this is example of parameter @outbound_json
            "thisAccountId":{
              "value":""
            },
+           "otherAccountRoutingScheme":"IBAN",
+           "otherAccountRoutingAddress":"DE89370400440532013000",
            "isBeneficiary":false
          },
          "transactionType":"DEBIT",
@@ -7218,7 +7997,8 @@ this is example of parameter @outbound_json
          "description":"The piano lession-Invoice No:68",
          "startDate":"2019-09-07T00:00:00Z",
          "finishDate":"2019-09-08T00:00:00Z",
-         "balance":"10"
+         "balance":"10",
+         "status":" COMPLETED"
        }
      }'
 	);
@@ -8053,8 +8833,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"",
-       "toDate":""
+       "fromDate":"1100-01-01T01:01:01.000Z",
+       "toDate":"1100-01-01T01:01:01.000Z"
      }'
 */
 
@@ -8936,10 +9716,10 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here."
        },
        "amount":"10.12",
-       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+       "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
        "transactionRequestType":{
          "value":"SEPA"
        },
@@ -9375,7 +10155,7 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
        "chargePolicy":"SHARED",
@@ -9424,7 +10204,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -9675,7 +10455,7 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
        "chargePolicy":"SHARED",
@@ -9687,7 +10467,7 @@ this is example of parameter @outbound_json
            "documentNumber":"",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          }
        ]
      }'
@@ -9733,7 +10513,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -10941,7 +11721,7 @@ this is example of parameter @outbound_json
                "currency":"EUR",
                "amount":"10.12"
              },
-             "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+             "description":"Description of the object. Maximum length is 2000. It can be any characters here."
            },
            "transaction_ids":"string",
            "status":"",
@@ -11142,7 +11922,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -11565,7 +12345,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -11627,7 +12407,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -12428,7 +13208,7 @@ this is example of parameter @outbound_json
            "moreInfoUrl":"www.example.com/abc",
            "termsAndConditionsUrl":"www.example.com/xyz",
            "details":"",
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
            "meta":{
              "license":{
                "id":"ODbL-1.0",
@@ -12624,7 +13404,7 @@ this is example of parameter @outbound_json
          "moreInfoUrl":"www.example.com/abc",
          "termsAndConditionsUrl":"www.example.com/xyz",
          "details":"",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "meta":{
            "license":{
              "id":"ODbL-1.0",
@@ -13067,8 +13847,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"",
-       "toDate":""
+       "fromDate":"1100-01-01T01:01:01.000Z",
+       "toDate":"1100-01-01T01:01:01.000Z"
      }'
 */
 
@@ -13453,7 +14233,10 @@ this is example of parameter @outbound_json
            "\"de\""
          ],
          "services":[
-           ""
+           "{\"CY\":\"PS_010\"",
+           "\"PS_020\"",
+           "\"PS_03C\"",
+           "\"PS_04C\"}"
          ],
          "accessibilityFeatures":[
            "\"ATAC\"",
@@ -13620,8 +14403,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"",
-       "toDate":""
+       "fromDate":"1100-01-01T01:01:01.000Z",
+       "toDate":"1100-01-01T01:01:01.000Z"
      }'
 */
 
@@ -13710,7 +14493,10 @@ this is example of parameter @outbound_json
              "\"de\""
            ],
            "services":[
-             ""
+             "{\"CY\":\"PS_010\"",
+             "\"PS_020\"",
+             "\"PS_03C\"",
+             "\"PS_04C\"}"
            ],
            "accessibilityFeatures":[
              "\"ATAC\"",
@@ -13738,6 +14524,185 @@ this is example of parameter @outbound_json
            "phone":""
          }
        ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_current_fx_rate
+DROP PROCEDURE IF EXISTS obp_get_current_fx_rate;
+GO
+-- create procedure obp_get_current_fx_rate
+CREATE PROCEDURE obp_get_current_fx_rate
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "bankId":{
+         "value":"gh.29.uk"
+       },
+       "fromCurrencyCode":"",
+       "toCurrencyCode":"EUR"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "bankId":{
+           "value":"gh.29.uk"
+         },
+         "fromCurrencyCode":"",
+         "toCurrencyCode":"EUR",
+         "conversionValue":100.0,
+         "inverseConversionValue":50.0,
+         "effectiveDate":"2020-01-27T00:00:00Z"
+       }
      }'
 	);
 GO
@@ -13972,7 +14937,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -14215,14 +15180,14 @@ this is example of parameter @outbound_json
        "toCounterparty":{
          "createdByUserId":"",
          "name":"John Smith Ltd.",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"OBP",
-         "otherAccountRoutingAddress":"36f8a9e6-c2b1-407a-8bd0-421b7119307e",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"IBAN",
          "otherAccountSecondaryRoutingAddress":"DE89370400440532013000",
          "otherBankRoutingScheme":"OBP",
@@ -14242,7 +15207,7 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here."
        },
        "transactionRequestType":{
          "value":"SEPA"
@@ -14507,14 +15472,14 @@ this is example of parameter @outbound_json
        "toCounterparty":{
          "createdByUserId":"",
          "name":"John Smith Ltd.",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"OBP",
-         "otherAccountRoutingAddress":"36f8a9e6-c2b1-407a-8bd0-421b7119307e",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"IBAN",
          "otherAccountSecondaryRoutingAddress":"DE89370400440532013000",
          "otherBankRoutingScheme":"OBP",
@@ -14537,7 +15502,7 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
        "chargePolicy":"SHARED"
@@ -14584,7 +15549,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -14752,7 +15717,7 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
          "status":"",
@@ -14777,7 +15742,7 @@ this is example of parameter @outbound_json
            "documentNumber":"",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
+           "description":"Description of the object. Maximum length is 2000. It can be any characters here."
          }
        ]
      }'
@@ -15306,14 +16271,14 @@ this is example of parameter @outbound_json
          }
        },
        "name":"ACCOUNT_MANAGEMENT_FEE",
-       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+       "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
        "currency":"EUR",
        "createdByUserId":"",
        "thisBankId":"",
        "thisAccountId":"",
        "thisViewId":"",
-       "otherAccountRoutingScheme":"",
-       "otherAccountRoutingAddress":"",
+       "otherAccountRoutingScheme":"IBAN",
+       "otherAccountRoutingAddress":"DE89370400440532013000",
        "otherAccountSecondaryRoutingScheme":"",
        "otherAccountSecondaryRoutingAddress":"",
        "otherBankRoutingScheme":"",
@@ -15359,14 +16324,14 @@ this is example of parameter @outbound_json
        "data":{
          "createdByUserId":"",
          "name":"ACCOUNT_MANAGEMENT_FEE",
-         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+         "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
          "thisBankId":"",
          "thisAccountId":"",
          "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"",
-         "otherAccountRoutingAddress":"",
+         "otherAccountRoutingScheme":"IBAN",
+         "otherAccountRoutingAddress":"DE89370400440532013000",
          "otherAccountSecondaryRoutingScheme":"",
          "otherAccountSecondaryRoutingAddress":"",
          "otherBankRoutingScheme":"",
@@ -18381,8 +19346,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"",
-       "toDate":""
+       "fromDate":"1100-01-01T01:01:01.000Z",
+       "toDate":"1100-01-01T01:01:01.000Z"
      }'
 */
 
@@ -18825,13 +19790,13 @@ this is example of parameter @outbound_json
            "account_type":"string",
            "account_routings":[
              {
-               "scheme":"scheme value",
+               "scheme":"OBP",
                "address":""
              }
            ],
            "branch_routings":[
              {
-               "scheme":"scheme value",
+               "scheme":"OBP",
                "address":""
              }
            ]
@@ -20069,6 +21034,185 @@ this is example of parameter @outbound_json
          "value":"5987953",
          "isActive":false
        }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_bank_attributes_by_bank
+DROP PROCEDURE IF EXISTS obp_get_bank_attributes_by_bank;
+GO
+-- create procedure obp_get_bank_attributes_by_bank
+CREATE PROCEDURE obp_get_bank_attributes_by_bank
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "bankId":{
+         "value":"gh.29.uk"
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "bankAttributeId":"string",
+           "attributeType":"STRING",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
+           "value":"5987953",
+           "isActive":false
+         }
+       ]
      }'
 	);
 GO
@@ -25184,7 +26328,7 @@ this is example of parameter @outbound_json
              "moreInfoUrl":"www.example.com/abc",
              "termsAndConditionsUrl":"www.example.com/xyz",
              "details":"",
-             "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+             "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
              "meta":{
                "license":{
                  "id":"ODbL-1.0",
@@ -27725,7 +28869,7 @@ this is example of parameter @outbound_json
        "completed":"2020-01-27T00:00:00Z",
        "amount":"10.12",
        "currency":"EUR",
-       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
+       "description":"Description of the object. Maximum length is 2000. It can be any characters here.",
        "transactionRequestType":"SEPA",
        "chargePolicy":"SHARED"
      }'
@@ -28081,6 +29225,1289 @@ this is example of parameter @outbound_json
          }
        },
        "customerAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":true
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_regulated_entities
+DROP PROCEDURE IF EXISTS obp_get_regulated_entities;
+GO
+-- create procedure obp_get_regulated_entities
+CREATE PROCEDURE obp_get_regulated_entities
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "entityId":"0af807d7-3c39-43ef-9712-82bcfde1b9ca",
+           "certificateAuthorityCaOwnerId":"CY_CBC",
+           "entityName":"EXAMPLE COMPANY LTD",
+           "entityCode":"PSD_PICY_CBC!12345",
+           "entityCertificatePublicKey":"MIICsjCCAZqgAwIBAgIGAYwQ62R0MA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTAeFw0yMzExMjcxMzE1MTFaFw0yNTExMjYxMzE1MTFaMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK9WIodZHWzKyCcf9YfWEhPURbfO6zKuMqzHN27GdqHsVVEGxP4F/J4mso+0ENcRr6ur4u81iREaVdCc40rHDHVJNEtniD8Icbz7tcsqAewIVhc/q6WXGqImJpCq7hA0m247dDsaZT0lb/MVBiMoJxDEmAE/GYYnWTEn84R35WhJsMvuQ7QmLvNg6RkChY6POCT/YKe9NKwa1NqI1U+oA5RFzAaFtytvZCE3jtp+aR0brL7qaGfgxm6B7dEpGyhg0NcVCV7xMQNq2JxZTVdAr6lcsRGaAFulakmW3aNnmK+L35Wu8uW+OxNxwUuC6f3b4FVBa276FMuUTRfu7gc+k6kCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAAU5CjEyAoyTn7PgFpQD48ZNPuUsEQ19gzYgJvHMzFIoZ7jKBodjO5mCzWBcR7A4mpeAsdyiNBl2sTiZscSnNqxk61jVzP5Ba1D7XtOjjr7+3iqowrThj6BY40QqhYh/6BSY9fDzVZQiHnvlo6ZUM5kUK6OavZOovKlp5DIl5sGqoP0qAJnpQ4nhB2WVVsKfPlOXc+2KSsbJ23g9l8zaTMr+X0umlvfEKqyEl1Fa2L1dO0y/KFQ+ILmxcZLpRdq1hRAjd0quq9qGC8ucXhRWDg4hslVpau0da68g0aItWNez3mc5lB82b3dcZpFMzO41bgw7gvw10AvvTfQDqEYIuQ==",
+           "entityType":"PSD_PI",
+           "entityAddress":"EXAMPLE COMPANY LTD, 5 SOME STREET",
+           "entityTownCity":"SOME CITY",
+           "entityPostCode":"1060",
+           "entityCountry":"CY",
+           "entityWebSite":"www.example.com",
+           "services":"[{\"CY\":[\"PS_010\",\"PS_020\",\"PS_03C\",\"PS_04C\"]}]",
+           "attributes":[
+             {
+               "attributeType":"STRING",
+               "name":"ACCOUNT_MANAGEMENT_FEE",
+               "value":"5987953"
+             }
+           ]
+         }
+       ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_regulated_entity_by_entity_id
+DROP PROCEDURE IF EXISTS obp_get_regulated_entity_by_entity_id;
+GO
+-- create procedure obp_get_regulated_entity_by_entity_id
+CREATE PROCEDURE obp_get_regulated_entity_by_entity_id
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "regulatedEntityId":"string"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "entityId":"0af807d7-3c39-43ef-9712-82bcfde1b9ca",
+         "certificateAuthorityCaOwnerId":"CY_CBC",
+         "entityName":"EXAMPLE COMPANY LTD",
+         "entityCode":"PSD_PICY_CBC!12345",
+         "entityCertificatePublicKey":"MIICsjCCAZqgAwIBAgIGAYwQ62R0MA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTAeFw0yMzExMjcxMzE1MTFaFw0yNTExMjYxMzE1MTFaMBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK9WIodZHWzKyCcf9YfWEhPURbfO6zKuMqzHN27GdqHsVVEGxP4F/J4mso+0ENcRr6ur4u81iREaVdCc40rHDHVJNEtniD8Icbz7tcsqAewIVhc/q6WXGqImJpCq7hA0m247dDsaZT0lb/MVBiMoJxDEmAE/GYYnWTEn84R35WhJsMvuQ7QmLvNg6RkChY6POCT/YKe9NKwa1NqI1U+oA5RFzAaFtytvZCE3jtp+aR0brL7qaGfgxm6B7dEpGyhg0NcVCV7xMQNq2JxZTVdAr6lcsRGaAFulakmW3aNnmK+L35Wu8uW+OxNxwUuC6f3b4FVBa276FMuUTRfu7gc+k6kCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAAU5CjEyAoyTn7PgFpQD48ZNPuUsEQ19gzYgJvHMzFIoZ7jKBodjO5mCzWBcR7A4mpeAsdyiNBl2sTiZscSnNqxk61jVzP5Ba1D7XtOjjr7+3iqowrThj6BY40QqhYh/6BSY9fDzVZQiHnvlo6ZUM5kUK6OavZOovKlp5DIl5sGqoP0qAJnpQ4nhB2WVVsKfPlOXc+2KSsbJ23g9l8zaTMr+X0umlvfEKqyEl1Fa2L1dO0y/KFQ+ILmxcZLpRdq1hRAjd0quq9qGC8ucXhRWDg4hslVpau0da68g0aItWNez3mc5lB82b3dcZpFMzO41bgw7gvw10AvvTfQDqEYIuQ==",
+         "entityType":"PSD_PI",
+         "entityAddress":"EXAMPLE COMPANY LTD, 5 SOME STREET",
+         "entityTownCity":"SOME CITY",
+         "entityPostCode":"1060",
+         "entityCountry":"CY",
+         "entityWebSite":"www.example.com",
+         "services":"[{\"CY\":[\"PS_010\",\"PS_020\",\"PS_03C\",\"PS_04C\"]}]",
+         "attributes":[
+           {
+             "attributeType":"STRING",
+             "name":"ACCOUNT_MANAGEMENT_FEE",
+             "value":"5987953"
+           }
+         ]
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_bank_account_balances_by_account_id
+DROP PROCEDURE IF EXISTS obp_get_bank_account_balances_by_account_id;
+GO
+-- create procedure obp_get_bank_account_balances_by_account_id
+CREATE PROCEDURE obp_get_bank_account_balances_by_account_id
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "accountId":{
+         "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "accountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           },
+           "balanceId":{
+             "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+           },
+           "balanceType":"openingBooked",
+           "balanceAmount":"50.89",
+           "lastChangeDateTime":"2020-01-27T00:00:00Z",
+           "referenceDate":"2020-01-27"
+         }
+       ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_bank_accounts_balances_by_account_ids
+DROP PROCEDURE IF EXISTS obp_get_bank_accounts_balances_by_account_ids;
+GO
+-- create procedure obp_get_bank_accounts_balances_by_account_ids
+CREATE PROCEDURE obp_get_bank_accounts_balances_by_account_ids
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "accountIds":[
+         {
+           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+         }
+       ]
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":[
+         {
+           "bankId":{
+             "value":"gh.29.uk"
+           },
+           "accountId":{
+             "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+           },
+           "balanceId":{
+             "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+           },
+           "balanceType":"openingBooked",
+           "balanceAmount":"50.89",
+           "lastChangeDateTime":"2020-01-27T00:00:00Z",
+           "referenceDate":"2020-01-27"
+         }
+       ]
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_get_bank_account_balance_by_id
+DROP PROCEDURE IF EXISTS obp_get_bank_account_balance_by_id;
+GO
+-- create procedure obp_get_bank_account_balance_by_id
+CREATE PROCEDURE obp_get_bank_account_balance_by_id
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "balanceId":{
+         "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+       }
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "bankId":{
+           "value":"gh.29.uk"
+         },
+         "accountId":{
+           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+         },
+         "balanceId":{
+           "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+         },
+         "balanceType":"openingBooked",
+         "balanceAmount":"50.89",
+         "lastChangeDateTime":"2020-01-27T00:00:00Z",
+         "referenceDate":"2020-01-27"
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_create_or_update_bank_account_balance
+DROP PROCEDURE IF EXISTS obp_create_or_update_bank_account_balance;
+GO
+-- create procedure obp_create_or_update_bank_account_balance
+CREATE PROCEDURE obp_create_or_update_bank_account_balance
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "bankId":{
+         "value":"gh.29.uk"
+       },
+       "accountId":{
+         "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+       },
+       "balanceId":{
+         "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+       },
+       "balanceType":"openingBooked",
+       "balanceAmount":"50.89"
+     }'
+*/
+
+-- return example value
+	SELECT @inbound_json = (
+		SELECT
+     N'{
+       "inboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
+       },
+       "status":{
+         "errorCode":"",
+         "backendMessages":[
+           {
+             "source":"",
+             "status":"",
+             "errorCode":"",
+             "text":"",
+             "duration":"5.123"
+           }
+         ]
+       },
+       "data":{
+         "bankId":{
+           "value":"gh.29.uk"
+         },
+         "accountId":{
+           "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+         },
+         "balanceId":{
+           "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+         },
+         "balanceType":"openingBooked",
+         "balanceAmount":"50.89",
+         "lastChangeDateTime":"2020-01-27T00:00:00Z",
+         "referenceDate":"2020-01-27"
+       }
+     }'
+	);
+GO
+
+ 
+ 
+
+
+-- drop procedure obp_delete_bank_account_balance
+DROP PROCEDURE IF EXISTS obp_delete_bank_account_balance;
+GO
+-- create procedure obp_delete_bank_account_balance
+CREATE PROCEDURE obp_delete_bank_account_balance
+   @outbound_json NVARCHAR(MAX),
+   @inbound_json NVARCHAR(MAX) OUT
+   AS
+	  SET nocount on
+
+-- replace the follow example to real logic
+/*
+this is example of parameter @outbound_json
+     N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         },
+         "outboundAdapterConsenterInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
+       "balanceId":{
+         "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+       }
      }'
 */
 
