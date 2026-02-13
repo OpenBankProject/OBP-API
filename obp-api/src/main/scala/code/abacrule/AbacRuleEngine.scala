@@ -13,8 +13,7 @@ import net.liftweb.util.Helpers.tryo
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.JavaConverters._
 import scala.collection.concurrent
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.Future
 
 /**
  * ABAC Rule Engine for compiling and executing Attribute-Based Access Control rules
@@ -22,7 +21,7 @@ import scala.concurrent.duration._
 object AbacRuleEngine {
 
   // Cache for compiled ABAC rule functions
-  private val compiledRulesCache: concurrent.Map[String, Box[AbacRuleFunction]] = 
+  private val compiledRulesCache: concurrent.Map[String, Box[AbacRuleFunction]] =
     new ConcurrentHashMap[String, Box[AbacRuleFunction]]().asScala
 
   /**
@@ -36,7 +35,7 @@ object AbacRuleEngine {
 
   /**
    * Compile an ABAC rule from Scala code
-   * 
+   *
    * @param ruleId Unique identifier for the rule
    * @param ruleCode Scala code that defines the rule function
    * @return Box containing the compiled function or error
@@ -56,12 +55,12 @@ object AbacRuleEngine {
    */
   private def compileRuleInternal(ruleCode: String): Box[AbacRuleFunction] = {
     val fullCode = buildFullRuleCode(ruleCode)
-    
+
     DynamicUtil.compileScalaCode[AbacRuleFunction](fullCode) match {
       case Full(func) => Full(func)
-      case Failure(msg, exception, _) => 
+      case Failure(msg, exception, _) =>
         Failure(s"Failed to compile ABAC rule: $msg", exception, Empty)
-      case Empty => 
+      case Empty =>
         Failure("Failed to compile ABAC rule: Unknown error")
     }
   }
@@ -85,8 +84,17 @@ object AbacRuleEngine {
   }
 
   /**
+   * Helper to lift a Box value into a Future, converting Failure/Empty to a failed Future.
+   */
+  private def boxToFuture[T](box: Box[T], errorMsg: String = "Not found"): Future[T] = box match {
+    case Full(v) => Future.successful(v)
+    case Failure(msg, ex, _) => Future.failed(new RuntimeException(msg, ex.openOr(null)))
+    case Empty => Future.failed(new RuntimeException(errorMsg))
+  }
+
+  /**
    * Execute an ABAC rule by IDs (objects are fetched internally)
-   * 
+   *
    * @param ruleId The ID of the rule to execute
    * @param authenticatedUserId The ID of the authenticated user (the person logged in)
    * @param onBehalfOfUserId Optional ID of user being acted on behalf of (delegation scenario)
@@ -98,7 +106,7 @@ object AbacRuleEngine {
    * @param transactionId Optional transaction ID
    * @param transactionRequestId Optional transaction request ID
    * @param customerId Optional customer ID
-   * @return Box[Boolean] - Full(true) if allowed, Full(false) if denied, Failure on error
+   * @return Future[Box[Boolean]] - Full(true) if allowed, Full(false) if denied, Failure on error
    */
   def executeRule(
     ruleId: String,
@@ -112,198 +120,179 @@ object AbacRuleEngine {
     transactionId: Option[String] = None,
     transactionRequestId: Option[String] = None,
     customerId: Option[String] = None
-  ): Box[Boolean] = {
-    for {
+  ): Future[Box[Boolean]] = {
+    val ccOpt = Some(callContext)
+    val ns = code.api.util.NewStyle.function
+
+    // Validate rule exists and is active (synchronous)
+    val ruleBox = for {
       rule <- MappedAbacRuleProvider.getAbacRuleById(ruleId)
       _ <- if (rule.isActive) Full(true) else Failure(s"ABAC Rule ${rule.ruleName} is not active")
-      
-      // Fetch authenticated user (the actual person logged in)
-      authenticatedUser <- Users.users.vend.getUserByUserId(authenticatedUserId)
-      
-      // Fetch non-personal attributes for authenticated user
-      authenticatedUserAttributes = Await.result(
-        code.api.util.NewStyle.function.getNonPersonalUserAttributes(authenticatedUserId, Some(callContext)).map(_._1),
-        5.seconds
-      )
-      
-      // Fetch auth context for authenticated user
-      authenticatedUserAuthContext = Await.result(
-        code.api.util.NewStyle.function.getUserAuthContexts(authenticatedUserId, Some(callContext)).map(_._1),
-        5.seconds
-      )
-      
-      // Fetch entitlements for authenticated user
-      authenticatedUserEntitlements = Await.result(
-        code.api.util.NewStyle.function.getEntitlementsByUserId(authenticatedUserId, Some(callContext)),
-        5.seconds
-      )
-      
-      // Fetch onBehalfOf user if provided (delegation scenario)
-      onBehalfOfUserOpt <- onBehalfOfUserId match {
-        case Some(obUserId) => Users.users.vend.getUserByUserId(obUserId).map(Some(_))
-        case None => Full(None)
-      }
-      
-      // Fetch attributes for onBehalfOf user if provided
-      onBehalfOfUserAttributes = onBehalfOfUserId match {
-        case Some(obUserId) =>
-          Await.result(
-            code.api.util.NewStyle.function.getNonPersonalUserAttributes(obUserId, Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case None => List.empty[UserAttributeTrait]
-      }
-      
-      // Fetch auth context for onBehalfOf user if provided
-      onBehalfOfUserAuthContext = onBehalfOfUserId match {
-        case Some(obUserId) =>
-          Await.result(
-            code.api.util.NewStyle.function.getUserAuthContexts(obUserId, Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case None => List.empty[UserAuthContext]
-      }
-      
-      // Fetch entitlements for onBehalfOf user if provided
-      onBehalfOfUserEntitlements = onBehalfOfUserId match {
-        case Some(obUserId) =>
-          Await.result(
-            code.api.util.NewStyle.function.getEntitlementsByUserId(obUserId, Some(callContext)),
-            5.seconds
-          )
-        case None => List.empty[Entitlement]
-      }
-      
-      // Fetch target user if userId is provided
-      userOpt <- userId match {
-        case Some(uId) => Users.users.vend.getUserByUserId(uId).map(Some(_))
-        case None => Full(None)
-      }
-      
-      // Fetch attributes for target user if provided
-      userAttributes = userId match {
-        case Some(uId) =>
-          Await.result(
-            code.api.util.NewStyle.function.getNonPersonalUserAttributes(uId, Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case None => List.empty[UserAttributeTrait]
-      }
-      
-      // Fetch bank if bankId is provided
-      bankOpt <- bankId match {
-        case Some(bId) => 
-          tryo(Await.result(
-            code.api.util.NewStyle.function.getBank(BankId(bId), Some(callContext)).map(_._1),
-            5.seconds
-          )).map(Some(_))
-        case None => Full(None)
-      }
-      
-      // Fetch bank attributes if bank is provided
-      bankAttributes = bankId match {
-        case Some(bId) =>
-          Await.result(
-            code.api.util.NewStyle.function.getBankAttributesByBank(BankId(bId), Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case None => List.empty[BankAttributeTrait]
-      }
-      
-      // Fetch account if accountId and bankId are provided
-      accountOpt <- (bankId, accountId) match {
-        case (Some(bId), Some(aId)) =>
-          tryo(Await.result(
-            code.api.util.NewStyle.function.getBankAccount(BankId(bId), AccountId(aId), Some(callContext)).map(_._1),
-            5.seconds
-          )).map(Some(_))
-        case _ => Full(None)
-      }
-      
-      // Fetch account attributes if account is provided
-      accountAttributes = (bankId, accountId) match {
-        case (Some(bId), Some(aId)) =>
-          Await.result(
-            code.api.util.NewStyle.function.getAccountAttributesByAccount(BankId(bId), AccountId(aId), Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case _ => List.empty[AccountAttribute]
-      }
-      
-      // Fetch transaction if transactionId, accountId, and bankId are provided
-      transactionOpt <- (bankId, accountId, transactionId) match {
-        case (Some(bId), Some(aId), Some(tId)) =>
-          tryo(Await.result(
-            code.api.util.NewStyle.function.getTransaction(BankId(bId), AccountId(aId), TransactionId(tId), Some(callContext)).map(_._1),
-            5.seconds
-          )).map(trans => Some(trans))
-        case _ => Full(None)
-      }
-      
-      // Fetch transaction attributes if transaction is provided
-      transactionAttributes = (bankId, transactionId) match {
-        case (Some(bId), Some(tId)) =>
-          Await.result(
-            code.api.util.NewStyle.function.getTransactionAttributes(BankId(bId), TransactionId(tId), Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case _ => List.empty[TransactionAttribute]
-      }
-      
-      // Fetch transaction request if transactionRequestId is provided
-      transactionRequestOpt <- transactionRequestId match {
-        case Some(trId) =>
-          tryo(Await.result(
-            code.api.util.NewStyle.function.getTransactionRequestImpl(TransactionRequestId(trId), Some(callContext)).map(_._1),
-            5.seconds
-          )).map(tr => Some(tr))
-        case _ => Full(None)
-      }
-      
-      // Fetch transaction request attributes if transaction request is provided
-      transactionRequestAttributes = (bankId, transactionRequestId) match {
-        case (Some(bId), Some(trId)) =>
-          Await.result(
-            code.api.util.NewStyle.function.getTransactionRequestAttributes(BankId(bId), TransactionRequestId(trId), Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case _ => List.empty[TransactionRequestAttributeTrait]
-      }
-      
-      // Fetch customer if customerId and bankId are provided
-      customerOpt <- (bankId, customerId) match {
-        case (Some(bId), Some(cId)) =>
-          tryo(Await.result(
-            code.api.util.NewStyle.function.getCustomerByCustomerId(cId, Some(callContext)).map(_._1),
-            5.seconds
-          )).map(cust => Some(cust))
-        case _ => Full(None)
-      }
-      
-      // Fetch customer attributes if customer is provided
-      customerAttributes = (bankId, customerId) match {
-        case (Some(bId), Some(cId)) =>
-          Await.result(
-            code.api.util.NewStyle.function.getCustomerAttributes(BankId(bId), CustomerId(cId), Some(callContext)).map(_._1),
-            5.seconds
-          )
-        case _ => List.empty[CustomerAttribute]
-      }
-      
-      // Compile and execute the rule
-      compiledFunc <- compileRule(ruleId, rule.ruleCode)
-      result <- tryo {
-        compiledFunc(authenticatedUser, authenticatedUserAttributes, authenticatedUserAuthContext, authenticatedUserEntitlements, onBehalfOfUserOpt, onBehalfOfUserAttributes, onBehalfOfUserAuthContext, onBehalfOfUserEntitlements, userOpt, userAttributes, bankOpt, bankAttributes, accountOpt, accountAttributes, transactionOpt, transactionAttributes, transactionRequestOpt, transactionRequestAttributes, customerOpt, customerAttributes, Some(callContext))
-      }
-    } yield result
+    } yield rule
+
+    ruleBox match {
+      case Full(rule) =>
+        // Validate authenticated user exists (synchronous)
+        Users.users.vend.getUserByUserId(authenticatedUserId) match {
+          case Full(authenticatedUser) =>
+            // Fire off all independent async fetches in parallel
+            val authenticatedUserAttributesF = ns.getNonPersonalUserAttributes(authenticatedUserId, ccOpt).map(_._1)
+            val authenticatedUserAuthContextF = ns.getUserAuthContexts(authenticatedUserId, ccOpt).map(_._1)
+            val authenticatedUserEntitlementsF = ns.getEntitlementsByUserId(authenticatedUserId, ccOpt)
+
+            val onBehalfOfUserOpt: Box[Option[User]] = onBehalfOfUserId match {
+              case Some(obUserId) => Users.users.vend.getUserByUserId(obUserId).map(Some(_))
+              case None => Full(None)
+            }
+
+            val onBehalfOfUserAttributesF = onBehalfOfUserId match {
+              case Some(obUserId) => ns.getNonPersonalUserAttributes(obUserId, ccOpt).map(_._1)
+              case None => Future.successful(List.empty[UserAttributeTrait])
+            }
+            val onBehalfOfUserAuthContextF = onBehalfOfUserId match {
+              case Some(obUserId) => ns.getUserAuthContexts(obUserId, ccOpt).map(_._1)
+              case None => Future.successful(List.empty[UserAuthContext])
+            }
+            val onBehalfOfUserEntitlementsF = onBehalfOfUserId match {
+              case Some(obUserId) => ns.getEntitlementsByUserId(obUserId, ccOpt)
+              case None => Future.successful(List.empty[Entitlement])
+            }
+
+            val userOpt: Box[Option[User]] = userId match {
+              case Some(uId) => Users.users.vend.getUserByUserId(uId).map(Some(_))
+              case None => Full(None)
+            }
+
+            val userAttributesF = userId match {
+              case Some(uId) => ns.getNonPersonalUserAttributes(uId, ccOpt).map(_._1)
+              case None => Future.successful(List.empty[UserAttributeTrait])
+            }
+
+            val bankOptF = bankId match {
+              case Some(bId) => ns.getBank(BankId(bId), ccOpt).map(r => Full(Some(r._1)): Box[Option[Bank]]).recover {
+                case e => Failure(e.getMessage)
+              }
+              case None => Future.successful(Full(None): Box[Option[Bank]])
+            }
+
+            val bankAttributesF = bankId match {
+              case Some(bId) => ns.getBankAttributesByBank(BankId(bId), ccOpt).map(_._1)
+              case None => Future.successful(List.empty[BankAttributeTrait])
+            }
+
+            val accountOptF = (bankId, accountId) match {
+              case (Some(bId), Some(aId)) =>
+                ns.getBankAccount(BankId(bId), AccountId(aId), ccOpt).map(r => Full(Some(r._1)): Box[Option[BankAccount]]).recover {
+                  case e => Failure(e.getMessage)
+                }
+              case _ => Future.successful(Full(None): Box[Option[BankAccount]])
+            }
+
+            val accountAttributesF = (bankId, accountId) match {
+              case (Some(bId), Some(aId)) => ns.getAccountAttributesByAccount(BankId(bId), AccountId(aId), ccOpt).map(_._1)
+              case _ => Future.successful(List.empty[AccountAttribute])
+            }
+
+            val transactionOptF = (bankId, accountId, transactionId) match {
+              case (Some(bId), Some(aId), Some(tId)) =>
+                ns.getTransaction(BankId(bId), AccountId(aId), TransactionId(tId), ccOpt).map(r => Full(Some(r._1)): Box[Option[Transaction]]).recover {
+                  case e => Failure(e.getMessage)
+                }
+              case _ => Future.successful(Full(None): Box[Option[Transaction]])
+            }
+
+            val transactionAttributesF = (bankId, transactionId) match {
+              case (Some(bId), Some(tId)) => ns.getTransactionAttributes(BankId(bId), TransactionId(tId), ccOpt).map(_._1)
+              case _ => Future.successful(List.empty[TransactionAttribute])
+            }
+
+            val transactionRequestOptF = transactionRequestId match {
+              case Some(trId) =>
+                ns.getTransactionRequestImpl(TransactionRequestId(trId), ccOpt).map(r => Full(Some(r._1)): Box[Option[TransactionRequest]]).recover {
+                  case e => Failure(e.getMessage)
+                }
+              case _ => Future.successful(Full(None): Box[Option[TransactionRequest]])
+            }
+
+            val transactionRequestAttributesF = (bankId, transactionRequestId) match {
+              case (Some(bId), Some(trId)) => ns.getTransactionRequestAttributes(BankId(bId), TransactionRequestId(trId), ccOpt).map(_._1)
+              case _ => Future.successful(List.empty[TransactionRequestAttributeTrait])
+            }
+
+            val customerOptF = (bankId, customerId) match {
+              case (Some(bId), Some(cId)) =>
+                ns.getCustomerByCustomerId(cId, ccOpt).map(r => Full(Some(r._1)): Box[Option[Customer]]).recover {
+                  case e => Failure(e.getMessage)
+                }
+              case _ => Future.successful(Full(None): Box[Option[Customer]])
+            }
+
+            val customerAttributesF = (bankId, customerId) match {
+              case (Some(bId), Some(cId)) => ns.getCustomerAttributes(BankId(bId), CustomerId(cId), ccOpt).map(_._1)
+              case _ => Future.successful(List.empty[CustomerAttribute])
+            }
+
+            // Combine all futures and execute the rule
+            for {
+              authenticatedUserAttributes <- authenticatedUserAttributesF
+              authenticatedUserAuthContext <- authenticatedUserAuthContextF
+              authenticatedUserEntitlements <- authenticatedUserEntitlementsF
+              obUserAttributes <- onBehalfOfUserAttributesF
+              obUserAuthContext <- onBehalfOfUserAuthContextF
+              obUserEntitlements <- onBehalfOfUserEntitlementsF
+              uAttributes <- userAttributesF
+              bankOptBox <- bankOptF
+              bankAttrs <- bankAttributesF
+              accountOptBox <- accountOptF
+              accountAttrs <- accountAttributesF
+              transactionOptBox <- transactionOptF
+              transactionAttrs <- transactionAttributesF
+              transactionRequestOptBox <- transactionRequestOptF
+              transactionRequestAttrs <- transactionRequestAttributesF
+              customerOptBox <- customerOptF
+              customerAttrs <- customerAttributesF
+            } yield {
+              // Chain the Box results together
+              for {
+                obUser <- onBehalfOfUserOpt
+                uOpt <- userOpt
+                bOpt <- bankOptBox
+                aOpt <- accountOptBox
+                tOpt <- transactionOptBox
+                trOpt <- transactionRequestOptBox
+                cOpt <- customerOptBox
+                compiledFunc <- compileRule(ruleId, rule.ruleCode)
+                result <- tryo {
+                  compiledFunc(
+                    authenticatedUser, authenticatedUserAttributes, authenticatedUserAuthContext, authenticatedUserEntitlements,
+                    obUser, obUserAttributes, obUserAuthContext, obUserEntitlements,
+                    uOpt, uAttributes,
+                    bOpt, bankAttrs,
+                    aOpt, accountAttrs,
+                    tOpt, transactionAttrs,
+                    trOpt, transactionRequestAttrs,
+                    cOpt, customerAttrs,
+                    ccOpt
+                  )
+                }
+              } yield result
+            }
+
+          case Failure(msg, ex, _) => Future.successful(Failure(msg, ex, Empty))
+          case Empty => Future.successful(Failure(s"User not found: $authenticatedUserId"))
+        }
+
+      case Failure(msg, ex, chain) => Future.successful(Failure(msg, ex, chain))
+      case Empty => Future.successful(Empty)
+    }
   }
-  
+
 
 
   /**
    * Execute all active ABAC rules with a specific policy (OR logic - at least one must pass)
    * @param logic The logic to apply: "AND" (all must pass), "OR" (any must pass), "XOR" (exactly one must pass)
-   * 
+   *
    * @param policy The policy to filter rules by
    * @param authenticatedUserId The ID of the authenticated user
    * @param onBehalfOfUserId Optional ID of user being acted on behalf of
@@ -315,7 +304,7 @@ object AbacRuleEngine {
    * @param transactionId Optional transaction ID
    * @param transactionRequestId Optional transaction request ID
    * @param customerId Optional customer ID
-   * @return Box[Boolean] - Full(true) if at least one rule passes (OR logic), Full(false) if all fail
+   * @return Future[Box[Boolean]] - Full(true) if at least one rule passes (OR logic), Full(false) if all fail
    */
   def executeRulesByPolicy(
     policy: String,
@@ -329,15 +318,15 @@ object AbacRuleEngine {
     transactionId: Option[String] = None,
     transactionRequestId: Option[String] = None,
     customerId: Option[String] = None
-  ): Box[Boolean] = {
+  ): Future[Box[Boolean]] = {
     val rules = MappedAbacRuleProvider.getActiveAbacRulesByPolicy(policy)
-    
+
     if (rules.isEmpty) {
       // No rules for this policy - default to allow
-      Full(true)
+      Future.successful(Full(true))
     } else {
-      // Execute all rules and check if at least one passes
-      val results = rules.map { rule =>
+      // Execute all rules in parallel and check if at least one passes
+      val resultFutures = rules.map { rule =>
         executeRule(
           ruleId = rule.abacRuleId,
           authenticatedUserId = authenticatedUserId,
@@ -352,21 +341,23 @@ object AbacRuleEngine {
           customerId = customerId
         )
       }
-      
-      // Count successes and failures
-      val successes = results.filter {
-        case Full(true) => true
-        case _ => false
-      }
 
-      // At least one rule must pass (OR logic)
-      Full(successes.nonEmpty)
+      Future.sequence(resultFutures).map { results =>
+        // Count successes and failures
+        val successes = results.filter {
+          case Full(true) => true
+          case _ => false
+        }
+
+        // At least one rule must pass (OR logic)
+        Full(successes.nonEmpty)
+      }
     }
   }
 
   /**
    * Validate ABAC rule code by attempting to compile it
-   * 
+   *
    * @param ruleCode The Scala code to validate
    * @return Box[String] - Full("OK") if valid, Failure with error message if invalid
    */
