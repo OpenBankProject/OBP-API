@@ -30,7 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -4858,13 +4858,11 @@ trait APIMethods600 {
       implementedInApiVersion,
       nameOf(resetPasswordUrl),
       "POST",
-      "/users/password-reset",
+      "/management/user/reset-password-url",
       "Create Password Reset URL and Send Email",
       s"""Create a password reset URL for a user and automatically send it via email.
          |
-         |This endpoint generates a password reset URL and sends it to the user's email address.
-         |
-         |${userAuthenticationMessage(true)}
+         |Authentication is Required.
          |
          |Behavior:
          |- Generates a unique password reset token
@@ -4901,7 +4899,7 @@ trait APIMethods600 {
     )
 
     lazy val resetPasswordUrl: OBPEndpoint = {
-      case "users" :: "password-reset" :: Nil JsonPost json -> _ => {
+      case "management" :: "user" :: "reset-password-url" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -4974,6 +4972,115 @@ trait APIMethods600 {
 
             (
               ResetPasswordUrlJsonV600(resetPasswordLink),
+              HttpCode.`201`(callContext)
+            )
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      resetPasswordUrlAnonymous,
+      implementedInApiVersion,
+      nameOf(resetPasswordUrlAnonymous),
+      "POST",
+      "/users/password-reset-url",
+      "Request Password Reset Email",
+      s"""Request a password reset email for a user. No authentication is required.
+         |
+         |Authentication is NOT Required.
+         |
+         |This endpoint is designed for users who have forgotten their password and cannot log in.
+         |
+         |Behavior:
+         |- Looks up the user by username and email
+         |- Generates a unique password reset token
+         |- Creates a reset URL using the portal_external_url property (falls back to API hostname)
+         |- Sends an email to the user with the reset link
+         |
+         |Required fields:
+         |- username: The user's username (typically email)
+         |- email: The user's email address (must match username)
+         |
+         |The user must exist and be validated before a reset email can be sent.
+         |
+         |Email configuration must be set up correctly for email delivery to work.
+         |
+         |Note: For security reasons, this endpoint returns a generic success message regardless of
+         |whether the user was found, to prevent user enumeration.
+         |
+         |""".stripMargin,
+      PostResetPasswordUrlAnonymousJsonV600(
+        "user@example.com",
+        "user@example.com"
+      ),
+      ResetPasswordUrlAnonymousResponseJsonV600(
+        "If the account exists, a password reset email has been sent."
+      ),
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser),
+      Some(List())
+    )
+
+    lazy val resetPasswordUrlAnonymous: OBPEndpoint = {
+      case "users" :: "password-reset-url" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            _ <- Helper.booleanToFuture(
+              failMsg = ErrorMessages.NotAllowedEndpoint,
+              cc = callContext
+            ) {
+              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
+            }
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlAnonymousJsonV600]}",
+              400,
+              callContext
+            ) {
+              json.extract[PostResetPasswordUrlAnonymousJsonV600]
+            }
+          } yield {
+            // Look up the user - but always return the same response to prevent user enumeration
+            val authUserBox = code.model.dataAccess.AuthUser.find(
+              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username)
+            )
+
+            authUserBox match {
+              case Full(user) if user.validated.get && user.email.get == postedData.email =>
+                // Generate new reset token
+                user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+                user.save
+
+                // Construct reset URL
+                val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+                  "/user_mgt/reset_password/" +
+                  java.net.URLEncoder.encode(user.uniqueId.get, "UTF-8")
+
+                // Send email
+                val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
+                val htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetPasswordLink'>$resetPasswordLink</a></p>")
+                val subjectContent = "Reset your password - " + user.username.get
+
+                val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
+                  from = code.model.dataAccess.AuthUser.emailFrom,
+                  to = List(user.email.get),
+                  bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
+                  subject = subjectContent,
+                  textContent = textContent,
+                  htmlContent = htmlContent
+                )
+
+                code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
+
+              case _ =>
+                // Do nothing - return same response to prevent user enumeration
+            }
+
+            (
+              ResetPasswordUrlAnonymousResponseJsonV600("If the account exists, a password reset email has been sent."),
               HttpCode.`201`(callContext)
             )
           }
