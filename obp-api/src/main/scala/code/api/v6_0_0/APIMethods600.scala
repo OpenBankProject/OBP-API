@@ -7066,8 +7066,7 @@ trait APIMethods600 {
             // userId: the target user being evaluated (defaults to authenticated user)
             effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
 
-            result <- Future {
-              val resultBox = AbacRuleEngine.executeRule(
+            result <- AbacRuleEngine.executeRule(
                 ruleId = ruleId,
                 authenticatedUserId = effectiveAuthenticatedUserId,
                 onBehalfOfUserId = execJson.on_behalf_of_user_id,
@@ -7079,9 +7078,7 @@ trait APIMethods600 {
                 transactionId = execJson.transaction_id,
                 transactionRequestId = execJson.transaction_request_id,
                 customerId = execJson.customer_id
-              )
-
-              resultBox match {
+              ).map {
                 case Full(allowed) =>
                   AbacRuleResultJsonV600(result = allowed)
                 case Failure(msg, _, _) =>
@@ -7089,7 +7086,6 @@ trait APIMethods600 {
                 case Empty =>
                   AbacRuleResultJsonV600(result = false)
               }
-            }
           } yield {
             (result, HttpCode.`200`(callContext))
           }
@@ -7172,8 +7168,7 @@ trait APIMethods600 {
             // userId: the target user being evaluated (defaults to authenticated user)
             effectiveAuthenticatedUserId = execJson.authenticated_user_id.getOrElse(user.userId)
 
-            result <- Future {
-              val resultBox = AbacRuleEngine.executeRulesByPolicy(
+            result <- AbacRuleEngine.executeRulesByPolicy(
                 policy = policy,
                 authenticatedUserId = effectiveAuthenticatedUserId,
                 onBehalfOfUserId = execJson.on_behalf_of_user_id,
@@ -7185,9 +7180,7 @@ trait APIMethods600 {
                 transactionId = execJson.transaction_id,
                 transactionRequestId = execJson.transaction_request_id,
                 customerId = execJson.customer_id
-              )
-
-              resultBox match {
+              ).map {
                 case Full(allowed) =>
                   AbacRuleResultJsonV600(result = allowed)
                 case Failure(msg, _, _) =>
@@ -7195,7 +7188,6 @@ trait APIMethods600 {
                 case Empty =>
                   AbacRuleResultJsonV600(result = false)
               }
-            }
           } yield {
             (result, HttpCode.`200`(callContext))
           }
