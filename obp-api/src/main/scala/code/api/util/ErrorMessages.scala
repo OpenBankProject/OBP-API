@@ -757,7 +757,7 @@ object ErrorMessages {
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
   val RefreshUserError = "OBP-50014: Can not refresh User."
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
-  val NotAllowedEndpoint = "OBP-50017: The endpoint is forbidden at this API instance."
+  val NotAllowedEndpoint = "OBP-50017: The endpoint is not enabled at this OBP API instance."
   val UnderConstructionError = "OBP-50018: Under Construction Error."
   val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
 

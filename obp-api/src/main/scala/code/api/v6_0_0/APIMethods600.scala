@@ -5404,12 +5404,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(
-              failMsg = ErrorMessages.NotAllowedEndpoint,
-              cc = callContext
-            ) {
-              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
-            }
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlJsonV600]}",
               400,
@@ -5537,12 +5531,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            _ <- Helper.booleanToFuture(
-              failMsg = ErrorMessages.NotAllowedEndpoint,
-              cc = callContext
-            ) {
-              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
-            }
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlAnonymousJsonV600]}",
               400,
