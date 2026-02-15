@@ -5037,6 +5037,116 @@ object Glossary extends MdcLoggable  {
 		)
 	)
 
+	glossaryItems += GlossaryItem(
+		title = "Password Reset for OBP Local Users",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |The password reset flow allows a user who has forgotten their password to request a reset email and then set a new password. There are two steps:
+				 |
+				 |1. **Request a password reset email** (anonymous — no login required)
+				 |2. **Set the new password** using the token from the email (anonymous — no login required)
+				 |
+				 |There is also an admin endpoint for requesting a reset on behalf of a user (requires authentication and the `CanCreateResetPasswordUrl` role).
+				 |
+				 |### Step 1: Request Password Reset Email
+				 |
+				 |**POST /obp/v6.0.0/users/password-reset-url**
+				 |
+				 |No authentication required.
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "username": "user@example.com",
+				 |      "email": "user@example.com"
+				 |    }
+				 |
+				 |Response (201):
+				 |
+				 |    {
+				 |      "message": "If the account exists, a password reset email has been sent."
+				 |    }
+				 |
+				 |Notes:
+				 |
+				 |- The response is always the same whether or not the user exists. This prevents user enumeration.
+				 |- If the user exists, is validated, and the email matches, a reset email is sent containing a link with a reset token.
+				 |- The App should present a form asking for username and email, call this endpoint, and then show a message saying "Check your email for a reset link."
+				 |
+				 |### Step 2: Complete Password Reset
+				 |
+				 |**POST /obp/v6.0.0/users/password**
+				 |
+				 |No authentication required.
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "token": "a1b2c3d4e5f67890abcdef1234567890",
+				 |      "new_password": "NewStr0ng!Password"
+				 |    }
+				 |
+				 |Response (201):
+				 |
+				 |    {
+				 |      "message": "Password has been reset successfully."
+				 |    }
+				 |
+				 |Error responses:
+				 |
+				 |- **400** — Invalid or expired token
+				 |- **400** — Weak password
+				 |
+				 |Notes:
+				 |
+				 |- The token is a signed JWT with a configurable expiry (default: 120 minutes). The server-side expiry can be configured with the `password_reset_token_expiry_minutes` property.
+				 |- The token comes from the reset email URL. The App should extract the token from the URL path (everything after `/user_mgt/reset_password/`) and URL-decode it before sending it to this endpoint.
+				 |- The token is single-use. Once the password is reset, the token is invalidated. An expired token will also be rejected.
+				 |
+				 |### Admin Endpoint (Optional)
+				 |
+				 |**POST /obp/v6.0.0/management/user/reset-password-url**
+				 |
+				 |Authentication required. Requires the `CanCreateResetPasswordUrl` role.
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "username": "user@example.com",
+				 |      "email": "user@example.com",
+				 |      "user_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"
+				 |    }
+				 |
+				 |Response (201):
+				 |
+				 |    {
+				 |      "reset_password_url": "https://your-obp-instance.com/user_mgt/reset_password/TOKEN"
+				 |    }
+				 |
+				 |This endpoint returns the reset URL directly (for logging/admin purposes) and also sends the email. It requires all three fields: `username`, `email`, and `user_id`.
+				 |
+				 |### Typical App Flow
+				 |
+				 |1. User clicks "Forgot Password"
+				 |2. App shows form with username and email fields
+				 |3. App calls POST /obp/v6.0.0/users/password-reset-url
+				 |4. App shows "Check your email for a reset link"
+				 |5. User clicks link in email, App opens reset page and extracts token from URL
+				 |6. App shows form with new password field
+				 |7. App calls POST /obp/v6.0.0/users/password with token and new_password
+				 |8. App shows "Password has been reset successfully. Please log in."
+				 |
+				 |### Password Requirements
+				 |
+				 |The new password must meet one of these criteria:
+				 |
+				 |- **10-16 characters:** Must contain at least one uppercase letter, one lowercase letter, one digit, and one special character
+				 |- **17-512 characters:** No additional complexity requirements (length alone is sufficient)
+				 |
+""")
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

@@ -561,6 +561,10 @@ object ErrorMessages {
   val InvalidAccountNumber = "OBP-30270: Account not found. Please specify a valid value for ACCOUNT_NUMBER."
   val BankAccountNotFoundByRoutings = "OBP-30271: Bank Account not found. Please specify valid values for routing schemes and addresses."
 
+  val InvalidCustomerType = "OBP-30272: Invalid customer_type. Must be one of: INDIVIDUAL, CORPORATE, SUBSIDIARY."
+  val ParentCustomerNotFound = "OBP-30273: Parent customer not found. The parent_customer_id must reference an existing customer at the same bank."
+  val CustomerTypeMismatch = "OBP-30274: Customer type does not match the endpoint. Use the generic /customers endpoint or the correct type-specific endpoint."
+
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
   val AccountApplicationNotFound = "OBP-30311: AccountApplication not found by ACCOUNT_APPLICATION_ID. "

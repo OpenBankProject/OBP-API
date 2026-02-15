@@ -53,6 +53,8 @@ trait Customer {
   def title: String
   def branchId: String
   def nameSuffix: String
+  def customerType: String        // "INDIVIDUAL", "CORPORATE", "SUBSIDIARY"
+  def parentCustomerId: String    // customerId of parent, or "" if none
 }
 
 trait Agent {

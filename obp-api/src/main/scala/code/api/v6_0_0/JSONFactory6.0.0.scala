@@ -474,7 +474,44 @@ case class PostCustomerJsonV600(
     last_ok_date: Option[Date] = None,
     title: Option[String] = None,
     branch_id: Option[String] = None,
+    name_suffix: Option[String] = None,
+    customer_type: Option[String] = None,
+    parent_customer_id: Option[String] = None
+)
+
+case class PostRetailCustomerJsonV600(
+    legal_name: String,
+    customer_number: Option[String] = None,
+    mobile_phone_number: String,
+    email: Option[String] = None,
+    face_image: Option[CustomerFaceImageJson] = None,
+    date_of_birth: Option[String] = None,
+    relationship_status: Option[String] = None,
+    dependants: Option[Int] = None,
+    dob_of_dependants: Option[List[String]] = None,
+    credit_rating: Option[CustomerCreditRatingJSON] = None,
+    credit_limit: Option[AmountOfMoneyJsonV121] = None,
+    highest_education_attained: Option[String] = None,
+    employment_status: Option[String] = None,
+    kyc_status: Option[Boolean] = None,
+    last_ok_date: Option[Date] = None,
+    title: Option[String] = None,
+    branch_id: Option[String] = None,
     name_suffix: Option[String] = None
+)
+
+case class PostCorporateCustomerJsonV600(
+    legal_name: String,
+    customer_number: Option[String] = None,
+    mobile_phone_number: String,
+    email: Option[String] = None,
+    credit_rating: Option[CustomerCreditRatingJSON] = None,
+    credit_limit: Option[AmountOfMoneyJsonV121] = None,
+    kyc_status: Option[Boolean] = None,
+    last_ok_date: Option[Date] = None,
+    branch_id: Option[String] = None,
+    customer_type: Option[String] = None,
+    parent_customer_id: Option[String] = None
 )
 
 case class CustomerJsonV600(
@@ -497,7 +534,9 @@ case class CustomerJsonV600(
     last_ok_date: Date,
     title: String,
     branch_id: String,
-    name_suffix: String
+    name_suffix: String,
+    customer_type: String,
+    parent_customer_id: String
 )
 
 case class CustomerJSONsV600(customers: List[CustomerJsonV600])
@@ -523,6 +562,8 @@ case class CustomerWithAttributesJsonV600(
     title: String,
     branch_id: String,
     name_suffix: String,
+    customer_type: String,
+    parent_customer_id: String,
     customer_attributes: List[CustomerAttributeResponseJsonV300]
 )
 
@@ -1267,7 +1308,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_ok_date = cInfo.lastOkDate,
       title = cInfo.title,
       branch_id = cInfo.branchId,
-      name_suffix = cInfo.nameSuffix
+      name_suffix = cInfo.nameSuffix,
+      customer_type = cInfo.customerType,
+      parent_customer_id = cInfo.parentCustomerId
     )
   }
 
@@ -1318,6 +1361,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       title = cInfo.title,
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
+      customer_type = cInfo.customerType,
+      parent_customer_id = cInfo.parentCustomerId,
       customer_attributes = customerAttributes.map(customerAttribute =>
         CustomerAttributeResponseJsonV300(
           customer_attribute_id = customerAttribute.customerAttributeId,

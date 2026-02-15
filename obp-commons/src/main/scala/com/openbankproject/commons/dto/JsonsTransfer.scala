@@ -1795,7 +1795,9 @@ case class OutBoundCreateCustomerC2(outboundAdapterCallContext: OutboundAdapterC
   creditLimit: Option[AmountOfMoneyTrait],
   title: String,
   branchId: String,
-  nameSuffix: String) extends TopicTrait
+  nameSuffix: String,
+  customerType: String,
+  parentCustomerId: String) extends TopicTrait
 
 case class InBoundCreateCustomerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
 

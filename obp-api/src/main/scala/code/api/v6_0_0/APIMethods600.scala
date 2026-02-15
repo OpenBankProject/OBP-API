@@ -12,7 +12,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, InvalidDateFormat, InvalidJsonFormat, UnknownError, DynamicEntityOperationNotAllowed, _}
 import code.api.util.FutureUtil.EndpointContext
-import code.api.util.Glossary
+import code.api.util.{CertificateUtil, Glossary}
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
@@ -2615,6 +2615,8 @@ trait APIMethods600 {
          |- title: Customer's title (e.g., Mr., Mrs., Dr.)
          |- branch_id: Associated branch identifier
          |- name_suffix: Customer's name suffix (e.g., Jr., Sr.)
+         |- customer_type: Type of customer - INDIVIDUAL (default), CORPORATE, or SUBSIDIARY
+         |- parent_customer_id: For SUBSIDIARY customers, the customer_id of the parent CORPORATE customer
          |
          |**Date Format:**
          |In v6.0.0, date_of_birth and dob_of_dependants must be provided in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
@@ -2640,6 +2642,8 @@ trait APIMethods600 {
         InvalidJsonFormat,
         InvalidJsonContent,
         InvalidDateFormat,
+        InvalidCustomerType,
+        ParentCustomerNotFound,
         CustomerNumberAlreadyExists,
         UserNotFoundById,
         CustomerAlreadyExistsForUser,
@@ -2696,6 +2700,19 @@ trait APIMethods600 {
               !`checkIfContains::::` (customerNumber)
             }
             (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
+
+            customerType = postedData.customer_type.getOrElse("INDIVIDUAL")
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomerType, 400, callContext) {
+              List("INDIVIDUAL", "CORPORATE", "SUBSIDIARY").contains(customerType)
+            }
+
+            parentCustomerIdValue = postedData.parent_customer_id.getOrElse("")
+            _ <- if (parentCustomerIdValue.nonEmpty) {
+              NewStyle.function.getCustomerByCustomerId(parentCustomerIdValue, callContext).map(_ => ())
+            } else {
+              Future.successful(())
+            }
+
             (customer, callContext) <- NewStyle.function.createCustomerC2(
               bankId,
               postedData.legal_name,
@@ -2719,10 +2736,50 @@ trait APIMethods600 {
               postedData.title.getOrElse(""),
               postedData.branch_id.getOrElse(""),
               postedData.name_suffix.getOrElse(""),
+              customerType,
+              parentCustomerIdValue,
               callContext,
             )
           } yield {
             (JSONFactory600.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerChildren,
+      implementedInApiVersion,
+      nameOf(getCustomerChildren),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/children",
+      "Get Customer Children",
+      s"""Get the child (subsidiary) customers of a parent customer.
+         |
+         |Returns a list of customers whose parent_customer_id matches the specified CUSTOMER_ID.
+         |This is useful for corporate banking where a corporate customer may have subsidiary customers.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerJSONsV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getCustomerChildren: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "children" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (children, callContext) <- NewStyle.function.getCustomersByParentCustomerId(bankId, customerId, callContext)
+          } yield {
+            (JSONFactory600.createCustomersJson(children), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2950,6 +3007,450 @@ trait APIMethods600 {
               callContext: Option[CallContext])
           } yield {
             (JSONFactory600.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // Retail Customer Endpoints
+
+    staticResourceDocs += ResourceDoc(
+      createRetailCustomer,
+      implementedInApiVersion,
+      nameOf(createRetailCustomer),
+      "POST",
+      "/banks/BANK_ID/retail-customers",
+      "Create Retail Customer",
+      s"""Create a retail (individual) customer.
+         |
+         |This endpoint is specifically for creating individual/retail customers.
+         |The customer_type will be automatically set to INDIVIDUAL.
+         |
+         |**Required Fields:**
+         |- legal_name: The customer's full legal name
+         |- mobile_phone_number: The customer's mobile phone number
+         |
+         |**Optional Fields:**
+         |- customer_number: If not provided, a random number will be generated
+         |- email, face_image, date_of_birth, relationship_status, dependants, dob_of_dependants
+         |- credit_rating, credit_limit, highest_education_attained, employment_status
+         |- kyc_status, last_ok_date, title, branch_id, name_suffix
+         |
+         |**Date Format:**
+         |date_of_birth and dob_of_dependants must be in ISO 8601 date format: **YYYY-MM-DD**
+         |
+         |**Validations:**
+         |- customer_number cannot contain `::::` characters
+         |- customer_number must be unique for the bank
+         |- The number of dependants must equal the length of the dob_of_dependants array
+         |
+         |Authentication is Required
+         |""",
+      postRetailCustomerJsonV600,
+      customerJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        InvalidJsonContent,
+        InvalidDateFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
+      List(apiTagRetailCustomer, apiTagCustomer),
+      Some(List(canCreateCustomer, canCreateCustomerAtAnyBank))
+    )
+    lazy val createRetailCustomer: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "retail-customers" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostRetailCustomerJsonV600 ", 400, cc.callContext) {
+              json.extract[PostRetailCustomerJsonV600]
+            }
+            _ <- Helper.booleanToFuture(failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length}) of dob_of_dependants array", 400, cc.callContext) {
+              postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
+            }
+            dateOfBirth <- Future {
+              postedData.date_of_birth.map { dateStr =>
+                try {
+                  val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd")
+                  formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+                  formatter.setLenient(false)
+                  formatter.parse(dateStr)
+                } catch {
+                  case _: Exception =>
+                    throw new Exception(s"$InvalidJsonFormat date_of_birth must be in YYYY-MM-DD format (e.g., 1990-05-15), got: $dateStr")
+                }
+              }.orNull
+            }
+            dobOfDependants <- Future {
+              postedData.dob_of_dependants.getOrElse(Nil).map { dateStr =>
+                try {
+                  val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd")
+                  formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+                  formatter.setLenient(false)
+                  formatter.parse(dateStr)
+                } catch {
+                  case _: Exception =>
+                    throw new Exception(s"$InvalidJsonFormat dob_of_dependants must contain dates in YYYY-MM-DD format (e.g., 2010-03-20), got: $dateStr")
+                }
+              }
+            }
+            customerNumber = postedData.customer_number.getOrElse(Random.nextInt(Integer.MAX_VALUE).toString)
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat customer_number can not contain `::::` characters", cc = cc.callContext) {
+              !`checkIfContains::::` (customerNumber)
+            }
+            (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
+            (customer, callContext) <- NewStyle.function.createCustomerC2(
+              bankId,
+              postedData.legal_name,
+              customerNumber,
+              postedData.mobile_phone_number,
+              postedData.email.getOrElse(""),
+              CustomerFaceImage(
+                postedData.face_image.map(_.date).getOrElse(null),
+                postedData.face_image.map(_.url).getOrElse("")
+              ),
+              dateOfBirth,
+              postedData.relationship_status.getOrElse(""),
+              postedData.dependants.getOrElse(0),
+              dobOfDependants,
+              postedData.highest_education_attained.getOrElse(""),
+              postedData.employment_status.getOrElse(""),
+              postedData.kyc_status.getOrElse(false),
+              postedData.last_ok_date.getOrElse(null),
+              postedData.credit_rating.map(i => CreditRating(i.rating, i.source)),
+              postedData.credit_limit.map(i => CreditLimit(i.currency, i.amount)),
+              postedData.title.getOrElse(""),
+              postedData.branch_id.getOrElse(""),
+              postedData.name_suffix.getOrElse(""),
+              "INDIVIDUAL",
+              "",
+              callContext,
+            )
+          } yield {
+            (JSONFactory600.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getRetailCustomersAtOneBank,
+      implementedInApiVersion,
+      nameOf(getRetailCustomersAtOneBank),
+      "GET",
+      "/banks/BANK_ID/retail-customers",
+      "Get Retail Customers at Bank",
+      s"""Get Retail (Individual) Customers at Bank.
+         |
+         |Returns a list of customers with customer_type INDIVIDUAL at the specified bank.
+         |
+         |**Date Format:**
+         |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+         |
+         |**Query Parameters:**
+         |- limit: Maximum number of customers to return (optional)
+         |- offset: Number of customers to skip for pagination (optional)
+         |- sort_direction: Sort direction - ASC or DESC (optional)
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerJSONsV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagRetailCustomer, apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getRetailCustomersAtOneBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "retail-customers" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit", "offset", "sort_direction"), cc.callContext)
+            (customers, callContext) <- NewStyle.function.getCustomersByCustomerTypes(bankId, List("INDIVIDUAL"), callContext, requestParams)
+          } yield {
+            (JSONFactory600.createCustomersJson(customers), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getRetailCustomerByCustomerId,
+      implementedInApiVersion,
+      nameOf(getRetailCustomerByCustomerId),
+      "GET",
+      "/banks/BANK_ID/retail-customers/CUSTOMER_ID",
+      "Get Retail Customer by CUSTOMER_ID",
+      s"""Gets the Retail Customer specified by CUSTOMER_ID.
+         |
+         |Returns 404 if the customer exists but is not of type INDIVIDUAL.
+         |Use the generic /customers/CUSTOMER_ID endpoint for any customer type.
+         |
+         |**Date Format:**
+         |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerWithAttributesJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        CustomerTypeMismatch,
+        UnknownError
+      ),
+      List(apiTagRetailCustomer, apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getRetailCustomerByCustomerId: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "retail-customers" :: customerId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
+              customer.customerType == "INDIVIDUAL"
+            }
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customerId),
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory600.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // Corporate Customer Endpoints
+
+    staticResourceDocs += ResourceDoc(
+      createCorporateCustomer,
+      implementedInApiVersion,
+      nameOf(createCorporateCustomer),
+      "POST",
+      "/banks/BANK_ID/corporate-customers",
+      "Create Corporate Customer",
+      s"""Create a corporate customer.
+         |
+         |This endpoint is specifically for creating corporate customers.
+         |Individual-oriented fields (relationship_status, dependants, highest_education_attained, employment_status, name_suffix, date_of_birth, face_image, title) are not available on this endpoint.
+         |
+         |**Required Fields:**
+         |- legal_name: The corporate entity's legal name
+         |- mobile_phone_number: The corporate entity's phone number
+         |
+         |**Optional Fields:**
+         |- customer_number: If not provided, a random number will be generated
+         |- email, credit_rating, credit_limit, kyc_status, last_ok_date, branch_id
+         |- customer_type: CORPORATE (default) or SUBSIDIARY
+         |- parent_customer_id: For SUBSIDIARY customers, the customer_id of the parent customer
+         |
+         |**Validations:**
+         |- customer_number cannot contain `::::` characters
+         |- customer_number must be unique for the bank
+         |- customer_type must be CORPORATE or SUBSIDIARY
+         |- parent_customer_id must reference an existing customer if provided
+         |
+         |Authentication is Required
+         |""",
+      postCorporateCustomerJsonV600,
+      customerJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        InvalidCustomerType,
+        ParentCustomerNotFound,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
+      List(apiTagCorporateCustomer, apiTagCustomer),
+      Some(List(canCreateCustomer, canCreateCustomerAtAnyBank))
+    )
+    lazy val createCorporateCustomer: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "corporate-customers" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCorporateCustomerJsonV600 ", 400, cc.callContext) {
+              json.extract[PostCorporateCustomerJsonV600]
+            }
+            customerNumber = postedData.customer_number.getOrElse(Random.nextInt(Integer.MAX_VALUE).toString)
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat customer_number can not contain `::::` characters", cc = cc.callContext) {
+              !`checkIfContains::::` (customerNumber)
+            }
+            (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
+            customerType = postedData.customer_type.getOrElse("CORPORATE")
+            _ <- Helper.booleanToFuture(failMsg = InvalidCustomerType + " For corporate customers, must be CORPORATE or SUBSIDIARY.", 400, callContext) {
+              List("CORPORATE", "SUBSIDIARY").contains(customerType)
+            }
+            parentCustomerIdValue = postedData.parent_customer_id.getOrElse("")
+            _ <- if (parentCustomerIdValue.nonEmpty) {
+              NewStyle.function.getCustomerByCustomerId(parentCustomerIdValue, callContext).map(_ => ())
+            } else {
+              Future.successful(())
+            }
+            (customer, callContext) <- NewStyle.function.createCustomerC2(
+              bankId,
+              postedData.legal_name,
+              customerNumber,
+              postedData.mobile_phone_number,
+              postedData.email.getOrElse(""),
+              CustomerFaceImage(null, ""), // not applicable for corporate
+              null, // date_of_birth - not applicable for corporate
+              "", // relationship_status - not applicable for corporate
+              0,  // dependants - not applicable for corporate
+              Nil, // dob_of_dependants - not applicable for corporate
+              "", // highest_education_attained - not applicable for corporate
+              "", // employment_status - not applicable for corporate
+              postedData.kyc_status.getOrElse(false),
+              postedData.last_ok_date.getOrElse(null),
+              postedData.credit_rating.map(i => CreditRating(i.rating, i.source)),
+              postedData.credit_limit.map(i => CreditLimit(i.currency, i.amount)),
+              "", // title - not applicable for corporate
+              postedData.branch_id.getOrElse(""),
+              "", // name_suffix - not applicable for corporate
+              customerType,
+              parentCustomerIdValue,
+              callContext,
+            )
+          } yield {
+            (JSONFactory600.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCorporateCustomersAtOneBank,
+      implementedInApiVersion,
+      nameOf(getCorporateCustomersAtOneBank),
+      "GET",
+      "/banks/BANK_ID/corporate-customers",
+      "Get Corporate Customers at Bank",
+      s"""Get Corporate Customers at Bank.
+         |
+         |Returns a list of customers with customer_type CORPORATE or SUBSIDIARY at the specified bank.
+         |
+         |**Date Format:**
+         |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+         |
+         |**Query Parameters:**
+         |- limit: Maximum number of customers to return (optional)
+         |- offset: Number of customers to skip for pagination (optional)
+         |- sort_direction: Sort direction - ASC or DESC (optional)
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerJSONsV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagCorporateCustomer, apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getCorporateCustomersAtOneBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "corporate-customers" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit", "offset", "sort_direction"), cc.callContext)
+            (customers, callContext) <- NewStyle.function.getCustomersByCustomerTypes(bankId, List("CORPORATE", "SUBSIDIARY"), callContext, requestParams)
+          } yield {
+            (JSONFactory600.createCustomersJson(customers), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCorporateCustomerByCustomerId,
+      implementedInApiVersion,
+      nameOf(getCorporateCustomerByCustomerId),
+      "GET",
+      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID",
+      "Get Corporate Customer by CUSTOMER_ID",
+      s"""Gets the Corporate Customer specified by CUSTOMER_ID.
+         |
+         |Returns 404 if the customer exists but is not of type CORPORATE or SUBSIDIARY.
+         |Use the generic /customers/CUSTOMER_ID endpoint for any customer type.
+         |
+         |**Date Format:**
+         |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerWithAttributesJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        CustomerTypeMismatch,
+        UnknownError
+      ),
+      List(apiTagCorporateCustomer, apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getCorporateCustomerByCustomerId: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "corporate-customers" :: customerId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
+              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+            }
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customerId),
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory600.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCorporateCustomerSubsidiaries,
+      implementedInApiVersion,
+      nameOf(getCorporateCustomerSubsidiaries),
+      "GET",
+      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries",
+      "Get Corporate Customer Subsidiaries",
+      s"""Get the subsidiary customers of a corporate customer.
+         |
+         |Returns a list of customers whose parent_customer_id matches the specified CUSTOMER_ID.
+         |The specified customer must be of type CORPORATE or SUBSIDIARY.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      customerJSONsV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        CustomerTypeMismatch,
+        UnknownError
+      ),
+      List(apiTagCorporateCustomer, apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank))
+    )
+    lazy val getCorporateCustomerSubsidiaries: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "corporate-customers" :: customerId :: "subsidiaries" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
+              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+            }
+            (children, callContext) <- NewStyle.function.getCustomersByParentCustomerId(bankId, customerId, callContext)
+          } yield {
+            (JSONFactory600.createCustomersJson(children), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4944,15 +5445,22 @@ trait APIMethods600 {
             val user: code.model.dataAccess.AuthUser = authUser
 
             // Generate new reset token
-            // Reset the unique ID token by generating a new random value (32 chars, no hyphens)
             user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
             user.save
 
+            // Create a JWT token with the uniqueId as subject and configurable expiry
+            val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
+            val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+              .subject(user.uniqueId.get)
+              .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+              .issueTime(new java.util.Date())
+              .build()
+            val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+
             // Construct reset URL using portal_hostname
-            // Get the unique ID value for the reset token URL
             val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
               "/user_mgt/reset_password/" +
-              java.net.URLEncoder.encode(user.uniqueId.get, "UTF-8")
+              java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
             // Send email using CommonsEmailWrapper (like createUser does)
             val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
@@ -5054,10 +5562,19 @@ trait APIMethods600 {
                 user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
                 user.save
 
+                // Create a JWT token with the uniqueId as subject and configurable expiry
+                val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
+                val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                  .subject(user.uniqueId.get)
+                  .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                  .issueTime(new java.util.Date())
+                  .build()
+                val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+
                 // Construct reset URL
                 val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
                   "/user_mgt/reset_password/" +
-                  java.net.URLEncoder.encode(user.uniqueId.get, "UTF-8")
+                  java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
                 // Send email
                 val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
@@ -5099,12 +5616,15 @@ trait APIMethods600 {
          |Authentication is NOT Required.
          |
          |After requesting a password reset email (via POST /management/user/reset-password-url or
-         |POST /users/password-reset-url), the user receives an email with a reset link containing a token.
+         |POST /users/password-reset-url), the user receives an email with a reset link containing a JWT token.
          |
          |This endpoint accepts that token along with a new password and completes the password reset.
          |
+         |The token is a signed JWT with a configurable expiry (default: 120 minutes).
+         |Configure the expiry with the property: password_reset_token_expiry_minutes
+         |
          |Required fields:
-         |- token: The unique reset token from the password reset email
+         |- token: The JWT reset token from the password reset email
          |- new_password: The new password (must meet strong password requirements)
          |
          |The token is single-use. Once the password is reset, the token is invalidated.
@@ -5152,9 +5672,30 @@ trait APIMethods600 {
             _ <- Helper.booleanToFuture(ErrorMessages.InvalidStrongPasswordFormat, 400, callContext) {
               fullPasswordValidation(postedData.new_password)
             }
-            // Find user by reset token
+            // Verify JWT signature
+            _ <- Helper.booleanToFuture(s"$UnknownError Invalid or expired reset token", 400, callContext) {
+              try {
+                CertificateUtil.verifywtWithHmacProtection(token)
+              } catch {
+                case _: Exception => false
+              }
+            }
+            // Check JWT expiration and extract subject (uniqueId)
+            uniqueId <- NewStyle.function.tryons(
+              s"$UnknownError Invalid or expired reset token",
+              400,
+              callContext
+            ) {
+              val signedJWT = com.nimbusds.jwt.SignedJWT.parse(token)
+              val expiration = signedJWT.getJWTClaimsSet.getExpirationTime
+              if (expiration == null || expiration.before(new java.util.Date())) {
+                throw new Exception("Token has expired")
+              }
+              signedJWT.getJWTClaimsSet.getSubject
+            }
+            // Find user by uniqueId from JWT
             authUserBox <- Future {
-              code.model.dataAccess.AuthUser.findUserByValidationToken(token)
+              code.model.dataAccess.AuthUser.findUserByValidationToken(uniqueId)
             }
             user <- NewStyle.function.tryons(
               s"$UnknownError Invalid or expired reset token",

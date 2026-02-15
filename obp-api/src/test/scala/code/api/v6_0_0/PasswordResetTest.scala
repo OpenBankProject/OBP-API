@@ -29,6 +29,7 @@ import java.util.UUID
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
+import code.api.util.CertificateUtil
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.APIMethods600
@@ -71,6 +72,26 @@ class PasswordResetTest extends V600ServerSetup {
   lazy val postJson = JSONFactory600.PostResetPasswordUrlJsonV600("marko", "marko@tesobe.com", postUserId)
 
   val strongPassword = "StrongP@ssw0rd123!"
+
+  /** Helper to create a JWT token for a given uniqueId with configurable expiry */
+  def createJwtToken(uniqueId: String, expiryMinutes: Int = 120): String = {
+    val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+      .subject(uniqueId)
+      .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+      .issueTime(new java.util.Date())
+      .build()
+    CertificateUtil.jwtWithHmacProtection(claimsSet)
+  }
+
+  /** Helper to create an expired JWT token */
+  def createExpiredJwtToken(uniqueId: String): String = {
+    val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+      .subject(uniqueId)
+      .expirationTime(new java.util.Date(System.currentTimeMillis() - 1000L)) // 1 second in the past
+      .issueTime(new java.util.Date(System.currentTimeMillis() - 60000L))
+      .build()
+    CertificateUtil.jwtWithHmacProtection(claimsSet)
+  }
 
   // ==========================================
   // Authenticated endpoint: POST /management/user/reset-password-url
@@ -229,7 +250,7 @@ class PasswordResetTest extends V600ServerSetup {
   // ==========================================
 
   feature("Complete password reset v6.0.0") {
-    scenario("Successfully reset password with valid token and strong password", ApiEndpoint3, VersionOfApi) {
+    scenario("Successfully reset password with valid JWT token and strong password", ApiEndpoint3, VersionOfApi) {
       val testUsername = "complete@tesobe.com"
       val testEmail = "complete@tesobe.com"
       val authUser: AuthUser = AuthUser.create
@@ -238,14 +259,15 @@ class PasswordResetTest extends V600ServerSetup {
         .password(strongPassword)
         .validated(true)
         .saveMe()
-      // Set a known token
-      val resetToken = UUID.randomUUID().toString.replace("-", "")
-      authUser.uniqueId.set(resetToken)
+      // Set a known uniqueId and create a JWT containing it
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
       authUser.save
+      val jwtToken = createJwtToken(resetUniqueId)
 
-      When("We complete the password reset with the token")
+      When("We complete the password reset with the JWT token")
       val request600 = (v6_0_0_Request / "users" / "password").POST
-      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(resetToken, "NewStr0ng!Pass123")
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(jwtToken, "NewStr0ng!Pass123")
       val response600 = makePostRequest(request600, write(completeJson))
       Then("We should get a 201")
       response600.code should equal(201)
@@ -256,6 +278,31 @@ class PasswordResetTest extends V600ServerSetup {
       And("The token should be invalidated (using the same token again should fail)")
       val response600Again = makePostRequest(request600, write(completeJson))
       response600Again.code should equal(400)
+
+      // Clean up
+      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+    }
+
+    scenario("Fail to reset password with expired JWT token", ApiEndpoint3, VersionOfApi) {
+      val testUsername = "expired@tesobe.com"
+      val testEmail = "expired@tesobe.com"
+      val authUser: AuthUser = AuthUser.create
+        .email(testEmail)
+        .username(testUsername)
+        .password(strongPassword)
+        .validated(true)
+        .saveMe()
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
+      authUser.save
+      val expiredToken = createExpiredJwtToken(resetUniqueId)
+
+      When("We try to complete a password reset with an expired JWT token")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(expiredToken, strongPassword)
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 400")
+      response600.code should equal(400)
 
       // Clean up
       AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
@@ -288,13 +335,14 @@ class PasswordResetTest extends V600ServerSetup {
         .password(strongPassword)
         .validated(true)
         .saveMe()
-      val resetToken = UUID.randomUUID().toString.replace("-", "")
-      authUser.uniqueId.set(resetToken)
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
       authUser.save
+      val jwtToken = createJwtToken(resetUniqueId)
 
       When("We try to complete a password reset with a weak password")
       val request600 = (v6_0_0_Request / "users" / "password").POST
-      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(resetToken, "weak")
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(jwtToken, "weak")
       val response600 = makePostRequest(request600, write(completeJson))
       Then("We should get a 400")
       response600.code should equal(400)
@@ -340,11 +388,12 @@ class PasswordResetTest extends V600ServerSetup {
       val resetUrl = (resetUrlResponse.body \ "reset_password_url").extract[String]
       resetUrl should include("/user_mgt/reset_password/")
 
-      And("We extract the token from the URL")
-      val token = resetUrl.split("/user_mgt/reset_password/").last
+      And("We extract the JWT token from the URL (URL-decoded)")
+      val encodedToken = resetUrl.split("/user_mgt/reset_password/").last
+      val token = java.net.URLDecoder.decode(encodedToken, "UTF-8")
       token.length should be > 0
 
-      When("We complete the password reset with the token")
+      When("We complete the password reset with the JWT token")
       val completeRequest = (v6_0_0_Request / "users" / "password").POST
       val newPassword = "BrandNew!Pass999"
       val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(token, newPassword)

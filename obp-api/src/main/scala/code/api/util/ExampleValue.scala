@@ -99,6 +99,12 @@ object ExampleValue {
   lazy val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
   glossaryItems += makeGlossaryItem("Customer.nameSuffix", nameSuffixExample)
 
+  lazy val customerTypeExample = ConnectorField("INDIVIDUAL", "Type of customer: INDIVIDUAL, CORPORATE, or SUBSIDIARY")
+  glossaryItems += makeGlossaryItem("Customer.customerType", customerTypeExample)
+
+  lazy val parentCustomerIdExample = ConnectorField("", "The customer_id of the parent customer in a corporate hierarchy, empty if none")
+  glossaryItems += makeGlossaryItem("Customer.parentCustomerId", parentCustomerIdExample)
+
   lazy val titleExample = ConnectorField("Dr.", s"title of the name")
   glossaryItems += makeGlossaryItem("Customer.title", titleExample)
   

@@ -4657,6 +4657,8 @@ trait APIMethods310 {
               Some(putData.title),
               None,
               Some(putData.name_suffix),
+              None,
+              None,
               callContext
             )
           } yield {
@@ -5305,6 +5307,8 @@ trait APIMethods310 {
               None,
               Some(putData.branch_id),
               None,
+              None,
+              None,
               callContext
             )
           } yield {
@@ -5358,6 +5362,8 @@ trait APIMethods310 {
               Some(putData.dependants),
               Some(putData.highest_education_attained),
               Some(putData.employment_status),
+              None,
+              None,
               None,
               None,
               None,
