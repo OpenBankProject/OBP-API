@@ -1961,19 +1961,40 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         // Build HATEOAS-style links for this dynamic entity
         val entityName = entity.entityName
         val idPlaceholder = StringHelpers.snakify(entityName + "Id").toUpperCase()
-        val baseUrl = entity.bankId match {
-          case Some(bankId) => s"/obp/${ApiVersion.v6_0_0}/banks/$bankId/my/$entityName"
-          case None => s"/obp/${ApiVersion.v6_0_0}/my/$entityName"
+        val bankPrefix = entity.bankId match {
+          case Some(bankId) => s"/obp/${ApiVersion.`dynamic-entity`}/banks/$bankId"
+          case None => s"/obp/${ApiVersion.`dynamic-entity`}"
         }
 
-        val links = DynamicEntityLinksJsonV600(
-          related = List(
-            RelatedLinkJsonV600("list", baseUrl, "GET"),
-            RelatedLinkJsonV600("create", baseUrl, "POST"),
-            RelatedLinkJsonV600("read", s"$baseUrl/$idPlaceholder", "GET"),
-            RelatedLinkJsonV600("update", s"$baseUrl/$idPlaceholder", "PUT"),
-            RelatedLinkJsonV600("delete", s"$baseUrl/$idPlaceholder", "DELETE")
+        val personalLinks = if (entity.hasPersonalEntity) {
+          val baseUrl = s"$bankPrefix/my/$entityName"
+          List(
+            RelatedLinkJsonV600("personal-list", baseUrl, "GET"),
+            RelatedLinkJsonV600("personal-create", baseUrl, "POST"),
+            RelatedLinkJsonV600("personal-read", s"$baseUrl/$idPlaceholder", "GET"),
+            RelatedLinkJsonV600("personal-update", s"$baseUrl/$idPlaceholder", "PUT"),
+            RelatedLinkJsonV600("personal-delete", s"$baseUrl/$idPlaceholder", "DELETE")
           )
+        } else Nil
+
+        val publicLinks = if (entity.hasPublicAccess) {
+          val baseUrl = s"$bankPrefix/public/$entityName"
+          List(
+            RelatedLinkJsonV600("public-list", baseUrl, "GET"),
+            RelatedLinkJsonV600("public-read", s"$baseUrl/$idPlaceholder", "GET")
+          )
+        } else Nil
+
+        val communityLinks = if (entity.hasCommunityAccess) {
+          val baseUrl = s"$bankPrefix/community/$entityName"
+          List(
+            RelatedLinkJsonV600("community-list", baseUrl, "GET"),
+            RelatedLinkJsonV600("community-read", s"$baseUrl/$idPlaceholder", "GET")
+          )
+        } else Nil
+
+        val links = DynamicEntityLinksJsonV600(
+          related = personalLinks ++ publicLinks ++ communityLinks
         )
 
         DynamicEntityDefinitionJsonV600(
