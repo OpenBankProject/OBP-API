@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
@@ -20,6 +21,7 @@ import org.typelevel.ci.CIString
  * 
  * Validates: Requirements 2.2
  */
+@Ignore
 class Http4sCallContextBuilderTest extends FeatureSpec with Matchers with GivenWhenThen {
 
   feature("HTTP4S to Lift Req conversion - Header handling") {

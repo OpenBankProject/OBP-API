@@ -49,7 +49,6 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       DynamicData.find(
         By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.UserId, userId.getOrElse(null)),
         By(DynamicData.IsPersonalEntity, false),
         NullRef(DynamicData.BankId)
       ) match {

@@ -2,17 +2,11 @@ package code.api.dynamic.entity
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
-import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
-import code.api.dynamic.endpoint.helper.MockResponseHolder
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.endpointMapping.EndpointMappingCommons
-import com.openbankproject.commons.model.enums.TransactionRequestTypes._
-import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -28,7 +22,6 @@ import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
@@ -212,7 +205,8 @@ trait APIMethodsDynamicEntity {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId),  isPersonalEntity, Some(cc))
+          // Pass userId for all authenticated requests - personal records are filtered by userId
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)

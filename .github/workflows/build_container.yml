@@ -68,7 +68,7 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
-          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1024M" mvn clean package -Pprod 2>&1 | tee maven-build.log
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -T 4 -Pprod > maven-build.log 2>&1
 
       - name: Report failing tests (if any)
         if: always()
