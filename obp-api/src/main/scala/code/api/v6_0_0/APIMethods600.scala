@@ -8651,7 +8651,6 @@ trait APIMethods600 {
         for {
           // Get all dynamic entities (system and bank level)
           allDynamicEntities <- Future(
-            NewStyle.function.getDynamicEntities(None, false) ++
             NewStyle.function.getDynamicEntities(None, true)
           )
         } yield {
