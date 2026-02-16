@@ -2,17 +2,11 @@ package code.api.dynamic.entity
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
-import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
-import code.api.dynamic.endpoint.helper.MockResponseHolder
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.endpointMapping.EndpointMappingCommons
-import com.openbankproject.commons.model.enums.TransactionRequestTypes._
-import com.openbankproject.commons.model.enums.PaymentServiceTypes._
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
@@ -28,7 +22,6 @@ import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
@@ -128,7 +121,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
-            Some(u.userId),
+            if(isPersonalEntity) Some(u.userId) else None,
             isPersonalEntity,
             Some(cc)
           )
@@ -212,7 +205,9 @@ trait APIMethodsDynamicEntity {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId),  isPersonalEntity, Some(cc))
+          // For non-personal entities, pass None for userId to create system-level records
+          // For personal entities, pass Some(u.userId) to create user-specific records
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, if(isPersonalEntity) Some(u.userId) else None, isPersonalEntity, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -272,7 +267,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None,
-            Some(u.userId),
+            if(isPersonalEntity) Some(u.userId) else None,
             isPersonalEntity,
             Some(cc))
           _ <- Helper.booleanToFuture(
@@ -283,7 +278,7 @@ trait APIMethodsDynamicEntity {
             box.isDefined
           }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None,
-            Some(u.userId),
+            if(isPersonalEntity) Some(u.userId) else None,
             isPersonalEntity,
             Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
@@ -345,7 +340,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None,
-            Some(u.userId),
+            if(isPersonalEntity) Some(u.userId) else None,
             isPersonalEntity,
             Some(cc)
           )
@@ -357,7 +352,7 @@ trait APIMethodsDynamicEntity {
             box.isDefined
           }
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None,
-            Some(u.userId),
+            if(isPersonalEntity) Some(u.userId) else None,
             isPersonalEntity,
             Some(cc)
           )
