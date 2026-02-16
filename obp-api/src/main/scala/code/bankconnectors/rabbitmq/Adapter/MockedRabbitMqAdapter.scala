@@ -1745,7 +1745,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
         }
       } else if (obpMessageId.contains("update_customer_general_data")) {
         val outBound = json.parse(message).extract[OutBoundUpdateCustomerGeneralData]
-        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.updateCustomerGeneralData(outBound.customerId,outBound.legalName,outBound.faceImage,outBound.dateOfBirth,outBound.relationshipStatus,outBound.dependents,outBound.highestEducationAttained,outBound.employmentStatus,outBound.title,outBound.branchId,outBound.nameSuffix,None).map(_._1.head)
+        val obpMappedResponse = code.bankconnectors.LocalMappedConnector.updateCustomerGeneralData(outBound.customerId,outBound.legalName,outBound.faceImage,outBound.dateOfBirth,outBound.relationshipStatus,outBound.dependents,outBound.highestEducationAttained,outBound.employmentStatus,outBound.title,outBound.branchId,outBound.nameSuffix,None,None,None).map(_._1.head)
         
         obpMappedResponse.map(response => InBoundUpdateCustomerGeneralData(          
           

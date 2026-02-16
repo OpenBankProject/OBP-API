@@ -156,9 +156,11 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
                            lastOkDate: Date,
                            creditRating: Option[CreditRatingTrait],
                            creditLimit: Option[AmountOfMoneyTrait],
-                           title: String,     
-                           branchId: String,  
-                           nameSuffix: String 
+                           title: String,
+                           branchId: String,
+                           nameSuffix: String,
+                           customerType: String = "",
+                           parentCustomerId: String = ""
                           ) : Box[Customer] = {
 
     val cr = creditRating match {
@@ -196,6 +198,8 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         .mTitle(title)
         .mBranchId(branchId)
         .mNameSuffix(nameSuffix)
+        .mCustomerType(customerType)
+        .mParentCustomerId(parentCustomerId)
         .mIsPendingAgent(true)
         .mIsConfirmedAgent(false)
         .saveMe()
@@ -264,6 +268,8 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
                                          title: Option[String],
                                          branchId: Option[String],
                                          nameSuffix: Option[String],
+                                         customerType: Option[String] = None,
+                                         parentCustomerId: Option[String] = None,
                                         ): Future[Box[Customer]] = Future {
     MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId)
@@ -311,8 +317,28 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
           case Some(nameSuffix) => c.mNameSuffix(nameSuffix)
           case _ => // There is no update
         }
+        customerType match {
+          case Some(customerType) => c.mCustomerType(customerType)
+          case _ => // There is no update
+        }
+        parentCustomerId match {
+          case Some(parentCustomerId) => c.mParentCustomerId(parentCustomerId)
+          case _ => // There is no update
+        }
         c.saveMe()
     }
+  }
+
+  override def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String): Future[Box[List[Customer]]] = Future {
+    Full(MappedCustomer.findAll(
+      By(MappedCustomer.mBank, bankId.value),
+      By(MappedCustomer.mParentCustomerId, parentCustomerId)
+    ))
+  }
+
+  override def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
+    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value), ByList(MappedCustomer.mCustomerType, customerTypes)) ++ getOptionalParams(queryParams)
+    Full(MappedCustomer.findAll(mapperParams: _*))
   }
 
   override def bulkDeleteCustomers(): Boolean = {
@@ -364,6 +390,12 @@ class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCust
   object mTitle extends MappedString(this, 255)
   object mBranchId extends MappedString(this, 255)
   object mNameSuffix extends MappedString(this, 255)
+  object mCustomerType extends MappedString(this, 50) {
+    override def defaultValue = "INDIVIDUAL"
+  }
+  object mParentCustomerId extends MappedString(this, 255) {
+    override def defaultValue = ""
+  }
   object mIsPendingAgent extends MappedBoolean(this){
     override def defaultValue = true
   }
@@ -403,6 +435,8 @@ class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCust
   override def title: String = mTitle.get
   override def branchId: String = mBranchId.get
   override def nameSuffix: String = mNameSuffix.get
+  override def customerType: String = mCustomerType.get
+  override def parentCustomerId: String = mParentCustomerId.get
 
   override def isConfirmedAgent: Boolean = mIsConfirmedAgent.get //This is for Agent
 

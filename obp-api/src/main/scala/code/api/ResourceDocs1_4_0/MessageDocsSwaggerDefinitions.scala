@@ -193,7 +193,9 @@ object MessageDocsSwaggerDefinitions
     lastOkDate = DateWithDayExampleObject,
     title =titleExample.value,
     branchId = branchIdExample.value,
-    nameSuffix = nameSuffixExample.value
+    nameSuffix = nameSuffixExample.value,
+    customerType = "",
+    parentCustomerId = ""
   )
 
   val customerAttribute = CustomerAttributeCommons(

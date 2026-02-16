@@ -561,6 +561,10 @@ object ErrorMessages {
   val InvalidAccountNumber = "OBP-30270: Account not found. Please specify a valid value for ACCOUNT_NUMBER."
   val BankAccountNotFoundByRoutings = "OBP-30271: Bank Account not found. Please specify valid values for routing schemes and addresses."
 
+  val InvalidCustomerType = "OBP-30272: Invalid customer_type. Must be one of: INDIVIDUAL, CORPORATE, SUBSIDIARY."
+  val ParentCustomerNotFound = "OBP-30273: Parent customer not found. The parent_customer_id must reference an existing customer at the same bank."
+  val CustomerTypeMismatch = "OBP-30274: Customer type does not match the endpoint. Use the generic /customers endpoint or the correct type-specific endpoint."
+
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
   val AccountApplicationNotFound = "OBP-30311: AccountApplication not found by ACCOUNT_APPLICATION_ID. "
@@ -753,7 +757,7 @@ object ErrorMessages {
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
   val RefreshUserError = "OBP-50014: Can not refresh User."
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
-  val NotAllowedEndpoint = "OBP-50017: The endpoint is forbidden at this API instance."
+  val NotAllowedEndpoint = "OBP-50017: The endpoint is not enabled at this OBP API instance."
   val UnderConstructionError = "OBP-50018: Under Construction Error."
   val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
 

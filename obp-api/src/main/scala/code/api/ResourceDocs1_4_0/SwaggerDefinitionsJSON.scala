@@ -2561,9 +2561,48 @@ object SwaggerDefinitionsJSON {
       last_ok_date = Some(oneYearAgoDate),
       title  = Some(ExampleValue.titleExample.value),
       branch_id = Some(ExampleValue.branchIdExample.value),
+      name_suffix = Some(ExampleValue.nameSuffixExample.value),
+      customer_type = Some(ExampleValue.customerTypeExample.value),
+      parent_customer_id = None
+    )
+
+  lazy val postRetailCustomerJsonV600 =
+    PostRetailCustomerJsonV600(
+      legal_name = ExampleValue.legalNameExample.value,
+      customer_number = Some(ExampleValue.customerNumberExample.value),
+      mobile_phone_number = ExampleValue.mobilePhoneNumberExample.value,
+      email = Some(ExampleValue.emailExample.value),
+      face_image = Some(customerFaceImageJson),
+      date_of_birth = Some("1990-05-15"),
+      relationship_status = Some(ExampleValue.relationshipStatusExample.value),
+      dependants = Some(ExampleValue.dependantsExample.value.toInt),
+      dob_of_dependants = Some(List("2015-03-20", "2018-07-10")),
+      credit_rating = Some(customerCreditRatingJSON),
+      credit_limit = Some(amountOfMoneyJsonV121),
+      highest_education_attained = Some(ExampleValue.highestEducationAttainedExample.value),
+      employment_status = Some(ExampleValue.employmentStatusExample.value),
+      kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
+      last_ok_date = Some(oneYearAgoDate),
+      title = Some(ExampleValue.titleExample.value),
+      branch_id = Some(ExampleValue.branchIdExample.value),
       name_suffix = Some(ExampleValue.nameSuffixExample.value)
     )
-  
+
+  lazy val postCorporateCustomerJsonV600 =
+    PostCorporateCustomerJsonV600(
+      legal_name = ExampleValue.legalNameExample.value,
+      customer_number = Some(ExampleValue.customerNumberExample.value),
+      mobile_phone_number = ExampleValue.mobilePhoneNumberExample.value,
+      email = Some(ExampleValue.emailExample.value),
+      credit_rating = Some(customerCreditRatingJSON),
+      credit_limit = Some(amountOfMoneyJsonV121),
+      kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
+      last_ok_date = Some(oneYearAgoDate),
+      branch_id = Some(ExampleValue.branchIdExample.value),
+      customer_type = Some("CORPORATE"),
+      parent_customer_id = None
+    )
+
   lazy val customerJsonV600 = CustomerJsonV600(
     bank_id = bankIdExample.value,
     customer_id = ExampleValue.customerIdExample.value,
@@ -2584,7 +2623,9 @@ object SwaggerDefinitionsJSON {
     last_ok_date = oneYearAgoDate,
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
-    name_suffix = ExampleValue.nameSuffixExample.value
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_type = ExampleValue.customerTypeExample.value,
+    parent_customer_id = ExampleValue.parentCustomerIdExample.value
   )
 
   lazy val customerJSONsV600 = CustomerJSONsV600(List(customerJsonV600))
@@ -2626,6 +2667,8 @@ object SwaggerDefinitionsJSON {
     migration_script_logs = List(migrationScriptLogJsonV600)
   )
 
+  lazy val customerChildrenJsonV600 = CustomerJSONsV600(List(customerJsonV600))
+
   lazy val customerWithAttributesJsonV600 = CustomerWithAttributesJsonV600(
     bank_id = bankIdExample.value,
     customer_id = ExampleValue.customerIdExample.value,
@@ -2647,6 +2690,8 @@ object SwaggerDefinitionsJSON {
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_type = ExampleValue.customerTypeExample.value,
+    parent_customer_id = ExampleValue.parentCustomerIdExample.value,
     customer_attributes = List(customerAttributeResponseJson)
   )
 

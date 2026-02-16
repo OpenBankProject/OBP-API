@@ -167,7 +167,9 @@ case class CustomerCommons(
                             lastOkDate :Date,
                             title :String,
                             branchId :String,
-                            nameSuffix :String) extends Customer
+                            nameSuffix :String,
+                            customerType :String = "INDIVIDUAL",
+                            parentCustomerId :String = "") extends Customer
 
 object CustomerCommons extends Converter[Customer, CustomerCommons]
 

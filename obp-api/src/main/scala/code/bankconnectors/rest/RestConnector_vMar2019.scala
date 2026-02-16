@@ -4463,7 +4463,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4514,7 +4516,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4566,7 +4570,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4598,7 +4604,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       employmentStatus=Some(employmentStatusExample.value),
       title=Some(titleExample.value),
       branchId=Some(branchIdExample.value),
-      nameSuffix=Some(nameSuffixExample.value))
+      nameSuffix=Some(nameSuffixExample.value),
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundUpdateCustomerGeneralData(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4625,14 +4633,16 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
+  override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], customerType: Option[String] = None, parentCustomerId: Option[String] = None, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{InBoundUpdateCustomerGeneralData => InBound, OutBoundUpdateCustomerGeneralData => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix, customerType, parentCustomerId)
         val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "updateCustomerGeneralData"), HttpMethods.POST, req, callContext)
         response.map(convertToTuple[CustomerCommons](callContext))        
   }
@@ -4673,7 +4683,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId="")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4721,7 +4733,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4770,7 +4784,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId=""))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5068,7 +5084,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId="")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5117,7 +5135,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId="")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5820,7 +5840,9 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)))
+      nameSuffix=nameSuffixExample.value,
+      customerType="",
+      parentCustomerId="")))
     ),
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,

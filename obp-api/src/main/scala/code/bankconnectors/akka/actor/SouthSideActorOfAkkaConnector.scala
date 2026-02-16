@@ -128,7 +128,9 @@ object Transformer {
       lastOkDate = customer.lastOkDate,
       title = customer.title,
       branchId = customer.branchId,
-      nameSuffix = customer.nameSuffix
+      nameSuffix = customer.nameSuffix,
+      customerType = customer.customerType,
+      parentCustomerId = customer.parentCustomerId
     )
   }
   

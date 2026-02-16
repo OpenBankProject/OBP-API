@@ -1135,6 +1135,8 @@ trait Connector extends MdcLoggable {
                         title: String,
                         branchId: String,
                         nameSuffix: String,
+                        customerType: String = "",
+                        parentCustomerId: String = "",
                         callContext: Option[CallContext],
                       ): OBPReturnType[Box[Customer]] = Future{(Failure(setUnimplementedError(nameOf(createCustomerC2 _))), callContext)}
 
@@ -1198,9 +1200,21 @@ trait Connector extends MdcLoggable {
                                 title: Option[String],
                                 branchId: Option[String],
                                 nameSuffix: Option[String],
+                                customerType: Option[String] = None,
+                                parentCustomerId: Option[String] = None,
                                 callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
     Future {
       (Failure(setUnimplementedError(nameOf(updateCustomerGeneralData _))), callContext)
+    }
+
+  def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[Customer]]] =
+    Future {
+      (Failure(setUnimplementedError(nameOf(getCustomersByParentCustomerId _))), callContext)
+    }
+
+  def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): OBPReturnType[Box[List[Customer]]] =
+    Future {
+      (Failure(setUnimplementedError(nameOf(getCustomersByCustomerTypes _))), callContext)
     }
 
   def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(setUnimplementedError(nameOf(getCustomersByUserId _)))}

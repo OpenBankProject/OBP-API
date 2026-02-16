@@ -2691,7 +2691,9 @@ object NewStyle extends MdcLoggable{
                         title: String,
                         branchId: String,
                         nameSuffix: String,
-                        callContext: Option[CallContext]): OBPReturnType[Customer] = 
+                        customerType: String = "",
+                        parentCustomerId: String = "",
+                        callContext: Option[CallContext]): OBPReturnType[Customer] =
       Connector.connector.vend.createCustomerC2(
         bankId: BankId,
         legalName: String,
@@ -2713,6 +2715,8 @@ object NewStyle extends MdcLoggable{
         title: String,
         branchId: String,
         nameSuffix: String,
+        customerType: String,
+        parentCustomerId: String,
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
@@ -2806,6 +2810,8 @@ object NewStyle extends MdcLoggable{
                                   title: Option[String] = None,
                                   branchId: Option[String] = None,
                                   nameSuffix: Option[String] = None,
+                                  customerType: Option[String] = None,
+                                  parentCustomerId: Option[String] = None,
                                   callContext: Option[CallContext]): OBPReturnType[Customer] =
       Connector.connector.vend.updateCustomerGeneralData(
         customerId,
@@ -2819,8 +2825,20 @@ object NewStyle extends MdcLoggable{
         title,
         branchId,
         nameSuffix,
+        customerType,
+        parentCustomerId,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+
+    def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String, callContext: Option[CallContext]): OBPReturnType[List[Customer]] =
+      Connector.connector.vend.getCustomersByParentCustomerId(bankId, parentCustomerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CustomerNotFound Current BANK_ID(${bankId.value}) and PARENT_CUSTOMER_ID($parentCustomerId)"), i._2)
+      }
+
+    def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[List[Customer]] =
+      Connector.connector.vend.getCustomersByCustomerTypes(bankId, customerTypes, callContext, queryParams) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
 
     def createPhysicalCard(

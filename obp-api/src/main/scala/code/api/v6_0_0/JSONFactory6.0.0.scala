@@ -474,7 +474,44 @@ case class PostCustomerJsonV600(
     last_ok_date: Option[Date] = None,
     title: Option[String] = None,
     branch_id: Option[String] = None,
+    name_suffix: Option[String] = None,
+    customer_type: Option[String] = None,
+    parent_customer_id: Option[String] = None
+)
+
+case class PostRetailCustomerJsonV600(
+    legal_name: String,
+    customer_number: Option[String] = None,
+    mobile_phone_number: String,
+    email: Option[String] = None,
+    face_image: Option[CustomerFaceImageJson] = None,
+    date_of_birth: Option[String] = None,
+    relationship_status: Option[String] = None,
+    dependants: Option[Int] = None,
+    dob_of_dependants: Option[List[String]] = None,
+    credit_rating: Option[CustomerCreditRatingJSON] = None,
+    credit_limit: Option[AmountOfMoneyJsonV121] = None,
+    highest_education_attained: Option[String] = None,
+    employment_status: Option[String] = None,
+    kyc_status: Option[Boolean] = None,
+    last_ok_date: Option[Date] = None,
+    title: Option[String] = None,
+    branch_id: Option[String] = None,
     name_suffix: Option[String] = None
+)
+
+case class PostCorporateCustomerJsonV600(
+    legal_name: String,
+    customer_number: Option[String] = None,
+    mobile_phone_number: String,
+    email: Option[String] = None,
+    credit_rating: Option[CustomerCreditRatingJSON] = None,
+    credit_limit: Option[AmountOfMoneyJsonV121] = None,
+    kyc_status: Option[Boolean] = None,
+    last_ok_date: Option[Date] = None,
+    branch_id: Option[String] = None,
+    customer_type: Option[String] = None,
+    parent_customer_id: Option[String] = None
 )
 
 case class CustomerJsonV600(
@@ -497,7 +534,9 @@ case class CustomerJsonV600(
     last_ok_date: Date,
     title: String,
     branch_id: String,
-    name_suffix: String
+    name_suffix: String,
+    customer_type: String,
+    parent_customer_id: String
 )
 
 case class CustomerJSONsV600(customers: List[CustomerJsonV600])
@@ -523,6 +562,8 @@ case class CustomerWithAttributesJsonV600(
     title: String,
     branch_id: String,
     name_suffix: String,
+    customer_type: String,
+    parent_customer_id: String,
     customer_attributes: List[CustomerAttributeResponseJsonV300]
 )
 
@@ -704,7 +745,8 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
-    record_count: Long
+    record_count: Long,
+    _links: Option[DynamicEntityLinksJsonV600] = None
 )
 
 case class DynamicEntitiesWithCountJsonV600(
@@ -1267,7 +1309,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_ok_date = cInfo.lastOkDate,
       title = cInfo.title,
       branch_id = cInfo.branchId,
-      name_suffix = cInfo.nameSuffix
+      name_suffix = cInfo.nameSuffix,
+      customer_type = cInfo.customerType,
+      parent_customer_id = cInfo.parentCustomerId
     )
   }
 
@@ -1318,6 +1362,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       title = cInfo.title,
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
+      customer_type = cInfo.customerType,
+      parent_customer_id = cInfo.parentCustomerId,
       customer_attributes = customerAttributes.map(customerAttribute =>
         CustomerAttributeResponseJsonV300(
           customer_attribute_id = customerAttribute.customerAttributeId,
@@ -1491,6 +1537,20 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   )
 
   case class ResetPasswordUrlJsonV600(reset_password_url: String)
+
+  case class PostResetPasswordUrlAnonymousJsonV600(
+      username: String,
+      email: String
+  )
+
+  case class ResetPasswordUrlAnonymousResponseJsonV600(message: String)
+
+  case class PostResetPasswordCompleteJsonV600(
+      token: String,
+      new_password: String
+  )
+
+  case class ResetPasswordCompleteResponseJsonV600(message: String)
 
   case class ScannedApiVersionJsonV600(
       url_prefix: String,
@@ -1874,6 +1934,46 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    *   ]
    * }
    */
+  private def buildDynamicEntityLinks(entity: code.dynamicEntity.DynamicEntityCommons): DynamicEntityLinksJsonV600 = {
+    val entityName = entity.entityName
+    val idPlaceholder = net.liftweb.util.StringHelpers.snakify(entityName + "Id").toUpperCase()
+    val bankPrefix = entity.bankId match {
+      case Some(bankId) => s"/obp/${ApiVersion.`dynamic-entity`}/banks/$bankId"
+      case None => s"/obp/${ApiVersion.`dynamic-entity`}"
+    }
+
+    val personalLinks = if (entity.hasPersonalEntity) {
+      val baseUrl = s"$bankPrefix/my/$entityName"
+      List(
+        RelatedLinkJsonV600("personal-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("personal-create", baseUrl, "POST"),
+        RelatedLinkJsonV600("personal-read", s"$baseUrl/$idPlaceholder", "GET"),
+        RelatedLinkJsonV600("personal-update", s"$baseUrl/$idPlaceholder", "PUT"),
+        RelatedLinkJsonV600("personal-delete", s"$baseUrl/$idPlaceholder", "DELETE")
+      )
+    } else Nil
+
+    val publicLinks = if (entity.hasPublicAccess) {
+      val baseUrl = s"$bankPrefix/public/$entityName"
+      List(
+        RelatedLinkJsonV600("public-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("public-read", s"$baseUrl/$idPlaceholder", "GET")
+      )
+    } else Nil
+
+    val communityLinks = if (entity.hasCommunityAccess) {
+      val baseUrl = s"$bankPrefix/community/$entityName"
+      List(
+        RelatedLinkJsonV600("community-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("community-read", s"$baseUrl/$idPlaceholder", "GET")
+      )
+    } else Nil
+
+    DynamicEntityLinksJsonV600(
+      related = personalLinks ++ publicLinks ++ communityLinks
+    )
+  }
+
   def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
     import net.liftweb.json.JsonAST._
     import net.liftweb.json.parse
@@ -1899,23 +1999,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
-        // Build HATEOAS-style links for this dynamic entity
-        val entityName = entity.entityName
-        val idPlaceholder = StringHelpers.snakify(entityName + "Id").toUpperCase()
-        val baseUrl = entity.bankId match {
-          case Some(bankId) => s"/obp/${ApiVersion.v6_0_0}/banks/$bankId/my/$entityName"
-          case None => s"/obp/${ApiVersion.v6_0_0}/my/$entityName"
-        }
-
-        val links = DynamicEntityLinksJsonV600(
-          related = List(
-            RelatedLinkJsonV600("list", baseUrl, "GET"),
-            RelatedLinkJsonV600("create", baseUrl, "POST"),
-            RelatedLinkJsonV600("read", s"$baseUrl/$idPlaceholder", "GET"),
-            RelatedLinkJsonV600("update", s"$baseUrl/$idPlaceholder", "PUT"),
-            RelatedLinkJsonV600("delete", s"$baseUrl/$idPlaceholder", "DELETE")
-          )
-        )
+        val links = buildDynamicEntityLinks(entity)
 
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
@@ -1962,6 +2046,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
+        val links = buildDynamicEntityLinks(entity)
+
         DynamicEntityDefinitionWithCountJsonV600(
           dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
           entity_name = entity.entityName,
@@ -1972,7 +2058,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           schema = schema,
-          record_count = recordCount
+          record_count = recordCount,
+          _links = Some(links)
         )
       }
     )

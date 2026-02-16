@@ -3389,6 +3389,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                  title: String,
                                  branchId: String,
                                  nameSuffix: String,
+                                 customerType: String = "",
+                                 parentCustomerId: String = "",
                                  callContext: Option[CallContext]
                                ): OBPReturnType[Box[Customer]] = Future {
     (CustomerX.customerProvider.vend.addCustomer(
@@ -3410,7 +3412,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       creditLimit,
       title,
       branchId,
-      nameSuffix
+      nameSuffix,
+      customerType,
+      parentCustomerId
     ), callContext)
   }
 
@@ -3453,6 +3457,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                          title: Option[String],
                                          branchId: Option[String],
                                          nameSuffix: Option[String],
+                                         customerType: Option[String] = None,
+                                         parentCustomerId: Option[String] = None,
                                          callContext: Option[CallContext]
                                         ): OBPReturnType[Box[Customer]] =
     CustomerX.customerProvider.vend.updateCustomerGeneralData(
@@ -3466,8 +3472,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       employmentStatus,
       title,
       branchId,
-      nameSuffix
+      nameSuffix,
+      customerType,
+      parentCustomerId
     ) map {
+      (_, callContext)
+    }
+
+  override def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[Customer]]] =
+    CustomerX.customerProvider.vend.getCustomersByParentCustomerId(bankId, parentCustomerId) map {
+      (_, callContext)
+    }
+
+  override def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Customer]]] =
+    CustomerX.customerProvider.vend.getCustomersByCustomerTypes(bankId, customerTypes, queryParams) map {
       (_, callContext)
     }
 

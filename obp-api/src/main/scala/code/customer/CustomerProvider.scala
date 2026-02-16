@@ -66,9 +66,11 @@ trait CustomerProvider {
                   lastOkDate: Date,
                   creditRating: Option[CreditRatingTrait],
                   creditLimit: Option[AmountOfMoneyTrait],
-                  title: String,      
-                  branchId: String,   
-                  nameSuffix: String   
+                  title: String,
+                  branchId: String,
+                  nameSuffix: String,
+                  customerType: String = "",
+                  parentCustomerId: String = ""
                  ): Box[Customer]
 
   def updateCustomerScaData(customerId: String, 
@@ -91,9 +93,15 @@ trait CustomerProvider {
                                 employmentStatus: Option[String],
                                 title: Option[String],
                                 branchId: Option[String],
-                                nameSuffix: Option[String]
+                                nameSuffix: Option[String],
+                                customerType: Option[String] = None,
+                                parentCustomerId: Option[String] = None
                                ): Future[Box[Customer]]
   
+  def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String): Future[Box[List[Customer]]]
+
+  def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]]
+
   def bulkDeleteCustomers(): Boolean
   def populateMissingUUIDs(): Boolean
 }

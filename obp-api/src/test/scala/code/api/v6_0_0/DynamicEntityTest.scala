@@ -548,4 +548,112 @@ class DynamicEntityTest extends V600ServerSetup {
     }
   }
 
+
+  feature("v6.0.0 Dynamic Entity _links match resource doc URLs") {
+
+    scenario("_links URLs for personal/public/community must match resource doc URLs", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+
+      // Create entity with all access flags enabled
+      val allFlagsEntity = parse(
+        """
+          |{
+          |    "entity_name": "links_test",
+          |    "has_personal_entity": true,
+          |    "has_public_access": true,
+          |    "has_community_access": true,
+          |    "schema": {
+          |        "description": "Entity to test _links correctness.",
+          |        "required": ["name"],
+          |        "properties": {
+          |            "name": {
+          |                "type": "string",
+          |                "example": "Test"
+          |            }
+          |        }
+          |    }
+          |}
+        """.stripMargin)
+
+      val createRequest = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val createResponse = makePostRequest(createRequest, write(allFlagsEntity))
+      createResponse.code should equal(201)
+
+      val dynamicEntityId = (createResponse.body \ "dynamic_entity_id").extract[String]
+
+      When("We GET available personal dynamic entities")
+      val getRequest = (v6_0_0_Request / "personal-dynamic-entities" / "available").GET <@(user1)
+      val getResponse = makeGetRequest(getRequest)
+      getResponse.code should equal(200)
+
+      val entities = (getResponse.body \ "dynamic_entities").asInstanceOf[JArray].arr
+      val linksTestEntity = entities.find(e => (e \ "entity_name").extract[String] == "links_test")
+      linksTestEntity should not be empty
+
+      val linksJson = linksTestEntity.get \ "_links" \ "related"
+      linksJson shouldBe a[JArray]
+      val links = linksJson.asInstanceOf[JArray].arr
+
+      Then("_links should contain personal, public, and community links")
+      val linkMap = links.map { link =>
+        val rel = (link \ "rel").extract[String]
+        val href = (link \ "href").extract[String]
+        val method = (link \ "method").extract[String]
+        (rel, href, method)
+      }
+
+      And("_links URLs should use the dynamic-entity API version prefix")
+      val dynamicEntityPrefix = s"/obp/${ApiVersion.`dynamic-entity`}"
+      linkMap.foreach { case (_, href, _) =>
+        href should startWith(dynamicEntityPrefix)
+      }
+
+      And("_links should match the resource doc URLs for this entity")
+      import code.api.dynamic.entity.helper.DynamicEntityHelper
+      val resourceDocs = DynamicEntityHelper.operationToResourceDoc
+
+      // Build expected URLs from resource docs
+      val entityName = "links_test"
+      import com.openbankproject.commons.model.enums.DynamicEntityOperation._
+
+      // Personal (My) resource doc URLs
+      val myGetAll = resourceDocs.get((GET_ALL, s"My$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val myCreate = resourceDocs.get((CREATE, s"My$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val myGetOne = resourceDocs.get((GET_ONE, s"My$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val myUpdate = resourceDocs.get((UPDATE, s"My$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val myDelete = resourceDocs.get((DELETE, s"My$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+
+      // Public resource doc URLs
+      val publicGetAll = resourceDocs.get((GET_ALL, s"Public$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val publicGetOne = resourceDocs.get((GET_ONE, s"Public$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+
+      // Community resource doc URLs
+      val communityGetAll = resourceDocs.get((GET_ALL, s"Community$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+      val communityGetOne = resourceDocs.get((GET_ONE, s"Community$entityName")).map(rd => (s"$dynamicEntityPrefix${rd.requestUrl}", rd.requestVerb))
+
+      // Verify personal links match resource docs
+      myGetAll should not be empty
+      linkMap should contain(("personal-list", myGetAll.get._1, myGetAll.get._2))
+      linkMap should contain(("personal-create", myCreate.get._1, myCreate.get._2))
+      linkMap should contain(("personal-read", myGetOne.get._1, myGetOne.get._2))
+      linkMap should contain(("personal-update", myUpdate.get._1, myUpdate.get._2))
+      linkMap should contain(("personal-delete", myDelete.get._1, myDelete.get._2))
+
+      // Verify public links match resource docs
+      publicGetAll should not be empty
+      linkMap should contain(("public-list", publicGetAll.get._1, publicGetAll.get._2))
+      linkMap should contain(("public-read", publicGetOne.get._1, publicGetOne.get._2))
+
+      // Verify community links match resource docs
+      communityGetAll should not be empty
+      linkMap should contain(("community-list", communityGetAll.get._1, communityGetAll.get._2))
+      linkMap should contain(("community-read", communityGetOne.get._1, communityGetOne.get._2))
+
+      // Cleanup
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      val deleteRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest)
+    }
+  }
+
 }

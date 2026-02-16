@@ -29,6 +29,7 @@ import java.util.UUID
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
+import code.api.util.CertificateUtil
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.APIMethods600
@@ -38,22 +39,23 @@ import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.User
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 /**
- * Test suite for Password Reset URL endpoint (POST /obp/v6.0.0/management/user/password-reset)
- * 
- * Tests cover:
- * - Unauthorized access (no authentication)
- * - Missing role (authenticated but no CanCreateResetPasswordUrl)
- * - Successful password reset URL creation (with proper role)
- * - User validation requirements
- * - Email sending functionality
+ * Test suite for v6.0.0 Password Reset flow:
+ * - Authenticated: POST /obp/v6.0.0/management/user/reset-password-url
+ * - Anonymous request: POST /obp/v6.0.0/users/password-reset-url
+ * - Anonymous complete: POST /obp/v6.0.0/users/password
  */
 class PasswordResetTest extends V600ServerSetup {
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    setPropsValues("ResetPasswordUrlEnabled" -> "true")
+  }
 
   override def beforeEach() = {
     wipeTestData()
@@ -62,22 +64,43 @@ class PasswordResetTest extends V600ServerSetup {
     ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
   }
 
-  /**
-    * Test tags
-    * Example: To run tests with tag "getPermissions":
-    * 	mvn test -D tagsToInclude
-    *
-    *  This is made possible by the scalatest maven plugin
-    */
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordUrl))
+  object ApiEndpoint2 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordUrlAnonymous))
+  object ApiEndpoint3 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordComplete))
   lazy val postUserId = UUID.randomUUID.toString
   lazy val postJson = JSONFactory600.PostResetPasswordUrlJsonV600("marko", "marko@tesobe.com", postUserId)
+
+  val strongPassword = "StrongP@ssw0rd123!"
+
+  /** Helper to create a JWT token for a given uniqueId with configurable expiry */
+  def createJwtToken(uniqueId: String, expiryMinutes: Int = 120): String = {
+    val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+      .subject(uniqueId)
+      .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+      .issueTime(new java.util.Date())
+      .build()
+    CertificateUtil.jwtWithHmacProtection(claimsSet)
+  }
+
+  /** Helper to create an expired JWT token */
+  def createExpiredJwtToken(uniqueId: String): String = {
+    val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+      .subject(uniqueId)
+      .expirationTime(new java.util.Date(System.currentTimeMillis() - 1000L)) // 1 second in the past
+      .issueTime(new java.util.Date(System.currentTimeMillis() - 60000L))
+      .build()
+    CertificateUtil.jwtWithHmacProtection(claimsSet)
+  }
+
+  // ==========================================
+  // Authenticated endpoint: POST /management/user/reset-password-url
+  // ==========================================
 
   feature("Reset password url v6.0.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST
       val response600 = makePostRequest(request600, write(postJson))
       Then("We should get a 401")
       response600.code should equal(401)
@@ -89,7 +112,7 @@ class PasswordResetTest extends V600ServerSetup {
   feature("Reset password url v6.0.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without a Role " + canCreateResetPasswordUrl)
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson))
       Then("We should get a 403")
       response600.code should equal(403)
@@ -102,7 +125,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0")
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
       Then("We should get a 201")
       response600.code should equal(201)
@@ -120,7 +143,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(false).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0 with unvalidated user")
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
       val response600 = makePostRequest(request600, write(testJson))
       Then("We should get a 400")
@@ -139,7 +162,7 @@ class PasswordResetTest extends V600ServerSetup {
       val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v6.0.0 with mismatched email")
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, wrongEmail, resourceUser.map(_.userId).getOrElse(""))
       val response600 = makePostRequest(request600, write(testJson))
       Then("We should get a 400")
@@ -153,13 +176,239 @@ class PasswordResetTest extends V600ServerSetup {
     scenario("We will call the endpoint with non-existent user", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       When("We make a request v6.0.0 with non-existent user")
-      val request600 = (v6_0_0_Request / "users" / "password-reset").POST <@(user1)
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val nonExistentJson = JSONFactory600.PostResetPasswordUrlJsonV600("nonexistent@tesobe.com", "nonexistent@tesobe.com", UUID.randomUUID.toString)
       val response600 = makePostRequest(request600, write(nonExistentJson))
       Then("We should get a 400")
       response600.code should equal(400)
       And("error should indicate user not found")
       response600.body.extract[ErrorMessage].message should include("User not found")
+    }
+  }
+
+  // ==========================================
+  // Anonymous request endpoint: POST /users/password-reset-url
+  // ==========================================
+
+  feature("Anonymous password reset url request v6.0.0") {
+    scenario("We will request a password reset for a valid user without authentication", ApiEndpoint2, VersionOfApi) {
+      val testUsername = "anonreset@tesobe.com"
+      val testEmail = "anonreset@tesobe.com"
+      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
+      When("We make an anonymous request to reset password")
+      val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
+      val anonJson = JSONFactory600.PostResetPasswordUrlAnonymousJsonV600(testUsername, testEmail)
+      val response600 = makePostRequest(request600, write(anonJson))
+      Then("We should get a 201")
+      response600.code should equal(201)
+      And("The response should contain a generic message")
+      val message = (response600.body \ "message").extract[String]
+      message should include("If the account exists")
+      // Clean up
+      authUser.delete_!
+    }
+
+    scenario("We will request a password reset for a non-existent user - should still return 201", ApiEndpoint2, VersionOfApi) {
+      When("We make an anonymous request for non-existent user")
+      val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
+      val anonJson = JSONFactory600.PostResetPasswordUrlAnonymousJsonV600("nonexistent@tesobe.com", "nonexistent@tesobe.com")
+      val response600 = makePostRequest(request600, write(anonJson))
+      Then("We should get a 201 to prevent user enumeration")
+      response600.code should equal(201)
+      And("The response should contain the same generic message")
+      val message = (response600.body \ "message").extract[String]
+      message should include("If the account exists")
+    }
+
+    scenario("We will request a password reset with mismatched email - should still return 201", ApiEndpoint2, VersionOfApi) {
+      val testUsername = "anonmismatch@tesobe.com"
+      val testEmail = "anonmismatch@tesobe.com"
+      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
+      When("We make an anonymous request with wrong email")
+      val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
+      val anonJson = JSONFactory600.PostResetPasswordUrlAnonymousJsonV600(testUsername, "wrong@tesobe.com")
+      val response600 = makePostRequest(request600, write(anonJson))
+      Then("We should get a 201 to prevent user enumeration")
+      response600.code should equal(201)
+      val message = (response600.body \ "message").extract[String]
+      message should include("If the account exists")
+      // Clean up
+      authUser.delete_!
+    }
+
+    scenario("We will request a password reset with invalid JSON", ApiEndpoint2, VersionOfApi) {
+      When("We make an anonymous request with invalid JSON")
+      val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
+      val response600 = makePostRequest(request600, "{ invalid json }")
+      Then("We should get a 400")
+      response600.code should equal(400)
+    }
+  }
+
+  // ==========================================
+  // Complete password reset: POST /users/password
+  // ==========================================
+
+  feature("Complete password reset v6.0.0") {
+    scenario("Successfully reset password with valid JWT token and strong password", ApiEndpoint3, VersionOfApi) {
+      val testUsername = "complete@tesobe.com"
+      val testEmail = "complete@tesobe.com"
+      val authUser: AuthUser = AuthUser.create
+        .email(testEmail)
+        .username(testUsername)
+        .password(strongPassword)
+        .validated(true)
+        .saveMe()
+      // Set a known uniqueId and create a JWT containing it
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
+      authUser.save
+      val jwtToken = createJwtToken(resetUniqueId)
+
+      When("We complete the password reset with the JWT token")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(jwtToken, "NewStr0ng!Pass123")
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 201")
+      response600.code should equal(201)
+      And("The response should confirm the reset")
+      val message = (response600.body \ "message").extract[String]
+      message should include("Password has been reset successfully")
+
+      And("The token should be invalidated (using the same token again should fail)")
+      val response600Again = makePostRequest(request600, write(completeJson))
+      response600Again.code should equal(400)
+
+      // Clean up
+      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+    }
+
+    scenario("Fail to reset password with expired JWT token", ApiEndpoint3, VersionOfApi) {
+      val testUsername = "expired@tesobe.com"
+      val testEmail = "expired@tesobe.com"
+      val authUser: AuthUser = AuthUser.create
+        .email(testEmail)
+        .username(testUsername)
+        .password(strongPassword)
+        .validated(true)
+        .saveMe()
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
+      authUser.save
+      val expiredToken = createExpiredJwtToken(resetUniqueId)
+
+      When("We try to complete a password reset with an expired JWT token")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(expiredToken, strongPassword)
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 400")
+      response600.code should equal(400)
+
+      // Clean up
+      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+    }
+
+    scenario("Fail to reset password with invalid token", ApiEndpoint3, VersionOfApi) {
+      When("We try to complete a password reset with a bogus token")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600("bogus_token_12345", strongPassword)
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 400")
+      response600.code should equal(400)
+    }
+
+    scenario("Fail to reset password with empty token", ApiEndpoint3, VersionOfApi) {
+      When("We try to complete a password reset with an empty token")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600("", strongPassword)
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 400")
+      response600.code should equal(400)
+    }
+
+    scenario("Fail to reset password with weak password", ApiEndpoint3, VersionOfApi) {
+      val testUsername = "weakpw@tesobe.com"
+      val testEmail = "weakpw@tesobe.com"
+      val authUser: AuthUser = AuthUser.create
+        .email(testEmail)
+        .username(testUsername)
+        .password(strongPassword)
+        .validated(true)
+        .saveMe()
+      val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
+      authUser.uniqueId.set(resetUniqueId)
+      authUser.save
+      val jwtToken = createJwtToken(resetUniqueId)
+
+      When("We try to complete a password reset with a weak password")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(jwtToken, "weak")
+      val response600 = makePostRequest(request600, write(completeJson))
+      Then("We should get a 400")
+      response600.code should equal(400)
+      And("The error should indicate invalid password format")
+      response600.body.extract[ErrorMessage].message should include(InvalidStrongPasswordFormat)
+
+      // Clean up
+      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+    }
+
+    scenario("Fail to reset password with invalid JSON", ApiEndpoint3, VersionOfApi) {
+      When("We send invalid JSON")
+      val request600 = (v6_0_0_Request / "users" / "password").POST
+      val response600 = makePostRequest(request600, "{ invalid json }")
+      Then("We should get a 400")
+      response600.code should equal(400)
+    }
+  }
+
+  // ==========================================
+  // Full flow: request reset URL then complete reset
+  // ==========================================
+
+  feature("Full password reset flow v6.0.0") {
+    scenario("Request reset URL (authenticated) then complete password reset", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
+      val testUsername = "fullflow@tesobe.com"
+      val testEmail = "fullflow@tesobe.com"
+      val authUser: AuthUser = AuthUser.create
+        .email(testEmail)
+        .username(testUsername)
+        .password(strongPassword)
+        .validated(true)
+        .saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+
+      When("We request a password reset URL via the authenticated endpoint")
+      val resetUrlRequest = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val resetUrlJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
+      val resetUrlResponse = makePostRequest(resetUrlRequest, write(resetUrlJson))
+      Then("We should get a 201 with a reset URL")
+      resetUrlResponse.code should equal(201)
+      val resetUrl = (resetUrlResponse.body \ "reset_password_url").extract[String]
+      resetUrl should include("/user_mgt/reset_password/")
+
+      And("We extract the JWT token from the URL (URL-decoded)")
+      val encodedToken = resetUrl.split("/user_mgt/reset_password/").last
+      val token = java.net.URLDecoder.decode(encodedToken, "UTF-8")
+      token.length should be > 0
+
+      When("We complete the password reset with the JWT token")
+      val completeRequest = (v6_0_0_Request / "users" / "password").POST
+      val newPassword = "BrandNew!Pass999"
+      val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(token, newPassword)
+      val completeResponse = makePostRequest(completeRequest, write(completeJson))
+      Then("We should get a 201")
+      completeResponse.code should equal(201)
+      val message = (completeResponse.body \ "message").extract[String]
+      message should include("Password has been reset successfully")
+
+      And("Using the same token again should fail")
+      val completeResponseAgain = makePostRequest(completeRequest, write(completeJson))
+      completeResponseAgain.code should equal(400)
+
+      // Clean up
+      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
     }
   }
 }
