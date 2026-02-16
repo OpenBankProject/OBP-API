@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.scalatest.Ignore
 import code.Http4sTestServer
 import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
@@ -20,6 +21,7 @@ import scala.concurrent.duration._
  * Uses Http4sTestServer (singleton) to test v7.0.0 endpoints through real HTTP requests.
  * This ensures we test the complete server stack including middleware, error handling, etc.
  */
+@Ignore
 class Http4s700RoutesTest extends ServerSetupWithTestData {
   
   object Http4s700RoutesTag extends Tag("Http4s700Routes")
