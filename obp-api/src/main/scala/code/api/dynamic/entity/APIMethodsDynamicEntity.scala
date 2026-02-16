@@ -121,7 +121,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
-            if(isPersonalEntity) Some(u.userId) else None,
+            Some(u.userId),
             isPersonalEntity,
             Some(cc)
           )
@@ -205,9 +205,8 @@ trait APIMethodsDynamicEntity {
             jsonResponse.isEmpty
           }
 
-          // For non-personal entities, pass None for userId to create system-level records
-          // For personal entities, pass Some(u.userId) to create user-specific records
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, if(isPersonalEntity) Some(u.userId) else None, isPersonalEntity, Some(cc))
+          // Pass userId for all authenticated requests - personal records are filtered by userId
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -267,7 +266,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None,
-            if(isPersonalEntity) Some(u.userId) else None,
+            Some(u.userId),
             isPersonalEntity,
             Some(cc))
           _ <- Helper.booleanToFuture(
@@ -278,7 +277,7 @@ trait APIMethodsDynamicEntity {
             box.isDefined
           }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None,
-            if(isPersonalEntity) Some(u.userId) else None,
+            Some(u.userId),
             isPersonalEntity,
             Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
@@ -340,7 +339,7 @@ trait APIMethodsDynamicEntity {
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None,
-            if(isPersonalEntity) Some(u.userId) else None,
+            Some(u.userId),
             isPersonalEntity,
             Some(cc)
           )
@@ -352,7 +351,7 @@ trait APIMethodsDynamicEntity {
             box.isDefined
           }
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None,
-            if(isPersonalEntity) Some(u.userId) else None,
+            Some(u.userId),
             isPersonalEntity,
             Some(cc)
           )
