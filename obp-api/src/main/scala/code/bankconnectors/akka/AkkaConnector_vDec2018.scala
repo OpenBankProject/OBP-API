@@ -3977,7 +3977,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       employmentStatus=Some(employmentStatusExample.value),
       title=Some(titleExample.value),
       branchId=Some(branchIdExample.value),
-      nameSuffix=Some(nameSuffixExample.value))
+      nameSuffix=Some(nameSuffixExample.value),
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundUpdateCustomerGeneralData(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4013,8 +4015,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
   override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], customerType: Option[String] = None, parentCustomerId: Option[String] = None, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{InBoundUpdateCustomerGeneralData => InBound, OutBoundUpdateCustomerGeneralData => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix)
-        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix, customerType, parentCustomerId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
         response.map(convertToTuple[CustomerCommons](callContext))        
   }
           
