@@ -731,7 +731,9 @@ case class OutBoundUpdateCustomerGeneralData(outboundAdapterCallContext: Outboun
   employmentStatus: Option[String],
   title: Option[String],
   branchId: Option[String],
-  nameSuffix: Option[String]
+  nameSuffix: Option[String],
+  customerType: Option[String],
+  parentCustomerId: Option[String]
 ) extends TopicTrait
 
 case class InBoundUpdateCustomerGeneralData(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
