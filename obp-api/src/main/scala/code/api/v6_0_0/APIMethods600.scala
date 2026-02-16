@@ -66,6 +66,7 @@ import net.liftweb.json.{Extraction, JsonParser}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
+import code.api.util.ExampleValue
 import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
 import net.liftweb.common.Box
 
@@ -9901,6 +9902,511 @@ trait APIMethods600 {
           JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head,
           HttpCode.`201`(cc.callContext)
         )
+      }
+    }
+
+    // --- Account Access Request Endpoints ---
+
+    staticResourceDocs += ResourceDoc(
+      createAccountAccessRequest,
+      implementedInApiVersion,
+      nameOf(createAccountAccessRequest),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+      "Create Account Access Request",
+      s"""Create a new Account Access Request (maker step in maker/checker workflow).
+         |
+         |The requestor (maker) creates a request to grant a target user access to a specific view on an account.
+         |A business justification is required.
+         |
+         |The request is created with status INITIATED and must be approved or rejected by a different user (checker).
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      JSONFactory600.PostAccountAccessRequestJsonV600(
+        target_user_id = ExampleValue.userIdExample.value,
+        view_id = ExampleValue.viewIdExample.value,
+        is_system_view = true,
+        business_justification = "Need access to review monthly account statements for audit purposes."
+      ),
+      JSONFactory600.AccountAccessRequestJsonV600(
+        account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+        bank_id = ExampleValue.bankIdExample.value,
+        account_id = ExampleValue.accountIdExample.value,
+        view_id = ExampleValue.viewIdExample.value,
+        is_system_view = true,
+        requestor_user_id = ExampleValue.userIdExample.value,
+        target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+        business_justification = "Need access to review monthly account statements for audit purposes.",
+        status = "INITIATED",
+        checker_user_id = "",
+        checker_comment = "",
+        created = APIUtil.DateWithMsExampleObject,
+        updated = APIUtil.DateWithMsExampleObject
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        BusinessJustificationRequired,
+        AccountAccessRequestAlreadyExists,
+        AccountAccessRequestCannotBeCreated,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      Some(List(canCreateAccountAccessRequestAtOneBank, canCreateAccountAccessRequestAtAnyBank))
+    )
+
+    lazy val createAccountAccessRequest: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access-requests" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canCreateAccountAccessRequestAtOneBank :: canCreateAccountAccessRequestAtAnyBank :: Nil, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${JSONFactory600.PostAccountAccessRequestJsonV600.getClass.getSimpleName}", 400, callContext) {
+              json.extract[JSONFactory600.PostAccountAccessRequestJsonV600]
+            }
+            _ <- Helper.booleanToFuture(failMsg = BusinessJustificationRequired, cc = callContext) {
+              postJson.business_justification.trim.nonEmpty
+            }
+            // Validate target user exists
+            (_, callContext) <- NewStyle.function.findByUserId(postJson.target_user_id, callContext)
+            // Check for existing INITIATED request for same user/account/view
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestAlreadyExists, cc = callContext) {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getByUserAccountView(postJson.target_user_id, bankId.value, accountId.value, postJson.view_id)
+                .isEmpty
+            }
+            // Validate the view exists
+            _ <- if (postJson.is_system_view) {
+              ViewNewStyle.systemView(ViewId(postJson.view_id), callContext).map(_ => ())
+            } else {
+              ViewNewStyle.customView(ViewId(postJson.view_id), BankIdAccountId(bankId, accountId), callContext).map(_ => ())
+            }
+            request <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.createAccountAccessRequest(
+                bankId.value,
+                accountId.value,
+                postJson.view_id,
+                postJson.is_system_view,
+                u.userId,
+                postJson.target_user_id,
+                postJson.business_justification
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestCannotBeCreated, 400)
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestJsonV600(request), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAccountAccessRequestsForAccount,
+      implementedInApiVersion,
+      nameOf(getAccountAccessRequestsForAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+      "Get Account Access Requests for Account",
+      s"""Get Account Access Requests for a specific account (checker view).
+         |
+         |Optionally filter by status using the query parameter: ?status=INITIATED
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountAccessRequestsJsonV600(
+        account_access_requests = List(JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "INITIATED",
+          checker_user_id = "",
+          checker_comment = "",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ))
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      Some(List(canGetAccountAccessRequestsAtOneBank, canGetAccountAccessRequestsAtAnyBank))
+    )
+
+    lazy val getAccountAccessRequestsForAccount: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access-requests" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil, callContext)
+            statusParam = ObpS.param("status")
+            requests <- Future {
+              statusParam match {
+                case Full(status) =>
+                  code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                    .getByAccountAndStatus(bankId.value, accountId.value, status)
+                case _ =>
+                  code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                    .getByAccount(bankId.value, accountId.value)
+              }
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get account access requests", 400)
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestsJsonV600(requests), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyAccountAccessRequests,
+      implementedInApiVersion,
+      nameOf(getMyAccountAccessRequests),
+      "GET",
+      "/my/account-access-requests",
+      "Get My Account Access Requests",
+      s"""Get Account Access Requests created by the current user (maker view).
+         |
+         |No special roles are required — a user can always see their own requests.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountAccessRequestsJsonV600(
+        account_access_requests = List(JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "INITIATED",
+          checker_user_id = "",
+          checker_comment = "",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ))
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      None
+    )
+
+    lazy val getMyAccountAccessRequests: OBPEndpoint = {
+      case "my" :: "account-access-requests" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            requests <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getByRequestorUserId(u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get account access requests", 400)
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestsJsonV600(requests), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAccountAccessRequestById,
+      implementedInApiVersion,
+      nameOf(getAccountAccessRequestById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID",
+      "Get Account Access Request by Id",
+      s"""Get a single Account Access Request by its ID.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountAccessRequestJsonV600(
+        account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+        bank_id = ExampleValue.bankIdExample.value,
+        account_id = ExampleValue.accountIdExample.value,
+        view_id = ExampleValue.viewIdExample.value,
+        is_system_view = true,
+        requestor_user_id = ExampleValue.userIdExample.value,
+        target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+        business_justification = "Need access to review monthly account statements for audit purposes.",
+        status = "INITIATED",
+        checker_user_id = "",
+        checker_comment = "",
+        created = APIUtil.DateWithMsExampleObject,
+        updated = APIUtil.DateWithMsExampleObject
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        $BankAccountNotFound,
+        AccountAccessRequestNotFound,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      Some(List(canGetAccountAccessRequestsAtOneBank, canGetAccountAccessRequestsAtAnyBank))
+    )
+
+    lazy val getAccountAccessRequestById: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access-requests" :: accountAccessRequestId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil, callContext)
+            request <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getById(accountAccessRequestId)
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestNotFound, 404)
+            }
+            // Verify the request belongs to this bank/account
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestNotFound, cc = callContext) {
+              request.bankId == bankId.value && request.accountId == accountId.value
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestJsonV600(request), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      approveAccountAccessRequest,
+      implementedInApiVersion,
+      nameOf(approveAccountAccessRequest),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/approval",
+      "Approve Account Access Request",
+      s"""Approve an Account Access Request (checker step in maker/checker workflow).
+         |
+         |The checker must be a different user than the maker (requestor). This enforces dual control / maker-checker separation.
+         |
+         |Only requests with status INITIATED can be approved.
+         |
+         |On approval, the system automatically grants the target user access to the specified view.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      JSONFactory600.PostApproveAccountAccessRequestJsonV600(
+        comment = Some("Approved for Q1 audit.")
+      ),
+      JSONFactory600.AccountAccessRequestJsonV600(
+        account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+        bank_id = ExampleValue.bankIdExample.value,
+        account_id = ExampleValue.accountIdExample.value,
+        view_id = ExampleValue.viewIdExample.value,
+        is_system_view = true,
+        requestor_user_id = ExampleValue.userIdExample.value,
+        target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+        business_justification = "Need access to review monthly account statements for audit purposes.",
+        status = "APPROVED",
+        checker_user_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        checker_comment = "Approved for Q1 audit.",
+        created = APIUtil.DateWithMsExampleObject,
+        updated = APIUtil.DateWithMsExampleObject
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated,
+        MakerCheckerSameUser,
+        AccountAccessRequestCannotBeUpdated,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      Some(List(canUpdateAccountAccessRequestAtOneBank, canUpdateAccountAccessRequestAtAnyBank))
+    )
+
+    lazy val approveAccountAccessRequest: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access-requests" :: accountAccessRequestId :: "approval" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostApproveAccountAccessRequestJsonV600", 400, callContext) {
+              json.extract[JSONFactory600.PostApproveAccountAccessRequestJsonV600]
+            }
+            request <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getById(accountAccessRequestId)
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestNotFound, 404)
+            }
+            // Verify the request belongs to this bank/account
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestNotFound, cc = callContext) {
+              request.bankId == bankId.value && request.accountId == accountId.value
+            }
+            // Only INITIATED requests can be approved
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestStatusNotInitiated, cc = callContext) {
+              request.status == com.openbankproject.commons.model.enums.AccountAccessRequestStatus.INITIATED.toString
+            }
+            // Maker/checker separation: checker must not be the requestor
+            _ <- Helper.booleanToFuture(failMsg = MakerCheckerSameUser, cc = callContext) {
+              u.userId != request.requestorUserId
+            }
+            // Get the target user
+            (targetUser, callContext) <- NewStyle.function.findByUserId(request.targetUserId, callContext)
+            // Grant view access
+            _ <- if (request.isSystemView) {
+              ViewNewStyle.systemView(ViewId(request.viewId), callContext).flatMap { view =>
+                ViewNewStyle.grantAccessToSystemView(bankId, accountId, view, targetUser, callContext)
+              }
+            } else {
+              ViewNewStyle.customView(ViewId(request.viewId), BankIdAccountId(bankId, accountId), callContext).flatMap { view =>
+                ViewNewStyle.grantAccessToCustomView(view, targetUser, callContext)
+              }
+            }
+            // Update the request status to APPROVED
+            updatedRequest <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
+                accountAccessRequestId,
+                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.APPROVED.toString,
+                u.userId,
+                postJson.comment.getOrElse("")
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestCannotBeUpdated, 400)
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestJsonV600(updatedRequest), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      rejectAccountAccessRequest,
+      implementedInApiVersion,
+      nameOf(rejectAccountAccessRequest),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/rejection",
+      "Reject Account Access Request",
+      s"""Reject an Account Access Request (checker step in maker/checker workflow).
+         |
+         |The checker must be a different user than the maker (requestor). This enforces dual control / maker-checker separation.
+         |
+         |Only requests with status INITIATED can be rejected.
+         |
+         |A comment is required when rejecting a request.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      JSONFactory600.PostRejectAccountAccessRequestJsonV600(
+        comment = "Insufficient business justification provided."
+      ),
+      JSONFactory600.AccountAccessRequestJsonV600(
+        account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+        bank_id = ExampleValue.bankIdExample.value,
+        account_id = ExampleValue.accountIdExample.value,
+        view_id = ExampleValue.viewIdExample.value,
+        is_system_view = true,
+        requestor_user_id = ExampleValue.userIdExample.value,
+        target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+        business_justification = "Need access to review monthly account statements for audit purposes.",
+        status = "REJECTED",
+        checker_user_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        checker_comment = "Insufficient business justification provided.",
+        created = APIUtil.DateWithMsExampleObject,
+        updated = APIUtil.DateWithMsExampleObject
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated,
+        MakerCheckerSameUser,
+        CheckerCommentRequiredForRejection,
+        AccountAccessRequestCannotBeUpdated,
+        UnknownError
+      ),
+      List(apiTagAccountAccessRequest),
+      Some(List(canUpdateAccountAccessRequestAtOneBank, canUpdateAccountAccessRequestAtAnyBank))
+    )
+
+    lazy val rejectAccountAccessRequest: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account-access-requests" :: accountAccessRequestId :: "rejection" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostRejectAccountAccessRequestJsonV600", 400, callContext) {
+              json.extract[JSONFactory600.PostRejectAccountAccessRequestJsonV600]
+            }
+            _ <- Helper.booleanToFuture(failMsg = CheckerCommentRequiredForRejection, cc = callContext) {
+              postJson.comment.trim.nonEmpty
+            }
+            request <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getById(accountAccessRequestId)
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestNotFound, 404)
+            }
+            // Verify the request belongs to this bank/account
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestNotFound, cc = callContext) {
+              request.bankId == bankId.value && request.accountId == accountId.value
+            }
+            // Only INITIATED requests can be rejected
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestStatusNotInitiated, cc = callContext) {
+              request.status == com.openbankproject.commons.model.enums.AccountAccessRequestStatus.INITIATED.toString
+            }
+            // Maker/checker separation: checker must not be the requestor
+            _ <- Helper.booleanToFuture(failMsg = MakerCheckerSameUser, cc = callContext) {
+              u.userId != request.requestorUserId
+            }
+            // Update the request status to REJECTED
+            updatedRequest <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
+                accountAccessRequestId,
+                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.REJECTED.toString,
+                u.userId,
+                postJson.comment
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, AccountAccessRequestCannotBeUpdated, 400)
+            }
+          } yield {
+            (JSONFactory600.createAccountAccessRequestJsonV600(updatedRequest), HttpCode.`201`(callContext))
+          }
       }
     }
 

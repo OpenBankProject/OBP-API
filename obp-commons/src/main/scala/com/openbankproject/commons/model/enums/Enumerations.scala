@@ -319,6 +319,11 @@ object TransactionRequestStatus extends Enumeration {
   val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED, CANCELLATION_PENDING = Value
 }
 
+object AccountAccessRequestStatus extends Enumeration {
+  type AccountAccessRequestStatus = Value
+  val INITIATED, PENDING, APPROVED, REJECTED = Value
+}
+
 object AccountRoutingScheme extends Enumeration {
   type AccountRoutingScheme = Value
   val IBAN = Value

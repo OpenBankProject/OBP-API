@@ -1279,6 +1279,22 @@ object ApiRole extends MdcLoggable{
   case class CanGetUserGroupMembershipsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetUserGroupMembershipsAtOneBank = CanGetUserGroupMembershipsAtOneBank()
 
+  // Account Access Request roles
+  case class CanCreateAccountAccessRequestAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateAccountAccessRequestAtAnyBank = CanCreateAccountAccessRequestAtAnyBank()
+  case class CanCreateAccountAccessRequestAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountAccessRequestAtOneBank = CanCreateAccountAccessRequestAtOneBank()
+
+  case class CanGetAccountAccessRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAccountAccessRequestsAtAnyBank = CanGetAccountAccessRequestsAtAnyBank()
+  case class CanGetAccountAccessRequestsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAccountAccessRequestsAtOneBank = CanGetAccountAccessRequestsAtOneBank()
+
+  case class CanUpdateAccountAccessRequestAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateAccountAccessRequestAtAnyBank = CanUpdateAccountAccessRequestAtAnyBank()
+  case class CanUpdateAccountAccessRequestAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateAccountAccessRequestAtOneBank = CanUpdateAccountAccessRequestAtOneBank()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

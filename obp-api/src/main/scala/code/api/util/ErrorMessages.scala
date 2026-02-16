@@ -565,6 +565,15 @@ object ErrorMessages {
   val ParentCustomerNotFound = "OBP-30273: Parent customer not found. The parent_customer_id must reference an existing customer at the same bank."
   val CustomerTypeMismatch = "OBP-30274: Customer type does not match the endpoint. Use the generic /customers endpoint or the correct type-specific endpoint."
 
+  val AccountAccessRequestNotFound = "OBP-30275: Account Access Request not found."
+  val AccountAccessRequestAlreadyExists = "OBP-30276: An Account Access Request already exists for this user, account, and view."
+  val AccountAccessRequestCannotBeCreated = "OBP-30277: Account Access Request could not be created."
+  val AccountAccessRequestStatusNotInitiated = "OBP-30278: Account Access Request status is not INITIATED. Only INITIATED requests can be approved or rejected."
+  val MakerCheckerSameUser = "OBP-30279: The checker (approver/rejecter) cannot be the same user as the maker (requestor). Maker/Checker separation is required."
+  val BusinessJustificationRequired = "OBP-30280: Business justification is required."
+  val CheckerCommentRequiredForRejection = "OBP-30281: A comment is required when rejecting an Account Access Request."
+  val AccountAccessRequestCannotBeUpdated = "OBP-30282: Account Access Request could not be updated."
+
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
   val AccountApplicationNotFound = "OBP-30311: AccountApplication not found by ACCOUNT_APPLICATION_ID. "
