@@ -8571,11 +8571,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("personal-create", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("personal-read", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("personal-update", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("personal-delete", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )
@@ -8635,11 +8635,11 @@ trait APIMethods600 {
             schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
             _links = Some(DynamicEntityLinksJsonV600(
               related = List(
-                RelatedLinkJsonV600("list", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "GET"),
-                RelatedLinkJsonV600("create", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences", "POST"),
-                RelatedLinkJsonV600("read", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
-                RelatedLinkJsonV600("update", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
-                RelatedLinkJsonV600("delete", s"/obp/${ApiVersion.v6_0_0}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
+                RelatedLinkJsonV600("personal-create", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "POST"),
+                RelatedLinkJsonV600("personal-read", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                RelatedLinkJsonV600("personal-update", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                RelatedLinkJsonV600("personal-delete", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
               )
             ))
           )

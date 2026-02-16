@@ -745,7 +745,8 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     schema: net.liftweb.json.JsonAST.JObject,
-    record_count: Long
+    record_count: Long,
+    _links: Option[DynamicEntityLinksJsonV600] = None
 )
 
 case class DynamicEntitiesWithCountJsonV600(
@@ -1933,6 +1934,46 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    *   ]
    * }
    */
+  private def buildDynamicEntityLinks(entity: code.dynamicEntity.DynamicEntityCommons): DynamicEntityLinksJsonV600 = {
+    val entityName = entity.entityName
+    val idPlaceholder = net.liftweb.util.StringHelpers.snakify(entityName + "Id").toUpperCase()
+    val bankPrefix = entity.bankId match {
+      case Some(bankId) => s"/obp/${ApiVersion.`dynamic-entity`}/banks/$bankId"
+      case None => s"/obp/${ApiVersion.`dynamic-entity`}"
+    }
+
+    val personalLinks = if (entity.hasPersonalEntity) {
+      val baseUrl = s"$bankPrefix/my/$entityName"
+      List(
+        RelatedLinkJsonV600("personal-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("personal-create", baseUrl, "POST"),
+        RelatedLinkJsonV600("personal-read", s"$baseUrl/$idPlaceholder", "GET"),
+        RelatedLinkJsonV600("personal-update", s"$baseUrl/$idPlaceholder", "PUT"),
+        RelatedLinkJsonV600("personal-delete", s"$baseUrl/$idPlaceholder", "DELETE")
+      )
+    } else Nil
+
+    val publicLinks = if (entity.hasPublicAccess) {
+      val baseUrl = s"$bankPrefix/public/$entityName"
+      List(
+        RelatedLinkJsonV600("public-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("public-read", s"$baseUrl/$idPlaceholder", "GET")
+      )
+    } else Nil
+
+    val communityLinks = if (entity.hasCommunityAccess) {
+      val baseUrl = s"$bankPrefix/community/$entityName"
+      List(
+        RelatedLinkJsonV600("community-list", baseUrl, "GET"),
+        RelatedLinkJsonV600("community-read", s"$baseUrl/$idPlaceholder", "GET")
+      )
+    } else Nil
+
+    DynamicEntityLinksJsonV600(
+      related = personalLinks ++ publicLinks ++ communityLinks
+    )
+  }
+
   def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
     import net.liftweb.json.JsonAST._
     import net.liftweb.json.parse
@@ -1958,44 +1999,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
-        // Build HATEOAS-style links for this dynamic entity
-        val entityName = entity.entityName
-        val idPlaceholder = StringHelpers.snakify(entityName + "Id").toUpperCase()
-        val bankPrefix = entity.bankId match {
-          case Some(bankId) => s"/obp/${ApiVersion.`dynamic-entity`}/banks/$bankId"
-          case None => s"/obp/${ApiVersion.`dynamic-entity`}"
-        }
-
-        val personalLinks = if (entity.hasPersonalEntity) {
-          val baseUrl = s"$bankPrefix/my/$entityName"
-          List(
-            RelatedLinkJsonV600("personal-list", baseUrl, "GET"),
-            RelatedLinkJsonV600("personal-create", baseUrl, "POST"),
-            RelatedLinkJsonV600("personal-read", s"$baseUrl/$idPlaceholder", "GET"),
-            RelatedLinkJsonV600("personal-update", s"$baseUrl/$idPlaceholder", "PUT"),
-            RelatedLinkJsonV600("personal-delete", s"$baseUrl/$idPlaceholder", "DELETE")
-          )
-        } else Nil
-
-        val publicLinks = if (entity.hasPublicAccess) {
-          val baseUrl = s"$bankPrefix/public/$entityName"
-          List(
-            RelatedLinkJsonV600("public-list", baseUrl, "GET"),
-            RelatedLinkJsonV600("public-read", s"$baseUrl/$idPlaceholder", "GET")
-          )
-        } else Nil
-
-        val communityLinks = if (entity.hasCommunityAccess) {
-          val baseUrl = s"$bankPrefix/community/$entityName"
-          List(
-            RelatedLinkJsonV600("community-list", baseUrl, "GET"),
-            RelatedLinkJsonV600("community-read", s"$baseUrl/$idPlaceholder", "GET")
-          )
-        } else Nil
-
-        val links = DynamicEntityLinksJsonV600(
-          related = personalLinks ++ publicLinks ++ communityLinks
-        )
+        val links = buildDynamicEntityLinks(entity)
 
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
@@ -2042,6 +2046,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           throw new IllegalStateException(s"Could not extract schema for entity '${entity.entityName}' from metadataJson")
         )
 
+        val links = buildDynamicEntityLinks(entity)
+
         DynamicEntityDefinitionWithCountJsonV600(
           dynamic_entity_id = entity.dynamicEntityId.getOrElse(""),
           entity_name = entity.entityName,
@@ -2052,7 +2058,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           schema = schema,
-          record_count = recordCount
+          record_count = recordCount,
+          _links = Some(links)
         )
       }
     )
