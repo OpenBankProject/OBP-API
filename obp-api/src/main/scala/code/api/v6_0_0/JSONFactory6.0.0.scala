@@ -2261,4 +2261,62 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     ConnectorTracesJsonV600(traces.map(createConnectorTraceJsonV600))
   }
 
+  // Account Access Request JSON case classes
+  case class PostAccountAccessRequestJsonV600(
+    target_user_id: String,
+    view_id: String,
+    is_system_view: Boolean,
+    business_justification: String
+  )
+
+  case class PostApproveAccountAccessRequestJsonV600(
+    comment: Option[String]
+  )
+
+  case class PostRejectAccountAccessRequestJsonV600(
+    comment: String
+  )
+
+  case class AccountAccessRequestJsonV600(
+    account_access_request_id: String,
+    bank_id: String,
+    account_id: String,
+    view_id: String,
+    is_system_view: Boolean,
+    requestor_user_id: String,
+    target_user_id: String,
+    business_justification: String,
+    status: String,
+    checker_user_id: String,
+    checker_comment: String,
+    created: java.util.Date,
+    updated: java.util.Date
+  )
+
+  case class AccountAccessRequestsJsonV600(
+    account_access_requests: List[AccountAccessRequestJsonV600]
+  )
+
+  def createAccountAccessRequestJsonV600(r: code.accountaccessrequest.AccountAccessRequestTrait): AccountAccessRequestJsonV600 = {
+    AccountAccessRequestJsonV600(
+      account_access_request_id = r.accountAccessRequestId,
+      bank_id = r.bankId,
+      account_id = r.accountId,
+      view_id = r.viewId,
+      is_system_view = r.isSystemView,
+      requestor_user_id = r.requestorUserId,
+      target_user_id = r.targetUserId,
+      business_justification = r.businessJustification,
+      status = r.status,
+      checker_user_id = r.checkerUserId,
+      checker_comment = r.checkerComment,
+      created = r.created,
+      updated = r.updated
+    )
+  }
+
+  def createAccountAccessRequestsJsonV600(requests: List[code.accountaccessrequest.AccountAccessRequestTrait]): AccountAccessRequestsJsonV600 = {
+    AccountAccessRequestsJsonV600(requests.map(createAccountAccessRequestJsonV600))
+  }
+
 }

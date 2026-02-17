@@ -81,6 +81,7 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
+import code.accountaccessrequest.AccountAccessRequest
 import code.etag.MappedETag
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
@@ -1187,7 +1188,8 @@ object ToSchemify {
     TransactionIdMapping,
     RegulatedEntityAttribute,
     BankAccountBalance,
-    Group
+    Group,
+    AccountAccessRequest
   )
 
   // start grpc server

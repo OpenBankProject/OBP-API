@@ -6153,8 +6153,44 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value
   )
   
+  // Account Access Request samples (V600)
+  lazy val postAccountAccessRequestJsonV600 = JSONFactory600.PostAccountAccessRequestJsonV600(
+    target_user_id = userIdExample.value,
+    view_id = viewIdExample.value,
+    is_system_view = true,
+    business_justification = "Need access to review monthly account statements for audit purposes."
+  )
+
+  lazy val postApproveAccountAccessRequestJsonV600 = JSONFactory600.PostApproveAccountAccessRequestJsonV600(
+    comment = Some("Approved for Q1 audit.")
+  )
+
+  lazy val postRejectAccountAccessRequestJsonV600 = JSONFactory600.PostRejectAccountAccessRequestJsonV600(
+    comment = "Insufficient business justification provided."
+  )
+
+  lazy val accountAccessRequestJsonV600 = JSONFactory600.AccountAccessRequestJsonV600(
+    account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    view_id = viewIdExample.value,
+    is_system_view = true,
+    requestor_user_id = userIdExample.value,
+    target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+    business_justification = "Need access to review monthly account statements for audit purposes.",
+    status = "INITIATED",
+    checker_user_id = "",
+    checker_comment = "",
+    created = DateWithMsExampleObject,
+    updated = DateWithMsExampleObject
+  )
+
+  lazy val accountAccessRequestsJsonV600 = JSONFactory600.AccountAccessRequestsJsonV600(
+    account_access_requests = List(accountAccessRequestJsonV600)
+  )
+
   //The common error or success format.
-  //Just some helper format to use in Json 
+  //Just some helper format to use in Json
   case class NotSupportedYet()
   
   lazy val notSupportedYet = NotSupportedYet()
