@@ -5388,7 +5388,7 @@ trait APIMethods600 {
         "74a8ebcc-10e4-4036-bef3-9835922246bf"
       ),
       ResetPasswordUrlJsonV600(
-        "https://api.example.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
+        "https://api.example.com/reset-password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
       ),
       List(
         $AuthenticatedUserIsRequired,
@@ -5452,9 +5452,9 @@ trait APIMethods600 {
               .build()
             val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
-            // Construct reset URL using portal_hostname
+            // Construct reset URL using portal_external_url
             val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
-              "/user_mgt/reset_password/" +
+              "/reset-password/" +
               java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
             // Send email using CommonsEmailWrapper (like createUser does)
@@ -5562,7 +5562,7 @@ trait APIMethods600 {
 
                 // Construct reset URL
                 val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
-                  "/user_mgt/reset_password/" +
+                  "/reset-password/" +
                   java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
                 // Send email
