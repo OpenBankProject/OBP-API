@@ -292,7 +292,7 @@ object ErrorMessages {
   val NotValidRfc7231Date = "OBP-20257: Request header Date is not in accordance with RFC 7231 "
 
   val DuplicateUsername = "OBP-20258: Duplicate Username. Cannot create Username because it already exists. "
-
+  val ExternalUserCheckFailed = "OBP-20259: Could not check username uniqueness against the external provider. The Connector or Adapter may not be running. "
 
 
   // X.509

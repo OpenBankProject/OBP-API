@@ -1319,7 +1319,7 @@ trait APIMethods200 {
         |""",
       createUserJson,
       userJsonV200,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, "Error occurred during user creation.", UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, "Error occurred during user creation.", UnknownError),
       List(apiTagUser, apiTagOnboarding))
 
     lazy val createUser: OBPEndpoint = {

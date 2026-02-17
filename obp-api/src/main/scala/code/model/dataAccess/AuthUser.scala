@@ -225,13 +225,13 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
             Nil // All good. Allow username creation
           case Failure(failureMsg, exception, chain) =>
             logger.warn(s"valUniqueExternally: checkExternalUserExists failed for username: $uniqueUsername, message: $failureMsg, exception: ${exception.map(_.getMessage)}, chain: $chain")
-            List(FieldError(this, Text(msg)))
+            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
           case Empty =>
             logger.warn(s"valUniqueExternally: checkExternalUserExists returned Empty for username: $uniqueUsername")
-            List(FieldError(this, Text(msg)))
+            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
           case _ => // Any other case we provide error message
             logger.warn(s"valUniqueExternally: checkExternalUserExists returned unexpected result for username: $uniqueUsername")
-            List(FieldError(this, Text(msg)))
+            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
         }
       } else {
         Nil // All good. Allow username creation

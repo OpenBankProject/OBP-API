@@ -132,8 +132,8 @@ class PasswordResetTest extends V600ServerSetup {
       response600.body.extractOpt[JSONFactory600.ResetPasswordUrlJsonV600].isDefined should equal(true)
       And("The response should contain a valid reset URL")
       val resetUrl = (response600.body \ "reset_password_url").extract[String]
-      resetUrl should include("/user_mgt/reset_password/")
-      resetUrl.split("/user_mgt/reset_password/").last.length should be > 0
+      resetUrl should include("/reset-password/")
+      resetUrl.split("/reset-password/").last.length should be > 0
     }
 
     scenario("We will call the endpoint with unvalidated user", ApiEndpoint1, VersionOfApi) {
@@ -386,10 +386,10 @@ class PasswordResetTest extends V600ServerSetup {
       Then("We should get a 201 with a reset URL")
       resetUrlResponse.code should equal(201)
       val resetUrl = (resetUrlResponse.body \ "reset_password_url").extract[String]
-      resetUrl should include("/user_mgt/reset_password/")
+      resetUrl should include("/reset-password/")
 
       And("We extract the JWT token from the URL (URL-decoded)")
-      val encodedToken = resetUrl.split("/user_mgt/reset_password/").last
+      val encodedToken = resetUrl.split("/reset-password/").last
       val token = java.net.URLDecoder.decode(encodedToken, "UTF-8")
       token.length should be > 0
 
