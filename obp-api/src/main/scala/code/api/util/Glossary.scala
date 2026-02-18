@@ -1114,7 +1114,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Consent_OBP_Flow_Example",
+		title = "Authentication: Consent OBP Flow Example",
 		description =
 				s"""
 					|#### 1) Call endpoint Create Consent Request using application access (Client Credentials)
@@ -1355,7 +1355,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Direct Login",
+		title = "Authentication: Direct Login",
 		description =
 		  s"""
 			|Direct Login is a simple authentication process to be used at hackathons and trusted environments:
@@ -2136,7 +2136,7 @@ object Glossary extends MdcLoggable  {
 		  """)
 
 	glossaryItems += GlossaryItem(
-		title = "OAuth 1.0a",
+		title = "Authentication: OAuth 1.0a",
 		description =
 			s"""
 			|The following steps will explain how to connect an instance of the Open Bank Project OAuth Server 1.0a. This authentication mechanism is necessary so a third party application can consume the Open Bank project API securely.
@@ -2372,7 +2372,7 @@ object Glossary extends MdcLoggable  {
 		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
     glossaryItems += GlossaryItem(
-      title = "OAuth 2",
+      title = "Authentication: OAuth 2",
       description =
         s"""
         |
@@ -2581,7 +2581,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Gateway Login",
+		title = "Authentication: Gateway Login",
 		description =
 			s"""
 						 |### Introduction
@@ -4151,7 +4151,7 @@ object Glossary extends MdcLoggable  {
 					 |    """.stripMargin)
 
 		glossaryItems += GlossaryItem(
-			title = "OAuth 2.0",
+			title = "Authentication: OAuth 2.0",
 			description =
 				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
 
@@ -5248,7 +5248,7 @@ object Glossary extends MdcLoggable  {
 """)
 
 	glossaryItems += GlossaryItem(
-		title = "Credential Checking Flow",
+		title = "Authentication: Credential Checking Flow",
 		description =
 			s"""
 				 |### Overview
