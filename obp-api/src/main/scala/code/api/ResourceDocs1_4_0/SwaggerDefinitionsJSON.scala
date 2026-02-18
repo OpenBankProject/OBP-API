@@ -2135,8 +2135,7 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     password = "String",
     first_name = "Simon",
-    last_name = "Redfern",
-    validating_application = Some("OBP-Portal")
+    last_name = "Redfern"
   )
 
 
