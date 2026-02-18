@@ -269,6 +269,28 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO obp;
 
 1.  Then, restart OBP-API.
 
+### Notes on using MS SQL Server
+
+Set the database connection properties in your props file. You can either embed credentials in the URL or use separate props:
+
+**Option 1: Credentials in the URL**
+
+```
+db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+db.url=jdbc:sqlserver://YOUR_HOST:1433;databaseName=YOUR_DB;user=YOUR_USER;password=YOUR_PASSWORD;encrypt=true;trustServerCertificate=true
+```
+
+**Option 2: Separate props (recommended)**
+
+```
+db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+db.url=jdbc:sqlserver://YOUR_HOST:1433;databaseName=YOUR_DB;encrypt=true;trustServerCertificate=true
+db.user=YOUR_USER
+db.password=YOUR_PASSWORD
+```
+
+Option 2 is recommended because it keeps credentials out of the URL and avoids URL parsing issues. Note that `db.user` and `db.password` take priority over any credentials in the URL.
+
 ### Notes on using Postgres with SSL
 
 Postgres needs to be compiled with SSL support.
