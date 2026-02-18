@@ -252,8 +252,7 @@ case class CreateUserJsonV600(
     username: String,
     password: String,
     first_name: String,
-    last_name: String,
-    validating_application: Option[String] = None
+    last_name: String
 )
 
 case class PostVerifyUserCredentialsJsonV600(

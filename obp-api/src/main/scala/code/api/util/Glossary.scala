@@ -5038,6 +5038,105 @@ object Glossary extends MdcLoggable  {
 	)
 
 	glossaryItems += GlossaryItem(
+		title = "Email Validation for OBP Local Users",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |When a new OBP local user is created, they may be required to validate their email address before they can log in.
+				 |This is controlled by the `authUser.skipEmailValidation` property (default: `false`).
+				 |
+				 |When email validation is enabled, the user receives an email containing a signed JWT token with a validation link.
+				 |The user clicks the link, and the App (portal) extracts the token and calls the API to complete the validation.
+				 |
+				 |### Props
+				 |
+				 |The following properties are involved:
+				 |
+				 |- `authUser.skipEmailValidation` — Set to `true` to skip email validation entirely (default: `false`). Currently: `${APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)}`
+				 |- `portal_external_url` — **Required.** The base URL of your frontend/portal application. Used to construct the validation link in the email. For example: `portal_external_url=https://your-portal.example.com`. Currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`
+				 |- `email_validation_token_expiry_minutes` — Expiry time for the validation JWT token in minutes (default: `1440` i.e. 24 hours). Currently: `${APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)}`
+				 |
+				 |### Step 1: User Creation
+				 |
+				 |A user can be created via:
+				 |
+				 |**POST /obp/v6.0.0/users** (no authentication required)
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "username": "user@example.com",
+				 |      "password": "Str0ng!Password",
+				 |      "first_name": "Jane",
+				 |      "last_name": "Doe",
+				 |      "email": "user@example.com"
+				 |    }
+				 |
+				 |If `authUser.skipEmailValidation=false`, the API will:
+				 |
+				 |1. Create the user with `validated=false`
+				 |2. Generate a signed JWT token containing the user's unique ID as the subject, with a configurable expiry
+				 |3. Construct a validation link: `{portal_external_url}/user-validation?token={JWT}`
+				 |4. Send an email to the user with the validation link
+				 |
+				 |The user or the legacy Lift signup form can also trigger validation emails. In all cases, the same JWT-based token is used.
+				 |
+				 |### Step 2: Email Validation
+				 |
+				 |**POST /obp/v6.0.0/users/email-validation** (no authentication required)
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "token": "eyJhbGciOiJIUzI1NiJ9..."
+				 |    }
+				 |
+				 |Response (201):
+				 |
+				 |    {
+				 |      "user_id": "5995d6a2-01b3-423c-a173-5481df49bdaf",
+				 |      "email": "user@example.com",
+				 |      "username": "user@example.com",
+				 |      "provider": "https://your-api.example.com",
+				 |      "validated": true,
+				 |      "message": "Email validated successfully"
+				 |    }
+				 |
+				 |Error responses:
+				 |
+				 |- **400** — Invalid JSON format or empty token
+				 |- **404** — Invalid or expired JWT token (bad signature, expired, or user not found)
+				 |- **400** — User email is already validated
+				 |
+				 |This endpoint:
+				 |
+				 |1. Verifies the JWT signature (HMAC) and checks the expiry time
+				 |2. Extracts the unique ID from the JWT subject
+				 |3. Looks up the user by unique ID
+				 |4. Sets the user's validated status to `true`
+				 |5. Resets the unique ID (invalidating the token — it is single-use)
+				 |6. Grants default entitlements to the user
+				 |
+				 |### Token Security
+				 |
+				 |- The token is a **signed JWT** (HMAC-SHA256) — it cannot be forged without the server's shared secret.
+				 |- The token has a **configurable expiry** (default: 24 hours) set via `email_validation_token_expiry_minutes`.
+				 |- The token is **single-use** — after validation, the unique ID is reset, so the same token cannot be used again.
+				 |
+				 |### Typical App Flow
+				 |
+				 |1. User submits registration form
+				 |2. App calls POST /obp/v6.0.0/users
+				 |3. App shows "Check your email for a validation link"
+				 |4. User clicks link in email, App opens at `/user-validation?token={JWT}`
+				 |5. App extracts the token from the URL query parameter
+				 |6. App calls POST /obp/v6.0.0/users/email-validation with the token
+				 |7. App shows "Email validated successfully. Please log in."
+				 |
+				 |""")
+
+	glossaryItems += GlossaryItem(
 		title = "Password Reset for OBP Local Users",
 		description =
 			s"""
@@ -5073,6 +5172,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |- The response is always the same whether or not the user exists. This prevents user enumeration.
 				 |- If the user exists, is validated, and the email matches, a reset email is sent containing a link with a reset token.
+				 |- The reset link base URL is constructed from the `portal_external_url` props value (currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`). This must be set to your frontend/portal URL so that reset emails contain the correct link.
 				 |- The App should present a form asking for username and email, call this endpoint, and then show a message saying "Check your email for a reset link."
 				 |
 				 |### Step 2: Complete Password Reset
@@ -5101,7 +5201,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Notes:
 				 |
-				 |- The token is a signed JWT with a configurable expiry (default: 120 minutes). The server-side expiry can be configured with the `password_reset_token_expiry_minutes` property.
+				 |- The token is a signed JWT with a configurable expiry (default: 120 minutes). The server-side expiry can be configured with the `password_reset_token_expiry_minutes` property (currently: `${APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)}` minutes).
 				 |- The token comes from the reset email URL. The App should extract the token from the URL path (everything after `/user_mgt/reset_password/`) and URL-decode it before sending it to this endpoint.
 				 |- The token is single-use. Once the password is reset, the token is invalidated. An expired token will also be rejected.
 				 |

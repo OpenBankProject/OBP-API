@@ -663,26 +663,40 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
-    val resetLink = Constant.HostName+"/"+validateUserPath.mkString("/")+"/"+urlEncode(user.getUniqueId())
-    val email: String = user.getEmail
-    val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $resetLink")
-    val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$resetLink'>$resetLink</a></p>")
-    val subjectContent = "Sign up confirmation"
-    val emailContent = EmailContent(
-      from = emailFrom,
-      to = List(user.getEmail),
-      bcc = bccEmail.toList,
-      subject = subjectContent,
-      textContent = textContent,
-      htmlContent = htmlContent
-    )
-    sendHtmlEmail(emailContent) match {
-      case Full(messageId) => 
-        logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
-        S.notice("Validation email sent successfully. Please check your email.")
-      case Empty => 
-        logger.error("Failed to send validation email")
-        S.error("Failed to send validation email. Please try again.")
+    APIUtil.getPropsValue("portal_external_url") match {
+      case Full(portalUrl) =>
+        // Create a JWT token with the uniqueId as subject and configurable expiry
+        val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+        val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+          .subject(user.getUniqueId())
+          .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+          .issueTime(new java.util.Date())
+          .build()
+        val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+        val validationLink = portalUrl+"/user-validation?token="+urlEncode(jwtToken)
+        val email: String = user.getEmail
+        val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $validationLink")
+        val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$validationLink'>$validationLink</a></p>")
+        val subjectContent = "Sign up confirmation"
+        val emailContent = EmailContent(
+          from = emailFrom,
+          to = List(user.getEmail),
+          bcc = bccEmail.toList,
+          subject = subjectContent,
+          textContent = textContent,
+          htmlContent = htmlContent
+        )
+        sendHtmlEmail(emailContent) match {
+          case Full(messageId) =>
+            logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
+            S.notice("Validation email sent successfully. Please check your email.")
+          case Empty =>
+            logger.error("Failed to send validation email")
+            S.error("Failed to send validation email. Please try again.")
+        }
+      case _ =>
+        logger.error("portal_external_url is not set in props. Cannot send validation email.")
+        S.error("Validation email could not be sent. Please contact the administrator.")
     }
   }
 
@@ -693,23 +707,40 @@ import net.liftweb.util.Helpers._
      }
    }
 
-  override def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
-    case Full(user) if !user.validated_? =>
-      user.setValidated(true).resetUniqueId().save
-      grantDefaultEntitlementsToAuthUser(user)
-      logUserIn(user, () => {
-        S.notice(S.?("account.validated"))
-        APIUtil.getPropsValue("user_account_validated_redirect_url") match {
-          case Full(redirectUrl) =>
-            logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
-            S.redirectTo(redirectUrl)
-          case _ =>
-            logger.debug(s"user_account_validated_redirect_url is NOT defined")
-            S.redirectTo(homePage)
-        }
-      })
+  override def validateUser(id: String): NodeSeq = {
+    // Extract uniqueId from JWT token: verify signature and expiry
+    val uniqueIdBox: Box[String] = tryo {
+      val signedJWT = com.nimbusds.jwt.SignedJWT.parse(id)
+      val expiration = signedJWT.getJWTClaimsSet.getExpirationTime
+      if (expiration == null || expiration.before(new java.util.Date())) {
+        throw new Exception("Token has expired")
+      }
+      if (!CertificateUtil.verifywtWithHmacProtection(id)) {
+        throw new Exception("Invalid token signature")
+      }
+      signedJWT.getJWTClaimsSet.getSubject
+    }
 
-    case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+    val userBox = uniqueIdBox.flatMap(findUserByUniqueId)
+
+    userBox match {
+      case Full(user) if !user.validated_? =>
+        user.setValidated(true).resetUniqueId().save
+        grantDefaultEntitlementsToAuthUser(user)
+        logUserIn(user, () => {
+          S.notice(S.?("account.validated"))
+          APIUtil.getPropsValue("user_account_validated_redirect_url") match {
+            case Full(redirectUrl) =>
+              logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
+              S.redirectTo(redirectUrl)
+            case _ =>
+              logger.debug(s"user_account_validated_redirect_url is NOT defined")
+              S.redirectTo(homePage)
+          }
+        })
+
+      case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+    }
   }
 
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {

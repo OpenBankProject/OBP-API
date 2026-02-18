@@ -3811,15 +3811,16 @@ trait APIMethods600 {
       "POST",
       "/users/email-validation",
       "Validate User Email",
-      s"""Validate a user's email address using the token sent via email.
+      s"""Validate a user's email address using the JWT token sent via email.
          |
          |This endpoint is called anonymously (no authentication required).
          |
          |When a user signs up and email validation is enabled (authUser.skipEmailValidation=false),
-         |they receive an email with a validation link containing a unique token.
+         |they receive an email with a validation link containing a signed JWT token.
          |
          |This endpoint:
-         |- Validates the token
+         |- Verifies the JWT signature and checks expiry
+         |- Extracts the unique ID from the JWT subject
          |- Sets the user's validated status to true
          |- Resets the unique ID token (invalidating the link)
          |- Grants default entitlements to the user
@@ -3827,16 +3828,12 @@ trait APIMethods600 {
          |**Important: This is a single-use token.** Once the email is validated, the token is invalidated.
          |Any subsequent attempts to use the same token will return a 404 error (UserNotFoundByToken or UserAlreadyValidated).
          |
-         |The token is a unique identifier (UUID) that was generated when the user was created.
-         |
-         |Example token from validation email URL:
-         |https://your-obp-instance.com/user_mgt/validate_user/a1b2c3d4-e5f6-7890-abcd-ef1234567890
-         |
-         |In this case, the token would be: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+         |The token is a signed JWT with a configurable expiry (default: 1440 minutes / 24 hours).
+         |The server-side expiry can be configured with the `email_validation_token_expiry_minutes` property.
          |
          |""".stripMargin,
       JSONFactory600.ValidateUserEmailJsonV600(
-        token = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        token = "eyJhbGciOiJIUzI1NiJ9..."
       ),
       JSONFactory600.ValidateUserEmailResponseJsonV600(
         user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
@@ -3867,9 +3864,25 @@ trait APIMethods600 {
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat Token cannot be empty", cc = cc.callContext) {
               token.nonEmpty
             }
-            // Find user by unique ID (the validation token)
+            // Verify JWT signature and extract uniqueId from subject
+            uniqueId <- NewStyle.function.tryons(
+              s"$UserNotFoundByToken Invalid or expired validation token",
+              404,
+              cc.callContext
+            ) {
+              val signedJWT = com.nimbusds.jwt.SignedJWT.parse(token)
+              val expiration = signedJWT.getJWTClaimsSet.getExpirationTime
+              if (expiration == null || expiration.before(new java.util.Date())) {
+                throw new Exception("Token has expired")
+              }
+              if (!CertificateUtil.verifywtWithHmacProtection(token)) {
+                throw new Exception("Invalid token signature")
+              }
+              signedJWT.getJWTClaimsSet.getSubject
+            }
+            // Find user by unique ID from JWT
             authUser <- Future {
-              code.model.dataAccess.AuthUser.findUserByValidationToken(token) match {
+              code.model.dataAccess.AuthUser.findUserByValidationToken(uniqueId) match {
                 case Full(user) => Full(user)
                 case Empty => Empty
                 case f: net.liftweb.common.Failure => f
@@ -4243,11 +4256,6 @@ trait APIMethods600 {
          |
          | Requires username(email), password, first_name, last_name, and email.
          |
-         | Optional fields:
-         | - validating_application: Optional application name that will validate the user's email (e.g., "LEGACY_PORTAL")
-         |   When set to "LEGACY_PORTAL", the validation link will use the API hostname property
-         |   When set to any other value or not provided, the validation link will use the portal_external_url property (default behavior)
-         |
          | Validation checks performed:
          | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)
          | - Username must be unique (409 error if username already exists)
@@ -4256,9 +4264,7 @@ trait APIMethods600 {
          | Email validation behavior:
          | - Controlled by property 'authUser.skipEmailValidation' (default: false)
          | - When false: User is created with validated=false and a validation email is sent to the user's email address
-         | - Validation link domain is determined by validating_application:
-         |   * "LEGACY_PORTAL": Uses API hostname property (e.g., https://api.example.com)
-         |   * Other/None (default): Uses portal_external_url property (e.g., https://external-portal.example.com)
+         | - The validation link is constructed using the `portal_external_url` property which must be set
          | - When true: User is created with validated=true and no validation email is sent
          | - Default entitlements are granted immediately regardless of validation status
          |
@@ -4319,40 +4325,36 @@ trait APIMethods600 {
             // STEP 8: Send validation email (if required)
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
             if (!skipEmailValidation) {
-              // Construct validation link based on validating_application and portal_external_url
-              val portalExternalUrl = APIUtil.getPropsValue("portal_external_url")
+              APIUtil.getPropsValue("portal_external_url") match {
+                case Full(portalUrl) =>
+                  // Create a JWT token with the uniqueId as subject and configurable expiry
+                  val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+                  val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                    .subject(savedUser.uniqueId.get)
+                    .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                    .issueTime(new java.util.Date())
+                    .build()
+                  val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
-              val emailValidationLink = postedData.validating_application match {
-                case Some("LEGACY_PORTAL") =>
-                  // Use API hostname with legacy path
-                  Constant.HostName + "/" + code.model.dataAccess.AuthUser.validateUserPath.mkString("/") + "/" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
+                  val emailValidationLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+
+                  val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $emailValidationLink")
+                  val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$emailValidationLink'>$emailValidationLink</a></p>")
+                  val subjectContent = "Sign up confirmation"
+
+                  val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
+                    from = code.model.dataAccess.AuthUser.emailFrom,
+                    to = List(savedUser.email.get),
+                    bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
+                    subject = subjectContent,
+                    textContent = textContent,
+                    htmlContent = htmlContent
+                  )
+
+                  code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
                 case _ =>
-                  // If portal_external_url is set, use modern portal path
-                  // Otherwise fall back to API hostname with legacy path
-                  portalExternalUrl match {
-                    case Full(portalUrl) =>
-                      // Portal is configured - use modern frontend route
-                      portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
-                    case _ =>
-                      // No portal configured - fall back to API hostname with legacy path
-                      Constant.HostName + "/" + code.model.dataAccess.AuthUser.validateUserPath.mkString("/") + "/" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
-                  }
+                  logger.error("portal_external_url is not set in props. Cannot send validation email.")
               }
-
-              val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $emailValidationLink")
-              val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$emailValidationLink'>$emailValidationLink</a></p>")
-              val subjectContent = "Sign up confirmation"
-
-              val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
-                from = code.model.dataAccess.AuthUser.emailFrom,
-                to = List(savedUser.email.get),
-                bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
-                subject = subjectContent,
-                textContent = textContent,
-                htmlContent = htmlContent
-              )
-
-              code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
             }
 
             // STEP 9: Grant default entitlements
@@ -5439,6 +5441,10 @@ trait APIMethods600 {
             // Explicitly type the user to ensure proper method resolution
             val user: code.model.dataAccess.AuthUser = authUser
 
+            val portalUrl = APIUtil.getPropsValue("portal_external_url").openOrThrowException(
+              "portal_external_url is not set in props. It is required to construct the password reset link."
+            )
+
             // Generate new reset token
             user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
             user.save
@@ -5453,7 +5459,7 @@ trait APIMethods600 {
             val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
             // Construct reset URL using portal_external_url
-            val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+            val resetPasswordLink = portalUrl +
               "/reset-password/" +
               java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
@@ -5545,8 +5551,8 @@ trait APIMethods600 {
               net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username)
             )
 
-            authUserBox match {
-              case Full(user) if user.validated.get && user.email.get == postedData.email =>
+            (authUserBox, APIUtil.getPropsValue("portal_external_url")) match {
+              case (Full(user), Full(portalUrl)) if user.validated.get && user.email.get == postedData.email =>
                 // Generate new reset token
                 user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
                 user.save
@@ -5561,7 +5567,7 @@ trait APIMethods600 {
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
                 // Construct reset URL
-                val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+                val resetPasswordLink = portalUrl +
                   "/reset-password/" +
                   java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
@@ -5580,6 +5586,9 @@ trait APIMethods600 {
                 )
 
                 code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
+
+              case (_, Empty) =>
+                logger.error("portal_external_url is not set in props. Cannot send password reset email.")
 
               case _ =>
                 // Do nothing - return same response to prevent user enumeration
@@ -8794,6 +8803,9 @@ trait APIMethods600 {
                   consumer_id = Some(consumer.consumerId.get),
                   redirect_uris = redirectUris
                 ), HttpCode.`200`(callContext))
+              case Full(consumer) if !consumer.isActive.get =>
+                logger.warn(s"verifyOidcClient: client_id ${postedData.client_id} exists but is not active (consumer_id: ${consumer.consumerId.get})")
+                (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
               case _ =>
                 (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
             }

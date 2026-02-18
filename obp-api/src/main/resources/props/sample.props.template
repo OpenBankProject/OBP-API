@@ -280,6 +280,10 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 ## (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
+# Used as the base URL for password reset and email validation links sent via email.
+# Set this to your frontend/portal URL so that emails contain the correct link.
+portal_external_url=http://localhost:5174
+
 ## This is only useful for running the api locally via RunWebApp
 ## If you use it, make sure this matches your hostname port!
 ## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
@@ -813,7 +817,13 @@ autocomplete_at_login_form_enabled=false
 # This involves this OBP-API sending an email to the newly registered email provided by the User and the User clicking on a link in that email
 # which results in a field being changed in the database.
 # To BYPASS this security features (for local development only), set this property to true to skip the email address validation.
-#authUser.skipEmailValidation=false
+authUser.skipEmailValidation=false
+
+# Expiry time in minutes for email validation JWT tokens (default: 1440 = 24 hours)
+email_validation_token_expiry_minutes=1440
+
+# Expiry time in minutes for password reset JWT tokens (default: 120 = 2 hours)
+password_reset_token_expiry_minutes=120
 
 # control the create and access to public views.
 # allow_public_views=false
