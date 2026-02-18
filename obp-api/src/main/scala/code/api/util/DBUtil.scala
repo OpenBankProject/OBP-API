@@ -82,12 +82,13 @@ object DBUtil {
   }
   
   private def getOtherDbConnectionParameters: (String, String, String) = {
-    val usernameAndPassword = dbUrl.split("\\?").filter(_.contains("user")).mkString
-    val username = usernameAndPassword.split("&").filter(_.contains("user")).mkString.split("=")(1)
-    val password = usernameAndPassword.split("&").filter(_.contains("password")).mkString.split("=")(1)
-    val dbUser = APIUtil.getPropsValue("db.user").getOrElse(username)
-    val dbPassword = APIUtil.getPropsValue("db.password").getOrElse(password)
-    (dbUrl, dbUser, dbPassword)
+    // Split URL parameters by both ? / & (PostgreSQL, MySQL) and ; (SQL Server)
+    val params = dbUrl.split("[?&;]")
+    val username = params.find(_.startsWith("user=")).map(_.split("=", 2)(1))
+    val password = params.find(_.startsWith("password=")).map(_.split("=", 2)(1))
+    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
+    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
+    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
   }
   // H2 database has specific bd url string which is different compared to other databases
   private def getH2DbConnectionParameters: (String, String, String) = {
