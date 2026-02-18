@@ -62,6 +62,8 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.time.{LocalDate, ZoneId}
 import java.util.Date
 import scala.collection.immutable.{List, Nil}
@@ -2665,7 +2667,7 @@ trait APIMethods510 {
       case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            user <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(URLDecoder.decode(provider, StandardCharsets.UTF_8), username) map {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
