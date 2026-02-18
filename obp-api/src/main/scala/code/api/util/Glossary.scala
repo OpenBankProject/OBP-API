@@ -5147,6 +5147,243 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "Credential Checking Flow",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |OBP supports both **local** and **external** credential checking. Local credentials are verified against the AuthUser table (bcrypt). External credentials are delegated to a core banking system or identity provider via the Connector.
+				 |
+				 |### Login Flow (Web Form and DirectLogin)
+				 |
+				 |```
+				 |                         ┌─────────────────────────┐
+				 |                         │      LOGIN REQUEST       │
+				 |                         │   (username + password)  │
+				 |                         │                          │
+				 |                         │  Via: Web Form login()   │
+				 |                         │   or DirectLogin header  │
+				 |                         └────────────┬─────────────┘
+				 |                                      │
+				 |                                      ▼
+				 |                         ┌─────────────────────────┐
+				 |                         │  Look up AuthUser by     │
+				 |                         │  username in local DB    │
+				 |                         └────────────┬─────────────┘
+				 |                                      │
+				 |                    ┌─────────────────┼─────────────────┐
+				 |                    │                 │                  │
+				 |                    ▼                 ▼                  ▼
+				 |              ┌──────────┐    ┌─────────────┐    ┌───────────┐
+				 |              │  FOUND   │    │   FOUND     │    │ NOT FOUND │
+				 |              │  Local   │    │  External   │    │           │
+				 |              │ Provider │    │  Provider   │    │           │
+				 |              └────┬─────┘    └──────┬──────┘    └─────┬─────┘
+				 |                   │                 │                  │
+				 |                   ▼                 ▼                  ▼
+				 |            ┌────────────┐   ┌─────────────┐   ┌──────────────┐
+				 |            │ Validated? │   │  Validated? │   │ Props:       │
+				 |            │ Locked?    │   │  Locked?    │   │ connector.   │
+				 |            └─────┬──────┘   └──────┬──────┘   │ user.auth    │
+				 |                  │                 │          │ == true?     │
+				 |           ┌──Yes─┘                 │          └──────┬───────┘
+				 |           │                        │            No┌──┘Yes
+				 |           ▼                        │              ▼    │
+				 |   ┌───────────────┐                │         ┌──────┐  │
+				 |   │ testPassword() │                │         │REJECT│  │
+				 |   │ (local bcrypt  │                │         └──────┘  │
+				 |   │  check)        │                │                   │
+				 |   └───────┬────────┘                │                   │
+				 |           │                         ▼                   ▼
+				 |           │                  ┌─────────────┐   ┌──────────────────┐
+				 |           │                  │ Props:      │   │                  │
+				 |           │                  │ connector.  │   │  externalUser    │
+				 |           │                  │ user.auth   │   │  Helper()        │
+				 |           │                  │ == true?    │   │                  │
+				 |           │                  └──────┬──────┘   └────────┬─────────┘
+				 |           │                    No┌──┘Yes                │
+				 |           │                      ▼    │                 │
+				 |           │                 ┌──────┐  │                 │
+				 |           │                 │REJECT│  │                 │
+				 |           │                 └──────┘  │                 │
+				 |           │                           ▼                 │
+				 |           │              ┌──────────────────────────────┘
+				 |           │              │
+				 |           │              ▼
+				 |           │   ╔══════════════════════════════════════════════════╗
+				 |           │   ║      checkExternalUserViaConnector()            ║
+				 |           │   ║                                                  ║
+				 |           │   ║  Connector.checkExternalUserCredentials          ║
+				 |           │   ║         (username, password)                     ║
+				 |           │   ║                                                  ║
+				 |           │   ║  ┌──────────────┬──────────────┬──────────────┐ ║
+				 |           │   ║  │ Akka         │ StoredProc   │ LocalMapped  │ ║
+				 |           │   ║  │ Connector    │ Connector    │ Connector    │ ║
+				 |           │   ║  │              │              │              │ ║
+				 |           │   ║  │ southSide    │ HTTP call to │ Returns      │ ║
+				 |           │   ║  │ Actor msg    │ stored proc  │ Failure("")  │ ║
+				 |           │   ║  │ "obp.check   │ "obp_check_  │ (N/A)       │ ║
+				 |           │   ║  │  External    │  external_   │              │ ║
+				 |           │   ║  │  UserCreds"  │  user_creds" │              │ ║
+				 |           │   ║  └──────┬───────┴──────┬───────┴──────────────┘ ║
+				 |           │   ║         │              │                         ║
+				 |           │   ║         ▼              ▼                         ║
+				 |           │   ║   ┌──────────────────────────┐                  ║
+				 |           │   ║   │  External System /       │                  ║
+				 |           │   ║   │  Core Banking Adapter    │                  ║
+				 |           │   ║   │                          │                  ║
+				 |           │   ║   │  Validates credentials   │                  ║
+				 |           │   ║   │  Returns:                │                  ║
+				 |           │   ║   │   InboundExternalUser    │                  ║
+				 |           │   ║   │   - sub  (user id)       │                  ║
+				 |           │   ║   │   - iss  (provider)      │                  ║
+				 |           │   ║   │   - email                │                  ║
+				 |           │   ║   │   - emailVerified        │                  ║
+				 |           │   ║   │   - name                 │                  ║
+				 |           │   ║   │   - userAuthContext       │                  ║
+				 |           │   ║   └────────────┬─────────────┘                  ║
+				 |           │   ╚════════════════╪═════════════════════════════════╝
+				 |           │                    │
+				 |           │              ┌─────┴──────┐
+				 |           │              │            │
+				 |           │           Success      Failure
+				 |           │              │            │
+				 |           │              ▼            ▼
+				 |           │   ┌────────────────┐  ┌────────────┐
+				 |           │   │ User exists    │  │ Increment  │
+				 |           │   │ locally by     │  │ bad login  │
+				 |           │   │ (sub, iss)?    │  │ attempts   │
+				 |           │   └───┬────────┬───┘  │ → REJECT   │
+				 |           │       │        │      └────────────┘
+				 |           │     Yes        No
+				 |           │       │        │
+				 |           │       ▼        ▼
+				 |           │   ┌───────┐ ┌──────────────────┐
+				 |           │   │ Use   │ │ Create new       │
+				 |           │   │ exist-│ │ AuthUser +       │
+				 |           │   │ ing   │ │ ResourceUser     │
+				 |           │   │ Auth  │ │  user = sub      │
+				 |           │   │ User  │ │  provider = iss  │
+				 |           │   │       │ │  password = UUID  │
+				 |           │   │       │ │  (dummy, unused) │
+				 |           │   └───┬───┘ └────────┬─────────┘
+				 |           │       └──────┬───────┘
+				 |           │              │
+				 |     ┌─────┴──────────────┘
+				 |     │
+				 |     ▼
+				 |┌─────────────┐      ┌──────────────┐
+				 |│  SUCCESS    │      │   FAILURE    │
+				 |│             │      │              │
+				 |│ Reset bad   │      │ Increment    │
+				 |│ login       │      │ bad login    │
+				 |│ attempts    │      │ attempts     │
+				 |│             │      │              │
+				 |│ Establish   │      │ Lock if max  │
+				 |│ session     │      │ exceeded     │
+				 |│             │      │              │
+				 |│ Redirect    │      │ Return error │
+				 |└─────────────┘      └──────────────┘
+				 |```
+				 |
+				 |### Decision Logic
+				 |
+				 |The **provider** field on the AuthUser record determines which path is taken:
+				 |
+				 |- **Local provider** (e.g. the OBP instance URL) → bcrypt password check via `testPassword()`
+				 |- **External provider** (e.g. `google.com`) → delegated to the Connector via `checkExternalUserCredentials()`
+				 |- **User not found locally** → can still succeed if `connector.user.authentication=true` is set. The system creates a new AuthUser + ResourceUser on the fly from the adapter response.
+				 |
+				 |The property `connector.user.authentication=true` must be set to enable external credential checking. Without it, external auth is rejected.
+				 |
+				 |### Verify Credentials Endpoint (POST /users/verify-credentials)
+				 |
+				 |In addition to the login flows above, OBP v6.0.0 provides a **credential verification endpoint** that validates credentials **without** creating a session or token.
+				 |
+				 |```
+				 |              ┌──────────────────────────────────────────────┐
+				 |              │   POST /obp/v6.0.0/users/verify-credentials │
+				 |              │                                              │
+				 |              │   Body: { username, password, provider }     │
+				 |              │                                              │
+				 |              │   → Does NOT create session/token            │
+				 |              │   → Just validates and returns user info     │
+				 |              │   → For external systems to verify creds     │
+				 |              └────────────────────┬─────────────────────────┘
+				 |                                   │
+				 |                                   ▼
+				 |                        ┌─────────────────────┐
+				 |                        │ authenticatedAccess  │
+				 |                        │ (caller must already │
+				 |                        │  be logged in)       │
+				 |                        └──────────┬──────────┘
+				 |                                   │
+				 |                                   ▼
+				 |                        ┌─────────────────────┐
+				 |                        │ Check role:          │
+				 |                        │ isSuperAdmin?        │
+				 |                        │ OR has               │
+				 |                        │ canVerifyUserCreds?  │
+				 |                        └──────────┬──────────┘
+				 |                                   │
+				 |                                   ▼
+				 |              ┌────────────────────────────────────────┐
+				 |              │  AuthUser.getResourceUserId             │
+				 |              │     (username, password)                │
+				 |              │                                        │
+				 |              │  Same method used by DirectLogin and   │
+				 |              │  the login flows above                  │
+				 |              └──────────────────┬─────────────────────┘
+				 |                                 │
+				 |                (same local / external / not-found
+				 |                 branching as the login flow above)
+				 |                                 │
+				 |                                 ▼
+				 |                      ┌───────────────────┐
+				 |                      │ Locked?           │──Yes──▶ 401
+				 |                      └────────┬──────────┘
+				 |                               │ No
+				 |                               ▼
+				 |                      ┌───────────────────┐
+				 |                      │ Valid userId?     │──No───▶ 401
+				 |                      └────────┬──────────┘
+				 |                               │ Yes
+				 |                               ▼
+				 |                      ┌───────────────────┐
+				 |                      │ Provider matches  │
+				 |                      │ posted provider?  │──No───▶ 401
+				 |                      │ (if non-empty)    │
+				 |                      └────────┬──────────┘
+				 |                               │ Yes
+				 |                               ▼
+				 |                      ┌───────────────────┐
+				 |                      │ 200 OK            │
+				 |                      │ Return UserJson   │
+				 |                      │                   │
+				 |                      │ NO token created  │
+				 |                      │ NO session created│
+				 |                      └───────────────────┘
+				 |```
+				 |
+				 |**Key differences from the login flows:**
+				 |
+				 |1. **Check only** — validates credentials and returns user info, but does not create a session or token
+				 |2. **Requires an already-authenticated caller** with `canVerifyUserCredentials` role (or SuperAdmin)
+				 |3. **Does not auto-provision users** — unlike `externalUserHelper()` in the web login flow, this endpoint will not create a new AuthUser if the user doesn't exist locally
+				 |4. **Provider matching** — optionally verifies the user's provider matches what was posted (skipped if provider is empty)
+				 |
+				 |### Key Source Files
+				 |
+				 |- `AuthUser.scala` — `login()` entry point, `getResourceUserId()`, `checkExternalUserViaConnector()`
+				 |- `directlogin.scala` — `getUserId()` with local-then-external fallback
+				 |- `Connector.scala` — `checkExternalUserCredentials()` abstract method
+				 |- `AkkaConnector_vDec2018.scala` — Akka connector implementation
+				 |- `StoredProcedureConnector_vDec2019.scala` — Stored procedure connector implementation
+				 |- `APIMethods600.scala` — `verifyUserCredentials` endpoint definition
+				 |
+""")
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////
