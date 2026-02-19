@@ -5437,13 +5437,13 @@ trait APIMethods600 {
                 case _ => throw new Exception("User not found, not validated, or email mismatch")
               }
             }
+            portalUrl <- APIUtil.getPropsValue("portal_external_url") match {
+              case Full(url) => Future.successful(url)
+              case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration portal_external_url is not set in props. It is required to construct the password reset link."))
+            }
           } yield {
             // Explicitly type the user to ensure proper method resolution
             val user: code.model.dataAccess.AuthUser = authUser
-
-            val portalUrl = APIUtil.getPropsValue("portal_external_url").openOrThrowException(
-              "portal_external_url is not set in props. It is required to construct the password reset link."
-            )
 
             // Generate new reset token
             user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
@@ -5649,12 +5649,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            _ <- Helper.booleanToFuture(
-              failMsg = ErrorMessages.NotAllowedEndpoint,
-              cc = callContext
-            ) {
-              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
-            }
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordCompleteJsonV600]}",
               400,

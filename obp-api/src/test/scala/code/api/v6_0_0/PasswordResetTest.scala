@@ -54,7 +54,10 @@ class PasswordResetTest extends V600ServerSetup {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    setPropsValues("ResetPasswordUrlEnabled" -> "true")
+    setPropsValues(
+      "portal_external_url" -> "https://test-portal.example.com",
+      "mail.test.mode" -> "true"
+    )
   }
 
   override def beforeEach() = {
