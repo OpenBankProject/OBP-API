@@ -3213,7 +3213,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              customer.customerType == "INDIVIDUAL"
+              customer.customerType.contains("INDIVIDUAL")
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3402,7 +3402,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3447,7 +3447,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (children, callContext) <- NewStyle.function.getCustomersByParentCustomerId(bankId, customerId, callContext)
           } yield {
