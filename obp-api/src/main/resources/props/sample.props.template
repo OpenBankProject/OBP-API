@@ -697,21 +697,27 @@ defaultBank.bank_id=OBP
 
 ################################################################################
 ## Super Admin Users are used to boot-strap User Entitlements (access to Roles).
-## Super Admins listed below can grant them selves the following entitlements:
+## Super Admins listed below automatically have the following virtual roles:
 ## CanCreateEntitlementAtAnyBank
-## and
 ## CanCreateEntitlementAtOneBank
+## CanGetAnyUser
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.
 ##
 ## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
-## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlment to a Role.
+## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlement to a Role.
 
 ## List the Users here, with their user_id(s), that should be Super Admins
 super_admin_user_ids=USER_ID1,USER_ID2,
 ################################################################################
 
+
+##################################################################################
+# List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# oidc_operator_user_ids=USER_ID1,USER_ID2,
+####################################################################################
 
 ######## Enable / Disable Versions and individual endpoints. ########
 # In OBP, endpoints are defined in various files but made available under a *version*

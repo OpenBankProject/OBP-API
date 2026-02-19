@@ -837,8 +837,22 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
           ))
     )))
 
-  def addedSuperAdminEntitlementJson(entitlements: List[Entitlement]) = {
-    EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list ::: List(EntitlementJSON("", "SuperAdmin", "")))
+  // Virtual roles granted by super_admin_user_ids prop
+  val superAdminVirtualRoles = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by oidc_operator_user_ids prop
+  val oidcOperatorVirtualRoles = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient")
+
+  /**
+    * Add virtual entitlements to an entitlement list.
+    * Virtual entitlements represent roles granted by config (e.g. super_admin_user_ids, oidc_operator_user_ids)
+    * rather than stored in the database.
+    */
+  def withVirtualEntitlements(entitlements: List[Entitlement], virtualRoles: List[String]): EntitlementJSONs = {
+    val existingRoleNames = entitlements.map(_.roleName).toSet
+    val virtualEntitlementJsons = virtualRoles.filterNot(existingRoleNames.contains).map { role =>
+      EntitlementJSON(entitlement_id = "", role_name = role, bank_id = "")
+    }
+    EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list ::: virtualEntitlementJsons)
   }
 
 

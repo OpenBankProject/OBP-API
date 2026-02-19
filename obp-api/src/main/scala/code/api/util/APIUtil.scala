@@ -2401,6 +2401,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
+  def isOidcOperator(user_id: String): Boolean = {
+    val user_ids = APIUtil.getPropsValue("oidc_operator_user_ids") match {
+      case Full(v) =>
+        v.split(",").map(_.trim).toList
+      case _ =>
+        List()
+    }
+    user_ids.filter(_ == user_id).length > 0
+  }
+
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }

@@ -3743,13 +3743,13 @@ trait APIMethods400 extends MdcLoggable {
             cc.callContext
           )
         } yield {
-          var json = EntitlementJSONs(Nil)
-          // Format the data as V2.0.0 json
-          if (isSuperAdmin(userId)) {
-            // If the user is SuperAdmin add it to the list
-            json = JSONFactory200.addedSuperAdminEntitlementJson(entitlements)
+          // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+          val json = if (isSuperAdmin(userId)) {
+            JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.superAdminVirtualRoles)
+          } else if (isOidcOperator(userId)) {
+            JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.oidcOperatorVirtualRoles)
           } else {
-            json = JSONFactory200.createEntitlementJSONs(entitlements)
+            JSONFactory200.createEntitlementJSONs(entitlements)
           }
           (json, HttpCode.`200`(cc.callContext))
         }

@@ -1682,23 +1682,28 @@ trait APIMethods600 {
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
             val permissions: Option[Permission] = Views.views.vend.getPermissionForUser(u).toOption
-            // Add SuperAdmin virtual entitlement if user is super admin
-            val finalEntitlements = if (APIUtil.isSuperAdmin(u.userId)) {
-              // Create a virtual SuperAdmin entitlement
-              val superAdminEntitlement: Entitlement = new Entitlement {
+            // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+            val virtualRoleNames = if (APIUtil.isSuperAdmin(u.userId)) {
+              JSONFactory200.superAdminVirtualRoles
+            } else if (APIUtil.isOidcOperator(u.userId)) {
+              JSONFactory200.oidcOperatorVirtualRoles
+            } else {
+              List.empty
+            }
+            val existingRoleNames = entitlements.map(_.roleName).toSet
+            val virtualEntitlements = virtualRoleNames.filterNot(existingRoleNames.contains).map { role =>
+              new Entitlement {
                 def entitlementId: String = ""
                 def bankId: String = ""
                 def userId: String = u.userId
-                def roleName: String = "SuperAdmin"
-                def createdByProcess: String = "System"
+                def roleName: String = role
+                def createdByProcess: String = if (APIUtil.isSuperAdmin(u.userId)) "super_admin_user_ids" else "oidc_operator_user_ids"
                 def entitlementRequestId: Option[String] = None
                 def groupId: Option[String] = None
                 def process: Option[String] = None
               }
-              entitlements ::: List(superAdminEntitlement)
-            } else {
-              entitlements
             }
+            val finalEntitlements = entitlements ::: virtualEntitlements
             val currentUser = UserV600(u, finalEntitlements, permissions)
             val onBehalfOfUser = if(cc.onBehalfOfUser.isDefined) {
               val user = cc.onBehalfOfUser.toOption.get
@@ -1790,7 +1795,8 @@ trait APIMethods600 {
         implicit val ec = EndpointContext(Some(cc))
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, canGetAnyUser, callContext)
+          _ <- if(isSuperAdmin(u.userId) || isOidcOperator(u.userId)) Future.successful(Full(Unit))
+               else NewStyle.function.hasEntitlement("", u.userId, canGetAnyUser, callContext)
           user <- Users.users.vend.getUserByUserIdFuture(userId) map {
             x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
           }
@@ -8705,7 +8711,7 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
                  else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
@@ -8777,7 +8783,7 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
                  else NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
               json.extract[VerifyOidcClientRequestJsonV600]
@@ -8843,7 +8849,7 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
                  else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
             consumerBox <- Future {
               Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
