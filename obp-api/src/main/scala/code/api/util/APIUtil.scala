@@ -2411,6 +2411,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
+  // Virtual roles granted by super_admin_user_ids prop
+  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by oidc_operator_user_ids prop
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient")
+
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
@@ -2429,6 +2434,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
     case role =>
@@ -2450,6 +2456,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole): Box[EntitlementAndScopeStatus]= {
     for{
       hasEntitlement <- tryo{ !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty} ?~! s"$UnknownError"
@@ -2472,6 +2479,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
   
@@ -2482,6 +2490,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if (roles.isEmpty) { // No access control, treat as pass auth check
       true
     } else {
+      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
+      val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                         else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                         else List.empty
+      if (roles.exists(role => virtualRoles.contains(role.toString))) {
+        true
+      } else {
       val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
       val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
 
@@ -2519,6 +2534,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else {
         userHasTheRoles
       }
+      } // end of virtual roles else
     }
   }
 
@@ -2528,6 +2544,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // i.e. does user has assigned all roles from the list
   // when roles is empty, that means no access control, treat as pass auth check
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.forall(hasEntitlement(bankId, userId, _))
 

@@ -1614,6 +1614,14 @@ regulated_entities = []
 # super_admin_inital_password=681aeeb9f681aeeb9f681aeeb9
 # super_admin_email=tom@tesobe.com
 
+# Bootstrap OIDC Operator User
+# Given the following credentials, OBP will create a user if they do not already exist.
+# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+# If you want to use this feature, please set up all three values properly at the same time.
+# oidc_operator_username=...
+# oidc_operator_initial_password=...
+# oidc_operator_email=...
+
 
 ## Ethereum Connector Configuration
 ## ================================
@@ -1711,6 +1719,13 @@ securelogging_mask_credit_card=true
 
 # Email addresses
 securelogging_mask_email=true
+
+
+############################################
+# Signal Channels (Redis-backed ephemeral channels for AI agent coordination)
+############################################
+# messaging.channel.ttl.seconds=3600
+# messaging.channel.max.messages=1000
 
 
 ############################################

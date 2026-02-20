@@ -43,7 +43,7 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
-import code.api.util.ApiRole.CanCreateEntitlementAtAnyBank
+import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers}
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
@@ -333,6 +333,8 @@ class Boot extends MdcLoggable {
     createBootstrapSuperUser()
 
     warnAboutSuperAdminUsers()
+
+    createBootstrapOidcOperatorUser()
 
     //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
     DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
@@ -1056,6 +1058,67 @@ class Boot extends MdcLoggable {
           logger.warn("========================================================================")
         }
       case _ => // No super admin users configured, nothing to warn about
+    }
+  }
+
+  /**
+   * Bootstrap OIDC Operator User
+   * Given the following credentials, OBP will create a user *if it does not exist already*.
+   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+   */
+  private def createBootstrapOidcOperatorUser() = {
+
+    val oidcOperatorUsername = APIUtil.getPropsValue("oidc_operator_username", "")
+    val oidcOperatorInitialPassword = APIUtil.getPropsValue("oidc_operator_initial_password", "")
+    val oidcOperatorEmail = APIUtil.getPropsValue("oidc_operator_email", "")
+
+    val isPropsNotSetProperly = oidcOperatorUsername == "" || oidcOperatorInitialPassword == "" || oidcOperatorEmail == ""
+
+    val existingAuthUser = AuthUser.find(By(AuthUser.username, oidcOperatorUsername))
+
+    if (isPropsNotSetProperly) {
+      //Nothing happens, props is not set
+    } else if (existingAuthUser.isDefined) {
+      logger.error(s"createBootstrapOidcOperatorUser- Errors: Existing AuthUser with username ${oidcOperatorUsername} detected in data import where no ResourceUser was found")
+    } else {
+      val authUser = AuthUser.create
+        .email(oidcOperatorEmail)
+        .firstName(oidcOperatorUsername)
+        .lastName(oidcOperatorUsername)
+        .username(oidcOperatorUsername)
+        .password(oidcOperatorInitialPassword)
+        .passwordShouldBeChanged(false)
+        .validated(true)
+
+      val validationErrors = authUser.validate
+
+      if (!validationErrors.isEmpty)
+        logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors.map(_.msg)}")
+      else {
+        Full(authUser.save())
+
+        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
+
+        val oidcOperatorRoles = List(
+          CanGetAnyUser,
+          CanVerifyUserCredentials,
+          CanVerifyOidcClient,
+          CanGetOidcClient,
+          CanGetConsumers
+        )
+
+        userBox match {
+          case Full(user) =>
+            oidcOperatorRoles.foreach { role =>
+              val resultBox = Entitlement.entitlement.vend.addEntitlement("", user.userId, role.toString)
+              if (resultBox.isEmpty) {
+                logger.error(s"createBootstrapOidcOperatorUser- Error granting ${role}: ${resultBox}")
+              }
+            }
+          case _ =>
+            logger.error(s"createBootstrapOidcOperatorUser- Error: Could not find user after creation")
+        }
+      }
     }
   }
 

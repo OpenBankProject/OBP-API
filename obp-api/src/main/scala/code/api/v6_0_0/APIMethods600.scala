@@ -5,7 +5,7 @@ import code.accountattribute.AccountAttributeX
 import code.api.Constant._
 import code.api.{Constant, DirectLogin, ObpApiFailure}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.cache.{Caching, Redis}
+import code.api.cache.{Caching, Redis, RedisMessaging}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.{CertificateUtil, Glossary}
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
+import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -1795,8 +1795,6 @@ trait APIMethods600 {
         implicit val ec = EndpointContext(Some(cc))
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- if(isSuperAdmin(u.userId) || isOidcOperator(u.userId)) Future.successful(Full(Unit))
-               else NewStyle.function.hasEntitlement("", u.userId, canGetAnyUser, callContext)
           user <- Users.users.vend.getUserByUserIdFuture(userId) map {
             x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
           }
@@ -8711,8 +8709,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
@@ -8783,8 +8779,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
               json.extract[VerifyOidcClientRequestJsonV600]
             }
@@ -8849,8 +8843,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isOidcOperator(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
             consumerBox <- Future {
               Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
             }
@@ -10411,6 +10403,316 @@ trait APIMethods600 {
             (JSONFactory600.createAccountAccessRequestJsonV600(updatedRequest), HttpCode.`201`(callContext))
           }
       }
+    }
+
+
+    // ---- Signal Channels (Redis-backed short-lived messaging for AI agents and other consumers) ----
+
+    staticResourceDocs += ResourceDoc(
+      publishSignalMessage,
+      implementedInApiVersion,
+      nameOf(publishSignalMessage),
+      "POST",
+      "/signal/channels/CHANNEL_NAME/messages",
+      "Publish Signal Message",
+      s"""Publish a message to a signal channel.
+         |
+         |Signal channels provide short-lived, Redis-backed messaging for lightweight coordination between
+         |AI agents and other OBP consumers. Messages are not persisted to a database.
+         |
+         |Channels are auto-created on first publish and expire after a configurable TTL (default 1 hour).
+         |Messages are capped at a configurable maximum per channel (default 1000).
+         |
+         |The payload field accepts any valid JSON content.
+         |
+         |Set to_user_id to send a private message visible only to the sender and recipient.
+         |Leave to_user_id empty for a broadcast message visible to all channel readers.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      postSignalMessageJsonV600,
+      signalMessagePublishedJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+
+    lazy val publishSignalMessage: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonPost json -> _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, callContext) {
+              json.extract[PostSignalMessageJsonV600]
+            }
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name. Use alphanumeric characters, dots, hyphens, underscores. Max 128 chars.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            channelMessageCount <- Future {
+              val consumerId: String = cc.consumer match {
+                case Full(c) => c.consumerId.get
+                case _ => ""
+              }
+              val messageId = randomUUID().toString
+              val sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              val timestamp = sdf.format(new java.util.Date())
+              val messageEnvelope = SignalMessageJsonV600(
+                message_id = messageId,
+                channel_name = channelName,
+                sender_consumer_id = consumerId,
+                sender_user_id = u.userId,
+                to_user_id = postJson.to_user_id,
+                timestamp = timestamp,
+                message_type = postJson.message_type.getOrElse(""),
+                payload = postJson.payload
+              )
+              val messageJsonString = net.liftweb.json.compactRender(net.liftweb.json.Extraction.decompose(messageEnvelope))
+              val count = RedisMessaging.publishMessage(channelName, messageJsonString)
+              (messageId, timestamp, count)
+            }
+          } yield {
+            val (messageId, timestamp, count) = channelMessageCount
+            val response = SignalMessagePublishedJsonV600(
+              message_id = messageId,
+              channel_name = channelName,
+              timestamp = timestamp,
+              channel_message_count = count
+            )
+            (response, HttpCode.`201`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalMessages,
+      implementedInApiVersion,
+      nameOf(getSignalMessages),
+      "GET",
+      "/signal/channels/CHANNEL_NAME/messages",
+      "Get Signal Messages",
+      s"""Fetch messages from a signal channel with offset/limit pagination.
+         |
+         |Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery
+         |and coordination, but usable by any authenticated OBP consumer.
+         |
+         |Messages are returned oldest-first.
+         |
+         |Privacy filtering is applied server-side: you will only see broadcast messages (no to_user_id)
+         |and private messages addressed to you (to_user_id matches your user ID) or sent by you.
+         |
+         |Use the offset parameter to poll for new messages by tracking your position.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalMessagesJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+
+    lazy val getSignalMessages: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            limit = obpQueryParams.collectFirst { case OBPLimit(value) => value }.getOrElse(50)
+            offset = obpQueryParams.collectFirst { case OBPOffset(value) => value }.getOrElse(0)
+            (rawMessages, totalCount) <- Future {
+              RedisMessaging.fetchMessages(channelName, offset, limit)
+            }
+          } yield {
+            val parsedMessages: List[SignalMessageJsonV600] = rawMessages.flatMap { msgStr =>
+              scala.util.Try(net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]).toOption
+            }
+            // Privacy filter: only show broadcasts (to_user_id is None) and messages to/from this user
+            val filteredMessages = parsedMessages.filter { msg =>
+              msg.to_user_id.isEmpty ||
+                msg.to_user_id.contains(u.userId) ||
+                msg.sender_user_id == u.userId
+            }
+            val response = SignalMessagesJsonV600(
+              channel_name = channelName,
+              messages = filteredMessages,
+              total_count = totalCount,
+              has_more = (offset + limit) < totalCount
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalChannels,
+      implementedInApiVersion,
+      nameOf(getSignalChannels),
+      "GET",
+      "/signal/channels",
+      "List Signal Channels",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint lists active signal channels.
+         |Only channels that contain at least one broadcast message (no to_user_id) are listed.
+         |Private-only channels are not shown.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+
+    lazy val getSignalChannels: OBPEndpoint = {
+      case "signal" :: "channels" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            channelNames <- Future {
+              RedisMessaging.listChannels()
+            }
+            channelsWithInfo <- Future.sequence(
+              channelNames.map { name =>
+                Future {
+                  RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                    // Check if channel has any broadcast messages
+                    val (messages, _) = RedisMessaging.fetchMessages(name, 0, count.toInt)
+                    val hasBroadcast = messages.exists { msgStr =>
+                      scala.util.Try {
+                        val msg = net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]
+                        msg.to_user_id.isEmpty
+                      }.getOrElse(false)
+                    }
+                    (name, count, ttl, hasBroadcast)
+                  }
+                }
+              }
+            )
+          } yield {
+            val channels = channelsWithInfo.flatten
+              .filter(_._4) // Only channels with broadcast messages
+              .map { case (name, count, ttl, _) =>
+                SignalChannelInfoJsonV600(
+                  channel_name = name,
+                  message_count = count,
+                  ttl_seconds = ttl
+                )
+              }
+            (SignalChannelsJsonV600(channels), HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalChannelInfo,
+      implementedInApiVersion,
+      nameOf(getSignalChannelInfo),
+      "GET",
+      "/signal/channels/CHANNEL_NAME/info",
+      "Get Signal Channel Info",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint returns metadata about a signal channel including the current message count and remaining TTL in seconds.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelInfoJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+
+    lazy val getSignalChannelInfo: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "info" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            info <- Future {
+              RedisMessaging.channelInfo(channelName)
+            }
+            (count, ttl) <- info match {
+              case Some((c, t)) => Future.successful((c, t))
+              case None => Future.failed(new RuntimeException(s"Channel '$channelName' not found"))
+            }
+          } yield {
+            val response = SignalChannelInfoJsonV600(
+              channel_name = channelName,
+              message_count = count,
+              ttl_seconds = ttl
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteSignalChannel,
+      implementedInApiVersion,
+      nameOf(deleteSignalChannel),
+      "DELETE",
+      "/signal/channels/CHANNEL_NAME",
+      "Delete Signal Channel",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint deletes a signal channel and all its messages immediately.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelDeletedJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+
+    lazy val deleteSignalChannel: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: Nil JsonDelete _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            deleted <- Future {
+              RedisMessaging.deleteChannel(channelName)
+            }
+          } yield {
+            val response = SignalChannelDeletedJsonV600(
+              channel_name = channelName,
+              deleted = deleted
+            )
+            (response, HttpCode.`200`(callContext))
+          }
     }
 
   }

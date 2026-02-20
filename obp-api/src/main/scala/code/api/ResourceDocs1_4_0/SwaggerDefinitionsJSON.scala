@@ -6188,6 +6188,53 @@ object SwaggerDefinitionsJSON {
     account_access_requests = List(accountAccessRequestJsonV600)
   )
 
+  // Signal Channels swagger examples
+  lazy val postSignalMessageJsonV600 = PostSignalMessageJsonV600(
+    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}"""),
+    message_type = Some("announce"),
+    to_user_id = None
+  )
+
+  lazy val signalMessageJsonV600 = SignalMessageJsonV600(
+    message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
+    channel_name = "discovery",
+    sender_consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+    sender_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    to_user_id = None,
+    timestamp = "2026-02-20T10:30:00Z",
+    message_type = "announce",
+    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}""")
+  )
+
+  lazy val signalMessagesJsonV600 = SignalMessagesJsonV600(
+    channel_name = "discovery",
+    messages = List(signalMessageJsonV600),
+    total_count = 1,
+    has_more = false
+  )
+
+  lazy val signalMessagePublishedJsonV600 = SignalMessagePublishedJsonV600(
+    message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
+    channel_name = "discovery",
+    timestamp = "2026-02-20T10:30:00Z",
+    channel_message_count = 1
+  )
+
+  lazy val signalChannelInfoJsonV600 = SignalChannelInfoJsonV600(
+    channel_name = "discovery",
+    message_count = 5,
+    ttl_seconds = 3500
+  )
+
+  lazy val signalChannelsJsonV600 = SignalChannelsJsonV600(
+    channels = List(signalChannelInfoJsonV600)
+  )
+
+  lazy val signalChannelDeletedJsonV600 = SignalChannelDeletedJsonV600(
+    channel_name = "discovery",
+    deleted = true
+  )
+
   //The common error or success format.
   //Just some helper format to use in Json
   case class NotSupportedYet()

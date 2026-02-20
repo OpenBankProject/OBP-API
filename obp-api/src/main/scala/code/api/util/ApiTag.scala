@@ -158,6 +158,10 @@ object ApiTag {
   //Note: the followings are for the code generator -- AUOpenBankingV1.0.0
   val apiTagBanking = ResourceDocTag("AU-Banking")
 
+  val apiTagAiAgent = ResourceDocTag("AI-Agent")
+  val apiTagSignal = ResourceDocTag("Signal")
+  val apiTagChannel = ResourceDocTag("Channel")
+
   private[this] val tagNameSymbolMapTag: MutableMap[String, ResourceDocTag] = MutableMap()
 
   /**
