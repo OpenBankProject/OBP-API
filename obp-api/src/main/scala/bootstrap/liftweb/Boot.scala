@@ -116,7 +116,6 @@ import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-// Removed: import code.snippet.OAuthWorkedThanks - portal pages removed
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -494,9 +493,6 @@ class Boot extends MdcLoggable {
     }
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
 
-      //OAuth API call
-      LiftRules.statelessDispatch.append(OAuthHandshake)
-
       // JWT auth endpoints
       if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
         LiftRules.statelessDispatch.append(DirectLogin)
@@ -568,7 +564,7 @@ class Boot extends MdcLoggable {
     // Portal pages removed - empty SiteMap for API-only mode
     val commonMap = List[Menu]()
 
-    // Build SiteMap - Portal pages removed, only API debug page remains
+    // Build SiteMap - API-only mode
     val sitemap = awakePage
 
     def sitemapMutators = AuthUser.sitemapMutator

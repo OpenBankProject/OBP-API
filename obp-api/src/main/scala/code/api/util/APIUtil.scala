@@ -33,7 +33,6 @@ import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
 import code.accountholders.AccountHolders
 import code.api.Constant._
-import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api._
@@ -3191,8 +3190,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }
         }
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
-        getUserFromOAuthHeaderFuture(cc.copy(consumer = consumerByCertificate))
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc.copy(consumer = consumerByCertificate))

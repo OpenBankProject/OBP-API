@@ -37,6 +37,7 @@ import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, UserX}
 import code.token.Tokens
 import code.transaction.MappedTransaction
+import code.users.Users
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -551,8 +552,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
         validatorFuture("protectedResource", httpMethod)
       }
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
-      consumer <- OAuthHandshake.getConsumerFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
-      user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
+      tokenKey = if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token").getOrElse("") else ""
+      consumer <- getConsumerFromDirectLoginToken(tokenKey)
+      user <- getUserFromDirectLoginToken(tokenKey)
     } yield {
       (user, Some(sc.copy(user = user, directLoginParams = directLoginParameters, consumer = consumer)))
     }
@@ -616,5 +618,37 @@ object DirectLogin extends RestHelper with MdcLoggable {
       consumer
     }
     consumer
+  }
+
+  /**
+   * DirectLogin-specific method to get consumer from token
+   * This replaces the dependency on OAuthHandshake.getConsumerFromTokenFuture
+   * @param token DirectLogin token key
+   * @return Future[Box[Consumer]]
+   */
+  def getConsumerFromDirectLoginToken(token: String): Future[Box[Consumer]] = {
+    Tokens.tokens.vend.getTokenByKeyFuture(token) map {
+      case Full(t) => t.consumerId.foreign
+      case _ => Empty
+    }
+  }
+
+  /**
+   * DirectLogin-specific method to get user from token
+   * This replaces the dependency on OAuthHandshake.getUserFromTokenFuture
+   * @param token DirectLogin token key
+   * @return Future[Box[User]]
+   */
+  def getUserFromDirectLoginToken(token: String): Future[Box[User]] = {
+    for {
+      tokenBox <- Tokens.tokens.vend.getTokenByKeyFuture(token)
+      userIdBox = tokenBox.map(_.userForeignKey.get)
+      user <- userIdBox match {
+        case Full(userId) => Users.users.vend.getResourceUserByResourceUserIdFuture(userId)
+        case _ => Future { Empty }
+      }
+    } yield {
+      user
+    }
   }
 }

@@ -308,7 +308,6 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
       message should include(AuthenticationTypeIllegal)
       message should include("allowed authentication types: [DirectLogin]")
-      message should include("current request auth type: OAuth1.0a")
     }
 
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
@@ -339,7 +338,6 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
       message should include(AuthenticationTypeIllegal)
       message should include("allowed authentication types: [DirectLogin]")
-      message should include("current request auth type: OAuth1.0a")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
@@ -372,7 +370,6 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
       message should include(AuthenticationTypeIllegal)
       message should include("allowed authentication types: [DirectLogin]")
-      message should include("current request auth type: OAuth1.0a")
     }
 
     scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
@@ -452,7 +449,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   private val allowedAll =
     """
-      |["DirectLogin", "OAuth1.0a", "GatewayLogin", "OAuth2_OIDC", "OAuth2_OIDC_FAPI"]
+      |["DirectLogin", "GatewayLogin", "OAuth2_OIDC", "OAuth2_OIDC_FAPI"]
       |""".stripMargin
 
   private val newFx =

@@ -524,9 +524,7 @@ import net.liftweb.util.Helpers._
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
-      else if (hasAnOAuthHeader(authorization)) {
-        OAuthHandshake.getUser
-      } else if (hasGatewayHeader(authorization)){
+      else if (hasGatewayHeader(authorization)){
         GatewayLogin.getUser
       } else {
         logger.debug(ErrorMessages.CurrentUserNotFoundException)

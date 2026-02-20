@@ -12,7 +12,9 @@ The OBP API abstracts away the peculiarities of each core banking system so that
 
 Our tagline is: "Bank as a Platform. Transparency as an Asset".
 
-The API supports [OAuth 1.0a](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%201.0a), [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google) and other authentication methods including [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login).
+The API supports [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google), [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login), and other authentication methods.
+
+**Note:** OAuth 1.0a support has been removed. Please use OAuth 2.0, OpenID Connect, or Direct Login for authentication.
 
 ## Documentation
 
@@ -487,8 +489,6 @@ server_mode=apis
 ```
 
 **For portal/UI functionality:** Deploy the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) application.
-
-**OAuth 1.0a Note:** OAuth 1.0a authorization endpoints (`/oauth/authorize`) are preserved in OBP-API as required by the OAuth 1.0a specification.
 
 For migration instructions, see `.kiro/specs/remove-lift-portal-pages/MIGRATION_GUIDE.md`
 
