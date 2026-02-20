@@ -116,7 +116,7 @@ import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.snippet.OAuthWorkedThanks
+// Removed: import code.snippet.OAuthWorkedThanks - portal pages removed
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -506,23 +506,9 @@ class Boot extends MdcLoggable {
       //add management apis
       LiftRules.statelessDispatch.append(ImporterAPI)
     }
-
-    code.api.Constant.serverMode match {
-      // Instance runs as the portal only
-      case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
-        enableOpenIdConnectApis
-      // Instance runs as the APIs only
-      case mode if mode == "apis" =>
-        enableAPIs
-      // Instance runs as the portal and APIs as well
-      // This is default mode
-      case mode if mode.contains("apis") && mode.contains("portal") =>
-        enableAPIs
-        enableOpenIdConnectApis
-      // Failure
-      case _ =>
-        throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
-    }
+    
+    enableAPIs
+   
 
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
@@ -579,55 +565,11 @@ class Boot extends MdcLoggable {
     // This will work for both portal and API modes. This page is used for testing if the API is running properly.
     val awakePage = List( Menu.i("awake") /"debug" / "awake")
 
-    val commonMap = List(Menu.i("Home") / "index") ::: List(
-      Menu.i("index-en") / "index-en",
-      Menu.i("Plain") / "plain",
-      Menu.i("Static") / "static",
-      Menu.i("SDKs") / "sdks",
-      Menu.i("Consents") / "consents",
-      Menu.i("Debug") / "debug",
-      Menu.i("debug-basic") / "debug" / "debug-basic",
-      Menu.i("debug-default-header") / "debug" / "debug-default-header",
-      Menu.i("debug-default-footer") / "debug" / "debug-default-footer",
-      Menu.i("debug-localization") / "debug" / "debug-localization",
-      Menu.i("debug-plain") / "debug" / "debug-plain",
-      Menu.i("debug-webui") / "debug" / "debug-webui",
-      Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
-        submenus(Consumer.menus : _*),
+    // Portal pages removed - empty SiteMap for API-only mode
+    val commonMap = List[Menu]()
 
-      Menu("Consent Screen", Helper.i18n("consent.screen")) / "consent-screen" >> AuthUser.loginFirst,
-      Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
-
-      Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
-      Menu("User Information", "User Information") / "user-information",
-      Menu("User Invitation", "User Invitation") / "user-invitation",
-      Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
-      Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
-      Menu("User Invitation Warning", "User Invitation Warning") / "user-invitation-warning",
-      Menu("Already Logged In", "Already Logged In") / "already-logged-in",
-      Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
-      Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
-      // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
-      Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-      Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
-      OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
-      Menu.i("Introduction") / "introduction",
-      Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
-      Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request",
-      Menu.i("confirm-bg-consent-request") / "confirm-bg-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-bg-consent-request-sca") / "confirm-bg-consent-request-sca" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-bg-consent-request-redirect-uri") / "confirm-bg-consent-request-redirect-uri" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-vrp-consent-request") / "confirm-vrp-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-vrp-consent") / "confirm-vrp-consent" >> AuthUser.loginFirst //OAuth consent page
-    ) ++ accountCreation ++ Admin.menus++ awakePage
-
-    // Build SiteMap
-    val sitemap = code.api.Constant.serverMode match {
-      case mode if mode == "portal" => commonMap
-      case mode if mode == "apis" => awakePage
-      case mode if mode.contains("apis") && mode.contains("portal") => commonMap
-      case _ => commonMap
-    }
+    // Build SiteMap - Portal pages removed, only API debug page remains
+    val sitemap = awakePage
 
     def sitemapMutators = AuthUser.sitemapMutator
 

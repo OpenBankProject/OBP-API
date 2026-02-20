@@ -40,7 +40,6 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
@@ -774,7 +773,7 @@ import net.liftweb.util.Helpers._
 
 
   def agreeTermsDiv = {
-    val webUi = new WebUI
+    // WebUI removed with portal pages - returning empty for API-only mode
     val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
     val termsAndConditionsCheckboxTitle = Helper.i18n("terms_and_conditions_checkbox_text", Some("I agree to the above Terms and Conditions"))
     val termsAndConditionsCheckboxLabel = Helper.i18n("terms_and_conditions_checkbox_label", Some("Terms and Conditions"))
@@ -782,7 +781,7 @@ import net.liftweb.util.Helpers._
                 |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
                 |                            <details open style="cursor:s-resize;">
                 |                                <summary style="display:list-item;"><a class="api_group_name">$termsAndConditionsCheckboxLabel</a></summary>
-                |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
+                |                                <div id="terms-and-conditions-page">$webUiPropsValue</div>
                 |                            </details>
                 |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
                 |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">$termsAndConditionsCheckboxTitle</label>
@@ -802,7 +801,7 @@ import net.liftweb.util.Helpers._
   }
 
   def agreePrivacyPolicy = {
-    val webUi = new WebUI
+    // WebUI removed with portal pages - returning empty for API-only mode
     val privacyPolicyCheckboxText = Helper.i18n("privacy_policy_checkbox_text", Some("I agree to the above Privacy Policy"))
     val privacyPolicyCheckboxLabel = Helper.i18n("privacy_policy_checkbox_label", Some("Privacy Policy"))
     val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
@@ -810,7 +809,7 @@ import net.liftweb.util.Helpers._
                            |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
                            |                            <details open style="cursor:s-resize;">
                            |                                <summary style="display:list-item;"><a class="api_group_name">$privacyPolicyCheckboxLabel</a></summary>
-                           |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
+                           |                                <div id="privacy-policy-page">$webUiPropsValue</div>
                            |                            </details>
                            |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
                            |                            <label class="form-check-label" for="privacy_checkbox">$privacyPolicyCheckboxText</label>

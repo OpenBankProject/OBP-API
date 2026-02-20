@@ -2786,12 +2786,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else
         false
     }
-    code.api.Constant.serverMode match {
-      case mode if mode == "portal" => false
-      case mode if mode == "apis" => checkVersion
-      case mode if mode.contains("apis") && mode.contains("portal") => checkVersion
-      case _ => checkVersion
-    }
+    // Portal mode removed - always check version for API-only mode
+    checkVersion
   }
 
 
