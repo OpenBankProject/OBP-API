@@ -1362,8 +1362,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       title = cInfo.title,
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
-      customer_type = cInfo.customerType,
-      parent_customer_id = cInfo.parentCustomerId
+      customer_type = cInfo.customerType.getOrElse("INDIVIDUAL"),
+      parent_customer_id = cInfo.parentCustomerId.getOrElse("")
     )
   }
 
@@ -1414,8 +1414,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       title = cInfo.title,
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
-      customer_type = cInfo.customerType,
-      parent_customer_id = cInfo.parentCustomerId,
+      customer_type = cInfo.customerType.getOrElse("INDIVIDUAL"),
+      parent_customer_id = cInfo.parentCustomerId.getOrElse(""),
       customer_attributes = customerAttributes.map(customerAttribute =>
         CustomerAttributeResponseJsonV300(
           customer_attribute_id = customerAttribute.customerAttributeId,

@@ -435,8 +435,8 @@ class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCust
   override def title: String = mTitle.get
   override def branchId: String = mBranchId.get
   override def nameSuffix: String = mNameSuffix.get
-  override def customerType: String = mCustomerType.get
-  override def parentCustomerId: String = mParentCustomerId.get
+  override def customerType: Option[String] = Option(mCustomerType.get)
+  override def parentCustomerId: Option[String] = Option(mParentCustomerId.get)
 
   override def isConfirmedAgent: Boolean = mIsConfirmedAgent.get //This is for Agent
 
