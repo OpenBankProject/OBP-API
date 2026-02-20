@@ -252,8 +252,7 @@ case class CreateUserJsonV600(
     username: String,
     password: String,
     first_name: String,
-    last_name: String,
-    validating_application: Option[String] = None
+    last_name: String
 )
 
 case class PostVerifyUserCredentialsJsonV600(
@@ -893,6 +892,59 @@ case class ConnectorTracesJsonV600(
 )
 
 case class ConfigPropJsonV600(name: String, value: String)
+
+// Signal Channels case classes (Redis-backed ephemeral messaging channels)
+case class PostSignalMessageJsonV600(
+    payload: net.liftweb.json.JsonAST.JValue,
+    message_type: Option[String] = None,
+    to_user_id: Option[String] = None
+)
+
+case class SignalMessageJsonV600(
+    message_id: String,
+    channel_name: String,
+    sender_consumer_id: String,
+    sender_user_id: String,
+    to_user_id: Option[String],
+    timestamp: String,
+    message_type: String,
+    payload: net.liftweb.json.JsonAST.JValue
+)
+
+case class SignalMessagesJsonV600(
+    channel_name: String,
+    messages: List[SignalMessageJsonV600],
+    total_count: Long,
+    has_more: Boolean
+)
+
+case class SignalMessagePublishedJsonV600(
+    message_id: String,
+    channel_name: String,
+    timestamp: String,
+    channel_message_count: Long
+)
+
+case class SignalChannelInfoJsonV600(
+    channel_name: String,
+    message_count: Long,
+    ttl_seconds: Long
+)
+
+case class SignalChannelsJsonV600(
+    channels: List[SignalChannelInfoJsonV600]
+)
+
+case class SignalStatsJsonV600(
+    total_channels: Int,
+    total_messages: Long,
+    channels: List[SignalChannelInfoJsonV600]
+)
+
+case class SignalChannelDeletedJsonV600(
+    channel_name: String,
+    deleted: Boolean
+)
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 

@@ -52,14 +52,13 @@ import org.scalatest.Tag
  */
 class PasswordResetTest extends V600ServerSetup {
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    setPropsValues("ResetPasswordUrlEnabled" -> "true")
-  }
-
   override def beforeEach() = {
     wipeTestData()
     super.beforeEach()
+    setPropsValues(
+      "portal_external_url" -> "https://test-portal.example.com",
+      "mail.test.mode" -> "true"
+    )
     AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
     ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
   }
@@ -128,7 +127,9 @@ class PasswordResetTest extends V600ServerSetup {
       val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
       Then("We should get a 201")
-      response600.code should equal(201)
+      withClue(s"Response body: ${response600.body} ") {
+        response600.code should equal(201)
+      }
       response600.body.extractOpt[JSONFactory600.ResetPasswordUrlJsonV600].isDefined should equal(true)
       And("The response should contain a valid reset URL")
       val resetUrl = (response600.body \ "reset_password_url").extract[String]
@@ -384,7 +385,9 @@ class PasswordResetTest extends V600ServerSetup {
       val resetUrlJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
       val resetUrlResponse = makePostRequest(resetUrlRequest, write(resetUrlJson))
       Then("We should get a 201 with a reset URL")
-      resetUrlResponse.code should equal(201)
+      withClue(s"Response body: ${resetUrlResponse.body} ") {
+        resetUrlResponse.code should equal(201)
+      }
       val resetUrl = (resetUrlResponse.body \ "reset_password_url").extract[String]
       resetUrl should include("/reset-password/")
 

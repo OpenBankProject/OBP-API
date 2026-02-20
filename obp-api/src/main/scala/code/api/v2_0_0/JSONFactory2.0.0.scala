@@ -29,6 +29,7 @@ package code.api.v2_0_0
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
+import code.api.util.APIUtil
 import code.api.util.CustomJsonFormats
 import code.api.v1_2_1.{JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
@@ -837,8 +838,22 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
           ))
     )))
 
-  def addedSuperAdminEntitlementJson(entitlements: List[Entitlement]) = {
-    EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list ::: List(EntitlementJSON("", "SuperAdmin", "")))
+  // Virtual roles granted by super_admin_user_ids prop
+  val superAdminVirtualRoles = APIUtil.superAdminVirtualRoles
+  // Virtual roles granted by oidc_operator_user_ids prop
+  val oidcOperatorVirtualRoles = APIUtil.oidcOperatorVirtualRoles
+
+  /**
+    * Add virtual entitlements to an entitlement list.
+    * Virtual entitlements represent roles granted by config (e.g. super_admin_user_ids, oidc_operator_user_ids)
+    * rather than stored in the database.
+    */
+  def withVirtualEntitlements(entitlements: List[Entitlement], virtualRoles: List[String]): EntitlementJSONs = {
+    val existingRoleNames = entitlements.map(_.roleName).toSet
+    val virtualEntitlementJsons = virtualRoles.filterNot(existingRoleNames.contains).map { role =>
+      EntitlementJSON(entitlement_id = "", role_name = role, bank_id = "")
+    }
+    EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list ::: virtualEntitlementJsons)
   }
 
 

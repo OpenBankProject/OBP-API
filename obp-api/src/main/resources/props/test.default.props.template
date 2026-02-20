@@ -39,6 +39,23 @@ write_metrics = false
 # --for tests don't set it to 127.0.0.1, for some reason
 hostname=http://localhost:8016
 
+# Used as the base URL for password reset and email validation links sent via email.
+# Set this to your frontend/portal URL so that emails contain the correct link.
+portal_external_url=http://localhost:5174
+
+# Set to true to skip email validation on user signup (default: false)
+authUser.skipEmailValidation=false
+
+# Expiry time in minutes for email validation JWT tokens (default: 1440 = 24 hours)
+email_validation_token_expiry_minutes=1440
+
+# Expiry time in minutes for password reset JWT tokens (default: 120 = 2 hours)
+password_reset_token_expiry_minutes=120
+
+# List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# oidc_operator_user_ids=USER_ID1,USER_ID2,
+
 #this is only useful for running the api locally via RunWebApp
 #if you use it, make sure this matches your hostname port!
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead

@@ -135,6 +135,7 @@ object ErrorMessages {
   val InvalidTagsParameter = "OBP-10053: Invalid tags parameter. Tags cannot be empty when provided"
   val InvalidFunctionsParameter = "OBP-10054: Invalid functions parameter. Functions cannot be empty when provided"
   val InvalidApiCollectionIdParameter = "OBP-10055: Invalid api-collection-id parameter. API collection ID cannot be empty when provided"
+  val IncompleteServerConfiguration = "OBP-10056: A required server configuration property is missing. "
 
 
 

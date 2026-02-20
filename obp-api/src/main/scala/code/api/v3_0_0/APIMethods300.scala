@@ -21,6 +21,7 @@ import code.api.v4_0_0.{AtmJsonV400, JSONFactory400}
 import code.api.{APIFailureNewStyle, Constant}
 import code.bankconnectors._
 import code.consumer.Consumers
+import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.APIMetrics
 import code.model._
@@ -2087,7 +2088,15 @@ trait APIMethods300 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
-            (JSONFactory200.createEntitlementJSONs(entitlements), HttpCode.`200`(callContext))
+            // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+            val json = if (isSuperAdmin(u.userId)) {
+              JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.superAdminVirtualRoles)
+            } else if (isOidcOperator(u.userId)) {
+              JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.oidcOperatorVirtualRoles)
+            } else {
+              JSONFactory200.createEntitlementJSONs(entitlements)
+            }
+            (json, HttpCode.`200`(callContext))
           }
       }
     }

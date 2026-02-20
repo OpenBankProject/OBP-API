@@ -1875,16 +1875,14 @@ trait APIMethods200 {
                 entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
-              var json = EntitlementJSONs(Nil)
-              // Format the data as V2.0.0 json
-              if (isSuperAdmin(userId)) {
-                // If the user is SuperAdmin add it to the list
-                json = addedSuperAdminEntitlementJson(entitlements)
-                successJsonResponse(Extraction.decompose(json))
+              // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+              val json = if (isSuperAdmin(userId)) {
+                JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.superAdminVirtualRoles)
+              } else if (isOidcOperator(userId)) {
+                JSONFactory200.withVirtualEntitlements(entitlements, JSONFactory200.oidcOperatorVirtualRoles)
               } else {
-                json = JSONFactory200.createEntitlementJSONs(entitlements)
+                JSONFactory200.createEntitlementJSONs(entitlements)
               }
-              // Return
               successJsonResponse(Extraction.decompose(json))
             }
       }
