@@ -84,6 +84,26 @@ trait SendServerRequests {
   def %% (s: Seq[String]): String = s map %% mkString "&"
   def %% (t: (String, Any)): (String, String) = (%%(t._1), %%(t._2.toString))
 
+  /** OAuth signature generation for test infrastructure */
+  def sign(method: String, url: String, user_params: Map[String, String], consumer: OAuth.Consumer, token: Option[OAuth.Token], verifier: Option[String], callback: Option[String]): Map[String, String] = {
+    import code.api.oauth1a.Arithmetics
+    import scala.collection.immutable.{Map => IMap}
+    
+    val oauth_params = IMap(
+      "oauth_consumer_key" -> consumer.key,
+      SignatureMethodName -> "HMAC-SHA256",
+      TimestampName -> (System.currentTimeMillis / 1000).toString,
+      NonceName -> System.nanoTime.toString,
+      VersionName -> "1.0"
+    ) ++ token.map { TokenName -> _.value } ++
+      verifier.map { VerifierName -> _ } ++
+      callback.map { CallbackName -> _ }
+
+    val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
+    val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
+    oauth_params + (SignatureName -> computedSignature)
+  }
+
   def getOAuthParameters(headers: Map[String,String]) : Map[String,String]= {
     //Convert the string containing the list of OAuth parameters to a Map
     def toMap(parametersList : String) = {
@@ -160,7 +180,7 @@ trait SendServerRequests {
       val oauth_params = getOAuthParameters(headers)
       val consumer_secret = getConsumerSecret(oauth_params("oauth_consumer_key"))
       val token_secret = getTokenSecret(oauth_params(TokenName))
-      val new_oauth_params = OAuth.sign(
+      val new_oauth_params = sign(
         method,
         urlWithoutQueryParams,
         query_params ++ form_params, // ++ extra_headers,
