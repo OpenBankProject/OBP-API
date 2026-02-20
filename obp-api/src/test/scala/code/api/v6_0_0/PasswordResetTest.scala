@@ -52,17 +52,13 @@ import org.scalatest.Tag
  */
 class PasswordResetTest extends V600ServerSetup {
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def beforeEach() = {
+    wipeTestData()
+    super.beforeEach()
     setPropsValues(
       "portal_external_url" -> "https://test-portal.example.com",
       "mail.test.mode" -> "true"
     )
-  }
-
-  override def beforeEach() = {
-    wipeTestData()
-    super.beforeEach()
     AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
     ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
   }
