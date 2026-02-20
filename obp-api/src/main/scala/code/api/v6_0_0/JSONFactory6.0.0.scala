@@ -935,6 +935,12 @@ case class SignalChannelsJsonV600(
     channels: List[SignalChannelInfoJsonV600]
 )
 
+case class SignalStatsJsonV600(
+    total_channels: Int,
+    total_messages: Long,
+    channels: List[SignalChannelInfoJsonV600]
+)
+
 case class SignalChannelDeletedJsonV600(
     channel_name: String,
     deleted: Boolean

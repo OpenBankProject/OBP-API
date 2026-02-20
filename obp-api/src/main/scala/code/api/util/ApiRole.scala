@@ -462,6 +462,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetConfigProps(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfigProps = CanGetConfigProps()
 
+  case class CanGetSignalStats(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSignalStats = CanGetSignalStats()
+
   case class CanDeleteEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEntitlementRequestsAtAnyBank = CanDeleteEntitlementRequestsAtAnyBank()
 

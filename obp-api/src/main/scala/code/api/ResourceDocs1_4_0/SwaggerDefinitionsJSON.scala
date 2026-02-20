@@ -6230,6 +6230,12 @@ object SwaggerDefinitionsJSON {
     channels = List(signalChannelInfoJsonV600)
   )
 
+  lazy val signalStatsJsonV600 = SignalStatsJsonV600(
+    total_channels = 3,
+    total_messages = 12,
+    channels = List(signalChannelInfoJsonV600)
+  )
+
   lazy val signalChannelDeletedJsonV600 = SignalChannelDeletedJsonV600(
     channel_name = "discovery",
     deleted = true

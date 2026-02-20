@@ -10438,7 +10438,7 @@ trait APIMethods600 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
 
     lazy val publishSignalMessage: OBPEndpoint = {
       case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonPost json -> _ =>
@@ -10516,7 +10516,7 @@ trait APIMethods600 {
         $AuthenticatedUserIsRequired,
         UnknownError
       ),
-      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
 
     lazy val getSignalMessages: OBPEndpoint = {
       case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonGet _ =>
@@ -10578,7 +10578,7 @@ trait APIMethods600 {
         $AuthenticatedUserIsRequired,
         UnknownError
       ),
-      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
 
     lazy val getSignalChannels: OBPEndpoint = {
       case "signal" :: "channels" :: Nil JsonGet _ =>
@@ -10642,7 +10642,7 @@ trait APIMethods600 {
         $AuthenticatedUserIsRequired,
         UnknownError
       ),
-      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
 
     lazy val getSignalChannelInfo: OBPEndpoint = {
       case "signal" :: "channels" :: channelName :: "info" :: Nil JsonGet _ =>
@@ -10692,7 +10692,67 @@ trait APIMethods600 {
         $AuthenticatedUserIsRequired,
         UnknownError
       ),
-      List(apiTagAiAgent, apiTagSignal, apiTagChannel))
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    staticResourceDocs += ResourceDoc(
+      getSignalStats,
+      implementedInApiVersion,
+      nameOf(getSignalStats),
+      "GET",
+      "/signal/channels/stats",
+      "Get Signal Channel Stats",
+      s"""Returns statistics for all signal channels, including private-only channels.
+         |
+         |Unlike the List Signal Channels endpoint, this does not filter out private-only channels.
+         |It provides a complete view of all active channels with message counts and TTL info.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalStatsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel),
+      Some(List(canGetSignalStats)))
+
+    lazy val getSignalStats: OBPEndpoint = {
+      case "signal" :: "channels" :: "stats" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            channelNames <- Future {
+              RedisMessaging.listChannels()
+            }
+            channelsWithInfo <- Future.sequence(
+              channelNames.map { name =>
+                Future {
+                  RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                    SignalChannelInfoJsonV600(
+                      channel_name = name,
+                      message_count = count,
+                      ttl_seconds = ttl
+                    )
+                  }
+                }
+              }
+            )
+          } yield {
+            val channels = channelsWithInfo.flatten
+            val totalMessages = channels.map(_.message_count).sum
+            val response = SignalStatsJsonV600(
+              total_channels = channels.size,
+              total_messages = totalMessages,
+              channels = channels
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
 
     lazy val deleteSignalChannel: OBPEndpoint = {
       case "signal" :: "channels" :: channelName :: Nil JsonDelete _ =>
