@@ -832,16 +832,15 @@ trait APIMethods210 {
           }
           yield {
             val filteredEntitlements = entitlements.filter(_.bankId == bankId.value)
-            // Format the data as V2.1.0 json
-            if (isSuperAdmin(userId)) {
-              // If the user is SuperAdmin add it to the list
-              val json = JSONFactory200.addedSuperAdminEntitlementJson(filteredEntitlements)
-              successJsonResponse(Extraction.decompose(json))
-              (json, HttpCode.`200`(callContext))
+            // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+            val json = if (isSuperAdmin(userId)) {
+              JSONFactory200.withVirtualEntitlements(filteredEntitlements, JSONFactory200.superAdminVirtualRoles)
+            } else if (isOidcOperator(userId)) {
+              JSONFactory200.withVirtualEntitlements(filteredEntitlements, JSONFactory200.oidcOperatorVirtualRoles)
             } else {
-              val json = JSONFactory200.createEntitlementJSONs(filteredEntitlements)
-              (json, HttpCode.`200`(callContext))
+              JSONFactory200.createEntitlementJSONs(filteredEntitlements)
             }
+            (json, HttpCode.`200`(callContext))
           }
       }
     }

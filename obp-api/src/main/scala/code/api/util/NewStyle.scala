@@ -869,6 +869,7 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext], errorMsg: String = ""): Future[Box[Unit]] = {
       val errorInfo =
         if(StringUtils.isBlank(errorMsg)&& !bankId.isEmpty) UserHasMissingRoles + role.toString() + s" at Bank($bankId)" 
@@ -880,6 +881,7 @@ object NewStyle extends MdcLoggable{
       } map validateRequestPayload(callContext)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
       val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
                       else errorMsg
@@ -887,16 +889,18 @@ object NewStyle extends MdcLoggable{
       validateRequestPayload(callContext)(boxResult)
     }
     
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg, cc=callContext) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
-      } map validateRequestPayload(callContext) 
-    
+      } map validateRequestPayload(callContext)
+
     def handleEntitlementsAndScopes(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg, cc=callContext) {
         APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, userId, APIUtil.getConsumerPrimaryKey(callContext),roles)
       } map validateRequestPayload(callContext)
 
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
       val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
       hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
@@ -906,16 +910,18 @@ object NewStyle extends MdcLoggable{
       handleEntitlementsAndScopes(errorMessage)(bankId, userId, roles, callContext)
     }
 
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
-      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) 
-        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required." 
-      else 
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty)
+        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required."
+      else
         s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required for BankId($bankId)."
-        
+
       val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), errorMessage)
       validateRequestPayload(callContext)(boxResult)
     }
 
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasAllEntitlements(bankId: String, userId: String, specificBankRoles: List[ApiRole], anyBankRoles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
       val errorMsg = UserHasMissingRoles + specificBankRoles.mkString(" and ") + " OR " + anyBankRoles.mkString(" and ") + " entitlements are required."
       val boxResult = Helper.booleanToBox(
@@ -924,6 +930,7 @@ object NewStyle extends MdcLoggable{
       validateRequestPayload(callContext)(boxResult)
     }
 
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole, callContext: Option[CallContext]): Box[EntitlementAndScopeStatus] = {
       val boxResult = APIUtil.hasEntitlementAndScope(bankId, userId, consumerId, role)
       validateRequestPayload(callContext)(boxResult)
