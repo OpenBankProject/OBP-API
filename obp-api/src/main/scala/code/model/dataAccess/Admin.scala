@@ -32,6 +32,8 @@ import net.liftweb.common._
 import net.liftweb.http.SessionVar
 import net.liftweb.http.S
 
+import scala.xml.NodeSeq
+
 
 /**
  * This class  to handel the administration of the API, like the API OAuth keys.
@@ -48,8 +50,8 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
   override def basePath = "admin_mgt" :: Nil
   override def menuNameSuffix = "Admin"
 
-  override def screenWrap = Full(<lift:surround with="default" at="content">
-             <lift:bind /></lift:surround>)
+  // screenWrap removed - API-only mode, no portal pages
+  override def screenWrap = Empty
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email,
   locale, timezone, password)
@@ -68,15 +70,8 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
     ret
   }
   
-  override def loginXhtml = {
-    (<form method="post" action={ObpS.uri}><table><tr><td
-              colspan="2">Admin Log In</td></tr>
-          <tr><td>{userNameFieldString}</td><td><user:email /></td></tr>
-          <tr><td>{S.?("password")}</td><td><user:password /></td></tr>
-          <tr><td><a href={lostPasswordPath.mkString("/", "/", "")}
-                >{S.?("recover.password")}</a></td><td><user:submit /></td></tr></table>
-     </form>)
-  }
+  // loginXhtml removed - API-only mode, no portal pages
+  override def loginXhtml = <div/>
 
   //disable the sign up page
   override def createUserMenuLoc = Empty
