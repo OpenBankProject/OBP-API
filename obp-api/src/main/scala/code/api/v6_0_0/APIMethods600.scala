@@ -10788,7 +10788,7 @@ trait APIMethods600 {
          |without exposing sensitive data (balance and owners are excluded).
          |
          |The response includes: account_id, bank_id, label, account_number, account_type, branch_id,
-         |account_routings and account_attributes.
+         |account_routings, account_attributes and view_ids.
          |
          |${urlParametersDocument(true, false)}
          |
@@ -10805,7 +10805,8 @@ trait APIMethods600 {
           account_type = "CURRENT",
           branch_id = "BRANCH_1",
           account_routings = List(FastFirehoseRoutings(bank_id = ExampleValue.bankIdExample.value, account_id = ExampleValue.accountIdExample.value)),
-          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000"))
+          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+          view_ids = List("owner")
         ))
       ),
       List(
@@ -10828,7 +10829,12 @@ trait APIMethods600 {
             (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             (accounts, callContext) <- NewStyle.function.getAccountDirectory(bankId, obpQueryParams, callContext)
           } yield {
-            (JSONFactory600.createAccountDirectoryJsonV600(accounts), HttpCode.`200`(callContext))
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { a =>
+              val bankIdAccountId = BankIdAccountId(BankId(a.bankId), AccountId(a.id))
+              val viewIds = Views.views.vend.availableViewsForAccount(bankIdAccountId).map(_.viewId.value)
+              bankIdAccountId -> viewIds
+            }.toMap
+            (JSONFactory600.createAccountDirectoryJsonV600(accounts, viewsPerAccount), HttpCode.`200`(callContext))
           }
       }
     }
