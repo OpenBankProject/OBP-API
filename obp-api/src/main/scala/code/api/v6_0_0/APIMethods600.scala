@@ -46,7 +46,7 @@ import code.ratelimiting.RateLimitingDI
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider, DynamicEntityT}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
@@ -10835,6 +10835,79 @@ trait APIMethods600 {
               bankIdAccountId -> viewIds
             }.toMap
             (JSONFactory600.createAccountDirectoryJsonV600(accounts, viewsPerAccount), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      hasAccountAccess,
+      implementedInApiVersion,
+      nameOf(hasAccountAccess),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access",
+      "Has Account Access",
+      s"""Check whether the authenticated user has access to a specific view on a specific account.
+         |
+         |Returns a boolean `has_account_access` along with the `access_source` (currently "ACCOUNT_ACCESS")
+         |and the `account_access_id` (primary key of the AccountAccess record).
+         |
+         |If the user does not have access, `has_account_access` is false and the other fields are empty strings.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.HasAccountAccessJsonV600(
+        has_account_access = true,
+        access_source = "ACCOUNT_ACCESS",
+        account_access_id = ExampleValue.uuidExample.value,
+        abac_rule_id = ""
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+
+    lazy val hasAccountAccess: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "has-account-access" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            _ <- Future {
+              Views.views.vend.customViewFuture(viewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _ => Views.views.vend.systemViewFuture(viewId)
+              }
+            }.flatten.map {
+              unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is ${viewId.value}")
+            }
+            accountAccessBox <- Future {
+              AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+                bankId, accountId, viewId, u.userPrimaryKey
+              )
+            }
+          } yield {
+            val response = accountAccessBox match {
+              case Full(aa) =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = true,
+                  access_source = "ACCOUNT_ACCESS",
+                  account_access_id = aa.id.get.toString,
+                  abac_rule_id = ""
+                )
+              case _ =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = false,
+                  access_source = "",
+                  account_access_id = "",
+                  abac_rule_id = ""
+                )
+            }
+            (response, HttpCode.`200`(callContext))
           }
       }
     }

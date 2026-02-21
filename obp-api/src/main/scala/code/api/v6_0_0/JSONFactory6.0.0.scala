@@ -2408,4 +2408,11 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
+  case class HasAccountAccessJsonV600(
+    has_account_access: Boolean,
+    access_source: String,
+    account_access_id: String,
+    abac_rule_id: String
+  )
+
 }
