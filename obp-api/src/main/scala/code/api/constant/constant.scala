@@ -11,7 +11,7 @@ import net.liftweb.util.Props
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
 
-  final val directLoginHeaderName = "directlogin"
+  final val directLoginHeaderName = "DirectLogin"
 
   object Pagination {
     final val offset = 0

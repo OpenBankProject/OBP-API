@@ -12,7 +12,7 @@ object RedisMessaging extends MdcLoggable {
   val channelTtlSeconds: Int = APIUtil.getPropsAsIntValue("messaging.channel.ttl.seconds", 3600)
   val channelMaxMessages: Int = APIUtil.getPropsAsIntValue("messaging.channel.max.messages", 1000)
 
-  private def keyPrefix: String = s"${Constant.getGlobalCacheNamespacePrefix}msg_channel_"
+  private def keyPrefix: String = s"${Constant.getGlobalCacheNamespacePrefix}signal_channel_"
 
   private def channelKey(channelName: String): String = s"${keyPrefix}${channelName}"
 

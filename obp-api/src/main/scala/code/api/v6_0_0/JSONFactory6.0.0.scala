@@ -2371,4 +2371,48 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     AccountAccessRequestsJsonV600(requests.map(createAccountAccessRequestJsonV600))
   }
 
+  case class AccountDirectoryItemJsonV600(
+    account_id: String,
+    bank_id: String,
+    label: String,
+    account_number: String,
+    account_type: String,
+    branch_id: String,
+    account_routings: List[FastFirehoseRoutings],
+    account_attributes: List[FastFirehoseAttributes],
+    view_ids: List[String]
+  )
+
+  case class AccountDirectoryJsonV600(
+    accounts: List[AccountDirectoryItemJsonV600]
+  )
+
+  def createAccountDirectoryJsonV600(
+    accounts: List[AccountDirectoryItem],
+    viewsPerAccount: Map[BankIdAccountId, List[String]]
+  ): AccountDirectoryJsonV600 = {
+    AccountDirectoryJsonV600(
+      accounts.map { a =>
+        AccountDirectoryItemJsonV600(
+          account_id = a.id,
+          bank_id = a.bankId,
+          label = a.label,
+          account_number = a.number,
+          account_type = a.productCode,
+          branch_id = a.branchId,
+          account_routings = a.accountRoutings,
+          account_attributes = a.accountAttributes,
+          view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
+        )
+      }
+    )
+  }
+
+  case class HasAccountAccessJsonV600(
+    has_account_access: Boolean,
+    access_source: String,
+    account_access_id: String,
+    abac_rule_id: String
+  )
+
 }

@@ -46,7 +46,7 @@ import code.ratelimiting.RateLimitingDI
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider, DynamicEntityT}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
@@ -3770,19 +3770,19 @@ trait APIMethods600 {
          |
          |This is an alias to the DirectLogin endpoint that includes the standard API versioning prefix.
          |
-         |This endpoint requires the following headers:
-         |- DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
-         |OR
-         |- Authorization: DirectLogin username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
+         |This endpoint requires the following header:
          |
-         |Example header:
-         |DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=GET-YOUR-OWN-API-KEY-FROM-THE-OBP
+         |    DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
          |
-         |The token returned can be used as a bearer token in subsequent API calls.
+         |Note: You can also use the Authorization header (Authorization: DirectLogin username=...) but the DirectLogin header is preferred.
+         |
+         |The token returned can then be used in subsequent API calls using the header:
+         |
+         |    DirectLogin: token=YOUR_TOKEN
          |
          |""".stripMargin,
       EmptyBody,
-      JSONFactory600.createTokenJSON("DirectLoginToken{eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc}"),
+      JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
       List(
         InvalidDirectLoginParameters,
         InvalidLoginCredentials,
@@ -10773,6 +10773,143 @@ trait APIMethods600 {
             )
             (response, HttpCode.`200`(callContext))
           }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAccountDirectory,
+      implementedInApiVersion,
+      nameOf(getAccountDirectory),
+      "GET",
+      "/banks/BANK_ID/account-directory",
+      "Get Account Directory at Bank",
+      s"""Returns a list of accounts at the bank with identifiers and metadata.
+         |
+         |This endpoint is designed for management UIs that need to list accounts
+         |without exposing sensitive data (balance and owners are excluded).
+         |
+         |The response includes: account_id, bank_id, label, account_number, account_type, branch_id,
+         |account_routings, account_attributes and view_ids.
+         |
+         |${urlParametersDocument(true, false)}
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountDirectoryJsonV600(
+        accounts = List(JSONFactory600.AccountDirectoryItemJsonV600(
+          account_id = ExampleValue.accountIdExample.value,
+          bank_id = ExampleValue.bankIdExample.value,
+          label = "My Account",
+          account_number = "123456789",
+          account_type = "CURRENT",
+          branch_id = "BRANCH_1",
+          account_routings = List(FastFirehoseRoutings(bank_id = ExampleValue.bankIdExample.value, account_id = ExampleValue.accountIdExample.value)),
+          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+          view_ids = List("owner")
+        ))
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount),
+      Some(List(canGetAccountDirectoryAtOneBank))
+    )
+
+    lazy val getAccountDirectory: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-directory" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetAccountDirectoryAtOneBank, callContext)
+            allowedParams = List("limit", "offset", "sort_direction")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (accounts, callContext) <- NewStyle.function.getAccountDirectory(bankId, obpQueryParams, callContext)
+          } yield {
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { a =>
+              val bankIdAccountId = BankIdAccountId(BankId(a.bankId), AccountId(a.id))
+              val viewIds = Views.views.vend.availableViewsForAccount(bankIdAccountId).map(_.viewId.value)
+              bankIdAccountId -> viewIds
+            }.toMap
+            (JSONFactory600.createAccountDirectoryJsonV600(accounts, viewsPerAccount), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      hasAccountAccess,
+      implementedInApiVersion,
+      nameOf(hasAccountAccess),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access",
+      "Has Account Access",
+      s"""Check whether the authenticated user has access to a specific view on a specific account.
+         |
+         |Returns a boolean `has_account_access` along with the `access_source` (currently "ACCOUNT_ACCESS")
+         |and the `account_access_id` (primary key of the AccountAccess record).
+         |
+         |If the user does not have access, `has_account_access` is false and the other fields are empty strings.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.HasAccountAccessJsonV600(
+        has_account_access = true,
+        access_source = "ACCOUNT_ACCESS",
+        account_access_id = ExampleValue.uuidExample.value,
+        abac_rule_id = ""
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+
+    lazy val hasAccountAccess: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "has-account-access" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            _ <- Future {
+              Views.views.vend.customViewFuture(viewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _ => Views.views.vend.systemViewFuture(viewId)
+              }
+            }.flatten.map {
+              unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is ${viewId.value}")
+            }
+            accountAccessBox <- Future {
+              AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+                bankId, accountId, viewId, u.userPrimaryKey
+              )
+            }
+          } yield {
+            val response = accountAccessBox match {
+              case Full(aa) =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = true,
+                  access_source = "ACCOUNT_ACCESS",
+                  account_access_id = aa.id.get.toString,
+                  abac_rule_id = ""
+                )
+              case _ =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = false,
+                  access_source = "",
+                  account_access_id = "",
+                  abac_rule_id = ""
+                )
+            }
+            (response, HttpCode.`200`(callContext))
+          }
+      }
     }
 
   }
