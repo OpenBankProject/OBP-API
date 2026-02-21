@@ -10775,6 +10775,64 @@ trait APIMethods600 {
           }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getAccountDirectory,
+      implementedInApiVersion,
+      nameOf(getAccountDirectory),
+      "GET",
+      "/banks/BANK_ID/account-directory",
+      "Get Account Directory at Bank",
+      s"""Returns a list of accounts at the bank with identifiers and metadata.
+         |
+         |This endpoint is designed for management UIs that need to list accounts
+         |without exposing sensitive data (balance and owners are excluded).
+         |
+         |The response includes: account_id, bank_id, label, account_number, account_type, branch_id,
+         |account_routings and account_attributes.
+         |
+         |${urlParametersDocument(true, false)}
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountDirectoryJsonV600(
+        accounts = List(JSONFactory600.AccountDirectoryItemJsonV600(
+          account_id = ExampleValue.accountIdExample.value,
+          bank_id = ExampleValue.bankIdExample.value,
+          label = "My Account",
+          account_number = "123456789",
+          account_type = "CURRENT",
+          branch_id = "BRANCH_1",
+          account_routings = List(FastFirehoseRoutings(bank_id = ExampleValue.bankIdExample.value, account_id = ExampleValue.accountIdExample.value)),
+          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000"))
+        ))
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount),
+      Some(List(canGetAccountDirectoryAtOneBank))
+    )
+
+    lazy val getAccountDirectory: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-directory" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetAccountDirectoryAtOneBank, callContext)
+            allowedParams = List("limit", "offset", "sort_direction")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (accounts, callContext) <- NewStyle.function.getAccountDirectory(bankId, obpQueryParams, callContext)
+          } yield {
+            (JSONFactory600.createAccountDirectoryJsonV600(accounts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
   }
 }
 

@@ -1298,6 +1298,9 @@ object ApiRole extends MdcLoggable{
   case class CanUpdateAccountAccessRequestAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccountAccessRequestAtOneBank = CanUpdateAccountAccessRequestAtOneBank()
 
+  case class CanGetAccountDirectoryAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAccountDirectoryAtOneBank = CanGetAccountDirectoryAtOneBank()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

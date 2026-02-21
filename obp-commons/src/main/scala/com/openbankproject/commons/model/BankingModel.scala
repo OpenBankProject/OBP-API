@@ -446,6 +446,17 @@ case class AccountHeld(
   accountRoutings: List[AccountRouting]
 )
 
+case class AccountDirectoryItem(
+  id: String,
+  bankId: String,
+  label: String,
+  number: String,
+  productCode: String,
+  branchId: String,
+  accountRoutings: List[FastFirehoseRoutings],
+  accountAttributes: List[FastFirehoseAttributes]
+)
+
 case class CounterpartyBespoke(
   key: String,
   value: String
