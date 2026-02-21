@@ -43,8 +43,6 @@ import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api.dynamic.entity.helper.DynamicEntityHelper
-import code.api.oauth1a.Arithmetics
-import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
@@ -1389,12 +1387,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
-    object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
-        case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
-        case _ => None
-      }
-    }
 
     /** Out-of-band callback code */
     val oob = "oob"

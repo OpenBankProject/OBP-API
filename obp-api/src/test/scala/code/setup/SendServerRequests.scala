@@ -30,10 +30,6 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.util.TimeZone
 
 import code.api.ResponseHeader
-import code.api.oauth1a.OauthParams._
-import code.api.util.APIUtil.OAuth
-import code.consumer.Consumers
-import code.token.Tokens
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full
@@ -45,7 +41,6 @@ import java.net.URLDecoder
 import io.netty.handler.codec.http.HttpHeaders
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
@@ -76,71 +71,6 @@ trait SendServerRequests {
 
   def decode_% (s: String) = java.net.URLDecoder.decode(s, StandardCharsets.UTF_8.name())
 
-  //normalize to OAuth percent encoding
-  def %% (str: String): String = {
-      val remaps = ("+", "%20") :: ("%7E", "~") :: ("*", "%2A") :: Nil
-      (encode_%(str) /: remaps) { case (str, (a, b)) => str.replace(a,b) }
-  }
-  def %% (s: Seq[String]): String = s map %% mkString "&"
-  def %% (t: (String, Any)): (String, String) = (%%(t._1), %%(t._2.toString))
-
-  /** OAuth signature generation for test infrastructure */
-  def sign(method: String, url: String, user_params: Map[String, String], consumer: OAuth.Consumer, token: Option[OAuth.Token], verifier: Option[String], callback: Option[String]): Map[String, String] = {
-    import code.api.oauth1a.Arithmetics
-    import scala.collection.immutable.{Map => IMap}
-    
-    val oauth_params = IMap(
-      "oauth_consumer_key" -> consumer.key,
-      SignatureMethodName -> "HMAC-SHA256",
-      TimestampName -> (System.currentTimeMillis / 1000).toString,
-      NonceName -> System.nanoTime.toString,
-      VersionName -> "1.0"
-    ) ++ token.map { TokenName -> _.value } ++
-      verifier.map { VerifierName -> _ } ++
-      callback.map { CallbackName -> _ }
-
-    val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-    val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
-    oauth_params + (SignatureName -> computedSignature)
-  }
-
-  def getOAuthParameters(headers: Map[String,String]) : Map[String,String]= {
-    //Convert the string containing the list of OAuth parameters to a Map
-    def toMap(parametersList : String) = {
-      //transform the string "oauth_prameter="value""
-      //to a tuple (oauth_parameter,Decoded(value))
-      def dynamicListExtract(input: String)  = {
-        val oauthPossibleParameters =
-          List(
-            "oauth_consumer_key",
-            NonceName,
-            SignatureMethodName,
-            TimestampName,
-            VersionName,
-            SignatureName,
-            CallbackName,
-            TokenName,
-            VerifierName
-          )
-        if (input contains "=") {
-          val split = input.split("=",2)
-          val parameterValue = split(1).replace("\"","")
-          //add only OAuth parameters and not empty
-          if(oauthPossibleParameters.contains(split(0)) && ! parameterValue.isEmpty)
-            Some(split(0),parameterValue)  // return key , value
-          else
-            None
-        }
-        else
-          None
-      }
-      //we delete the "Oauth" prefix and all the white spaces that may exist in the string
-      val cleanedParameterList = parametersList.stripPrefix("OAuth").replaceAll("\\s","")
-      Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
-    }
-    toMap(headers("Authorization"))
-  }
-
   def createRequest( reqData: ReqData ): Req = {
     val charset = if(reqData.body_encoding == "") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
     val rb = url(reqData.url)
@@ -152,46 +82,14 @@ trait SendServerRequests {
     rb
   }
 
-  def getConsumerSecret(consumerKey : String ) : String = {
-    Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(c) => c.secret.get
-      case _ => ""
-    }
-  }
-
-  def getTokenSecret(token : String ) : String = {
-    Tokens.tokens.vend.getTokenByKey(token) match {
-      case Full(t) => t.secret.get
-      case _ => ""
-    }
-  }
-
   // generate the requestData from input values, such as request, body, encoding and headers.
   def extractParamsAndHeaders(req: Req, body: String, encoding: String, extra_headers:Map[String,String] = Map.empty): ReqData= {
     val r = req.toRequest
     val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> URLDecoder.decode(qp.getValue,"UTF-8")).toMap[String,String]
     val form_params: Map[String,String] = r.getFormParams.asScala.map( fp => fp.getName -> fp.getValue).toMap[String,String]
-    var headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
+    val headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
     val url:String = r.getUrl
-    val urlWithoutQueryParams:String = if (r.getUrl.contains("?")) r.getUrl.splitAt("?").head._1 else r.getUrl
     val method:String = r.getMethod
-
-    if (headers.isDefinedAt("Authorization") && headers("Authorization").contains("OAuth")) {
-      val oauth_params = getOAuthParameters(headers)
-      val consumer_secret = getConsumerSecret(oauth_params("oauth_consumer_key"))
-      val token_secret = getTokenSecret(oauth_params(TokenName))
-      val new_oauth_params = sign(
-        method,
-        urlWithoutQueryParams,
-        query_params ++ form_params, // ++ extra_headers,
-        OAuth.Consumer(oauth_params("oauth_consumer_key"), consumer_secret),
-        Option(OAuth.Token(oauth_params.getOrElse(TokenName, ""), token_secret)),
-        oauth_params.get("verifier"),
-        oauth_params.get("callback"))
-      val new_oauth_headers = (new TreeMap[String, String] ++ (new_oauth_params map %%)
-      ) map { case (k, v) => k + """="""" + v + """"""" } mkString ","
-      headers = Map("Authorization" -> ("OAuth " + new_oauth_headers))
-    }
 
     ReqData(url, method, body, encoding, headers ++ extra_headers, query_params, form_params)
   }
