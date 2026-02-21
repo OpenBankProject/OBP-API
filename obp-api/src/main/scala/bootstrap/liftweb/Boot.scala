@@ -31,6 +31,7 @@ import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
 import code.UserRefreshes.MappedUserRefreshes
 import code.abacrule.AbacRule
+import code.accountaccessrequest.AccountAccessRequest
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -43,16 +44,15 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
-import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
+import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apiproduct.ApiProduct
 import code.apiproductattribute.ApiProductAttribute
-import code.featuredapicollection.FeaturedApiCollection
-import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
@@ -81,8 +81,8 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.accountaccessrequest.AccountAccessRequest
 import code.etag.MappedETag
+import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
 import code.kycchecks.MappedKycCheck
@@ -132,7 +132,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
-import code.util.{Helper, HydraUtil}
+import code.util.HydraUtil
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
@@ -1031,7 +1031,6 @@ object ToSchemify {
     MappedSigningBasketConsent,
     MappedRegulatedEntity,
     AtmAttribute,
-    Admin,
     AbacRule,
     MappedBank,
     MappedBankAccount,
