@@ -3770,15 +3770,15 @@ trait APIMethods600 {
          |
          |This is an alias to the DirectLogin endpoint that includes the standard API versioning prefix.
          |
-         |This endpoint requires the following headers:
-         |- DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
-         |OR
-         |- Authorization: DirectLogin username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
+         |This endpoint requires the following header:
          |
-         |Example header:
-         |DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=GET-YOUR-OWN-API-KEY-FROM-THE-OBP
+         |    DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
          |
-         |The token returned can be used as a bearer token in subsequent API calls.
+         |Note: You can also use the Authorization header (Authorization: DirectLogin username=...) but the DirectLogin header is preferred.
+         |
+         |The token returned can then be used in subsequent API calls using the header:
+         |
+         |    DirectLogin: token=YOUR_TOKEN
          |
          |""".stripMargin,
       EmptyBody,
