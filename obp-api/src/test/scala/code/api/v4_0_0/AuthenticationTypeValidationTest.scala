@@ -369,7 +369,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
       message should include(AuthenticationTypeIllegal)
-      message should include("allowed authentication types: [DirectLogin]")
+      message should include("allowed authentication types: [GatewayLogin]")
     }
 
     scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
