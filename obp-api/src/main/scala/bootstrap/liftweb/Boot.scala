@@ -147,8 +147,7 @@ import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
-import net.liftweb.sitemap.Loc._
-import net.liftweb.sitemap._
+// SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import org.apache.commons.io.FileUtils
@@ -527,16 +526,7 @@ class Boot extends MdcLoggable {
     ////////////////////////////////////////////////////
 
 
-    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
-    val accountCreation = {
-      if(APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false)){
-        //user must be logged in, as a created account needs an owner
-        // Not mentioning test and sandbox for App store purposes right now.
-        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> AuthUser.loginFirst)
-      } else {
-        Nil
-      }
-    }
+    // Sandbox account creation menu removed - API-only mode, no portal pages
 
 
     // API Metrics (logs of API calls)
@@ -558,20 +548,7 @@ class Boot extends MdcLoggable {
 
     logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
 
-    // This will work for both portal and API modes. This page is used for testing if the API is running properly.
-    val awakePage = List( Menu.i("awake") /"debug" / "awake")
-
-    // Portal pages removed - empty SiteMap for API-only mode
-    val commonMap = List[Menu]()
-
-    // Build SiteMap - API-only mode
-    val sitemap = awakePage
-
-    def sitemapMutators = AuthUser.sitemapMutator
-
-    // set the sitemap.  Note if you don't want access control for
-    // each page, just comment this line out.
-    LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
+    // SiteMap removed - API-only mode, all routing via statelessDispatch
     // Use jQuery 1.4
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
 
