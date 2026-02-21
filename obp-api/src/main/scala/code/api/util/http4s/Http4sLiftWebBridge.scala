@@ -41,7 +41,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
     val uri = req.uri.renderString
     val method = req.method.name
     logger.debug(s"Http4sLiftBridge dispatching: $method $uri, S.inStatefulScope_? = ${S.inStatefulScope_?}")
-    for {
+    val result = for {
       bodyBytes <- req.body.compile.to(Array)
       liftReq = buildLiftReq(req, bodyBytes)
       liftResp <- IO {
@@ -62,6 +62,14 @@ object Http4sLiftWebBridge extends MdcLoggable {
       logger.debug(s"[BRIDGE] Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       logger.debug(s"Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       ensureStandardHeaders(req, http4sResponse)
+    }
+    result.handleErrorWith { e =>
+      logger.error(s"[BRIDGE] Uncaught exception in dispatch: $method $uri - ${e.getMessage}", e)
+      val errorBody = s"""{"error":"Internal Server Error","message":"${e.getMessage}"}"""
+      IO.pure(ensureStandardHeaders(req, Response[IO](
+        status = org.http4s.Status.InternalServerError
+      ).withEntity(errorBody.getBytes("UTF-8"))
+        .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))))
     }
   }
 
@@ -216,7 +224,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
     buffer.toByteArray
   }
 
-  private def ensureStandardHeaders(req: Request[IO], resp: Response[IO]): Response[IO] = {
+  def ensureStandardHeaders(req: Request[IO], resp: Response[IO]): Response[IO] = {
     val now = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.RFC_1123_DATE_TIME)
     val existing = resp.headers.headers
     def hasHeader(name: String): Boolean =

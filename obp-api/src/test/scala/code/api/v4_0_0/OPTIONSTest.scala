@@ -25,13 +25,13 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
 import dispatch.{Http, as}
 import org.asynchttpclient.Response
 import org.scalatest.Tag
 
 import scala.concurrent.Await
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 class OPTIONSTest extends V400ServerSetup {
@@ -61,7 +61,7 @@ class OPTIONSTest extends V400ServerSetup {
       Then("response header should be correct")
       response204.getHeader("Access-Control-Allow-Origin") shouldBe "*"
       response204.getHeader("Access-Control-Allow-Credentials") shouldBe "true"
-      response204.getHeader("Content-Type") shouldBe "text/plain;charset=utf-8"
+      response204.getHeader("Content-Type").replaceAll("\\s*;\\s*", ";") shouldBe "text/plain;charset=utf-8"
 
       Then("body should be empty")
       response204.getResponseBody shouldBe empty

@@ -13,17 +13,7 @@
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
   <name>Open Bank Project API</name>
-  <properties>
-    <webXmlPath>src/main/webapp/WEB-INF/web.xml</webXmlPath>
-  </properties>
-  <profiles>
-    <profile>
-      <id>prod</id>
-      <properties>
-        <webXmlPath>src/main/resources/web.xml</webXmlPath>
-      </properties>
-    </profile>
-  </profiles>
+
   <pluginRepositories>
     <pluginRepository>
       <id>org.sonatype.oss.groups.public</id>
