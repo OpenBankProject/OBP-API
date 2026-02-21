@@ -439,7 +439,8 @@ import net.liftweb.util.Helpers._
   
   override def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
-  override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
+  // screenWrap removed - API-only mode, no portal pages
+  override def screenWrap = Empty
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
@@ -1521,22 +1522,9 @@ def restoreSomeSessions(): Unit = {
     }
   }
 
-  override def passwordResetXhtml = {
-    <div id="recover-password" tabindex="-1">
-      <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
-      <form action={ObpS.uri} method="post">
-        <div class="form-group">
-          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <input type="submit" class="btn btn-danger" />
-        </div>
-      </form>
-    </div>
-  }
+  // passwordResetXhtml simplified - API-only mode, no portal pages
+  // Password reset is handled via POST /obp/v6.0.0/users/password API endpoint
+  override def passwordResetXhtml = <div/>
   
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
