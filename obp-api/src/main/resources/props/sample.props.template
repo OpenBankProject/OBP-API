@@ -280,6 +280,10 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 ## (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
+# Used as the base URL for password reset and email validation links sent via email.
+# Set this to your frontend/portal URL so that emails contain the correct link.
+portal_external_url=http://localhost:5174
+
 ## This is only useful for running the api locally via RunWebApp
 ## If you use it, make sure this matches your hostname port!
 ## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
@@ -693,21 +697,27 @@ defaultBank.bank_id=OBP
 
 ################################################################################
 ## Super Admin Users are used to boot-strap User Entitlements (access to Roles).
-## Super Admins listed below can grant them selves the following entitlements:
+## Super Admins listed below automatically have the following virtual roles:
 ## CanCreateEntitlementAtAnyBank
-## and
 ## CanCreateEntitlementAtOneBank
+## CanGetAnyUser
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.
 ##
 ## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
-## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlment to a Role.
+## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlement to a Role.
 
 ## List the Users here, with their user_id(s), that should be Super Admins
 super_admin_user_ids=USER_ID1,USER_ID2,
 ################################################################################
 
+
+##################################################################################
+# List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# oidc_operator_user_ids=USER_ID1,USER_ID2,
+####################################################################################
 
 ######## Enable / Disable Versions and individual endpoints. ########
 # In OBP, endpoints are defined in various files but made available under a *version*
@@ -813,7 +823,13 @@ autocomplete_at_login_form_enabled=false
 # This involves this OBP-API sending an email to the newly registered email provided by the User and the User clicking on a link in that email
 # which results in a field being changed in the database.
 # To BYPASS this security features (for local development only), set this property to true to skip the email address validation.
-#authUser.skipEmailValidation=false
+authUser.skipEmailValidation=false
+
+# Expiry time in minutes for email validation JWT tokens (default: 1440 = 24 hours)
+email_validation_token_expiry_minutes=1440
+
+# Expiry time in minutes for password reset JWT tokens (default: 120 = 2 hours)
+password_reset_token_expiry_minutes=120
 
 # control the create and access to public views.
 # allow_public_views=false
@@ -1598,6 +1614,14 @@ regulated_entities = []
 # super_admin_inital_password=681aeeb9f681aeeb9f681aeeb9
 # super_admin_email=tom@tesobe.com
 
+# Bootstrap OIDC Operator User
+# Given the following credentials, OBP will create a user if they do not already exist.
+# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+# If you want to use this feature, please set up all three values properly at the same time.
+# oidc_operator_username=...
+# oidc_operator_initial_password=...
+# oidc_operator_email=...
+
 
 ## Ethereum Connector Configuration
 ## ================================
@@ -1695,6 +1719,13 @@ securelogging_mask_credit_card=true
 
 # Email addresses
 securelogging_mask_email=true
+
+
+############################################
+# Signal Channels (Redis-backed ephemeral channels for AI agent coordination)
+############################################
+# messaging.channel.ttl.seconds=3600
+# messaging.channel.max.messages=1000
 
 
 ############################################

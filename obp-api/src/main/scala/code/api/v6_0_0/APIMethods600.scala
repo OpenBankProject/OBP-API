@@ -5,7 +5,7 @@ import code.accountattribute.AccountAttributeX
 import code.api.Constant._
 import code.api.{Constant, DirectLogin, ObpApiFailure}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.cache.{Caching, Redis}
+import code.api.cache.{Caching, Redis, RedisMessaging}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.{CertificateUtil, Glossary}
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, RateLimitingUtil}
+import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -1682,23 +1682,28 @@ trait APIMethods600 {
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
             val permissions: Option[Permission] = Views.views.vend.getPermissionForUser(u).toOption
-            // Add SuperAdmin virtual entitlement if user is super admin
-            val finalEntitlements = if (APIUtil.isSuperAdmin(u.userId)) {
-              // Create a virtual SuperAdmin entitlement
-              val superAdminEntitlement: Entitlement = new Entitlement {
+            // Add virtual entitlements for super_admin_user_ids or oidc_operator_user_ids
+            val virtualRoleNames = if (APIUtil.isSuperAdmin(u.userId)) {
+              JSONFactory200.superAdminVirtualRoles
+            } else if (APIUtil.isOidcOperator(u.userId)) {
+              JSONFactory200.oidcOperatorVirtualRoles
+            } else {
+              List.empty
+            }
+            val existingRoleNames = entitlements.map(_.roleName).toSet
+            val virtualEntitlements = virtualRoleNames.filterNot(existingRoleNames.contains).map { role =>
+              new Entitlement {
                 def entitlementId: String = ""
                 def bankId: String = ""
                 def userId: String = u.userId
-                def roleName: String = "SuperAdmin"
-                def createdByProcess: String = "System"
+                def roleName: String = role
+                def createdByProcess: String = if (APIUtil.isSuperAdmin(u.userId)) "super_admin_user_ids" else "oidc_operator_user_ids"
                 def entitlementRequestId: Option[String] = None
                 def groupId: Option[String] = None
                 def process: Option[String] = None
               }
-              entitlements ::: List(superAdminEntitlement)
-            } else {
-              entitlements
             }
+            val finalEntitlements = entitlements ::: virtualEntitlements
             val currentUser = UserV600(u, finalEntitlements, permissions)
             val onBehalfOfUser = if(cc.onBehalfOfUser.isDefined) {
               val user = cc.onBehalfOfUser.toOption.get
@@ -1790,7 +1795,6 @@ trait APIMethods600 {
         implicit val ec = EndpointContext(Some(cc))
         for {
           (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, canGetAnyUser, callContext)
           user <- Users.users.vend.getUserByUserIdFuture(userId) map {
             x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
           }
@@ -3811,15 +3815,16 @@ trait APIMethods600 {
       "POST",
       "/users/email-validation",
       "Validate User Email",
-      s"""Validate a user's email address using the token sent via email.
+      s"""Validate a user's email address using the JWT token sent via email.
          |
          |This endpoint is called anonymously (no authentication required).
          |
          |When a user signs up and email validation is enabled (authUser.skipEmailValidation=false),
-         |they receive an email with a validation link containing a unique token.
+         |they receive an email with a validation link containing a signed JWT token.
          |
          |This endpoint:
-         |- Validates the token
+         |- Verifies the JWT signature and checks expiry
+         |- Extracts the unique ID from the JWT subject
          |- Sets the user's validated status to true
          |- Resets the unique ID token (invalidating the link)
          |- Grants default entitlements to the user
@@ -3827,16 +3832,12 @@ trait APIMethods600 {
          |**Important: This is a single-use token.** Once the email is validated, the token is invalidated.
          |Any subsequent attempts to use the same token will return a 404 error (UserNotFoundByToken or UserAlreadyValidated).
          |
-         |The token is a unique identifier (UUID) that was generated when the user was created.
-         |
-         |Example token from validation email URL:
-         |https://your-obp-instance.com/user_mgt/validate_user/a1b2c3d4-e5f6-7890-abcd-ef1234567890
-         |
-         |In this case, the token would be: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+         |The token is a signed JWT with a configurable expiry (default: 1440 minutes / 24 hours).
+         |The server-side expiry can be configured with the `email_validation_token_expiry_minutes` property.
          |
          |""".stripMargin,
       JSONFactory600.ValidateUserEmailJsonV600(
-        token = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        token = "eyJhbGciOiJIUzI1NiJ9..."
       ),
       JSONFactory600.ValidateUserEmailResponseJsonV600(
         user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
@@ -3867,9 +3868,25 @@ trait APIMethods600 {
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat Token cannot be empty", cc = cc.callContext) {
               token.nonEmpty
             }
-            // Find user by unique ID (the validation token)
+            // Verify JWT signature and extract uniqueId from subject
+            uniqueId <- NewStyle.function.tryons(
+              s"$UserNotFoundByToken Invalid or expired validation token",
+              404,
+              cc.callContext
+            ) {
+              val signedJWT = com.nimbusds.jwt.SignedJWT.parse(token)
+              val expiration = signedJWT.getJWTClaimsSet.getExpirationTime
+              if (expiration == null || expiration.before(new java.util.Date())) {
+                throw new Exception("Token has expired")
+              }
+              if (!CertificateUtil.verifywtWithHmacProtection(token)) {
+                throw new Exception("Invalid token signature")
+              }
+              signedJWT.getJWTClaimsSet.getSubject
+            }
+            // Find user by unique ID from JWT
             authUser <- Future {
-              code.model.dataAccess.AuthUser.findUserByValidationToken(token) match {
+              code.model.dataAccess.AuthUser.findUserByValidationToken(uniqueId) match {
                 case Full(user) => Full(user)
                 case Empty => Empty
                 case f: net.liftweb.common.Failure => f
@@ -4243,11 +4260,6 @@ trait APIMethods600 {
          |
          | Requires username(email), password, first_name, last_name, and email.
          |
-         | Optional fields:
-         | - validating_application: Optional application name that will validate the user's email (e.g., "LEGACY_PORTAL")
-         |   When set to "LEGACY_PORTAL", the validation link will use the API hostname property
-         |   When set to any other value or not provided, the validation link will use the portal_external_url property (default behavior)
-         |
          | Validation checks performed:
          | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)
          | - Username must be unique (409 error if username already exists)
@@ -4256,9 +4268,7 @@ trait APIMethods600 {
          | Email validation behavior:
          | - Controlled by property 'authUser.skipEmailValidation' (default: false)
          | - When false: User is created with validated=false and a validation email is sent to the user's email address
-         | - Validation link domain is determined by validating_application:
-         |   * "LEGACY_PORTAL": Uses API hostname property (e.g., https://api.example.com)
-         |   * Other/None (default): Uses portal_external_url property (e.g., https://external-portal.example.com)
+         | - The validation link is constructed using the `portal_external_url` property which must be set
          | - When true: User is created with validated=true and no validation email is sent
          | - Default entitlements are granted immediately regardless of validation status
          |
@@ -4319,40 +4329,36 @@ trait APIMethods600 {
             // STEP 8: Send validation email (if required)
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
             if (!skipEmailValidation) {
-              // Construct validation link based on validating_application and portal_external_url
-              val portalExternalUrl = APIUtil.getPropsValue("portal_external_url")
+              APIUtil.getPropsValue("portal_external_url") match {
+                case Full(portalUrl) =>
+                  // Create a JWT token with the uniqueId as subject and configurable expiry
+                  val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+                  val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                    .subject(savedUser.uniqueId.get)
+                    .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                    .issueTime(new java.util.Date())
+                    .build()
+                  val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
-              val emailValidationLink = postedData.validating_application match {
-                case Some("LEGACY_PORTAL") =>
-                  // Use API hostname with legacy path
-                  Constant.HostName + "/" + code.model.dataAccess.AuthUser.validateUserPath.mkString("/") + "/" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
+                  val emailValidationLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+
+                  val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $emailValidationLink")
+                  val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$emailValidationLink'>$emailValidationLink</a></p>")
+                  val subjectContent = "Sign up confirmation"
+
+                  val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
+                    from = code.model.dataAccess.AuthUser.emailFrom,
+                    to = List(savedUser.email.get),
+                    bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
+                    subject = subjectContent,
+                    textContent = textContent,
+                    htmlContent = htmlContent
+                  )
+
+                  code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
                 case _ =>
-                  // If portal_external_url is set, use modern portal path
-                  // Otherwise fall back to API hostname with legacy path
-                  portalExternalUrl match {
-                    case Full(portalUrl) =>
-                      // Portal is configured - use modern frontend route
-                      portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
-                    case _ =>
-                      // No portal configured - fall back to API hostname with legacy path
-                      Constant.HostName + "/" + code.model.dataAccess.AuthUser.validateUserPath.mkString("/") + "/" + java.net.URLEncoder.encode(savedUser.uniqueId.get, "UTF-8")
-                  }
+                  logger.error("portal_external_url is not set in props. Cannot send validation email.")
               }
-
-              val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $emailValidationLink")
-              val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$emailValidationLink'>$emailValidationLink</a></p>")
-              val subjectContent = "Sign up confirmation"
-
-              val emailContent = code.api.util.CommonsEmailWrapper.EmailContent(
-                from = code.model.dataAccess.AuthUser.emailFrom,
-                to = List(savedUser.email.get),
-                bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
-                subject = subjectContent,
-                textContent = textContent,
-                htmlContent = htmlContent
-              )
-
-              code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
             }
 
             // STEP 9: Grant default entitlements
@@ -5435,6 +5441,10 @@ trait APIMethods600 {
                 case _ => throw new Exception("User not found, not validated, or email mismatch")
               }
             }
+            portalUrl <- APIUtil.getPropsValue("portal_external_url") match {
+              case Full(url) => Future.successful(url)
+              case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration portal_external_url is not set in props. It is required to construct the password reset link."))
+            }
           } yield {
             // Explicitly type the user to ensure proper method resolution
             val user: code.model.dataAccess.AuthUser = authUser
@@ -5453,7 +5463,7 @@ trait APIMethods600 {
             val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
             // Construct reset URL using portal_external_url
-            val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+            val resetPasswordLink = portalUrl +
               "/reset-password/" +
               java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
@@ -5545,8 +5555,8 @@ trait APIMethods600 {
               net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username)
             )
 
-            authUserBox match {
-              case Full(user) if user.validated.get && user.email.get == postedData.email =>
+            (authUserBox, APIUtil.getPropsValue("portal_external_url")) match {
+              case (Full(user), Full(portalUrl)) if user.validated.get && user.email.get == postedData.email =>
                 // Generate new reset token
                 user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
                 user.save
@@ -5561,7 +5571,7 @@ trait APIMethods600 {
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
 
                 // Construct reset URL
-                val resetPasswordLink = APIUtil.getPropsValue("portal_external_url", Constant.HostName) +
+                val resetPasswordLink = portalUrl +
                   "/reset-password/" +
                   java.net.URLEncoder.encode(jwtToken, "UTF-8")
 
@@ -5580,6 +5590,9 @@ trait APIMethods600 {
                 )
 
                 code.api.util.CommonsEmailWrapper.sendHtmlEmail(emailContent)
+
+              case (_, Empty) =>
+                logger.error("portal_external_url is not set in props. Cannot send password reset email.")
 
               case _ =>
                 // Do nothing - return same response to prevent user enumeration
@@ -5640,12 +5653,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
-            _ <- Helper.booleanToFuture(
-              failMsg = ErrorMessages.NotAllowedEndpoint,
-              cc = callContext
-            ) {
-              APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
-            }
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordCompleteJsonV600]}",
               400,
@@ -8702,8 +8709,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyUserCredentials, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
@@ -8776,8 +8781,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canVerifyOidcClient, callContext)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, callContext) {
               json.extract[VerifyOidcClientRequestJsonV600]
             }
@@ -8796,6 +8799,9 @@ trait APIMethods600 {
                   consumer_id = Some(consumer.consumerId.get),
                   redirect_uris = redirectUris
                 ), HttpCode.`200`(callContext))
+              case Full(consumer) if !consumer.isActive.get =>
+                logger.warn(s"verifyOidcClient: client_id ${postedData.client_id} exists but is not active (consumer_id: ${consumer.consumerId.get})")
+                (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
               case _ =>
                 (VerifyOidcClientResponseJsonV600(valid = false), HttpCode.`200`(callContext))
             }
@@ -8839,8 +8845,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
-                 else NewStyle.function.hasEntitlement("", u.userId, canGetOidcClient, callContext)
             consumerBox <- Future {
               Consumers.consumers.vend.getConsumerByConsumerKey(clientId)
             }
@@ -10401,6 +10405,376 @@ trait APIMethods600 {
             (JSONFactory600.createAccountAccessRequestJsonV600(updatedRequest), HttpCode.`201`(callContext))
           }
       }
+    }
+
+
+    // ---- Signal Channels (Redis-backed short-lived messaging for AI agents and other consumers) ----
+
+    staticResourceDocs += ResourceDoc(
+      publishSignalMessage,
+      implementedInApiVersion,
+      nameOf(publishSignalMessage),
+      "POST",
+      "/signal/channels/CHANNEL_NAME/messages",
+      "Publish Signal Message",
+      s"""Publish a message to a signal channel.
+         |
+         |Signal channels provide short-lived, Redis-backed messaging for lightweight coordination between
+         |AI agents and other OBP consumers. Messages are not persisted to a database.
+         |
+         |Channels are auto-created on first publish and expire after a configurable TTL (default 1 hour).
+         |Messages are capped at a configurable maximum per channel (default 1000).
+         |
+         |The payload field accepts any valid JSON content.
+         |
+         |Set to_user_id to send a private message visible only to the sender and recipient.
+         |Leave to_user_id empty for a broadcast message visible to all channel readers.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      postSignalMessageJsonV600,
+      signalMessagePublishedJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    lazy val publishSignalMessage: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonPost json -> _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, callContext) {
+              json.extract[PostSignalMessageJsonV600]
+            }
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name. Use alphanumeric characters, dots, hyphens, underscores. Max 128 chars.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            channelMessageCount <- Future {
+              val consumerId: String = cc.consumer match {
+                case Full(c) => c.consumerId.get
+                case _ => ""
+              }
+              val messageId = randomUUID().toString
+              val sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              val timestamp = sdf.format(new java.util.Date())
+              val messageEnvelope = SignalMessageJsonV600(
+                message_id = messageId,
+                channel_name = channelName,
+                sender_consumer_id = consumerId,
+                sender_user_id = u.userId,
+                to_user_id = postJson.to_user_id,
+                timestamp = timestamp,
+                message_type = postJson.message_type.getOrElse(""),
+                payload = postJson.payload
+              )
+              val messageJsonString = net.liftweb.json.compactRender(net.liftweb.json.Extraction.decompose(messageEnvelope))
+              val count = RedisMessaging.publishMessage(channelName, messageJsonString)
+              (messageId, timestamp, count)
+            }
+          } yield {
+            val (messageId, timestamp, count) = channelMessageCount
+            val response = SignalMessagePublishedJsonV600(
+              message_id = messageId,
+              channel_name = channelName,
+              timestamp = timestamp,
+              channel_message_count = count
+            )
+            (response, HttpCode.`201`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalMessages,
+      implementedInApiVersion,
+      nameOf(getSignalMessages),
+      "GET",
+      "/signal/channels/CHANNEL_NAME/messages",
+      "Get Signal Messages",
+      s"""Fetch messages from a signal channel with offset/limit pagination.
+         |
+         |Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery
+         |and coordination, but usable by any authenticated OBP consumer.
+         |
+         |Messages are returned oldest-first.
+         |
+         |Privacy filtering is applied server-side: you will only see broadcast messages (no to_user_id)
+         |and private messages addressed to you (to_user_id matches your user ID) or sent by you.
+         |
+         |Use the offset parameter to poll for new messages by tracking your position.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalMessagesJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    lazy val getSignalMessages: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "messages" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            limit = obpQueryParams.collectFirst { case OBPLimit(value) => value }.getOrElse(50)
+            offset = obpQueryParams.collectFirst { case OBPOffset(value) => value }.getOrElse(0)
+            (rawMessages, totalCount) <- Future {
+              RedisMessaging.fetchMessages(channelName, offset, limit)
+            }
+          } yield {
+            val parsedMessages: List[SignalMessageJsonV600] = rawMessages.flatMap { msgStr =>
+              scala.util.Try(net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]).toOption
+            }
+            // Privacy filter: only show broadcasts (to_user_id is None) and messages to/from this user
+            val filteredMessages = parsedMessages.filter { msg =>
+              msg.to_user_id.isEmpty ||
+                msg.to_user_id.contains(u.userId) ||
+                msg.sender_user_id == u.userId
+            }
+            val response = SignalMessagesJsonV600(
+              channel_name = channelName,
+              messages = filteredMessages,
+              total_count = totalCount,
+              has_more = (offset + limit) < totalCount
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalChannels,
+      implementedInApiVersion,
+      nameOf(getSignalChannels),
+      "GET",
+      "/signal/channels",
+      "List Signal Channels",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint lists active signal channels.
+         |Only channels that contain at least one broadcast message (no to_user_id) are listed.
+         |Private-only channels are not shown.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    lazy val getSignalChannels: OBPEndpoint = {
+      case "signal" :: "channels" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            channelNames <- Future {
+              RedisMessaging.listChannels()
+            }
+            channelsWithInfo <- Future.sequence(
+              channelNames.map { name =>
+                Future {
+                  RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                    // Check if channel has any broadcast messages
+                    val (messages, _) = RedisMessaging.fetchMessages(name, 0, count.toInt)
+                    val hasBroadcast = messages.exists { msgStr =>
+                      scala.util.Try {
+                        val msg = net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]
+                        msg.to_user_id.isEmpty
+                      }.getOrElse(false)
+                    }
+                    (name, count, ttl, hasBroadcast)
+                  }
+                }
+              }
+            )
+          } yield {
+            val channels = channelsWithInfo.flatten
+              .filter(_._4) // Only channels with broadcast messages
+              .map { case (name, count, ttl, _) =>
+                SignalChannelInfoJsonV600(
+                  channel_name = name,
+                  message_count = count,
+                  ttl_seconds = ttl
+                )
+              }
+            (SignalChannelsJsonV600(channels), HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSignalChannelInfo,
+      implementedInApiVersion,
+      nameOf(getSignalChannelInfo),
+      "GET",
+      "/signal/channels/CHANNEL_NAME/info",
+      "Get Signal Channel Info",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint returns metadata about a signal channel including the current message count and remaining TTL in seconds.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelInfoJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    lazy val getSignalChannelInfo: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: "info" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            info <- Future {
+              RedisMessaging.channelInfo(channelName)
+            }
+            (count, ttl) <- info match {
+              case Some((c, t)) => Future.successful((c, t))
+              case None => Future.failed(new RuntimeException(s"Channel '$channelName' not found"))
+            }
+          } yield {
+            val response = SignalChannelInfoJsonV600(
+              channel_name = channelName,
+              message_count = count,
+              ttl_seconds = ttl
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteSignalChannel,
+      implementedInApiVersion,
+      nameOf(deleteSignalChannel),
+      "DELETE",
+      "/signal/channels/CHANNEL_NAME",
+      "Delete Signal Channel",
+      s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+         |
+         |This endpoint deletes a signal channel and all its messages immediately.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalChannelDeletedJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
+
+    staticResourceDocs += ResourceDoc(
+      getSignalStats,
+      implementedInApiVersion,
+      nameOf(getSignalStats),
+      "GET",
+      "/signal/channels/stats",
+      "Get Signal Channel Stats",
+      s"""Returns statistics for all signal channels, including private-only channels.
+         |
+         |Unlike the List Signal Channels endpoint, this does not filter out private-only channels.
+         |It provides a complete view of all active channels with message counts and TTL info.
+         |
+         |Authentication is Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      signalStatsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel),
+      Some(List(canGetSignalStats)))
+
+    lazy val getSignalStats: OBPEndpoint = {
+      case "signal" :: "channels" :: "stats" :: Nil JsonGet _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            channelNames <- Future {
+              RedisMessaging.listChannels()
+            }
+            channelsWithInfo <- Future.sequence(
+              channelNames.map { name =>
+                Future {
+                  RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                    SignalChannelInfoJsonV600(
+                      channel_name = name,
+                      message_count = count,
+                      ttl_seconds = ttl
+                    )
+                  }
+                }
+              }
+            )
+          } yield {
+            val channels = channelsWithInfo.flatten
+            val totalMessages = channels.map(_.message_count).sum
+            val response = SignalStatsJsonV600(
+              total_channels = channels.size,
+              total_messages = totalMessages,
+              channels = channels
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+    }
+
+
+    lazy val deleteSignalChannel: OBPEndpoint = {
+      case "signal" :: "channels" :: channelName :: Nil JsonDelete _ =>
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+              RedisMessaging.validateChannelName(channelName)
+            }
+            deleted <- Future {
+              RedisMessaging.deleteChannel(channelName)
+            }
+          } yield {
+            val response = SignalChannelDeletedJsonV600(
+              channel_name = channelName,
+              deleted = deleted
+            )
+            (response, HttpCode.`200`(callContext))
+          }
     }
 
   }
