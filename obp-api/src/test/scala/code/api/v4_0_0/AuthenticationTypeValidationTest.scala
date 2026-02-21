@@ -296,7 +296,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate static endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
-      addOneAuthenticationTypeValidation(allowedDirectLogin, "OBPv2.2.0-createFx")
+      addOneAuthenticationTypeValidation(allowedGatewayLogin, "OBPv2.2.0-createFx")
       grantEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId /  "fx").PUT <@ user1
@@ -307,7 +307,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
       message should include(AuthenticationTypeIllegal)
-      message should include("allowed authentication types: [DirectLogin]")
+      message should include("allowed authentication types: [GatewayLogin]")
     }
 
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
@@ -324,7 +324,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_")
+      addOneAuthenticationTypeValidation(allowedGatewayLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -337,7 +337,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
       message should include(AuthenticationTypeIllegal)
-      message should include("allowed authentication types: [DirectLogin]")
+      message should include("allowed authentication types: [GatewayLogin]")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
@@ -356,7 +356,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
     scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
-      addOneAuthenticationTypeValidation(allowedDirectLogin, "OBPv4.0.0-dynamicEndpoint_POST_save")
+      addOneAuthenticationTypeValidation(allowedGatewayLogin, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
@@ -442,6 +442,11 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     response
   }
 
+  private val allowedGatewayLogin =
+    """
+      |["GatewayLogin"]
+      |""".stripMargin
+      
   private val allowedDirectLogin =
     """
       |["DirectLogin"]
