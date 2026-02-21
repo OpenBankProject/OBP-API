@@ -16,7 +16,6 @@
     <avro.version>1.8.2</avro.version>
     <lift.version>3.5.0</lift.version>
     <http4s.version>0.23.30</http4s.version>
-    <jetty.version>9.4.58.v20250814</jetty.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -218,21 +217,6 @@
           </executions>
         </plugin>
 
-
-<plugin>
-  <groupId>org.eclipse.jetty</groupId>
-  <artifactId>jetty-maven-plugin</artifactId>
-  <version>${jetty.version}</version>
-  <configuration>
-    <contextPath>/</contextPath>
-    <scanIntervalSeconds>5</scanIntervalSeconds>
-    <port>8080</port>
-
-    <!-- Jetty 9.4 plugin settings for max header size -->
-    <requestHeaderSize>32768</requestHeaderSize>
-    <responseHeaderSize>32768</responseHeaderSize>
-  </configuration>
-</plugin>
 
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
