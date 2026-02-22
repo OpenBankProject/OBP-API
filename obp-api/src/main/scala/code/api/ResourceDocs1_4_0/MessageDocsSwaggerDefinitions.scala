@@ -194,8 +194,8 @@ object MessageDocsSwaggerDefinitions
     title =titleExample.value,
     branchId = branchIdExample.value,
     nameSuffix = nameSuffixExample.value,
-    customerType = "",
-    parentCustomerId = ""
+    customerType = Some("INDIVIDUAL"),
+    parentCustomerId = Some("")
   )
 
   val customerAttribute = CustomerAttributeCommons(

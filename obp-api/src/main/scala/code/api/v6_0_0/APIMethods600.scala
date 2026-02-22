@@ -3217,7 +3217,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              customer.customerType == "INDIVIDUAL"
+              customer.customerType.contains("INDIVIDUAL")
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3406,7 +3406,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3451,7 +3451,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (children, callContext) <- NewStyle.function.getCustomersByParentCustomerId(bankId, customerId, callContext)
           } yield {
@@ -8713,7 +8713,9 @@ trait APIMethods600 {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
-            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
+              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+                .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
@@ -8722,16 +8724,16 @@ trait APIMethods600 {
             resourceUserId <- Future {
               resourceUserIdBox
             } map {
-              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
             }
             // Get the user object
             user <- Future {
               Users.users.vend.getUserByResourceUserId(resourceUserId)
             } map {
-              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials User account not found in system.", 401)
             }
             // Verify provider matches if specified and not empty
-            _ <- Helper.booleanToFuture(InvalidLoginCredentials, 401, callContext) {
+            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
               postedData.provider.isEmpty || user.provider == postedData.provider
             }
           } yield {

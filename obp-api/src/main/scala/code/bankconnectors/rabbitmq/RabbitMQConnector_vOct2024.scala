@@ -4534,8 +4534,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4587,8 +4587,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4641,8 +4641,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4704,8 +4704,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4754,8 +4754,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId="")))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some(""))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4804,8 +4804,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4855,8 +4855,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId=""))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some("")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5155,8 +5155,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId="")))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some(""))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5206,8 +5206,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId="")))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some(""))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5942,8 +5942,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType="",
-      parentCustomerId="")))
+      customerType=Some("INDIVIDUAL"),
+      parentCustomerId=Some(""))))
     ),
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,

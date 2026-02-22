@@ -168,8 +168,8 @@ case class CustomerCommons(
                             title :String,
                             branchId :String,
                             nameSuffix :String,
-                            customerType :String = "INDIVIDUAL",
-                            parentCustomerId :String = "") extends Customer
+                            customerType :Option[String] = Some("INDIVIDUAL"),
+                            parentCustomerId :Option[String] = Some("")) extends Customer
 
 object CustomerCommons extends Converter[Customer, CustomerCommons]
 
