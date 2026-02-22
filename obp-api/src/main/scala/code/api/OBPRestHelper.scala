@@ -30,7 +30,6 @@ package code.api
 import scala.language.reflectiveCalls
 import scala.language.implicitConversions
 import code.api.Constant._
-import code.api.OAuthHandshake._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{InvalidDAuthHeaderToken, UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
 import code.api.util._
@@ -383,17 +382,6 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("Consent error")
-      }
-    } else if (hasAnOAuthHeader(authorization)) {
-      val (usr, callContext) = getUserAndCallContext(cc)
-      usr match {
-        case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
-        case Empty => fn(cc.copy(user = Empty)) // Anonymous access
-        case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
-        case Failure(msg, t, c) => Failure(msg, t, c)
-        case unhandled =>
-          logger.debug(unhandled)
-          Failure("oauth error")
       }
     } else if (hasAnOAuth2Header(authorization)) {
       val (user, callContext) = OAuth2Login.getUser(cc)

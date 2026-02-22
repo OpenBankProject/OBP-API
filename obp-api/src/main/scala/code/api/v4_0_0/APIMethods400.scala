@@ -55,7 +55,7 @@ import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.ratelimiting.RateLimitingDI
 import code.scope.Scope
-import code.snippet.{WebUIPlaceholder, WebUITemplate}
+// Removed: import code.snippet.{WebUIPlaceholder, WebUITemplate} - portal pages removed
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -97,6 +97,13 @@ trait APIMethods400 extends MdcLoggable {
   self: RestHelper =>
 
   val Implementations4_0_0 = new Implementations400()
+
+  // Email template constants (moved from removed WebUITemplate/WebUIPlaceholder snippets)
+  private val EMAIL_RECIPIENT_PLACEHOLDER = "{{email_recipient}}"
+  private val ACTIVATE_ACCOUNT_PLACEHOLDER = "{{activate_your_account}}"
+  private val DEFAULT_EMAIL_TEXT = s"Dear $EMAIL_RECIPIENT_PLACEHOLDER, please activate your account: $ACTIVATE_ACCOUNT_PLACEHOLDER"
+  private val DEFAULT_EMAIL_HTML = s"<p>Dear $EMAIL_RECIPIENT_PLACEHOLDER,</p><p>Please activate your account: <a href='$ACTIVATE_ACCOUNT_PLACEHOLDER'>Activate</a></p>"
+
 
   class Implementations400 {
 
@@ -4975,15 +4982,15 @@ trait APIMethods400 extends MdcLoggable {
             )
             val customText = getWebUiPropsValue(
               "webui_developer_user_invitation_email_text",
-              WebUITemplate.webUiDeveloperUserInvitationEmailText
+              DEFAULT_EMAIL_TEXT
             )
             logger.debug(s"customText: ${customText}")
             val customHtmlText = getWebUiPropsValue(
               "webui_developer_user_invitation_email_html_text",
-              WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText
+              DEFAULT_EMAIL_HTML
             )
-              .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
-              .replace(WebUIPlaceholder.activateYourAccount, link)
+              .replace(EMAIL_RECIPIENT_PLACEHOLDER, invitation.firstName)
+              .replace(ACTIVATE_ACCOUNT_PLACEHOLDER, link)
             logger.debug(s"customHtmlText: ${customHtmlText}")
             logger.debug(
               s"Before send user invitation by email. Purpose: ${UserInvitationPurpose.DEVELOPER}"
@@ -5020,15 +5027,15 @@ trait APIMethods400 extends MdcLoggable {
             )
             val customText = getWebUiPropsValue(
               "webui_customer_user_invitation_email_text",
-              WebUITemplate.webUiDeveloperUserInvitationEmailText
+              DEFAULT_EMAIL_TEXT
             )
             logger.debug(s"customText: ${customText}")
             val customHtmlText = getWebUiPropsValue(
               "webui_customer_user_invitation_email_html_text",
-              WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText
+              DEFAULT_EMAIL_HTML
             )
-              .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
-              .replace(WebUIPlaceholder.activateYourAccount, link)
+              .replace(EMAIL_RECIPIENT_PLACEHOLDER, invitation.firstName)
+              .replace(ACTIVATE_ACCOUNT_PLACEHOLDER, link)
             logger.debug(s"customHtmlText: ${customHtmlText}")
             logger.debug(s"Before send user invitation by email.")
 

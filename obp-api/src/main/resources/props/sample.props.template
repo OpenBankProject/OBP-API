@@ -1126,15 +1126,6 @@ database_messages_scheduler_interval=3600
 # requirePsd2Certificates=NONE
 # -----------------------------------------------
 
-# -- OBP-API mode -------------------------------
-# In case isn't defined default value is "apis,portal"
-# Possible cases: portal, apis
-# server_mode=apis,portal
-# In case there is a separate portal instance, the API side must also have the following key with the correct portal URL as value.
-# Else, it will just use "hostname":
-# portal_hostname=http://127.0.0.1:8080
-# -----------------------------------------------
-
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------
 # ACCOUNT_OTP_INSTRUCTION_TRANSPORT=DUMMY
 # SIMPLE_OTP_INSTRUCTION_TRANSPORT=DUMMY

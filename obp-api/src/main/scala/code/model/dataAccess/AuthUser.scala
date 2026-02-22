@@ -40,7 +40,6 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
@@ -440,7 +439,8 @@ import net.liftweb.util.Helpers._
   
   override def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
-  override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
+  // screenWrap removed - API-only mode, no portal pages
+  override def screenWrap = Empty
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
@@ -448,26 +448,9 @@ import net.liftweb.util.Helpers._
   // To force validation of email addresses set this to false (default as of 29 June 2021)
   override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
-  override def loginXhtml = {
-    val loginXml = Templates(List("templates-hidden","_login")).map({
-        "form [action]" #> {ObpS.uri} &
-        "#loginText * " #> {S.?("log.in")} &
-        "#usernameText * " #> {S.?("username")} &
-        "#passwordText * " #> {S.?("password")} &
-        "#login_challenge [value]" #> ObpS.param("login_challenge").getOrElse("") &
-        "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
-        "#recoverPasswordLink * " #> {
-          "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
-          "a *" #> {S.?("recover.password")}
-        } &
-        "#SignUpLink * " #> {
-          "a [href]" #> {AuthUser.signUpPath.foldLeft("")(_ + "/" + _)} &
-          "a *" #> {S.?("sign.up")}
-        }
-      })
-
-    <div>{loginXml getOrElse NodeSeq.Empty}</div>
-  }
+  // loginXhtml simplified - API-only mode, no portal pages
+  // Login is handled via OIDC/DirectLogin, not HTML forms
+  override def loginXhtml = <div/>
 
 
   // Update ResourceUser.LastUsedLocale only once per session in 60 seconds
@@ -525,9 +508,7 @@ import net.liftweb.util.Helpers._
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
-      else if (hasAnOAuthHeader(authorization)) {
-        OAuthHandshake.getUser
-      } else if (hasGatewayHeader(authorization)){
+      else if (hasGatewayHeader(authorization)){
         GatewayLogin.getUser
       } else {
         logger.debug(ErrorMessages.CurrentUserNotFoundException)
@@ -634,28 +615,12 @@ import net.liftweb.util.Helpers._
     }
   }
 
-  override def lostPasswordXhtml = {
-    <div id="recover-password" tabindex="-1">
-          <h1>Recover Password</h1>
-          <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
-          <form action={ObpS.uri} method="post">
-            <div class="form-group">
-              <label>Username or email address</label> <span id="recover-password-email"><input id="email" type="text" /></span>
-            </div>
-            <div id="recover-password-submit">
-              <input type="submit" />
-            </div>
-          </form>
-    </div>
-  }
+  // lostPasswordXhtml simplified - API-only mode, no portal pages
+  // Password reset is handled via API endpoints
+  override def lostPasswordXhtml = <div/>
 
-  override def lostPassword = {
-    val bind =
-          "#email" #> SHtml.text("", sendPasswordReset _) &
-          "type=submit" #> lostPasswordSubmitButton(S.?("submit"))
-
-    bind(lostPasswordXhtml)
-  }
+  // lostPassword simplified - API-only mode, no portal pages
+  override def lostPassword = NodeSeq.Empty
 
   //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
 
@@ -773,111 +738,27 @@ import net.liftweb.util.Helpers._
   }
 
 
-  def agreeTermsDiv = {
-    val webUi = new WebUI
-    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
-    val termsAndConditionsCheckboxTitle = Helper.i18n("terms_and_conditions_checkbox_text", Some("I agree to the above Terms and Conditions"))
-    val termsAndConditionsCheckboxLabel = Helper.i18n("terms_and_conditions_checkbox_label", Some("Terms and Conditions"))
-    val agreeTermsHtml = s"""<hr>
-                |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
-                |                            <details open style="cursor:s-resize;">
-                |                                <summary style="display:list-item;"><a class="api_group_name">$termsAndConditionsCheckboxLabel</a></summary>
-                |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
-                |                            </details>
-                |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
-                |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">$termsAndConditionsCheckboxTitle</label>
-                |                        </div>
-                |                        """.stripMargin
+  // agreeTermsDiv simplified - API-only mode, no portal pages
+  def agreeTermsDiv = NodeSeq.Empty
 
-    scala.xml.Unparsed(agreeTermsHtml)
-  }
+  // legalNoticeDiv simplified - API-only mode, no portal pages
+  def legalNoticeDiv = NodeSeq.Empty
 
-  def legalNoticeDiv = {
-    val agreeTermsHtml = getWebUiPropsValue("webui_legal_notice_html_text", "")
-    if(agreeTermsHtml.isEmpty){
-      s""
-    } else{
-      scala.xml.Unparsed(s"""$agreeTermsHtml""")
-    }
-  }
+  // agreePrivacyPolicy simplified - API-only mode, no portal pages
+  def agreePrivacyPolicy = NodeSeq.Empty
 
-  def agreePrivacyPolicy = {
-    val webUi = new WebUI
-    val privacyPolicyCheckboxText = Helper.i18n("privacy_policy_checkbox_text", Some("I agree to the above Privacy Policy"))
-    val privacyPolicyCheckboxLabel = Helper.i18n("privacy_policy_checkbox_label", Some("Privacy Policy"))
-    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
-    val agreePrivacyPolicy = s"""<hr>
-                           |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
-                           |                            <details open style="cursor:s-resize;">
-                           |                                <summary style="display:list-item;"><a class="api_group_name">$privacyPolicyCheckboxLabel</a></summary>
-                           |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
-                           |                            </details>
-                           |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
-                           |                            <label class="form-check-label" for="privacy_checkbox">$privacyPolicyCheckboxText</label>
-                           |                        </div>
-                           |                        <hr>""".stripMargin
-
-    scala.xml.Unparsed(agreePrivacyPolicy)
-  }
-  def enableDisableSignUpButton = {
-    val javaScriptCode = """<script>
-                               |                function enableDisableButton() {
-                               |                  var checkBox = document.getElementById("terms-and-conditions-div").querySelector("input[type=checkbox]");
-                               |                  var checkBox2 = document.getElementById("privacy-conditions-div").querySelector("input[type=checkbox]");
-                               |                  var button = document.getElementById("submit-button");
-                               |                  if (checkBox.checked == true && checkBox2.checked == true){
-                               |                    button.disabled = false;
-                               |                  } else {
-                               |                     button.disabled = true;
-                               |                  }
-                               |                }
-                               |                </script>""".stripMargin
-
-    scala.xml.Unparsed(javaScriptCode)
-  }
+  // enableDisableSignUpButton simplified - API-only mode, no portal pages
+  def enableDisableSignUpButton = NodeSeq.Empty
 
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
 
-  override def signupXhtml (user:AuthUser) =  {
-    <div id="signup" tabindex="-1">
-      <form method="post" action={ObpS.uriAndQueryString.getOrElse(ObpS.uri)}>
-          <h1>{signupFormTitle}</h1>
-          {legalNoticeDiv}
-          <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
-          {localForm(user, false, signupFields)}
-          {agreeTermsDiv}
-          {agreePrivacyPolicy}
-          <div id="signup-submit">
-            <input onmouseover="enableDisableButton()" onfocus="enableDisableButton()" disabled="true" id="submit-button" type="submit" class="btn btn-danger"/>
-          </div>
-          {enableDisableSignUpButton}
-      </form>
-    </div>
-  }
+  // signupXhtml simplified - API-only mode, no portal pages
+  // Signup is handled via API endpoints, not HTML forms
+  override def signupXhtml (user:AuthUser) = <div/>
 
 
-  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = {
-    for {
-      pointer <- fields
-      field <- computeFieldFromPointer(user, pointer).toList
-      if field.show_? && (!ignorePassword || !pointer.isPasswordField_?)
-      form <- field.toForm.toList
-    } yield {
-      if(field.uniqueFieldId.getOrElse("") == "authuser_password") {
-        <div class="form-group">
-          <label>{field.displayName}</label>
-          {form}
-        </div>
-      } else {
-        <div class="form-group">
-          <label>{field.displayName}</label>
-          {form}
-          <div id="signup-error" class="alert alert-danger hide"><span data-lift={s"Msg?id=${field.uniqueFieldId.getOrElse("")}&errorClass=error"}/></div>
-        </div>
-      }
-    }
-
-  }
+  // localForm simplified - API-only mode, no portal pages
+  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = NodeSeq.Empty
 
   def userLoginFailed = {
     logger.info("failed: " + failedLoginRedirect.get)
@@ -1641,22 +1522,9 @@ def restoreSomeSessions(): Unit = {
     }
   }
 
-  override def passwordResetXhtml = {
-    <div id="recover-password" tabindex="-1">
-      <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
-      <form action={ObpS.uri} method="post">
-        <div class="form-group">
-          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <input type="submit" class="btn btn-danger" />
-        </div>
-      </form>
-    </div>
-  }
+  // passwordResetXhtml simplified - API-only mode, no portal pages
+  // Password reset is handled via POST /obp/v6.0.0/users/password API endpoint
+  override def passwordResetXhtml = <div/>
   
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).

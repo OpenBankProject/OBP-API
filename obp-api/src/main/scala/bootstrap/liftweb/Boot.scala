@@ -31,6 +31,7 @@ import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
 import code.UserRefreshes.MappedUserRefreshes
 import code.abacrule.AbacRule
+import code.accountaccessrequest.AccountAccessRequest
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
@@ -43,16 +44,15 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
-import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
+import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apiproduct.ApiProduct
 import code.apiproductattribute.ApiProductAttribute
-import code.featuredapicollection.FeaturedApiCollection
-import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
@@ -81,8 +81,8 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.accountaccessrequest.AccountAccessRequest
 import code.etag.MappedETag
+import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
 import code.kycchecks.MappedKycCheck
@@ -116,7 +116,6 @@ import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.snippet.OAuthWorkedThanks
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -133,7 +132,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
-import code.util.{Helper, HydraUtil}
+import code.util.HydraUtil
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
@@ -148,8 +147,7 @@ import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
-import net.liftweb.sitemap.Loc._
-import net.liftweb.sitemap._
+// SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import org.apache.commons.io.FileUtils
@@ -494,9 +492,6 @@ class Boot extends MdcLoggable {
     }
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
 
-      //OAuth API call
-      LiftRules.statelessDispatch.append(OAuthHandshake)
-
       // JWT auth endpoints
       if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
         LiftRules.statelessDispatch.append(DirectLogin)
@@ -506,23 +501,9 @@ class Boot extends MdcLoggable {
       //add management apis
       LiftRules.statelessDispatch.append(ImporterAPI)
     }
-
-    code.api.Constant.serverMode match {
-      // Instance runs as the portal only
-      case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
-        enableOpenIdConnectApis
-      // Instance runs as the APIs only
-      case mode if mode == "apis" =>
-        enableAPIs
-      // Instance runs as the portal and APIs as well
-      // This is default mode
-      case mode if mode.contains("apis") && mode.contains("portal") =>
-        enableAPIs
-        enableOpenIdConnectApis
-      // Failure
-      case _ =>
-        throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
-    }
+    
+    enableAPIs
+   
 
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
@@ -545,16 +526,7 @@ class Boot extends MdcLoggable {
     ////////////////////////////////////////////////////
 
 
-    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
-    val accountCreation = {
-      if(APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false)){
-        //user must be logged in, as a created account needs an owner
-        // Not mentioning test and sandbox for App store purposes right now.
-        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> AuthUser.loginFirst)
-      } else {
-        Nil
-      }
-    }
+    // Sandbox account creation menu removed - API-only mode, no portal pages
 
 
     // API Metrics (logs of API calls)
@@ -576,87 +548,10 @@ class Boot extends MdcLoggable {
 
     logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
 
-    // This will work for both portal and API modes. This page is used for testing if the API is running properly.
-    val awakePage = List( Menu.i("awake") /"debug" / "awake")
-
-    val commonMap = List(Menu.i("Home") / "index") ::: List(
-      Menu.i("index-en") / "index-en",
-      Menu.i("Plain") / "plain",
-      Menu.i("Static") / "static",
-      Menu.i("SDKs") / "sdks",
-      Menu.i("Consents") / "consents",
-      Menu.i("Debug") / "debug",
-      Menu.i("debug-basic") / "debug" / "debug-basic",
-      Menu.i("debug-default-header") / "debug" / "debug-default-header",
-      Menu.i("debug-default-footer") / "debug" / "debug-default-footer",
-      Menu.i("debug-localization") / "debug" / "debug-localization",
-      Menu.i("debug-plain") / "debug" / "debug-plain",
-      Menu.i("debug-webui") / "debug" / "debug-webui",
-      Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
-        submenus(Consumer.menus : _*),
-
-      Menu("Consent Screen", Helper.i18n("consent.screen")) / "consent-screen" >> AuthUser.loginFirst,
-      Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
-
-      Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
-      Menu("User Information", "User Information") / "user-information",
-      Menu("User Invitation", "User Invitation") / "user-invitation",
-      Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
-      Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
-      Menu("User Invitation Warning", "User Invitation Warning") / "user-invitation-warning",
-      Menu("Already Logged In", "Already Logged In") / "already-logged-in",
-      Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
-      Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
-      // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
-      Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-      Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
-      OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
-      Menu.i("Introduction") / "introduction",
-      Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
-      Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request",
-      Menu.i("confirm-bg-consent-request") / "confirm-bg-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-bg-consent-request-sca") / "confirm-bg-consent-request-sca" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-bg-consent-request-redirect-uri") / "confirm-bg-consent-request-redirect-uri" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-vrp-consent-request") / "confirm-vrp-consent-request" >> AuthUser.loginFirst,//OAuth consent page,
-      Menu.i("confirm-vrp-consent") / "confirm-vrp-consent" >> AuthUser.loginFirst //OAuth consent page
-    ) ++ accountCreation ++ Admin.menus++ awakePage
-
-    // Build SiteMap
-    val sitemap = code.api.Constant.serverMode match {
-      case mode if mode == "portal" => commonMap
-      case mode if mode == "apis" => awakePage
-      case mode if mode.contains("apis") && mode.contains("portal") => commonMap
-      case _ => commonMap
-    }
-
-    def sitemapMutators = AuthUser.sitemapMutator
-
-    // set the sitemap.  Note if you don't want access control for
-    // each page, just comment this line out.
-    LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
-    // Use jQuery 1.4
-    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
-
-    //Show the spinny image when an Ajax call starts
-    LiftRules.ajaxStart =
-      Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
-
-    // Make the spinny image go away when it ends
-    LiftRules.ajaxEnd =
-      Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
+    // SiteMap removed - API-only mode, all routing via statelessDispatch
 
     // Force the request to be UTF-8
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
-
-    // What is the function to test if a user is logged in?
-    LiftRules.loggedInTest = Full(() => AuthUser.loggedIn_?)
-
-    // Template(/Response?) encoding
-    LiftRules.early.append(_.setCharacterEncoding("utf-8"))
-
-    // Use HTML5 for rendering
-    LiftRules.htmlProperties.default.set((r: Req) =>
-      new Html5Properties(r.userAgent))
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
@@ -1136,7 +1031,6 @@ object ToSchemify {
     MappedSigningBasketConsent,
     MappedRegulatedEntity,
     AtmAttribute,
-    Admin,
     AbacRule,
     MappedBank,
     MappedBankAccount,

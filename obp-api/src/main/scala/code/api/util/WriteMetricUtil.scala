@@ -1,7 +1,6 @@
 package code.api.util
 
 import code.api.DirectLogin
-import code.api.OAuthHandshake.{getConsumer, getUser}
 import code.api.util.APIUtil.{ResourceDoc, buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue, hasAnOAuthHeader, hasDirectLoginHeader}
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.metrics.APIMetrics
@@ -92,13 +91,7 @@ object WriteMetricUtil extends MdcLoggable {
     val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     if (getPropsAsBoolValue("write_metrics", false)) {
       val user =
-        if (hasAnOAuthHeader(authorization)) {
-          getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } // Direct Login
-        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+        if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -114,13 +107,7 @@ object WriteMetricUtil extends MdcLoggable {
         }
 
       val consumer =
-        if (hasAnOAuthHeader(authorization)) {
-          getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } // Direct Login
-        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+        if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
