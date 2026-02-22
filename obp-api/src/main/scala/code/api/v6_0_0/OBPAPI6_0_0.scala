@@ -113,6 +113,14 @@ object OBPAPI6_0_0 extends OBPRestHelper
       nameOf(Implementations4_0_0.grantUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V600, we do not support multi views in one endpoint from V600.
+      // v4.0.0 personal user attribute endpoints replaced by /my/personal-data-fields in v6.0.0
+      nameOf(Implementations4_0_0.getMyPersonalUserAttributes) ::
+      nameOf(Implementations4_0_0.createMyPersonalUserAttribute) ::
+      nameOf(Implementations4_0_0.updateMyPersonalUserAttribute) ::
+      // v5.1.0 non-personal user attribute endpoints replaced by /users/USER_ID/attributes in v6.0.0
+      nameOf(Implementations5_1_0.createNonPersonalUserAttribute) ::
+      nameOf(Implementations5_1_0.getNonPersonalUserAttributes) ::
+      nameOf(Implementations5_1_0.deleteNonPersonalUserAttribute) ::
       Nil
       
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
