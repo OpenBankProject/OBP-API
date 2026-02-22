@@ -42,7 +42,7 @@ object TestServer {
   private var serverFiber: Option[FiberIO[Nothing]] = None
 
   private def startServer(): Unit = synchronized {
-    logger.info(s"[TestServer] Starting http4s EmberServer on $host:$port")
+    logger.info(s"[TestServer] Starting http4s EmberServer on $host:$port (HTTP/1.1 only)")
 
     val serverResource = EmberServerBuilder
       .default[IO]
@@ -50,6 +50,8 @@ object TestServer {
       .withPort(Port.fromInt(port).getOrElse(port"8000"))
       .withHttpApp(Http4sApp.httpApp)
       .withShutdownTimeout(1.second)
+      // EmberServer defaults to HTTP/1.1 only (no HTTP/2)
+      // This ensures compatibility with Dispatch HTTP client
       .build
 
     serverFiber = Some(

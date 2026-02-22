@@ -433,7 +433,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
     val compositeKey =
       if(consumerId == "None" && userId == "None") {
-        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+        "anonymous"
       } else {
         s"""consumerId${consumerId}::userId${userId}"""
       }

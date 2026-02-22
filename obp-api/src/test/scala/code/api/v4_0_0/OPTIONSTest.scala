@@ -61,7 +61,7 @@ class OPTIONSTest extends V400ServerSetup {
       Then("response header should be correct")
       response204.getHeader("Access-Control-Allow-Origin") shouldBe "*"
       response204.getHeader("Access-Control-Allow-Credentials") shouldBe "true"
-      response204.getHeader("Content-Type").replaceAll("\\s*;\\s*", ";") shouldBe "text/plain;charset=utf-8"
+      response204.getHeader("Content-Type") shouldBe "text/plain; charset=utf-8"
 
       Then("body should be empty")
       response204.getResponseBody shouldBe empty

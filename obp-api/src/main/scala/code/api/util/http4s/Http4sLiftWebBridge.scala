@@ -208,9 +208,17 @@ object Http4sLiftWebBridge extends MdcLoggable {
     val http4sHeaders = Headers(
       normalizedHeaders.map { case (name, value) => Header.Raw(CIString(name), value) }
     )
-    Response[IO](
-      status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.InternalServerError)
-    ).withEntity(body).withHeaders(http4sHeaders)
+    val status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.InternalServerError)
+    
+    // Log response construction for debugging protocol issues
+    if (code >= 400) {
+      val bodyPreview = if (body.length > 0) new String(body.take(100), "UTF-8") else "empty"
+      logger.debug(s"[BRIDGE] buildHttp4sResponse: code=$code, status=$status, bodySize=${body.length}, bodyPreview=$bodyPreview")
+    }
+    
+    Response[IO](status = status)
+      .withEntity(body)
+      .withHeaders(http4sHeaders)
   }
 
   private def readAllBytes(input: InputStream): Array[Byte] = {
