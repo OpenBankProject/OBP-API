@@ -7948,7 +7948,7 @@ trait APIMethods600 {
          |User Attributes are non-personal attributes (IsPersonal=false) that can be used in ABAC rules.
          |They require a role to set, similar to Customer Attributes, Account Attributes, etc.
          |
-         |For personal attributes that users manage themselves, see the /my/personal-user-attributes endpoints.
+         |For personal attributes that users manage themselves, see the /my/personal-data-fields endpoints.
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
          |
@@ -8200,19 +8200,19 @@ trait APIMethods600 {
     }
 
     // ============================================================================================================
-    // PERSONAL DATA - User manages their own personal data
+    // PERSONAL DATA FIELDS - User manages their own personal data fields
     // ============================================================================================================
 
     staticResourceDocs += ResourceDoc(
-      createMyPersonalUserAttribute,
+      createPersonalDataField,
       implementedInApiVersion,
-      nameOf(createMyPersonalUserAttribute),
+      nameOf(createPersonalDataField),
       "POST",
-      "/my/personal-data",
-      "Create My Personal Data",
-      s"""Create Personal Data for the currently authenticated user.
+      "/my/personal-data-fields",
+      "Create Personal Data Field",
+      s"""Create a Personal Data Field for the currently authenticated user.
          |
-         |Personal Data (IsPersonal=true) is managed by the user themselves and does not require special roles.
+         |Personal Data Fields (IsPersonal=true) are managed by the user themselves and do not require special roles.
          |This data is not available in ABAC rules for privacy reasons.
          |
          |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
@@ -8236,8 +8236,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val createMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: Nil JsonPost json -> _ => {
+    lazy val createPersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8265,15 +8265,15 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getMyPersonalUserAttributes,
+      getPersonalDataFields,
       implementedInApiVersion,
-      nameOf(getMyPersonalUserAttributes),
+      nameOf(getPersonalDataFields),
       "GET",
-      "/my/personal-data",
-      "Get My Personal Data",
-      s"""Get Personal Data for the currently authenticated user.
+      "/my/personal-data-fields",
+      "Get Personal Data Fields",
+      s"""Get Personal Data Fields for the currently authenticated user.
          |
-         |Returns personal data (IsPersonal=true) that is managed by the user.
+         |Returns Personal Data Fields (IsPersonal=true) that are managed by the user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8289,8 +8289,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val getMyPersonalUserAttributes: OBPEndpoint = {
-      case "my" :: "personal-data" :: Nil JsonGet _ => {
+    lazy val getPersonalDataFields: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8302,13 +8302,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getMyPersonalUserAttributeById,
+      getPersonalDataFieldById,
       implementedInApiVersion,
-      nameOf(getMyPersonalUserAttributeById),
+      nameOf(getPersonalDataFieldById),
       "GET",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Get My Personal Data By Id",
-      s"""Get Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Get Personal Data Field By Id",
+      s"""Get a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8323,8 +8323,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val getMyPersonalUserAttributeById: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonGet _ => {
+    lazy val getPersonalDataFieldById: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8341,13 +8341,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      updateMyPersonalUserAttribute,
+      updatePersonalDataField,
       implementedInApiVersion,
-      nameOf(updateMyPersonalUserAttribute),
+      nameOf(updatePersonalDataField),
       "PUT",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Update My Personal Data",
-      s"""Update Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Update Personal Data Field",
+      s"""Update a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8367,8 +8367,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val updateMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonPut json -> _ => {
+    lazy val updatePersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonPut json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8402,13 +8402,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteMyPersonalUserAttribute,
+      deletePersonalDataField,
       implementedInApiVersion,
-      nameOf(deleteMyPersonalUserAttribute),
+      nameOf(deletePersonalDataField),
       "DELETE",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Delete My Personal Data",
-      s"""Delete Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Delete Personal Data Field",
+      s"""Delete a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8423,8 +8423,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val deleteMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonDelete _ => {
+    lazy val deletePersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonDelete _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
