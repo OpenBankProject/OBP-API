@@ -68,6 +68,24 @@ class UserTest extends V510ServerSetup {
 
 
 
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with URL-encoded provider") {
+    scenario("We will call the endpoint with a provider containing special URL characters (colon, slash)", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      // Provider contains special URL characters - dispatch encodes '/' as '%2F' but keeps ':' as-is,
+      // so "http://127.0.0.1:8080" becomes "http:%2F%2F127.0.0.1:8080" in the request path.
+      // The endpoint applies URLDecoder.decode to recover the original provider value before the user lookup.
+      val provider = "http://127.0.0.1:8080"
+      val user = UserX.createResourceUser(provider, Some("user.url.encoded"), None, Some("user.url.encoded"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+      When("We make a request v5.1.0 with provider containing special URL characters")
+      val request = (v5_1_0_Request / "users" / "provider" / provider / "username" / user.name).GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We get successful response - endpoint correctly URL-decodes the provider")
+      response.code should equal(200)
+      response.body.extract[UserJsonV400]
+      Users.users.vend.deleteResourceUser(user.id.get)
+    }
+  }
+
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
