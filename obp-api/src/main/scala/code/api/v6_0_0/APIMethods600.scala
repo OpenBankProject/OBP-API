@@ -9700,13 +9700,14 @@ trait APIMethods600 {
       "GET",
       "/management/config-props",
       "Get Config Props",
-      s"""Get the configuration properties (non-WebUI) and their runtime values.
+      s"""Get the active configuration properties and their runtime values.
          |
-         |This endpoint reads all property keys from the sample.props.template file
-         |(excluding webui_ properties) and returns their current runtime values.
+         |This endpoint returns only properties that the running code has actually accessed
+         |(via getPropsValue, getPropsAsBoolValue, etc. with a default value).
+         |The list grows as more code paths are exercised. Most properties are registered at startup.
          |
-         |Sensitive properties (containing password, secret, passphrase, credential, token_secret)
-         |will have their values masked as ****.
+         |Properties with sensitive keys or values (containing password, secret, passphrase, credential, token_secret)
+         |are excluded from the response entirely.
          |
          |Authentication is Required.
          |
