@@ -9742,6 +9742,46 @@ trait APIMethods600 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getAppsDirectory,
+      implementedInApiVersion,
+      nameOf(getAppsDirectory),
+      "GET",
+      "/apps-directory",
+      "Get Apps Directory",
+      s"""Get connectivity information for apps in the OBP ecosystem.
+         |
+         |Returns configuration properties that apps (Explorer, Portal, OIDC, Hola,
+         |Sandbox Generator) and agents can use to discover endpoints in the OBP ecosystem.
+         |
+         |Only explicitly whitelisted property keys are included:
+         |${APIUtil.appDiscoveryWhitelist.mkString(", ")}
+         |
+         |Authentication is NOT Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      appsDirectoryJsonV600,
+      List(
+        UnknownError
+      ),
+      List(apiTagApi),
+      Some(List()))
+
+    lazy val getAppsDirectory: OBPEndpoint = {
+      case "apps-directory" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            directoryProps = getAppDiscoveryPairs.map { case (key, value) =>
+              ConfigPropJsonV600(key, value)
+            }
+          } yield {
+            (ListResult("apps_directory", directoryProps), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     // Backup Dynamic Entity Endpoints
 
     private def computeBackupName(bankId: Option[String], baseName: String): String = {

@@ -3902,6 +3902,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else value
   }
 
+  // Explicit whitelist of prop keys for the app discovery endpoint.
+  // Add new keys here as needed. Only exact matches are exposed.
+  val appDiscoveryWhitelist = List(
+    "portal_external_url"
+  )
+
+  // Returns config props filtered to only explicitly whitelisted keys.
+  // Chain: registeredDefaults (sensitive excluded) → getConfigPropsPairs (runtime values)
+  //        → explicit whitelist filter → maskSensitivePropValue safety net
+  def getAppDiscoveryPairs: List[(String, String)] = {
+    getConfigPropsPairs
+      .filter { case (key, _) => appDiscoveryWhitelist.contains(key) }
+      .map { case (key, value) => (key, maskSensitivePropValue(key, value)) }
+  }
+
   /**
    * This function is used to centralize generation of UUID values
    * @return UUID as a String value
