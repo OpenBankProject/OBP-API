@@ -3885,7 +3885,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private def registerDefault(key: String, value: String): Unit = {
     // Guard against calls during initialization before sensitivePropsPatterns is set
     if (sensitivePropsPatterns != null && !isSensitive(key, value)) {
-      registeredDefaults.putIfAbsent(key, value)
+      registeredDefaults.get(key) match {
+        case Some(existing) if existing != value =>
+          logger.warn(s"Props key '$key' has conflicting defaults: '$existing' vs '$value'")
+        case _ =>
+          registeredDefaults.putIfAbsent(key, value)
+      }
     }
   }
 
