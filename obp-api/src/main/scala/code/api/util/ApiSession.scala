@@ -3,7 +3,6 @@ package code.api.util
 import code.api.JSONFactoryDAuth
 import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
 import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, DAuth, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, AuthenticatedUserIsRequired}
@@ -142,7 +141,7 @@ case class CallContext(
       requestHeaders = this.requestHeaders,
       partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
       directLoginToken = this.directLoginParams.get("token").getOrElse(""),
-      oAuthToken = this.oAuthParams.get(TokenName).getOrElse(""),
+      oAuthToken = this.oAuthParams.get("oauth_token").getOrElse(""),
       xRateLimitLimit = this.xRateLimitLimit,
       xRateLimitRemaining = this.xRateLimitRemaining,
       xRateLimitReset = this.xRateLimitReset,
@@ -167,8 +166,6 @@ case class CallContext(
       DirectLogin
     }  else if(hasDirectLoginHeader(authReqHeaderField)) { // Direct Login Deprecated
       DirectLogin
-    } else if(hasAnOAuthHeader(authReqHeaderField)) {
-      AuthenticationType.`OAuth1.0a`
     //↓ have no client certificate, the request should contains Google or Yahoo id token OIDC way
     } else if(hasAnOAuth2Header(authReqHeaderField) && APIUtil.`getPSD2-CERT`(requestHeaders).isEmpty) {
       OAuth2_OIDC
@@ -183,9 +180,6 @@ case class CallContext(
 sealed trait AuthenticationType extends EnumValue
 object AuthenticationType extends OBPEnumeration[AuthenticationType]{
   object DirectLogin extends AuthenticationType
-  object `OAuth1.0a` extends AuthenticationType {
-    override def toString: String = "OAuth1.0a"
-  }
   object GatewayLogin extends AuthenticationType
   object DAuth extends AuthenticationType
   object OAuth2_OIDC extends AuthenticationType

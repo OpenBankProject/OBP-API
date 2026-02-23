@@ -42,9 +42,7 @@ object RunTLSWebApp extends App with PropsProgrammatically {
   val servletContextPath = "/"
   //set run mode value to "development", So the value is true of Props.devMode
   System.setProperty("run.mode", "development")
-  // Props hostname MUST be set to https protocol. 
-  // Otherwise OAuth1.0a computed signature at OBP-API side cannot match API-Explorer generates
-  // This automatic adjustment should enable out-of-box feature
+  // Props hostname MUST be set to https protocol.
   setPropsValues("hostname"-> Constant.HostName.replaceFirst("http", "https"))
 
   {

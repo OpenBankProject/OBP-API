@@ -12,7 +12,9 @@ The OBP API abstracts away the peculiarities of each core banking system so that
 
 Our tagline is: "Bank as a Platform. Transparency as an Asset".
 
-The API supports [OAuth 1.0a](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%201.0a), [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google) and other authentication methods including [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login).
+The API supports [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google), [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login), and other authentication methods.
+
+**Note:** OAuth 1.0a support has been removed. Please use OAuth 2.0, OpenID Connect, or Direct Login for authentication.
 
 ## Documentation
 
@@ -459,18 +461,36 @@ We use 9 to run the API in production mode.
 
 - You should now be able to browse to `localhost:8080` (or `yourIPaddress:8080`).
 
-## Using OBP-API in different app modes
+## Server Mode Configuration (Removed)
 
-1. `portal` => OBP-API as a portal i.e. without REST API.
-2. `apis` => OBP-API as an _APIs_ app i.e. only REST APIs.
-3. `apis,portal`=> OBP-API as portal and apis i.e. REST APIs and web portal.
+**IMPORTANT:** The `server_mode` configuration property has been completely removed from OBP-API.
 
-- Edit your props file(s) to contain one of the next cases:
-  1.  `server_mode=portal`
-  2.  `server_mode=apis`
-  3.  `server_mode=apis,portal`
+OBP-API now operates exclusively as a backend API server. There is no configuration needed - the application automatically runs in API-only mode.
 
-  In case it is not defined, the default case is the 3rd one. For example, `server_mode=apis,portal`.
+### What Changed
+
+- ❌ `server_mode=portal` - Removed (no longer supported)
+- ❌ `server_mode=apis` - Removed (no longer needed, this is now the default and only mode)
+- ❌ `server_mode=apis,portal` - Removed (no longer supported)
+
+### Migration
+
+If your props file contains `server_mode`, you can safely remove it. The property is ignored.
+
+**Before:**
+```properties
+server_mode=apis
+```
+
+**After:**
+```properties
+# server_mode property removed - no configuration needed
+# OBP-API automatically runs in API-only mode
+```
+
+**For portal/UI functionality:** Deploy the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) application.
+
+For migration instructions, see `.kiro/specs/remove-lift-portal-pages/MIGRATION_GUIDE.md`
 
 ## Using Akka remote storage
 
@@ -554,7 +574,9 @@ Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API
 
 ## Customize Portal WebPage
 
-Please refer to the [Custom Webapp](obp-api/src/main/resources/custom_webapp/README.md) for links.
+**DEPRECATED:** Portal functionality has been removed from OBP-API.
+
+For UI customization, please use the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.
 
 ## Using jetty password obfuscation with props file
 
@@ -679,7 +701,9 @@ There are 3 API endpoints related to webhooks:
 
 ## OpenID Connect
 
-In order to enable an OIDC workflow at an instance of OBP-API portal app(login functionality) you need to set up the following props:
+**Note:** OpenID Connect authentication is supported for API authentication. Portal login functionality has been moved to the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.
+
+In order to enable OIDC authentication for API access, you need to set up the following props:
 
 ```props
 ## Google as an identity provider
@@ -705,7 +729,7 @@ In order to enable an OIDC workflow at an instance of OBP-API portal app(login f
 # openid_connect_2.button_text = Yahoo
 ```
 
-Please note in the example above you MUST run OBP-API portal at the URL: http://127.0.0.1:8080
+**Note:** The callback URL should match your OBP-API deployment URL (e.g., `http://127.0.0.1:8080/auth/openid-connect/callback`).
 
 ## OAuth 2.0 Authentication
 

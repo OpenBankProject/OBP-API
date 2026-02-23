@@ -46,7 +46,7 @@ import code.ratelimiting.RateLimitingDI
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.views.Views
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsPutJsonV600}
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider, DynamicEntityT}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
@@ -3217,7 +3217,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              customer.customerType == "INDIVIDUAL"
+              customer.customerType.contains("INDIVIDUAL")
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3406,7 +3406,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
@@ -3451,7 +3451,7 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CustomerTypeMismatch, 404, callContext) {
-              List("CORPORATE", "SUBSIDIARY").contains(customer.customerType)
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
             }
             (children, callContext) <- NewStyle.function.getCustomersByParentCustomerId(bankId, customerId, callContext)
           } yield {
@@ -3770,19 +3770,19 @@ trait APIMethods600 {
          |
          |This is an alias to the DirectLogin endpoint that includes the standard API versioning prefix.
          |
-         |This endpoint requires the following headers:
-         |- DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
-         |OR
-         |- Authorization: DirectLogin username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
+         |This endpoint requires the following header:
          |
-         |Example header:
-         |DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=GET-YOUR-OWN-API-KEY-FROM-THE-OBP
+         |    DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
          |
-         |The token returned can be used as a bearer token in subsequent API calls.
+         |Note: You can also use the Authorization header (Authorization: DirectLogin username=...) but the DirectLogin header is preferred.
+         |
+         |The token returned can then be used in subsequent API calls using the header:
+         |
+         |    DirectLogin: token=YOUR_TOKEN
          |
          |""".stripMargin,
       EmptyBody,
-      JSONFactory600.createTokenJSON("DirectLoginToken{eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc}"),
+      JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
       List(
         InvalidDirectLoginParameters,
         InvalidLoginCredentials,
@@ -7948,7 +7948,7 @@ trait APIMethods600 {
          |User Attributes are non-personal attributes (IsPersonal=false) that can be used in ABAC rules.
          |They require a role to set, similar to Customer Attributes, Account Attributes, etc.
          |
-         |For personal attributes that users manage themselves, see the /my/personal-user-attributes endpoints.
+         |For personal attributes that users manage themselves, see the /my/personal-data-fields endpoints.
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
          |
@@ -8200,19 +8200,19 @@ trait APIMethods600 {
     }
 
     // ============================================================================================================
-    // PERSONAL DATA - User manages their own personal data
+    // PERSONAL DATA FIELDS - User manages their own personal data fields
     // ============================================================================================================
 
     staticResourceDocs += ResourceDoc(
-      createMyPersonalUserAttribute,
+      createPersonalDataField,
       implementedInApiVersion,
-      nameOf(createMyPersonalUserAttribute),
+      nameOf(createPersonalDataField),
       "POST",
-      "/my/personal-data",
-      "Create My Personal Data",
-      s"""Create Personal Data for the currently authenticated user.
+      "/my/personal-data-fields",
+      "Create Personal Data Field",
+      s"""Create a Personal Data Field for the currently authenticated user.
          |
-         |Personal Data (IsPersonal=true) is managed by the user themselves and does not require special roles.
+         |Personal Data Fields (IsPersonal=true) are managed by the user themselves and do not require special roles.
          |This data is not available in ABAC rules for privacy reasons.
          |
          |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
@@ -8236,8 +8236,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val createMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: Nil JsonPost json -> _ => {
+    lazy val createPersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8265,15 +8265,15 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getMyPersonalUserAttributes,
+      getPersonalDataFields,
       implementedInApiVersion,
-      nameOf(getMyPersonalUserAttributes),
+      nameOf(getPersonalDataFields),
       "GET",
-      "/my/personal-data",
-      "Get My Personal Data",
-      s"""Get Personal Data for the currently authenticated user.
+      "/my/personal-data-fields",
+      "Get Personal Data Fields",
+      s"""Get Personal Data Fields for the currently authenticated user.
          |
-         |Returns personal data (IsPersonal=true) that is managed by the user.
+         |Returns Personal Data Fields (IsPersonal=true) that are managed by the user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8289,8 +8289,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val getMyPersonalUserAttributes: OBPEndpoint = {
-      case "my" :: "personal-data" :: Nil JsonGet _ => {
+    lazy val getPersonalDataFields: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8302,13 +8302,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getMyPersonalUserAttributeById,
+      getPersonalDataFieldById,
       implementedInApiVersion,
-      nameOf(getMyPersonalUserAttributeById),
+      nameOf(getPersonalDataFieldById),
       "GET",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Get My Personal Data By Id",
-      s"""Get Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Get Personal Data Field By Id",
+      s"""Get a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8323,8 +8323,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val getMyPersonalUserAttributeById: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonGet _ => {
+    lazy val getPersonalDataFieldById: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8341,13 +8341,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      updateMyPersonalUserAttribute,
+      updatePersonalDataField,
       implementedInApiVersion,
-      nameOf(updateMyPersonalUserAttribute),
+      nameOf(updatePersonalDataField),
       "PUT",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Update My Personal Data",
-      s"""Update Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Update Personal Data Field",
+      s"""Update a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8367,8 +8367,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val updateMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonPut json -> _ => {
+    lazy val updatePersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonPut json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8402,13 +8402,13 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteMyPersonalUserAttribute,
+      deletePersonalDataField,
       implementedInApiVersion,
-      nameOf(deleteMyPersonalUserAttribute),
+      nameOf(deletePersonalDataField),
       "DELETE",
-      "/my/personal-data/USER_ATTRIBUTE_ID",
-      "Delete My Personal Data",
-      s"""Delete Personal Data by USER_ATTRIBUTE_ID for the currently authenticated user.
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+      "Delete Personal Data Field",
+      s"""Delete a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
          |
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
@@ -8423,8 +8423,8 @@ trait APIMethods600 {
       Some(List())
     )
 
-    lazy val deleteMyPersonalUserAttribute: OBPEndpoint = {
-      case "my" :: "personal-data" :: userAttributeId :: Nil JsonDelete _ => {
+    lazy val deletePersonalDataField: OBPEndpoint = {
+      case "my" :: "personal-data-fields" :: userAttributeId :: Nil JsonDelete _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -8713,7 +8713,9 @@ trait APIMethods600 {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
-            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
+              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+                .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
@@ -8722,16 +8724,16 @@ trait APIMethods600 {
             resourceUserId <- Future {
               resourceUserIdBox
             } map {
-              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
             }
             // Get the user object
             user <- Future {
               Users.users.vend.getUserByResourceUserId(resourceUserId)
             } map {
-              x => unboxFullOrFail(x, callContext, InvalidLoginCredentials, 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials User account not found in system.", 401)
             }
             // Verify provider matches if specified and not empty
-            _ <- Helper.booleanToFuture(InvalidLoginCredentials, 401, callContext) {
+            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
               postedData.provider.isEmpty || user.provider == postedData.provider
             }
           } yield {
@@ -10773,6 +10775,143 @@ trait APIMethods600 {
             )
             (response, HttpCode.`200`(callContext))
           }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAccountDirectory,
+      implementedInApiVersion,
+      nameOf(getAccountDirectory),
+      "GET",
+      "/banks/BANK_ID/account-directory",
+      "Get Account Directory at Bank",
+      s"""Returns a list of accounts at the bank with identifiers and metadata.
+         |
+         |This endpoint is designed for management UIs that need to list accounts
+         |without exposing sensitive data (balance and owners are excluded).
+         |
+         |The response includes: account_id, bank_id, label, account_number, account_type, branch_id,
+         |account_routings, account_attributes and view_ids.
+         |
+         |${urlParametersDocument(true, false)}
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.AccountDirectoryJsonV600(
+        accounts = List(JSONFactory600.AccountDirectoryItemJsonV600(
+          account_id = ExampleValue.accountIdExample.value,
+          bank_id = ExampleValue.bankIdExample.value,
+          label = "My Account",
+          account_number = "123456789",
+          account_type = "CURRENT",
+          branch_id = "BRANCH_1",
+          account_routings = List(FastFirehoseRoutings(bank_id = ExampleValue.bankIdExample.value, account_id = ExampleValue.accountIdExample.value)),
+          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+          view_ids = List("owner")
+        ))
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount),
+      Some(List(canGetAccountDirectoryAtOneBank))
+    )
+
+    lazy val getAccountDirectory: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-directory" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetAccountDirectoryAtOneBank, callContext)
+            allowedParams = List("limit", "offset", "sort_direction")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (accounts, callContext) <- NewStyle.function.getAccountDirectory(bankId, obpQueryParams, callContext)
+          } yield {
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { a =>
+              val bankIdAccountId = BankIdAccountId(BankId(a.bankId), AccountId(a.id))
+              val viewIds = Views.views.vend.availableViewsForAccount(bankIdAccountId).map(_.viewId.value)
+              bankIdAccountId -> viewIds
+            }.toMap
+            (JSONFactory600.createAccountDirectoryJsonV600(accounts, viewsPerAccount), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      hasAccountAccess,
+      implementedInApiVersion,
+      nameOf(hasAccountAccess),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access",
+      "Has Account Access",
+      s"""Check whether the authenticated user has access to a specific view on a specific account.
+         |
+         |Returns a boolean `has_account_access` along with the `access_source` (currently "ACCOUNT_ACCESS")
+         |and the `account_access_id` (primary key of the AccountAccess record).
+         |
+         |If the user does not have access, `has_account_access` is false and the other fields are empty strings.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory600.HasAccountAccessJsonV600(
+        has_account_access = true,
+        access_source = "ACCOUNT_ACCESS",
+        account_access_id = ExampleValue.uuidExample.value,
+        abac_rule_id = ""
+      ),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount)
+    )
+
+    lazy val hasAccountAccess: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "has-account-access" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+            _ <- Future {
+              Views.views.vend.customViewFuture(viewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _ => Views.views.vend.systemViewFuture(viewId)
+              }
+            }.flatten.map {
+              unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is ${viewId.value}")
+            }
+            accountAccessBox <- Future {
+              AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+                bankId, accountId, viewId, u.userPrimaryKey
+              )
+            }
+          } yield {
+            val response = accountAccessBox match {
+              case Full(aa) =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = true,
+                  access_source = "ACCOUNT_ACCESS",
+                  account_access_id = aa.id.get.toString,
+                  abac_rule_id = ""
+                )
+              case _ =>
+                JSONFactory600.HasAccountAccessJsonV600(
+                  has_account_access = false,
+                  access_source = "",
+                  account_access_id = "",
+                  abac_rule_id = ""
+                )
+            }
+            (response, HttpCode.`200`(callContext))
+          }
+      }
     }
 
   }

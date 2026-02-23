@@ -33,7 +33,6 @@ import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
 import code.accountholders.AccountHolders
 import code.api.Constant._
-import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api._
@@ -44,8 +43,6 @@ import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api.dynamic.entity.helper.DynamicEntityHelper
-import code.api.oauth1a.Arithmetics
-import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
@@ -1388,127 +1385,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     import scala.collection.Map
     import scala.collection.immutable.{Map => IMap}
 
-    case class ReqData (
-                         url: String,
-                         method: String,
-                         body: String,
-                         body_encoding: String,
-                         headers: Map[String, String],
-                         query_params: Map[String,String],
-                         form_params: Map[String,String]
-                       )
-
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
-    object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
-        case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
-        case _ => None
-      }
-    }
-
-    /** @return oauth parameter map including signature */
-    def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
-      val oauth_params = IMap(
-        "oauth_consumer_key" -> consumer.key,
-        SignatureMethodName -> "HMAC-SHA256",
-        TimestampName -> (System.currentTimeMillis / 1000).toString,
-        NonceName -> System.nanoTime.toString,
-        VersionName -> "1.0"
-      ) ++ token.map { TokenName -> _.value } ++
-        verifier.map { VerifierName -> _ } ++
-        callback.map { CallbackName -> _ }
-
-      val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
-      logger.debug("signatureBase: " + signatureBase)
-      logger.debug("computedSignature: " + computedSignature)
-      oauth_params + (SignatureName -> computedSignature)
-    }
 
     /** Out-of-band callback code */
     val oob = "oob"
 
-    /** Map with oauth_callback set to the given url */
-    def callback(url: String) = IMap(CallbackName -> url)
-
-    //normalize to OAuth percent encoding
-    private def %% (str: String): String = {
-      val remaps = ("+", "%20") :: ("%7E", "~") :: ("*", "%2A") :: Nil
-      (encode_%(str) /: remaps) { case (str, (a, b)) => str.replace(a,b) }
-    }
-    private def %% (s: Seq[String]): String = s map %% mkString "&"
-    private def %% (t: (String, Any)): (String, String) = (%%(t._1), %%(t._2.toString))
-
-    private def bytes(str: String) = str.getBytes(UTF_8)
-
     /** Add OAuth operators to dispatch.Request */
     implicit def Request2RequestSigner(r: Request) = new RequestSigner(r)
 
-    /** @return %-encoded string for use in URLs */
-    def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)
-
-    /** @return %-decoded string e.g. from query string or form body */
-    def decode_% (s: String) = java.net.URLDecoder.decode(s, org.apache.http.protocol.HTTP.UTF_8)
-
     class RequestSigner(rb: Request) {
-      private val r = rb.toRequest
-      @deprecated("use <@ (consumer, callback) to pass the callback in the header for a request-token request")
-      def <@ (consumer: Consumer): Request = sign(consumer, None, None, None)
-      /** sign a request with a callback, e.g. a request-token request */
-      def <@ (consumer: Consumer, callback: String): Request = sign(consumer, None, None, Some(callback))
-      /** sign a request with a consumer, token, and verifier, e.g. access-token request */
-      def <@ (consumer: Consumer, token: Token, verifier: String): Request =
-        sign(consumer, Some(token), Some(verifier), None)
       /** sign a request with a consumer and a token, e.g. an OAuth-signed API request */
-      def <@ (consumer: Consumer, token: Token): Request = sign(consumer, Some(token), None, None)
+      def <@ (consumer: Consumer, token: Token): Request = {
+        rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+      }
       def <@ (consumerAndToken: Option[(Consumer,Token)]): Request = {
         consumerAndToken match {
-          case Some(cAndt) => sign(cAndt._1, Some(cAndt._2), None, None)
-          case _ => rb
+          case Some((_, token)) => 
+            rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+          case None => rb
         }
-      }
-
-      /** Sign request by reading Post (<<) and query string parameters */
-      private def sign(consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
-
-        val oauth_url = r.getUrl.split('?')(0)
-        val query_params = r.getQueryParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
-          case (k, v) => k -> v.toString
-        }
-        val form_params = r.getFormParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
-          case (k, v) => k -> v.toString
-        }
-        val body_encoding = r.getCharset
-        var body = new String()
-        if (r.getByteData != null )
-          body = new String(r.getByteData)
-        val oauth_params = OAuth.sign(r.getMethod, oauth_url,
-          query_params ++ form_params,
-          consumer, token, verifier, callback)
-
-        def createRequest( reqData: ReqData ): Request = {
-          val charset = if(reqData.body_encoding == "null") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
-          val rb = url(reqData.url)
-            .setMethod(reqData.method)
-            .setBodyEncoding(charset)
-            .setBody(reqData.body) <:< reqData.headers
-          if (reqData.query_params.nonEmpty)
-            rb <<? reqData.query_params
-          rb
-        }
-
-        createRequest( ReqData(
-          oauth_url,
-          r.getMethod,
-          body,
-          if (body_encoding == null) "null" else body_encoding.name(),
-          IMap("Authorization" -> ("OAuth " + oauth_params.map {
-            case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
-          }.mkString(",") )),
-          query_params,
-          form_params
-        ))
       }
     }
   }
@@ -2786,12 +2682,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else
         false
     }
-    code.api.Constant.serverMode match {
-      case mode if mode == "portal" => false
-      case mode if mode == "apis" => checkVersion
-      case mode if mode.contains("apis") && mode.contains("portal") => checkVersion
-      case _ => checkVersion
-    }
+    // Portal mode removed - always check version for API-only mode
+    checkVersion
   }
 
 
@@ -3195,8 +3087,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }
         }
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
-        getUserFromOAuthHeaderFuture(cc.copy(consumer = consumerByCertificate))
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc.copy(consumer = consumerByCertificate))

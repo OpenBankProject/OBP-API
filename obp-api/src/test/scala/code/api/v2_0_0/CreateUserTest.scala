@@ -1,18 +1,10 @@
 package code.api.v2_0_0
 
-import code.api.OAuthResponse
-import code.api.util.APIUtil.OAuth.{Consumer, _}
 import code.consumer.Consumers
-import code.model.{Consumer => OBPConsumer}
-import dispatch._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
-
-import scala.concurrent.Await
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
 
 
 class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
@@ -49,9 +41,6 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       None)
   }
 
-  override lazy val consumer = new Consumer(KEY, SECRET)
-
-  def oauthRequest = baseRequest / "oauth"
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
@@ -59,31 +48,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
     format(USERNAME, PASSWORD, KEY))
   val validHeaders = List(accessControlOriginHeader, validHeader)
 
-  private def getAPIResponse(req : Req) : OAuthResponse = {
-    Await.result(
-      for(response <- Http.default(req > as.Response(p => p)))
-        yield OAuthResponse(response.getStatusCode, response.getResponseBody), Duration.Inf)
-  }
-
-  private def sendPostRequest(req: Req): OAuthResponse = {
-    val postReq = req.POST
-    getAPIResponse(postReq)
-  }
-
-  private def getRequestToken(consumer: Consumer, callback: String): OAuthResponse = {
-    val request = (oauthRequest / "initiate").POST <@ (consumer, callback)
-    sendPostRequest(request)
-  }
-
-  def extractToken(body: String) : Token = {
-    val oauthParams = body.split("&")
-    val token = oauthParams(0).split("=")(1)
-    val secret = oauthParams(1).split("=")(1)
-    Token(token, secret)
-  }
-
-
-  feature("we can create an user and login as newly created user using both directLogin and OAuth") {
+  feature("we can create an user and login as newly created user using directLogin") {
 
     scenario("we create an user with email, first name, last name, username and password", CreateUser) {
       When("we create a new user")
@@ -114,15 +79,6 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
         case _ => fail("Expected a token")
       }
       token.size should not equal (0)
-    }
-
-    scenario("we login using OAuth as newly created user", CreateUser) {
-      When("the request an OAuth token")
-      val reply = getRequestToken(consumer, oob)
-      Then("we should get a 200 - OK and a token")
-      reply.code should equal (200)
-      val requestToken = extractToken(reply.body)
-      requestToken.value.size should not equal (0)
     }
 
     scenario("we try to create a same user again", CreateUser) {
