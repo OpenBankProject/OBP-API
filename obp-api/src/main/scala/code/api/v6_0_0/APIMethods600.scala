@@ -3817,10 +3817,11 @@ trait APIMethods600 {
       "Validate User Email",
       s"""Validate a user's email address using the JWT token sent via email.
          |
-         |This endpoint is called anonymously (no authentication required).
+         |This is a self-service endpoint for users to confirm their email address as part of the sign-up process.
          |
-         |When a user signs up and email validation is enabled (authUser.skipEmailValidation=false),
-         |they receive an email with a validation link containing a signed JWT token.
+         |When a user registers and email validation is enabled (authUser.skipEmailValidation=false),
+         |they receive an email containing a validation link with a signed JWT token.
+         |The user (or a client application) then calls this endpoint with that token to complete validation.
          |
          |This endpoint:
          |- Verifies the JWT signature and checks expiry
@@ -3834,6 +3835,10 @@ trait APIMethods600 {
          |
          |The token is a signed JWT with a configurable expiry (default: 1440 minutes / 24 hours).
          |The server-side expiry can be configured with the `email_validation_token_expiry_minutes` property.
+         |
+         |For administrative validation (without an email token), see the Validate a User endpoint (PUT /management/users/USER_ID).
+         |
+         |${userAuthenticationMessage(false)}
          |
          |""".stripMargin,
       JSONFactory600.ValidateUserEmailJsonV600(
