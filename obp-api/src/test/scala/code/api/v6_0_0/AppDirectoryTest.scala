@@ -33,25 +33,25 @@ import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
 
-class AppsDirectoryTest extends V600ServerSetup {
+class AppDirectoryTest extends V600ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations6_0_0.getAppsDirectory))
+  object ApiEndpoint extends Tag(nameOf(Implementations6_0_0.getAppDirectory))
 
-  feature("Get Apps Directory v6.0.0") {
+  feature("Get App Directory v6.0.0") {
 
-    scenario("We get apps directory without authentication - should succeed", VersionOfApi, ApiEndpoint) {
+    scenario("We get app directory without authentication - should succeed", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint without authentication")
-      val request = (v6_0_0_Request / "apps-directory").GET
+      val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
     }
 
-    scenario("We get apps directory with authentication - should also succeed", VersionOfApi, ApiEndpoint) {
+    scenario("We get app directory with authentication - should also succeed", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint with authentication")
-      val request = (v6_0_0_Request / "apps-directory").GET <@(user1)
+      val request = (v6_0_0_Request / "app-directory").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -60,14 +60,14 @@ class AppsDirectoryTest extends V600ServerSetup {
 
     scenario("Response only contains explicitly whitelisted keys", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
-      val request = (v6_0_0_Request / "apps-directory").GET
+      val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
 
       And("Every returned key should be in the explicit whitelist")
-      val props = (response.body \ "apps_directory").children
+      val props = (response.body \ "app_directory").children
       props.foreach { prop =>
         val name = (prop \ "name").extract[String]
         withClue(s"Key '$name' should be in appDiscoveryWhitelist: ") {
@@ -78,14 +78,14 @@ class AppsDirectoryTest extends V600ServerSetup {
 
     scenario("Response does not contain sensitive keywords in keys", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
-      val request = (v6_0_0_Request / "apps-directory").GET
+      val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
 
       And("No key should contain any sensitive keyword")
-      val props = (response.body \ "apps_directory").children
+      val props = (response.body \ "app_directory").children
       props.foreach { prop =>
         val name = (prop \ "name").extract[String].toLowerCase
         APIUtil.sensitiveKeywords.foreach { keyword =>
@@ -96,14 +96,14 @@ class AppsDirectoryTest extends V600ServerSetup {
 
     scenario("Response does not contain sensitive keywords in values", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
-      val request = (v6_0_0_Request / "apps-directory").GET
+      val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
 
       And("No value should contain any sensitive keyword (must be masked or excluded)")
-      val props = (response.body \ "apps_directory").children
+      val props = (response.body \ "app_directory").children
       props.foreach { prop =>
         val value = (prop \ "value").extract[String].toLowerCase
         if (value != "****") {
@@ -116,14 +116,14 @@ class AppsDirectoryTest extends V600ServerSetup {
 
     scenario("Response does not expose internal infrastructure props", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
-      val request = (v6_0_0_Request / "apps-directory").GET
+      val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
       response.code should equal(200)
 
       And("Internal infrastructure keys should not be present")
-      val props = (response.body \ "apps_directory").children
+      val props = (response.body \ "app_directory").children
       val names = props.map(p => (p \ "name").extract[String])
       names should not contain("connector")
       names should not contain("write_metrics")
@@ -135,7 +135,7 @@ class AppsDirectoryTest extends V600ServerSetup {
     }
   }
 
-  feature("Apps Directory unit-level checks v6.0.0") {
+  feature("App Directory unit-level checks v6.0.0") {
 
     scenario("maskSensitivePropValue masks keys containing sensitive keywords", VersionOfApi, ApiEndpoint) {
       APIUtil.maskSensitivePropValue("db_password", "mysecretpw") should equal("****")

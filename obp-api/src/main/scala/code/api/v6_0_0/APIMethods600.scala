@@ -9743,12 +9743,12 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAppsDirectory,
+      getAppDirectory,
       implementedInApiVersion,
-      nameOf(getAppsDirectory),
+      nameOf(getAppDirectory),
       "GET",
-      "/apps-directory",
-      "Get Apps Directory",
+      "/app-directory",
+      "Get App Directory",
       s"""Get connectivity information for apps in the OBP ecosystem.
          |
          |Returns configuration properties that apps (Explorer, Portal, OIDC, Hola,
@@ -9761,15 +9761,15 @@ trait APIMethods600 {
          |
          |""".stripMargin,
       EmptyBody,
-      appsDirectoryJsonV600,
+      appDirectoryJsonV600,
       List(
         UnknownError
       ),
       List(apiTagApi),
       Some(List()))
 
-    lazy val getAppsDirectory: OBPEndpoint = {
-      case "apps-directory" :: Nil JsonGet _ => {
+    lazy val getAppDirectory: OBPEndpoint = {
+      case "app-directory" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- anonymousAccess(cc)
@@ -9777,7 +9777,7 @@ trait APIMethods600 {
               ConfigPropJsonV600(key, value)
             }
           } yield {
-            (ListResult("apps_directory", directoryProps), HttpCode.`200`(callContext))
+            (ListResult("app_directory", directoryProps), HttpCode.`200`(callContext))
           }
       }
     }
