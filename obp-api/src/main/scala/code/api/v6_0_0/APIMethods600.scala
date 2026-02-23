@@ -9702,11 +9702,19 @@ trait APIMethods600 {
       "Get Config Props",
       s"""Get the active configuration properties and their runtime values.
          |
-         |This endpoint returns only properties that the running code has actually accessed
-         |(via getPropsValue, getPropsAsBoolValue, etc. with a default value).
-         |The list grows as more code paths are exercised. Most properties are registered at startup.
+         |This endpoint uses a self-registration mechanism: each time the code calls
+         |getPropsValue, getPropsAsBoolValue, getPropsAsIntValue, or getPropsAsLongValue
+         |with a default value, that property key is registered.
          |
-         |Properties with sensitive keys or values (containing password, secret, passphrase, credential, token_secret)
+         |Only registered properties are returned. The list grows as more code paths are
+         |exercised. Most properties are registered at startup.
+         |
+         |For each property, the value shown is the actual runtime value. If the property
+         |is not explicitly set, the code-defined default is shown.
+         |
+         |The response includes both regular and webui_ properties, sorted alphabetically by key.
+         |
+         |Properties with sensitive keys or values (containing ${APIUtil.sensitiveKeywords.mkString(", ")})
          |are excluded from the response entirely.
          |
          |Authentication is Required.
