@@ -5,6 +5,15 @@
 
 # Do NOT use trailing or leading spaces in your values.
 
+# Note: This file is parsed by the getWebUiProps API endpoint for webui_ properties.
+# The getConfigProps API endpoint does NOT read this file; it shows only
+# properties that the running code has actually accessed, via self-registration.
+# Still, please keep this template clean:
+# - Do not put real passwords or secrets in example values, use placeholders like CHANGE_ME
+# - Keep multi-line \ continuations to a minimum; prefer single-line values
+# - Do not put inline comments after values on the same line
+# - Best not use the string "=" in comments because it might be used to denote a key / value pair in the future.
+
 
 ### OBP-API configuration
 

@@ -1501,7 +1501,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|Please note the user_id
 			|
@@ -1521,7 +1521,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: $directLoginHeaderName token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 3) List customers for the user
 			|
@@ -1537,7 +1537,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 4) Create user customer link
 			|
@@ -1555,7 +1555,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 5) Create account
 			|
@@ -1573,7 +1573,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 6) List accounts
 			|
@@ -1589,7 +1589,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 7) Create card
 			|
@@ -1607,7 +1607,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct0login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 8) List cards
 			|
@@ -1623,7 +1623,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct0login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 		  """)
 
@@ -1648,7 +1648,7 @@ object Glossary extends MdcLoggable  {
 			 |
 			 |	Content-Type:  application/json
 			 |
-			 |	Authorization: DirectLogin token="your-token"
+			 |	$directLoginHeaderName: token="your-token"
 			 |
 			 |### 3) Grant user access to view
 			 |
@@ -1664,7 +1664,7 @@ object Glossary extends MdcLoggable  {
 			 |
 			 |	Content-Type:  application/json
 			 |
-			 |	Authorization: DirectLogin token="your-token"
+			 |	$directLoginHeaderName: token="your-token"
 			 |
 		  """)
 
@@ -1685,7 +1685,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 2) Make payment by SEPA
 			|
@@ -1701,7 +1701,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"        |
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 			|### 3) Make payment by COUNTERPARTY
@@ -1718,7 +1718,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 		  """)
@@ -1745,7 +1745,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 3) Get User (Current)
 			|
@@ -1758,7 +1758,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 4) Grant user access to himself
 			|
@@ -1774,7 +1774,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 5) Grant user access to view to another user
 			|
@@ -1790,7 +1790,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 		  """)
@@ -1813,7 +1813,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|Please note the user_id
 			|
@@ -1834,7 +1834,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 3) Create customer
 			|
@@ -1852,7 +1852,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 4) Get Customers for Current User
 			|
@@ -1868,7 +1868,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 
 		  """)
@@ -4307,7 +4307,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=eyJhbGciOiJIUzI1...' \\
+				 |  -H '$directLoginHeaderName: token=eyJhbGciOiJIUzI1...' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4631,7 +4631,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{}'
 				 |```
@@ -4653,7 +4653,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/account-owner-only/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "user_id": "alice@example.com",
@@ -4673,7 +4673,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/high-balance-only/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4692,7 +4692,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/small-transactions/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4737,7 +4737,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |```bash
 				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/nonexistent-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -d '{}'
 				 |```
 				 |

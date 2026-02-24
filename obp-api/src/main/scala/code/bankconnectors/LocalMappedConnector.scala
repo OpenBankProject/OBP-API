@@ -1336,18 +1336,136 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future{
       val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(Constant.Pagination.limit)
       val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(Constant.Pagination.offset)
-      val orderBy = queryParams.collect { 
+      val orderBy = queryParams.collect {
         case OBPOrdering(_, OBPDescending) => "DESC"
       }.headOption.getOrElse("ASC")
 
       val ordering: SQLSyntax = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
-      
+
       val firehoseAccounts = {
         scalikeDB readOnly { implicit session =>
           findFirehoseAccounts(bankId, ordering, limit, offset)
         }
       }
       (Full(firehoseAccounts), callContext)
+    }
+
+  private def findAccountDirectory(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
+    def parseRoutings(routings: String): List[FastFirehoseRoutings] = {
+      if(!routings.isEmpty) {
+        transformStringDirectory(routings).map {
+          i =>
+            FastFirehoseRoutings(
+              bank_id = i("bank_id").mkString(""),
+              account_id = i("account_id").mkString("")
+            )
+        }
+      } else {
+        List()
+      }
+    }
+    def parseAttributes(attributes: String): List[FastFirehoseAttributes] = {
+      if(!attributes.isEmpty) {
+        transformStringDirectory(attributes).map {
+          i =>
+            FastFirehoseAttributes(
+              `type` = i("type").mkString(""),
+              code = i("code").mkString(""),
+              value = i("value").mkString("")
+            )
+        }
+      } else {
+        List()
+      }
+    }
+    def transformStringDirectory(input: String): List[Map[String, List[String]]] = {
+      val splitToRows: List[String] = input.split("::").toList
+      val keyValuePairs: List[List[(String, String)]] = splitToRows.map { i=>
+        i.split(",").toList.map {
+          x =>
+            val keyValue: Array[String] = x.split(":")
+            if(keyValue.size == 2) (keyValue(0), keyValue(1)) else (keyValue(0), "")
+        }
+      }
+      val maps: List[Map[String, List[String]]] = keyValuePairs.map(_.groupBy(_._1).map { case (k,v) => (k,v.map(_._2))})
+      maps
+    }
+
+    val sqlResult = sql"""
+       |select
+       |    mappedbankaccount.theaccountid as account_id,
+       |    mappedbankaccount.bank as bank_id,
+       |    mappedbankaccount.accountlabel as account_label,
+       |    mappedbankaccount.accountnumber as account_number,
+       |    mappedbankaccount.kind as kind,
+       |    mappedbankaccount.mbranchid as branch_id,
+       |    (select
+       |        string_agg(
+       |            'bank_id:'
+       |            ||bankaccountrouting.bankid
+       |            ||',account_id:'
+       |            ||bankaccountrouting.accountid,
+       |            '::'
+       |            ) as account_routings
+       |        from bankaccountrouting
+       |        where
+       |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
+       |     ),
+       |    (select
+       |        string_agg(
+       |                'type:'
+       |                || mappedaccountattribute.mtype
+       |                ||',code:'
+       |                ||mappedaccountattribute.mcode
+       |                ||',value:'
+       |                ||mappedaccountattribute.mvalue,
+       |            '::') as account_attributes
+       |    from mappedaccountattribute
+       |    where
+       |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
+       |     )
+       |from mappedbankaccount
+       |WHERE mappedbankaccount.bank = ${bankId.value}
+       |ORDER BY mappedbankaccount.theaccountid $ordering
+       |LIMIT $limit
+       |OFFSET $offset ;
+       |
+       |
+       |""".stripMargin
+      .map {
+        rs =>
+          val routings = parseRoutings(rs.stringOpt(7).map(_.toString).getOrElse(""))
+          val attributes = parseAttributes(rs.stringOpt(8).map(_.toString).getOrElse(""))
+          AccountDirectoryItem(
+            id = rs.stringOpt(1).map(_.toString).getOrElse(null),
+            bankId = rs.stringOpt(2).map(_.toString).getOrElse(null),
+            label = rs.stringOpt(3).map(_.toString).getOrElse(null),
+            number = rs.stringOpt(4).map(_.toString).getOrElse(null),
+            productCode = rs.stringOpt(5).map(_.toString).getOrElse(null),
+            branchId = rs.stringOpt(6).map(_.toString).getOrElse(null),
+            accountRoutings = routings,
+            accountAttributes = attributes
+          )
+      }.list().apply()
+    sqlResult
+  }
+
+  override def getAccountDirectory(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountDirectoryItem]]] =
+    Future{
+      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(Constant.Pagination.limit)
+      val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(Constant.Pagination.offset)
+      val orderBy = queryParams.collect {
+        case OBPOrdering(_, OBPDescending) => "DESC"
+      }.headOption.getOrElse("ASC")
+
+      val ordering: SQLSyntax = if (orderBy == "DESC") sqls"DESC" else sqls"ASC"
+
+      val accounts = {
+        scalikeDB readOnly { implicit session =>
+          findAccountDirectory(bankId, ordering, limit, offset)
+        }
+      }
+      (Full(accounts), callContext)
     }
 
   override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {

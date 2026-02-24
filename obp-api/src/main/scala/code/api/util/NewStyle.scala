@@ -380,6 +380,12 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    def getAccountDirectory(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[AccountDirectoryItem]] = {
+      Connector.connector.vend.getAccountDirectory(bankId, queryParams, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetAccountDirectory", 400), i._2)
+      }
+    }
+
     def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccountRouting] = {
       Future(Connector.connector.vend.getAccountRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
         unboxFullOrFail(i, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
