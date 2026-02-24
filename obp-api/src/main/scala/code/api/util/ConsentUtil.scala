@@ -260,7 +260,8 @@ object Consent extends MdcLoggable {
           val requestConsumerKey = callContext.consumer.map(_.key.get).getOrElse("None")
           val detailedErrorMsg = s"${ErrorMessages.ConsentNotFound} Consumer mismatch: consent has consumer_id='$consentConsumerId' (consumer_key='$consentConsumerKey'), but current request has consumer_id='$requestConsumerId' (consumer_key='$requestConsumerKey')"
           logger.debug(s"ConsentNotFound: TPP/Consumer mismatch. Consent holder consumer_id=$consentConsumerId, Request consumer_id=$requestConsumerId, consent_id=${consent.jti}")
-          ErrorUtil.apiFailureToBox(detailedErrorMsg, 401)(Some(callContext))
+          logger.debug(s"ConsentNotFound: $detailedErrorMsg")
+          ErrorUtil.apiFailureToBox(ErrorMessages.ConsentNotFound, 401)(Some(callContext))
         } else if (!verifyHmacSignedJwt(consentIdAsJwt, c)) { // verify signature
           Failure(ErrorMessages.ConsentVerificationIssue)
         } else {
