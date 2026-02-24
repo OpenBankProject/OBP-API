@@ -1,14 +1,13 @@
 package code.api.util.http4s
 
-import org.scalatest.Ignore
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import net.liftweb.http._
-import org.http4s.{Response, Status}
+import org.http4s.Response
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
 import org.typelevel.ci.CIString
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream}
+import java.io.{ByteArrayInputStream, OutputStream}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.util.Random
 
@@ -33,7 +32,6 @@ import scala.util.Random
  * - Verify callbacks and cleanup functions are invoked correctly
  * - Minimum 100 iterations per test
  */
-@Ignore
 class Http4sResponseConversionPropertyTest extends FeatureSpec 
   with Matchers 
   with GivenWhenThen {
