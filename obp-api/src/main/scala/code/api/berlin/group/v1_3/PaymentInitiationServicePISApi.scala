@@ -127,10 +127,14 @@ or * access method is generally applicable, but further authorisation processes 
              (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
              (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
+             // Check payment status and determine if cancellation is allowed
+             currentStatus = transactionRequest.status.toUpperCase()
+             mappedStatus = mapTransactionStatus(currentStatus)
              (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
-                 transactionRequest.status.toUpperCase() match {
+                 currentStatus match {
                    case TransactionStatus.ACCP.code =>
+                     // ACCP status - may require SCA for cancellation
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
                        x => x._1 match {
                          case CancelPayment(true, Some(startSca)) if startSca == true =>
@@ -144,14 +148,36 @@ or * access method is generally applicable, but further authorisation processes 
                        }
                      }
                    case "INITIATED" =>
+                     // INITIATED status (maps to RCVD externally) - direct cancellation
                      NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
                      Future(true, callContext, Some(false))
+                   case "PENDING" =>
+                     // PENDING status (maps to PDNG externally) - may require SCA
+                     NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
+                       x => x._1 match {
+                         case CancelPayment(true, Some(startSca)) if startSca == true =>
+                           NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString, callContext)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(true, Some(startSca)) if startSca == false =>
+                           NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
+                           (true, x._2, Some(startSca))
+                         case CancelPayment(false, _) =>
+                           (false, x._2, Some(false))
+                       }
+                     }
                    case "CANCELLED" => 
+                     // Already cancelled - return success
                      Future(true, callContext, Some(false))
+                   case _ =>
+                     // Other statuses cannot be cancelled
+                     Future(false, callContext, Some(false))
                  }
                }
              }
-             _ <- Helper.booleanToFuture(failMsg= TransactionRequestCannotBeCancelled, cc=callContext) { canBeCancelled == true }
+             _ <- Helper.booleanToFuture(
+               failMsg = s"$TransactionRequestCannotBeCancelled Payment status: $mappedStatus. Only payments in RCVD, ACCP, PDNG, or CANC status can be cancelled.",
+               cc = callContext
+             ) { canBeCancelled == true }
              (updatedTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
            } yield {
              startSca.getOrElse(false) match {
