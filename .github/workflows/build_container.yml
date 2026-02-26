@@ -107,10 +107,10 @@ jobs:
             **/target/site/surefire-report.html
             **/target/site/surefire-report/*
 
-      - name: Save .war artifact
+      - name: Save .jar artifact
         run: |
           mkdir -p ./push
-          cp obp-api/target/obp-api-1.*.war ./push/
+          cp obp-api/target/obp-http4s-runner.jar ./push/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}
