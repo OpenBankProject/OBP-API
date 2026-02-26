@@ -27,8 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import scala.language.implicitConversions
-import scala.language.reflectiveCalls
 import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
 import code.accountholders.AccountHolders
@@ -54,7 +52,6 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -80,7 +77,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{ContentParam, PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
-import dispatch.url
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
@@ -102,22 +98,43 @@ import org.http4s.HttpRoutes
 
 import java.io.InputStream
 import java.net.URLDecoder
-import java.nio.charset.Charset
 import java.security.AccessControlException
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 import java.util.{Calendar, Date, Locale, UUID}
-import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
+
+  /**
+   * Deobfuscate a Jetty-style OBF: password string.
+   * Replaces org.eclipse.jetty.util.security.Password.deobfuscate
+   * to eliminate the Jetty dependency.
+   */
+  def deobfuscateJettyPassword(s: String): String = {
+    val stripped = if (s.startsWith("OBF:")) s.substring(4) else s
+    val b = new Array[Byte](stripped.length / 2)
+    var l = 0
+    var i = 0
+    while (i < stripped.length) {
+      val x = stripped.substring(i, i + 4)
+      val i0 = Integer.parseInt(x, 36)
+      val i1 = i0 / 256
+      val i2 = i0 % 256
+      b(l) = ((i1 + i2 - 254) / 2).toByte
+      l += 1
+      i += 4
+    }
+    new String(b, 0, l)
+  }
 
   val DateWithYear = "yyyy"
   val DateWithMonth = "yyyy-MM"
@@ -416,7 +433,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
     val compositeKey =
       if(consumerId == "None" && userId == "None") {
-        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+        "anonymous"
       } else {
         s"""consumerId${consumerId}::userId${userId}"""
       }
@@ -1380,10 +1397,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
     import dispatch.{Req => Request}
-    import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{Map => IMap}
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
@@ -3565,7 +3580,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case (Full(property), Full(isEncrypted), Empty) if isEncrypted == "false" =>
             Full(property)
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "true" =>
-            Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+            Full(deobfuscateJettyPassword(property))
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "false" =>
             Full(property)
           case (Full(property), Empty, Empty) =>
@@ -3599,22 +3614,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }.map(_.trim) // Remove trailing or leading spaces in the end
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
+    registerDefault(nameOfProperty, defaultValue)
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }
 
   def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
   }
   def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
     getPropsValue(nameOfProperty) map(toInt)
   }
   def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsAsIntValue(nameOfProperty) openOr(defaultValue)
   }
   def getPropsAsLongValue(nameOfProperty: String): Box[Long] = {
     getPropsValue(nameOfProperty) flatMap(asLong)
   }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
 
@@ -3852,35 +3871,65 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  // Returns only props that code has actually accessed via getPropsValue/getPropsAsBoolValue/etc.
+  // with a default. Shows the actual runtime value for each registered key.
   def getConfigPropsPairs: List[(String, String)] = {
-    val stream = this.getClass.getResourceAsStream("/props/sample.props.template")
-    val bufferedSource: BufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-    try {
-      val keys: List[String] = (for {
-        line <- bufferedSource.getLines.toList
-        trimmed = line.trim
-        if trimmed.nonEmpty
-        if !trimmed.startsWith("webui_") && !trimmed.startsWith("#webui_")
-        cleaned = if (trimmed.startsWith("#")) trimmed.substring(1).trim else trimmed
-        if cleaned.contains("=") && !cleaned.startsWith("#")
-        parts = cleaned.split("=", 2)
-        key = parts(0).trim
-        if key.nonEmpty
-      } yield key).distinct
-      keys.map { key =>
-        (key, getPropsValue(key).openOr(""))
-      }
-    } finally {
-      bufferedSource.close()
-      stream.close()
+    getRegisteredDefaults.toList.sortBy(_._1).map { case (key, registeredDefault) =>
+      (key, getPropsValue(key).openOr(registeredDefault))
     }
   }
 
-  private val sensitivePropsPatterns = List("password", "secret", "passphrase", "credential", "token_secret")
+  // Single source of truth for sensitive keyword patterns.
+  // Used by:
+  //   - APIUtil: to mask config prop values and exclude sensitive entries from the registered defaults map
+  //   - SecureLogging: to build regex patterns for masking sensitive data in log messages
+  val sensitiveKeywords = List("password", "secret", "passphrase", "credential", "token", "key", "authorization", "jdbc")
+
+  private val sensitivePropsPatterns = sensitiveKeywords
+
+  // Self-registering map of prop keys to their code-defined defaults.
+  // Populated automatically as getPropsValue/getPropsAsBoolValue/etc. are called with defaults.
+  // Sensitive keys and values are excluded.
+  private val registeredDefaults = new scala.collection.concurrent.TrieMap[String, String]()
+
+  private def isSensitive(key: String, value: String): Boolean = {
+    sensitivePropsPatterns.exists(p => key.toLowerCase.contains(p)) ||
+    sensitivePropsPatterns.exists(p => value.toLowerCase.contains(p))
+  }
+
+  private def registerDefault(key: String, value: String): Unit = {
+    // Guard against calls during initialization before sensitivePropsPatterns is set
+    if (sensitivePropsPatterns != null && !isSensitive(key, value)) {
+      registeredDefaults.get(key) match {
+        case Some(existing) if existing != value =>
+          logger.warn(s"Props key '$key' has conflicting defaults: '$existing' vs '$value'")
+        case _ =>
+          registeredDefaults.putIfAbsent(key, value)
+      }
+    }
+  }
+
+  def getRegisteredDefaults: Map[String, String] = registeredDefaults.toMap
 
   def maskSensitivePropValue(key: String, value: String): String = {
     if (sensitivePropsPatterns.exists(p => key.toLowerCase.contains(p)) && value.nonEmpty) "****"
+    else if (sensitivePropsPatterns.exists(p => value.toLowerCase.contains(p)) && value.nonEmpty) "****"
     else value
+  }
+
+  // Explicit whitelist of prop keys for the app discovery endpoint.
+  // Add new keys here as needed. Only exact matches are exposed.
+  val appDiscoveryWhitelist = List(
+    "portal_external_url"
+  )
+
+  // Returns config props filtered to only explicitly whitelisted keys.
+  // Chain: registeredDefaults (sensitive excluded) → getConfigPropsPairs (runtime values)
+  //        → explicit whitelist filter → maskSensitivePropValue safety net
+  def getAppDiscoveryPairs: List[(String, String)] = {
+    getConfigPropsPairs
+      .filter { case (key, _) => appDiscoveryWhitelist.contains(key) }
+      .map { case (key, value) => (key, maskSensitivePropValue(key, value)) }
   }
 
   /**

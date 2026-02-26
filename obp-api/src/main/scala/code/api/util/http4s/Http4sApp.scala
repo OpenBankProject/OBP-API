@@ -39,6 +39,9 @@ object Http4sApp {
    */
   def httpApp: HttpApp[IO] = {
     val services: HttpRoutes[IO] = Http4sLiftWebBridge.withStandardHeaders(baseServices)
-    services.orNotFound
+    val app = services.orNotFound
+    Kleisli { req: Request[IO] =>
+      app.run(req).map(resp => Http4sLiftWebBridge.ensureStandardHeaders(req, resp))
+    }
   }
 }

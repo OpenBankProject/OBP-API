@@ -6146,6 +6146,13 @@ object SwaggerDefinitionsJSON {
     List(ConfigPropJsonV600("connector", "star"), ConfigPropJsonV600("write_metrics", "true"))
   )
 
+  lazy val appDirectoryJsonV600 = ListResult(
+    "app_directory",
+    List(
+      ConfigPropJsonV600("portal_external_url", "https://portal.openbankproject.com")
+    )
+  )
+
   // HOLD sample (V600)
   lazy val transactionRequestBodyHoldJsonV600 = TransactionRequestBodyHoldJsonV600(
     value = amountOfMoneyJsonV121,

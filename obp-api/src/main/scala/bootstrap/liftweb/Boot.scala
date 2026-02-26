@@ -157,9 +157,6 @@ import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
 import scala.concurrent.ExecutionContext
 
-// So we can print the version used.
-import org.eclipse.jetty.util.Jetty
-
 
 
 /**
@@ -245,8 +242,6 @@ class Boot extends MdcLoggable {
     implicit val formats = CustomJsonFormats.formats
 
     logger.info("Boot says: Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
-
-    logger.info(s"Boot says: Jetty Version: ${Jetty.VERSION}")
 
     logger.debug("Boot says:Using database driver: " + APIUtil.driver)
 

@@ -48,7 +48,7 @@ object Http4sTestServer {
       
       // Ensure Lift is initialized first (done by TestServer)
       // This is critical - Lift must be fully initialized before HTTP4S bridge can work
-      val _ = TestServer.server
+      val _ = TestServer.host  // Triggers TestServer object initialization (Boot + http4s)
       
       // Use the shared Http4sApp.httpApp to ensure we test the exact same configuration as production
       val serverResource = EmberServerBuilder

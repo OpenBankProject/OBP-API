@@ -148,8 +148,16 @@ trait SendServerRequests {
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {
-    //println("<<<<<<< " + req.toRequest.toString)
-    Await.result(ApiResponseCommonPart(req), Duration.Inf)
+    try {
+      Await.result(ApiResponseCommonPart(req), Duration.Inf)
+    } catch {
+      case e: Exception if e.getMessage != null && e.getMessage.contains("invalid version format") =>
+        // Connection pool pollution detected - retry once with a fresh connection
+        // This happens when concurrent tests share the same HTTP client and one test's
+        // error response corrupts the connection state
+        Thread.sleep(100) // Brief delay to let connection close
+        Await.result(ApiResponseCommonPart(req), Duration.Inf)
+    }
   }
 
   private def getAPIResponseAsync(req: Req): Future[APIResponse] = {

@@ -2806,13 +2806,20 @@ trait APIMethods510 {
       "/management/users/USER_ID",
       "Validate a user",
       s"""
-         |Validate the User by USER_ID.
+         |Manually validate a User by USER_ID.
          |
-         |${userAuthenticationMessage(true)}
+         |This is an administrative endpoint that marks a user's account as validated (i.e. sets is_validated to true).
+         |
+         |This is useful when an administrator needs to validate a user on their behalf,
+         |for example if the user did not receive the validation email, or if the email validation token has expired.
+         |
+         |For self-service email validation, see the Validate User Email endpoint (POST /users/email-validation).
+         |
+         |Authentication is Required and the user must have the canValidateUser role.
          |
          |""".stripMargin,
       EmptyBody,
-      userLockStatusJson,
+      UserValidatedJson(is_validated = true),
       List(
         $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,

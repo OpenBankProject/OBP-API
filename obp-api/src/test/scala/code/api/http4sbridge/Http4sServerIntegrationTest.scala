@@ -1,21 +1,12 @@
 package code.api.http4sbridge
 
-import org.scalatest.Ignore
 import code.Http4sTestServer
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createSystemViewJsonV500
-import code.api.util.APIUtil
-import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
-import code.api.v5_0_0.ViewJsonV500
-import code.entitlement.Entitlement
 import code.setup.{DefaultUsers, ServerSetup, ServerSetupWithTestData}
 import code.views.system.AccountAccess
-import com.openbankproject.commons.model.UpdateViewJSON
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import scala.concurrent.Await
@@ -35,7 +26,7 @@ import scala.concurrent.duration._
  * 
  * The server starts automatically when first accessed and stops on JVM shutdown.
  */
-@Ignore
+
 class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with ServerSetupWithTestData{
 
   object Http4sServerIntegrationTag extends Tag("Http4sServerIntegration")
@@ -353,98 +344,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
           e.getMessage should include("404")
           info("v3.1.0 bridge support is a known limitation - see HTTP4S_INTEGRATION_TEST_FINDINGS.md")
       }
-    }
-  }
-
-  feature("HTTP4S v5.0.0 System Views CRUD") {
-    
-    scenario("System views CRUD operations via HTTP4S server", Http4sServerIntegrationTag) {
-      Given("User has required entitlements for system views")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateSystemView.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
-
-      val viewId = "v" + APIUtil.generateUUID()
-      val createViewBody = createSystemViewJsonV500.copy(name = viewId).copy(metadata_view = viewId).toCreateViewJson
-      val createJson = write(createViewBody)
-      
-      val authHeaders = Map(
-        "Authorization" -> s"DirectLogin token=${token1.value}",
-        "Content-Type" -> "application/json"
-      )
-
-      When("We POST to create a system view")
-      val (createStatus, createResponseBody) = makeHttp4sPostRequest("/obp/v5.0.0/system-views", createJson, authHeaders)
-      
-      Then("We should get a 201 response")
-      createStatus should equal(201)
-      
-      And("Response should contain the created view")
-      val createdView = parse(createResponseBody).extract[ViewJsonV500]
-      createdView.id should not be empty
-      
-      When("We GET the created system view")
-      val (getStatus, getBody) = makeHttp4sGetRequest(s"/obp/v5.0.0/system-views/${createdView.id}", authHeaders)
-      
-      Then("We should get a 200 response")
-      getStatus should equal(200)
-      
-      And("Response should contain the view details")
-      val retrievedView = parse(getBody).extract[ViewJsonV500]
-      retrievedView.id should equal(createdView.id)
-      
-      When("We PUT to update the system view")
-      val updateBody = UpdateViewJSON(
-        description = "crud-updated",
-        metadata_view = createdView.metadata_view,
-        is_public = createdView.is_public,
-        is_firehose = Some(true),
-        which_alias_to_use = "public",
-        hide_metadata_if_alias_used = !createdView.hide_metadata_if_alias_used,
-        allowed_actions = List("can_see_images", "can_delete_comment"),
-        can_grant_access_to_views = Some(createdView.can_grant_access_to_views),
-        can_revoke_access_to_views = Some(createdView.can_revoke_access_to_views)
-      )
-      val updateJson = write(updateBody)
-      val (updateStatus, updateResponseBody) = makeHttp4sPutRequest(s"/obp/v5.0.0/system-views/${createdView.id}", updateJson, authHeaders)
-      
-      Then("We should get a 200 response")
-      updateStatus should equal(200)
-      
-      And("Response should contain the updated view")
-      val updatedView = parse(updateResponseBody).extract[ViewJsonV500]
-      updatedView.description should equal("crud-updated")
-      updatedView.is_firehose should equal(Some(true))
-      
-      When("We GET the updated system view")
-      val (getAfterUpdateStatus, getAfterUpdateBody) = makeHttp4sGetRequest(s"/obp/v5.0.0/system-views/${createdView.id}", authHeaders)
-      
-      Then("We should get a 200 response")
-      getAfterUpdateStatus should equal(200)
-      
-      And("Response should reflect the updates")
-      val verifiedView = parse(getAfterUpdateBody).extract[ViewJsonV500]
-      verifiedView.description should equal("crud-updated")
-      verifiedView.is_firehose should equal(Some(true))
-      
-      When("We DELETE the system view")
-      val (deleteStatus, deleteBody) = makeHttp4sDeleteRequest(s"/obp/v5.0.0/system-views/${createdView.id}", authHeaders)
-      
-      Then("We should get a 200 response")
-      deleteStatus should equal(200)
-      
-      And("Response should be true")
-      deleteBody should equal("true")
-      
-      When("We GET the deleted system view")
-      val (getAfterDeleteStatus, getAfterDeleteBody) = makeHttp4sGetRequest(s"/obp/v5.0.0/system-views/${createdView.id}", authHeaders)
-      
-      Then("We should get a 400 response (SystemViewNotFound)")
-      getAfterDeleteStatus should equal(400)
-      getAfterDeleteBody should include("OBP-30252")
-      getAfterDeleteBody should include("System view not found")
-      info("System view successfully deleted and verified")
     }
   }
 }

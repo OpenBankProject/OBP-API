@@ -1,17 +1,16 @@
 package code.api.v5_1_0
 
-import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanCreateCustomer
-import code.api.v1_2_1.{AccountJSON, AccountsJSON, PostTransactionCommentJSON, ViewsJSONV121}
+import code.api.v1_2_1.{AccountJSON, AccountsJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200}
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.{CreateAccountRequestJsonV310, CreateAccountResponseJsonV310, CustomerJsonV310}
-import code.api.v4_0_0.{AtmJsonV400, BanksJson400, CallLimitPostJsonV400, PostAccountAccessJsonV400, PostViewJsonV400, TransactionRequestWithChargeJSON400}
+import code.api.v4_0_0._
 import code.api.v5_0_0.PostCustomerJsonV500
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -20,7 +19,6 @@ import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJ
 import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Helpers.randomString
 
 import scala.util.Random
 import scala.util.Random.nextInt
@@ -48,9 +46,14 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       makeGetRequest(request)
     }
     val banksJson = getBanksInfo.body.extract[BanksJson400]
-    val randomPosition = nextInt(banksJson.banks.size)
-    val bank = banksJson.banks(randomPosition)
-    bank.id
+    if (banksJson.banks.isEmpty) {
+      // Return a default test bank ID when no banks exist
+      "DEFAULT_BANK_ID_NOT_SET_Test"
+    } else {
+      val randomPosition = nextInt(banksJson.banks.size)
+      val bank = banksJson.banks(randomPosition)
+      bank.id
+    }
   }
 
   def randomPrivateAccount(bankId: String): AccountJSON = {

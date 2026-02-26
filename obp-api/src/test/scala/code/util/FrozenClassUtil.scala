@@ -25,14 +25,13 @@ object FrozenClassUtil extends Loggable{
 
   def main(args: Array[String]): Unit = {
     System.setProperty("run.mode", "test") // make sure this Props.mode is the same as unit test Props.mode
-    val server = TestServer
+    val _ = TestServer // trigger initialization
     val out = new ObjectOutputStream(new FileOutputStream(persistFilePath))
     try {
       out.writeObject(getFrozenApiInfo)
     } finally {
       IOUtils.closeQuietly(out)
-      // there is no graceful way to shutdown jetty server, so here use brutal way to shutdown it.
-      server.server.stop()
+      // http4s server is managed by TestServer shutdown hook; force exit here.
       System.exit(0)
     }
   }

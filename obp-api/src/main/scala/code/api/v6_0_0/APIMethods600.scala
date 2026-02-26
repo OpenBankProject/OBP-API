@@ -3817,10 +3817,11 @@ trait APIMethods600 {
       "Validate User Email",
       s"""Validate a user's email address using the JWT token sent via email.
          |
-         |This endpoint is called anonymously (no authentication required).
+         |This is a self-service endpoint for users to confirm their email address as part of the sign-up process.
          |
-         |When a user signs up and email validation is enabled (authUser.skipEmailValidation=false),
-         |they receive an email with a validation link containing a signed JWT token.
+         |When a user registers and email validation is enabled (authUser.skipEmailValidation=false),
+         |they receive an email containing a validation link with a signed JWT token.
+         |The user (or a client application) then calls this endpoint with that token to complete validation.
          |
          |This endpoint:
          |- Verifies the JWT signature and checks expiry
@@ -3834,6 +3835,10 @@ trait APIMethods600 {
          |
          |The token is a signed JWT with a configurable expiry (default: 1440 minutes / 24 hours).
          |The server-side expiry can be configured with the `email_validation_token_expiry_minutes` property.
+         |
+         |For administrative validation (without an email token), see the Validate a User endpoint (PUT /management/users/USER_ID).
+         |
+         |${userAuthenticationMessage(false)}
          |
          |""".stripMargin,
       JSONFactory600.ValidateUserEmailJsonV600(
@@ -9700,13 +9705,22 @@ trait APIMethods600 {
       "GET",
       "/management/config-props",
       "Get Config Props",
-      s"""Get the configuration properties (non-WebUI) and their runtime values.
+      s"""Get the active configuration properties and their runtime values.
          |
-         |This endpoint reads all property keys from the sample.props.template file
-         |(excluding webui_ properties) and returns their current runtime values.
+         |This endpoint uses a self-registration mechanism: each time the code calls
+         |getPropsValue, getPropsAsBoolValue, getPropsAsIntValue, or getPropsAsLongValue
+         |with a default value, that property key is registered.
          |
-         |Sensitive properties (containing password, secret, passphrase, credential, token_secret)
-         |will have their values masked as ****.
+         |Only registered properties are returned. The list grows as more code paths are
+         |exercised. Most properties are registered at startup.
+         |
+         |For each property, the value shown is the actual runtime value. If the property
+         |is not explicitly set, the code-defined default is shown.
+         |
+         |The response includes both regular and webui_ properties, sorted alphabetically by key.
+         |
+         |Properties with sensitive keys or values (containing ${APIUtil.sensitiveKeywords.mkString(", ")})
+         |are excluded from the response entirely.
          |
          |Authentication is Required.
          |
@@ -9729,6 +9743,46 @@ trait APIMethods600 {
             }
           } yield {
             (ListResult("config_props", configProps), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAppDirectory,
+      implementedInApiVersion,
+      nameOf(getAppDirectory),
+      "GET",
+      "/app-directory",
+      "Get App Directory",
+      s"""Get connectivity information for apps in the OBP ecosystem.
+         |
+         |Returns configuration properties that apps (Explorer, Portal, OIDC, Hola,
+         |Sandbox Generator) and agents can use to discover endpoints in the OBP ecosystem.
+         |
+         |Only explicitly whitelisted property keys are included:
+         |${APIUtil.appDiscoveryWhitelist.mkString(", ")}
+         |
+         |Authentication is NOT Required.
+         |
+         |""".stripMargin,
+      EmptyBody,
+      appDirectoryJsonV600,
+      List(
+        UnknownError
+      ),
+      List(apiTagApi),
+      Some(List()))
+
+    lazy val getAppDirectory: OBPEndpoint = {
+      case "app-directory" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            directoryProps = getAppDiscoveryPairs.map { case (key, value) =>
+              ConfigPropJsonV600(key, value)
+            }
+          } yield {
+            (ListResult("app_directory", directoryProps), HttpCode.`200`(callContext))
           }
       }
     }
