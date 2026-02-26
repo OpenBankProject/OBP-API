@@ -13,14 +13,6 @@
     <packaging>jar</packaging>
     <name>Open Bank Project Commons</name>
 
-    <repositories>
-        <repository>
-            <id>artima</id>
-            <name>Artima Maven Repository</name>
-            <url>http://repo.artima.com/releases</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
             <groupId>net.liftweb</groupId>
@@ -83,7 +75,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.0.0-jre</version>
         </dependency>
     </dependencies>
 
@@ -170,7 +161,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>default-copy-resources</id>
