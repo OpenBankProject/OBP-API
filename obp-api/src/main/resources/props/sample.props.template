@@ -287,15 +287,15 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 ## This is needed for oauth to work. it's important to access the api over this url, e.g.
 ## If this is 127.0.0.1 do NOT use localhost to access it.
 ## (this needs to be a URL)
-hostname=http://127.0.0.1:8080
+hostname=http://127.0.0.1
 
 # Used as the base URL for password reset and email validation links sent via email.
 # Set this to your frontend/portal URL so that emails contain the correct link.
 portal_external_url=http://localhost:5174
 
-## This is only useful for running the api locally via RunWebApp
-## If you use it, make sure this matches your hostname port!
-## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
+## This port is used for local development
+## Note: OBP-API now uses http4s server instead of Jetty
+## To start the server, use: java -jar obp-http4s-runner/target/obp-http4s-runner.jar
 dev.port=8080
 
 
@@ -1726,13 +1726,3 @@ securelogging_mask_email=true
 ############################################
 # messaging.channel.ttl.seconds=3600
 # messaging.channel.max.messages=1000
-
-
-############################################
-# http4s server configuration
-############################################
-
-# Host and port for http4s server (used by bootstrap.http4s.Http4sServer)
-# Defaults (if not set) are 127.0.0.1 and 8086
-http4s.host=127.0.0.1
-http4s.port=8086

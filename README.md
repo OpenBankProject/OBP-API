@@ -62,23 +62,16 @@ OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https
 
 The project uses Maven 3 as its build tool.
 
-To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/default.props` and execute:
-To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/`, copy `sample.props.template` to `default.props` and edit the latter. Then:
-
-```sh
-mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
-```
-
 ### Running http4s server (obp-http4s-runner)
 
-To run the API using the http4s server (without Jetty), use the `obp-http4s-runner` module from the project root:
+To run the API using the http4s server, use the `obp-http4s-runner` module from the project root:
 
 ```sh
 MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-http4s-runner -am clean package -DskipTests=true -Dmaven.test.skip=true && \
 java -jar obp-http4s-runner/target/obp-http4s-runner.jar
 ```
 
-The http4s server binds to `http4s.host` / `http4s.port` as configured in your props file (defaults are `127.0.0.1` and `8086`).
+The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
 
 ### ZED IDE Setup
 
@@ -93,7 +86,7 @@ This sets up automated build tasks, code navigation, and real-time error checkin
 In case the above command fails try the next one:
 
 ```sh
-export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
+export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons
 ```
 
 Note: depending on your Java version you might need to do this in the OBP-API directory.
@@ -406,61 +399,6 @@ To populate the OBP database with sandbox data:
    </session-config>
 ```
 
-## Running the API in Production Mode
-
-We use 9 to run the API in production mode.
-
-1. Install java and jetty9.
-
-2. jetty configuration
-
-- Edit the `/etc/default/jetty9` file so that it contains the following settings:
-
-  ```
-  NO_START=0
-  JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
-  JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
-  ```
-
-- In obp-api/src/main/resources/props create a `test.default.props` file for tests. Set `connector=mapped`.
-
-- In obp-api/src/main/resources/props create a `default.props file` for development. Set `connector=mapped`.
-
-- In obp-api/src/main/resources/props create a `production.default.props` file for production. Set `connector=mapped`.
-
-- This file could be similar to the `default.props` file created above, or it could include production settings, such as information about the Postgresql server if you are using one. For example, it could have the following line for Postgresql configuration.
-
-  ```
-  db.driver=org.postgresql.Driver
-  db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
-  ```
-
-- Now, build the application to generate `.war` file which will be deployed on the jetty server:
-
-  ```sh
-  cd OBP-API/
-  mvn package
-  ```
-
-- This will generate OBP-API-1.0.war under `OBP-API/target/`.
-
-- Copy OBP-API-1.0.war to `/usr/share/jetty9/webapps/` directory and rename it to root.war
-
-- Edit the `/etc/jetty9/jetty.conf` file and comment out the lines:
-
-  ```
-  etc/jetty-logging.xml
-  etc/jetty-started.xml
-  ```
-
-- Now restart jetty9:
-
-  ```sh
-  sudo service jetty9 restart
-  ```
-
-- You should now be able to browse to `localhost:8080` (or `yourIPaddress:8080`).
-
 ## Server Mode Configuration (Removed)
 
 **IMPORTANT:** The `server_mode` configuration property has been completely removed from OBP-API.
@@ -558,16 +496,6 @@ The Encrypt/Decrypt workflow is :
    echo -n $2 |openssl pkeyutl -pkeyopt rsa_padding_mode:pkcs1 -encrypt  -pubin -inkey $1 -out >(base64)
    ```
 
-## Using jetty password obfuscation with props file
-
-You can obfuscate passwords in the props file the same way as for jetty:
-
-1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
-
-2. A props key value, XXX, is considered obfuscated if has an obfuscation property (`XXX.is_obfuscated`) in addition to the regular props key name in the props file e.g:
-   - `db.url.is_obfuscated=true`
-   - `db.url=OBF:fdsafdsakwaetcetcetc`
-
 ## Code Generation
 
 Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md##code-generation) for links.
@@ -577,16 +505,6 @@ Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API
 **DEPRECATED:** Portal functionality has been removed from OBP-API.
 
 For UI customization, please use the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.
-
-## Using jetty password obfuscation with props file
-
-You can obfuscate passwords in the props file the same way as for jetty:
-
-1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
-
-2. A props key value, XXX, is considered obfuscated if has an obfuscation property (XXX.is_obfuscated) in addition to the regular props key name in the props file e.g:
-   - db.url.is_obfuscated=true
-   - db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Rate Limiting
 
