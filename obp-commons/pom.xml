@@ -73,13 +73,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <version>1.10.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
@@ -95,7 +93,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${scala.version}</version>
+                <version>3.5.2</version>
                 <configuration>
                     <skipTests>true</skipTests>
                 </configuration>

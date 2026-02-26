@@ -44,11 +44,6 @@
       <url>https://oss.sonatype.org/content/repositories/releases/</url>
     </repository>
     <repository>
-      <id>java.net.maven3</id>
-      <name>java.net Maven3 Repository</name>
-      <url>http://download.java.net/maven/3/</url>
-    </repository>
-    <repository>
       <id>scala-tools.snapshots</id>
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
@@ -98,13 +93,13 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.14.0</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.10.0</version>
+        <version>1.12.0</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
@@ -168,7 +163,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${scala.version}</version>
+        <version>3.5.2</version>
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
@@ -217,32 +212,7 @@
         </plugin>
 
 
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-idea-plugin</artifactId>
-          <version>2.2.1</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-eclipse-plugin</artifactId>
-          <version>2.10</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-            <additionalProjectnatures>
-              <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-            </additionalProjectnatures>
-            <additionalBuildcommands>
-              <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-            </additionalBuildcommands>
-            <classpathContainers>
-              <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
-              <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-            </classpathContainers>
-          </configuration>
-        </plugin>
+
         <plugin>
           <groupId>pl.project13.maven</groupId>
           <artifactId>git-commit-id-plugin</artifactId>
