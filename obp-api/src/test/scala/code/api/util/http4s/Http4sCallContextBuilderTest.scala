@@ -60,7 +60,7 @@ class Http4sCallContextBuilderTest extends FeatureSpec with Matchers with GivenW
 
     scenario("Extract Authorization header") {
       Given("An HTTP4S request with Authorization header")
-      val authValue = s"DirectLogin username=\"test\", password=\"${ExampleValue.passwordExample.value}\", consumer_key=\"key\""
+      val authValue = s"""DirectLogin username=\"test\", password=\"${ExampleValue.passwordExample.value}\", consumer_key=\"key\"""""
       val request = Request[IO](
         method = Method.POST,
         uri = Uri.unsafeFromString("http://localhost:8086/my/logins/direct")

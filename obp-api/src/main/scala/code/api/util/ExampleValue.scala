@@ -55,7 +55,7 @@ object ExampleValue {
   lazy val usernameExample = ConnectorField("felixsmith", s"The username the user uses to authenticate.")
   glossaryItems += makeGlossaryItem("User.username", usernameExample)
 
-  lazy val passwordExample = ConnectorField("password", s"The password the user uses to authenticate.")
+  lazy val passwordExample = ConnectorField("passwordpasswordpassword", s"The password the user uses to authenticate.")
   glossaryItems += makeGlossaryItem("User.password", passwordExample)
   
   
