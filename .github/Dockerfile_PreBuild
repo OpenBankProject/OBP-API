@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java17-debian12
+FROM gcr.io/distroless/java:11
 
 # Copy OBP source code
 # Copy build artifact (.war file) into jetty from 'maven' stage.
