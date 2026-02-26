@@ -68,6 +68,17 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
+          mkdir -p .mvn
+          cat > .mvn/jvm.config << 'EOF'
+          --add-opens java.base/java.lang=ALL-UNNAMED
+          --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+          --add-opens java.base/java.security=ALL-UNNAMED
+          --add-opens java.base/java.util.jar=ALL-UNNAMED
+          --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+          --add-opens java.base/java.nio=ALL-UNNAMED
+          --add-opens java.base/java.net=ALL-UNNAMED
+          --add-opens java.base/java.io=ALL-UNNAMED
+          EOF
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -T 4 -Pprod > maven-build.log 2>&1
 
       - name: Report failing tests (if any)
