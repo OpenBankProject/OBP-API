@@ -687,6 +687,7 @@ object ErrorMessages {
   val AbacRuleNotFound = "OBP-38007: ABAC rule not found. Please specify a valid value for ABAC_RULE_ID."
   val AbacRuleNotActive = "OBP-38008: ABAC rule is not active."
   val AbacRuleExecutionFailed = "OBP-38009: ABAC rule execution failed. An error occurred while executing the rule."
+  val AbacRuleTooPermissive = "OBP-38010: ABAC rule is too permissive. The rule code contains a tautological expression (e.g. 'true', '1==1') that would always grant access. Please write a rule that checks specific attributes."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

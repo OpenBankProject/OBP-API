@@ -7700,7 +7700,9 @@ trait APIMethods600 {
                   val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "").replace("Failed to compile ABAC rule: ", "")
 
                   // Determine the proper OBP error message and error type
-                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
+                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+                    (AbacRuleTooPermissive, "PermissivenessError")
+                  } else if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
                     (AbacRuleTypeMismatch, "TypeError")
                   } else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse")) {
                     (AbacRuleSyntaxError, "SyntaxError")

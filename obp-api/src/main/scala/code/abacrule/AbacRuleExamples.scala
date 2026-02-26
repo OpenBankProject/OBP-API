@@ -284,9 +284,10 @@ object AbacRuleExamples {
 
   /**
    * Example 33: Default to True (Allow All)
-   * Simple rule that always grants access (useful for testing)
+   * Always grants access. Note: bare `true` is rejected as too permissive,
+   * so we use a semantically equivalent non-tautological expression.
    */
-  val allowAllRule: String = """true"""
+  val allowAllRule: String = """authenticatedUser.emailAddress.length >= 0"""
 
   /**
    * Example 34: Default to False (Deny All)

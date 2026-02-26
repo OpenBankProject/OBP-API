@@ -84,6 +84,47 @@ object AbacRuleEngine {
   }
 
   /**
+   * Check if a rule code is too permissive (contains tautological expressions that always evaluate to true).
+   *
+   * Detects two categories:
+   * 1. Whole-body tautologies: the entire rule is a trivially-true expression (e.g. "true", "1==1")
+   * 2. Sub-expression tautologies: a tautological operand after || makes the whole expression always true
+   *
+   * Note: "&& true" is NOT flagged — it's redundant but doesn't increase permissiveness.
+   *
+   * @param ruleCode The rule code to check
+   * @return true if the rule code is too permissive
+   */
+  private def isTooPermissive(ruleCode: String): Boolean = {
+    val stripped = ruleCode.trim
+
+    // Whole-body tautology patterns (entire rule is trivially true)
+    val wholeBodyTautologies = List(
+      """^true$""",                            // bare true
+      """^(\d+)\s*==\s*\1$""",                 // numeric identity: 1==1, 42==42
+      """"([^"]+)"\s*==\s*"\1"""",             // string identity: "a"=="a", "foo"=="foo"
+      """^true\s*==\s*true$""",                // boolean identity: true==true
+      """^!false$""",                          // negated false
+      """^!\(false\)$"""                        // negated false with parens
+    ).map(_.r)
+
+    // Sub-expression tautology patterns (tautology after || anywhere in the rule)
+    val subExprTautologies = List(
+      """\|\|\s*true(?!\s*==)""",              // || true (but not || true==true, handled separately)
+      """\|\|\s*true\s*==\s*true""",           // || true==true
+      """\|\|\s*(\d+)\s*==\s*\1""",            // || 1==1, || 42==42
+      """\|\|\s*"([^"]+)"\s*==\s*"\1"""",      // || "a"=="a"
+      """\|\|\s*!false""",                     // || !false
+      """\|\|\s*!\(false\)"""                   // || !(false)
+    ).map(_.r)
+
+    val isWholeBodyTautology = wholeBodyTautologies.exists(_.findFirstIn(stripped).isDefined)
+    val hasSubExprTautology = subExprTautologies.exists(_.findFirstIn(stripped).isDefined)
+
+    isWholeBodyTautology || hasSubExprTautology
+  }
+
+  /**
    * Helper to lift a Box value into a Future, converting Failure/Empty to a failed Future.
    */
   private def boxToFuture[T](box: Box[T], errorMsg: String = "Not found"): Future[T] = box match {
@@ -322,8 +363,8 @@ object AbacRuleEngine {
     val rules = MappedAbacRuleProvider.getActiveAbacRulesByPolicy(policy)
 
     if (rules.isEmpty) {
-      // No rules for this policy - default to allow
-      Future.successful(Full(true))
+      // No rules for this policy - default to deny
+      Future.successful(Full(false))
     } else {
       // Execute all rules in parallel and check if at least one passes
       val resultFutures = rules.map { rule =>
@@ -356,16 +397,73 @@ object AbacRuleEngine {
   }
 
   /**
+   * Execute all active ABAC rules with a specific policy and return detailed results.
+   * Returns which rule IDs denied access (for error reporting).
+   *
+   * @return Future[Box[(Boolean, List[String])]] - Full((true, Nil)) if any rule passes,
+   *         Full((false, failingRuleIds)) if all fail, Full((false, Nil)) if no rules exist
+   */
+  def executeRulesByPolicyDetailed(
+    policy: String,
+    authenticatedUserId: String,
+    callContext: CallContext,
+    bankId: Option[String] = None,
+    accountId: Option[String] = None,
+    viewId: Option[String] = None
+  ): Future[Box[(Boolean, List[String])]] = {
+    val rules = MappedAbacRuleProvider.getActiveAbacRulesByPolicy(policy)
+
+    if (rules.isEmpty) {
+      // No rules for this policy - default to deny
+      Future.successful(Full((false, Nil)))
+    } else {
+      // Execute all rules in parallel and collect results with rule IDs
+      val resultFutures = rules.map { rule =>
+        executeRule(
+          ruleId = rule.abacRuleId,
+          authenticatedUserId = authenticatedUserId,
+          callContext = callContext,
+          bankId = bankId,
+          accountId = accountId,
+          viewId = viewId
+        ).map(result => (rule.abacRuleId, result))
+      }
+
+      Future.sequence(resultFutures).map { results =>
+        val passed = results.exists {
+          case (_, Full(true)) => true
+          case _ => false
+        }
+
+        if (passed) {
+          Full((true, Nil))
+        } else {
+          val failingRuleIds = results.collect {
+            case (ruleId, Full(false)) => ruleId
+            case (ruleId, Failure(_, _, _)) => ruleId
+            case (ruleId, Empty) => ruleId
+          }
+          Full((false, failingRuleIds.toList))
+        }
+      }
+    }
+  }
+
+  /**
    * Validate ABAC rule code by attempting to compile it
    *
    * @param ruleCode The Scala code to validate
    * @return Box[String] - Full("OK") if valid, Failure with error message if invalid
    */
   def validateRuleCode(ruleCode: String): Box[String] = {
-    compileRuleInternal(ruleCode) match {
-      case Full(_) => Full("ABAC rule code is valid")
-      case Failure(msg, _, _) => Failure(s"Invalid ABAC rule code: $msg")
-      case Empty => Failure("Failed to validate ABAC rule code")
+    if (isTooPermissive(ruleCode)) {
+      Failure("ABAC rule is too permissive: the rule code contains a tautological expression that would always grant access. Please write a rule that checks specific attributes.")
+    } else {
+      compileRuleInternal(ruleCode) match {
+        case Full(_) => Full("ABAC rule code is valid")
+        case Failure(msg, _, _) => Failure(s"Invalid ABAC rule code: $msg")
+        case Empty => Failure("Failed to validate ABAC rule code")
+      }
     }
   }
 

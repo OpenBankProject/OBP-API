@@ -2,7 +2,7 @@ package code.entitlementrequest
 
 import java.util.Date
 
-import code.api.util.ErrorMessages
+import code.api.util.{ErrorMessages, OBPAscending, OBPDescending, OBPFromDate, OBPLimit, OBPOffset, OBPOrdering, OBPQueryParam, OBPToDate}
 import code.users.Users
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model.User
@@ -61,6 +61,35 @@ object MappedEntitlementRequestsProvider extends EntitlementRequestProvider {
   override def getEntitlementRequestsFuture(userId: String): Future[Box[List[EntitlementRequest]]] = {
     Future {
       Full(MappedEntitlementRequest.findAll(By(MappedEntitlementRequest.mUserId, userId)))
+    }
+  }
+
+  private def getOptionalParams(queryParams: List[OBPQueryParam]): Seq[QueryParam[MappedEntitlementRequest]] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedEntitlementRequest](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedEntitlementRequest](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedEntitlementRequest.createdAt, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedEntitlementRequest.createdAt, date) }.headOption
+    val ordering = queryParams.collect {
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedEntitlementRequest.createdAt, Ascending)
+          case OBPDescending => OrderBy(MappedEntitlementRequest.createdAt, Descending)
+        }
+    }
+    Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+  }
+
+  override def getEntitlementRequestsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[EntitlementRequest]]] = {
+    Future {
+      val optionalParams = getOptionalParams(queryParams)
+      Full(MappedEntitlementRequest.findAll(optionalParams: _*))
+    }
+  }
+
+  override def getEntitlementRequestsFuture(userId: String, queryParams: List[OBPQueryParam]): Future[Box[List[EntitlementRequest]]] = {
+    Future {
+      val optionalParams = Seq(By(MappedEntitlementRequest.mUserId, userId)) ++ getOptionalParams(queryParams)
+      Full(MappedEntitlementRequest.findAll(optionalParams: _*))
     }
   }
 

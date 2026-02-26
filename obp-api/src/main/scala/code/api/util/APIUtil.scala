@@ -29,6 +29,7 @@ package code.api.util
 
 import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
+import code.abacrule.AbacRuleEngine
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -106,7 +107,8 @@ import java.util.{Calendar, Date, Locale, UUID}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 import scala.io.BufferedSource
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.control.Breaks.{break, breakable}
@@ -3703,6 +3705,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   def allowPublicViews: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  def allowAbacAccountAccess: Boolean = getPropsAsBoolValue("allow_abac_account_access", false)
   def allowAccountFirehose: Boolean = ApiPropsWithAlias.allowAccountFirehose
   def allowCustomerFirehose: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
@@ -3722,17 +3725,53 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param user Option User, can be Empty(No Authentication), or Login user.
    *
    */
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Box[Boolean] = {
     if(isPublicView(view: View))// No need for the Login user and public access
-      true
+      Full(true)
     else
       user match {
-        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
-        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> true     // Login User and check view access
+        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => Full(true) //Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => Full(true)//Login User and Firehose access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> Full(true)     // Login User and check view access
+        case Some(u) =>
+          // Normal checks failed — try ABAC as fallback
+          checkAbacAccountAccess(u, view, bankIdAccountId, callContext)
         case _ =>
-          false
+          Full(false)
       }
+  }
+
+  private def checkAbacAccountAccess(
+    user: User,
+    view: View,
+    bankIdAccountId: BankIdAccountId,
+    callContext: Option[CallContext]
+  ): Box[Boolean] = {
+    if (!allowAbacAccountAccess) return Full(false)
+    if (!hasEntitlement("", user.userId, ApiRole.canExecuteAbacRule)) return Full(false)
+
+    callContext match {
+      case Some(cc) =>
+        try {
+          val futureResult = AbacRuleEngine.executeRulesByPolicyDetailed(
+            policy = ABAC_POLICY_ACCOUNT_ACCESS,
+            authenticatedUserId = user.userId,
+            callContext = cc,
+            bankId = Some(bankIdAccountId.bankId.value),
+            accountId = Some(bankIdAccountId.accountId.value),
+            viewId = Some(view.viewId.value)
+          )
+          Await.result(futureResult, Duration(10, java.util.concurrent.TimeUnit.SECONDS)) match {
+            case Full((true, _)) => Full(true)  // ABAC granted
+            case Full((false, ruleIds)) if ruleIds.nonEmpty =>
+              Failure(s"ABAC rules denied access. Failing rule IDs: ${ruleIds.mkString(", ")}")
+            case _ => Full(false)  // No rules or other issue
+          }
+        } catch {
+          case _: Exception => Full(false)
+        }
+      case None => Full(false)
+    }
   }
   /**
    * This function check does the user(anonymous or authenticated) have account access
@@ -3747,25 +3786,42 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
-      // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => customView
+      // 3rd: The user has account access to this custom view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => customView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ => // fall through to system view check
+            checkSystemView(viewId, bankIdAccountId, user, callContext)
+        }
       // The user has NO account access via custom view
       case _ =>
-        val systemView = MapperViews.systemView(viewId)
-        systemView match  { // CHECK SYSTEM VIEWS
-          // 1st: View is Pubic and Public views are NOT allowed on this instance.
-          case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
-          // 2nd: View is Pubic and Public views are allowed on this instance.
-          case Full(v) if(isPublicView(v)) => systemView
-          // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => systemView
-          // 4th: The user has firehose access to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
-          // 5th: The user has firehose access at a bank to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
-          // The user has NO account access at all
-          case _ => Empty
+        checkSystemView(viewId, bankIdAccountId, user, callContext)
+    }
+  }
+
+  private def checkSystemView(viewId: ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]): Box[View] = {
+    val systemView = MapperViews.systemView(viewId)
+    systemView match { // CHECK SYSTEM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
+      case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => systemView
+      // 3rd: The user has account access to this system view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => systemView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ =>
+            // 4th: The user has firehose access to this system view
+            if (hasAccountFirehoseAccess(v, user.get)) systemView
+            // 5th: The user has firehose access at a bank to this system view
+            else if (hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) systemView
+            // The user has NO account access at all
+            else Empty
         }
+      // The user has NO account access at all
+      case _ => Empty
     }
   }
 
