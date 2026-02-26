@@ -55,7 +55,7 @@ object ExampleValue {
   lazy val usernameExample = ConnectorField("felixsmith", s"The username the user uses to authenticate.")
   glossaryItems += makeGlossaryItem("User.username", usernameExample)
 
-  lazy val passwordExample = ConnectorField("password", s"The password the user uses to authenticate.")
+  lazy val passwordExample = ConnectorField("passwordpasswordpassword", s"The password the user uses to authenticate.")
   glossaryItems += makeGlossaryItem("User.password", passwordExample)
   
   
@@ -128,6 +128,9 @@ object ExampleValue {
   
   lazy val urlExample = ConnectorField("http://www.example.com/id-docs/123/image.png", s"The URL ") 
   glossaryItems += makeGlossaryItem("Customer.url", urlExample)
+  
+  lazy val ipAddressExample = ConnectorField("198.51.100.42", s"An example IP address using documentation range (RFC 5737)")
+  glossaryItems += makeGlossaryItem("Network.ipAddress", ipAddressExample)
   
   lazy val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerNumber", customerNumberExample)
