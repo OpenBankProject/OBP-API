@@ -133,6 +133,10 @@ or * access method is generally applicable, but further authorisation processes 
              (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  currentStatus match {
+                   case "INITIATED" =>
+                     // INITIATED status (maps to RCVD externally) - direct cancellation
+                     NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
+                     Future(true, callContext, Some(false))
                    case TransactionStatus.ACCP.code =>
                      // ACCP status - may require SCA for cancellation
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
@@ -147,10 +151,6 @@ or * access method is generally applicable, but further authorisation processes 
                            (false, x._2, Some(false))
                        }
                      }
-                   case "INITIATED" =>
-                     // INITIATED status (maps to RCVD externally) - direct cancellation
-                     NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
-                     Future(true, callContext, Some(false))
                    case "PENDING" =>
                      // PENDING status (maps to PDNG externally) - may require SCA
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
