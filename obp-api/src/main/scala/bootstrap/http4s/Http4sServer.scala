@@ -12,7 +12,7 @@ object Http4sServer extends IOApp {
   // new bootstrap.http4s.Http4sBoot().boot
   new bootstrap.liftweb.Boot().boot
 
-  val port = APIUtil.getPropsAsIntValue("http4s.port",8086)
+  val port = APIUtil.getPropsAsIntValue("http4s.port",8080)
   // Default changed from 127.0.0.1 to 0.0.0.0 so the server binds to all network interfaces.
   // It is still configurable via the http4s.host property.
   val host = APIUtil.getPropsValue("http4s.host","0.0.0.0")
