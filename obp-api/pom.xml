@@ -13,17 +13,7 @@
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
   <name>Open Bank Project API</name>
-  <properties>
-    <webXmlPath>src/main/webapp/WEB-INF/web.xml</webXmlPath>
-  </properties>
-  <profiles>
-    <profile>
-      <id>prod</id>
-      <properties>
-        <webXmlPath>src/main/resources/web.xml</webXmlPath>
-      </properties>
-    </profile>
-  </profiles>
+
   <pluginRepositories>
     <pluginRepository>
       <id>org.sonatype.oss.groups.public</id>
@@ -160,20 +150,7 @@
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version}</artifactId>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server -->
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>${jetty.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.eclipse.jetty.websocket/websocket-server -->
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-webapp</artifactId>
-      <version>${jetty.version}</version>
-      <scope>test</scope>
-  </dependency>
+
     <dependency>
       <groupId>cglib</groupId>
       <artifactId>cglib</artifactId>
@@ -189,11 +166,7 @@
       <artifactId>commons-pool2</artifactId>
       <version>2.11.1</version>
     </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-util</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
+
     <dependency>
       <groupId>net.liftmodules</groupId>
       <artifactId>amqp_3.1_${scala.version}</artifactId>
@@ -720,29 +693,6 @@
           </executions>
         </plugin>
 
-<plugin>
-  <groupId>org.eclipse.jetty</groupId>
-  <artifactId>jetty-maven-plugin</artifactId>
-  <version>${jetty.version}</version>
-  <configuration>
-    <contextPath>/</contextPath>
-    <scanIntervalSeconds>5</scanIntervalSeconds>
-    <port>8080</port>
-
-    <!-- Jetty 9.4 plugin settings for max header size -->
-    <requestHeaderSize>32768</requestHeaderSize>
-    <responseHeaderSize>32768</responseHeaderSize>
-  </configuration>
-</plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-idea-plugin</artifactId>
-          <version>2.2.1</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-          </configuration>
-        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-eclipse-plugin</artifactId>

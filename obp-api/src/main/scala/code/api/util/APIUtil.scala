@@ -27,8 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import scala.language.implicitConversions
-import scala.language.reflectiveCalls
 import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
 import code.accountholders.AccountHolders
@@ -54,7 +52,6 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -80,7 +77,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{ContentParam, PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
-import dispatch.url
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
@@ -102,22 +98,43 @@ import org.http4s.HttpRoutes
 
 import java.io.InputStream
 import java.net.URLDecoder
-import java.nio.charset.Charset
 import java.security.AccessControlException
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 import java.util.{Calendar, Date, Locale, UUID}
-import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
+
+  /**
+   * Deobfuscate a Jetty-style OBF: password string.
+   * Replaces org.eclipse.jetty.util.security.Password.deobfuscate
+   * to eliminate the Jetty dependency.
+   */
+  def deobfuscateJettyPassword(s: String): String = {
+    val stripped = if (s.startsWith("OBF:")) s.substring(4) else s
+    val b = new Array[Byte](stripped.length / 2)
+    var l = 0
+    var i = 0
+    while (i < stripped.length) {
+      val x = stripped.substring(i, i + 4)
+      val i0 = Integer.parseInt(x, 36)
+      val i1 = i0 / 256
+      val i2 = i0 % 256
+      b(l) = ((i1 + i2 - 254) / 2).toByte
+      l += 1
+      i += 4
+    }
+    new String(b, 0, l)
+  }
 
   val DateWithYear = "yyyy"
   val DateWithMonth = "yyyy-MM"
@@ -416,7 +433,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
     val compositeKey =
       if(consumerId == "None" && userId == "None") {
-        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+        "anonymous"
       } else {
         s"""consumerId${consumerId}::userId${userId}"""
       }
@@ -1380,10 +1397,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
     import dispatch.{Req => Request}
-    import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{Map => IMap}
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
@@ -3565,7 +3580,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case (Full(property), Full(isEncrypted), Empty) if isEncrypted == "false" =>
             Full(property)
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "true" =>
-            Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+            Full(deobfuscateJettyPassword(property))
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "false" =>
             Full(property)
           case (Full(property), Empty, Empty) =>
