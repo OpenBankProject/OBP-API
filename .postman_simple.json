@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "OBP-API DirectLogin Tests - Simple",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "http://localhost:8086/obp/v5.1.0/root"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('API responds', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DirectLogin - Get Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "DirectLogin",
+            "value": "username=hongwei,password=hongwei@tesobe.comhongwei@tesobe.com,consumer_key=ldok3nlci2voe0cnudk3onk2emkdy3myfcocgoy3"
+          }
+        ],
+        "url": "http://localhost:8086/my/logins/direct"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('DirectLogin successful', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Token received', function () {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('token');",
+              "  pm.environment.set('token', json.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "DirectLogin token={{token}}"
+          }
+        ],
+        "url": "http://localhost:8086/obp/v5.1.0/users/current"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('User retrieved', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

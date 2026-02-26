@@ -11,10 +11,10 @@ object Http4sServer extends IOApp {
   //Start OBP relevant objects and settings; this step MUST be executed first
   // new bootstrap.http4s.Http4sBoot().boot
   new bootstrap.liftweb.Boot().boot
+ 
+  val host = APIUtil.getPropsValue("hostname","127.0.0.1")
+  val port = APIUtil.getPropsAsIntValue("dev.port",8080)
 
-  val port = APIUtil.getPropsAsIntValue("http4s.port",8086)
-  val host = APIUtil.getPropsValue("http4s.host","127.0.0.1")
-  
   // Use shared httpApp configuration (same as tests)
   val httpApp = Http4sApp.httpApp
   

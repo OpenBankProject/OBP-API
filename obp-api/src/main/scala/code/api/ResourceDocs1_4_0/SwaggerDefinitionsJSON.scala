@@ -3145,8 +3145,8 @@ object SwaggerDefinitionsJSON {
     verb = "get",
     correlation_id = "v8ho6h5ivel3uq7a5zcnv0w1",
     duration = 39,
-    source_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
-    target_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
+    source_ip = ExampleValue.ipAddressExample.value,
+    target_ip = ExampleValue.ipAddressExample.value,
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
     operation_id = "OBPv4.0.0-getBanks"
   )

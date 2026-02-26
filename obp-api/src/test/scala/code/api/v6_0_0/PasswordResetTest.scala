@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import java.util.UUID
+import code.api.util.ExampleValue
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -70,7 +71,7 @@ class PasswordResetTest extends V600ServerSetup {
   lazy val postUserId = UUID.randomUUID.toString
   lazy val postJson = JSONFactory600.PostResetPasswordUrlJsonV600("marko", "marko@tesobe.com", postUserId)
 
-  val strongPassword = "StrongP@ssw0rd123!"
+  val strongPassword = ExampleValue.passwordExample.value
 
   /** Helper to create a JWT token for a given uniqueId with configurable expiry */
   def createJwtToken(uniqueId: String, expiryMinutes: Int = 120): String = {
@@ -398,7 +399,7 @@ class PasswordResetTest extends V600ServerSetup {
 
       When("We complete the password reset with the JWT token")
       val completeRequest = (v6_0_0_Request / "users" / "password").POST
-      val newPassword = "BrandNew!Pass999"
+      val newPassword = s"${ExampleValue.passwordExample.value}New"
       val completeJson = JSONFactory600.PostResetPasswordCompleteJsonV600(token, newPassword)
       val completeResponse = makePostRequest(completeRequest, write(completeJson))
       Then("We should get a 201")

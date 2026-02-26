@@ -1,6 +1,7 @@
 package code.api.util.http4s
 
 import cats.effect.IO
+import code.api.util.ExampleValue
 import net.liftweb.http.Req
 import org.http4s.{Header, Method, Request, Uri}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
@@ -450,7 +451,7 @@ class Http4sRequestConversionPropertyTest extends FeatureSpec
       val iterations = 100
 
       val authTypes = List(
-        "DirectLogin username=\"test\", password=\"pass\", consumer_key=\"key\"",
+        s"""DirectLogin username=\"test\", password=\"${ExampleValue.passwordExample.value}\", consumer_key=\"key\"""",
         "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
         "Basic dXNlcm5hbWU6cGFzc3dvcmQ=",
         "OAuth oauth_consumer_key=\"key\", oauth_token=\"token\""
