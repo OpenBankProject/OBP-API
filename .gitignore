@@ -47,4 +47,4 @@ metals.sbt
 obp-http4s-runner/src/main/resources/git.properties
 test-results
 untracked_files/
-obp-http4s-runner/dependency-reduced-pom.xml
+dependency-reduced-pom.xml
