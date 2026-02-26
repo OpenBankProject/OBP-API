@@ -1,58 +1,142 @@
 #!/bin/bash
 
-# Script to flush Redis, build the project, and run both Jetty and http4s servers
+################################################################################
+# OBP-API Build and Run Script (HTTP4S Server)
 #
-# This script should be run from the OBP-API root directory:
-#   cd /path/to/OBP-API
-#   ./flushall_build_and_run.sh
+# This script builds the OBP-API project and runs the HTTP4S server.
+# It replaces the obsolete flushall_build_and_run.sh which referenced
+# the removed obp-http4s-runner module and Jetty server.
 #
-# The http4s server will run in the background on port 8081
-# The Jetty server will run in the foreground on port 8080
+# Usage:
+#   ./build_and_run.sh              - Build and run with Redis flush
+#   ./build_and_run.sh --no-flush   - Build and run without Redis flush
+#   ./build_and_run.sh --background - Run server in background
+#
+# The HTTP4S server runs on the port configured in your props file
+# (default: 8080 for dev.port, or 8086 for hostname port)
+################################################################################
 
 set -e  # Exit on error
 
-echo "=========================================="
-echo "Flushing Redis cache..."
-echo "=========================================="
-redis-cli <<EOF
+# Parse arguments
+FLUSH_REDIS=true
+RUN_BACKGROUND=false
+
+for arg in "$@"; do
+    case $arg in
+        --no-flush)
+            FLUSH_REDIS=false
+            echo ">>> Skipping Redis flush"
+            ;;
+        --background)
+            RUN_BACKGROUND=true
+            echo ">>> Server will run in background"
+            ;;
+    esac
+done
+
+################################################################################
+# FLUSH REDIS CACHE (OPTIONAL)
+################################################################################
+
+if [ "$FLUSH_REDIS" = true ]; then
+    echo "=========================================="
+    echo "Flushing Redis cache..."
+    echo "=========================================="
+    
+    if command -v redis-cli &> /dev/null; then
+        redis-cli <<EOF
 flushall
 exit
 EOF
+        if [ $? -eq 0 ]; then
+            echo "✓ Redis cache flushed successfully"
+        else
+            echo "⚠ Warning: Failed to flush Redis cache. Continuing anyway..."
+        fi
+    else
+        echo "⚠ Warning: redis-cli not found. Skipping Redis flush..."
+    fi
+    echo ""
+fi
 
-if [ $? -eq 0 ]; then
-    echo "Redis cache flushed successfully"
-else
-    echo "Warning: Failed to flush Redis cache. Continuing anyway..."
+################################################################################
+# BUILD PROJECT
+################################################################################
+
+echo "=========================================="
+echo "Building OBP-API with Maven..."
+echo "=========================================="
+
+# Maven options for build performance
+# - 3-6GB heap for Scala compilation
+# - 2GB metaspace for class metadata
+# - Java module opens for compatibility with Java 11+
+export MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G \
+--add-opens java.base/java.lang=ALL-UNNAMED \
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED \
+--add-opens java.base/java.util=ALL-UNNAMED \
+--add-opens java.base/java.lang.invoke=ALL-UNNAMED \
+--add-opens java.base/java.util.jar=ALL-UNNAMED \
+--add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
+
+echo "Maven Options: ${MAVEN_OPTS}"
+echo ""
+
+# Build obp-api module (includes obp-commons as dependency)
+# - clean: Remove old build artifacts
+# - package: Compile and create JAR with maven-shade-plugin
+# - -pl obp-api -am: Build obp-api and all required modules
+# - -DskipTests: Skip test execution for faster builds
+# - -T 4: Use 4 threads for parallel compilation
+echo "Building obp-api module..."
+mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Build failed! Please check the error messages above."
+    exit 1
 fi
 
 echo ""
-echo "=========================================="
-echo "Building and running with Maven..."
-echo "=========================================="
-export MAVEN_OPTS="-Xss128m --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
-mvn install -pl .,obp-commons
-
-echo ""
-echo "=========================================="
-echo "Building http4s runner..."
-echo "=========================================="
-export MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G"
-mvn -pl obp-http4s-runner -am clean package -DskipTests=true -Dmaven.test.skip=true
-
-echo ""
-echo "=========================================="
-echo "Starting http4s server in background..."
-echo "=========================================="
-java -jar obp-http4s-runner/target/obp-http4s-runner.jar > http4s-server.log 2>&1 &
-HTTP4S_PID=$!
-echo "http4s server started with PID: $HTTP4S_PID (port 8081)"
-echo "Logs are being written to: http4s-server.log"
-echo ""
-echo "To stop http4s server later: kill $HTTP4S_PID"
+echo "✓ Build completed successfully"
+echo "✓ JAR created: obp-api/target/obp-api.jar"
 echo ""
 
+################################################################################
+# RUN HTTP4S SERVER
+################################################################################
+
 echo "=========================================="
-echo "Starting Jetty server (foreground)..."
+if [ "$RUN_BACKGROUND" = true ]; then
+    echo "Starting HTTP4S server (background)..."
+else
+    echo "Starting HTTP4S server (foreground)..."
+fi
 echo "=========================================="
-export MAVEN_OPTS="-Xss128m --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
-mvn jetty:run -pl obp-api
+
+# Java options for runtime
+# - Module opens for Kryo serialization and reflection
+JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED \
+--add-opens java.base/java.util=ALL-UNNAMED \
+--add-opens java.base/java.lang.invoke=ALL-UNNAMED \
+--add-opens java.base/java.util.jar=ALL-UNNAMED \
+--add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
+
+if [ "$RUN_BACKGROUND" = true ]; then
+    # Run in background with output to log file
+    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
+    SERVER_PID=$!
+    echo "✓ HTTP4S server started in background"
+    echo "  PID: $SERVER_PID"
+    echo "  Log: http4s-server.log"
+    echo ""
+    echo "To stop the server: kill $SERVER_PID"
+    echo "To view logs: tail -f http4s-server.log"
+else
+    # Run in foreground (Ctrl+C to stop)
+    echo "Press Ctrl+C to stop the server"
+    echo ""
+    java $JAVA_OPTS -jar obp-api/target/obp-api.jar
+fi
