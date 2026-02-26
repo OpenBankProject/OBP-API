@@ -14,34 +14,12 @@
   <packaging>jar</packaging>
   <name>Open Bank Project API</name>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>org.sonatype.oss.groups.public</id>
-    <name>Sonatype Public</name>
-      <url>https://oss.sonatype.org/content/groups/public</url>
-    </pluginRepository>
-  </pluginRepositories>
-
   <dependencies>
     <dependency>
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
     </dependency>
-    <!--embed akka adapter start - COMMENTED OUT FOR PEKKO MIGRATION-->
-    <!-- TODO: Find or create Pekko equivalent for adapter-akka-commons
-    <dependency>
-      <groupId>com.github.OpenBankProject.OBP-Adapter-Akka-SpringBoot</groupId>
-      <artifactId>adapter-akka-commons</artifactId>
-      <version>v1.1.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    -->
-    <!--embed akka adapter end-->
+
     <dependency>
       <groupId>com.github.everit-org.json-schema</groupId>
       <artifactId>org.everit.json.schema</artifactId>
@@ -64,17 +42,17 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>log4j-over-slf4j</artifactId>
-      <version>1.7.26</version>
+      <version>2.0.16</version>
     </dependency>
     <dependency>
       <artifactId>slf4j-ext</artifactId>
       <groupId>org.slf4j</groupId>
-      <version>1.7.26</version>
+      <version>2.0.16</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpg-jdk15on</artifactId>
-      <version>1.70</version>
+      <artifactId>bcpg-jdk18on</artifactId>
+      <version>1.78.1</version>
     </dependency>
     <dependency>
       <groupId>org.http4s</groupId>
@@ -88,8 +66,8 @@
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
-      <version>1.70</version>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>1.78.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
@@ -120,18 +98,14 @@
       <version>2.2.220</version>
       <scope>runtime</scope>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+    <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+    <!-- Updated from mysql:mysql-connector-java (deprecated) to com.mysql:mysql-connector-j -->
     <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.30</version>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <version>8.0.33</version>
     </dependency>
-    <!--    <dependency>
-          <groupId>com.microsoft.sqlserver</groupId>
-          <artifactId>mssql-jdbc</artifactId>
-          <version>6.2.0.jre8</version>
-          <scope>test</scope>
-        </dependency>-->
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -151,7 +125,7 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.5.13</version>
+      <version>4.5.14</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -164,17 +138,7 @@
       <artifactId>amqp_3.1_${scala.version}</artifactId>
       <version>1.5.0</version>
     </dependency>
-<!--    <dependency>-->
-<!--      <groupId>com.tokbox</groupId>-->
-<!--      <artifactId>opentok-server-sdk</artifactId>-->
-<!--      <version>3.0.0-beta.2</version>-->
-<!--      <exclusions>-->
-<!--        <exclusion>-->
-<!--          <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--          <artifactId>jackson-databind</artifactId>-->
-<!--        </exclusion>-->
-<!--      </exclusions>-->
-<!--    </dependency>-->
+
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
@@ -440,13 +404,7 @@
       <version>3.2.7-RELEASE</version>
     </dependency>
 
-    <!-- util convert Future to js Promise
-    <dependency>
-      <groupId>org.scala-js</groupId>
-      <artifactId>scalajs-library_${scala.version}</artifactId>
-      <version>1.9.0</version>
-    </dependency>
-    -->
+
     <dependency>
       <groupId>org.graalvm.js</groupId>
       <artifactId>js</artifactId>
@@ -650,7 +608,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.1</version>
           <executions>
             <execution>
               <id>default-copy-resources</id>
@@ -737,47 +694,7 @@
           </execution>
         </executions>
       </plugin>
-      <!--soap related plugin begin-->
-<!--      <plugin>-->
-<!--        <groupId>org.scalaxb</groupId>-->
-<!--        <artifactId>scalaxb-maven-plugin</artifactId>-->
-<!--        <version>1.7.5</version>-->
-<!--        <configuration>-->
-<!--          <packageName>code.adapter.soap</packageName>-->
-<!--          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>-->
-<!--          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>-->
-<!--        </configuration>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <id>scalaxb</id>-->
-<!--            <goals>-->
-<!--              <goal>generate</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
-      <!--grpc related plugin begin-->
-      <!-- currently not need, enable this plugin when need generate new grpc code.
-      <plugin>
-       <groupId>net.catte</groupId>
-       <artifactId>scalapb-maven-plugin</artifactId>
-       <version>1.2</version>
-       <configuration>
-         <javaOutput>false</javaOutput>
-         <inputDirectory>${basedir}/src/main/protobuf</inputDirectory>
-         <outputDirectory>${basedir}/src/main/scala</outputDirectory>
-         <grpc>true</grpc>
-       </configuration>
-       <executions>
-         <execution>
-           <goals>
-             <goal>compile</goal>
-           </goals>
-           <phase>generate-sources</phase>
-         </execution>
-       </executions>
-     </plugin>-->
-     <!--grpc related plugin end-->
+
     </plugins>
   </build>
   <reporting>
