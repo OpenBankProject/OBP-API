@@ -2,6 +2,6 @@ FROM gcr.io/distroless/java17-debian12
 
 # Copy OBP source code
 # Copy build artifact (.war file) into jetty from 'maven' stage.
-COPY /obp-api/target/obp-http4s-runner.jar /app/obp-http4s-runner.jar
+COPY /obp-http4s-runner/target/obp-http4s-runner.jar /app/obp-http4s-runner.jar
 WORKDIR /app
 CMD ["obp-http4s-runner.jar"]

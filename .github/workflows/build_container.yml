@@ -108,9 +108,10 @@ jobs:
             **/target/site/surefire-report/*
 
       - name: Save .jar artifact
+        continue-on-error: true
         run: |
           mkdir -p ./push
-          cp obp-api/target/obp-http4s-runner.jar ./push/
+          cp obp-http4s-runner/target/obp-http4s-runner.jar ./push/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}
