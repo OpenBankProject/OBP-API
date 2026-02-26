@@ -11,7 +11,7 @@
     <version>1.10.1</version>
   </parent>
   <artifactId>obp-api</artifactId>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
   <name>Open Bank Project API</name>
 
   <pluginRepositories>
@@ -657,16 +657,6 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-war-plugin</artifactId>
-          <version>3.4.0</version>
-          <configuration>
-            <webXml>${webXmlPath}</webXml>
-            <attachClasses>true</attachClasses>
-            <classesClassifier>classes</classesClassifier>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
           <version>3.0.1</version>
           <executions>
@@ -736,6 +726,42 @@
         <configuration>
           <release>${java.version}</release>
         </configuration>
+      </plugin>
+      <!-- maven-shade-plugin: Create executable fat JAR with all dependencies -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>bootstrap.http4s.Http4sServer</mainClass>
+            </transformer>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>reference.conf</resource>
+            </transformer>
+          </transformers>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+              </excludes>
+            </filter>
+          </filters>
+          <finalName>obp-api</finalName>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-fat-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <!--soap related plugin begin-->
 <!--      <plugin>-->

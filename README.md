@@ -62,13 +62,13 @@ OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https
 
 The project uses Maven 3 as its build tool.
 
-### Running http4s server (obp-http4s-runner)
+### Running http4s server
 
-To run the API using the http4s server, use the `obp-http4s-runner` module from the project root:
+To run the API using the http4s server, use the `obp-api` module from the project root:
 
 ```sh
-MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-http4s-runner -am clean package -DskipTests=true -Dmaven.test.skip=true && \
-java -jar obp-http4s-runner/target/obp-http4s-runner.jar
+MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true && \
+java -jar obp-api/target/obp-api.jar
 ```
 
 The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).

@@ -35,7 +35,6 @@
   <modules>
     <module>obp-commons</module>
     <module>obp-api</module>
-    <module>obp-http4s-runner</module>
   </modules>
 
   <repositories>
