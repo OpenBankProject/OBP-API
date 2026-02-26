@@ -3082,7 +3082,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val message = ErrorMessages.InvalidConsentIdUsage
         Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
       } else if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
-        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerByCertificate))
+        // Choose consumer based on validation method configuration
+        val consumerForConsent = if (method == "CONSUMER_KEY_VALUE" && consumerByConsumerKey.isDefined) {
+          consumerByConsumerKey
+        } else {
+          consumerByCertificate
+        }
+        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerForConsent))
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
         Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
