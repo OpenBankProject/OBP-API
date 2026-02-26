@@ -6942,10 +6942,8 @@ trait APIMethods600 {
             _ <- NewStyle.function.tryons(s"Rule code must not be empty", 400, callContext) {
               createJson.rule_code.nonEmpty
             }
-            // Validate rule code by attempting to compile it
-            _ <- Future {
-              AbacRuleEngine.validateRuleCode(createJson.rule_code)
-            } map {
+            // Validate rule code by attempting to compile it (includes statistical permissiveness check)
+            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code) map {
               unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
             }
             rule <- Future {
@@ -7198,10 +7196,8 @@ trait APIMethods600 {
             updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
               json.extract[UpdateAbacRuleJsonV600]
             }
-            // Validate rule code by attempting to compile it
-            _ <- Future {
-              AbacRuleEngine.validateRuleCode(updateJson.rule_code)
-            } map {
+            // Validate rule code by attempting to compile it (includes statistical permissiveness check)
+            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code) map {
               unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
             }
             rule <- Future {
@@ -7688,8 +7684,7 @@ trait APIMethods600 {
             _ <- NewStyle.function.tryons(s"$AbacRuleCodeEmpty", 400, callContext) {
               validateJson.rule_code.trim.nonEmpty
             }
-            validationResult <- Future {
-              AbacRuleEngine.validateRuleCode(validateJson.rule_code) match {
+            validationResult <- AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code).map {
                 case Full(msg) =>
                   Full(ValidateAbacRuleSuccessJsonV600(
                     valid = true,
@@ -7701,7 +7696,8 @@ trait APIMethods600 {
 
                   // Determine the proper OBP error message and error type
                   val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
-                    (AbacRuleTooPermissive, "PermissivenessError")
+                    val errorConst = if (cleanError.toLowerCase.contains("statistical")) AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+                    (errorConst, "PermissivenessError")
                   } else if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
                     (AbacRuleTypeMismatch, "TypeError")
                   } else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse")) {
@@ -7731,8 +7727,7 @@ trait APIMethods600 {
                       error_type = "UnknownError"
                     )
                   ))
-              }
-            } map {
+              } map {
               unboxFullOrFail(_, callContext, AbacRuleValidationFailed, 400)
             }
           } yield {

@@ -1,6 +1,6 @@
 package code.abacrule
 
-import code.api.util.{APIUtil, CallContext, DynamicUtil}
+import code.api.util.{APIUtil, CallContext, DynamicUtil, ErrorMessages, OBPQueryParam, OBPLimit}
 import code.bankconnectors.Connector
 import code.model.dataAccess.ResourceUser
 import code.users.Users
@@ -23,6 +23,9 @@ object AbacRuleEngine {
   // Cache for compiled ABAC rule functions
   private val compiledRulesCache: concurrent.Map[String, Box[AbacRuleFunction]] =
     new ConcurrentHashMap[String, Box[AbacRuleFunction]]().asScala
+
+  val StatisticalSampleSize: Int = 20
+  val PermissivenessThreshold: Double = 0.50
 
   /**
    * Type alias for compiled ABAC rule function
@@ -122,6 +125,65 @@ object AbacRuleEngine {
     val hasSubExprTautology = subExprTautologies.exists(_.findFirstIn(stripped).isDefined)
 
     isWholeBodyTautology || hasSubExprTautology
+  }
+
+  /**
+   * Statistical permissiveness check: compile the candidate rule, evaluate it against a sample
+   * of real system users (with no resource context), and reject it if over 50% of users pass.
+   *
+   * @param ruleCode The rule code to check
+   * @return Future[Boolean] - true if the rule is statistically too permissive
+   */
+  private def isStatisticallyTooPermissive(ruleCode: String): Future[Boolean] = {
+    val compiledBox = compileRuleInternal(ruleCode)
+    compiledBox match {
+      case Failure(_, _, _) | Empty =>
+        // Compilation error caught elsewhere
+        Future.successful(false)
+      case Full(compiledFunc) =>
+        val ns = code.api.util.NewStyle.function
+        Users.users.vend.getAllUsersF(List(OBPLimit(StatisticalSampleSize))).flatMap { userEntitlementPairs =>
+          if (userEntitlementPairs.isEmpty) {
+            Future.successful(false)
+          } else {
+            val evaluationFutures = userEntitlementPairs.map { case (resourceUser, entitlementsBox) =>
+              val userId = resourceUser.userId
+              val entitlements = entitlementsBox.openOr(Nil)
+              val userAsUser: User = resourceUser
+
+              val attributesF = ns.getNonPersonalUserAttributes(userId, None).map(_._1).recover { case _ => Nil }
+              val authContextF = ns.getUserAuthContexts(userId, None).map(_._1).recover { case _ => Nil }
+
+              for {
+                attributes <- attributesF
+                authContext <- authContextF
+              } yield {
+                try {
+                  compiledFunc(
+                    userAsUser, attributes, authContext, entitlements,
+                    None, Nil, Nil, Nil, // onBehalfOfUser
+                    None, Nil, // user
+                    None, Nil, // bank
+                    None, Nil, // account
+                    None, Nil, // transaction
+                    None, Nil, // transactionRequest
+                    None, Nil, // customer
+                    None // callContext
+                  )
+                } catch {
+                  case _: Exception => false
+                }
+              }
+            }
+
+            Future.sequence(evaluationFutures).map { results =>
+              val passCount = results.count(_ == true)
+              val total = results.size
+              passCount.toDouble / total > PermissivenessThreshold
+            }
+          }
+        }
+    }
   }
 
   /**
@@ -464,6 +526,32 @@ object AbacRuleEngine {
         case Failure(msg, _, _) => Failure(s"Invalid ABAC rule code: $msg")
         case Empty => Failure("Failed to validate ABAC rule code")
       }
+    }
+  }
+
+  /**
+   * Async validation that includes both sync checks (regex + compilation) and
+   * the statistical permissiveness check against real system users.
+   *
+   * @param ruleCode The Scala code to validate
+   * @return Future[Box[String]] - Full("ABAC rule code is valid") if valid, Failure with error message if invalid
+   */
+  def validateRuleCodeAsync(ruleCode: String): Future[Box[String]] = {
+    val syncResult = validateRuleCode(ruleCode)
+    syncResult match {
+      case f @ Failure(_, _, _) =>
+        Future.successful(f)
+      case Full(_) =>
+        isStatisticallyTooPermissive(ruleCode).map { tooPermissive =>
+          if (tooPermissive)
+            Failure(ErrorMessages.AbacRuleStatisticallyTooPermissive)
+          else
+            Full("ABAC rule code is valid")
+        }.recover {
+          case _ => Failure(ErrorMessages.AbacRuleStatisticallyTooPermissive)
+        }
+      case Empty =>
+        Future.successful(Empty)
     }
   }
 

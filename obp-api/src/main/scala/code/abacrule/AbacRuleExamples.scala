@@ -283,11 +283,11 @@ object AbacRuleExamples {
       |accountOpt.exists(_.accountRoutings.nonEmpty)""".stripMargin
 
   /**
-   * Example 33: Default to True (Allow All)
-   * Always grants access. Note: bare `true` is rejected as too permissive,
-   * so we use a semantically equivalent non-tautological expression.
+   * Example 33: Entitlement-Based Access
+   * Grants access to users who have the CanCreateAbacRule entitlement.
+   * This checks for a specific entitlement rather than always granting access.
    */
-  val allowAllRule: String = """authenticatedUser.emailAddress.length >= 0"""
+  val allowAllRule: String = """authenticatedUserEntitlements.exists(_.roleName == "CanCreateAbacRule")"""
 
   /**
    * Example 34: Default to False (Deny All)

@@ -87,7 +87,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Execute an allow-all rule should return true", ApiEndpoint1, VersionOfApi) {
-      val ruleId = createAbacRuleViaApi("allow-all-test", """authenticatedUser.emailAddress.length >= 0""")
+      val ruleId = createAbacRuleViaApi("allow-all-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
       When("We execute the allow-all rule")
@@ -117,7 +117,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Execute rule with explicit authenticated_user_id", ApiEndpoint1, VersionOfApi) {
-      val ruleId = createAbacRuleViaApi("auth-user-test", """authenticatedUser.emailAddress.length >= 0""")
+      val ruleId = createAbacRuleViaApi("auth-user-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
       When("We execute the rule providing an explicit authenticated_user_id")
@@ -142,7 +142,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Execute an inactive rule should return error", ApiEndpoint1, VersionOfApi) {
-      val ruleId = createAbacRuleViaApi("inactive-test", """authenticatedUser.emailAddress.length >= 0""", isActive = false)
+      val ruleId = createAbacRuleViaApi("inactive-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", isActive = false)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
       When("We execute the inactive rule")
@@ -206,7 +206,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Execute policy with one allow-all rule should return true", ApiEndpoint2, VersionOfApi) {
-      createAbacRuleViaApi("policy-allow-test", """authenticatedUser.emailAddress.length >= 0""", policy = "account-access")
+      createAbacRuleViaApi("policy-allow-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", policy = "account-access")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
       When("We execute the account-access policy")
@@ -237,7 +237,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
     scenario("Execute policy with mixed rules - OR logic means at least one must pass", ApiEndpoint2, VersionOfApi) {
       // Create one allow rule and one deny rule for the same policy
-      createAbacRuleViaApi("policy-mixed-allow", """authenticatedUser.emailAddress.length >= 0""", policy = "account-access")
+      createAbacRuleViaApi("policy-mixed-allow", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", policy = "account-access")
       createAbacRuleViaApi("policy-mixed-deny", "false", policy = "account-access")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -311,6 +311,52 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(200)
       (response.body \ "valid").extract[Boolean] should equal(false)
       (response.body \ "details" \ "error_type").extract[String] should equal("PermissivenessError")
+    }
+  }
+
+  // ==================== Statistical Permissiveness Detection Tests ====================
+
+  feature(s"Assuring that statistically too permissive ABAC rules are rejected - $VersionOfApi") {
+
+    scenario("Creating a rule with 'emailAddress.length >= 0' should be rejected as statistically too permissive", ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+      val createJson = CreateAbacRuleJsonV600(
+        rule_name = "statistical-tautology",
+        rule_code = "authenticatedUser.emailAddress.length >= 0",
+        description = "Should be rejected - statistically too permissive",
+        policy = "account-access",
+        is_active = true
+      )
+      val request = (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1)
+      val response = makePostRequest(request, write(createJson))
+      Then("We should get a 400")
+      response.code should equal(400)
+    }
+
+    scenario("Validating a statistically too permissive rule should return PermissivenessError", ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+      val validateJson = ValidateAbacRuleJsonV600(rule_code = "authenticatedUser.emailAddress.length >= 0")
+      val request = (v6_0_0_Request / "management" / "abac-rules" / "validate").POST <@ (user1)
+      val response = makePostRequest(request, write(validateJson))
+      Then("We should get a 200 with valid=false and PermissivenessError type")
+      response.code should equal(200)
+      (response.body \ "valid").extract[Boolean] should equal(false)
+      (response.body \ "details" \ "error_type").extract[String] should equal("PermissivenessError")
+    }
+
+    scenario("Creating a selective attribute-checking rule should succeed", ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+      val createJson = CreateAbacRuleJsonV600(
+        rule_name = "selective-rule",
+        rule_code = s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""",
+        description = "Selective rule that only matches one specific user",
+        policy = "account-access",
+        is_active = true
+      )
+      val request = (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1)
+      val response = makePostRequest(request, write(createJson))
+      Then("We should get a 201")
+      response.code should equal(201)
     }
   }
 }
