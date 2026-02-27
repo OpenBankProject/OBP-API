@@ -114,7 +114,7 @@ jobs:
       - name: Save .jar artifact
         run: |
           mkdir -p ./pull
-          cp obp-http4s-runner/target/obp-http4s-runner.jar ./pull/
+          cp obp-api/target/obp-api.jar ./pull/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}

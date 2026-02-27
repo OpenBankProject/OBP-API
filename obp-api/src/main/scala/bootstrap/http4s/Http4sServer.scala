@@ -4,6 +4,7 @@ import cats.effect._
 import code.api.util.APIUtil
 import code.api.util.http4s.Http4sApp
 import com.comcast.ip4s._
+import org.http4s.Uri
 import org.http4s.ember.server._
 
 object Http4sServer extends IOApp {
@@ -12,7 +13,16 @@ object Http4sServer extends IOApp {
   // new bootstrap.http4s.Http4sBoot().boot
   new bootstrap.liftweb.Boot().boot
  
-  val host = APIUtil.getPropsValue("hostname","127.0.0.1")
+  // Parse hostname - support both "127.0.0.1" and "http://127.0.0.1" formats
+  private def parseHostname(hostnameValue: String): String = {
+    val trimmed = hostnameValue.trim
+    // Try to parse as URI first
+    Uri.fromString(trimmed).toOption
+      .flatMap(_.host.map(_.renderString))
+      .getOrElse(trimmed) // If not a valid URI, use as-is
+  }
+
+  val host = parseHostname(code.api.Constant.HostName)
   val port = APIUtil.getPropsAsIntValue("dev.port",8080)
 
   // Use shared httpApp configuration (same as tests)
