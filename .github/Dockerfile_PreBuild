@@ -1,7 +1,7 @@
 FROM gcr.io/distroless/java:11
 
 # Copy OBP source code
-# Copy build artifact (.war file) into jetty from 'maven' stage.
-COPY /obp-http4s-runner/target/obp-http4s-runner.jar /app/obp-http4s-runner.jar
+# Copy build artifact (JAR file) from maven build
+COPY /obp-api/target/obp-api.jar /app/obp-api.jar
 WORKDIR /app
-CMD ["obp-http4s-runner.jar"]
+CMD ["obp-api.jar"]
