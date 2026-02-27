@@ -436,3 +436,35 @@ object ResourceDocMatcher {
     )
   }
 }
+
+/**
+ * Http4s configuration utilities.
+ */
+object Http4sConfigUtil {
+  
+  /**
+   * Parse hostname from a string that may be either a plain host or a full URI.
+   * 
+   * Supports both formats:
+   * - Plain host: "127.0.0.1" or "localhost"
+   * - Full URI: "http://127.0.0.1:8080" or "https://example.com"
+   * 
+   * @param hostnameValue The hostname or URI string to parse
+   * @return The extracted hostname/IP address
+   * 
+   * Examples:
+   * {{{
+   * parseHostname("127.0.0.1")                  // Returns: "127.0.0.1"
+   * parseHostname("http://127.0.0.1:8080")      // Returns: "127.0.0.1"
+   * parseHostname("https://api.example.com")    // Returns: "api.example.com"
+   * parseHostname("localhost")                  // Returns: "localhost"
+   * }}}
+   */
+  def parseHostname(hostnameValue: String): String = {
+    val trimmed = hostnameValue.trim
+    // Try to parse as URI first
+    Uri.fromString(trimmed).toOption
+      .flatMap(_.host.map(_.renderString))
+      .getOrElse(trimmed) // If not a valid URI, use as-is
+  }
+}
