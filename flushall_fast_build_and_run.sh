@@ -147,7 +147,47 @@ mvn -pl obp-api -am \
     -Dspotbugs.skip=true \
     -Dpmd.skip=true > fast_build.log 2>&1
 
-if [ $? -ne 0 ]; then
+BUILD_EXIT_CODE=$?
+
+# Auto-retry with clean build if incremental build fails
+if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
+    echo ""
+    echo "⚠️  Incremental build failed. Checking if this is a cache issue..."
+    
+    # Check if error is related to missing classes/packages (common cache issue)
+    if grep -q "is not a member of package\|cannot find symbol\|not found: type\|not found: value" fast_build.log; then
+        echo "🔄 Detected incremental compilation cache issue. Retrying with clean build..."
+        echo ""
+        
+        # Backup the failed incremental build log
+        mv fast_build.log fast_build_incremental_failed.log
+        echo "   Previous build log saved to: fast_build_incremental_failed.log"
+        
+        # Retry with clean build
+        echo "   Running clean build (this may take 2-3 minutes)..."
+        mvn -pl obp-api -am \
+            clean \
+            package \
+            -T 1C \
+            $OFFLINE_FLAG \
+            -DskipTests=true \
+            -Dmaven.test.skip=true \
+            -Dcheckstyle.skip=true \
+            -Dspotbugs.skip=true \
+            -Dpmd.skip=true > fast_build.log 2>&1
+        
+        BUILD_EXIT_CODE=$?
+        
+        if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo ""
+            echo "✓ Clean build succeeded! The issue was incremental compilation cache."
+            echo "💡 Tip: This usually happens after switching branches or updating dependencies."
+        fi
+    fi
+fi
+
+# Final error check
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
     echo ""
     echo "❌ Build failed! Please check fast_build.log for details."
     echo "Last 30 lines of build log:"
