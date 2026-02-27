@@ -60,7 +60,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2025-06-10T12:05:04Z
+// ---------- created on 2026-02-27T05:54:48Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -335,7 +335,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123)))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -380,7 +383,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123)))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -476,7 +482,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -518,7 +527,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -560,7 +572,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -603,7 +618,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -641,7 +659,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123)))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -679,7 +700,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123)))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -717,7 +741,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123)))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -755,7 +782,10 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
       authenticationMethodId=Some("string"),
-      attemptCounter=123))
+      attemptCounter=123,
+      challengePurpose=Some("string"),
+      challengeContextHash=Some("string"),
+      challengeContextStructure=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -873,6 +903,79 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, provider, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_for_user", req, callContext)
         response.map(convertToTuple[List[InboundAccountCommons]](callContext))        
+  }
+          
+  messageDocs += checkExternalUserCredentialsDoc
+  def checkExternalUserCredentialsDoc = MessageDoc(
+    process = "obp.checkExternalUserCredentials",
+    messageFormat = messageFormat,
+    description = "Check External User Credentials",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCheckExternalUserCredentials(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      username=usernameExample.value,
+      password=passwordExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundCheckExternalUserCredentials(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= InboundExternalUser(aud=audExample.value,
+      exp=expExample.value,
+      iat=iatExample.value,
+      iss=issExample.value,
+      sub=subExample.value,
+      azp=Some("string"),
+      email=Some(emailExample.value),
+      emailVerified=Some(emailVerifiedExample.value),
+      name=Some(userNameExample.value),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value)))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+        import com.openbankproject.commons.dto.{InBoundCheckExternalUserCredentials => InBound, OutBoundCheckExternalUserCredentials => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username, password)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_credentials", req, callContext)
+        response.map(convertToTuple[InboundExternalUser](callContext))        
+  }
+          
+  messageDocs += checkExternalUserExistsDoc
+  def checkExternalUserExistsDoc = MessageDoc(
+    process = "obp.checkExternalUserExists",
+    messageFormat = messageFormat,
+    description = "Check External User Exists",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCheckExternalUserExists(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      username=usernameExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundCheckExternalUserExists(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= InboundExternalUser(aud=audExample.value,
+      exp=expExample.value,
+      iat=iatExample.value,
+      iss=issExample.value,
+      sub=subExample.value,
+      azp=Some("string"),
+      email=Some(emailExample.value),
+      emailVerified=Some(emailVerifiedExample.value),
+      name=Some(userNameExample.value),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value)))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+        import com.openbankproject.commons.dto.{InBoundCheckExternalUserExists => InBound, OutBoundCheckExternalUserExists => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_check_external_user_exists", req, callContext)
+        response.map(convertToTuple[InboundExternalUser](callContext))        
   }
           
   messageDocs += getBankAccountByIbanDoc
@@ -1545,8 +1648,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       startDate=toDate(transactionStartDateExample),
       finishDate=Some(toDate(transactionFinishDateExample)),
       balance=BigDecimal(balanceExample.value),
-      status=Some(transactionStatusExample.value)
-      )))
+      status=Some(transactionStatusExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2561,7 +2663,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator=Some( UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -2626,7 +2728,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateTransactionRequestPeriodicSepaCreditTransfersBGV1(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      initiator= Some(UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      initiator=Some( UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
       provider=providerExample.value,
@@ -3411,8 +3513,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetProducts(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCommons(
-      bankId=BankId(bankIdExample.value),
+      data=List( ProductCommons(bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,
@@ -3451,8 +3552,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
     exampleInboundMessage = (
      InBoundGetProduct(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= ProductCommons(
-      bankId=BankId(bankIdExample.value),
+      data= ProductCommons(bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,
@@ -3802,6 +3902,39 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_atms", req, callContext)
         response.map(convertToTuple[List[AtmTCommons]](callContext))        
+  }
+          
+  messageDocs += getCurrentFxRateDoc
+  def getCurrentFxRateDoc = MessageDoc(
+    process = "obp.getCurrentFxRate",
+    messageFormat = messageFormat,
+    description = "Get Current Fx Rate",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCurrentFxRate(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      fromCurrencyCode=fromCurrencyCodeExample.value,
+      toCurrencyCode=toCurrencyCodeExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetCurrentFxRate(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= FXRateCommons(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode=fromCurrencyCodeExample.value,
+      toCurrencyCode=toCurrencyCodeExample.value,
+      conversionValue=conversionValueExample.value.toDouble,
+      inverseConversionValue=inverseConversionValueExample.value.toDouble,
+      effectiveDate=toDate(effectiveDateExample)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] = {
+        import com.openbankproject.commons.dto.{InBoundGetCurrentFxRate => InBound, OutBoundGetCurrentFxRate => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, fromCurrencyCode, toCurrencyCode)
+        val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_current_fx_rate", req, callContext)
+        response.map(convertToTuple[FXRateCommons](callContext))        
   }
           
   messageDocs += createTransactionAfterChallengev300Doc
@@ -4527,8 +4660,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4580,8 +4713,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4634,8 +4767,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4697,13 +4830,13 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], customerType: Option[String] = None, parentCustomerId: Option[String] = None, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
+  override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], customerType: Option[String], parentCustomerId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
         import com.openbankproject.commons.dto.{InBoundUpdateCustomerGeneralData => InBound, OutBoundUpdateCustomerGeneralData => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix, customerType, parentCustomerId)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_update_customer_general_data", req, callContext)
@@ -4747,8 +4880,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some(""))))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4797,8 +4930,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4848,8 +4981,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some("")))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5148,8 +5281,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some(""))))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5199,8 +5332,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some(""))))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -5935,8 +6068,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value,
-      customerType=Some("INDIVIDUAL"),
-      parentCustomerId=Some(""))))
+      customerType=Some(customerTypeExample.value),
+      parentCustomerId=Some(parentCustomerIdExample.value))))
     ),
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -6400,8 +6533,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode=collectionCodeExample.value,
       memberProductCode=memberProductCodeExample.value),
-      product= ProductCommons(
-      bankId=BankId(bankIdExample.value),
+      product= ProductCommons(bankId=BankId(bankIdExample.value),
       code=ProductCode(productCodeExample.value),
       parentProductCode=ProductCode(parentProductCodeExample.value),
       name=productNameExample.value,
@@ -7325,8 +7457,8 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2025-06-10T12:05:04Z
-//---------------- dynamic end ---------------------please don't modify this line
+// ---------- created on 2026-02-27T05:54:48Z
+//---------------- dynamic end ---------------------please don't modify this line 
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
