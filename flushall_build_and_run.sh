@@ -69,10 +69,24 @@ echo "Building OBP-API with Maven..."
 echo "=========================================="
 
 # Maven options for build performance
-# - 3-6GB heap for Scala compilation
+# Memory:
+# - 3-6GB heap (balanced for both Maven and Scala compiler)
 # - 2GB metaspace for class metadata
-# - Java module opens for compatibility with Java 11+
-export MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G \
+# - 4m stack for Scala compiler (matches POM config)
+#
+# JVM Optimizations:
+# - G1GC: Better garbage collection for large heaps
+# - ReservedCodeCacheSize: More space for JIT compiled code
+# - TieredCompilation: Faster JIT compilation
+# - TieredStopAtLevel=1: Skip C2 compiler for faster startup (build-time only)
+#
+# Java Module Opens:
+# - Required for Java 11+ compatibility
+export MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G -Xss4m \
+-XX:+UseG1GC \
+-XX:ReservedCodeCacheSize=512m \
+-XX:+TieredCompilation \
+-XX:TieredStopAtLevel=1 \
 --add-opens java.base/java.lang=ALL-UNNAMED \
 --add-opens java.base/java.lang.reflect=ALL-UNNAMED \
 --add-opens java.base/java.util=ALL-UNNAMED \
@@ -90,17 +104,21 @@ echo ""
 # - -DskipTests: Skip test execution for faster builds
 # - -T 4: Use 4 threads for parallel compilation
 echo "Building obp-api module..."
-mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4
+echo "Build output will be saved to: build.log"
+mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4 > build.log 2>&1
 
 if [ $? -ne 0 ]; then
     echo ""
-    echo "❌ Build failed! Please check the error messages above."
+    echo "❌ Build failed! Please check build.log for details."
+    echo "Last 30 lines of build log:"
+    tail -30 build.log
     exit 1
 fi
 
 echo ""
 echo "✓ Build completed successfully"
 echo "✓ JAR created: obp-api/target/obp-api.jar"
+echo "✓ Build log saved to: build.log"
 echo ""
 
 ################################################################################
