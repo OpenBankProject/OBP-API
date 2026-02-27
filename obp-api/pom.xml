@@ -664,6 +664,8 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.5.1</version>
         <configuration>
+          <shadedArtifactAttached>false</shadedArtifactAttached>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
               <mainClass>bootstrap.http4s.Http4sServer</mainClass>
