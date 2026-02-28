@@ -30,7 +30,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, UserViewAccessJsonV600, UserWithAccountAccessJsonV600, UsersWithAccountAccessJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -10960,6 +10960,169 @@ trait APIMethods600 {
                   abac_rule_id = ""
                 )
             }
+            (response, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUsersWithAccountAccess,
+      implementedInApiVersion,
+      nameOf(getUsersWithAccountAccess),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/users-with-access",
+      "Get Users With Account Access",
+      s"""Get all users who have access to a specific account, along with their views and access sources.
+         |
+         |This endpoint combines both traditional AccountAccess records and ABAC (Attribute-Based Access Control)
+         |evaluation to provide a complete picture of who can access the account.
+         |
+         |Each user entry includes the list of views they can access and how that access was granted
+         |(either "ACCOUNT_ACCESS" for direct grants or "ABAC" for rule-based access).
+         |
+         |Public views are listed separately since they are accessible by everyone.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      UsersWithAccountAccessJsonV600(
+        users = List(UserWithAccountAccessJsonV600(
+          user_id = ExampleValue.userIdExample.value,
+          username = "robert.x.smith.test",
+          email = "robert.x@example.com",
+          provider = "https://apisandbox.openbankproject.com",
+          views = List(UserViewAccessJsonV600(
+            view_id = "owner",
+            access_source = "ACCOUNT_ACCESS"
+          ))
+        )),
+        has_public_view = false,
+        public_views = List.empty[String],
+        abac_enabled = false
+      ),
+      List(
+        $BankNotFound,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount, apiTagView),
+      Some(List(canSeeAccountAccessForAnyUser))
+    )
+
+    lazy val getUsersWithAccountAccess: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "users-with-access" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+
+            // Step A: Get all views for the account, split into public and private
+            allViews <- Future(Views.views.vend.assignedViewsForAccount(bankIdAccountId))
+            publicViewIds = allViews.filter(_.isPublic).map(_.viewId.value)
+            privateViews = allViews.filter(_.isPrivate)
+
+            // Step B: Get traditional AccountAccess permissions (all users with direct access)
+            permissions <- Future(Views.views.vend.permissions(bankIdAccountId))
+            accountAccessResults = permissions.map { perm =>
+              val privateViewAccesses = perm.views.filter(_.isPrivate).map { v =>
+                UserViewAccessJsonV600(
+                  view_id = v.viewId.value,
+                  access_source = "ACCOUNT_ACCESS"
+                )
+              }
+              perm.user.userId -> (perm.user, privateViewAccesses)
+            }.toMap
+
+            // Step C: ABAC evaluation (only if enabled)
+            abacEnabled = allowAbacAccountAccess
+            abacResults <- {
+              if (!abacEnabled || privateViews.isEmpty) {
+                Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
+              } else {
+                // Find users with CanExecuteAbacRule entitlement
+                val abacEntitlements = Entitlement.entitlement.vend.getEntitlementsByRole(canExecuteAbacRule.toString)
+                  .getOrElse(Nil)
+                val abacUserIds = abacEntitlements.map(_.userId).distinct
+
+                if (abacUserIds.isEmpty) {
+                  Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
+                } else {
+                  for {
+                    abacUsers <- Users.users.vend.getUsersByUserIdsFuture(abacUserIds)
+                    abacUserMap = abacUsers.map(u => u.userId -> u).toMap
+
+                    // For each (user, view) pair, skip if already has AccountAccess, otherwise evaluate ABAC
+                    evaluationPairs = for {
+                      user <- abacUsers
+                      view <- privateViews
+                      existingViews = accountAccessResults.get(user.userId).map(_._2).getOrElse(Nil)
+                      if !existingViews.exists(_.view_id == view.viewId.value)
+                    } yield (user, view)
+
+                    abacEvaluations <- Future.sequence(
+                      evaluationPairs.map { case (user, view) =>
+                        callContext match {
+                          case Some(cc) =>
+                            AbacRuleEngine.executeRulesByPolicyDetailed(
+                              policy = ABAC_POLICY_ACCOUNT_ACCESS,
+                              authenticatedUserId = user.userId,
+                              callContext = cc,
+                              bankId = Some(bankId.value),
+                              accountId = Some(accountId.value),
+                              viewId = Some(view.viewId.value)
+                            ).map {
+                              case Full((true, _)) => Some((user, view))
+                              case _ => None
+                            }.recover { case _ => None }
+                          case None =>
+                            Future.successful(None)
+                        }
+                      }
+                    )
+
+                    passingPairs = abacEvaluations.flatten
+                  } yield {
+                    passingPairs.groupBy(_._1.userId).map { case (userId, pairs) =>
+                      val user = pairs.head._1
+                      val viewAccesses = pairs.map { case (_, view) =>
+                        UserViewAccessJsonV600(
+                          view_id = view.viewId.value,
+                          access_source = "ABAC"
+                        )
+                      }
+                      userId -> (user, viewAccesses)
+                    }
+                  }
+                }
+              }
+            }
+          } yield {
+            // Step D: Merge accountAccessResults + abacResults by userId
+            val allUserIds = (accountAccessResults.keySet ++ abacResults.keySet).toList
+            val mergedUsers = allUserIds.map { userId =>
+              val (user, views1) = accountAccessResults.getOrElse(userId, {
+                val (u, _) = abacResults(userId)
+                (u, Nil)
+              })
+              val views2 = abacResults.get(userId).map(_._2).getOrElse(Nil)
+              UserWithAccountAccessJsonV600(
+                user_id = user.userId,
+                username = user.name,
+                email = user.emailAddress,
+                provider = user.provider,
+                views = views1 ++ views2
+              )
+            }.filter(_.views.nonEmpty)
+
+            val response = UsersWithAccountAccessJsonV600(
+              users = mergedUsers,
+              has_public_view = publicViewIds.nonEmpty,
+              public_views = publicViewIds,
+              abac_enabled = abacEnabled
+            )
             (response, HttpCode.`200`(callContext))
           }
       }
