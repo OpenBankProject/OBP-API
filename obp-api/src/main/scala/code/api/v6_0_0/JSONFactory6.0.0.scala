@@ -2431,8 +2431,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   case class UsersWithAccountAccessJsonV600(
     users: List[UserWithAccountAccessJsonV600],
     has_public_view: Boolean,
-    public_views: List[String],
-    abac_enabled: Boolean
+    public_views: List[String]
   )
 
 }

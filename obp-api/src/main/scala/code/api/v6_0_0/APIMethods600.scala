@@ -10998,8 +10998,7 @@ trait APIMethods600 {
           ))
         )),
         has_public_view = false,
-        public_views = List.empty[String],
-        abac_enabled = false
+        public_views = List.empty[String]
       ),
       List(
         $BankNotFound,
@@ -11120,8 +11119,7 @@ trait APIMethods600 {
             val response = UsersWithAccountAccessJsonV600(
               users = mergedUsers,
               has_public_view = publicViewIds.nonEmpty,
-              public_views = publicViewIds,
-              abac_enabled = abacEnabled
+              public_views = publicViewIds
             )
             (response, HttpCode.`200`(callContext))
           }
