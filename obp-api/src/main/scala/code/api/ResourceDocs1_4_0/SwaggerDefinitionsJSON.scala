@@ -6149,7 +6149,16 @@ object SwaggerDefinitionsJSON {
   lazy val appDirectoryJsonV600 = ListResult(
     "app_directory",
     List(
-      ConfigPropJsonV600("portal_external_url", "https://portal.openbankproject.com")
+      ConfigPropJsonV600("public_obp_api_url", "http://localhost:8080"),
+      ConfigPropJsonV600("public_obp_portal_url", "http://localhost:5174"),
+      ConfigPropJsonV600("public_obp_api_explorer_url", "http://localhost:5173"),
+      ConfigPropJsonV600("public_obp_api_manager_url", "http://localhost:3003"),
+      ConfigPropJsonV600("public_obp_sandbox_populator_url", "http://localhost:5178"),
+      ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
+      ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
+      ConfigPropJsonV600("public_obp_hola_url", "http://localhost:8087"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000")
     )
   )
 

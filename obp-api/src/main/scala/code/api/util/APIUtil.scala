@@ -1219,6 +1219,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "connector_name" => Full(OBPConnectorName(values.head))
         case "customer_id" => Full(OBPCustomerId(values.head))
         case "locked_status" => Full(OBPLockedStatus(values.head))
+        case "role_name" => Full(OBPRoleName(values.head))
         case _ => Full(OBPEmpty())
       }
     } yield
@@ -1267,6 +1268,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
       lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
+      roleName <- getHttpParamValuesByName(httpParams, "role_name")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
       /**
@@ -1287,7 +1289,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1341,6 +1343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
     val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
+    val roleName =  getHttpRequestUrlParam(httpRequestUrl, "role_name")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -1373,7 +1376,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
       HTTPParam("is_deleted", isDeleted),
-      HTTPParam("locked_status", lockedStatus)
+      HTTPParam("locked_status", lockedStatus),
+      HTTPParam("role_name", roleName)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
 
@@ -3979,18 +3983,35 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else value
   }
 
-  // Explicit whitelist of prop keys for the app discovery endpoint.
-  // Add new keys here as needed. Only exact matches are exposed.
-  val appDiscoveryWhitelist = List(
-    "portal_external_url"
+  // Convention-based public app URL props.
+  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
+  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
+  // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
+  val publicAppUrlDefaults: Map[String, String] = Map(
+    "public_obp_api_url" -> getPropsValue("public_obp_api_url").openOr(getPropsValue("hostname").openOr("http://localhost:8080")),
+    "public_obp_portal_url" -> getPropsValue("public_obp_portal_url").openOr(getPropsValue("portal_external_url").openOr("http://localhost:5174")),
+    "public_obp_api_explorer_url" -> getPropsValue("public_obp_api_explorer_url").openOr("http://localhost:5173"),
+    "public_obp_api_manager_url" -> getPropsValue("public_obp_api_manager_url").openOr("http://localhost:3003"),
+    "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
+    "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
+    "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
+    "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:8087"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000")
   )
+  val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted
+  // Register defaults so they appear in getConfigPropsPairs
+  publicAppUrlDefaults.foreach { case (key, default) => getPropsValue(key, default) }
 
-  // Returns config props filtered to only explicitly whitelisted keys.
-  // Chain: registeredDefaults (sensitive excluded) → getConfigPropsPairs (runtime values)
-  //        → explicit whitelist filter → maskSensitivePropValue safety net
+  // Returns config props matching the public_*_url convention.
+  // Empty values are excluded (prop not configured).
   def getAppDiscoveryPairs: List[(String, String)] = {
     getConfigPropsPairs
-      .filter { case (key, _) => appDiscoveryWhitelist.contains(key) }
+      .filter { case (key, _) =>
+        key.startsWith("public_") && key.endsWith("_url")
+      }
+      .filter { case (_, value) => value.nonEmpty }
       .map { case (key, value) => (key, maskSensitivePropValue(key, value)) }
   }
 

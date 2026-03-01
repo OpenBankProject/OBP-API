@@ -293,6 +293,21 @@ hostname=http://127.0.0.1
 # Set this to your frontend/portal URL so that emails contain the correct link.
 portal_external_url=http://localhost:5174
 
+# Public app URLs for the App Directory endpoint (GET /app-directory).
+# Any props starting with public_ and ending with _url are returned by that endpoint.
+# Defaults are localhost development ports. Override for production deployments.
+# Set to empty string to indicate to calling applications they should not display.
+public_obp_api_url=http://localhost:8080
+public_obp_portal_url=http://localhost:5174
+public_obp_api_explorer_url=http://localhost:5173
+public_obp_api_manager_url=http://localhost:3003
+public_obp_sandbox_populator_url=http://localhost:5178
+public_obp_oidc_url=http://localhost:9000
+public_keycloak_url=http://localhost:7787
+public_obp_hola_url=http://localhost:8087
+public_obp_mcp_url=http://localhost:9100
+public_obp_opey_url=http://localhost:5000
+
 ## This port is used for local development
 ## Note: OBP-API now uses http4s server
 ## To start the server, use: java -jar obp-api/target/obp-api.jar

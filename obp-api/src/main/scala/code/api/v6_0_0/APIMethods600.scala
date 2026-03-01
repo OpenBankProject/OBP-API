@@ -1735,6 +1735,8 @@ trait APIMethods600 {
          |${urlParametersDocument(false, false)}
          |* locked_status (if null ignore)
          |* is_deleted (default: false)
+         |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
+         |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
          |
       """.stripMargin,
       EmptyBody,
@@ -9753,11 +9755,16 @@ trait APIMethods600 {
       "Get App Directory",
       s"""Get connectivity information for apps in the OBP ecosystem.
          |
-         |Returns configuration properties that apps (Explorer, Portal, OIDC, Hola,
-         |Sandbox Generator) and agents can use to discover endpoints in the OBP ecosystem.
+         |Returns configuration properties that apps (Portal, API Explorer, API Manager,
+         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
+         |endpoints in the OBP ecosystem.
          |
-         |Only explicitly whitelisted property keys are included:
-         |${APIUtil.appDiscoveryWhitelist.mkString(", ")}
+         |Any props starting with public_ and ending with _url are included automatically.
+         |
+         |Known public app URL props:
+         |${APIUtil.publicAppUrlPropNames.mkString(", ")}
+         |
+         |Empty (unconfigured) values are excluded from the response.
          |
          |Authentication is NOT Required.
          |
@@ -11038,19 +11045,24 @@ trait APIMethods600 {
             // Step C: ABAC evaluation (only if enabled)
             abacEnabled = allowAbacAccountAccess
             abacResults <- {
+              logger.info(s"ABAC DEBUG: abacEnabled=$abacEnabled, privateViews=${privateViews.map(_.viewId.value)}")
               if (!abacEnabled || privateViews.isEmpty) {
+                logger.info(s"ABAC DEBUG: Skipping ABAC evaluation (abacEnabled=$abacEnabled, privateViews.isEmpty=${privateViews.isEmpty})")
                 Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
               } else {
                 // Find users with CanExecuteAbacRule entitlement
                 val abacEntitlements = Entitlement.entitlement.vend.getEntitlementsByRole(canExecuteAbacRule.toString)
                   .getOrElse(Nil)
                 val abacUserIds = abacEntitlements.map(_.userId).distinct
+                logger.info(s"ABAC DEBUG: Found ${abacEntitlements.size} CanExecuteAbacRule entitlements, ${abacUserIds.size} distinct users: $abacUserIds")
 
                 if (abacUserIds.isEmpty) {
+                  logger.info("ABAC DEBUG: No users with CanExecuteAbacRule entitlement, skipping ABAC")
                   Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
                 } else {
                   for {
                     abacUsers <- Users.users.vend.getUsersByUserIdsFuture(abacUserIds)
+                    _ = logger.info(s"ABAC DEBUG: Resolved ${abacUsers.size} ABAC users: ${abacUsers.map(u => s"${u.userId}/${u.name}").mkString(", ")}")
                     abacUserMap = abacUsers.map(u => u.userId -> u).toMap
 
                     // For each (user, view) pair, skip if already has AccountAccess, otherwise evaluate ABAC
@@ -11060,11 +11072,13 @@ trait APIMethods600 {
                       existingViews = accountAccessResults.get(user.userId).map(_._2).getOrElse(Nil)
                       if !existingViews.exists(_.view_id == view.viewId.value)
                     } yield (user, view)
+                    _ = logger.info(s"ABAC DEBUG: ${evaluationPairs.size} (user, view) pairs to evaluate (after filtering out existing AccountAccess)")
 
                     abacEvaluations <- Future.sequence(
                       evaluationPairs.map { case (user, view) =>
                         callContext match {
                           case Some(cc) =>
+                            logger.info(s"ABAC DEBUG: Evaluating user=${user.userId}/${user.name} view=${view.viewId.value} bank=${bankId.value} account=${accountId.value}")
                             AbacRuleEngine.executeRulesByPolicyDetailed(
                               policy = ABAC_POLICY_ACCOUNT_ACCESS,
                               authenticatedUserId = user.userId,
@@ -11072,11 +11086,18 @@ trait APIMethods600 {
                               bankId = Some(bankId.value),
                               accountId = Some(accountId.value),
                               viewId = Some(view.viewId.value)
-                            ).map {
-                              case Full((true, _)) => Some((user, view))
-                              case _ => None
-                            }.recover { case _ => None }
+                            ).map { result =>
+                              logger.info(s"ABAC DEBUG: user=${user.userId}/${user.name} view=${view.viewId.value} result=$result")
+                              result match {
+                                case Full((true, _)) => Some((user, view))
+                                case _ => None
+                              }
+                            }.recover { case ex =>
+                              logger.error(s"ABAC DEBUG: user=${user.userId}/${user.name} view=${view.viewId.value} EXCEPTION: ${ex.getMessage}", ex)
+                              None
+                            }
                           case None =>
+                            logger.warn("ABAC DEBUG: callContext is None, skipping ABAC evaluation")
                             Future.successful(None)
                         }
                       }

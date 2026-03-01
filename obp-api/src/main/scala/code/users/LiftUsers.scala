@@ -201,11 +201,22 @@ object LiftUsers extends Users with MdcLoggable{
 
   override def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]] = {
     Future {
+      val roleName: Option[String] = queryParams.collect { case OBPRoleName(value) => value }.headOption
+      val bankId: Option[String] = queryParams.collect { case OBPBankId(value) => value }.headOption
+      val roleUserIds: Option[Set[String]] = roleName.map { rn =>
+        val entitlements = Entitlement.entitlement.vend.getEntitlementsByRole(rn)
+          .getOrElse(Nil)
+        val filtered = bankId match {
+          case Some(bid) => entitlements.filter(_.bankId == bid)
+          case None => entitlements
+        }
+        filtered.map(_.userId).toSet
+      }
       for {
         user <- getUsersCommon(queryParams)
+        if roleUserIds.forall(_.contains(user.userId))
       } yield {
         val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
-        // val agreements = getUserAgreements(user)
         (user, entitlements, None)
       }
     }
