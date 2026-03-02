@@ -858,6 +858,11 @@ password_reset_token_expiry_minutes=120
 # control the create and access to public views.
 # allow_public_views=false
 
+# Enable ABAC (Attribute-Based Access Control) for account access.
+# When true, users with CanExecuteAbacRule entitlement can gain access
+# to accounts via ABAC rules with the "account-access" policy.
+# allow_abac_account_access=false
+
 # control access to account firehose.
 # allow_account_firehose=false
 # control access to customer firehose.

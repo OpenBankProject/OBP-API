@@ -8717,7 +8717,7 @@ trait APIMethods600 {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
-            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
+            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external
               code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
                 .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
             // Check if account is locked
@@ -11042,27 +11042,28 @@ trait APIMethods600 {
               perm.user.userId -> (perm.user, privateViewAccesses)
             }.toMap
 
-            // Step C: ABAC evaluation (only if enabled)
-            abacEnabled = allowAbacAccountAccess
+            // Step C: ABAC evaluation — always report ABAC access regardless of
+            // allow_abac_account_access prop. This endpoint reports the truth about
+            // who has access, it does not enforce access.
             abacResults <- {
-              logger.info(s"ABAC DEBUG: abacEnabled=$abacEnabled, privateViews=${privateViews.map(_.viewId.value)}")
-              if (!abacEnabled || privateViews.isEmpty) {
-                logger.info(s"ABAC DEBUG: Skipping ABAC evaluation (abacEnabled=$abacEnabled, privateViews.isEmpty=${privateViews.isEmpty})")
+              logger.info(s"getUsersWithAccountAccess says: privateViews=${privateViews.map(_.viewId.value)}")
+              if (privateViews.isEmpty) {
+                logger.info(s"getUsersWithAccountAccess says: Skipping ABAC evaluation (privateViews.isEmpty=${privateViews.isEmpty})")
                 Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
               } else {
                 // Find users with CanExecuteAbacRule entitlement
                 val abacEntitlements = Entitlement.entitlement.vend.getEntitlementsByRole(canExecuteAbacRule.toString)
                   .getOrElse(Nil)
                 val abacUserIds = abacEntitlements.map(_.userId).distinct
-                logger.info(s"ABAC DEBUG: Found ${abacEntitlements.size} CanExecuteAbacRule entitlements, ${abacUserIds.size} distinct users: $abacUserIds")
+                logger.info(s"getUsersWithAccountAccess says: Found ${abacEntitlements.size} CanExecuteAbacRule entitlements, ${abacUserIds.size} distinct users: $abacUserIds")
 
                 if (abacUserIds.isEmpty) {
-                  logger.info("ABAC DEBUG: No users with CanExecuteAbacRule entitlement, skipping ABAC")
+                  logger.info("getUsersWithAccountAccess says: No users with CanExecuteAbacRule entitlement, skipping ABAC")
                   Future.successful(Map.empty[String, (User, List[UserViewAccessJsonV600])])
                 } else {
                   for {
                     abacUsers <- Users.users.vend.getUsersByUserIdsFuture(abacUserIds)
-                    _ = logger.info(s"ABAC DEBUG: Resolved ${abacUsers.size} ABAC users: ${abacUsers.map(u => s"${u.userId}/${u.name}").mkString(", ")}")
+                    _ = logger.info(s"getUsersWithAccountAccess says: Resolved ${abacUsers.size} ABAC users: ${abacUsers.map(u => s"${u.userId}/${u.name}").mkString(", ")}")
                     abacUserMap = abacUsers.map(u => u.userId -> u).toMap
 
                     // For each (user, view) pair, skip if already has AccountAccess, otherwise evaluate ABAC
@@ -11072,13 +11073,13 @@ trait APIMethods600 {
                       existingViews = accountAccessResults.get(user.userId).map(_._2).getOrElse(Nil)
                       if !existingViews.exists(_.view_id == view.viewId.value)
                     } yield (user, view)
-                    _ = logger.info(s"ABAC DEBUG: ${evaluationPairs.size} (user, view) pairs to evaluate (after filtering out existing AccountAccess)")
+                    _ = logger.info(s"getUsersWithAccountAccess says: ${evaluationPairs.size} (user, view) pairs to evaluate (after filtering out existing AccountAccess)")
 
                     abacEvaluations <- Future.sequence(
                       evaluationPairs.map { case (user, view) =>
                         callContext match {
                           case Some(cc) =>
-                            logger.info(s"ABAC DEBUG: Evaluating user=${user.userId}/${user.name} view=${view.viewId.value} bank=${bankId.value} account=${accountId.value}")
+                            logger.info(s"getUsersWithAccountAccess says: Evaluating user=${user.userId}/${user.name} view=${view.viewId.value} bank=${bankId.value} account=${accountId.value}")
                             AbacRuleEngine.executeRulesByPolicyDetailed(
                               policy = ABAC_POLICY_ACCOUNT_ACCESS,
                               authenticatedUserId = user.userId,
@@ -11087,17 +11088,17 @@ trait APIMethods600 {
                               accountId = Some(accountId.value),
                               viewId = Some(view.viewId.value)
                             ).map { result =>
-                              logger.info(s"ABAC DEBUG: user=${user.userId}/${user.name} view=${view.viewId.value} result=$result")
+                              logger.info(s"getUsersWithAccountAccess says: user=${user.userId}/${user.name} view=${view.viewId.value} result=$result")
                               result match {
                                 case Full((true, _)) => Some((user, view))
                                 case _ => None
                               }
                             }.recover { case ex =>
-                              logger.error(s"ABAC DEBUG: user=${user.userId}/${user.name} view=${view.viewId.value} EXCEPTION: ${ex.getMessage}", ex)
+                              logger.error(s"getUsersWithAccountAccess says: user=${user.userId}/${user.name} view=${view.viewId.value} EXCEPTION: ${ex.getMessage}", ex)
                               None
                             }
                           case None =>
-                            logger.warn("ABAC DEBUG: callContext is None, skipping ABAC evaluation")
+                            logger.warn("getUsersWithAccountAccess says: callContext is None, skipping ABAC evaluation")
                             Future.successful(None)
                         }
                       }
