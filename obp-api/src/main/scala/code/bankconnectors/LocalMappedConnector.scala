@@ -2339,7 +2339,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Full(t) =>
         // Decide based on amount (similar to real CBS logic)
         // Small amounts (<=100) don't need SCA, large amounts (>100) do
-        val amount = BigDecimal(t.amount.get)
+        // Convert from smallest currency unit (cents) to actual decimal amount
+        val amount = Helper.smallestCurrencyUnitToBigDecimal(t.amount.get, t.currency.get).abs
         val threshold = 100
         Some(amount > threshold)
       case _ =>
