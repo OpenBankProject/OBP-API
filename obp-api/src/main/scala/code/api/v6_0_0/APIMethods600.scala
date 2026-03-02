@@ -30,7 +30,8 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, UserWithViewAccessJsonV600, UsersWithViewAccessJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, ModeratedAccountJSON600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, UserWithViewAccessJsonV600, UsersWithViewAccessJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createBankAccountJSON600, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.metadata.tags.Tags
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -11105,6 +11106,107 @@ trait APIMethods600 {
             )
             (response, HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getPrivateAccountByIdFull,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+      EmptyBody,
+      ModeratedAccountJSON600(
+        id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+        label = "NoneLabel",
+        number = "123",
+        owners = List(userJSONV121),
+        product_code = ExampleValue.productCodeExample.value,
+        balance = amountOfMoneyJsonV121,
+        views_available = List(ViewJsonV600(
+          view_id = "owner",
+          short_name = "Owner",
+          description = "The owner of the account",
+          metadata_view = "owner",
+          is_public = false,
+          is_system = true,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("owner"),
+          can_revoke_access_to_views = List("owner"),
+          allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
+        )),
+        bank_id = ExampleValue.bankIdExample.value,
+        account_routings = List(accountRoutingJsonV121),
+        account_attributes = List(accountAttributeResponseJson),
+        tags = List(accountTagJSON)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      apiTagAccount :: Nil
+    )
+
+    lazy val getPrivateAccountByIdFull: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(
+            accountId
+          ) :: ViewId(viewId) :: "account" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (user @ Full(u), _, account, view, callContext) <-
+            SS.userBankAccountView
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(
+            account,
+            view,
+            user,
+            callContext
+          )
+          (accountAttributes, callContext) <- NewStyle.function
+            .getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext]
+            )
+        } yield {
+          val availableViews =
+            Views.views.vend.privateViewsUserCanAccessForAccount(
+              u,
+              BankIdAccountId(account.bankId, account.accountId)
+            )
+          val viewsAvailable =
+            availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.short_name)
+          val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
+          (
+            createBankAccountJSON600(
+              moderatedAccount,
+              viewsAvailable,
+              accountAttributes,
+              tags
+            ),
+            HttpCode.`200`(callContext)
+          )
+        }
       }
     }
 
