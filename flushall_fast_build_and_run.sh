@@ -207,7 +207,7 @@ if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
     
     # Check if error is related to missing classes/packages (common cache issue)
     if grep -q "is not a member of package\|cannot find symbol\|not found: type\|not found: value" fast_build.log; then
-        echo "🔄 Detected incremental compilation cache issue. Retrying with clean build..."
+        echo "Detected incremental compilation cache issue. Retrying with clean build..."
         echo ""
         
         # Backup the failed incremental build log
@@ -284,7 +284,7 @@ fi
 # Final error check
 if [ $BUILD_EXIT_CODE -ne 0 ]; then
     echo ""
-    echo "❌ Build failed! Please check fast_build.log for details."
+    echo "Build failed! Please check fast_build.log for details."
     echo "Last 30 lines of build log:"
     tail -30 fast_build.log
     exit 1
