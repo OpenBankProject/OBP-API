@@ -133,20 +133,32 @@
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
             <displayCmd>true</displayCmd>
+            <!-- Optimized JVM settings for faster Scala compilation -->
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-              <jvmArg>-Xms64m</jvmArg>
-              <jvmArg>-Xmx1024m</jvmArg>
+              <jvmArg>-Xms512m</jvmArg>
+              <jvmArg>-Xmx3G</jvmArg>
+              <jvmArg>-Xss4m</jvmArg>
+              <jvmArg>-XX:+UseG1GC</jvmArg>
+              <jvmArg>-XX:ReservedCodeCacheSize=512m</jvmArg>
+              <jvmArg>-XX:+TieredCompilation</jvmArg>
             </jvmArgs>
+            <!-- Optimized compiler args for speed -->
             <args>
               <arg>-unchecked</arg>
-              <arg>-explaintypes</arg>
+              <!-- Removed -explaintypes for faster compilation -->
               <!--
               <arg>-verbose</arg>
               <arg>-deprecation</arg>
+              <arg>-explaintypes</arg>
               -->
               <arg>-Ypartial-unification</arg>
+              <!-- Parallel compilation optimization -->
+              <arg>-Ybackend-parallelism</arg>
+              <arg>4</arg>
             </args>
+            <!-- Enable incremental compilation with Zinc -->
+            <recompileMode>incremental</recompileMode>
           </configuration>
           <executions>
             <execution>
