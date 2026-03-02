@@ -133,11 +133,11 @@ or * access method is generally applicable, but further authorisation processes 
              (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
                  currentStatus match {
-                   case "INITIATED" =>
+                   case TransactionStatus.RCVD.code | "INITIATED" =>
                      // INITIATED status (maps to RCVD externally) - direct cancellation
                      NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
                      Future(true, callContext, Some(false))
-                   case TransactionStatus.ACCP.code =>
+                   case TransactionStatus.ACCP.code | "COMPLETED" =>
                      // ACCP status - may require SCA for cancellation
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
                        x => x._1 match {
@@ -151,7 +151,7 @@ or * access method is generally applicable, but further authorisation processes 
                            (false, x._2, Some(false))
                        }
                      }
-                   case "PENDING" =>
+                   case TransactionStatus.PDNG.code | "PENDING" =>
                      // PENDING status (maps to PDNG externally) - may require SCA
                      NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map {
                        x => x._1 match {
@@ -165,7 +165,7 @@ or * access method is generally applicable, but further authorisation processes 
                            (false, x._2, Some(false))
                        }
                      }
-                   case "CANCELLED" => 
+                   case TransactionStatus.CANC.code | "CANCELLED" => 
                      // Already cancelled - return success
                      Future(true, callContext, Some(false))
                    case _ =>
