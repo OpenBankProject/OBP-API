@@ -128,6 +128,45 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getFeatures,
+      implementedInApiVersion,
+      nameOf(getFeatures),
+      "GET",
+      "/features",
+      "Get Features",
+      """Returns information about the features enabled on this OBP instance.
+        |
+        |No Authentication is Required.""",
+      EmptyBody,
+      featuresJsonV600,
+      List(UnknownError),
+      apiTagApi :: Nil)
+
+    lazy val getFeatures: OBPEndpoint = {
+      case "features" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future(())
+          } yield {
+            val featuresJson = FeaturesJsonV600(
+              allow_public_views = APIUtil.getPropsAsBoolValue("allow_public_views", false),
+              allow_abac_account_access = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false),
+              allow_account_firehose = APIUtil.getPropsAsBoolValue("allow_account_firehose", false),
+              allow_customer_firehose = APIUtil.getPropsAsBoolValue("allow_customer_firehose", false),
+              allow_direct_login = APIUtil.getPropsAsBoolValue("allow_direct_login", true),
+              allow_gateway_login = APIUtil.getPropsAsBoolValue("allow_gateway_login", false),
+              allow_oauth2_login = APIUtil.getPropsAsBoolValue("allow_oauth2_login", true),
+              allow_dauth = APIUtil.getPropsAsBoolValue("allow_dauth", false),
+              allow_sandbox_account_creation = APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false),
+              allow_sandbox_data_import = APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false),
+              allow_account_deletion = APIUtil.getPropsAsBoolValue("allow_account_deletion", false)
+            )
+            (featuresJson, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       createTransactionRequestHold,
       implementedInApiVersion,
       nameOf(createTransactionRequestHold),

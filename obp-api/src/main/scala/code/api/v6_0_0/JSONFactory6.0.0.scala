@@ -50,6 +50,20 @@ import net.liftweb.common.Box
 
 import java.util.Date
 
+case class FeaturesJsonV600(
+  allow_public_views: Boolean,
+  allow_abac_account_access: Boolean,
+  allow_account_firehose: Boolean,
+  allow_customer_firehose: Boolean,
+  allow_direct_login: Boolean,
+  allow_gateway_login: Boolean,
+  allow_oauth2_login: Boolean,
+  allow_dauth: Boolean,
+  allow_sandbox_account_creation: Boolean,
+  allow_sandbox_data_import: Boolean,
+  allow_account_deletion: Boolean
+)
+
 case class CardanoPaymentJsonV600(
     address: String,
     amount: CardanoAmountJsonV600,

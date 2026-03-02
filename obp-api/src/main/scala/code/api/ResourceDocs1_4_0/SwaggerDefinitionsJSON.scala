@@ -5323,6 +5323,20 @@ object SwaggerDefinitionsJSON {
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
 
+  lazy val featuresJsonV600 = FeaturesJsonV600(
+    allow_public_views = true,
+    allow_abac_account_access = false,
+    allow_account_firehose = false,
+    allow_customer_firehose = false,
+    allow_direct_login = true,
+    allow_gateway_login = false,
+    allow_oauth2_login = true,
+    allow_dauth = false,
+    allow_sandbox_account_creation = false,
+    allow_sandbox_data_import = false,
+    allow_account_deletion = false
+  )
+
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
   
