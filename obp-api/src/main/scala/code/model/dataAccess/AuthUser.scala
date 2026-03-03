@@ -783,8 +783,8 @@ import net.liftweb.util.Helpers._
 
 
 
-  def getResourceUserId(username: String, password: String): Box[Long] = {
-    findAuthUserByUsernameLocallyLegacy(username) match {
+  def getResourceUserId(username: String, password: String, provider: String = Constant.localIdentityProvider): Box[Long] = {
+    findAuthUserByUsernameAndProvider(username, provider) match {
       // We have a user from the local provider.
       case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
         if (
