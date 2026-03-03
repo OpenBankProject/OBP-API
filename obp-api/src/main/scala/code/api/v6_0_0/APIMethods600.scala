@@ -8757,8 +8757,10 @@ trait APIMethods600 {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
-            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external
-              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password)
+
+            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
+              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password, postedData.provider)
+
                 .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {

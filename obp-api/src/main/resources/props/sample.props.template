@@ -287,6 +287,7 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 ## This is needed for oauth to work. it's important to access the api over this url, e.g.
 ## If this is 127.0.0.1 do NOT use localhost to access it.
 ## (this needs to be a URL)
+## IMPORTANT: hostname is also used as fallback for local_provider_name - do not change unless necessary
 hostname=http://127.0.0.1
 
 # Used as the base URL for password reset and email validation links sent via email.
@@ -312,6 +313,13 @@ public_obp_opey_url=http://localhost:5000
 ## Note: OBP-API now uses http4s server
 ## To start the server, use: java -jar obp-api/target/obp-api.jar
 dev.port=8080
+
+## Bind address for http4s server (optional)
+## If not set, the server will parse and use the host from the hostname property above
+## Use this if you need to bind to a different address than what's in hostname
+## Example: bind_address=0.0.0.0 (to listen on all interfaces)
+## Example: bind_address=127.0.0.1 (to listen only on localhost)
+#bind_address=127.0.0.1
 
 
 #The start of the api path (before the version)
