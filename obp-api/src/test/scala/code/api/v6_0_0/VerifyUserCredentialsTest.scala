@@ -40,6 +40,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
   val testPassword = "TestPassword123!"
   val testEmail = testUsername + "@example.com"
   var testAuthUser: AuthUser = null
+  
+  // Test data for URL-encoded provider test
+  val testUsernameUrlEncoded = "verify_url_encoded_" + randomString(8).toLowerCase
+  val testPasswordUrlEncoded = "TestPassword456!"
+  val testEmailUrlEncoded = testUsernameUrlEncoded + "@example.com"
+  val testProviderWithSpecialChars = "http://auth.example.com:8080/oauth"
+  var testAuthUserUrlEncoded: AuthUser = null
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -53,6 +60,17 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       .lastName("User")
       .provider(Constant.localIdentityProvider)
       .saveMe()
+    
+    // Create a test user with URL-encoded provider
+    testAuthUserUrlEncoded = AuthUser.create
+      .email(testEmailUrlEncoded)
+      .username(testUsernameUrlEncoded)
+      .password(testPasswordUrlEncoded)
+      .validated(true)
+      .firstName("TestUrl")
+      .lastName("Encoded")
+      .provider(testProviderWithSpecialChars)
+      .saveMe()
   }
 
   override def afterAll(): Unit = {
@@ -60,8 +78,12 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     if (testAuthUser != null) {
       testAuthUser.delete_!
     }
+    if (testAuthUserUrlEncoded != null) {
+      testAuthUserUrlEncoded.delete_!
+    }
     // Reset any login attempt locks
     LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, testUsername)
+    LoginAttempt.resetBadLoginAttempts(testProviderWithSpecialChars, testUsernameUrlEncoded)
     super.afterAll()
   }
 
@@ -219,6 +241,66 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.code should equal(400)
       And("The error message should indicate invalid JSON format")
       response.body.extract[ErrorMessage].message should include("OBP-10001")
+    }
+
+    scenario("Successfully verify credentials with URL-encoded provider", ApiEndpoint, VersionOfApi) {
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      When("We verify credentials with URL-encoded provider containing special characters")
+      // URL encode the provider: "http://auth.example.com:8080/oauth" -> "http%3A%2F%2Fauth.example.com%3A8080%2Foauth"
+      val urlEncodedProvider = java.net.URLEncoder.encode(testProviderWithSpecialChars, "UTF-8")
+      val postJson = Map(
+        "username" -> testUsernameUrlEncoded,
+        "password" -> testPasswordUrlEncoded,
+        "provider" -> urlEncodedProvider
+      )
+      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The response should contain user details with decoded provider")
+      val json = response.body
+      (json \ "username").extract[String] should equal(testUsernameUrlEncoded)
+      (json \ "email").extract[String] should equal(testEmailUrlEncoded)
+      (json \ "provider").extract[String] should equal(testProviderWithSpecialChars)
+      (json \ "user_id").extract[String] should not be empty
+    }
+
+    scenario("Successfully verify credentials with non-encoded provider containing special characters", ApiEndpoint, VersionOfApi) {
+      // Add the required entitlement
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      When("We verify credentials with non-encoded provider containing special characters")
+      val postJson = Map(
+        "username" -> testUsernameUrlEncoded,
+        "password" -> testPasswordUrlEncoded,
+        "provider" -> testProviderWithSpecialChars
+      )
+      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        // Clean up entitlement
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The response should contain user details")
+      val json = response.body
+      (json \ "username").extract[String] should equal(testUsernameUrlEncoded)
+      (json \ "email").extract[String] should equal(testEmailUrlEncoded)
+      (json \ "provider").extract[String] should equal(testProviderWithSpecialChars)
+      (json \ "user_id").extract[String] should not be empty
     }
 
   }
