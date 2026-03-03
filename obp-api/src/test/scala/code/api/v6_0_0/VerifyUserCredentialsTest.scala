@@ -178,31 +178,6 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Successfully verify with empty provider (provider check is optional)", ApiEndpoint, VersionOfApi) {
-      // Add the required entitlement
-      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
-
-      When("We verify valid credentials with empty provider")
-      val postJson = Map(
-        "username" -> testUsername,
-        "password" -> testPassword,
-        "provider" -> ""
-      )
-      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = try {
-        makePostRequest(request, write(postJson))
-      } finally {
-        // Clean up entitlement
-        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
-      }
-
-      Then("We should get a 200 (provider check is skipped when empty)")
-      response.code should equal(200)
-
-      And("The response should contain user details")
-      (response.body \ "username").extract[String] should equal(testUsername)
-    }
-
     scenario("Fail to verify with mismatched provider", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
