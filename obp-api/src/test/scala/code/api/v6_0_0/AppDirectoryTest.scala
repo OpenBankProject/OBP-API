@@ -216,10 +216,15 @@ class AppDirectoryTest extends V600ServerSetup {
     }
 
     scenario("publicAppUrlPropNames do not include sensitive keys", VersionOfApi, ApiEndpoint) {
+      // Words that contain sensitive substrings but are not themselves sensitive.
+      // e.g. "keycloak" contains "key" but is just a product name.
+      val whitelistedWords = List("keycloak")
       APIUtil.publicAppUrlPropNames.foreach { key =>
         APIUtil.sensitiveKeywords.foreach { keyword =>
+          // Strip whitelisted words before checking for sensitive substrings
+          val keyToCheck = whitelistedWords.foldLeft(key.toLowerCase) { (k, w) => k.replace(w, "") }
           withClue(s"Public URL key '$key' should not contain sensitive keyword '$keyword': ") {
-            key.toLowerCase should not include(keyword)
+            keyToCheck should not include(keyword)
           }
         }
       }
