@@ -70,6 +70,8 @@ import code.api.util.ExampleValue
 import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
 import net.liftweb.common.Box
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
@@ -8717,9 +8719,11 @@ trait APIMethods600 {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
+            // Decode the provider in case it's URL-encoded (e.g., "http%3A%2F%2Fexample.com" -> "http://example.com")
+            decodedProvider = URLDecoder.decode(postedData.provider, StandardCharsets.UTF_8)
             // Validate credentials using the existing AuthUser mechanism
             resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
-              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password, postedData.provider)
+              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password, decodedProvider)
                 .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
@@ -8739,7 +8743,7 @@ trait APIMethods600 {
             }
             // Verify provider matches if specified and not empty
             _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
-              postedData.provider.isEmpty || user.provider == postedData.provider
+              decodedProvider.isEmpty || user.provider == decodedProvider
             }
           } yield {
             (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
