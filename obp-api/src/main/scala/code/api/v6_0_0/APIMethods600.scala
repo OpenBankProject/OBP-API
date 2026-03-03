@@ -8758,10 +8758,23 @@ trait APIMethods600 {
             }
             // Validate credentials using the existing AuthUser mechanism
 
-            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
-              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password, postedData.provider)
-
-                .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
+            resourceUserIdBox =
+              if (postedData.provider == Constant.localIdentityProvider || postedData.provider.isEmpty) {
+                // Local provider: only check local credentials. No external fallback.
+                val result = code.model.dataAccess.AuthUser.getResourceUserId(
+                  postedData.username, postedData.password, Constant.localIdentityProvider
+                )
+                logger.info(s"verifyUserCredentials says: local getResourceUserId result: $result")
+                result
+              } else {
+                // External provider: validate via connector. Local DB stores a random UUID
+                // as password for external users, so getResourceUserId would always fail.
+                val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
+                  postedData.username, postedData.password
+                ).map(_.user.get)
+                logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
+                connectorResult
+              }
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)

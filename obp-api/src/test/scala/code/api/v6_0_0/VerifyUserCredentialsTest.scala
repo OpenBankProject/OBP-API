@@ -202,6 +202,86 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
+    scenario("Wrong password for external provider should not increment local user bad login attempts", ApiEndpoint, VersionOfApi) {
+      // This test verifies the fix for collateral damage: two users share the same username
+      // but have different providers. Verifying the external user with wrong credentials
+      // must NOT increment bad login attempts on the local user.
+      val sharedUsername = "shared_user_" + randomString(8).toLowerCase
+      val localPassword = "LocalPassword123!"
+      val localEmail = sharedUsername + "@local.example.com"
+      val externalProvider = "external_test_provider"
+
+      // Create a local user
+      val localUser = AuthUser.create
+        .email(localEmail)
+        .username(sharedUsername)
+        .password(localPassword)
+        .validated(true)
+        .firstName("Local")
+        .lastName("User")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      // Create an external user with the same username (dummy password, as external users have)
+      val externalUser = AuthUser.create
+        .email(sharedUsername + "@external.example.com")
+        .username(sharedUsername)
+        .password(net.liftweb.util.Helpers.randomString(40)) // random dummy password
+        .validated(true)
+        .firstName("External")
+        .lastName("User")
+        .provider(externalProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        // Reset any prior login attempts for both
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(externalProvider, sharedUsername)
+
+        // Record local user's bad login attempts before the test
+        val localAttemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(
+          Constant.localIdentityProvider, sharedUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+
+        When("We verify credentials with the external provider (which will fail)")
+        val postJson = Map(
+          "username" -> sharedUsername,
+          "password" -> "SomeWrongPassword!",
+          "provider" -> externalProvider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 401")
+        response.code should equal(401)
+
+        And("The local user's bad login attempts should NOT have increased")
+        val localAttemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(
+          Constant.localIdentityProvider, sharedUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        localAttemptsAfter should equal(localAttemptsBefore)
+
+        And("The local user should still be able to log in with correct credentials")
+        val localPostJson = Map(
+          "username" -> sharedUsername,
+          "password" -> localPassword,
+          "provider" -> Constant.localIdentityProvider
+        )
+        val localRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val localResponse = makePostRequest(localRequest, write(localPostJson))
+        localResponse.code should equal(200)
+      } finally {
+        // Clean up
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(externalProvider, sharedUsername)
+        localUser.delete_!
+        externalUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
     scenario("Fail with invalid JSON format", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
