@@ -8769,11 +8769,23 @@ trait APIMethods600 {
               } else {
                 // External provider: validate via connector. Local DB stores a random UUID
                 // as password for external users, so getResourceUserId would always fail.
-                val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
-                  postedData.username, postedData.password
-                ).map(_.user.get)
-                logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
-                connectorResult
+                if (LoginAttempt.userIsLocked(postedData.provider, postedData.username)) {
+                  logger.info(s"verifyUserCredentials says: external user is locked, provider: ${postedData.provider}, username: ${postedData.username}")
+                  Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+                } else {
+                  val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
+                    postedData.username, postedData.password
+                  ).map(_.user.get)
+                  logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
+                  connectorResult match {
+                    case Full(_) =>
+                      LoginAttempt.resetBadLoginAttempts(postedData.provider, postedData.username)
+                      connectorResult
+                    case _ =>
+                      LoginAttempt.incrementBadLoginAttempts(postedData.provider, postedData.username)
+                      connectorResult
+                  }
+                }
               }
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
