@@ -124,6 +124,144 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
+    scenario("Successful external login should reset bad login attempts for that provider", ApiEndpoint, VersionOfApi) {
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+
+        When("We first trigger some failed attempts with wrong password")
+        for (_ <- 1 to 3) {
+          val postJson = Map(
+            "username" -> externalUsername,
+            "password" -> "WrongPassword!",
+            "provider" -> externalProvider
+          )
+          val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+          makePostRequest(request, write(postJson))
+        }
+
+        Then("Bad login attempts should be > 0")
+        val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(
+          externalProvider, externalUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        attemptsBefore should be > 0
+
+        When("We then successfully authenticate with correct credentials")
+        val postJson = Map(
+          "username" -> externalUsername,
+          "password" -> externalPassword,
+          "provider" -> externalProvider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200")
+        response.code should equal(200)
+
+        And("Bad login attempts should have been reset to zero")
+        val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(
+          externalProvider, externalUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        attemptsAfter should equal(0)
+      } finally {
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("External user should be locked after too many failed attempts", ApiEndpoint, VersionOfApi) {
+      // max.bad.login.attempts defaults to 5, locking triggers at > 5 (i.e. 6+).
+      // After locking, even correct credentials should fail.
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+
+        When("We fire 7 failed login attempts to exceed the lock threshold")
+        for (_ <- 1 to 7) {
+          val postJson = Map(
+            "username" -> externalUsername,
+            "password" -> "WrongPassword!",
+            "provider" -> externalProvider
+          )
+          val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+          makePostRequest(request, write(postJson))
+        }
+
+        Then("The external user should now be locked")
+        LoginAttempt.userIsLocked(externalProvider, externalUsername) should be(true)
+
+        When("We try to authenticate with correct credentials")
+        val postJson = Map(
+          "username" -> externalUsername,
+          "password" -> externalPassword,
+          "provider" -> externalProvider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 401 because the account is locked")
+        response.code should equal(401)
+      } finally {
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("External user locking should not lock local user with same username", ApiEndpoint, VersionOfApi) {
+      // Lock the external user, then verify the local user is unaffected.
+      val localPassword = "LocalPassword123!"
+      val localUser = AuthUser.create
+        .email(externalUsername + "@local.example.com")
+        .username(externalUsername)
+        .password(localPassword)
+        .validated(true)
+        .firstName("Local")
+        .lastName("User")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, externalUsername)
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+
+        When("We lock the external user by firing 7 failed attempts")
+        for (_ <- 1 to 7) {
+          val postJson = Map(
+            "username" -> externalUsername,
+            "password" -> "WrongPassword!",
+            "provider" -> externalProvider
+          )
+          val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+          makePostRequest(request, write(postJson))
+        }
+
+        Then("The external user should be locked")
+        LoginAttempt.userIsLocked(externalProvider, externalUsername) should be(true)
+
+        And("The local user should NOT be locked")
+        LoginAttempt.userIsLocked(Constant.localIdentityProvider, externalUsername) should be(false)
+
+        And("The local user should still authenticate successfully")
+        val localPostJson = Map(
+          "username" -> externalUsername,
+          "password" -> localPassword,
+          "provider" -> Constant.localIdentityProvider
+        )
+        val localRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val localResponse = makePostRequest(localRequest, write(localPostJson))
+        localResponse.code should equal(200)
+      } finally {
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, externalUsername)
+        LoginAttempt.resetBadLoginAttempts(externalProvider, externalUsername)
+        localUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
     scenario("External auth failure should not affect local user with same username", ApiEndpoint, VersionOfApi) {
       // Create a local user with the same username as the external user
       val localPassword = "LocalPassword123!"

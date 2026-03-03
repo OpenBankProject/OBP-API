@@ -282,6 +282,290 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
+    scenario("Empty provider should be treated as local provider", ApiEndpoint, VersionOfApi) {
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      When("We verify valid credentials with an empty provider string")
+      val postJson = Map(
+        "username" -> testUsername,
+        "password" -> testPassword,
+        "provider" -> ""
+      )
+      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+      Then("We should get a 200 because empty provider is treated as local")
+      response.code should equal(200)
+
+      And("The response should contain user details")
+      (response.body \ "username").extract[String] should equal(testUsername)
+    }
+
+    scenario("Same username across multiple realistic providers should be fully isolated", ApiEndpoint, VersionOfApi) {
+      // In production, a single username like "alice" might exist under several providers:
+      // the local OBP instance, Google OIDC, GitHub, and possibly erroneous entries.
+      // Each must be completely isolated from the others.
+      val sharedUsername = "alice_" + randomString(8).toLowerCase
+      val localPassword = "LocalAlice123!"
+
+      val googleProvider = "https://accounts.google.com"
+      val githubProvider = "https://github.com/login/oauth"
+      val erroneousProvider = "https://gogle.com"  // typo in production data
+
+      // Create a local user
+      val localUser = AuthUser.create
+        .email(sharedUsername + "@openbankproject.com")
+        .username(sharedUsername)
+        .password(localPassword)
+        .validated(true)
+        .firstName("Alice")
+        .lastName("Local")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      // Create external users with the same username under different providers
+      // (as would exist in production when users sign in via different identity providers)
+      val googleUser = AuthUser.create
+        .email(sharedUsername + "@gmail.com")
+        .username(sharedUsername)
+        .password(randomString(40)) // dummy password, as with all external users
+        .validated(true)
+        .firstName("Alice")
+        .lastName("Google")
+        .provider(googleProvider)
+        .saveMe()
+
+      val githubUser = AuthUser.create
+        .email(sharedUsername + "@github.com")
+        .username(sharedUsername)
+        .password(randomString(40))
+        .validated(true)
+        .firstName("Alice")
+        .lastName("GitHub")
+        .provider(githubProvider)
+        .saveMe()
+
+      val erroneousUser = AuthUser.create
+        .email(sharedUsername + "@gogle.com")
+        .username(sharedUsername)
+        .password(randomString(40))
+        .validated(true)
+        .firstName("Alice")
+        .lastName("Erroneous")
+        .provider(erroneousProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        // Reset all login attempt counters
+        val allProviders = List(Constant.localIdentityProvider, googleProvider, githubProvider, erroneousProvider)
+        allProviders.foreach(p => LoginAttempt.resetBadLoginAttempts(p, sharedUsername))
+
+        When("We attempt to verify credentials against the Google provider (will fail, no connector)")
+        val googlePostJson = Map(
+          "username" -> sharedUsername,
+          "password" -> "WrongPassword!",
+          "provider" -> googleProvider
+        )
+        val googleRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        makePostRequest(googleRequest, write(googlePostJson))
+
+        And("We attempt to verify credentials against the GitHub provider (will fail)")
+        val githubPostJson = Map(
+          "username" -> sharedUsername,
+          "password" -> "WrongPassword!",
+          "provider" -> githubProvider
+        )
+        val githubRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        makePostRequest(githubRequest, write(githubPostJson))
+
+        And("We attempt to verify credentials against the erroneous provider (will fail)")
+        val erroneousPostJson = Map(
+          "username" -> sharedUsername,
+          "password" -> "WrongPassword!",
+          "provider" -> erroneousProvider
+        )
+        val erroneousRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        makePostRequest(erroneousRequest, write(erroneousPostJson))
+
+        Then("The local user's bad login attempts should still be zero")
+        val localAttempts = LoginAttempt.getOrCreateBadLoginStatus(
+          Constant.localIdentityProvider, sharedUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        localAttempts should equal(0)
+
+        And("The local user should still authenticate successfully")
+        val localPostJson = Map(
+          "username" -> sharedUsername,
+          "password" -> localPassword,
+          "provider" -> Constant.localIdentityProvider
+        )
+        val localRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val localResponse = makePostRequest(localRequest, write(localPostJson))
+        localResponse.code should equal(200)
+        (localResponse.body \ "username").extract[String] should equal(sharedUsername)
+        (localResponse.body \ "provider").extract[String] should equal(Constant.localIdentityProvider)
+
+      } finally {
+        val allProviders = List(Constant.localIdentityProvider, googleProvider, githubProvider, erroneousProvider)
+        allProviders.foreach(p => LoginAttempt.resetBadLoginAttempts(p, sharedUsername))
+        localUser.delete_!
+        googleUser.delete_!
+        githubUser.delete_!
+        erroneousUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Failed external auth for one provider should not affect a different external provider", ApiEndpoint, VersionOfApi) {
+      // Providers are independent namespaces. Failing against https://accounts.google.com
+      // should not increment bad attempts for https://github.com/login/oauth.
+      val sharedUsername = "multi_ext_" + randomString(8).toLowerCase
+      val googleProvider = "https://accounts.google.com"
+      val githubProvider = "https://github.com/login/oauth"
+
+      val googleUser = AuthUser.create
+        .email(sharedUsername + "@gmail.com")
+        .username(sharedUsername)
+        .password(randomString(40))
+        .validated(true)
+        .firstName("Test")
+        .lastName("Google")
+        .provider(googleProvider)
+        .saveMe()
+
+      val githubUser = AuthUser.create
+        .email(sharedUsername + "@github.com")
+        .username(sharedUsername)
+        .password(randomString(40))
+        .validated(true)
+        .firstName("Test")
+        .lastName("GitHub")
+        .provider(githubProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        LoginAttempt.resetBadLoginAttempts(googleProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(githubProvider, sharedUsername)
+
+        When("We fire multiple failed auth attempts against Google provider")
+        for (_ <- 1 to 3) {
+          val postJson = Map(
+            "username" -> sharedUsername,
+            "password" -> "WrongPassword!",
+            "provider" -> googleProvider
+          )
+          val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+          makePostRequest(request, write(postJson))
+        }
+
+        Then("GitHub provider's bad login attempts should still be zero")
+        val githubAttempts = LoginAttempt.getOrCreateBadLoginStatus(
+          githubProvider, sharedUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        githubAttempts should equal(0)
+
+      } finally {
+        LoginAttempt.resetBadLoginAttempts(googleProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(githubProvider, sharedUsername)
+        googleUser.delete_!
+        githubUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Failed local auth should not affect external users with the same username", ApiEndpoint, VersionOfApi) {
+      // The reverse of the external→local test: wrong local password should not
+      // touch the external provider's login attempt counter.
+      val sharedUsername = "reverse_iso_" + randomString(8).toLowerCase
+      val localPassword = "LocalPassword123!"
+      val googleProvider = "https://accounts.google.com"
+
+      val localUser = AuthUser.create
+        .email(sharedUsername + "@openbankproject.com")
+        .username(sharedUsername)
+        .password(localPassword)
+        .validated(true)
+        .firstName("Test")
+        .lastName("Local")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val googleUser = AuthUser.create
+        .email(sharedUsername + "@gmail.com")
+        .username(sharedUsername)
+        .password(randomString(40))
+        .validated(true)
+        .firstName("Test")
+        .lastName("Google")
+        .provider(googleProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(googleProvider, sharedUsername)
+
+        When("We fire multiple failed local auth attempts with wrong password")
+        for (_ <- 1 to 3) {
+          val postJson = Map(
+            "username" -> sharedUsername,
+            "password" -> "WrongPassword!",
+            "provider" -> Constant.localIdentityProvider
+          )
+          val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+          makePostRequest(request, write(postJson))
+        }
+
+        Then("Google provider's bad login attempts should still be zero")
+        val googleAttempts = LoginAttempt.getOrCreateBadLoginStatus(
+          googleProvider, sharedUsername
+        ).map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+        googleAttempts should equal(0)
+
+      } finally {
+        LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, sharedUsername)
+        LoginAttempt.resetBadLoginAttempts(googleProvider, sharedUsername)
+        localUser.delete_!
+        googleUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Non-existent external user should fail cleanly", ApiEndpoint, VersionOfApi) {
+      // Post a username that has no AuthUser record at all for this external provider.
+      // Should get 401 without any side effects on other providers.
+      val nonExistentUsername = "no_such_user_" + randomString(8).toLowerCase
+      val googleProvider = "https://accounts.google.com"
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials for a non-existent external user")
+        val postJson = Map(
+          "username" -> nonExistentUsername,
+          "password" -> "SomePassword!",
+          "provider" -> googleProvider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 401")
+        response.code should equal(401)
+        response.body.extract[ErrorMessage].message should include("OBP-20004")
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
     scenario("Fail with invalid JSON format", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
