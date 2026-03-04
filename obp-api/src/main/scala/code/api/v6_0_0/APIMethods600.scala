@@ -30,7 +30,8 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_0_0.{ViewJsonV500, ViewsJsonV500}
 import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, ModeratedAccountJSON600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, UserWithViewAccessJsonV600, UsersWithViewAccessJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createBankAccountJSON600, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
+import code.metadata.tags.Tags
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
@@ -124,6 +125,45 @@ trait APIMethods600 {
             _ <- Future(()) // Just start async call
           } yield {
             (JSONFactory510.getApiInfoJSON(OBPAPI6_0_0.version, OBPAPI6_0_0.versionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getFeatures,
+      implementedInApiVersion,
+      nameOf(getFeatures),
+      "GET",
+      "/features",
+      "Get Features",
+      """Returns information about the features enabled on this OBP instance.
+        |
+        |No Authentication is Required.""",
+      EmptyBody,
+      featuresJsonV600,
+      List(UnknownError),
+      apiTagApi :: Nil)
+
+    lazy val getFeatures: OBPEndpoint = {
+      case "features" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            _ <- Future(())
+          } yield {
+            val featuresJson = FeaturesJsonV600(
+              allow_public_views = APIUtil.getPropsAsBoolValue("allow_public_views", false),
+              allow_abac_account_access = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false),
+              allow_account_firehose = APIUtil.getPropsAsBoolValue("allow_account_firehose", false),
+              allow_customer_firehose = APIUtil.getPropsAsBoolValue("allow_customer_firehose", false),
+              allow_direct_login = APIUtil.getPropsAsBoolValue("allow_direct_login", true),
+              allow_gateway_login = APIUtil.getPropsAsBoolValue("allow_gateway_login", false),
+              allow_oauth2_login = APIUtil.getPropsAsBoolValue("allow_oauth2_login", true),
+              allow_dauth = APIUtil.getPropsAsBoolValue("allow_dauth", false),
+              allow_sandbox_account_creation = APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false),
+              allow_sandbox_data_import = APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false),
+              allow_account_deletion = APIUtil.getPropsAsBoolValue("allow_account_deletion", false)
+            )
+            (featuresJson, HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -1737,6 +1777,8 @@ trait APIMethods600 {
          |${urlParametersDocument(false, false)}
          |* locked_status (if null ignore)
          |* is_deleted (default: false)
+         |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
+         |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
          |
       """.stripMargin,
       EmptyBody,
@@ -6944,10 +6986,8 @@ trait APIMethods600 {
             _ <- NewStyle.function.tryons(s"Rule code must not be empty", 400, callContext) {
               createJson.rule_code.nonEmpty
             }
-            // Validate rule code by attempting to compile it
-            _ <- Future {
-              AbacRuleEngine.validateRuleCode(createJson.rule_code)
-            } map {
+            // Validate rule code by attempting to compile it (includes statistical permissiveness check)
+            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code) map {
               unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
             }
             rule <- Future {
@@ -7200,10 +7240,8 @@ trait APIMethods600 {
             updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, callContext) {
               json.extract[UpdateAbacRuleJsonV600]
             }
-            // Validate rule code by attempting to compile it
-            _ <- Future {
-              AbacRuleEngine.validateRuleCode(updateJson.rule_code)
-            } map {
+            // Validate rule code by attempting to compile it (includes statistical permissiveness check)
+            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code) map {
               unboxFullOrFail(_, callContext, s"Invalid ABAC rule code", 400)
             }
             rule <- Future {
@@ -7690,8 +7728,7 @@ trait APIMethods600 {
             _ <- NewStyle.function.tryons(s"$AbacRuleCodeEmpty", 400, callContext) {
               validateJson.rule_code.trim.nonEmpty
             }
-            validationResult <- Future {
-              AbacRuleEngine.validateRuleCode(validateJson.rule_code) match {
+            validationResult <- AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code).map {
                 case Full(msg) =>
                   Full(ValidateAbacRuleSuccessJsonV600(
                     valid = true,
@@ -7702,7 +7739,10 @@ trait APIMethods600 {
                   val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "").replace("Failed to compile ABAC rule: ", "")
 
                   // Determine the proper OBP error message and error type
-                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
+                  val (obpErrorMessage, errorType) = if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+                    val errorConst = if (cleanError.toLowerCase.contains("statistical")) AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+                    (errorConst, "PermissivenessError")
+                  } else if (cleanError.toLowerCase.contains("type mismatch") || cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")) {
                     (AbacRuleTypeMismatch, "TypeError")
                   } else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse")) {
                     (AbacRuleSyntaxError, "SyntaxError")
@@ -7731,8 +7771,7 @@ trait APIMethods600 {
                       error_type = "UnknownError"
                     )
                   ))
-              }
-            } map {
+              } map {
               unboxFullOrFail(_, callContext, AbacRuleValidationFailed, 400)
             }
           } yield {
@@ -8722,9 +8761,36 @@ trait APIMethods600 {
             // Decode the provider in case it's URL-encoded (e.g., "http%3A%2F%2Fexample.com" -> "http://example.com")
             decodedProvider = URLDecoder.decode(postedData.provider, StandardCharsets.UTF_8)
             // Validate credentials using the existing AuthUser mechanism
-            resourceUserIdBox = //we first try to get the userId from local, if not find, we try to get it from external 
-              code.model.dataAccess.AuthUser.getResourceUserId(postedData.username, postedData.password, decodedProvider)
-                .or(code.model.dataAccess.AuthUser.externalUserHelper(postedData.username, postedData.password).map(_.user.get))
+
+            resourceUserIdBox =
+              if (postedData.provider == Constant.localIdentityProvider || postedData.provider.isEmpty) {
+                // Local provider: only check local credentials. No external fallback.
+                val result = code.model.dataAccess.AuthUser.getResourceUserId(
+                  postedData.username, postedData.password, Constant.localIdentityProvider
+                )
+                logger.info(s"verifyUserCredentials says: local getResourceUserId result: $result")
+                result
+              } else {
+                // External provider: validate via connector. Local DB stores a random UUID
+                // as password for external users, so getResourceUserId would always fail.
+                if (LoginAttempt.userIsLocked(postedData.provider, postedData.username)) {
+                  logger.info(s"verifyUserCredentials says: external user is locked, provider: ${postedData.provider}, username: ${postedData.username}")
+                  Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+                } else {
+                  val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
+                    postedData.username, postedData.password
+                  ).map(_.user.get)
+                  logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
+                  connectorResult match {
+                    case Full(_) =>
+                      LoginAttempt.resetBadLoginAttempts(postedData.provider, postedData.username)
+                      connectorResult
+                    case _ =>
+                      LoginAttempt.incrementBadLoginAttempts(postedData.provider, postedData.username)
+                      connectorResult
+                  }
+                }
+              }
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
@@ -9760,11 +9826,16 @@ trait APIMethods600 {
       "Get App Directory",
       s"""Get connectivity information for apps in the OBP ecosystem.
          |
-         |Returns configuration properties that apps (Explorer, Portal, OIDC, Hola,
-         |Sandbox Generator) and agents can use to discover endpoints in the OBP ecosystem.
+         |Returns configuration properties that apps (Portal, API Explorer, API Manager,
+         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
+         |endpoints in the OBP ecosystem.
          |
-         |Only explicitly whitelisted property keys are included:
-         |${APIUtil.appDiscoveryWhitelist.mkString(", ")}
+         |Any props starting with public_ and ending with _url are included automatically.
+         |
+         |Known public app URL props:
+         |${APIUtil.publicAppUrlPropNames.mkString(", ")}
+         |
+         |Empty (unconfigured) values are excluded from the response.
          |
          |Authentication is NOT Required.
          |
@@ -10969,6 +11040,243 @@ trait APIMethods600 {
             }
             (response, HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUsersWithAccountAccess,
+      implementedInApiVersion,
+      nameOf(getUsersWithAccountAccess),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/users-with-access",
+      "Get Users With Account Access",
+      s"""Get all users who have access to a specific view on a specific account, and how that access was granted.
+         |
+         |This endpoint combines both traditional AccountAccess records and ABAC (Attribute-Based Access Control)
+         |evaluation to provide a complete picture of who can access the specified view.
+         |
+         |Each user entry includes an access_source indicating how access was granted
+         |(either "ACCOUNT_ACCESS" for direct grants or "ABAC" for rule-based access).
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      UsersWithViewAccessJsonV600(
+        users = List(UserWithViewAccessJsonV600(
+          user_id = ExampleValue.userIdExample.value,
+          username = "robert.x.smith.test",
+          email = "robert.x@example.com",
+          provider = "https://apisandbox.openbankproject.com",
+          access_source = "ACCOUNT_ACCESS"
+        ))
+      ),
+      List(
+        $BankNotFound,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagAccount, apiTagView),
+      Some(List(canSeeAccountAccessForAnyUser))
+    )
+
+    lazy val getUsersWithAccountAccess: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: "users-with-access" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            bankIdAccountId = BankIdAccountId(bankId, accountId)
+
+            // Validate the view exists
+            _ <- Future {
+              Views.views.vend.customViewFuture(viewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _ => Views.views.vend.systemViewFuture(viewId)
+              }
+            }.flatten.map {
+              unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is ${viewId.value}")
+            }
+
+            // Step A: Get traditional AccountAccess users for this view
+            permissions <- Future(Views.views.vend.permissions(bankIdAccountId))
+            accountAccessUsers: List[UserWithViewAccessJsonV600] = permissions.flatMap { perm =>
+              if (perm.views.exists(_.viewId == viewId)) {
+                Some(UserWithViewAccessJsonV600(
+                  user_id = perm.user.userId,
+                  username = perm.user.name,
+                  email = perm.user.emailAddress,
+                  provider = perm.user.provider,
+                  access_source = "ACCOUNT_ACCESS"
+                ))
+              } else None
+            }
+            accountAccessUserIds = accountAccessUsers.map(_.user_id).toSet
+
+            // Step B: ABAC evaluation — always report ABAC access regardless of
+            // allow_abac_account_access prop. This endpoint reports the truth about
+            // who has access, it does not enforce access.
+            abacUsers <- {
+              // Find users with CanExecuteAbacRule entitlement
+              val abacEntitlements = Entitlement.entitlement.vend.getEntitlementsByRole(canExecuteAbacRule.toString)
+                .getOrElse(Nil)
+              val abacUserIds = abacEntitlements.map(_.userId).distinct
+                .filterNot(accountAccessUserIds.contains) // Skip users already covered by AccountAccess
+              logger.info(s"getUsersWithAccountAccess says: view=${viewId.value} abacUserIds to evaluate=$abacUserIds")
+
+              if (abacUserIds.isEmpty) {
+                logger.info("getUsersWithAccountAccess says: No ABAC users to evaluate")
+                Future.successful(List.empty[UserWithViewAccessJsonV600])
+              } else {
+                for {
+                  users <- Users.users.vend.getUsersByUserIdsFuture(abacUserIds)
+                  _ = logger.info(s"getUsersWithAccountAccess says: Resolved ${users.size} ABAC users: ${users.map(u => s"${u.userId}/${u.name}").mkString(", ")}")
+
+                  abacEvaluations <- Future.sequence(
+                    users.map { user =>
+                      callContext match {
+                        case Some(cc) =>
+                          logger.info(s"getUsersWithAccountAccess says: Evaluating user=${user.userId}/${user.name} view=${viewId.value} bank=${bankId.value} account=${accountId.value}")
+                          AbacRuleEngine.executeRulesByPolicyDetailed(
+                            policy = ABAC_POLICY_ACCOUNT_ACCESS,
+                            authenticatedUserId = user.userId,
+                            callContext = cc,
+                            bankId = Some(bankId.value),
+                            accountId = Some(accountId.value),
+                            viewId = Some(viewId.value)
+                          ).map { result =>
+                            logger.info(s"getUsersWithAccountAccess says: user=${user.userId}/${user.name} view=${viewId.value} result=$result")
+                            result match {
+                              case Full((true, _)) => Some(UserWithViewAccessJsonV600(
+                                user_id = user.userId,
+                                username = user.name,
+                                email = user.emailAddress,
+                                provider = user.provider,
+                                access_source = "ABAC"
+                              ))
+                              case _ => None
+                            }
+                          }.recover { case ex =>
+                            logger.error(s"getUsersWithAccountAccess says: user=${user.userId}/${user.name} view=${viewId.value} EXCEPTION: ${ex.getMessage}", ex)
+                            None
+                          }
+                        case None =>
+                          logger.warn("getUsersWithAccountAccess says: callContext is None, skipping ABAC evaluation")
+                          Future.successful(None)
+                      }
+                    }
+                  )
+                } yield abacEvaluations.flatten
+              }
+            }
+          } yield {
+            val response = UsersWithViewAccessJsonV600(
+              users = accountAccessUsers ++ abacUsers
+            )
+            (response, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getPrivateAccountByIdFull,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+      EmptyBody,
+      ModeratedAccountJSON600(
+        id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+        label = "NoneLabel",
+        number = "123",
+        owners = List(userJSONV121),
+        product_code = ExampleValue.productCodeExample.value,
+        balance = amountOfMoneyJsonV121,
+        views_available = List(ViewJsonV600(
+          view_id = "owner",
+          short_name = "Owner",
+          description = "The owner of the account",
+          metadata_view = "owner",
+          is_public = false,
+          is_system = true,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("owner"),
+          can_revoke_access_to_views = List("owner"),
+          allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
+        )),
+        bank_id = ExampleValue.bankIdExample.value,
+        account_routings = List(accountRoutingJsonV121),
+        account_attributes = List(accountAttributeResponseJson),
+        tags = List(accountTagJSON)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      apiTagAccount :: Nil
+    )
+
+    lazy val getPrivateAccountByIdFull: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(
+            accountId
+          ) :: ViewId(viewId) :: "account" :: Nil JsonGet req => { cc =>
+        implicit val ec = EndpointContext(Some(cc))
+        for {
+          (user @ Full(u), _, account, view, callContext) <-
+            SS.userBankAccountView
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(
+            account,
+            view,
+            user,
+            callContext
+          )
+          (accountAttributes, callContext) <- NewStyle.function
+            .getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext]
+            )
+        } yield {
+          val availableViews =
+            Views.views.vend.privateViewsUserCanAccessForAccount(
+              u,
+              BankIdAccountId(account.bankId, account.accountId)
+            )
+          val viewsAvailable =
+            availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.short_name)
+          val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
+          (
+            createBankAccountJSON600(
+              moderatedAccount,
+              viewsAvailable,
+              accountAttributes,
+              tags
+            ),
+            HttpCode.`200`(callContext)
+          )
+        }
       }
     }
 

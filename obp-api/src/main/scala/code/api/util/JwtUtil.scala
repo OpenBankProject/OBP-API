@@ -3,6 +3,7 @@ package code.api.util
 import java.net.{URI, URL}
 import java.nio.file.{Files, Paths}
 import java.text.ParseException
+import java.util.concurrent.ConcurrentHashMap
 import code.api.util.RSAUtil.logger
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.JWSAlgorithm
@@ -18,6 +19,25 @@ import dispatch.Future
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 object JwtUtil extends MdcLoggable {
+
+  // Shared resource retriever for all remote JWK set fetches (thread-safe).
+  // Parameters: connectTimeout=2000ms, readTimeout=2000ms, maxContentLength=50KB
+  private val sharedResourceRetriever = new DefaultResourceRetriever(2000, 2000, 50 * 1024)
+
+  // TODO: Marko_review
+  // Cache of RemoteJWKSet instances keyed by URL string.
+  // RemoteJWKSet is thread-safe and caches fetched keys internally,
+  // so reusing instances avoids redundant HTTP requests to the OIDC provider
+  // and allows validation to succeed using cached keys even if the provider
+  // is temporarily unreachable.
+  private val remoteJWKSetCache = new ConcurrentHashMap[String, RemoteJWKSet[SecurityContext]]()
+
+  private def getOrCreateRemoteJWKSet(remoteJWKSetUrl: String): JWKSource[SecurityContext] = {
+    remoteJWKSetCache.computeIfAbsent(remoteJWKSetUrl, url => {
+      logger.debug(s"Creating new RemoteJWKSet for URL: $url")
+      new RemoteJWKSet[SecurityContext](new URL(url), sharedResourceRetriever)
+    })
+  }
   
   def checkIfStringIsJWTValue(jwtToken: String): Box[String] = {
     try {
@@ -198,7 +218,7 @@ object JwtUtil extends MdcLoggable {
     // OAuth 2.0 server's JWK set, published at a well-known URL. The RemoteJWKSet
     // object caches the retrieved keys to speed up subsequent look-ups and can
     // also gracefully handle key-rollover
-    val keySource: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(remoteJWKSetUrl))
+    val keySource: JWKSource[SecurityContext] = getOrCreateRemoteJWKSet(remoteJWKSetUrl)
 
     // The JWS algorithm of the access tokens
     val jwsAlg: JWSAlgorithm = getAlgorithm(accessToken).getOrElse(JWSAlgorithm.RS256)
@@ -236,18 +256,17 @@ object JwtUtil extends MdcLoggable {
     import com.nimbusds.jose._
     import com.nimbusds.oauth2.sdk.id._
     import com.nimbusds.openid.connect.sdk.validators._
-    
-    val resourceRetriever = new DefaultResourceRetriever(1000, 1000, 50 * 1024)
 
     // The required parameters
     val iss: Issuer = new Issuer(getIssuer(idToken).getOrElse(""))
     val aud = getAudience(idToken).headOption.getOrElse("")
     val clientID: ClientID = new ClientID(aud)
     val jwsAlg: JWSAlgorithm = getAlgorithm(idToken).getOrElse(JWSAlgorithm.RS256)
-    val jwkSetURL: URL = new URL(remoteJWKSetUrl)
+    val jwkSetSource = getOrCreateRemoteJWKSet(remoteJWKSetUrl)
 
-    // Create validator for signed ID tokens
-    val validator: IDTokenValidator = new IDTokenValidator(iss, clientID, jwsAlg, jwkSetURL, resourceRetriever)
+    // Create validator for signed ID tokens using the cached JWK source
+    val keySelector = new JWSVerificationKeySelector[SecurityContext](jwsAlg, jwkSetSource)
+    val validator: IDTokenValidator = new IDTokenValidator(iss, clientID, keySelector, null)
 
     import com.nimbusds.jose.JOSEException
     import com.nimbusds.jose.proc.BadJOSEException

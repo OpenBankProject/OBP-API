@@ -211,9 +211,9 @@ db.driver=org.h2.Driver
 db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
 ```
 
-In order to start H2 web console go to [http://127.0.0.1:8080/console](http://127.0.0.1:8080/console) and you will see a login screen.
-Please use the following values:
-Note: make sure the JDBC URL used matches your Props value!
+**Note:** The H2 web console at `/console` was available when OBP-API ran on Jetty but is no longer served by the http4s server. To inspect the H2 database, connect directly using the [H2 Shell](https://h2database.com/html/tutorial.html#console_settings) or a database tool such as DBeaver.
+
+Use the following connection values (make sure the JDBC URL matches your Props value):
 
 ```
 Driver Class: org.h2.Driver
@@ -388,16 +388,7 @@ To populate the OBP database with sandbox data:
 
 ## Production Options
 
-- set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of `webapp/WEB-INF/web.xml`:
-
-```XML
-   <session-config>
-     <cookie-config>
-       <secure>true</secure>
-       <http-only>true</http-only>
-     </cookie-config>
-   </session-config>
-```
+OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, Correlation-Id, etc.) are applied automatically by `Http4sLiftWebBridge.withStandardHeaders` to all responses. Cookie flags and other session-related settings can be configured via the props file.
 
 ## Server Mode Configuration (Removed)
 
@@ -754,14 +745,22 @@ There is a video about the detail: [demonstrate the detail of the feature](https
 
 The same as `Frozen APIs`, if a related unit test fails, make sure whether the modification is required, if yes, run frozen util to re-generate frozen types metadata file. take `RestConnector_vMar2019` as an example, the corresponding util is `RestConnector_vMar2019_FrozenUtil`, the corresponding unit test is `RestConnector_vMar2019_FrozenTest`
 
-## Scala / Lift
+## Technology Stack
 
-- We use scala and liftweb: [http://www.liftweb.net/](http://www.liftweb.net/).
+OBP-API uses the following core technologies:
 
-- Advanced architecture: [http://exploring.liftweb.net/master/index-9.html
-  ](http://exploring.liftweb.net/master/index-9.html).
+- **HTTP Server:** [http4s](https://http4s.org/) with [Cats Effect](https://typelevel.org/cats-effect/) (`IOApp`). The server runs on http4s Ember in a single process on a single port.
+- **Routing:** Priority-based routing defined in `Http4sApp.scala`:
+  1. Native http4s routes for v5.0.0, v7.0.0, and Berlin Group v2
+  2. A Lift bridge fallback (`Http4sLiftWebBridge`) for all other API versions
+- **ORM / Database:** [Lift Mapper](http://www.liftweb.net/) for database access and schema management.
+- **JSON:** Lift JSON utilities are used in some areas alongside native http4s JSON handling.
 
-- A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
+For details on how the http4s and Lift layers coexist, see [LIFT_HTTP4S_COEXISTENCE.md](LIFT_HTTP4S_COEXISTENCE.md).
+
+Liftweb architecture: [http://exploring.liftweb.net/master/index-9.html](http://exploring.liftweb.net/master/index-9.html).
+
+A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
 
 ## Endpoint Request and Response Example
 

@@ -5323,6 +5323,20 @@ object SwaggerDefinitionsJSON {
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
 
+  lazy val featuresJsonV600 = FeaturesJsonV600(
+    allow_public_views = true,
+    allow_abac_account_access = false,
+    allow_account_firehose = false,
+    allow_customer_firehose = false,
+    allow_direct_login = true,
+    allow_gateway_login = false,
+    allow_oauth2_login = true,
+    allow_dauth = false,
+    allow_sandbox_account_creation = false,
+    allow_sandbox_data_import = false,
+    allow_account_deletion = false
+  )
+
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
   
@@ -6149,7 +6163,16 @@ object SwaggerDefinitionsJSON {
   lazy val appDirectoryJsonV600 = ListResult(
     "app_directory",
     List(
-      ConfigPropJsonV600("portal_external_url", "https://portal.openbankproject.com")
+      ConfigPropJsonV600("public_obp_api_url", "http://localhost:8080"),
+      ConfigPropJsonV600("public_obp_portal_url", "http://localhost:5174"),
+      ConfigPropJsonV600("public_obp_api_explorer_url", "http://localhost:5173"),
+      ConfigPropJsonV600("public_obp_api_manager_url", "http://localhost:3003"),
+      ConfigPropJsonV600("public_obp_sandbox_populator_url", "http://localhost:5178"),
+      ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
+      ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
+      ConfigPropJsonV600("public_obp_hola_url", "http://localhost:8087"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000")
     )
   )
 

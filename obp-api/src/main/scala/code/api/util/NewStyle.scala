@@ -760,6 +760,16 @@ object NewStyle extends MdcLoggable{
         connectorEmptyResponse(_, callContext)
       }
     }
+    def getEntitlementRequestsFuture(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[EntitlementRequest]] = {
+      EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(queryParams) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
+    def getEntitlementRequestsFuture(userId: String, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[EntitlementRequest]] = {
+      EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId, queryParams) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
 
     def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
       Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext) map { i=>

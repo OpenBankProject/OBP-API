@@ -58,7 +58,7 @@ class AppDirectoryTest extends V600ServerSetup {
       response.code should equal(200)
     }
 
-    scenario("Response only contains explicitly whitelisted keys", VersionOfApi, ApiEndpoint) {
+    scenario("Response only contains public_*_url keys", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -66,12 +66,13 @@ class AppDirectoryTest extends V600ServerSetup {
       Then("We should get a 200")
       response.code should equal(200)
 
-      And("Every returned key should be in the explicit whitelist")
+      And("Every returned key should match public_*_url pattern")
       val props = (response.body \ "app_directory").children
       props.foreach { prop =>
         val name = (prop \ "name").extract[String]
-        withClue(s"Key '$name' should be in appDiscoveryWhitelist: ") {
-          APIUtil.appDiscoveryWhitelist should contain(name)
+        withClue(s"Key '$name' should match public_*_url: ") {
+          name should startWith("public_")
+          name should endWith("_url")
         }
       }
     }
@@ -158,11 +159,12 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.maskSensitivePropValue("api_port", "8080") should equal("8080")
     }
 
-    scenario("getAppDiscoveryPairs only returns explicitly whitelisted keys", VersionOfApi, ApiEndpoint) {
+    scenario("getAppDiscoveryPairs only returns public_*_url keys", VersionOfApi, ApiEndpoint) {
       val pairs = APIUtil.getAppDiscoveryPairs
       pairs.foreach { case (key, _) =>
-        withClue(s"Key '$key' should be in appDiscoveryWhitelist: ") {
-          APIUtil.appDiscoveryWhitelist should contain(key)
+        withClue(s"Key '$key' should match public_*_url: ") {
+          key should startWith("public_")
+          key should endWith("_url")
         }
       }
     }
@@ -191,15 +193,38 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("appDiscoveryWhitelist contains portal_external_url", VersionOfApi, ApiEndpoint) {
-      APIUtil.appDiscoveryWhitelist should contain("portal_external_url")
+    scenario("publicAppUrlPropNames contains expected app URLs", VersionOfApi, ApiEndpoint) {
+      APIUtil.publicAppUrlPropNames should contain("public_obp_api_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_portal_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_api_explorer_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_api_manager_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_sandbox_populator_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_oidc_url")
+      APIUtil.publicAppUrlPropNames should contain("public_keycloak_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_hola_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_mcp_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_opey_url")
     }
 
-    scenario("appDiscoveryWhitelist does not include sensitive keys", VersionOfApi, ApiEndpoint) {
-      APIUtil.appDiscoveryWhitelist.foreach { key =>
+    scenario("all publicAppUrlPropNames follow public_*_url convention", VersionOfApi, ApiEndpoint) {
+      APIUtil.publicAppUrlPropNames.foreach { key =>
+        withClue(s"Key '$key' should start with public_ and end with _url: ") {
+          key should startWith("public_")
+          key should endWith("_url")
+        }
+      }
+    }
+
+    scenario("publicAppUrlPropNames do not include sensitive keys", VersionOfApi, ApiEndpoint) {
+      // Words that contain sensitive substrings but are not themselves sensitive.
+      // e.g. "keycloak" contains "key" but is just a product name.
+      val whitelistedWords = List("keycloak")
+      APIUtil.publicAppUrlPropNames.foreach { key =>
         APIUtil.sensitiveKeywords.foreach { keyword =>
-          withClue(s"Whitelisted key '$key' should not contain sensitive keyword '$keyword': ") {
-            key.toLowerCase should not include(keyword)
+          // Strip whitelisted words before checking for sensitive substrings
+          val keyToCheck = whitelistedWords.foldLeft(key.toLowerCase) { (k, w) => k.replace(w, "") }
+          withClue(s"Public URL key '$key' should not contain sensitive keyword '$keyword': ") {
+            keyToCheck should not include(keyword)
           }
         }
       }
