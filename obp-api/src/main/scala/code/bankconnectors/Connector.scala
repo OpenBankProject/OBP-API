@@ -12,6 +12,7 @@ import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.cardano.CardanoConnector_vJun2025
 import code.bankconnectors.ethereum.EthereumConnector_vSept2025
+import code.bankconnectors.grpc.GrpcConnector_vFeb2026
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -66,6 +67,7 @@ object Connector extends SimpleInjector {
     "rabbitmq_vOct2024" -> RabbitMQConnector_vOct2024,
     "cardano_vJun2025" -> CardanoConnector_vJun2025,
     "ethereum_vSept2025" -> EthereumConnector_vSept2025,
+    "grpc_vFeb2026" -> GrpcConnector_vFeb2026,
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> ConnectorUtils.proxyConnector,
     // internal is the dynamic connector, the developers can upload the source code and override connector method themselves.

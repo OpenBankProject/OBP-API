@@ -56,6 +56,7 @@ case class OBPEmpty() extends OBPQueryParam
 case class OBPCustomerId(value: String) extends OBPQueryParam
 case class OBPLockedStatus(value: String) extends OBPQueryParam
 case class OBPIsDeleted(value: Boolean) extends OBPQueryParam
+case class OBPRoleName(value: String) extends OBPQueryParam
 
 object OBPQueryParam {
   val LIMIT = "limit"

@@ -17,7 +17,7 @@ import code.api.util.APIUtil.stringOrNull
 import code.metrics.ConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
-import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON, UserJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, createMetaJson}
 import code.api.v2_0_0.{BasicViewJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
@@ -30,7 +30,7 @@ import code.api.v3_0_0.{
 }
 import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RateLimit, RedisCallLimitJson}
 import code.api.v3_1_0.JSONFactory310.createProductAttributesJson
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
+import code.api.v4_0_0.{AccountTagJSON, BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
 import code.entitlement.Entitlement
 import code.apiproduct.ApiProductTrait
 import code.apiproductattribute.ApiProductAttributeTrait
@@ -49,6 +49,20 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 
 import java.util.Date
+
+case class FeaturesJsonV600(
+  allow_public_views: Boolean,
+  allow_abac_account_access: Boolean,
+  allow_account_firehose: Boolean,
+  allow_customer_firehose: Boolean,
+  allow_direct_login: Boolean,
+  allow_gateway_login: Boolean,
+  allow_oauth2_login: Boolean,
+  allow_dauth: Boolean,
+  allow_sandbox_account_creation: Boolean,
+  allow_sandbox_data_import: Boolean,
+  allow_account_deletion: Boolean
+)
 
 case class CardanoPaymentJsonV600(
     address: String,
@@ -2414,5 +2428,56 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     account_access_id: String,
     abac_rule_id: String
   )
+
+  case class UserWithViewAccessJsonV600(
+    user_id: String,
+    username: String,
+    email: String,
+    provider: String,
+    access_source: String  // "ACCOUNT_ACCESS" or "ABAC"
+  )
+
+  case class UsersWithViewAccessJsonV600(
+    users: List[UserWithViewAccessJsonV600]
+  )
+
+  case class ModeratedAccountJSON600(
+    id: String,
+    label: String,
+    number: String,
+    owners: List[UserJSONV121],
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    views_available: List[ViewJsonV600],
+    bank_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[AccountAttributeResponseJson],
+    tags: List[AccountTagJSON]
+  )
+
+  def createBankAccountJSON600(
+    account: ModeratedBankAccountCore,
+    viewsAvailable: List[ViewJsonV600],
+    accountAttributes: List[AccountAttribute],
+    tags: List[TransactionTag]
+  ): ModeratedAccountJSON600 = {
+    import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
+    import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
+    import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+    import code.api.v4_0_0.JSONFactory400.createAccountTagJSON
+    ModeratedAccountJSON600(
+      id = account.accountId.value,
+      label = stringOptionOrNull(account.label),
+      number = stringOptionOrNull(account.number),
+      owners = createOwnersJSON(account.owners.getOrElse(Set()), ""),
+      product_code = stringOptionOrNull(account.accountType),
+      balance = createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
+      views_available = viewsAvailable,
+      bank_id = stringOrNull(account.bankId.value),
+      account_routings = createAccountRoutingsJSON(account.accountRoutings),
+      account_attributes = accountAttributes.map(createAccountAttributeJson),
+      tags = tags.map(createAccountTagJSON)
+    )
+  }
 
 }

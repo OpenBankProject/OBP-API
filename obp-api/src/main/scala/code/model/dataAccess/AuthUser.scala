@@ -784,38 +784,27 @@ import net.liftweb.util.Helpers._
 
 
   def getResourceUserId(username: String, password: String, provider: String = Constant.localIdentityProvider): Box[Long] = {
+    logger.info(s"getResourceUserId says: starting for username: $username, provider: $provider")
     findAuthUserByUsernameAndProvider(username, provider) match {
       // We have a user from the local provider.
       case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
-        if (
-          user.validated_? &&
-          // User is NOT locked AND the password is good
-          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
-          user.testPassword(Full(password)))
-            {
-              // We logged in correctly, so reset badLoginAttempts counter (if it exists)
-              LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-              Full(user.user.get) // Return the user.
-            }
-        // User is unlocked AND password is bad
-        else if (
-          user.validated_? &&
-          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
-          ! user.testPassword(Full(password))
-        ) {
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
+        if (!user.validated_?) {
+          logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $provider")
           Empty
         }
-        // User is locked
-        else if (LoginAttempt.userIsLocked(user.getProvider(), username))
-        {
+        else if (LoginAttempt.userIsLocked(user.getProvider(), username)) {
+          logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $provider")
           LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          logger.info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode)
         }
+        else if (user.testPassword(Full(password))) {
+          logger.info(s"getResourceUserId says: password correct, username: $username, provider: $provider")
+          LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
+          Full(user.user.get)
+        }
         else {
-          // Nothing worked, so just increment bad login attempts
+          logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $provider")
           LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
           Empty
         }
@@ -823,6 +812,7 @@ import net.liftweb.util.Helpers._
       case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
         APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
             case true if !LoginAttempt.userIsLocked(user.getProvider(), username) =>
+              logger.info(s"getResourceUserId says: external user found, checking via connector, username: $username, provider: ${user.getProvider()}")
               val userId =
                 for {
                   authUser <- checkExternalUserViaConnector(username, password)
@@ -834,18 +824,27 @@ import net.liftweb.util.Helpers._
                   resourceUser.get
                 }
               userId match {
-                case Full(l: Long) => Full(l)
+                case Full(l: Long) =>
+                  logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: ${user.getProvider()}")
+                  Full(l)
                 case _ =>
+                  logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: ${user.getProvider()}")
                   LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
                   Empty
               }
+            case true =>
+              logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: ${user.getProvider()}")
+              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
+              Empty
             case false =>
+              logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: ${user.getProvider()}")
               LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
               Empty
           }
-      // Everything else.
+      // Everything else (user not found for this username+provider).
       case _ =>
-        LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), username)
+        logger.info(s"getResourceUserId says: user not found, username: $username, provider: $provider")
+        LoginAttempt.incrementBadLoginAttempts(provider, username)
         Empty
     }
   }
@@ -1174,11 +1173,22 @@ def restoreSomeSessions(): Unit = {
     * This method will update the views and createAccountHolder ....
     */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
-    for {
-      user <- checkExternalUserViaConnector(name, password)
-      u <- Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
-    } yield {
-      user
+    logger.info(s"externalUserHelper says: starting for username: $name")
+    val connectorUserBox = checkExternalUserViaConnector(name, password)
+    logger.info(s"externalUserHelper says: checkExternalUserViaConnector result: ${connectorUserBox.getClass.getSimpleName}")
+    connectorUserBox match {
+      case Full(user) =>
+        val providerUserBox = Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
+        logger.info(s"externalUserHelper says: getUserByProviderAndUsername(${user.getProvider()}, $name) result: ${providerUserBox.getClass.getSimpleName}")
+        providerUserBox match {
+          case Full(_) => Full(user)
+          case _ =>
+            logger.warn(s"externalUserHelper says: connector authenticated user but getUserByProviderAndUsername failed for provider: ${user.getProvider()}, username: $name")
+            Empty
+        }
+      case _ =>
+        logger.info(s"externalUserHelper says: checkExternalUserViaConnector failed for username: $name")
+        Empty
     }
   }
 

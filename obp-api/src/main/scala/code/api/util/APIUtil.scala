@@ -29,6 +29,7 @@ package code.api.util
 
 import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
+import code.abacrule.AbacRuleEngine
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -106,7 +107,8 @@ import java.util.{Calendar, Date, Locale, UUID}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 import scala.io.BufferedSource
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.control.Breaks.{break, breakable}
@@ -1217,6 +1219,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "connector_name" => Full(OBPConnectorName(values.head))
         case "customer_id" => Full(OBPCustomerId(values.head))
         case "locked_status" => Full(OBPLockedStatus(values.head))
+        case "role_name" => Full(OBPRoleName(values.head))
         case _ => Full(OBPEmpty())
       }
     } yield
@@ -1265,6 +1268,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
       lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
+      roleName <- getHttpParamValuesByName(httpParams, "role_name")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
       /**
@@ -1285,7 +1289,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1339,6 +1343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
     val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
+    val roleName =  getHttpRequestUrlParam(httpRequestUrl, "role_name")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -1371,7 +1376,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
       HTTPParam("is_deleted", isDeleted),
-      HTTPParam("locked_status", lockedStatus)
+      HTTPParam("locked_status", lockedStatus),
+      HTTPParam("role_name", roleName)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
 
@@ -3709,6 +3715,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   def allowPublicViews: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  def allowAbacAccountAccess: Boolean = getPropsAsBoolValue("allow_abac_account_access", false)
   def allowAccountFirehose: Boolean = ApiPropsWithAlias.allowAccountFirehose
   def allowCustomerFirehose: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
@@ -3728,17 +3735,53 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param user Option User, can be Empty(No Authentication), or Login user.
    *
    */
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Box[Boolean] = {
     if(isPublicView(view: View))// No need for the Login user and public access
-      true
+      Full(true)
     else
       user match {
-        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
-        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> true     // Login User and check view access
+        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => Full(true) //Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => Full(true)//Login User and Firehose access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> Full(true)     // Login User and check view access
+        case Some(u) =>
+          // Normal checks failed — try ABAC as fallback
+          checkAbacAccountAccess(u, view, bankIdAccountId, callContext)
         case _ =>
-          false
+          Full(false)
       }
+  }
+
+  private def checkAbacAccountAccess(
+    user: User,
+    view: View,
+    bankIdAccountId: BankIdAccountId,
+    callContext: Option[CallContext]
+  ): Box[Boolean] = {
+    if (!allowAbacAccountAccess) return Full(false)
+    if (!hasEntitlement("", user.userId, ApiRole.canExecuteAbacRule)) return Full(false)
+
+    callContext match {
+      case Some(cc) =>
+        try {
+          val futureResult = AbacRuleEngine.executeRulesByPolicyDetailed(
+            policy = ABAC_POLICY_ACCOUNT_ACCESS,
+            authenticatedUserId = user.userId,
+            callContext = cc,
+            bankId = Some(bankIdAccountId.bankId.value),
+            accountId = Some(bankIdAccountId.accountId.value),
+            viewId = Some(view.viewId.value)
+          )
+          Await.result(futureResult, Duration(10, java.util.concurrent.TimeUnit.SECONDS)) match {
+            case Full((true, _)) => Full(true)  // ABAC granted
+            case Full((false, ruleIds)) if ruleIds.nonEmpty =>
+              Failure(s"ABAC rules denied access. Failing rule IDs: ${ruleIds.mkString(", ")}")
+            case _ => Full(false)  // No rules or other issue
+          }
+        } catch {
+          case _: Exception => Full(false)
+        }
+      case None => Full(false)
+    }
   }
   /**
    * This function check does the user(anonymous or authenticated) have account access
@@ -3753,25 +3796,42 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
-      // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => customView
+      // 3rd: The user has account access to this custom view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => customView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ => // fall through to system view check
+            checkSystemView(viewId, bankIdAccountId, user, callContext)
+        }
       // The user has NO account access via custom view
       case _ =>
-        val systemView = MapperViews.systemView(viewId)
-        systemView match  { // CHECK SYSTEM VIEWS
-          // 1st: View is Pubic and Public views are NOT allowed on this instance.
-          case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
-          // 2nd: View is Pubic and Public views are allowed on this instance.
-          case Full(v) if(isPublicView(v)) => systemView
-          // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => systemView
-          // 4th: The user has firehose access to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
-          // 5th: The user has firehose access at a bank to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
-          // The user has NO account access at all
-          case _ => Empty
+        checkSystemView(viewId, bankIdAccountId, user, callContext)
+    }
+  }
+
+  private def checkSystemView(viewId: ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]): Box[View] = {
+    val systemView = MapperViews.systemView(viewId)
+    systemView match { // CHECK SYSTEM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
+      case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => systemView
+      // 3rd: The user has account access to this system view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => systemView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ =>
+            // 4th: The user has firehose access to this system view
+            if (hasAccountFirehoseAccess(v, user.get)) systemView
+            // 5th: The user has firehose access at a bank to this system view
+            else if (hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) systemView
+            // The user has NO account access at all
+            else Empty
         }
+      // The user has NO account access at all
+      case _ => Empty
     }
   }
 
@@ -3923,18 +3983,35 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else value
   }
 
-  // Explicit whitelist of prop keys for the app discovery endpoint.
-  // Add new keys here as needed. Only exact matches are exposed.
-  val appDiscoveryWhitelist = List(
-    "portal_external_url"
+  // Convention-based public app URL props.
+  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
+  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
+  // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
+  val publicAppUrlDefaults: Map[String, String] = Map(
+    "public_obp_api_url" -> getPropsValue("public_obp_api_url").openOr(getPropsValue("hostname").openOr("http://localhost:8080")),
+    "public_obp_portal_url" -> getPropsValue("public_obp_portal_url").openOr(getPropsValue("portal_external_url").openOr("http://localhost:5174")),
+    "public_obp_api_explorer_url" -> getPropsValue("public_obp_api_explorer_url").openOr("http://localhost:5173"),
+    "public_obp_api_manager_url" -> getPropsValue("public_obp_api_manager_url").openOr("http://localhost:3003"),
+    "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
+    "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
+    "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
+    "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:8087"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000")
   )
+  val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted
+  // Register defaults so they appear in getConfigPropsPairs
+  publicAppUrlDefaults.foreach { case (key, default) => getPropsValue(key, default) }
 
-  // Returns config props filtered to only explicitly whitelisted keys.
-  // Chain: registeredDefaults (sensitive excluded) → getConfigPropsPairs (runtime values)
-  //        → explicit whitelist filter → maskSensitivePropValue safety net
+  // Returns config props matching the public_*_url convention.
+  // Empty values are excluded (prop not configured).
   def getAppDiscoveryPairs: List[(String, String)] = {
     getConfigPropsPairs
-      .filter { case (key, _) => appDiscoveryWhitelist.contains(key) }
+      .filter { case (key, _) =>
+        key.startsWith("public_") && key.endsWith("_url")
+      }
+      .filter { case (_, value) => value.nonEmpty }
       .map { case (key, value) => (key, maskSensitivePropValue(key, value)) }
   }
 

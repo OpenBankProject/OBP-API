@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package code.bankconnectors.grpc;
+
+service ObpConnectorService {
+  rpc ProcessObpRequest (ObpConnectorRequest) returns (ObpConnectorResponse) {}
+}
+
+message ObpConnectorRequest {
+  string method_name = 1;   // e.g. "obp_get_banks"
+  string json_payload = 2;  // JSON-serialized OutBound DTO
+}
+
+message ObpConnectorResponse {
+  string json_payload = 1;  // JSON-serialized InBound DTO
+}

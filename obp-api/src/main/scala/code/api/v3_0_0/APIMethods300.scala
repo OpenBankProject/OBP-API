@@ -1913,6 +1913,8 @@ trait APIMethods300 {
       s"""
         |Get all Entitlement Requests
         |
+        |${urlParametersDocument(true, true)}
+        |
         |${userAuthenticationMessage(true)}
       """.stripMargin,
       EmptyBody,
@@ -1933,7 +1935,8 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements, callContext)
-            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(callContext)
+            (requestParams, callContext) <- NewStyle.function.extractQueryParams(cc.url, List("limit", "offset", "sort_direction", "from_date", "to_date"), callContext)
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(requestParams, callContext)
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }
@@ -1950,6 +1953,7 @@ trait APIMethods300 {
       "Get Entitlement Requests for a User",
       s"""Get Entitlement Requests for a User.
         |
+        |${urlParametersDocument(true, true)}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -1972,7 +1976,8 @@ trait APIMethods300 {
           for {
             (Full(authorizedUser), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", authorizedUser.userId, allowedEntitlements, callContext)
-            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(userId, callContext)
+            (requestParams, callContext) <- NewStyle.function.extractQueryParams(cc.url, List("limit", "offset", "sort_direction", "from_date", "to_date"), callContext)
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(userId, requestParams, callContext)
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }
@@ -1989,6 +1994,7 @@ trait APIMethods300 {
       "Get Entitlement Requests for the current User",
       s"""Get Entitlement Requests for the current User.
          |
+        |${urlParametersDocument(true, true)}
         |
         |${userAuthenticationMessage(true)}
          |
@@ -2008,7 +2014,8 @@ trait APIMethods300 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(u.userId, callContext)
+            (requestParams, callContext) <- NewStyle.function.extractQueryParams(cc.url, List("limit", "offset", "sort_direction", "from_date", "to_date"), callContext)
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(u.userId, requestParams, callContext)
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }

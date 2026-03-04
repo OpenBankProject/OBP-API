@@ -2,6 +2,7 @@ package code.entitlementrequest
 
 import java.util.Date
 
+import code.api.util.OBPQueryParam
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -23,6 +24,8 @@ trait EntitlementRequestProvider {
   def getEntitlementRequestFuture(bankId: String, userId: String, roleName: String): Future[Box[EntitlementRequest]]
   def getEntitlementRequestsFuture(): Future[Box[List[EntitlementRequest]]]
   def getEntitlementRequestsFuture(userId: String): Future[Box[List[EntitlementRequest]]]
+  def getEntitlementRequestsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[EntitlementRequest]]]
+  def getEntitlementRequestsFuture(userId: String, queryParams: List[OBPQueryParam]): Future[Box[List[EntitlementRequest]]]
   def deleteEntitlementRequestFuture(entitlementRequestId: String): Future[Box[Boolean]]
 }
 

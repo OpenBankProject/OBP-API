@@ -1,6 +1,6 @@
 package code.abacrule
 
-import code.api.util.{APIUtil, CallContext, DynamicUtil}
+import code.api.util.{APIUtil, CallContext, DynamicUtil, ErrorMessages, OBPQueryParam, OBPLimit}
 import code.bankconnectors.Connector
 import code.model.dataAccess.ResourceUser
 import code.users.Users
@@ -23,6 +23,9 @@ object AbacRuleEngine {
   // Cache for compiled ABAC rule functions
   private val compiledRulesCache: concurrent.Map[String, Box[AbacRuleFunction]] =
     new ConcurrentHashMap[String, Box[AbacRuleFunction]]().asScala
+
+  val StatisticalSampleSize: Int = 20
+  val PermissivenessThreshold: Double = 0.50
 
   /**
    * Type alias for compiled ABAC rule function
@@ -81,6 +84,106 @@ object AbacRuleEngine {
        |  $ruleCode
        |}
        |""".stripMargin
+  }
+
+  /**
+   * Check if a rule code is too permissive (contains tautological expressions that always evaluate to true).
+   *
+   * Detects two categories:
+   * 1. Whole-body tautologies: the entire rule is a trivially-true expression (e.g. "true", "1==1")
+   * 2. Sub-expression tautologies: a tautological operand after || makes the whole expression always true
+   *
+   * Note: "&& true" is NOT flagged — it's redundant but doesn't increase permissiveness.
+   *
+   * @param ruleCode The rule code to check
+   * @return true if the rule code is too permissive
+   */
+  private def isTooPermissive(ruleCode: String): Boolean = {
+    val stripped = ruleCode.trim
+
+    // Whole-body tautology patterns (entire rule is trivially true)
+    val wholeBodyTautologies = List(
+      """^true$""",                            // bare true
+      """^(\d+)\s*==\s*\1$""",                 // numeric identity: 1==1, 42==42
+      """"([^"]+)"\s*==\s*"\1"""",             // string identity: "a"=="a", "foo"=="foo"
+      """^true\s*==\s*true$""",                // boolean identity: true==true
+      """^!false$""",                          // negated false
+      """^!\(false\)$"""                        // negated false with parens
+    ).map(_.r)
+
+    // Sub-expression tautology patterns (tautology after || anywhere in the rule)
+    val subExprTautologies = List(
+      """\|\|\s*true(?!\s*==)""",              // || true (but not || true==true, handled separately)
+      """\|\|\s*true\s*==\s*true""",           // || true==true
+      """\|\|\s*(\d+)\s*==\s*\1""",            // || 1==1, || 42==42
+      """\|\|\s*"([^"]+)"\s*==\s*"\1"""",      // || "a"=="a"
+      """\|\|\s*!false""",                     // || !false
+      """\|\|\s*!\(false\)"""                   // || !(false)
+    ).map(_.r)
+
+    val isWholeBodyTautology = wholeBodyTautologies.exists(_.findFirstIn(stripped).isDefined)
+    val hasSubExprTautology = subExprTautologies.exists(_.findFirstIn(stripped).isDefined)
+
+    isWholeBodyTautology || hasSubExprTautology
+  }
+
+  /**
+   * Statistical permissiveness check: compile the candidate rule, evaluate it against a sample
+   * of real system users (with no resource context), and reject it if over 50% of users pass.
+   *
+   * @param ruleCode The rule code to check
+   * @return Future[Boolean] - true if the rule is statistically too permissive
+   */
+  private def isStatisticallyTooPermissive(ruleCode: String): Future[Boolean] = {
+    val compiledBox = compileRuleInternal(ruleCode)
+    compiledBox match {
+      case Failure(_, _, _) | Empty =>
+        // Compilation error caught elsewhere
+        Future.successful(false)
+      case Full(compiledFunc) =>
+        val ns = code.api.util.NewStyle.function
+        Users.users.vend.getAllUsersF(List(OBPLimit(StatisticalSampleSize))).flatMap { userEntitlementPairs =>
+          if (userEntitlementPairs.isEmpty) {
+            Future.successful(false)
+          } else {
+            val evaluationFutures = userEntitlementPairs.map { case (resourceUser, entitlementsBox) =>
+              val userId = resourceUser.userId
+              val entitlements = entitlementsBox.openOr(Nil)
+              val userAsUser: User = resourceUser
+
+              val attributesF = ns.getNonPersonalUserAttributes(userId, None).map(_._1).recover { case _ => Nil }
+              val authContextF = ns.getUserAuthContexts(userId, None).map(_._1).recover { case _ => Nil }
+
+              for {
+                attributes <- attributesF
+                authContext <- authContextF
+              } yield {
+                try {
+                  compiledFunc(
+                    userAsUser, attributes, authContext, entitlements,
+                    None, Nil, Nil, Nil, // onBehalfOfUser
+                    None, Nil, // user
+                    None, Nil, // bank
+                    None, Nil, // account
+                    None, Nil, // transaction
+                    None, Nil, // transactionRequest
+                    None, Nil, // customer
+                    None // callContext
+                  )
+                } catch {
+                  case _: Exception => false
+                }
+              }
+            }
+
+            Future.sequence(evaluationFutures).map { results =>
+              val passCount = results.count(_ == true)
+              val total = results.size
+              passCount.toDouble / total > PermissivenessThreshold
+            }
+          }
+        }
+    }
   }
 
   /**
@@ -322,8 +425,8 @@ object AbacRuleEngine {
     val rules = MappedAbacRuleProvider.getActiveAbacRulesByPolicy(policy)
 
     if (rules.isEmpty) {
-      // No rules for this policy - default to allow
-      Future.successful(Full(true))
+      // No rules for this policy - default to deny
+      Future.successful(Full(false))
     } else {
       // Execute all rules in parallel and check if at least one passes
       val resultFutures = rules.map { rule =>
@@ -356,16 +459,99 @@ object AbacRuleEngine {
   }
 
   /**
+   * Execute all active ABAC rules with a specific policy and return detailed results.
+   * Returns which rule IDs denied access (for error reporting).
+   *
+   * @return Future[Box[(Boolean, List[String])]] - Full((true, Nil)) if any rule passes,
+   *         Full((false, failingRuleIds)) if all fail, Full((false, Nil)) if no rules exist
+   */
+  def executeRulesByPolicyDetailed(
+    policy: String,
+    authenticatedUserId: String,
+    callContext: CallContext,
+    bankId: Option[String] = None,
+    accountId: Option[String] = None,
+    viewId: Option[String] = None
+  ): Future[Box[(Boolean, List[String])]] = {
+    val rules = MappedAbacRuleProvider.getActiveAbacRulesByPolicy(policy)
+
+    if (rules.isEmpty) {
+      // No rules for this policy - default to deny
+      Future.successful(Full((false, Nil)))
+    } else {
+      // Execute all rules in parallel and collect results with rule IDs
+      val resultFutures = rules.map { rule =>
+        executeRule(
+          ruleId = rule.abacRuleId,
+          authenticatedUserId = authenticatedUserId,
+          callContext = callContext,
+          bankId = bankId,
+          accountId = accountId,
+          viewId = viewId
+        ).map(result => (rule.abacRuleId, result))
+      }
+
+      Future.sequence(resultFutures).map { results =>
+        val passed = results.exists {
+          case (_, Full(true)) => true
+          case _ => false
+        }
+
+        if (passed) {
+          Full((true, Nil))
+        } else {
+          val failingRuleIds = results.collect {
+            case (ruleId, Full(false)) => ruleId
+            case (ruleId, Failure(_, _, _)) => ruleId
+            case (ruleId, Empty) => ruleId
+          }
+          Full((false, failingRuleIds.toList))
+        }
+      }
+    }
+  }
+
+  /**
    * Validate ABAC rule code by attempting to compile it
    *
    * @param ruleCode The Scala code to validate
    * @return Box[String] - Full("OK") if valid, Failure with error message if invalid
    */
   def validateRuleCode(ruleCode: String): Box[String] = {
-    compileRuleInternal(ruleCode) match {
-      case Full(_) => Full("ABAC rule code is valid")
-      case Failure(msg, _, _) => Failure(s"Invalid ABAC rule code: $msg")
-      case Empty => Failure("Failed to validate ABAC rule code")
+    if (isTooPermissive(ruleCode)) {
+      Failure("ABAC rule is too permissive: the rule code contains a tautological expression that would always grant access. Please write a rule that checks specific attributes.")
+    } else {
+      compileRuleInternal(ruleCode) match {
+        case Full(_) => Full("ABAC rule code is valid")
+        case Failure(msg, _, _) => Failure(s"Invalid ABAC rule code: $msg")
+        case Empty => Failure("Failed to validate ABAC rule code")
+      }
+    }
+  }
+
+  /**
+   * Async validation that includes both sync checks (regex + compilation) and
+   * the statistical permissiveness check against real system users.
+   *
+   * @param ruleCode The Scala code to validate
+   * @return Future[Box[String]] - Full("ABAC rule code is valid") if valid, Failure with error message if invalid
+   */
+  def validateRuleCodeAsync(ruleCode: String): Future[Box[String]] = {
+    val syncResult = validateRuleCode(ruleCode)
+    syncResult match {
+      case f @ Failure(_, _, _) =>
+        Future.successful(f)
+      case Full(_) =>
+        isStatisticallyTooPermissive(ruleCode).map { tooPermissive =>
+          if (tooPermissive)
+            Failure(ErrorMessages.AbacRuleStatisticallyTooPermissive)
+          else
+            Full("ABAC rule code is valid")
+        }.recover {
+          case _ => Failure(ErrorMessages.AbacRuleStatisticallyTooPermissive)
+        }
+      case Empty =>
+        Future.successful(Empty)
     }
   }
 
