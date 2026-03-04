@@ -585,5 +585,176 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-10001")
     }
 
+    scenario("Successfully verify credentials with URL-encoded provider", ApiEndpoint, VersionOfApi) {
+      // Test that URL-encoded provider strings are correctly decoded
+      // e.g., "https%3A%2F%2Faccounts.google.com" -> "https://accounts.google.com"
+      val urlEncodedProvider = "https%3A%2F%2Faccounts.google.com"
+      val decodedProvider = "https://accounts.google.com"
+      val username = "encoded_provider_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@gmail.com"
+
+      // Create a user with the decoded provider
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("Encoded")
+        .provider(decodedProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with URL-encoded provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> urlEncodedProvider  // Send encoded version
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because the provider is decoded correctly")
+        response.code should equal(200)
+
+        And("The response should contain user details with decoded provider")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(decodedProvider)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Successfully verify credentials with provider containing special characters", ApiEndpoint, VersionOfApi) {
+      // Test providers with special characters that need URL encoding
+      // e.g., "https://example.com/path?query=value&other=123"
+      val providerWithSpecialChars = "https://example.com/oauth?client_id=123&redirect=https://app.com"
+      val urlEncodedProvider = java.net.URLEncoder.encode(providerWithSpecialChars, "UTF-8")
+      val username = "special_chars_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@example.com"
+
+      // Create a user with the provider containing special characters
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("SpecialChars")
+        .provider(providerWithSpecialChars)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with URL-encoded provider containing special characters")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> urlEncodedProvider  // Send encoded version
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because the provider is decoded correctly")
+        response.code should equal(200)
+
+        And("The response should contain user details with decoded provider")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(providerWithSpecialChars)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Verify credentials with non-encoded provider should still work", ApiEndpoint, VersionOfApi) {
+      // Test that non-encoded providers (the normal case) still work correctly
+      val normalProvider = "https://github.com/login/oauth"
+      val username = "non_encoded_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@github.com"
+
+      // Create a user with a normal (non-encoded) provider
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("NonEncoded")
+        .provider(normalProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with non-encoded provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> normalProvider  // Send non-encoded version
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because non-encoded providers work normally")
+        response.code should equal(200)
+
+        And("The response should contain user details")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(normalProvider)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("URL-encoded provider mismatch should fail with 401", ApiEndpoint, VersionOfApi) {
+      // Test that even with URL encoding, provider mismatch is detected
+      val actualProvider = "https://accounts.google.com"
+      val wrongProvider = "https://github.com/login/oauth"
+      val urlEncodedWrongProvider = java.net.URLEncoder.encode(wrongProvider, "UTF-8")
+      val username = "encoded_mismatch_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@gmail.com"
+
+      // Create a user with Google provider
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("Mismatch")
+        .provider(actualProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with URL-encoded wrong provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> urlEncodedWrongProvider  // Send encoded wrong provider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 401 because provider mismatch is detected after decoding")
+        response.code should equal(401)
+        response.body.extract[ErrorMessage].message should include("OBP-20004")
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
   }
 }
