@@ -431,6 +431,8 @@ import net.liftweb.util.Helpers._
 
   /**Marking the locked state to show different error message */
   val usernameLockedStateCode = Long.MaxValue
+  /**Marking the email not validated state to show different error message */
+  val userEmailNotValidatedStateCode = Long.MaxValue - 1
 
   val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
@@ -763,7 +765,7 @@ import net.liftweb.util.Helpers._
       case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
         if (!user.validated_?) {
           logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $provider")
-          Empty
+          Full(userEmailNotValidatedStateCode)
         }
         else if (LoginAttempt.userIsLocked(user.getProvider(), username)) {
           logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $provider")
