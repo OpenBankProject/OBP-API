@@ -2374,6 +2374,19 @@ trait APIMethods510 {
             }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ = logger.info(s"createConsent says: userId=${user.userId}, userName=${user.name}, requestedEntitlements=${requestedEntitlements.map(re => s"(role_name=${re.role_name}, bank_id=${re.bank_id})")}, myEntitlements=${myEntitlements.getOrElse(Nil).map(e => s"(roleName=${e.roleName}, bankId=${e.bankId})")}")
+            _ = {
+              val myEnts = myEntitlements.getOrElse(Nil)
+              requestedEntitlements.foreach { re =>
+                val matched = myEnts.exists(e => e.roleName == re.role_name && e.bankId == re.bank_id)
+                logger.info(s"createConsent says: checking requested role_name=${re.role_name}, bank_id='${re.bank_id}' => matched=$matched")
+                if (!matched) {
+                  myEnts.foreach { e =>
+                    logger.info(s"createConsent says: comparing with roleName=${e.roleName}, bankId='${e.bankId}' => nameMatch=${e.roleName == re.role_name}, bankIdMatch=${e.bankId == re.bank_id}")
+                  }
+                }
+              }
+            }
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContext) {
               requestedEntitlements.forall(
                 re => myEntitlements.getOrElse(Nil).exists(
