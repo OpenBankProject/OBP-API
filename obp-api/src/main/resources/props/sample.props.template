@@ -1114,9 +1114,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
-# Scopes can also be used as an alternative to User Entitlements
-# i.e. instead of asking every user to have a Role, you can give the Role(s) to a Consumer in the form of a Scope
-# allow_entitlements_or_scopes=false
+# Scopes can also be used as an alternative to User Entitlements on a per-endpoint basis.
+# Set authMode = UserOrApplication on individual ResourceDoc instances to allow
+# consumer scopes OR user entitlements for that endpoint.
 # ---------------------------------------------------------------
 
 # -- Just in Time Entitlements -------------------------------

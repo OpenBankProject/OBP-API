@@ -79,8 +79,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
 
       Then("We should get a 401")
       response.code should equal(401)
-      And("The error message should indicate authentication is required")
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
+      And("The error message should indicate application not identified (UserOrApplication mode requires at least app auth)")
+      response.body.extract[ErrorMessage].message should include("OBP-20200")
     }
 
     scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
