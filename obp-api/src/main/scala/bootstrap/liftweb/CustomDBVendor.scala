@@ -30,7 +30,7 @@ class CustomDBVendor(driverName: String,
     val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout")
     val maximumPoolSize = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize")
     val idleTimeout = APIUtil.getPropsAsLongValue("hikari.idleTimeout")
-    val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime")
+    val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime", 30000L)
     val maxLifetime = APIUtil.getPropsAsLongValue("hikari.maxLifetime")
 
     if(connectionTimeout.isDefined){
@@ -42,9 +42,7 @@ class CustomDBVendor(driverName: String,
     if(idleTimeout.isDefined){
       config.setIdleTimeout(idleTimeout.head)
     }
-    if(keepaliveTime.isDefined){
-      config.setKeepaliveTime(keepaliveTime.head)
-    }
+    config.setKeepaliveTime(keepaliveTime)
     if(maxLifetime.isDefined){
       config.setMaxLifetime(maxLifetime.head)
     }

@@ -37,7 +37,10 @@ connector=star
 #hikari.connectionTimeout=
 #hikari.maximumPoolSize=
 #hikari.idleTimeout=
-#hikari.keepaliveTime=
+# keepaliveTime must be set below the database/firewall idle TCP timeout to prevent stale-connection
+# failures on the first call after a period of inactivity. HikariCP will ping each idle connection
+# at this interval (in ms), keeping it alive. Recommended: 30000 (30s) when DB/firewall timeout is ~60s.
+#hikari.keepaliveTime=30000
 #hikari.maxLifetime=
 
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka.
