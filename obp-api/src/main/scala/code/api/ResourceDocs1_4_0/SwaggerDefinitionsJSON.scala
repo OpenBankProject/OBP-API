@@ -2635,6 +2635,8 @@ object SwaggerDefinitionsJSON {
     provider_id = providerIdValueExample.value,
     provider = providerValueExample.value,
     username = usernameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     entitlements = entitlementJSONs,
     views = Some(viewsJSON300),
     agreements = Some(List(userAgreementJson)),
@@ -2647,6 +2649,22 @@ object SwaggerDefinitionsJSON {
 
   lazy val usersInfoJsonV600 = UsersInfoJsonV600(
     users = List(userInfoJsonV600)
+  )
+
+  lazy val userWithNamesJsonV510 = UserWithNamesJsonV510(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
+    entitlements = entitlementJSONs,
+    views = Some(viewsJSON300),
+    agreements = Some(List(userAgreementJson)),
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )
 
   lazy val migrationScriptLogJsonV600 = MigrationScriptLogJsonV600(

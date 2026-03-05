@@ -1852,6 +1852,9 @@ trait APIMethods600 {
             if (agreementList.isEmpty) None else Some(agreementList)
           }
           isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+          authUser = code.model.dataAccess.AuthUser.find(
+            By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
+          )
           // Fetch metrics data for the user
           userMetrics <- Future {
             code.metrics.MappedMetric.findAll(
@@ -1863,7 +1866,16 @@ trait APIMethods600 {
           lastActivityDate = userMetrics.headOption.map(_.getDate())
           recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
         } yield {
-          (JSONFactory600.createUserInfoJsonV600(user, entitlements, agreements, isLocked, lastActivityDate, recentOperationIds), HttpCode.`200`(callContext))
+          (JSONFactory600.createUserInfoJsonV600(
+            user,
+            authUser.map(_.firstName.get).getOrElse(""),
+            authUser.map(_.lastName.get).getOrElse(""),
+            entitlements,
+            agreements,
+            isLocked,
+            lastActivityDate,
+            recentOperationIds
+          ), HttpCode.`200`(callContext))
         }
       }
     }

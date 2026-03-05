@@ -40,8 +40,14 @@ import code.api.v2_1_0.ResourceUserJSON
 import code.api.v3_0_0.JSONFactory300.{createLocationJson, createMetaJson, transformToAddressFromV300}
 import code.api.v3_0_0.{AddressJsonV300, OpeningTimesV300}
 import code.api.v3_1_0.{CallLimitJson, RateLimit, RedisCallLimitJson}
-import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v3_0_0.ViewsJSON300
+import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, UserAgreementJson}
 import code.api.v5_0_0.PostConsentRequestJsonV500
+import code.entitlement.Entitlement
+import code.model.dataAccess.AuthUser
+import code.users.UserAgreement
+import net.liftweb.mapper.By
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.consent.MappedConsent
@@ -661,6 +667,22 @@ case class TransactionRequestStatusJsonV510(transaction_request_id: String, stat
 case class SyncExternalUserJson(user_id: String)
 
 case class UserValidatedJson(is_validated: Boolean)
+
+case class UserWithNamesJsonV510(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    first_name: String,
+    last_name: String,
+    entitlements: EntitlementJSONs,
+    views: Option[ViewsJSON300],
+    agreements: Option[List[UserAgreementJson]],
+    is_deleted: Boolean,
+    last_marketing_agreement_signed_date: Option[Date],
+    is_locked: Boolean
+)
 
 
 case class BankAccountBalanceRequestJsonV510(
@@ -1344,6 +1366,33 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     )
 
 
+  }
+
+  def createUserWithNamesJSON(
+      user: User,
+      firstName: String,
+      lastName: String,
+      entitlements: List[Entitlement],
+      agreements: Option[List[UserAgreement]],
+      isLocked: Boolean
+  ): UserWithNamesJsonV510 = {
+    UserWithNamesJsonV510(
+      user_id = user.userId,
+      email = user.emailAddress,
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      username = stringOrNull(user.name),
+      first_name = firstName,
+      last_name = lastName,
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
+      views = None,
+      agreements = agreements.map(
+        _.map(i => UserAgreementJson(`type` = i.agreementType, text = i.agreementText))
+      ),
+      is_deleted = user.isDeleted.getOrElse(false),
+      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate,
+      is_locked = isLocked
+    )
   }
 
 }
