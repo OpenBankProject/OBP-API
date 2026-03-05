@@ -2,6 +2,7 @@ package code.api.v6_0_0
 
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole.CanVerifyUserCredentials
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.{InvalidLoginCredentials, UserHasMissingRoles, UsernameHasBeenLocked}
@@ -9,6 +10,7 @@ import code.api.v6_0_0.APIMethods600.Implementations6_0_0
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
+import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -97,6 +99,31 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.code should equal(403)
       And("The error message should indicate missing role")
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanVerifyUserCredentials)
+    }
+
+    scenario("Successfully verify valid credentials with consumer scope (no user entitlement)", ApiEndpoint, VersionOfApi) {
+      // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
+      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanVerifyUserCredentials.toString)
+
+      When("We verify valid credentials using consumer with scope")
+      val postJson = Map(
+        "username" -> testUsername,
+        "password" -> testPassword,
+        "provider" -> Constant.localIdentityProvider
+      )
+      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+      val response = try {
+        makePostRequest(request, write(postJson))
+      } finally {
+        Scope.scope.vend.deleteScope(addedScope)
+      }
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The response should contain user details")
+      val json = response.body
+      (json \ "username").extract[String] should equal(testUsername)
     }
 
     scenario("Successfully verify valid credentials", ApiEndpoint, VersionOfApi) {
