@@ -914,15 +914,6 @@ def restoreSomeSessions(): Unit = {
       case _ => S.redirectTo(homePage)
     }
   }
-  /**  
-    * The user authentications is not exciting in obp side, it need get the user via connector
-    */
- def testExternalPassword(usernameFromGui: String, passwordFromGui: String): Boolean = {
-   checkExternalUserViaConnector(usernameFromGui, passwordFromGui) match {
-     case Full(user:AuthUser) => true
-     case _ => false
-   }
-  }
 
   /**
     * This method will update the views and createAccountHolder ....
