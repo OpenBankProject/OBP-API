@@ -16,9 +16,8 @@ import org.scalatest.{BeforeAndAfter, Matchers}
  * These tests verify universal properties that should hold across all authentication scenarios.
  * Note: This file provides test infrastructure. Property tests are optional and can be implemented later.
  */
-class AuthenticationPropertyTest extends FlatSpec 
+class AuthenticationPropertyTest extends ServerSetup 
   with Matchers 
-  with ServerSetup 
   with BeforeAndAfter {
 
   // ============================================================================
