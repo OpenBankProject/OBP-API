@@ -287,16 +287,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-provider.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Disable connector authentication
-        System.setProperty("connector.user.authentication", "false")
+        setPropsValues("connector.user.authentication" -> "false")
         
         val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
           .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
@@ -313,12 +309,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         attemptsAfter should be > attemptsBefore
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -410,16 +401,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_valid_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         When("Authentication is attempted with valid credentials")
         // Note: This test will call externalUserHelper which requires a real connector
@@ -454,12 +441,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         // This is tested by checking the logger output in the implementation
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -470,16 +452,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val correctPassword = TestPasswordConfig.VALID_PASSWORD
       val wrongPassword = TestPasswordConfig.INVALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, correctPassword, externalProvider, validated = true)
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
           .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
@@ -499,12 +477,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         // Log message: "getResourceUserId says: external connector auth failed"
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -514,10 +487,6 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_locked_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user and lock it
         val user = createTestUser(username, password, externalProvider, validated = true)
@@ -531,7 +500,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         LoginAttempt.userIsLocked(externalProvider, username) shouldBe true
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
           .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
@@ -559,12 +528,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         // Log message: "getResourceUserId says: external user is locked"
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -574,16 +538,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_disabled_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Disable connector authentication
-        System.setProperty("connector.user.authentication", "false")
+        setPropsValues("connector.user.authentication" -> "false")
         
         val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
           .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
@@ -603,12 +563,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         // Log message: "getResourceUserId says: connector.user.authentication is false"
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -618,16 +573,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_logging_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         When("Authentication is attempted")
         val result = AuthUser.getResourceUserId(username, password, externalProvider)
@@ -658,12 +609,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         }
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -673,16 +619,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_helper_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         When("Authentication is attempted")
         val result = AuthUser.getResourceUserId(username, password, externalProvider)
@@ -705,12 +647,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         }
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
@@ -940,16 +877,12 @@ class AuthenticationRefactorTest extends FeatureSpec
       val username = s"external_provider_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
       val externalProvider = "https://external-auth.example.com"
-      
-      // Save original property value
-      val originalValue = System.getProperty("connector.user.authentication")
-      
       try {
         // Create an external user
         val user = createTestUser(username, password, externalProvider, validated = true)
         
         // Enable connector authentication
-        System.setProperty("connector.user.authentication", "true")
+        setPropsValues("connector.user.authentication" -> "true")
         
         When("getResourceUserId is called with the external provider")
         val resourceUserIdBox = AuthUser.getResourceUserId(username, password, externalProvider)
@@ -982,12 +915,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         info("Endpoint correctly decodes URL-encoded provider parameter")
         
       } finally {
-        // Restore original property value
-        if (originalValue != null) {
-          System.setProperty("connector.user.authentication", originalValue)
-        } else {
-          System.clearProperty("connector.user.authentication")
-        }
+        // Props will be reset automatically by PropsReset trait
         cleanupTestUser(username, externalProvider)
       }
     }
