@@ -2635,6 +2635,8 @@ object SwaggerDefinitionsJSON {
     provider_id = providerIdValueExample.value,
     provider = providerValueExample.value,
     username = usernameExample.value,
+    firstname = ExampleValue.firstNameExample.value,
+    lastname = ExampleValue.lastNameExample.value,
     entitlements = entitlementJSONs,
     views = Some(viewsJSON300),
     agreements = Some(List(userAgreementJson)),

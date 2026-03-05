@@ -57,6 +57,9 @@ class GetUserByUserIdTest extends V600ServerSetup with DefaultUsers {
 
       And("The response should contain user details")
       (response.body \ "user_id").extract[String] should equal(resourceUser1.userId)
+      And("The response should include firstname and lastname fields")
+      response.body \ "firstname" should not equal net.liftweb.json.JNothing
+      response.body \ "lastname" should not equal net.liftweb.json.JNothing
     }
 
   }

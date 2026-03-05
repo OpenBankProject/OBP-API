@@ -37,8 +37,9 @@ import code.apiproductattribute.ApiProductAttributeTrait
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
 import code.model.ModeratedBankAccountCore
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.UserAgreement
+import net.liftweb.mapper.By
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{
   AmountOfMoneyJsonV121,
@@ -249,6 +250,8 @@ case class UserInfoJsonV600(
     provider_id: String,
     provider: String,
     username: String,
+    firstname: String,
+    lastname: String,
     entitlements: EntitlementJSONs,
     views: Option[ViewsJSON300],
     agreements: Option[List[UserAgreementJson]],
@@ -1093,6 +1096,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createUserInfoJsonV600(
       user: User,
+      firstName: String,
+      lastName: String,
       entitlements: List[Entitlement],
       agreements: Option[List[UserAgreement]],
       isLocked: Boolean,
@@ -1105,6 +1110,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
       provider = stringOrNull(user.provider),
+      firstname = firstName,
+      lastname = lastName,
       entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
       views = None,
       agreements = agreements.map(
@@ -1156,16 +1163,19 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       ]
   ): UsersInfoJsonV600 = {
     UsersInfoJsonV600(
-      users.map(t =>
+      users.map { t =>
+        val authUser = AuthUser.find(By(AuthUser.user, t._1.id.get))
         createUserInfoJsonV600(
           t._1,
+          authUser.map(_.firstName.get).getOrElse(""),
+          authUser.map(_.lastName.get).getOrElse(""),
           t._2.getOrElse(Nil),
           t._3,
           LoginAttempt.userIsLocked(t._1.provider, t._1.name),
           None,
           List.empty
         )
-      )
+      }
     )
   }
 
