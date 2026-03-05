@@ -28,25 +28,22 @@ class EndpointAuthModeTest extends V600ServerSetup {
     }
 
     scenario("verifyUserCredentials ResourceDoc should have UserOrApplication authMode", VersionOfApi) {
-      val verifyCredsDocs = ResourceDoc.operationIdToResourceDoc.values().toArray
-        .collect { case rd: ResourceDoc => rd }
-        .filter(_.partialFunctionName == "verifyUserCredentials")
+      val operationId = s"${ApiVersion.v6_0_0.toString}-verifyUserCredentials"
+      val docs = ResourceDoc.getResourceDocs(List(operationId))
 
-      verifyCredsDocs should not be empty
-      verifyCredsDocs.foreach { doc =>
+      docs should not be empty
+      docs.foreach { doc =>
         doc.authMode should equal(UserOrApplication)
         doc.errorResponseBodies should contain(ApplicationNotIdentified)
       }
     }
 
     scenario("Default authMode should be UserOnly for existing endpoints", VersionOfApi) {
-      // Pick a known existing endpoint that doesn't set authMode explicitly
-      val getApiInfoDocs = ResourceDoc.operationIdToResourceDoc.values().toArray
-        .collect { case rd: ResourceDoc => rd }
-        .filter(_.partialFunctionName == "getApiInfo")
+      val operationId = s"${ApiVersion.v6_0_0.toString}-getApiInfo"
+      val docs = ResourceDoc.getResourceDocs(List(operationId))
 
-      getApiInfoDocs should not be empty
-      getApiInfoDocs.foreach { doc =>
+      docs should not be empty
+      docs.foreach { doc =>
         doc.authMode should equal(UserOnly)
       }
     }
