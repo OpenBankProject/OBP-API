@@ -3998,7 +3998,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:8087"),
     "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
-    "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000")
+    "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
+    "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
   )
   val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted
   // Register defaults so they appear in getConfigPropsPairs

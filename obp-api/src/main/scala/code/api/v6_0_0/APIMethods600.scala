@@ -2253,11 +2253,10 @@ trait APIMethods600 {
       JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP", "google.com")),
       List(
         $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
         UnknownError
       ),
       List(apiTagUser),
-      Some(List(canGetProviders))
+      None
     )
 
     lazy val getProviders: OBPEndpoint = {
@@ -2265,7 +2264,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetProviders, callContext)
             providers <- Future { code.model.dataAccess.ResourceUser.getDistinctProviders }
           } yield {
             (JSONFactory600.createProvidersJson(providers), HttpCode.`200`(callContext))
@@ -8751,8 +8749,12 @@ trait APIMethods600 {
     lazy val verifyUserCredentials: OBPEndpoint = {
       case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
+          // TODO: Consider allowing Client Credentials (app-level) auth instead of user-level auth,
+          // so the caller doesn't need to be logged in as a user (which is circular for credential verification).
+          // TODO: Add rate limiting / anti-DOS protection for this endpoint to prevent credential enumeration/spamming.
           for {
-            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, Some(cc)) {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
@@ -8787,27 +8789,27 @@ trait APIMethods600 {
                 }
               }
             // Check if account is locked
-            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, Some(cc)) {
+            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
             }
             // Check if credentials are valid
             resourceUserId <- Future {
               resourceUserIdBox
             } map {
-              x => unboxFullOrFail(x, Some(cc), s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
             }
             // Get the user object
             user <- Future {
               Users.users.vend.getUserByResourceUserId(resourceUserId)
             } map {
-              x => unboxFullOrFail(x, Some(cc), s"$InvalidLoginCredentials User account not found in system.", 401)
+              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials User account not found in system.", 401)
             }
             // Verify provider matches if specified and not empty
-            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, Some(cc)) {
+            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
               postedData.provider.isEmpty || user.provider == postedData.provider
             }
           } yield {
-            (JSONFactory200.createUserJSON(user), HttpCode.`200`(Some(cc)))
+            (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
           }
       }
     }
