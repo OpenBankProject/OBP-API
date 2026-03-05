@@ -128,76 +128,74 @@ class AuthenticationPropertyTest extends ServerSetup
     LoginAttempt.resetBadLoginAttempts(provider, username)
   }
 
-  /**
-   * Gets the current bad login attempt count for a user
-   * @param username The username to check
-   * @param provider The authentication provider
-   * @return The number of bad login attempts
-   */
-  def getBadLoginAttemptCount(username: String, provider: String = localIdentityProvider): Int = {
-    LoginAttempt.getBadLoginAttempts(provider, username)
-  }
-
   // ============================================================================
   // Basic Infrastructure Tests
   // ============================================================================
 
-  "Test infrastructure" should "be set up correctly" in {
-    val username = generateUsername()
-    val password = generatePassword()
-    
-    username should not be empty
-    password.length should be >= 8
-  }
-
-  "Test user creation and cleanup" should "work correctly" in {
-    val testUsername = s"test_${randomString(10)}"
-    val password = generatePassword()
-    
-    try {
-      // Create test user
-      val user = createTestUser(testUsername, password)
-      user.username.get shouldBe testUsername
-      user.validated.get shouldBe true
+  feature("Test infrastructure") {
+    scenario("should be set up correctly") {
+      val username = generateUsername()
+      val password = generatePassword()
       
-      // Verify user exists
-      val foundUser = AuthUser.find(By(AuthUser.username, testUsername), By(AuthUser.provider, localIdentityProvider))
-      foundUser.isDefined shouldBe true
-    } finally {
-      // Cleanup
-      cleanupTestUser(testUsername)
+      username should not be empty
+      password.length should be >= 8
     }
   }
 
-  "Locked user creation" should "work correctly" in {
-    val testUsername = s"locked_${randomString(10)}"
-    val password = generatePassword()
-    
-    try {
-      // Create locked user
-      val user = createLockedUser(testUsername, password)
+  feature("Test user creation and cleanup") {
+    scenario("should work correctly") {
+      val testUsername = s"test_${randomString(10)}"
+      val password = generatePassword()
       
-      // Verify user is locked
-      LoginAttempt.userIsLocked(localIdentityProvider, testUsername) shouldBe true
-    } finally {
-      // Cleanup
-      cleanupTestUser(testUsername)
+      try {
+        // Create test user
+        val user = createTestUser(testUsername, password)
+        user.username.get shouldBe testUsername
+        user.validated.get shouldBe true
+        
+        // Verify user exists
+        val foundUser = AuthUser.find(By(AuthUser.username, testUsername), By(AuthUser.provider, localIdentityProvider))
+        foundUser.isDefined shouldBe true
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
     }
   }
 
-  "Unvalidated user creation" should "work correctly" in {
-    val testUsername = s"unvalidated_${randomString(10)}"
-    val password = generatePassword()
-    
-    try {
-      // Create unvalidated user
-      val user = createUnvalidatedUser(testUsername, password)
+  feature("Locked user creation") {
+    scenario("should work correctly") {
+      val testUsername = s"locked_${randomString(10)}"
+      val password = generatePassword()
       
-      // Verify user is not validated
-      user.validated.get shouldBe false
-    } finally {
-      // Cleanup
-      cleanupTestUser(testUsername)
+      try {
+        // Create locked user
+        val user = createLockedUser(testUsername, password)
+        
+        // Verify user is locked
+        LoginAttempt.userIsLocked(localIdentityProvider, testUsername) shouldBe true
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
+    }
+  }
+
+  feature("Unvalidated user creation") {
+    scenario("should work correctly") {
+      val testUsername = s"unvalidated_${randomString(10)}"
+      val password = generatePassword()
+      
+      try {
+        // Create unvalidated user
+        val user = createUnvalidatedUser(testUsername, password)
+        
+        // Verify user is not validated
+        user.validated.get shouldBe false
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
     }
   }
 }

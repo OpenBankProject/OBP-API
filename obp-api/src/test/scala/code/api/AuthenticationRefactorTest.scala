@@ -100,16 +100,6 @@ class AuthenticationRefactorTest extends FeatureSpec
     LoginAttempt.resetBadLoginAttempts(provider, username)
   }
 
-  /**
-   * Gets the current bad login attempt count for a user
-   * @param username The username to check
-   * @param provider The authentication provider
-   * @return The number of bad login attempts
-   */
-  def getBadLoginAttemptCount(username: String, provider: String = localIdentityProvider): Int = {
-    LoginAttempt.getBadLoginAttempts(provider, username)
-  }
-
   // ============================================================================
   // Unit Tests - Edge Cases and Specific Scenarios
   // ============================================================================
