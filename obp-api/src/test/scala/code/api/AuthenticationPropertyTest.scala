@@ -22,58 +22,35 @@ class AuthenticationPropertyTest extends FlatSpec
   with BeforeAndAfter {
 
   // ============================================================================
-  // Test Data Generators
+  // Test Data Generators (Simplified - no ScalaCheck)
   // ============================================================================
 
   /**
-   * Generator for valid usernames
-   * Generates alphanumeric strings with optional spaces
+   * Generate a random valid username
    */
-  val usernameGen: Gen[String] = for {
-    prefix <- Gen.alphaNumStr.suchThat(_.nonEmpty)
-    suffix <- Gen.option(Gen.const(" ") |+| Gen.alphaNumStr)
-  } yield prefix + suffix.getOrElse("")
+  def generateUsername(): String = {
+    s"user_${randomString(8)}"
+  }
 
   /**
-   * Generator for passwords
-   * Generates strings of at least 8 characters
+   * Generate a random password
    */
-  val passwordGen: Gen[String] = Gen.alphaNumStr.suchThat(_.length >= 8)
+  def generatePassword(): String = {
+    randomString(12)
+  }
 
   /**
-   * Generator for authentication providers
-   * Generates local provider or external provider URLs
+   * Generate a random provider
    */
-  val providerGen: Gen[String] = Gen.oneOf(
-    localIdentityProvider,
-    "https://auth.example.com",
-    "https://external-idp.com",
-    "https://sso.company.com"
-  )
-
-  /**
-   * Generator for authentication scenarios
-   * Represents all possible authentication states
-   */
-  case class AuthScenario(
-    username: String,
-    password: String,
-    provider: String,
-    userExists: Boolean,
-    passwordCorrect: Boolean,
-    userLocked: Boolean,
-    emailValidated: Boolean
-  )
-
-  val authScenarioGen: Gen[AuthScenario] = for {
-    username <- usernameGen
-    password <- passwordGen
-    provider <- providerGen
-    userExists <- Gen.oneOf(true, false)
-    passwordCorrect <- Gen.oneOf(true, false)
-    userLocked <- Gen.oneOf(true, false)
-    emailValidated <- Gen.oneOf(true, false)
-  } yield AuthScenario(username, password, provider, userExists, passwordCorrect, userLocked, emailValidated)
+  def generateProvider(): String = {
+    val providers = List(
+      localIdentityProvider,
+      "https://auth.example.com",
+      "https://external-idp.com",
+      "https://sso.company.com"
+    )
+    providers(scala.util.Random.nextInt(providers.length))
+  }
 
   // ============================================================================
   // Test Data Setup Utilities
