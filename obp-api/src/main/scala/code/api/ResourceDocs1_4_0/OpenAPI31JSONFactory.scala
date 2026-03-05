@@ -653,9 +653,11 @@ object OpenAPI31JSONFactory extends MdcLoggable {
    */
   private def requiresAuthentication(doc: ResourceDocJson): Boolean = {
     doc.error_response_bodies.exists(_.contains("AuthenticatedUserIsRequired")) ||
+    doc.error_response_bodies.exists(_.contains("ApplicationNotIdentified")) ||
     doc.roles.nonEmpty ||
     doc.description.toLowerCase.contains("authentication is required") ||
-    doc.description.toLowerCase.contains("user must be logged in")
+    doc.description.toLowerCase.contains("user must be logged in") ||
+    doc.description.toLowerCase.contains("application access is required")
   }
 
   /**

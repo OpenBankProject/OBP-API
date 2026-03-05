@@ -8787,7 +8787,7 @@ trait APIMethods600 {
          |This endpoint validates the provided credentials without creating a token or session.
          |It can be used to verify user credentials in external systems.
          |
-         |${userAuthenticationMessage(true)}
+         |${applicationAccessMessage(true)}
          |
          |""",
       PostVerifyUserCredentialsJsonV600(
@@ -8797,7 +8797,6 @@ trait APIMethods600 {
       ),
       userJsonV200,
       List(
-        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidLoginCredentials,
@@ -8805,17 +8804,15 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagUser),
-      Some(List(canVerifyUserCredentials))
+      Some(List(canVerifyUserCredentials)),
+      authMode = UserOrApplication
     )
 
     lazy val verifyUserCredentials: OBPEndpoint = {
       case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          // TODO: Consider allowing Client Credentials (app-level) auth instead of user-level auth,
-          // so the caller doesn't need to be logged in as a user (which is circular for credential verification).
-          // TODO: Add rate limiting / anti-DOS protection for this endpoint to prevent credential enumeration/spamming.
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
+            callContext <- Future.successful(Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
