@@ -590,7 +590,8 @@ HEADER
 
         # Strategy 2: For failures without file references, find the test class header
         # ScalaTest prints "ClassName:" before its scenarios
-        grep -n "\*\*\* FAILED \*\*\*" "${stripped_log}" | cut -d: -f1 | while read failure_line; do
+        # Exclude summary lines like "*** 2 TESTS FAILED ***" which aren't individual test failures
+        grep -n "\*\*\* FAILED \*\*\*" "${stripped_log}" | grep -v "TESTS FAILED" | cut -d: -f1 | while read failure_line; do
             head -n "$failure_line" "${stripped_log}" | \
                 grep -E '^[A-Z][a-zA-Z0-9_]*(Test|Tests|Suite):$' | \
                 tail -1 | sed 's/:$//'
