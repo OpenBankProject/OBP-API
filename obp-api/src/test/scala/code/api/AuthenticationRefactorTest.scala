@@ -166,7 +166,8 @@ class AuthenticationRefactorTest extends FeatureSpec
       val password = TestPasswordConfig.VALID_PASSWORD
       
       try {
-        val attemptsBefore = getBadLoginAttemptCount(username)
+        val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         
         When("Authentication is attempted")
         val result = AuthUser.getResourceUserId(username, password, localIdentityProvider)
@@ -175,7 +176,8 @@ class AuthenticationRefactorTest extends FeatureSpec
         result shouldBe Empty
         
         And("Bad login attempts should be incremented")
-        val attemptsAfter = getBadLoginAttemptCount(username)
+        val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         attemptsAfter should be > attemptsBefore
         
       } finally {
@@ -191,7 +193,8 @@ class AuthenticationRefactorTest extends FeatureSpec
       
       try {
         val user = createTestUser(username, correctPassword)
-        val attemptsBefore = getBadLoginAttemptCount(username)
+        val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         
         When("Authentication is attempted with wrong password")
         val result = AuthUser.getResourceUserId(username, wrongPassword, localIdentityProvider)
@@ -200,7 +203,8 @@ class AuthenticationRefactorTest extends FeatureSpec
         result shouldBe Empty
         
         And("Bad login attempts should be incremented")
-        val attemptsAfter = getBadLoginAttemptCount(username)
+        val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         attemptsAfter should be > attemptsBefore
         
       } finally {
@@ -219,7 +223,8 @@ class AuthenticationRefactorTest extends FeatureSpec
         // Create some failed attempts
         LoginAttempt.incrementBadLoginAttempts(localIdentityProvider, username)
         LoginAttempt.incrementBadLoginAttempts(localIdentityProvider, username)
-        val attemptsBefore = getBadLoginAttemptCount(username)
+        val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         attemptsBefore should be > 0
         
         When("Authentication succeeds with correct password")
@@ -235,7 +240,8 @@ class AuthenticationRefactorTest extends FeatureSpec
         }
         
         And("Bad login attempts should be reset to 0")
-        val attemptsAfter = getBadLoginAttemptCount(username)
+        val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
+          .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
         attemptsAfter shouldBe 0
         
       } finally {
