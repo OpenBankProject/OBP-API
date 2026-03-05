@@ -7,7 +7,7 @@ import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.setup.{ServerSetup, TestPasswordConfig}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
+import org.scalatest.{BeforeAndAfter, Matchers}
 
 /**
  * Property-based tests for authentication refactoring

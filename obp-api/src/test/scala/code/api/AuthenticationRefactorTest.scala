@@ -107,7 +107,7 @@ class AuthenticationRefactorTest extends FeatureSpec
    * @return The number of bad login attempts
    */
   def getBadLoginAttemptCount(username: String, provider: String = localIdentityProvider): Int = {
-    LoginAttempt.getBadLoginAttempts(provider, username)
+    LoginAttempt.bad(provider, username)
   }
 
   // ============================================================================
