@@ -261,6 +261,22 @@ case class UserInfoJsonV600(
 
 case class UsersInfoJsonV600(users: List[UserInfoJsonV600])
 
+case class UserWithNamesJsonV600(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    firstname: String,
+    lastname: String,
+    entitlements: EntitlementJSONs,
+    views: Option[ViewsJSON300],
+    agreements: Option[List[UserAgreementJson]],
+    is_deleted: Boolean,
+    last_marketing_agreement_signed_date: Option[Date],
+    is_locked: Boolean
+)
+
 case class CreateUserJsonV600(
     email: String,
     username: String,
@@ -1102,6 +1118,35 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       is_locked = isLocked,
       last_activity_date = lastActivityDate,
       recent_operation_ids = recentOperationIds
+    )
+  }
+
+  def createUserWithNamesJSON(
+      user: User,
+      firstName: String,
+      lastName: String,
+      entitlements: List[Entitlement],
+      agreements: Option[List[UserAgreement]],
+      isLocked: Boolean
+  ): UserWithNamesJsonV600 = {
+    UserWithNamesJsonV600(
+      user_id = user.userId,
+      email = user.emailAddress,
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      username = stringOrNull(user.name),
+      firstname = firstName,
+      lastname = lastName,
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
+      views = None,
+      agreements = agreements.map(
+        _.map(i =>
+          UserAgreementJson(`type` = i.agreementType, text = i.agreementText)
+        )
+      ),
+      is_deleted = user.isDeleted.getOrElse(false),
+      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate,
+      is_locked = isLocked
     )
   }
 

@@ -71,6 +71,8 @@ import code.api.util.ExampleValue
 import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
 import net.liftweb.common.Box
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
@@ -8710,6 +8712,66 @@ trait APIMethods600 {
             HttpCode.`200`(cc.callContext)
           )
         }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserByProviderAndUsername,
+      implementedInApiVersion,
+      nameOf(getUserByProviderAndUsername),
+      "GET",
+      "/users/provider/PROVIDER/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by PROVIDER and USERNAME
+         |
+         |Get a User by their authentication provider and username.
+         |
+         |**URL Parameters:**
+         |
+         |* PROVIDER - The authentication provider (e.g., http://127.0.0.1:8080, google.com, OBP)
+         |* USERNAME - The username at that provider (e.g., obpstripe, john.doe)
+         |
+         |**Important:** The PROVIDER parameter can contain special characters like slashes and colons.
+         |For example, if the provider is "http://127.0.0.1:8080", the full URL would be:
+         |
+         |`GET /obp/v6.0.0/users/provider/http://127.0.0.1:8080/username/obpstripe`
+         |
+         |The API will correctly parse the provider value even with these special characters.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required.
+         |
+      """.stripMargin,
+      EmptyBody,
+      userWithNamesJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser))
+    )
+
+    lazy val : OBPEndpoint = {
+      case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(URLDecoder.decode(provider, StandardCharsets.UTF_8), username) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = code.model.dataAccess.AuthUser.find(
+              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
+            )
+          } yield {
+            (JSONFactory600.createUserWithNamesJSON(
+              user,
+              authUser.map(_.firstName.get).getOrElse(""),
+              authUser.map(_.lastName.get).getOrElse(""),
+              entitlements,
+              None,
+              isLocked
+            ), HttpCode.`200`(cc.callContext))
+          }
       }
     }
 

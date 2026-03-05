@@ -2649,6 +2649,22 @@ object SwaggerDefinitionsJSON {
     users = List(userInfoJsonV600)
   )
 
+  lazy val userWithNamesJsonV600 = UserWithNamesJsonV600(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    firstname = ExampleValue.firstNameExample.value,
+    lastname = ExampleValue.lastNameExample.value,
+    entitlements = entitlementJSONs,
+    views = Some(viewsJSON300),
+    agreements = Some(List(userAgreementJson)),
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
+  )
+
   lazy val migrationScriptLogJsonV600 = MigrationScriptLogJsonV600(
     migration_script_log_id = "550e8400-e29b-41d4-a716-446655440000",
     name = "addUniqueIndexOnResourceUserUserId",
