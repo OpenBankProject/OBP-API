@@ -450,6 +450,37 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
 
+    scenario("Login with correct credentials but user email is not validated", ApiEndpoint1, ApiEndpoint2) {
+      lazy val username = "unvalidated.user"
+      lazy val email = randomString(10).toLowerCase + "@example.com"
+      lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
+        format(username, VALID_PW, KEY))
+      
+      Given("A user exists but email is not validated")
+      // Delete the user if exists
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      // Create the user with validated = false
+      AuthUser.create.
+        email(email).
+        username(username).
+        password(VALID_PW).
+        validated(false).
+        firstName(randomString(10)).
+        lastName(randomString(10)).
+        saveMe
+
+      When("we try to login with correct credentials but unvalidated email")
+      lazy val request = directLoginRequest
+      lazy val response = makePostRequestAdditionalHeader(request, "", List(accessControlOriginHeader, header))
+
+      Then("We should get a 401 - Unauthorized")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.UserEmailNotValidated)
+      
+      // Clean up: delete the test user
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+    }
+
 
 
     scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
