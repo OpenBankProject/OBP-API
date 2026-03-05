@@ -2651,7 +2651,7 @@ object SwaggerDefinitionsJSON {
     users = List(userInfoJsonV600)
   )
 
-  lazy val userWithNamesJsonV600 = UserWithNamesJsonV600(
+  lazy val userWithNamesJsonV510 = UserWithNamesJsonV510(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
     provider_id = providerIdValueExample.value,

@@ -2670,7 +2670,7 @@ trait APIMethods510 {
          |
       """.stripMargin,
       EmptyBody,
-      userJsonV400,
+      userWithNamesJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser))
@@ -2685,8 +2685,14 @@ trait APIMethods510 {
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
           } yield {
-            (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
+            (JSONFactory510.createUserWithNamesJSON(
+              user,
+              authUser.map(_.firstName.get).getOrElse(""),
+              authUser.map(_.lastName.get).getOrElse(""),
+              entitlements, None, isLocked
+            ), HttpCode.`200`(cc.callContext))
           }
       }
     }
