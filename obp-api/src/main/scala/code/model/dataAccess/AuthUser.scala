@@ -760,67 +760,79 @@ import net.liftweb.util.Helpers._
 
   def getResourceUserId(username: String, password: String, provider: String = Constant.localIdentityProvider): Box[Long] = {
     logger.info(s"getResourceUserId says: starting for username: $username, provider: $provider")
-    findAuthUserByUsernameAndProvider(username, provider) match {
-      // We have a user from the local provider.
-      case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
-        if (!user.validated_?) {
-          logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $provider")
-          Full(userEmailNotValidatedStateCode)
-        }
-        else if (LoginAttempt.userIsLocked(user.getProvider(), username)) {
-          logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $provider")
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
-          Full(usernameLockedStateCode)
-        }
-        else if (user.testPassword(Full(password))) {
-          logger.info(s"getResourceUserId says: password correct, username: $username, provider: $provider")
-          LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-          Full(user.user.get)
-        }
-        else {
-          logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $provider")
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          Empty
-        }
-      // We have a user from an external provider.
-      case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
-        APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
-            case true if !LoginAttempt.userIsLocked(user.getProvider(), username) =>
-              logger.info(s"getResourceUserId says: external user found, checking via connector, username: $username, provider: ${user.getProvider()}")
-              val userId =
-                for {
-                  authUser <- externalUserHelper(username, password)
-                  resourceUser <- tryo {
-                    authUser.user
-                  }
-                } yield {
-                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-                  resourceUser.get
-                }
-              userId match {
-                case Full(l: Long) =>
-                  logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: ${user.getProvider()}")
-                  Full(l)
-                case _ =>
-                  logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: ${user.getProvider()}")
-                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-                  Empty
-              }
-            case true =>
-              logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: ${user.getProvider()}")
-              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-              Full(usernameLockedStateCode)
-            case false =>
-              logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: ${user.getProvider()}")
-              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-              Empty
+    
+    // First decision: Is this a local or external provider?
+    if (provider == Constant.localIdentityProvider || provider.isEmpty) {
+      // ========================================================================
+      // LOCAL PROVIDER PATH: Validate against local database
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using local provider authentication for username: $username")
+      
+      findAuthUserByUsernameAndProvider(username, Constant.localIdentityProvider) match {
+        case Full(user) =>
+          // User exists in local database
+          if (!user.validated_?) {
+            logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $provider")
+            Full(userEmailNotValidatedStateCode)
           }
-      // Everything else (user not found for this username+provider).
-      case _ =>
-        logger.info(s"getResourceUserId says: user not found, username: $username, provider: $provider")
+          else if (LoginAttempt.userIsLocked(Constant.localIdentityProvider, username)) {
+            logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $provider")
+            LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+            Full(usernameLockedStateCode)
+          }
+          else if (user.testPassword(Full(password))) {
+            logger.info(s"getResourceUserId says: password correct, username: $username, provider: $provider")
+            LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, username)
+            Full(user.user.get)
+          }
+          else {
+            logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $provider")
+            LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+            Empty
+          }
+        
+        case _ =>
+          // User not found in local database
+          logger.info(s"getResourceUserId says: user not found, username: $username, provider: $provider")
+          LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+          Empty
+      }
+      
+    } else {
+      // ========================================================================
+      // EXTERNAL PROVIDER PATH: Validate via connector
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using external provider authentication for username: $username, provider: $provider")
+      
+      // Check if connector authentication is enabled
+      if (!APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
+        logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: $provider")
         LoginAttempt.incrementBadLoginAttempts(provider, username)
         Empty
+      }
+      // Check if user is locked
+      else if (LoginAttempt.userIsLocked(provider, username)) {
+        logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: $provider")
+        LoginAttempt.incrementBadLoginAttempts(provider, username)
+        Full(usernameLockedStateCode)
+      }
+      // Validate via connector
+      else {
+        logger.info(s"getResourceUserId says: calling externalUserHelper for username: $username, provider: $provider")
+        val connectorResult = externalUserHelper(username, password).map(_.user.get)
+        
+        connectorResult match {
+          case Full(userId) =>
+            logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: $provider")
+            LoginAttempt.resetBadLoginAttempts(provider, username)
+            Full(userId)
+          
+          case _ =>
+            logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: $provider")
+            LoginAttempt.incrementBadLoginAttempts(provider, username)
+            Empty
+        }
+      }
     }
   }
 
