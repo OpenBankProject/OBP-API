@@ -40,7 +40,6 @@ import code.kycstatuses.KycStatuses
 import code.meetings.Meetings
 import code.metadata.counterparties.Counterparties
 import code.model._
-import code.model.dataAccess.AuthUser.findAuthUserByUsernameLocallyLegacy
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
@@ -5356,7 +5355,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
   //    : we call that method only when we set external authentication and provider is not OBP-API
   override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
-    findAuthUserByUsernameLocallyLegacy(username).map(user =>
+    AuthUser.findAuthUserByUsernameAndProvider(username, Constant.localIdentityProvider).map(user =>
       InboundExternalUser(aud = "",
         exp = "",
         iat = "",

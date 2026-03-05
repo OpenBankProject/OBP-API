@@ -612,5 +612,172 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-10001")
     }
 
+    scenario("Successfully verify credentials with URL-encoded local provider", ApiEndpoint, VersionOfApi) {
+      // Test that URL-encoded local provider strings are correctly decoded
+      // The local provider constant might be URL-encoded in some scenarios
+      val urlEncodedLocalProvider = java.net.URLEncoder.encode(Constant.localIdentityProvider, "UTF-8")
+      val username = "encoded_local_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@example.com"
+
+      // Create a local user
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("EncodedLocal")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with URL-encoded local provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> urlEncodedLocalProvider  // Send encoded version of local provider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because the local provider is decoded correctly")
+        response.code should equal(200)
+
+        And("The response should contain user details with local provider")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(Constant.localIdentityProvider)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Successfully verify credentials with provider containing special characters", ApiEndpoint, VersionOfApi) {
+      // Test that the provider field correctly handles URL encoding/decoding
+      // In this test, we verify that empty provider (treated as local) works correctly
+      val username = "special_chars_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@example.com"
+
+      // Create a local user (empty provider is treated as local)
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("SpecialChars")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with empty provider (should be treated as local)")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> ""  // Empty provider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because empty provider is treated as local")
+        response.code should equal(200)
+
+        And("The response should contain user details")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(Constant.localIdentityProvider)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("Verify credentials with non-encoded local provider should work", ApiEndpoint, VersionOfApi) {
+      // Test that non-encoded local provider (the normal case) still works correctly
+      val username = "non_encoded_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@example.com"
+
+      // Create a local user
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("NonEncoded")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with non-encoded local provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> Constant.localIdentityProvider  // Send non-encoded local provider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 200 because non-encoded local provider works normally")
+        response.code should equal(200)
+
+        And("The response should contain user details")
+        (response.body \ "username").extract[String] should equal(username)
+        (response.body \ "provider").extract[String] should equal(Constant.localIdentityProvider)
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
+    scenario("URL-encoded provider mismatch should fail with 401", ApiEndpoint, VersionOfApi) {
+      // Test that provider mismatch is detected even with URL encoding
+      // User has local provider, but request sends a different (encoded) provider
+      val wrongProvider = "https://github.com/login/oauth"
+      val urlEncodedWrongProvider = java.net.URLEncoder.encode(wrongProvider, "UTF-8")
+      val username = "encoded_mismatch_test_" + randomString(8).toLowerCase
+      val password = "TestPassword123!"
+      val email = username + "@example.com"
+
+      // Create a local user
+      val testUser = AuthUser.create
+        .email(email)
+        .username(username)
+        .password(password)
+        .validated(true)
+        .firstName("Test")
+        .lastName("Mismatch")
+        .provider(Constant.localIdentityProvider)
+        .saveMe()
+
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
+
+      try {
+        When("We verify credentials with URL-encoded wrong provider")
+        val postJson = Map(
+          "username" -> username,
+          "password" -> password,
+          "provider" -> urlEncodedWrongProvider  // Send encoded wrong provider
+        )
+        val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+        val response = makePostRequest(request, write(postJson))
+
+        Then("We should get a 401 because this is treated as external provider auth (no connector)")
+        response.code should equal(401)
+        response.body.extract[ErrorMessage].message should include("OBP-20004")
+      } finally {
+        testUser.delete_!
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
+
   }
 }

@@ -159,6 +159,7 @@ object ErrorMessages {
   val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
 
   val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact an administrator!"
+  val UserEmailNotValidated = "OBP-20073: The user email has not been validated. Please validate your email address first."
 
   val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
 
@@ -883,6 +884,7 @@ object ErrorMessages {
     InvalidConsumerKey -> 401,
 //    InvalidConsumerCredentials -> 401, // or 400
     UsernameHasBeenLocked -> 401,
+    UserEmailNotValidated -> 401,
     UserNoPermissionAccessView -> 403,
     UserLacksPermissionCanGrantAccessToViewForTargetAccount -> 403,
     UserLacksPermissionCanRevokeAccessToViewForTargetAccount -> 403,

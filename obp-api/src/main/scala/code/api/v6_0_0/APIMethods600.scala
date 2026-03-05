@@ -8828,10 +8828,12 @@ trait APIMethods600 {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
+            // Decode the provider in case it's URL-encoded (e.g., "http%3A%2F%2Fexample.com" -> "http://example.com")
+            decodedProvider = URLDecoder.decode(postedData.provider, StandardCharsets.UTF_8)
             // Validate credentials using the existing AuthUser mechanism
 
             resourceUserIdBox =
-              if (postedData.provider == Constant.localIdentityProvider || postedData.provider.isEmpty) {
+              if (decodedProvider == Constant.localIdentityProvider || decodedProvider.isEmpty) {
                 // Local provider: only check local credentials. No external fallback.
                 val result = code.model.dataAccess.AuthUser.getResourceUserId(
                   postedData.username, postedData.password, Constant.localIdentityProvider
@@ -8841,8 +8843,8 @@ trait APIMethods600 {
               } else {
                 // External provider: validate via connector. Local DB stores a random UUID
                 // as password for external users, so getResourceUserId would always fail.
-                if (LoginAttempt.userIsLocked(postedData.provider, postedData.username)) {
-                  logger.info(s"verifyUserCredentials says: external user is locked, provider: ${postedData.provider}, username: ${postedData.username}")
+                if (LoginAttempt.userIsLocked(decodedProvider, postedData.username)) {
+                  logger.info(s"verifyUserCredentials says: external user is locked, provider: ${decodedProvider}, username: ${postedData.username}")
                   Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
                 } else {
                   val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
@@ -8851,10 +8853,10 @@ trait APIMethods600 {
                   logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
                   connectorResult match {
                     case Full(_) =>
-                      LoginAttempt.resetBadLoginAttempts(postedData.provider, postedData.username)
+                      LoginAttempt.resetBadLoginAttempts(decodedProvider, postedData.username)
                       connectorResult
                     case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(postedData.provider, postedData.username)
+                      LoginAttempt.incrementBadLoginAttempts(decodedProvider, postedData.username)
                       connectorResult
                   }
                 }
@@ -8877,7 +8879,7 @@ trait APIMethods600 {
             }
             // Verify provider matches if specified and not empty
             _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
-              postedData.provider.isEmpty || user.provider == postedData.provider
+              decodedProvider.isEmpty || user.provider == decodedProvider
             }
           } yield {
             (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
