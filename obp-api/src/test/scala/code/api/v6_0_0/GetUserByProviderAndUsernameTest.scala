@@ -67,9 +67,9 @@ class GetUserByProviderAndUsernameTest extends V600ServerSetup with DefaultUsers
       And("The response should contain the correct user_id and username")
       (response.body \ "user_id").extract[String] should equal(user.userId)
       (response.body \ "username").extract[String] should equal(user.name)
-      And("The response should include firstname and lastname fields")
-      (response.body \ "firstname").extract[String] should equal("")
-      (response.body \ "lastname").extract[String] should equal("")
+      And("The response should include first_name and last_name fields")
+      (response.body \ "first_name").extract[String] should equal("")
+      (response.body \ "last_name").extract[String] should equal("")
     }
 
     scenario("Response should include firstname and lastname from AuthUser when present", ApiEndpoint, VersionOfApi) {
@@ -103,9 +103,9 @@ class GetUserByProviderAndUsernameTest extends V600ServerSetup with DefaultUsers
 
       Then("We should get a 200")
       response.code should equal(200)
-      And("The firstname and lastname should be populated from AuthUser")
-      (response.body \ "firstname").extract[String] should equal("Alice")
-      (response.body \ "lastname").extract[String] should equal("Smith")
+      And("The first_name and last_name should be populated from AuthUser")
+      (response.body \ "first_name").extract[String] should equal("Alice")
+      (response.body \ "last_name").extract[String] should equal("Smith")
     }
 
     scenario("Request for non-existent user should fail with 404", ApiEndpoint, VersionOfApi) {
