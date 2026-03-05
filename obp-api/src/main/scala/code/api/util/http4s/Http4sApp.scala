@@ -28,7 +28,8 @@ object Http4sApp {
    * Build the base HTTP4S routes with priority-based routing
    */
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req)
+    StatusPage.routes.run(req)
+      .orElse(code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req))
       .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))
       .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
       .orElse(Http4sLiftWebBridge.routes.run(req))

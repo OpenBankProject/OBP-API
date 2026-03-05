@@ -1553,6 +1553,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       .filter(isPathVariable(_))
   }
   
+  sealed trait EndpointAuthMode
+  case object UserOnly extends EndpointAuthMode
+  case object ApplicationOnly extends EndpointAuthMode
+  case object UserOrApplication extends EndpointAuthMode
+  case object UserAndApplication extends EndpointAuthMode
+
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1576,6 +1582,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
+                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication
                           http4sPartialFunction: Http4sEndpoint = None // http4s endpoint handler
                         ) {
     // this code block will be merged to constructor.
@@ -1608,6 +1615,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |
              |$authenticationIsOptional
              |"""
+      }
+
+      // Auth-mode-aware error message adjustments
+      authMode match {
+        case ApplicationOnly | UserOrApplication =>
+          errorResponseBodies ?+= ApplicationNotIdentified
+          if (authMode == ApplicationOnly) {
+            errorResponseBodies ?-= AuthenticatedUserIsRequired
+          }
+        case UserAndApplication =>
+          errorResponseBodies ?+= AuthenticatedUserIsRequired
+          errorResponseBodies ?+= ApplicationNotIdentified
+        case UserOnly => // existing logic already handles this
       }
     }
 
@@ -1692,7 +1712,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-    private val isNeedCheckAuth = errorResponseBodies.contains($AuthenticatedUserIsRequired)
+    private val AuthCheckIsRequired = errorResponseBodies.contains($AuthenticatedUserIsRequired)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
     private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
@@ -1724,8 +1744,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
       _isEndpointAuthCheck = true
 
-      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
-        if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
+        case UserOnly | UserAndApplication =>
+          if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+        case ApplicationOnly | UserOrApplication =>
+          applicationAccessFun(cc)
       }
       
       def checkObpIds(obpKeyValuePairs:  List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = {
@@ -1747,7 +1770,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckRoles) {
           val bankIdStr = bankId.map(_.value).getOrElse("")
           val userIdStr = user.map(_.userId).openOr("")
-          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck, cc)
+          val consumerId = APIUtil.getConsumerPrimaryKey(cc)
+          val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty)
+            UserHasMissingRoles + rolesForCheck.mkString(" or ")
+          else
+            UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
+          Helper.booleanToFuture(errorMessage, cc = cc) {
+            APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode)
+          }
         } else {
           Future.successful(Full(Unit))
         }
@@ -1792,10 +1822,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // reset connectorMethods
       {
         val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
-        if (isNeedCheckAuth) {
-          checkerFunctions += authenticatedAccessFun
-        } else {
-          checkerFunctions += anonymousAccessFun
+        authMode match {
+          case UserOnly | UserAndApplication =>
+            if (AuthCheckIsRequired) checkerFunctions += authenticatedAccessFun
+            else checkerFunctions += anonymousAccessFun
+          case ApplicationOnly | UserOrApplication =>
+            checkerFunctions += applicationAccessFun
         }
         if (isNeedCheckRoles) {
           checkerFunctions += checkRolesFun
@@ -2403,6 +2435,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
+  @deprecated("Use handleAccessControlWithAuthMode instead. It uses per-endpoint EndpointAuthMode rather than global config flags.", "OBP v6.0.0")
   def handleAccessControlRegardingEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
     if (roles.isEmpty) { // No access control, treat as pass auth check
       true
@@ -2443,10 +2476,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty) {
         userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
       }
-      // Consumer OR User has the Role
-      else if (getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
-        roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role)) || userHasTheRoles
-      }
       // User has the Role
       else {
         userHasTheRoles
@@ -2456,6 +2485,65 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
 
+
+  /**
+   * Per-endpoint auth mode access control. Checks virtual roles first, then matches on authMode:
+   * - UserOnly: user entitlements only (includes just-in-time entitlements)
+   * - ApplicationOnly: consumer scopes only
+   * - UserOrApplication: scopes OR entitlements
+   * - UserAndApplication: scopes AND entitlements
+   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior.
+   */
+  def handleAccessControlWithAuthMode(bankId: String, userId: String, consumerId: String, roles: List[ApiRole], authMode: EndpointAuthMode): Boolean = {
+    if (roles.isEmpty) {
+      true
+    } else {
+      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
+      val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                         else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                         else List.empty
+      if (roles.exists(role => virtualRoles.contains(role.toString))) {
+        true
+      } else {
+        // Global overrides that force UserAndApplication (scopes AND entitlements)
+        val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
+        val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
+        val globalOverrideToUserAndApp = ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty
+
+        def userHasTheRoles: Boolean = {
+          val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
+          userHasTheRole || {
+            getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+              (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
+                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
+                roles.forall { role =>
+                  val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+                    bankId, userId, role.toString, "create_just_in_time_entitlements"
+                  )
+                  logger.info(s"Just in Time Entitlements: $addedEntitlement")
+                  addedEntitlement.isDefined
+                }
+            }
+          }
+        }
+
+        def consumerHasTheScopes: Boolean =
+          roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
+
+        if (globalOverrideToUserAndApp) {
+          // Global config forces both scopes AND entitlements
+          userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+        } else {
+          authMode match {
+            case UserOnly => userHasTheRoles
+            case ApplicationOnly => consumerHasTheScopes
+            case UserOrApplication => consumerHasTheScopes || userHasTheRoles
+            case UserAndApplication => userHasTheRoles && consumerHasTheScopes
+          }
+        }
+      }
+    }
+  }
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
@@ -4530,6 +4618,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   private val anonymousAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
     case x => anonymousAccess(x)
+  }
+  private val applicationAccessFun: PartialFunction[CallContext, Future[(Box[User], Option[CallContext])]] = {
+    case x => applicationAccess(x)
   }
   private val checkRolesFun: PartialFunction[String, (String, List[ApiRole], Option[CallContext]) => Future[Box[Unit]]] = {
     case x => NewStyle.function.handleEntitlementsAndScopes(x, _, _, _)

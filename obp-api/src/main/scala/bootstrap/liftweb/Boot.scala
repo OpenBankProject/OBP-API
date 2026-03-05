@@ -496,9 +496,9 @@ class Boot extends MdcLoggable {
       //add management apis
       LiftRules.statelessDispatch.append(ImporterAPI)
     }
-    
+
     enableAPIs
-   
+
 
 
     //LiftRules.statelessDispatch.append(AccountsAPI)
@@ -693,8 +693,6 @@ class Boot extends MdcLoggable {
     LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
     LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
 
-    // Sanity check for incompatible Props values for Scopes.
-    sanityCheckOPropertiesRegardingScopes()
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
       // validate whether "connector.name.export.as.endpoints" have set a correct value
@@ -729,17 +727,6 @@ class Boot extends MdcLoggable {
       // Do not change default value
     }
 
-  }
-
-  private def sanityCheckOPropertiesRegardingScopes() = {
-    if (propertiesRegardingScopesAreValid()) {
-      throw new Exception(s"Incompatible Props values for Scopes.")
-    }
-  }
-
-  def propertiesRegardingScopesAreValid() = {
-    (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).isEmpty) &&
-      APIUtil.getPropsAsBoolValue("allow_entitlements_or_scopes", false)
   }
 
   // create Hydra client if exists active consumer but missing Hydra client
