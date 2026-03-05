@@ -916,7 +916,16 @@ def restoreSomeSessions(): Unit = {
   }
 
   /**
-    * This method will update the views and createAccountHolder ....
+    * Validates external user credentials via connector and verifies the user exists in local database.
+    * 
+    * This method is used for DirectLogin authentication with external providers.
+    * It performs two checks:
+    * 1. Validates credentials via the external connector
+    * 2. Verifies the user exists in the local OBP database
+    * 
+    * @param name The username to authenticate
+    * @param password The password to validate
+    * @return Full(AuthUser) if both connector validation and local user lookup succeed, Empty otherwise
     */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
     logger.info(s"externalUserHelper says: starting for username: $name")
