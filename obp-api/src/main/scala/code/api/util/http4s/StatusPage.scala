@@ -86,7 +86,8 @@ object StatusPage {
          |$appDiscoveryLinks
          |  </ul>
          |
-         |  <h2>Discovery Endpoints (See also API Explorer, Portal or MCP Server above)</h2>
+         |  <h2>Discovery Endpoints</h2>
+         |<p>See also API Explorer, Portal or MCP Server above.</p>
          |  <ul>
          |    <li><a href="/obp/v6.0.0/root">API Info</a></li>
          |    <li><a href="/obp/v6.0.0/resource-docs/v6.0.0/obp">API Documentation</a></li>
