@@ -8750,8 +8750,7 @@ trait APIMethods600 {
       case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, Some(cc)) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
             // Validate credentials using the existing AuthUser mechanism
@@ -8786,27 +8785,27 @@ trait APIMethods600 {
                 }
               }
             // Check if account is locked
-            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
+            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, Some(cc)) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
             }
             // Check if credentials are valid
             resourceUserId <- Future {
               resourceUserIdBox
             } map {
-              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
+              x => unboxFullOrFail(x, Some(cc), s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401)
             }
             // Get the user object
             user <- Future {
               Users.users.vend.getUserByResourceUserId(resourceUserId)
             } map {
-              x => unboxFullOrFail(x, callContext, s"$InvalidLoginCredentials User account not found in system.", 401)
+              x => unboxFullOrFail(x, Some(cc), s"$InvalidLoginCredentials User account not found in system.", 401)
             }
             // Verify provider matches if specified and not empty
-            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, callContext) {
+            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, Some(cc)) {
               postedData.provider.isEmpty || user.provider == postedData.provider
             }
           } yield {
-            (JSONFactory200.createUserJSON(user), HttpCode.`200`(callContext))
+            (JSONFactory200.createUserJSON(user), HttpCode.`200`(Some(cc)))
           }
       }
     }

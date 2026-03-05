@@ -352,6 +352,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
           case false => false
         }*/
         case _ => false
+      } recover {
+        case e: Throwable =>
+          logger.error(s"validatorFuture.validAccessTokenFuture failed: ${e.getMessage}", e)
+          false
       }
     }
 
@@ -427,6 +431,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
       Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
         case Full(token) => token.isValid
         case _ => false
+      } recover {
+        case e: Throwable =>
+          logger.error(s"validatorFutureWithParams.validAccessTokenFuture failed: ${e.getMessage}", e)
+          false
       }
     }
 
@@ -630,6 +638,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
     Tokens.tokens.vend.getTokenByKeyFuture(token) map {
       case Full(t) => t.consumerId.foreign
       case _ => Empty
+    } recover {
+      case e: Throwable =>
+        logger.error(s"getConsumerFromDirectLoginToken failed: ${e.getMessage}", e)
+        Empty
     }
   }
 
@@ -640,7 +652,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
    * @return Future[Box[User]]
    */
   def getUserFromDirectLoginToken(token: String): Future[Box[User]] = {
-    for {
+    (for {
       tokenBox <- Tokens.tokens.vend.getTokenByKeyFuture(token)
       userIdBox = tokenBox.map(_.userForeignKey.get)
       user <- userIdBox match {
@@ -649,6 +661,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
       }
     } yield {
       user
+    }) recover {
+      case e: Throwable =>
+        logger.error(s"getUserFromDirectLoginToken failed: ${e.getMessage}", e)
+        Empty
     }
   }
 }
