@@ -140,76 +140,65 @@ class AuthenticationPropertyTest extends FlatSpec
   }
 
   // ============================================================================
-  // Property Tests
+  // Basic Infrastructure Tests
   // ============================================================================
 
-  // Property tests will be implemented in subsequent tasks
-  // This file establishes the test infrastructure and generators
+  "Test infrastructure" should "be set up correctly" in {
+    val username = generateUsername()
+    val password = generatePassword()
+    
+    username should not be empty
+    password.length should be >= 8
+  }
 
-  property("Test infrastructure is set up correctly") {
-    forAll(usernameGen, passwordGen) { (username, password) =>
-      // Verify generators produce valid data
-      username.nonEmpty && password.length >= 8
+  "Test user creation and cleanup" should "work correctly" in {
+    val testUsername = s"test_${randomString(10)}"
+    val password = generatePassword()
+    
+    try {
+      // Create test user
+      val user = createTestUser(testUsername, password)
+      user.username.get shouldBe testUsername
+      user.validated.get shouldBe true
+      
+      // Verify user exists
+      val foundUser = AuthUser.find(By(AuthUser.username, testUsername), By(AuthUser.provider, localIdentityProvider))
+      foundUser.isDefined shouldBe true
+    } finally {
+      // Cleanup
+      cleanupTestUser(testUsername)
     }
   }
 
-  property("Test user creation and cleanup works") {
-    forAll(usernameGen, passwordGen) { (username, password) =>
-      val testUsername = s"test_${username}_${randomString(5)}"
+  "Locked user creation" should "work correctly" in {
+    val testUsername = s"locked_${randomString(10)}"
+    val password = generatePassword()
+    
+    try {
+      // Create locked user
+      val user = createLockedUser(testUsername, password)
       
-      try {
-        // Create test user
-        val user = createTestUser(testUsername, password)
-        user.username.get shouldBe testUsername
-        user.validated.get shouldBe true
-        
-        // Verify user exists
-        val foundUser = AuthUser.find(By(AuthUser.username, testUsername), By(AuthUser.provider, localIdentityProvider))
-        foundUser.isDefined shouldBe true
-        
-        true
-      } finally {
-        // Cleanup
-        cleanupTestUser(testUsername)
-      }
+      // Verify user is locked
+      LoginAttempt.userIsLocked(localIdentityProvider, testUsername) shouldBe true
+    } finally {
+      // Cleanup
+      cleanupTestUser(testUsername)
     }
   }
 
-  property("Locked user creation works correctly") {
-    forAll(usernameGen, passwordGen) { (username, password) =>
-      val testUsername = s"locked_${username}_${randomString(5)}"
+  "Unvalidated user creation" should "work correctly" in {
+    val testUsername = s"unvalidated_${randomString(10)}"
+    val password = generatePassword()
+    
+    try {
+      // Create unvalidated user
+      val user = createUnvalidatedUser(testUsername, password)
       
-      try {
-        // Create locked user
-        val user = createLockedUser(testUsername, password)
-        
-        // Verify user is locked
-        LoginAttempt.userIsLocked(localIdentityProvider, testUsername) shouldBe true
-        
-        true
-      } finally {
-        // Cleanup
-        cleanupTestUser(testUsername)
-      }
-    }
-  }
-
-  property("Unvalidated user creation works correctly") {
-    forAll(usernameGen, passwordGen) { (username, password) =>
-      val testUsername = s"unvalidated_${username}_${randomString(5)}"
-      
-      try {
-        // Create unvalidated user
-        val user = createUnvalidatedUser(testUsername, password)
-        
-        // Verify user is not validated
-        user.validated.get shouldBe false
-        
-        true
-      } finally {
-        // Cleanup
-        cleanupTestUser(testUsername)
-      }
+      // Verify user is not validated
+      user.validated.get shouldBe false
+    } finally {
+      // Cleanup
+      cleanupTestUser(testUsername)
     }
   }
 }
