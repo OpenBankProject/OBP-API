@@ -8750,7 +8750,7 @@ trait APIMethods600 {
       Some(List(canGetAnyUser))
     )
 
-    lazy val : OBPEndpoint = {
+    lazy val getUserByProviderAndUsername: OBPEndpoint = {
       case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
