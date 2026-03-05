@@ -8749,9 +8749,37 @@ trait APIMethods600 {
     lazy val verifyUserCredentials: OBPEndpoint = {
       case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
-          // TODO: Consider allowing Client Credentials (app-level) auth instead of user-level auth,
-          // so the caller doesn't need to be logged in as a user (which is circular for credential verification).
-          // TODO: Add rate limiting / anti-DOS protection for this endpoint to prevent credential enumeration/spamming.
+          // TODO: Implement per-endpoint auth mode via a new EndpointAuthMode field on ResourceDoc.
+          //
+          // Proposed design:
+          //   sealed trait EndpointAuthMode
+          //   case object UserOnly extends EndpointAuthMode           // current default — user entitlement required
+          //   case object ApplicationOnly extends EndpointAuthMode    // consumer scope required, no user needed
+          //   case object UserOrApplication extends EndpointAuthMode  // consumer scope OR user entitlement
+          //   case object UserAndApplication extends EndpointAuthMode // consumer scope AND user entitlement (PSD2)
+          //
+          // Add to ResourceDoc as: authMode: EndpointAuthMode = UserOnly
+          // Only endpoints needing non-default behaviour need to specify it — no changes to
+          // existing ResourceDocs required. This endpoint would use UserOrApplication.
+          //
+          // Implementation points:
+          // - wrappedWithAuthCheck.checkAuth: use applicationAccess for ApplicationOnly/UserOrApplication
+          //   (it still resolves user if present), authenticatedAccess for UserOnly/UserAndApplication.
+          // - wrappedWithAuthCheck.checkRoles: match on authMode to decide whether to check
+          //   consumer scopes, user entitlements, or both — instead of relying on the global
+          //   allow_entitlements_or_scopes config flag.
+          // - The global allow_entitlements_or_scopes flag should be deprecated/removed as it has
+          //   large security implications, defaults to false (so is under-tested), and can silently
+          //   override per-endpoint auth policy.
+          // - ResourceDoc constructor (lines 1586-1611 in APIUtil.scala): auto-add appropriate
+          //   error messages based on authMode (e.g. ApplicationNotIdentified for app modes
+          //   instead of AuthenticatedUserIsRequired). This also fixes the current design issue
+          //   where security policy is derived from error message strings.
+          // - Note: AuthenticationTypeValidation is a separate concern — it controls which auth
+          //   protocols (DirectLogin, OAuth2, etc.) an endpoint accepts, not what level of access
+          //   (user vs app) is required. The two are orthogonal.
+          // TODO: Additionally consider endpoint-specific anti-abuse protection beyond standard rate limiting,
+          // e.g. LoginAttempt-style lockout tracking per target username to prevent credential enumeration/brute-force.
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
