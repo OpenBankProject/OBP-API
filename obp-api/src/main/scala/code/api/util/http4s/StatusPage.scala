@@ -21,7 +21,7 @@ object StatusPage {
   private def prefersJson(req: Request[IO]): Boolean =
     req.headers.get[Accept].exists { accept =>
       accept.values.toList.exists { mediaRange =>
-        mediaRange.mediaRange.satisfiedBy(MediaType.application.json)
+        mediaRange.mediaRange == MediaType.application.json
       }
     }
 
