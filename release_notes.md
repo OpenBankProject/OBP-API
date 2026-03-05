@@ -3,6 +3,19 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+05/03/2026    TBD           BREAKING CHANGE: Removed allow_entitlements_or_scopes config flag.
+                            This global flag allowed consumer scopes as an alternative to user
+                            entitlements for ALL endpoints. It has been replaced by per-endpoint
+                            EndpointAuthMode on ResourceDoc with four modes:
+                            - UserOnly (default) — user entitlement required
+                            - ApplicationOnly — consumer scope required, no user needed
+                            - UserOrApplication — consumer scope OR user entitlement
+                            - UserAndApplication — consumer scope AND user entitlement
+                            Migration: add authMode = UserOrApplication to individual ResourceDoc
+                            instances that previously relied on allow_entitlements_or_scopes=true.
+                            The verifyUserCredentials endpoint is the first to use UserOrApplication.
+                            require_scopes_for_all_roles and require_scopes_for_listed_roles are
+                            unaffected and continue to work.
 27/02/2026    24035862      Http4s server bind address configuration
                             Added bind_address property for http4s server configuration:
                             - bind_address: Optional property to specify the network binding address

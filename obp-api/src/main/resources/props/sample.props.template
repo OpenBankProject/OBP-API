@@ -1114,9 +1114,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
-# Scopes can also be used as an alternative to User Entitlements
-# i.e. instead of asking every user to have a Role, you can give the Role(s) to a Consumer in the form of a Scope
-# allow_entitlements_or_scopes=false
+# Scopes can also be used as an alternative to User Entitlements on a per-endpoint basis.
+# Set authMode = UserOrApplication on individual ResourceDoc instances to allow
+# consumer scopes OR user entitlements for that endpoint.
 # ---------------------------------------------------------------
 
 # -- Just in Time Entitlements -------------------------------
@@ -1632,7 +1632,7 @@ regulated_entities = []
 #    "grantee_consumer_id": "fb327484-94d7-44d2-83e5-8d27301e8279" \
 #}]
 
-# Bootstrap Super User
+# Bootstrap Super User / Break Glass
 # Given the following credentials, OBP will create a user if they do not already exist.
 # This user's password will be valid for a limited time.
 # This user will be granted ONLY the CanCreateEntitlementAtAnyBank permission.

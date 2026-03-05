@@ -2255,11 +2255,10 @@ trait APIMethods600 {
       JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP", "google.com")),
       List(
         $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
         UnknownError
       ),
       List(apiTagUser),
-      Some(List(canGetProviders))
+      None
     )
 
     lazy val getProviders: OBPEndpoint = {
@@ -2267,7 +2266,6 @@ trait APIMethods600 {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetProviders, callContext)
             providers <- Future { code.model.dataAccess.ResourceUser.getDistinctProviders }
           } yield {
             (JSONFactory600.createProvidersJson(providers), HttpCode.`200`(callContext))
@@ -8729,7 +8727,7 @@ trait APIMethods600 {
          |This endpoint validates the provided credentials without creating a token or session.
          |It can be used to verify user credentials in external systems.
          |
-         |${userAuthenticationMessage(true)}
+         |${applicationAccessMessage(true)}
          |
          |""",
       PostVerifyUserCredentialsJsonV600(
@@ -8739,7 +8737,6 @@ trait APIMethods600 {
       ),
       userJsonV200,
       List(
-        $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         InvalidJsonFormat,
         InvalidLoginCredentials,
@@ -8747,14 +8744,15 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagUser),
-      Some(List(canVerifyUserCredentials))
+      Some(List(canVerifyUserCredentials)),
+      authMode = UserOrApplication
     )
 
     lazy val verifyUserCredentials: OBPEndpoint = {
       case "users" :: "verify-credentials" :: Nil JsonPost json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
+            callContext <- Future.successful(Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, callContext) {
               json.extract[PostVerifyUserCredentialsJsonV600]
             }
