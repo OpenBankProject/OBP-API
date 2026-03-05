@@ -8760,38 +8760,16 @@ trait APIMethods600 {
             decodedProvider = URLDecoder.decode(postedData.provider, StandardCharsets.UTF_8)
             // Validate credentials using the existing AuthUser mechanism
 
-            resourceUserIdBox =
-              if (decodedProvider == Constant.localIdentityProvider || decodedProvider.isEmpty) {
-                // Local provider: only check local credentials. No external fallback.
-                val result = code.model.dataAccess.AuthUser.getResourceUserId(
-                  postedData.username, postedData.password, Constant.localIdentityProvider
-                )
-                logger.info(s"verifyUserCredentials says: local getResourceUserId result: $result")
-                result
-              } else {
-                // External provider: validate via connector. Local DB stores a random UUID
-                // as password for external users, so getResourceUserId would always fail.
-                if (LoginAttempt.userIsLocked(decodedProvider, postedData.username)) {
-                  logger.info(s"verifyUserCredentials says: external user is locked, provider: ${decodedProvider}, username: ${postedData.username}")
-                  Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
-                } else {
-                  val connectorResult = code.model.dataAccess.AuthUser.externalUserHelper(
-                    postedData.username, postedData.password
-                  ).map(_.user.get)
-                  logger.info(s"verifyUserCredentials says: externalUserHelper result: $connectorResult")
-                  connectorResult match {
-                    case Full(_) =>
-                      LoginAttempt.resetBadLoginAttempts(decodedProvider, postedData.username)
-                      connectorResult
-                    case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(decodedProvider, postedData.username)
-                      connectorResult
-                  }
-                }
-              }
+            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(
+              postedData.username, postedData.password, decodedProvider
+            )
             // Check if account is locked
             _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, callContext) {
               resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+            }
+            // Check if email is validated
+            _ <- Helper.booleanToFuture(UserEmailNotValidated, 401, callContext) {
+              resourceUserIdBox != Full(code.model.dataAccess.AuthUser.userEmailNotValidatedStateCode)
             }
             // Check if credentials are valid
             resourceUserId <- Future {

@@ -790,7 +790,7 @@ import net.liftweb.util.Helpers._
               logger.info(s"getResourceUserId says: external user found, checking via connector, username: $username, provider: ${user.getProvider()}")
               val userId =
                 for {
-                  authUser <- checkExternalUserViaConnector(username, password)
+                  authUser <- externalUserHelper(username, password)
                   resourceUser <- tryo {
                     authUser.user
                   }
@@ -810,7 +810,7 @@ import net.liftweb.util.Helpers._
             case true =>
               logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: ${user.getProvider()}")
               LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-              Empty
+              Full(usernameLockedStateCode)
             case false =>
               logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: ${user.getProvider()}")
               LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)

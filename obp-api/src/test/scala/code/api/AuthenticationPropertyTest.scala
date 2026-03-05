@@ -1,0 +1,245 @@
+package code.api
+
+import code.api.Constant.localIdentityProvider
+import code.api.util.ErrorMessages
+import code.loginattempts.LoginAttempt
+import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.setup.{ServerSetup, TestPasswordConfig}
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers._
+import org.scalatest.{BeforeAndAfter, Matchers, PropSpec}
+import org.scalatest.prop.{Checkers, GeneratorDrivenPropertyChecks}
+import org.scalacheck.Gen
+import org.scalacheck.Prop.forAll
+
+/**
+ * Property-based tests for authentication refactoring
+ * Feature: centralize-authentication-logic
+ * 
+ * These tests verify universal properties that should hold across all authentication scenarios.
+ * They use ScalaCheck to generate random test data and verify properties hold for all inputs.
+ */
+class AuthenticationPropertyTest extends PropSpec 
+  with GeneratorDrivenPropertyChecks 
+  with Matchers 
+  with ServerSetup 
+  with BeforeAndAfter {
+
+  // Minimum iterations for property tests
+  implicit override val generatorDrivenConfig = PropertyCheckConfiguration(minSuccessful = 100)
+
+  // ============================================================================
+  // Test Data Generators
+  // ============================================================================
+
+  /**
+   * Generator for valid usernames
+   * Generates alphanumeric strings with optional spaces
+   */
+  val usernameGen: Gen[String] = for {
+    prefix <- Gen.alphaNumStr.suchThat(_.nonEmpty)
+    suffix <- Gen.option(Gen.const(" ") |+| Gen.alphaNumStr)
+  } yield prefix + suffix.getOrElse("")
+
+  /**
+   * Generator for passwords
+   * Generates strings of at least 8 characters
+   */
+  val passwordGen: Gen[String] = Gen.alphaNumStr.suchThat(_.length >= 8)
+
+  /**
+   * Generator for authentication providers
+   * Generates local provider or external provider URLs
+   */
+  val providerGen: Gen[String] = Gen.oneOf(
+    localIdentityProvider,
+    "https://auth.example.com",
+    "https://external-idp.com",
+    "https://sso.company.com"
+  )
+
+  /**
+   * Generator for authentication scenarios
+   * Represents all possible authentication states
+   */
+  case class AuthScenario(
+    username: String,
+    password: String,
+    provider: String,
+    userExists: Boolean,
+    passwordCorrect: Boolean,
+    userLocked: Boolean,
+    emailValidated: Boolean
+  )
+
+  val authScenarioGen: Gen[AuthScenario] = for {
+    username <- usernameGen
+    password <- passwordGen
+    provider <- providerGen
+    userExists <- Gen.oneOf(true, false)
+    passwordCorrect <- Gen.oneOf(true, false)
+    userLocked <- Gen.oneOf(true, false)
+    emailValidated <- Gen.oneOf(true, false)
+  } yield AuthScenario(username, password, provider, userExists, passwordCorrect, userLocked, emailValidated)
+
+  // ============================================================================
+  // Test Data Setup Utilities
+  // ============================================================================
+
+  /**
+   * Creates a test user with specified properties
+   * @param username The username for the test user
+   * @param password The password for the test user
+   * @param provider The authentication provider
+   * @param validated Whether the email is validated
+   * @return The created AuthUser
+   */
+  def createTestUser(
+    username: String, 
+    password: String, 
+    provider: String = localIdentityProvider,
+    validated: Boolean = true
+  ): AuthUser = {
+    // Clean up any existing user
+    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    
+    // Create new user
+    val user = AuthUser.create
+      .email(s"${randomString(10)}@example.com")
+      .username(username)
+      .password(password)
+      .provider(provider)
+      .validated(validated)
+      .firstName(randomString(10))
+      .lastName(randomString(10))
+      .saveMe()
+    
+    user
+  }
+
+  /**
+   * Creates a locked test user
+   * @param username The username for the locked user
+   * @param password The password for the locked user
+   * @param provider The authentication provider
+   * @return The created AuthUser
+   */
+  def createLockedUser(
+    username: String, 
+    password: String, 
+    provider: String = localIdentityProvider
+  ): AuthUser = {
+    val user = createTestUser(username, password, provider, validated = true)
+    
+    // Lock the user by incrementing bad login attempts beyond threshold
+    for (_ <- 1 to 6) {
+      LoginAttempt.incrementBadLoginAttempts(provider, username)
+    }
+    
+    user
+  }
+
+  /**
+   * Creates an unvalidated test user (email not validated)
+   * @param username The username for the unvalidated user
+   * @param password The password for the unvalidated user
+   * @return The created AuthUser
+   */
+  def createUnvalidatedUser(username: String, password: String): AuthUser = {
+    createTestUser(username, password, localIdentityProvider, validated = false)
+  }
+
+  /**
+   * Cleans up test user and associated login attempts
+   * @param username The username to clean up
+   * @param provider The authentication provider
+   */
+  def cleanupTestUser(username: String, provider: String = localIdentityProvider): Unit = {
+    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    LoginAttempt.resetBadLoginAttempts(provider, username)
+  }
+
+  /**
+   * Gets the current bad login attempt count for a user
+   * @param username The username to check
+   * @param provider The authentication provider
+   * @return The number of bad login attempts
+   */
+  def getBadLoginAttemptCount(username: String, provider: String = localIdentityProvider): Int = {
+    LoginAttempt.getBadLoginAttempts(provider, username)
+  }
+
+  // ============================================================================
+  // Property Tests
+  // ============================================================================
+
+  // Property tests will be implemented in subsequent tasks
+  // This file establishes the test infrastructure and generators
+
+  property("Test infrastructure is set up correctly") {
+    forAll(usernameGen, passwordGen) { (username, password) =>
+      // Verify generators produce valid data
+      username.nonEmpty && password.length >= 8
+    }
+  }
+
+  property("Test user creation and cleanup works") {
+    forAll(usernameGen, passwordGen) { (username, password) =>
+      val testUsername = s"test_${username}_${randomString(5)}"
+      
+      try {
+        // Create test user
+        val user = createTestUser(testUsername, password)
+        user.username.get shouldBe testUsername
+        user.validated.get shouldBe true
+        
+        // Verify user exists
+        val foundUser = AuthUser.find(By(AuthUser.username, testUsername), By(AuthUser.provider, localIdentityProvider))
+        foundUser.isDefined shouldBe true
+        
+        true
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
+    }
+  }
+
+  property("Locked user creation works correctly") {
+    forAll(usernameGen, passwordGen) { (username, password) =>
+      val testUsername = s"locked_${username}_${randomString(5)}"
+      
+      try {
+        // Create locked user
+        val user = createLockedUser(testUsername, password)
+        
+        // Verify user is locked
+        LoginAttempt.userIsLocked(localIdentityProvider, testUsername) shouldBe true
+        
+        true
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
+    }
+  }
+
+  property("Unvalidated user creation works correctly") {
+    forAll(usernameGen, passwordGen) { (username, password) =>
+      val testUsername = s"unvalidated_${username}_${randomString(5)}"
+      
+      try {
+        // Create unvalidated user
+        val user = createUnvalidatedUser(testUsername, password)
+        
+        // Verify user is not validated
+        user.validated.get shouldBe false
+        
+        true
+      } finally {
+        // Cleanup
+        cleanupTestUser(testUsername)
+      }
+    }
+  }
+}
