@@ -1195,8 +1195,8 @@ class AuthenticationPropertyTest extends ServerSetup
             }
             
             // Test 2: Verify repeated failures lead to lockout
-            if (i % 10 == 1) {
-              // Every 10th iteration, test lockout behavior
+            if (i % 2 == 1) {
+              // Every 2nd iteration (odd iterations), test lockout behavior
               val maxAttempts = LoginAttempt.maxBadLoginAttempts.toInt
               
               // Reset attempts first
