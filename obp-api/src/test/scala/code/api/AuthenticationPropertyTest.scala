@@ -1255,7 +1255,12 @@ class AuthenticationPropertyTest extends ServerSetup
       var localProviderCount = 0
       var externalProviderCount = 0
       
-      for (i <- 1 to iterations) {
+      // Enable connector authentication for external providers using Lift Props
+      setPropsValues("connector.user.authentication" -> "true")
+      
+      try {
+        
+        for (i <- 1 to iterations) {
         val username = generateUsername()
         val password = generatePassword()
         val provider = if (i % 2 == 0) localIdentityProvider else "https://external-provider.com"
@@ -1327,6 +1332,10 @@ class AuthenticationPropertyTest extends ServerSetup
         } finally {
           cleanupTestUser(username, provider)
         }
+      }
+      
+      } finally {
+        // Props will be reset automatically by PropsReset trait
       }
       
       info(s"Completed $iterations iterations:")
@@ -1849,7 +1858,8 @@ class AuthenticationPropertyTest extends ServerSetup
       for (i <- 1 to iterations) {
         val username = generateUsername()
         val password = generatePassword()
-        val provider = generateProvider()
+        // Use local provider for success tests, random for others
+        val provider = if (i % 3 == 0) localIdentityProvider else generateProvider()
         
         try {
           // Test 1: Success resets attempts
