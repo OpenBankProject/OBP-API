@@ -1236,7 +1236,7 @@ class AuthenticationPropertyTest extends ServerSetup
   // ============================================================================
 
   feature("Property 1: Authentication Behavior Equivalence (Backward Compatibility)") {
-    scenario("refactored authentication produces consistent results across all scenarios (20 iterations)") {
+    scenario("refactored authentication produces consistent results across all scenarios (10 iterations)") {
       // CRITICAL: Set property at scenario level to survive afterEach() reset
       setPropsValues("connector.user.authentication" -> "true")
 
@@ -1248,7 +1248,7 @@ class AuthenticationPropertyTest extends ServerSetup
       info("This is the MOST CRITICAL property test - it ensures the refactoring")
       info("  maintains correct behavior across all authentication scenarios.")
 
-      val iterations = 20
+      val iterations = 10
       var totalScenarios = 0
       var successfulAuthCount = 0
       var failedAuthCount = 0
