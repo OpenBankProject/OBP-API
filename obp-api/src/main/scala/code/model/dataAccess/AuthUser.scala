@@ -1088,19 +1088,6 @@ def restoreSomeSessions(): Unit = {
   }
 
   /**
-    * This method will update the views and createAccountHolder ....
-    */
-  def registeredUserHelper(provider: String,  username: String) = {
-    if (connector.startsWith("rest_vMar2019")) {
-      for {
-       u <- Users.users.vend.getUserByProviderAndUsername(provider, username)
-      } yield {
-        refreshUserLegacy(u, None)
-      }
-    }
-  }
-
-  /**
    * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
    * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create
    * and modify Dynamic Endpoints and other objects in that Bank / Space.
