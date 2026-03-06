@@ -577,7 +577,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
     //we first try to get the userId from local, if not find, we try to get it from external 
     AuthUser.getResourceUserId(username, password)
-        .or(AuthUser.externalUserHelper(username, password).map(_.user.get))
+        .or(AuthUser.checkExternalUserViaConnector(username, password).map(_.user.get))
   }
 
 

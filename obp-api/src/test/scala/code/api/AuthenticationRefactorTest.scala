@@ -409,16 +409,16 @@ class AuthenticationRefactorTest extends FeatureSpec
         setPropsValues("connector.user.authentication" -> "true")
         
         When("Authentication is attempted with valid credentials")
-        // Note: This test will call externalUserHelper which requires a real connector
+        // Note: This test will call checkExternalUserViaConnector which requires a real connector
         // In a real scenario, the connector would validate the credentials
         // For this test, we're verifying the flow and logging
         val result = AuthUser.getResourceUserId(username, password, externalProvider)
         
         Then("The authentication flow should be executed")
-        // The result depends on whether externalUserHelper succeeds
+        // The result depends on whether checkExternalUserViaConnector succeeds
         // We're primarily testing that:
         // 1. Lock check happens first
-        // 2. externalUserHelper is called
+        // 2. checkExternalUserViaConnector is called
         // 3. Login attempts are managed correctly
         result match {
           case Full(id) if id > 0 => 
@@ -614,7 +614,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("External authentication uses externalUserHelper method") {
+    scenario("External authentication uses checkExternalUserViaConnector method") {
       Given("An external provider user")
       val username = s"external_helper_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -629,17 +629,17 @@ class AuthenticationRefactorTest extends FeatureSpec
         When("Authentication is attempted")
         val result = AuthUser.getResourceUserId(username, password, externalProvider)
         
-        Then("The method should use externalUserHelper for validation")
-        // This is verified by the implementation calling externalUserHelper
-        // which validates via connector AND checks user exists locally
+        Then("The method should use checkExternalUserViaConnector for validation")
+        // This is verified by the implementation calling checkExternalUserViaConnector
+        // which validates via connector AND creates/finds user locally
         // The test verifies the flow executes correctly
         
         result match {
           case Full(id) if id > 0 => 
-            info("externalUserHelper succeeded - user validated via connector and found locally")
+            info("checkExternalUserViaConnector succeeded - user validated via connector and found locally")
             succeed
           case Empty => 
-            info("externalUserHelper returned Empty - expected in test environment without real connector")
+            info("checkExternalUserViaConnector returned Empty - expected in test environment without real connector")
             succeed
           case other => 
             info(s"Result: $other")

@@ -788,7 +788,7 @@ import net.liftweb.util.Helpers._
     * 2. **Account Lock Check**: Check if external user account is locked
     *    - If locked → return `usernameLockedStateCode` (no attempt increment)
    *    
-    * 3. **External Validation**: Call `externalUserHelper` to validate via connector
+    * 3. **External Validation**: Call `checkExternalUserViaConnector` to validate via connector
     *    - If successful → reset bad login attempts → return user ID
     *    - If failed → increment bad login attempts → return Empty
     * 
@@ -825,7 +825,7 @@ import net.liftweb.util.Helpers._
     *         - Empty on authentication failure or invalid parameters
     * 
     * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
-    * @see [[externalUserHelper]] for external authentication
+    * @see [[checkExternalUserViaConnector]] for external authentication
     * @see [[LoginAttempt.userIsLocked]] for account lock checking
     * @see [[LoginAttempt.incrementBadLoginAttempts]] for failed attempt tracking
     * @see [[LoginAttempt.resetBadLoginAttempts]] for attempt counter reset
@@ -920,10 +920,10 @@ import net.liftweb.util.Helpers._
       }
       // Validate via connector
       else {
-        logger.info(s"getResourceUserId says: calling externalUserHelper for username: $username, provider: $normalizedProvider")
+        logger.info(s"getResourceUserId says: calling checkExternalUserViaConnector for username: $username, provider: $normalizedProvider")
         
-        // Call external helper and safely extract user ID
-        val connectorResult = externalUserHelper(username, password).flatMap { authUser =>
+        // Call connector validation and safely extract user ID
+        val connectorResult = checkExternalUserViaConnector(username, password).flatMap { authUser =>
           authUser.user.obj match {
             case Full(resourceUser) =>
               Full(resourceUser.id.get)
@@ -1038,39 +1038,6 @@ def restoreSomeSessions(): Unit = {
       case _ => S.redirectTo(homePage)
     }
   }
-
-  /**
-    * Validates external user credentials via connector and verifies the user exists in local database.
-    * 
-    * This method is used for DirectLogin authentication with external providers.
-    * It performs two checks:
-    * 1. Validates credentials via the external connector
-    * 2. Verifies the user exists in the local OBP database
-    * 
-    * @param name The username to authenticate
-    * @param password The password to validate
-    * @return Full(AuthUser) if both connector validation and local user lookup succeed, Empty otherwise
-    */
-  def externalUserHelper(name: String, password: String): Box[AuthUser] = {
-    logger.info(s"externalUserHelper says: starting for username: $name")
-    val connectorUserBox = checkExternalUserViaConnector(name, password)
-    logger.info(s"externalUserHelper says: checkExternalUserViaConnector result: ${connectorUserBox.getClass.getSimpleName}")
-    connectorUserBox match {
-      case Full(user) =>
-        val providerUserBox = Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
-        logger.info(s"externalUserHelper says: getUserByProviderAndUsername(${user.getProvider()}, $name) result: ${providerUserBox.getClass.getSimpleName}")
-        providerUserBox match {
-          case Full(_) => Full(user)
-          case _ =>
-            logger.warn(s"externalUserHelper says: connector authenticated user but getUserByProviderAndUsername failed for provider: ${user.getProvider()}, username: $name")
-            Empty
-        }
-      case _ =>
-        logger.info(s"externalUserHelper says: checkExternalUserViaConnector failed for username: $name")
-        Empty
-    }
-  }
-
 
   /**
     * This method will update the views and createAccountHolder ....

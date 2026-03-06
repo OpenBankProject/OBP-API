@@ -320,7 +320,7 @@ class AuthenticationPropertyTest extends ServerSetup
           val password = generatePassword()
 
           try {
-            // Create an external user in local DB (required for externalUserHelper to work)
+            // Create an external user in local DB (required for checkExternalUserViaConnector to work)
             val user = createTestUser(username, password, testProvider, validated = true)
 
             // Test 1: Valid credentials via connector (using the known valid user)
@@ -787,7 +787,7 @@ class AuthenticationPropertyTest extends ServerSetup
 
         for (i <- 1 to iterations) {
           try {
-            // Create an external user in local DB (required for externalUserHelper to work)
+            // Create an external user in local DB (required for checkExternalUserViaConnector to work)
             val user = createTestUser(validExternalUsername, validExternalPassword, testProvider, validated = true)
 
             // Simulate some failed login attempts first
@@ -1157,7 +1157,7 @@ class AuthenticationPropertyTest extends ServerSetup
           val password = generatePassword()
 
           try {
-            // Create an external user in local DB (required for externalUserHelper to work)
+            // Create an external user in local DB (required for checkExternalUserViaConnector to work)
             val user = createTestUser(username, password, testProvider, validated = true)
 
             // Test 1: Connector rejection increments attempts
