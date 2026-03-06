@@ -78,6 +78,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
   feature(s"Verify External User Credentials - POST /obp/v6.0.0/users/verify-credentials - $VersionOfApi") {
 
     scenario("Successfully verify external user credentials via connector", ApiEndpoint, VersionOfApi) {
+      setPropsValues("connector.user.authentication" -> "true")
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify valid external credentials")
@@ -125,6 +126,8 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
     }
 
     scenario("Successful external login should reset bad login attempts for that provider", ApiEndpoint, VersionOfApi) {
+      setPropsValues("connector.user.authentication" -> "true")
+      
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       try {
