@@ -576,7 +576,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     val password = directLoginParameters.getOrElse("password", "")
 
     //we first try to get the userId from local, if not find, we try to get it from external 
-    AuthUser.getResourceUserId(username, password)
+    AuthUser.getResourceUserId(username, password, Constant.localIdentityProvider)
         .or(AuthUser.checkExternalUserViaConnector(username, password).map(_.user.get))
   }
 

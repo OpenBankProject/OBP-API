@@ -830,7 +830,7 @@ import net.liftweb.util.Helpers._
     * @see [[LoginAttempt.incrementBadLoginAttempts]] for failed attempt tracking
     * @see [[LoginAttempt.resetBadLoginAttempts]] for attempt counter reset
     */
-  def getResourceUserId(username: String, password: String, provider: String = Constant.localIdentityProvider): Box[Long] = {
+  def getResourceUserId(username: String, password: String, provider: String): Box[Long] = {
     // ========================================================================
     // PARAMETER VALIDATION
     // ========================================================================
