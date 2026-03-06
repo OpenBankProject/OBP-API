@@ -21,9 +21,29 @@ class AuthenticationPropertyTest extends ServerSetup
   with Matchers 
   with BeforeAndAfter {
 
-  // Enable connector authentication for all tests in this class
-  // This must be set at class level to ensure it's available for all scenarios
+  // Enable connector authentication for all tests at class initialization
+  // This must be done BEFORE any tests run
   setPropsValues("connector.user.authentication" -> "true")
+  
+  // Verify property is set correctly
+  logger.info(s"[TEST INIT] connector.user.authentication = ${code.api.util.APIUtil.getPropsAsBoolValue("connector.user.authentication", false)}")
+
+  // Enable connector authentication for all tests - set in before hook
+  before {
+    setPropsValues("connector.user.authentication" -> "true")
+    logger.info(s"[BEFORE HOOK] connector.user.authentication = ${code.api.util.APIUtil.getPropsAsBoolValue("connector.user.authentication", false)}")
+  }
+  
+  // Override afterEach to preserve connector.user.authentication property
+  override def afterEach(): Unit = {
+    // Set the property BEFORE calling super.afterEach() which will reset it
+    setPropsValues("connector.user.authentication" -> "true")
+    logger.info(s"[AFTER EACH - BEFORE SUPER] connector.user.authentication = ${code.api.util.APIUtil.getPropsAsBoolValue("connector.user.authentication", false)}")
+    super.afterEach()
+    // Set it AGAIN after reset
+    setPropsValues("connector.user.authentication" -> "true")
+    logger.info(s"[AFTER EACH - AFTER SUPER] connector.user.authentication = ${code.api.util.APIUtil.getPropsAsBoolValue("connector.user.authentication", false)}")
+  }
 
   // ============================================================================
   // Test Data Generators (Simplified - no ScalaCheck)
@@ -74,6 +94,15 @@ class AuthenticationPropertyTest extends ServerSetup
     provider: String = localIdentityProvider,
     validated: Boolean = true
   ): AuthUser = {
+    // Enable connector authentication for external providers
+    // This must be set before EVERY external provider operation because PropsReset may reset it
+    if (provider != localIdentityProvider) {
+      setPropsValues("connector.user.authentication" -> "true")
+      // DEBUG: Verify property was set
+      val propValue = code.api.util.APIUtil.getPropsAsBoolValue("connector.user.authentication", false)
+      logger.info(s"[createTestUser] SET connector.user.authentication for provider=$provider, READ value=$propValue")
+    }
+    
     // Clean up any existing user
     AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
     
@@ -103,6 +132,11 @@ class AuthenticationPropertyTest extends ServerSetup
     password: String, 
     provider: String = localIdentityProvider
   ): AuthUser = {
+    // Enable connector authentication for external providers
+    if (provider != localIdentityProvider) {
+      setPropsValues("connector.user.authentication" -> "true")
+    }
+    
     val user = createTestUser(username, password, provider, validated = true)
     
     // Lock the user by incrementing bad login attempts beyond threshold
@@ -399,6 +433,9 @@ class AuthenticationPropertyTest extends ServerSetup
 
   feature("Property 4: Lock Check Precedes Credential Validation") {
     scenario("locked users are rejected without credential validation (10 iterations)") {
+      // CRITICAL: Set property at scenario level to survive afterEach() reset
+      setPropsValues("connector.user.authentication" -> "true")
+      
       info("**Validates: Requirements 1.8, 2.1**")
       info("Property: For any authentication attempt, the system SHALL check")
       info("  LoginAttempt.userIsLocked before attempting to validate credentials,")
@@ -410,24 +447,26 @@ class AuthenticationPropertyTest extends ServerSetup
       var correctPasswordRejectedCount = 0
       var wrongPasswordRejectedCount = 0
       
-      // Enable connector authentication for external providers using Lift Props
-      try {
+      for (i <- 1 to iterations) {
+        val username = generateUsername()
+        val password = generatePassword()
+        val provider = if (i % 2 == 0) localIdentityProvider else "https://external-provider.com"
         
-        for (i <- 1 to iterations) {
-          val username = generateUsername()
-          val password = generatePassword()
-          val provider = if (i % 2 == 0) localIdentityProvider else "https://external-provider.com"
+        try {
+          // Create a locked user (will auto-set connector.user.authentication for external providers)
+          val user = createLockedUser(username, password, provider)
           
-          try {
-            // Create a locked user
-            val user = createLockedUser(username, password, provider)
-            
-            // Verify user is locked
-            LoginAttempt.userIsLocked(provider, username) shouldBe true
-            
-            // Test 1: Attempt authentication with CORRECT password
-            // Should return locked state code WITHOUT validating password
-            val correctPasswordResult = AuthUser.getResourceUserId(username, password, provider)
+          // Verify user is locked
+          LoginAttempt.userIsLocked(provider, username) shouldBe true
+          
+          // Enable connector authentication before EACH getResourceUserId call for external providers
+          if (provider != localIdentityProvider) {
+            setPropsValues("connector.user.authentication" -> "true")
+          }
+          
+          // Test 1: Attempt authentication with CORRECT password
+          // Should return locked state code WITHOUT validating password
+          val correctPasswordResult = AuthUser.getResourceUserId(username, password, provider)
             correctPasswordResult match {
               case Full(id) if id == AuthUser.usernameLockedStateCode =>
                 correctPasswordRejectedCount += 1
@@ -438,6 +477,11 @@ class AuthenticationPropertyTest extends ServerSetup
                 }
               case other =>
                 fail(s"Iteration $i: Locked user with correct password should return usernameLockedStateCode, got: $other")
+            }
+            
+            // Enable connector authentication before second getResourceUserId call
+            if (provider != localIdentityProvider) {
+              setPropsValues("connector.user.authentication" -> "true")
             }
             
             // Test 2: Attempt authentication with WRONG password
@@ -451,16 +495,22 @@ class AuthenticationPropertyTest extends ServerSetup
                 fail(s"Iteration $i: Locked user with wrong password should return usernameLockedStateCode, got: $other")
             }
             
-            // Test 3: Verify login attempts are still incremented (per Requirement 4.6)
-          // This is the existing behavior that should be preserved
+            // Test 3: Verify login attempts are NOT incremented for locked users (per updated Requirement 4.5)
+          // This is the updated behavior - locked users should not increment attempts
           val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+          
+          // Enable connector authentication before third getResourceUserId call
+          if (provider != localIdentityProvider) {
+            setPropsValues("connector.user.authentication" -> "true")
+          }
+          
           AuthUser.getResourceUserId(username, password, provider)
           val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
           
-          // Attempts should be incremented even for locked users
-          attemptsAfter should be > attemptsBefore
+          // Attempts should not be incremented for locked users
+          attemptsAfter should be (attemptsBefore)
           
           } finally {
             cleanupTestUser(username, provider)
@@ -477,17 +527,17 @@ class AuthenticationPropertyTest extends ServerSetup
         correctPasswordRejectedCount shouldBe iterations
         wrongPasswordRejectedCount shouldBe iterations
         
-      } finally {
-      }
-      
-      // Verify we tested both local and external providers
-      lockedLocalCount should be > 0
-      lockedExternalCount should be > 0
-      
-      info("Property 4: Lock Check Precedes Credential Validation - PASSED")
+        // Verify we tested both local and external providers
+        lockedLocalCount should be > 0
+        lockedExternalCount should be > 0
+        
+        info("Property 4: Lock Check Precedes Credential Validation - PASSED")
     }
     
     scenario("lock check happens before expensive operations (timing verification)") {
+      // CRITICAL: Set property at scenario level to survive afterEach() reset
+      setPropsValues("connector.user.authentication" -> "true")
+      
       info("**Validates: Requirements 1.8, 2.1**")
       info("Property: Lock check should happen before credential validation")
       info("  to prevent timing attacks and unnecessary computation")
@@ -495,25 +545,27 @@ class AuthenticationPropertyTest extends ServerSetup
       val iterations = 10
       var lockCheckFirstCount = 0
       
-      // Enable connector authentication for external providers using Lift Props
-      try {
+      for (i <- 1 to iterations) {
+        val username = generateUsername()
+        val password = generatePassword()
+        val provider = generateProvider()
         
-        for (i <- 1 to iterations) {
-          val username = generateUsername()
-          val password = generatePassword()
-          val provider = generateProvider()
+        try {
+          // Create a locked user (will auto-set connector.user.authentication for external providers)
+          createLockedUser(username, password, provider)
           
-          try {
-            // Create a locked user
-            createLockedUser(username, password, provider)
-            
-            // Verify user is locked
-            val isLocked = LoginAttempt.userIsLocked(provider, username)
-            isLocked shouldBe true
-            
-            // Attempt authentication - should return immediately with locked state
-            val startTime = System.nanoTime()
-            val result = AuthUser.getResourceUserId(username, password, provider)
+          // Verify user is locked
+          val isLocked = LoginAttempt.userIsLocked(provider, username)
+          isLocked shouldBe true
+          
+          // Enable connector authentication before getResourceUserId call for external providers
+          if (provider != localIdentityProvider) {
+            setPropsValues("connector.user.authentication" -> "true")
+          }
+          
+          // Attempt authentication - should return immediately with locked state
+          val startTime = System.nanoTime()
+          val result = AuthUser.getResourceUserId(username, password, provider)
             val endTime = System.nanoTime()
             val durationMs = (endTime - startTime) / 1000000.0
             
@@ -541,9 +593,6 @@ class AuthenticationPropertyTest extends ServerSetup
         lockCheckFirstCount shouldBe iterations
         
         info("Property 4 (Timing): Lock Check Precedes Credential Validation - PASSED")
-        
-      } finally {
-      }
     }
   }
 
@@ -738,6 +787,9 @@ class AuthenticationPropertyTest extends ServerSetup
       info("Property: For any successful external authentication,")
       info("  the system SHALL reset bad login attempts")
       
+      // Enable connector authentication FIRST
+      setPropsValues("connector.user.authentication" -> "true")
+      
       // Mock connector for testing
       val testProvider = "https://test-external-provider.com"
       val validExternalUsername = s"ext_valid_${randomString(8)}"
@@ -783,6 +835,9 @@ class AuthenticationPropertyTest extends ServerSetup
         
         for (i <- 1 to iterations) {
           try {
+            // Enable connector authentication for external providers
+            setPropsValues("connector.user.authentication" -> "true")
+            
             // Create an external user in local DB (required for externalUserHelper to work)
             val user = createTestUser(validExternalUsername, validExternalPassword, testProvider, validated = true)
             
@@ -796,6 +851,9 @@ class AuthenticationPropertyTest extends ServerSetup
             val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(testProvider, validExternalUsername)
               .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
             attemptsBefore should be >= failedAttempts
+            
+            // Enable connector authentication before getResourceUserId call
+            setPropsValues("connector.user.authentication" -> "true")
             
             // Test 1: Successful external authentication should reset attempts
             val result = AuthUser.getResourceUserId(validExternalUsername, validExternalPassword, testProvider)
@@ -818,6 +876,9 @@ class AuthenticationPropertyTest extends ServerSetup
             }
             
             // Test 2: Verify subsequent authentication attempts work
+            // Enable connector authentication before second getResourceUserId call
+            setPropsValues("connector.user.authentication" -> "true")
+            
             val subsequentResult = AuthUser.getResourceUserId(validExternalUsername, validExternalPassword, testProvider)
             subsequentResult match {
               case Full(id) if id > 0 =>
@@ -1227,286 +1288,15 @@ class AuthenticationPropertyTest extends ServerSetup
   }
 
   // ============================================================================
-  // Property 7: Login Attempt Increment on Locked User (Edge Case)
-  // **Validates: Requirements 4.6**
-  // ============================================================================
-
-  feature("Property 7: Login Attempt Increment on Locked User") {
-    scenario("locked user authentication still increments bad login attempts (10 iterations)") {
-      info("**Validates: Requirements 4.6**")
-      info("Property: For any authentication attempt on an already-locked user,")
-      info("  the system SHALL still increment bad login attempts even though")
-      info("  the user is already locked. This maintains existing behavior.")
-      
-      val iterations = 10
-      var incrementOnLockedCount = 0
-      var lockedStateReturnedCount = 0
-      var localProviderCount = 0
-      var externalProviderCount = 0
-      
-      // Enable connector authentication for external providers using Lift Props
-      try {
-        
-        for (i <- 1 to iterations) {
-        val username = generateUsername()
-        val password = generatePassword()
-        val provider = if (i % 2 == 0) localIdentityProvider else "https://external-provider.com"
-        
-        try {
-          // Create a locked user
-          val user = createLockedUser(username, password, provider)
-          
-          // Verify user is locked
-          LoginAttempt.userIsLocked(provider, username) shouldBe true
-          
-          // Get the current attempt count
-          val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          // Attempt authentication on the locked user
-          val result = AuthUser.getResourceUserId(username, password, provider)
-          
-          // Test 1: Verify locked state code is returned
-          result match {
-            case Full(id) if id == AuthUser.usernameLockedStateCode =>
-              lockedStateReturnedCount += 1
-              
-              // Track provider distribution
-              if (provider == localIdentityProvider) {
-                localProviderCount += 1
-              } else {
-                externalProviderCount += 1
-              }
-              
-            case other =>
-              fail(s"Iteration $i: Locked user should return usernameLockedStateCode, got: $other")
-          }
-          
-          // Test 2: Verify attempts were STILL incremented (edge case behavior)
-          val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          if (attemptsAfter > attemptsBefore) {
-            incrementOnLockedCount += 1
-          } else {
-            fail(s"Iteration $i: Locked user authentication should still increment attempts from $attemptsBefore to $attemptsAfter")
-          }
-          
-          // Test 3: Verify user remains locked after the attempt
-          LoginAttempt.userIsLocked(provider, username) shouldBe true
-          
-          // Test 4: Try with wrong password - should also increment
-          val wrongPassword = password + "_wrong"
-          val attemptsBefore2 = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          val result2 = AuthUser.getResourceUserId(username, wrongPassword, provider)
-          
-          // Should still return locked state code
-          result2 match {
-            case Full(id) if id == AuthUser.usernameLockedStateCode =>
-              // Correct
-            case other =>
-              fail(s"Iteration $i: Locked user with wrong password should return usernameLockedStateCode, got: $other")
-          }
-          
-          // Should still increment attempts
-          val attemptsAfter2 = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          attemptsAfter2 should be > attemptsBefore2
-          
-        } finally {
-          cleanupTestUser(username, provider)
-        }
-      }
-      
-      } finally {
-      }
-      
-      info(s"Completed $iterations iterations:")
-      info(s"  - Locked user attempts incremented: $incrementOnLockedCount")
-      info(s"  - Locked state code returned: $lockedStateReturnedCount")
-      info(s"  - Local provider tests: $localProviderCount")
-      info(s"  - External provider tests: $externalProviderCount")
-      
-      // Verify all locked users had attempts incremented
-      incrementOnLockedCount shouldBe iterations
-      lockedStateReturnedCount shouldBe iterations
-      
-      // Verify we tested both local and external providers
-      localProviderCount should be > 0
-      externalProviderCount should be > 0
-      
-      info("Property 7: Login Attempt Increment on Locked User - PASSED")
-    }
-    
-    scenario("locked user attempt increment works for both correct and wrong passwords (10 iterations)") {
-      info("**Validates: Requirements 4.6**")
-      info("Property: Locked user authentication increments attempts regardless")
-      info("  of whether the password is correct or incorrect")
-      
-      val iterations = 10
-      var correctPasswordIncrementCount = 0
-      var wrongPasswordIncrementCount = 0
-      
-      for (i <- 1 to iterations) {
-        val username = generateUsername()
-        val password = generatePassword()
-        
-        try {
-          // Create a locked user
-          val user = createLockedUser(username, password, localIdentityProvider)
-          
-          // Verify user is locked
-          LoginAttempt.userIsLocked(localIdentityProvider, username) shouldBe true
-          
-          // Test 1: Correct password on locked user
-          val attemptsBefore1 = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          val result1 = AuthUser.getResourceUserId(username, password, localIdentityProvider)
-          
-          result1 match {
-            case Full(id) if id == AuthUser.usernameLockedStateCode =>
-              // Verify attempts incremented
-              val attemptsAfter1 = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-                .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-              
-              if (attemptsAfter1 > attemptsBefore1) {
-                correctPasswordIncrementCount += 1
-              } else {
-                fail(s"Iteration $i: Correct password on locked user should increment attempts")
-              }
-              
-            case other =>
-              fail(s"Iteration $i: Locked user should return usernameLockedStateCode, got: $other")
-          }
-          
-          // Test 2: Wrong password on locked user
-          val wrongPassword = password + "_wrong"
-          val attemptsBefore2 = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          val result2 = AuthUser.getResourceUserId(username, wrongPassword, localIdentityProvider)
-          
-          result2 match {
-            case Full(id) if id == AuthUser.usernameLockedStateCode =>
-              // Verify attempts incremented
-              val attemptsAfter2 = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-                .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-              
-              if (attemptsAfter2 > attemptsBefore2) {
-                wrongPasswordIncrementCount += 1
-              } else {
-                fail(s"Iteration $i: Wrong password on locked user should increment attempts")
-              }
-              
-            case other =>
-              fail(s"Iteration $i: Locked user should return usernameLockedStateCode, got: $other")
-          }
-          
-        } finally {
-          cleanupTestUser(username, localIdentityProvider)
-        }
-      }
-      
-      info(s"Completed $iterations iterations:")
-      info(s"  - Correct password increments on locked user: $correctPasswordIncrementCount")
-      info(s"  - Wrong password increments on locked user: $wrongPasswordIncrementCount")
-      
-      correctPasswordIncrementCount shouldBe iterations
-      wrongPasswordIncrementCount shouldBe iterations
-      
-      info("Property 7 (Password Variants): Login Attempt Increment on Locked User - PASSED")
-    }
-    
-    scenario("locked user attempt counter continues to grow with each attempt (10 iterations)") {
-      info("**Validates: Requirements 4.6**")
-      info("Property: Each authentication attempt on a locked user should")
-      info("  continue to increment the counter, not just maintain it")
-      
-      val iterations = 10
-      var continuousGrowthCount = 0
-      
-      for (i <- 1 to iterations) {
-        val username = generateUsername()
-        val password = generatePassword()
-        
-        try {
-          // Create a locked user
-          val user = createLockedUser(username, password, localIdentityProvider)
-          
-          // Verify user is locked
-          LoginAttempt.userIsLocked(localIdentityProvider, username) shouldBe true
-          
-          // Get initial attempt count
-          val initialAttempts = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          // Make multiple authentication attempts on the locked user
-          val numAttempts = scala.util.Random.nextInt(5) + 3 // 3-7 attempts
-          var previousAttempts = initialAttempts
-          var allIncremented = true
-          
-          for (attempt <- 1 to numAttempts) {
-            // Alternate between correct and wrong passwords
-            val testPassword = if (attempt % 2 == 0) password else password + "_wrong"
-            
-            // Attempt authentication
-            val result = AuthUser.getResourceUserId(username, testPassword, localIdentityProvider)
-            
-            // Verify locked state code is returned
-            result match {
-              case Full(id) if id == AuthUser.usernameLockedStateCode =>
-                // Correct
-              case other =>
-                fail(s"Iteration $i, Attempt $attempt: Expected usernameLockedStateCode, got: $other")
-            }
-            
-            // Verify attempts incremented
-            val currentAttempts = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-              .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-            
-            if (currentAttempts <= previousAttempts) {
-              allIncremented = false
-              fail(s"Iteration $i, Attempt $attempt: Attempts should increment from $previousAttempts to $currentAttempts")
-            }
-            
-            previousAttempts = currentAttempts
-          }
-          
-          // Verify final attempt count is higher than initial
-          val finalAttempts = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
-            .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-          
-          if (finalAttempts == initialAttempts + numAttempts && allIncremented) {
-            continuousGrowthCount += 1
-          } else {
-            fail(s"Iteration $i: Expected $numAttempts increments from $initialAttempts to ${initialAttempts + numAttempts}, got: $finalAttempts")
-          }
-          
-        } finally {
-          cleanupTestUser(username, localIdentityProvider)
-        }
-      }
-      
-      info(s"Completed $iterations iterations:")
-      info(s"  - Continuous growth verified: $continuousGrowthCount")
-      
-      continuousGrowthCount shouldBe iterations
-      
-      info("Property 7 (Continuous Growth): Login Attempt Increment on Locked User - PASSED")
-    }
-  }
-
-  // ============================================================================
   // Property 1: Authentication Behavior Equivalence (CRITICAL)
   // **Validates: Requirements 4.1**
   // ============================================================================
 
   feature("Property 1: Authentication Behavior Equivalence (Backward Compatibility)") {
     scenario("refactored authentication produces consistent results across all scenarios (10 iterations)") {
+      // CRITICAL: Set property at scenario level to survive afterEach() reset
+      setPropsValues("connector.user.authentication" -> "true")
+      
       info("**Validates: Requirements 4.1**")
       info("Property: For any username, password, and provider combination,")
       info("  the refactored getResourceUserId method SHALL produce consistent")
@@ -1619,14 +1409,14 @@ class AuthenticationPropertyTest extends ServerSetup
                   lockedUserCount += 1
                   totalScenarios += 1
                   
-                  // Verify login attempts were still incremented (per Requirement 4.6)
+                  // Verify login attempts were NOT incremented (per updated Requirement 4.5)
                   val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username)
                     .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
                   
-                  if (attemptsAfter > attemptsBefore) {
+                  if (attemptsAfter == attemptsBefore) {
                     loginAttemptConsistencyCount += 1
                   } else {
-                    fail(s"Iteration $i: Locked user auth should still increment attempts from $attemptsBefore, got: $attemptsAfter")
+                    fail(s"Iteration $i: Locked user auth should NOT increment attempts, was $attemptsBefore, got: $attemptsAfter")
                   }
                   
                 case other =>
@@ -1683,12 +1473,19 @@ class AuthenticationPropertyTest extends ServerSetup
               // Scenario 6: External provider authentication
               info(s"Iteration $i: Testing external provider authentication")
               val externalProvider = "https://external-provider.com"
+              
+              // Enable connector authentication for external provider
+              setPropsValues("connector.user.authentication" -> "true")
+              
               val user = createTestUser(username, password, externalProvider, validated = true)
               
               // Note: External authentication will likely fail without a real connector
               // But we can verify the behavior is consistent
               val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
                 .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
+              
+              // Enable connector authentication before getResourceUserId call
+              setPropsValues("connector.user.authentication" -> "true")
               
               val result = AuthUser.getResourceUserId(username, password, externalProvider)
               
@@ -1896,14 +1693,14 @@ class AuthenticationPropertyTest extends ServerSetup
                 // Unexpected result
             }
           }
-          // Test 3: Locked user still increments
+          // Test 3: Locked user should NOT increment attempts
           else {
             val user = createLockedUser(username, password, provider)
             
             val attemptsBefore = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
               .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
             
-            // Locked user auth should still increment
+            // Locked user auth should NOT increment attempts (per updated Requirement 4.5)
             val result = AuthUser.getResourceUserId(username, password, provider)
             
             result match {
@@ -1911,7 +1708,7 @@ class AuthenticationPropertyTest extends ServerSetup
                 val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(provider, username)
                   .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
                 
-                if (attemptsAfter > attemptsBefore) {
+                if (attemptsAfter == attemptsBefore) {
                   incrementOnLockedCount += 1
                 }
                 
@@ -1928,12 +1725,12 @@ class AuthenticationPropertyTest extends ServerSetup
       info(s"Completed $iterations iterations:")
       info(s"  - Reset on success: $resetOnSuccessCount")
       info(s"  - Increment on failure: $incrementOnFailureCount")
-      info(s"  - Increment on locked: $incrementOnLockedCount")
+      info(s"  - Locked user attempts NOT incremented: $incrementOnLockedCount")
       
       // Verify we got reasonable results for each test type
       resetOnSuccessCount should be > 0
       incrementOnFailureCount should be > 0
-      incrementOnLockedCount should be > 0
+      incrementOnLockedCount should be > 0  // This counts cases where locked users did NOT increment
       
       info("Property 1 (Side Effects): Authentication Behavior Equivalence - PASSED ✅")
     }

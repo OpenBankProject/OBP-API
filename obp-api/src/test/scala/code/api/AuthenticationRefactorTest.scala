@@ -127,9 +127,9 @@ class AuthenticationRefactorTest extends FeatureSpec
             fail(s"Expected Full(usernameLockedStateCode), got: $other")
         }
         
-        And("Bad login attempts should still be incremented")
-        // Note: This verifies the edge case from Requirement 4.6
-        // Even locked users should have attempts incremented
+        And("Bad login attempts should NOT be incremented for locked users")
+        // Note: This verifies the updated behavior from Requirement 4.5
+        // Locked users should NOT have attempts incremented
         
       } finally {
         cleanupTestUser(username)
@@ -517,10 +517,10 @@ class AuthenticationRefactorTest extends FeatureSpec
             fail(s"Expected Full(usernameLockedStateCode), got: $other")
         }
         
-        And("Bad login attempts should still be incremented")
+        And("Bad login attempts should NOT be incremented for locked users")
         val attemptsAfter = LoginAttempt.getOrCreateBadLoginStatus(externalProvider, username)
           .map(_.badAttemptsSinceLastSuccessOrReset).openOr(0)
-        attemptsAfter should be > attemptsBefore
+        attemptsAfter shouldBe attemptsBefore
         
         And("Lock check should happen before connector call")
         // This verifies that we don't waste time calling the external connector
