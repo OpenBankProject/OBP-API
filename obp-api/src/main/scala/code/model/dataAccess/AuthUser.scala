@@ -949,11 +949,59 @@ import net.liftweb.util.Helpers._
   }
 
   /**
-    * This method is belong to AuthUser, it is used for authentication(Login stuff)
-    * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side.
-    * 3 if not existing, will create new AuthUser.
-    * @return Return the authUser
+    * Validates external user credentials via connector and creates/retrieves local AuthUser.
+    * 
+    * This method is the primary entry point for external authentication. It performs the following:
+    * 
+    * 1. **Connector Validation**: Calls the connector's `checkExternalUserCredentials` to validate
+    *    the username and password against the external identity provider or Core Banking System.
+    * 
+    * 2. **Local User Lookup**: If connector validation succeeds, checks if the user already exists
+    *    in the local OBP database (AuthUser table) using `findAuthUserByUsernameAndProvider`.
+    * 
+    * 3. **Auto-Provisioning**: If the user doesn't exist locally, automatically creates a new AuthUser
+    *    record with data from the connector response (email, name, provider, validation status).
+    *    This also triggers creation of the associated ResourceUser via the `saveMe()` method.
+    * 
+    * 4. **User Auth Context**: If the connector returns user auth contexts (e.g., customer numbers),
+    *    these are stored/updated in the UserAuthContext table for both new and existing users.
+    * 
+    * == Authentication Flow ==
+    * ```
+    * checkExternalUserViaConnector(username, password)
+    *   │
+    *   ├─> Connector.checkExternalUserCredentials(username, password)
+    *   │   └─> Returns InboundExternalUser with: sub, iss, email, name, userAuthContexts
+    *   │
+    *   ├─> findAuthUserByUsernameAndProvider(sub, iss)
+    *   │   ├─> User exists and validated? → Return existing user
+    *   │   └─> User not found? → Create new AuthUser with connector data
+    *   │
+    *   └─> Update/Create UserAuthContexts if provided
+    * ```
+    * 
+    * == Return Values ==
+    * - `Full(AuthUser)`: Authentication successful, returns the AuthUser (existing or newly created)
+    * - `Empty`: Connector validation failed (invalid credentials or connector error)
+    * - `Failure`: Connector returned an error with details
+    * 
+    * == Side Effects ==
+    * - May create new AuthUser record in database
+    * - May create new ResourceUser record (via AuthUser.saveMe())
+    * - May create/update UserAuthContext records
+    * 
+    * == Usage ==
+    * This method is called by:
+    * - `getResourceUserId()` for external provider authentication
+    * - DirectLogin authentication flow for external users
+    * 
+    * @param username The username to authenticate against the external system
+    * @param password The password to validate via the connector
+    * @return Box[AuthUser] containing the authenticated user or Empty/Failure on error
+    * 
+    * @see [[getResourceUserId]] for the main authentication entry point
+    * @see [[Connector.checkExternalUserCredentials]] for connector validation
+    * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     logger.info(s"checkExternalUserViaConnector: calling checkExternalUserCredentials for username: $username")
