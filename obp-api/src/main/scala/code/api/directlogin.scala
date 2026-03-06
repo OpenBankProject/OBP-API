@@ -575,9 +575,26 @@ object DirectLogin extends RestHelper with MdcLoggable {
     val username = directLoginParameters.getOrElse("username", "")
     val password = directLoginParameters.getOrElse("password", "")
 
-    //we first try to get the userId from local, if not find, we try to get it from external 
-    AuthUser.getResourceUserId(username, password, Constant.localIdentityProvider)
-        .or(AuthUser.checkExternalUserViaConnector(username, password).map(_.user.get))
+    logger.debug(s"getUserId: attempting authentication for username: $username")
+    
+    // Try local provider first
+    val localResult = AuthUser.getResourceUserId(username, password, Constant.localIdentityProvider)
+    localResult match {
+      case Full(userId) =>
+        logger.debug(s"getUserId: local authentication succeeded for username: $username, userId: $userId")
+        localResult
+      case _ =>
+        logger.debug(s"getUserId: local authentication failed for username: $username, trying external provider")
+        // Try external provider as fallback
+        val externalResult = AuthUser.getResourceUserId(username, password, s"External")
+        externalResult match {
+          case Full(userId) =>
+            logger.debug(s"getUserId: external authentication succeeded for username: $username, userId: $userId")
+          case _ =>
+            logger.debug(s"getUserId: external authentication also failed for username: $username")
+        }
+        externalResult
+    }
   }
 
 
