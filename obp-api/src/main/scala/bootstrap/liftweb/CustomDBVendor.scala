@@ -27,25 +27,17 @@ class CustomDBVendor(driverName: String,
   object HikariDatasource {
     val config = new HikariConfig()
 
-    val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout")
-    val maximumPoolSize = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize")
-    val idleTimeout = APIUtil.getPropsAsLongValue("hikari.idleTimeout")
-    val keepaliveTime = APIUtil.getPropsAsLongValue("hikari.keepaliveTime", 30000L)
-    val maxLifetime = APIUtil.getPropsAsLongValue("hikari.maxLifetime")
+    val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout", 30000L)
+    val maximumPoolSize   = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize", 10)
+    val idleTimeout       = APIUtil.getPropsAsLongValue("hikari.idleTimeout", 600000L)
+    val keepaliveTime     = APIUtil.getPropsAsLongValue("hikari.keepaliveTime", 30000L)
+    val maxLifetime       = APIUtil.getPropsAsLongValue("hikari.maxLifetime", 1800000L)
 
-    if(connectionTimeout.isDefined){
-      config.setConnectionTimeout(connectionTimeout.head)
-    }
-    if(maximumPoolSize.isDefined){
-      config.setMaximumPoolSize(maximumPoolSize.head)
-    }
-    if(idleTimeout.isDefined){
-      config.setIdleTimeout(idleTimeout.head)
-    }
+    config.setConnectionTimeout(connectionTimeout)
+    config.setMaximumPoolSize(maximumPoolSize)
+    config.setIdleTimeout(idleTimeout)
     config.setKeepaliveTime(keepaliveTime)
-    if(maxLifetime.isDefined){
-      config.setMaxLifetime(maxLifetime.head)
-    }
+    config.setMaxLifetime(maxLifetime)
     //Liftweb DB.scala will set all the new connections to false, so here we set default to false
     val autoCommitValue: Boolean = false
     config.setAutoCommit(autoCommitValue)
