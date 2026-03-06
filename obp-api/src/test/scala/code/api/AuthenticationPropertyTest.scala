@@ -1236,7 +1236,7 @@ class AuthenticationPropertyTest extends ServerSetup
   // ============================================================================
 
   feature("Property 1: Authentication Behavior Equivalence (Backward Compatibility)") {
-    scenario("refactored authentication produces consistent results across all scenarios (10 iterations)") {
+    scenario("refactored authentication produces consistent results across all scenarios (20 iterations)") {
       // CRITICAL: Set property at scenario level to survive afterEach() reset
       setPropsValues("connector.user.authentication" -> "true")
 
@@ -1248,7 +1248,7 @@ class AuthenticationPropertyTest extends ServerSetup
       info("This is the MOST CRITICAL property test - it ensures the refactoring")
       info("  maintains correct behavior across all authentication scenarios.")
 
-      val iterations = 10
+      val iterations = 20
       var totalScenarios = 0
       var successfulAuthCount = 0
       var failedAuthCount = 0
@@ -1256,13 +1256,17 @@ class AuthenticationPropertyTest extends ServerSetup
       var unvalidatedUserCount = 0
       var loginAttemptConsistencyCount = 0
 
+      // Ensure each scenario type is tested at least once, then randomize the rest
+      val scenarioTypes = (0 to 5).toList ++ List.fill(iterations - 6)(scala.util.Random.nextInt(6))
+      val shuffledScenarios = scala.util.Random.shuffle(scenarioTypes)
+
       for (i <- 1 to iterations) {
         val username = generateUsername()
         val password = generatePassword()
         val provider = generateProvider()
 
-        // Randomly select a scenario type
-        val scenarioType = scala.util.Random.nextInt(6)
+        // Get scenario type from shuffled list
+        val scenarioType = shuffledScenarios(i - 1)
 
         try {
           scenarioType match {
@@ -1483,16 +1487,16 @@ class AuthenticationPropertyTest extends ServerSetup
       // Verify we tested a good distribution of scenarios
       totalScenarios shouldBe iterations
 
-      // Verify we got reasonable results for each scenario type
-      successfulAuthCount should be > 0
-      failedAuthCount should be > 0
-      lockedUserCount should be > 0
-      unvalidatedUserCount should be > 0
+      // Verify we got at least one result for each scenario type (guaranteed by our shuffled approach)
+      successfulAuthCount should be >= 1
+      failedAuthCount should be >= 1
+      lockedUserCount should be >= 1
+      unvalidatedUserCount should be >= 1
 
       // Verify login attempt tracking was consistent
-      loginAttemptConsistencyCount should be >= (iterations - 20) // Allow some tolerance for external auth
+      loginAttemptConsistencyCount should be >= (iterations - 5) // Allow some tolerance for external auth
 
-      info("Property 1: Authentication Behavior Equivalence - PASSED ✅")
+      info("Property 1: Authentication Behavior Equivalence - PASSED")
       info("")
       info("CRITICAL TEST PASSED: The refactored authentication implementation")
       info("  maintains consistent behavior across all authentication scenarios.")
@@ -1565,7 +1569,7 @@ class AuthenticationPropertyTest extends ServerSetup
       validResultCount shouldBe iterations
       invalidResultCount shouldBe 0
 
-      info("Property 1 (Result Types): Authentication Behavior Equivalence - PASSED ✅")
+      info("Property 1 (Result Types): Authentication Behavior Equivalence - PASSED")
     }
 
     scenario("login attempt side effects are consistent across all authentication paths (10 iterations)") {
@@ -1672,7 +1676,7 @@ class AuthenticationPropertyTest extends ServerSetup
       incrementOnFailureCount should be > 0
       incrementOnLockedCount should be > 0  // This counts cases where locked users did NOT increment
 
-      info("Property 1 (Side Effects): Authentication Behavior Equivalence - PASSED ✅")
+      info("Property 1 (Side Effects): Authentication Behavior Equivalence - PASSED")
     }
   }
 }
