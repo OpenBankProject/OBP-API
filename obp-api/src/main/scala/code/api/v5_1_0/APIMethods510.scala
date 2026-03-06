@@ -1842,16 +1842,25 @@ trait APIMethods510 {
       "Get My Consents",
       s"""
          |
-         |This endpoint gets the Consents created by a current User.
+         |This endpoint gets the Consents created by the current User.
          |
          |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 status  (ignore if omitted)
+         |
+         |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
+         |
+         |eg: /my/consents?limit=10&offset=0&sort_by=created_date:desc
          |
       """.stripMargin,
       EmptyBody,
       consentsInfoJsonV510,
       List(
         $AuthenticatedUserIsRequired,
-        $BankNotFound,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -1861,12 +1870,19 @@ trait APIMethods510 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            consents <- Future {
-              Consents.consentProvider.vend.getConsentsByUser(cc.userId)
-                .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // Add user_id filter for current user and default sort if not specified
+            userIdParam = OBPUserId(cc.userId)
+            sortByParam = obpQueryParams.collectFirst { case OBPSortBy(_) => true }
+            queryParamsWithDefaults = userIdParam :: obpQueryParams ++ (
+              if (sortByParam.isEmpty) List(OBPSortBy("created_date:desc")) else Nil
+            )
+            (consents, _) <- Future {
+              Consents.consentProvider.vend.getConsents(queryParamsWithDefaults)
             }
           } yield {
-            (createConsentsInfoJsonV510(consents), HttpCode.`200`(cc))
+            (createConsentsInfoJsonV510(consents), HttpCode.`200`(callContext))
           }
       }
     }

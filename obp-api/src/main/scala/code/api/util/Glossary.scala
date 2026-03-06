@@ -2956,7 +2956,7 @@ object Glossary extends MdcLoggable  {
 |Berlin Group consents with status "received" that remain unfinished (e.g. the PSU never completed the SCA flow) beyond a configured time threshold are automatically rejected.
 |
 |* `berlin_group_outdated_consents_time_in_seconds` - Time in seconds after which an unfinished consent is considered outdated. Default: **300** (5 minutes).
-|* `berlin_group_outdated_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|* `berlin_group_outdated_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for outdated consents. Default: **599**. Set to 0 to disable.
 |
 |Example:
 |
@@ -2967,13 +2967,16 @@ object Glossary extends MdcLoggable  {
 |## Expired Consents
 |
 |Berlin Group consents with status "valid" whose `validUntil` date has passed are automatically transitioned to "expired" status.
+|OBP consents with status "ACCEPTED" whose `validUntil` date has passed are automatically transitioned to "EXPIRED" status.
 |
-|* `berlin_group_expired_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for expired consents. Must be set to a value greater than 0 to enable the task. **Not set by default** (task is disabled).
+|* `berlin_group_expired_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for expired Berlin Group consents. Default: **597**. Set to 0 to disable.
+|* `obp_expired_consents_interval_in_seconds` - How often (in seconds) the scheduler checks for expired OBP consents. Default: **595**. Set to 0 to disable.
 |
 |Example:
 |
 |    # Check for expired consents every 120 seconds
 |    berlin_group_expired_consents_interval_in_seconds = 120
+|    obp_expired_consents_interval_in_seconds = 120
 |
  """)
 
