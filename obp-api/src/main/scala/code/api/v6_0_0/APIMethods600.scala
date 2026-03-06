@@ -6401,7 +6401,8 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateSystemLevelDynamicEntity))
+      Some(List(canCreateSystemLevelDynamicEntity)),
+      authMode = UserOrApplication
     )
 
     // v6.0.0 entity names must be lowercase with underscores (snake_case)
