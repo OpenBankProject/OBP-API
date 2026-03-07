@@ -55,29 +55,6 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     MappedTransactionRequest.bulkDelete_!!()
   }
 
-  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
-                                            transactionRequestType: TransactionRequestType,
-                                            account : BankAccount,
-                                            counterparty : BankAccount,
-                                            body: TransactionRequestBody,
-                                            status: String,
-                                            charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mTo_BankId(counterparty.bankId.value)
-      .mTo_AccountId(counterparty.accountId.value)
-      .mBody_Value_Currency(body.value.currency)
-      .mBody_Value_Amount(body.value.amount)
-      .mBody_Description(body.description)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now).saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
-  }
-
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                                transactionRequestType: TransactionRequestType,
                                                fromAccount: BankAccount,

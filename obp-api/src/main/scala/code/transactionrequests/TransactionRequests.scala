@@ -44,14 +44,6 @@ trait TransactionRequestProvider extends MdcLoggable {
   def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId): Box[List[TransactionRequest]]
   def getTransactionRequestFromProvider(transactionRequestId : TransactionRequestId) : Box[TransactionRequest]
   def updateAllPendingTransactionRequests: Box[Option[Unit]]
-  def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
-                                   transactionRequestType: TransactionRequestType,
-                                   account : BankAccount,
-                                   counterparty : BankAccount,
-                                   body: TransactionRequestBody,
-                                   status: String,
-                                   charge: TransactionRequestCharge) : Box[TransactionRequest]
-
   /**
    *
    * @param transactionRequestId
