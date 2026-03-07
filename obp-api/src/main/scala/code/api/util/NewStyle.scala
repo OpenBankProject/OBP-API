@@ -41,7 +41,9 @@ import code.users._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.validation.{JsonSchemaValidationProvider, JsonValidation}
+import code.transactionrequests.TransactionRequests
 import code.views.Views
+import code.views.system.ViewPermission
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
@@ -543,6 +545,57 @@ object NewStyle extends MdcLoggable{
           s"current UserId(${user.userId})"+
           s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
         )
+      }
+    }
+
+    def checkMakerCheckerForTransactionRequest(
+      bankId: BankId,
+      accountId: AccountId,
+      viewId: ViewId,
+      transactionRequestId: TransactionRequestId,
+      checkerUserId: String,
+      callContext: Option[CallContext]
+    ): Future[Boolean] = {
+      Future {
+        // Check if the view has the can_have_same_maker_checker_for_transaction_request permission
+        val permissionName = Constant.CAN_HAVE_SAME_MAKER_CHECKER_FOR_TRANSACTION_REQUEST
+        val hasPermission = Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) match {
+          case Full(view) => ViewPermission.findViewPermission(view, permissionName).isDefined
+          case _ => Views.views.vend.systemView(viewId) match {
+            case Full(view) => ViewPermission.findViewPermission(view, permissionName).isDefined
+            case _ => false
+          }
+        }
+
+        // If the view has can_have_same_maker_checker_for_transaction_request, no check needed
+        if (hasPermission) {
+          Full(true)
+        } else {
+          // Maker-checker is required — get the TR
+          val transactionRequest = TransactionRequests.transactionRequestProvider.vend
+            .getTransactionRequest(transactionRequestId)
+
+          transactionRequest match {
+            case Full(tr) =>
+              tr.user_id match {
+                case None | Some("") =>
+                  Failure(MakerCheckerUnknownMaker)
+                case Some(makerUserId) if makerUserId == checkerUserId =>
+                  Failure(MakerCheckerSameUser)
+                case _ =>
+                  tr.on_behalf_of_user_id match {
+                    case Some(onBehalfOfUserId) if onBehalfOfUserId.nonEmpty && onBehalfOfUserId == checkerUserId =>
+                      Failure(MakerCheckerSameUser)
+                    case _ =>
+                      Full(true)
+                  }
+              }
+            case _ =>
+              Failure(s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId)")
+          }
+        }
+      } map {
+        unboxFullOrFail(_, callContext, "Maker/Checker check failed")
       }
     }
 

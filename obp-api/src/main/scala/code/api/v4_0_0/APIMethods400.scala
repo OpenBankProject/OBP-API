@@ -1457,6 +1457,16 @@ trait APIMethods400 extends MdcLoggable {
             )
           }
 
+          // Check Maker/Checker separation if required by the view
+          _ <- NewStyle.function.checkMakerCheckerForTransactionRequest(
+            bankId,
+            accountId,
+            viewId,
+            transReqId,
+            u.userId,
+            callContext
+          )
+
           // Check the input transactionRequestType is the same as when the user created the TransactionRequest
           existingTransactionRequestType = existingTransactionRequest.`type`
           _ <- Helper.booleanToFuture(
