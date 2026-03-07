@@ -1107,6 +1107,10 @@ case class TransactionRequest (
                                 payment_frequency :Option[String] = None,
                                 @optional
                                 payment_day_of_execution :Option[String] = None,
+                                @optional
+                                user_id :Option[String] = None,
+                                @optional
+                                on_behalf_of_user_id :Option[String] = None,
                               )
 
 case class TransactionRequestBGV1(

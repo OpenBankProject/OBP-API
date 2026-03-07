@@ -179,6 +179,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       .mConsentReferenceId(consentReferenceIdOption.getOrElse(null))
       .mApiVersion(apiVersion.getOrElse(null))
       .mApiStandard(apiStandard.getOrElse(null))
+      .mUserId(callContext.flatMap(_.user.map(_.userId)).getOrElse(null))
+      .mOnBehalfOfUserId(callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null))
 
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
@@ -287,6 +289,9 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
 
   object mApiStandard extends MappedString(this, 50)
   object mApiVersion extends MappedString(this, 50)
+
+  object mUserId extends MappedString(this, 100)
+  object mOnBehalfOfUserId extends MappedString(this, 100)
 
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)
@@ -463,7 +468,9 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         other_account_routing_address = mOtherAccountRoutingAddress.get,
         other_bank_routing_scheme = mOtherBankRoutingScheme.get,
         other_bank_routing_address = mOtherBankRoutingAddress.get,
-        is_beneficiary = mIsBeneficiary.get
+        is_beneficiary = mIsBeneficiary.get,
+        user_id = Option(mUserId.get).filter(_.nonEmpty),
+        on_behalf_of_user_id = Option(mOnBehalfOfUserId.get).filter(_.nonEmpty)
       )
     )
   }
