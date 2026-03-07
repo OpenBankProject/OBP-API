@@ -71,6 +71,8 @@ trait User {
   def isDeleted: Option[Boolean]
   def lastMarketingAgreementSignedDate: Option[Date]
   def lastUsedLocale: Option[String] = None
+  def isNaturalPerson: Boolean = true
+  def principalUserIdOption: Option[String] = None
 }
 
 case class UserPrimaryKey(val value : Long) {

@@ -93,6 +93,12 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   object LastUsedLocale extends MappedString(this, 10) {
     override def defaultValue = null
   }
+  object IsNaturalPerson extends MappedBoolean(this) {
+    override def defaultValue = true
+  }
+  object PrincipalUserId extends MappedString(this, 100) {
+    override def defaultValue = null
+  }
   
   def emailAddress = {
     val e = email.get
@@ -123,6 +129,8 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   override def isDeleted: Option[Boolean] = if(IsDeleted.jdbcFriendly(IsDeleted.calcFieldName) == null) None else Some(IsDeleted.get) // null --> None
   override def lastMarketingAgreementSignedDate: Option[Date] = if(IsDeleted.jdbcFriendly(LastMarketingAgreementSignedDate.calcFieldName) == null) None else Some(LastMarketingAgreementSignedDate.get) // null --> None
   override def lastUsedLocale: Option[String] = if(LastUsedLocale.get == null) None else Some(LastUsedLocale.get) // null --> None
+  override def isNaturalPerson: Boolean = IsNaturalPerson.get
+  override def principalUserIdOption: Option[String] = if(PrincipalUserId.get == null) None else if (PrincipalUserId.get.isEmpty) None else Some(PrincipalUserId.get)
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
