@@ -783,6 +783,9 @@ object ApiRole extends MdcLoggable{
   case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBankLevelDynamicEntity = CanCreateBankLevelDynamicEntity()
 
+  case class CanCreateAnyBankLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateAnyBankLevelDynamicEntity = CanCreateAnyBankLevelDynamicEntity()
+
   case class CanUpdateSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateSystemDynamicEntity = CanUpdateSystemLevelDynamicEntity()
 
@@ -806,6 +809,9 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()
+
+  case class CanGetAnyBankLevelDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyBankLevelDynamicEntities = CanGetAnyBankLevelDynamicEntities()
 
   case class CanGetDynamicEntityDiagnostics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEntityDiagnostics = CanGetDynamicEntityDiagnostics()
