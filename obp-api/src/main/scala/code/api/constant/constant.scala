@@ -379,6 +379,7 @@ object Constant extends MdcLoggable {
   final val CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY = "can_add_transaction_request_to_beneficiary"
   final val CAN_GRANT_ACCESS_TO_VIEWS = "can_grant_access_to_views"
   final val CAN_REVOKE_ACCESS_TO_VIEWS = "can_revoke_access_to_views"
+  final val ENFORCE_TRANSACTION_REQUEST_MAKER_CHECKER = "enforce_transaction_request_maker_checker"
 
   final val SYSTEM_OWNER_VIEW_PERMISSION_ADMIN = List(
     CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT,
@@ -660,6 +661,7 @@ object Constant extends MdcLoggable {
     CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY,
     CAN_GRANT_ACCESS_TO_VIEWS,
     CAN_REVOKE_ACCESS_TO_VIEWS,
+    ENFORCE_TRANSACTION_REQUEST_MAKER_CHECKER,
   )
 
 
