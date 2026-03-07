@@ -2169,7 +2169,7 @@ trait APIMethods400 extends MdcLoggable {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetBankLevelDynamicEntities))
+      Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities))
     )
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
@@ -2642,7 +2642,7 @@ trait APIMethods400 extends MdcLoggable {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateBankLevelDynamicEntity))
+      Some(List(canCreateBankLevelDynamicEntity, canCreateAnyBankLevelDynamicEntity))
     )
     lazy val createBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: BankId(
