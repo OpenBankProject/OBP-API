@@ -6241,7 +6241,7 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetBankLevelDynamicEntities))
+      Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities))
     )
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
@@ -6497,7 +6497,7 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateBankLevelDynamicEntity))
+      Some(List(canCreateBankLevelDynamicEntity, canCreateAnyBankLevelDynamicEntity))
     )
 
     lazy val createBankLevelDynamicEntity: OBPEndpoint = {
