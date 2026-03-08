@@ -5379,7 +5379,7 @@ trait APIMethods600 {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             (view, callContext) <- ViewNewStyle.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view), HttpCode.`201`(callContext))
+            (JSONFactory600.createViewJsonV600(view), HttpCode.`201`(callContext))
           }
       }
     }
