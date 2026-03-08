@@ -139,7 +139,6 @@ package code.model.dataAccess {
             // Use async version and handle Future result
             BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None).map { _ =>
               logger.debug(s"Successfully set account holder and refreshed user account access for account ${bankAccount.accountId.value}")
-              UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             }.recover {
               case ex: Exception =>
                 logger.error(s"Failed to set account holder and refresh user account access: ${ex.getMessage}", ex)
@@ -150,6 +149,7 @@ package code.model.dataAccess {
           result match {
             case Full(_) =>
               logger.debug(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
+              UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
             case _ => logger.warn(s"account creation failed")
           }
