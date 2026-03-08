@@ -5170,6 +5170,8 @@ trait APIMethods600 {
          |The JSON sent is the same as during view creation, with one difference: the 'name' field
          |of a view is not editable (it is only set when a view is created).
          |
+         |The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+         |
          |The response contains the updated view with an `allowed_actions` array.
          |
          |""".stripMargin,
@@ -5343,6 +5345,8 @@ trait APIMethods600 {
          |
          | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
          |
+         | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+         |
          | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
          |
          |""".stripMargin,
@@ -5398,7 +5402,7 @@ trait APIMethods600 {
          |
          |""".stripMargin,
       EmptyBody,
-      ViewsJsonV500(List()),
+      ViewsJsonV600(List()),
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -5415,7 +5419,7 @@ trait APIMethods600 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             customViews <- Future { ViewDefinition.getCustomViews() }
           } yield {
-            (JSONFactory500.createViewsJsonV500(customViews), HttpCode.`200`(callContext))
+            (JSONFactory600.createViewsJsonV600(customViews), HttpCode.`200`(callContext))
           }
       }
     }
