@@ -26,12 +26,12 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.answerTransactionRequestChallenge))
 
   /**
-    * Helper to remove the can_have_same_maker_checker_for_transaction_request permission
+    * Helper to remove the can_bypass_maker_checker_separation permission
     * from the owner system view, forcing maker != checker.
     */
   def removeMakerCheckerPermissionFromOwnerView(): Unit = {
     val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
-    ViewPermission.findSystemViewPermission(viewId, CAN_HAVE_SAME_MAKER_CHECKER_FOR_TRANSACTION_REQUEST)
+    ViewPermission.findSystemViewPermission(viewId, CAN_BYPASS_MAKER_CHECKER_SEPARATION)
       .foreach(_.delete_!)
   }
 
@@ -41,8 +41,8 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
   def addMakerCheckerPermissionToOwnerView(): Unit = {
     val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
     // Only add if not already present
-    if (ViewPermission.findSystemViewPermission(viewId, CAN_HAVE_SAME_MAKER_CHECKER_FOR_TRANSACTION_REQUEST).isEmpty) {
-      ViewPermission.createSystemViewPermission(viewId, CAN_HAVE_SAME_MAKER_CHECKER_FOR_TRANSACTION_REQUEST, None)
+    if (ViewPermission.findSystemViewPermission(viewId, CAN_BYPASS_MAKER_CHECKER_SEPARATION).isEmpty) {
+      ViewPermission.createSystemViewPermission(viewId, CAN_BYPASS_MAKER_CHECKER_SEPARATION, None)
     }
   }
 
