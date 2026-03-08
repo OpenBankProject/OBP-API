@@ -1,29 +1,81 @@
 package code
 
+import cats.effect._
+import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil
-import org.eclipse.jetty.server.Server
-import org.eclipse.jetty.webapp.WebAppContext
+import code.api.util.http4s.Http4sApp
+import com.comcast.ip4s._
+import net.liftweb.common.Logger
+import org.http4s.ember.server._
 
 import java.util.UUID
+import scala.concurrent.duration._
 
+/**
+ * Test Server - Singleton http4s server for integration tests.
+ *
+ * Replaces the former Jetty-based TestServer. Uses Http4sApp.httpApp
+ * (same as production) to ensure test/prod parity.
+ *
+ * Boot.boot() is called directly for Lift initialization — no servlet
+ * context is needed.
+ *
+ * The server starts synchronously on object initialization so that
+ * all test classes can rely on it being ready.
+ */
 object TestServer {
 
+  private val logger = Logger("code.TestServer")
+
   val host = "localhost"
-  val port = APIUtil.getPropsAsIntValue("tests.port",8000)
+  val port = APIUtil.getPropsAsIntValue("tests.port", 8000)
   val externalHost = APIUtil.getPropsValue("external.hostname")
   val externalPort = APIUtil.getPropsAsIntValue("external.port")
-  val server = new Server(port)
 
-  val context = new WebAppContext()
-  context.setServer(server)
-  context.setContextPath("/")
-  val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
-  context.setWar(s"${basePath}src/main/webapp")
+  // Initialize Lift framework (replaces WebAppContext bootstrap)
+  logger.info("[TestServer] Initializing Lift framework via Boot.boot()")
+  new bootstrap.liftweb.Boot().boot
+  logger.info("[TestServer] Lift framework initialized")
 
-  server.setHandler(context)
+  // Start http4s EmberServer synchronously
+  private implicit val runtime: IORuntime = IORuntime.global
+  private var serverFiber: Option[FiberIO[Nothing]] = None
 
-  server.start()
+  private def startServer(): Unit = synchronized {
+    logger.info(s"[TestServer] Starting http4s EmberServer on $host:$port (HTTP/1.1 only)")
 
+    val serverResource = EmberServerBuilder
+      .default[IO]
+      .withHost(Host.fromString(host).getOrElse(ipv4"127.0.0.1"))
+      .withPort(Port.fromInt(port).getOrElse(port"8000"))
+      .withHttpApp(Http4sApp.httpApp)
+      .withShutdownTimeout(1.second)
+      // EmberServer defaults to HTTP/1.1 only (no HTTP/2)
+      // This ensures compatibility with Dispatch HTTP client
+      .build
+
+    serverFiber = Some(
+      serverResource
+        .use(_ => IO.never)
+        .start
+        .unsafeRunSync()
+    )
+
+    // Allow server to bind and become ready
+    Thread.sleep(2000)
+    logger.info(s"[TestServer] http4s EmberServer started on $host:$port")
+  }
+
+  // Auto-start on object initialization
+  startServer()
+
+  // Register shutdown hook for clean teardown
+  sys.addShutdownHook {
+    logger.info("[TestServer] Shutting down http4s EmberServer")
+    serverFiber.foreach(_.cancel.unsafeRunSync())
+  }
+
+  // Public API — unchanged from original
   val userId1 = Some(UUID.randomUUID.toString)
   val userId2 = Some(UUID.randomUUID.toString)
   val userId3 = Some(UUID.randomUUID.toString)
@@ -33,5 +85,4 @@ object TestServer {
   val resourceUser2Name = "resourceUser2"
   val resourceUser3Name = "resourceUser3"
   val resourceUser4Name = "resourceUser4"
-  
 }

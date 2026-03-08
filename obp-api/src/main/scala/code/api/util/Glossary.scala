@@ -1114,7 +1114,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Consent_OBP_Flow_Example",
+		title = "Authentication: Consent OBP Flow Example",
 		description =
 				s"""
 					|#### 1) Call endpoint Create Consent Request using application access (Client Credentials)
@@ -1355,7 +1355,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Direct Login",
+		title = "Authentication: Direct Login",
 		description =
 		  s"""
 			|Direct Login is a simple authentication process to be used at hackathons and trusted environments:
@@ -1501,7 +1501,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|Please note the user_id
 			|
@@ -1521,7 +1521,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: $directLoginHeaderName token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 3) List customers for the user
 			|
@@ -1537,7 +1537,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 4) Create user customer link
 			|
@@ -1555,7 +1555,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 5) Create account
 			|
@@ -1573,7 +1573,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 6) List accounts
 			|
@@ -1589,7 +1589,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 7) Create card
 			|
@@ -1607,7 +1607,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct0login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 8) List cards
 			|
@@ -1623,7 +1623,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct0login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 		  """)
 
@@ -1648,7 +1648,7 @@ object Glossary extends MdcLoggable  {
 			 |
 			 |	Content-Type:  application/json
 			 |
-			 |	Authorization: DirectLogin token="your-token"
+			 |	$directLoginHeaderName: token="your-token"
 			 |
 			 |### 3) Grant user access to view
 			 |
@@ -1664,7 +1664,7 @@ object Glossary extends MdcLoggable  {
 			 |
 			 |	Content-Type:  application/json
 			 |
-			 |	Authorization: DirectLogin token="your-token"
+			 |	$directLoginHeaderName: token="your-token"
 			 |
 		  """)
 
@@ -1685,7 +1685,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 2) Make payment by SEPA
 			|
@@ -1701,7 +1701,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"        |
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 			|### 3) Make payment by COUNTERPARTY
@@ -1718,7 +1718,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 		  """)
@@ -1745,7 +1745,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 3) Get User (Current)
 			|
@@ -1758,7 +1758,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 4) Grant user access to himself
 			|
@@ -1774,7 +1774,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|### 5) Grant user access to view to another user
 			|
@@ -1790,7 +1790,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token"
+			|	$directLoginHeaderName: token="your-token"
 			|
 			|
 		  """)
@@ -1813,7 +1813,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|Please note the user_id
 			|
@@ -1834,7 +1834,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 3) Create customer
 			|
@@ -1852,7 +1852,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 			|### 4) Get Customers for Current User
 			|
@@ -1868,7 +1868,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-direct-login"
+			|	$directLoginHeaderName: token="your-token-from-direct-login"
 			|
 
 		  """)
@@ -2135,244 +2135,11 @@ object Glossary extends MdcLoggable  {
 |
 		  """)
 
-	glossaryItems += GlossaryItem(
-		title = "OAuth 1.0a",
-		description =
-			s"""
-			|The following steps will explain how to connect an instance of the Open Bank Project OAuth Server 1.0a. This authentication mechanism is necessary so a third party application can consume the Open Bank project API securely.
-			|
-			|The following documentation is based on the OAuth 1.0a specification so if you need more details you can refer to it.
-			|
-			|Before starting to interact with the API, third party applications needs to get OAuth keys (consumer key and secret key). You can register your application here to get those keys for interacting with real data. If you want to use the sandbox before handling real data, please register your application here
-			|
-			|### 1) Obtain a request token
-			|
-			|To start a sign in flow, the application must obtain a request token by sending a signed message to :
-			|
-			|    POST $getServerUrl/oauth/initiate
-			|
-			|* oauth_callback: an absolute URI back to which the server will redirect the resource owner (user) when Authorization step is completed. If the application is unable to receive callbacks the parameter value MUST be set to “oob” (case sensitive), to indicate an out-of-band configuration.
-			|
-			|* oauth_consumer_key : The identifier portion of the client credentials (consumer key) which is obtained after application registration.
-			|
-			|* oauth_nonce : A nonce is a random string, uniquely generated by the client to allow the server to verify that a request has never been made before. The nonce value MUST be unique across all requests with the same timestamp, application credentials, and token combinations.
-			|
-			|* oauth_signature : the result of signing the request. Explained in detail here.
-			|
-			|* oauth_signature_method : The name of the signature method that will be used by the application to sign the request, as defined in OAuth protocol. The Open Bank Project OAuth server support "SHA1" and "SHA256" so the parameter MUST be set to “HMAC-SHA1" or “HMAC-SHA256”
-			|
-			|* oauth_timestamp : The timestamp value MUST be a positive integer and is expressed in the number of seconds since January 1, 1970 00:00:00 GMT.
-			|
-			|* oauth_version : OPTIONAL. If present, MUST be set to "1.0". Provides the version of the authentication process as defined in the OAuth 1.0 protocol specification.
-			|
-			|Example:
-			|
-			|    POST /oauth/initiate HTTP/1.1
-			|
-			|    Host: $getServerUrl
-			|
-			|    Authorization: OAuth
-			|
-			|    oauth_callback="http%3A%2F%2Fprinter.example.com%2Fready",
-			|
-			|    oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
-			|
-			|    oauth_nonce="ea9ec8429b68d6b77cd5600adbbb0456",
-			|
-			|    oauth_signature="F1Li3tvehgcraF8DMJ7OyxO4w9Y%3D",
-			|
-			|    oauth_signature_method="HMAC-SHA256",
-			|
-			|    oauth_timestamp="1318467427",
-			|
-			|    oauth_version="1.0"
-			|
-			|important: We will explain below in the "signature" section how to calculate the value of the "oauth_signature" field.
-			|
-			|Note : line breaks are for display purposes only, the application MUST send the parameters on one line and the only separator between the parameters is a coma “,”.
-			|
-			|The server validates the request and replies with a set of temporary credentials in the body of the HTTP response.
-			|
-			|Example (line breaks are for display purposes only) :
-			|
-			|    HTTP/1.1 200 OK
-			|    Content-Type: application/x-www-form-urlencoded
-			|    oauth_token=hh5s93j4hdidpola&oauth_token_secret=hdhd0244k9j7ao03&oauth_callback_confirmed=true
-			|
-			|The application should examine the HTTP status of the response. Any value other than 200 indicates a failure. The body of the response will contain the oauth_token, oauth_token_secret, and oauth_callback_confirmed parameters. The application should verify that oauth_callback_confirmed is true and store the other two values for the next steps.
-			|
-			|### 2) Redirect the user
-			|
-			|The next step is to direct the user to Open Bank Project so that he may complete the authentication.
-			|
-			|Direct the user to :
-			|
-			|    GET oauth/authorize
-			|
-			|and the request token obtained in step 1 should be passed as the oauth_token parameter.
-			|
-			|The most seamless way for a website to implement this would be to issue a HTTP 302 redirect as the response to the original request. Mobile and desktop applications should open a new browser window or direct to the URL via an embedded web view.
-			|
-			|Example :
-			|
-			|    $getServerUrl/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0
-			|
-			|Upon a successful authentication, the callback URL would receive a request containing the oauth_token and oauth_verifier parameters. The application should verify that the token matches the request token received in step 1.
-			|
- 			|If the callback URL was not specified (oob) than the verifier will be shown in the page and the user has to enter it into the application manually.
-			|
-			|### 3) Convert the request token to an access token
-			|
-			|To convert the request token into a usable access token, the application must make a:
-			|
-			|    POST $getServerUrl/oauth/token
-			|
-			|request containing the oauth_verifier value obtained in step 2. The request token is also passed as oauth_token parameter of the header.
-			|
-			|Note : The oauth_callback_url parameter is not necessary any more.
-			|
-			|Example :
-			|
-			|    POST /oauth/token HTTP/1.1
-			|
-			|    Host: $getServerUrl
-			|
-			|    Authorization: OAuth
-			|
-			|    oauth_verifier="9312832",
-			|
-			|    oauth_token=”aze2342352aze”,
-			|
-			|    oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
-			|
-			|    oauth_nonce="ea9ec8429b68d6b77cd5600adbbb0456",
-			|
-			|    oauth_signature="F1Li3tvehgcraF8DMJ7OyxO4w9Y%3D",
-			|
-			|    oauth_signature_method="HMAC-SHA256",
-			|
-			|    oauth_timestamp="1318467427",
-			|
-			|    oauth_version="1.0"
-			|
-			|Like the step 1, a successful response contains the oauth_token & oauth_token_secret and they should be stored and used for future authenticated requests to the OBP API.
-			|
-			|The application can now use the access token to access protected resources.
-			|
-			|### 4) Access protected resources
-			|
-			|Once the application has an a access token and secret token, it can access protected resources. The request is the same as in step 3 except the oauth_verifer which MUST not be included in the header.
-			|
-			|Please see the API documentation for more details on how to access protected resources.
-			|
-			|### Recommended OAuth 1.0 libraries:
-			|
-			|If you want to use a OAuth library to handle the OAuth process for your application, we have successfully tested these ones:
-			|
-			|* JAVA:
-			|
-			| [signpost](http://code.google.com/p/oauth-signpost/). Warning any version below 1.2.1.2 probably will not work. Version 1.2 which is the current Maven version seems to cause problems.
-			|
-			|* PHP:
-			|
-			| [OAuth Consumer And Server Library] (https://code.google.com/p/oauth-php/)
-			|
-			|* Scala:
-			|
-			| [Dispatch] (http://dispatch.databinder.net/Dispatch.html)
-			|
-			|* OBP SDKs / examples of client code with OAuth:
-			|
-			| [OBP SDKs](https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS)
-			|
-			|### Examples :
-			|
-			|To show the OAuth integration in concrete examples, please check out these projects listed here:
-			|[Hello-OBP-OAuth1.0a-LANGUAGE/PLATFORM](https://github.com/OpenBankProject)
-			|
-			|### Signature :
-			|
-			|According to the [section-3.4](http://tools.ietf.org/html/rfc5849#section-3.4) in the OAuth 1.0 protocol specification the signature computation is done following theses steps :
-			|
-			|
-			|a) Signature Base String :
-			|
-			|The signature base string is a consistent, reproducible concatenation of several of the HTTP request elements into a single string. The string is used as an input to the signature methods.
-			|
-			|The signature base string includes the following components of the HTTP request:
-			|
-			|* The HTTP request method (e.g., "GET", "POST", etc.).
-			|
-			|* The authority as declared by the HTTP "Host" request header field.
-			|
-			|* The path and query components of the request resource URI.
-			|
-			|* he protocol parameters excluding the "oauth_signature".
-			|
-			|The signature base string does not cover the entire HTTP request. Most notably, it does not include the entity-body in most requests, nor does it include most HTTP entity-headers.
-			|
-			|The signature base string is constructed by concatenating together, in order, the following HTTP request elements:
-			|
-			|1. The HTTP request method in uppercase. For example: "HEAD", "GET", "POST", etc. If the request uses a custom HTTP method, it MUST be encoded (Section 3.6).
-			|
-			|2. An "&" character (ASCII code 38).
-			|
-			|3. The base string URI from Section 3.4.1.2, after being encoded (Section 3.6).
-			|
-			|4. An "&" character (ASCII code 38).
-			|
-			|5. The request parameters as normalized in Section 3.4.1.3.2, after being encoded (Section 3.6).
-			|
-			|Explained shortly below the example.
-			|
-			|Example:
-			|
-			|    POST /oauth/token HTTP/1.1
-			|    Host: $getServerUrl
-			|    Content-Type: application/x-www-form-urlencoded
-			|    Authorization: OAuth
-			|    oauth_consumer_key="91919",
-			|    oauth_token="OGESD9MrWQEGPXOyPjHCRrCw7BPelWJjnomibV6bePU",
-			|    oauth_signature_method="HMAC-SHA256",
-			|    oauth_timestamp="1340878170",
-			|    oauth_nonce="DFXOQFZVK8K46KDR11",
-			|    oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"
-			|
-			|Is represented by the following signature base string (line breaks are for display purposes only):
-			|
-			|    POST&https%3A%2F%2F$getServerUrl&oauth_consumer_key%3D91919%26oauth_nonce%3DDFXOQFZVK8K46KDR11%26oauth_signature_method%3Dhmac-sha256%26oauth_timestamp%3D1340878170%26oauth_token%3DOGESD9MrWQEGPXOyPjHCRrCw7BPelWJjnomibV6bePU%26oauth_verifier%3DT0dXUDBZR09LUVlGTU9NSlhIUUc%26oauth_version%3D1
-			|
-			|The request parameters normalization :
-			|
-			|1. The name and value of each parameter are encoded Section 3.6.
-			|
-			|2. The parameters are sorted by name, using ascending byte value ordering.
-			|
-			|3. The name of each parameter is concatenated to its corresponding value using an "=" character (ASCII code 61) as a separator, even if the value is empty.
-			|
-			|4. The sorted name/value pairs are concatenated together into a single string by using an "&" character (ASCII code 38) as separator.
-			|
-			|B) Signing the request :
-			|
-			|The Open Bank Project OAuth 1.0 implementation uses the “HMAC-SHA1” and “HMAC-SHA256” as signing methods. The key to sign the base string is the concatenation of the consumer secret and the token secret with the “&” character in the middle like this: oauth_consumer_secret&oauth_token_secret, in the first step the application does not have yet a token so it will be an empty string.
-			|
-			|The signature that results from the signature process MUST be encoded in base 64 also since the protocol requires encoding all the OAuth parameters.
-			|
-			|### Illustration of integration with a bank back-end :
-			|
-			|The following link shows how the integration of the OAuth process would be with a bank back-end: [https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Integration-Illustration](https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Integration-Illustration)
-			|
-			|
-			|
-			""")
-
-
-
   val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false))
 		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
     glossaryItems += GlossaryItem(
-      title = "OAuth 2",
+      title = "Authentication: OAuth 2",
       description =
         s"""
         |
@@ -2581,7 +2348,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Gateway Login",
+		title = "Authentication: Gateway Login",
 		description =
 			s"""
 						 |### Introduction
@@ -4151,7 +3918,7 @@ object Glossary extends MdcLoggable  {
 					 |    """.stripMargin)
 
 		glossaryItems += GlossaryItem(
-			title = "OAuth 2.0",
+			title = "Authentication: OAuth 2.0",
 			description =
 				s"""OAuth 2.0, is a framework, specified by the IETF in RFCs 6749 and 6750 (published in 2012) designed to support the development of authentication and authorization protocols. It provides a variety of standardized message flows based on JSON and HTTP.""".stripMargin)
 
@@ -4540,7 +4307,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=eyJhbGciOiJIUzI1...' \\
+				 |  -H '$directLoginHeaderName: token=eyJhbGciOiJIUzI1...' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4864,7 +4631,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/admin-only-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{}'
 				 |```
@@ -4886,7 +4653,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/account-owner-only/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "user_id": "alice@example.com",
@@ -4906,7 +4673,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/high-balance-only/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4925,7 +4692,7 @@ object Glossary extends MdcLoggable  {
 				 |```bash
 				 |curl -X POST \\
 				 |  '$getObpApiRoot/v6.0.0/management/abac-rules/small-transactions/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -H 'Content-Type: application/json' \\
 				 |  -d '{
 				 |    "bank_id": "gh.29.uk",
@@ -4970,7 +4737,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |```bash
 				 |curl -X POST '$getObpApiRoot/v6.0.0/management/abac-rules/nonexistent-rule/execute' \\
-				 |  -H 'Authorization: DirectLogin token=YOUR_TOKEN' \\
+				 |  -H '$directLoginHeaderName: token=YOUR_TOKEN' \\
 				 |  -d '{}'
 				 |```
 				 |
@@ -5038,6 +4805,105 @@ object Glossary extends MdcLoggable  {
 	)
 
 	glossaryItems += GlossaryItem(
+		title = "Email Validation for OBP Local Users",
+		description =
+			s"""
+				 |### Overview
+				 |
+				 |When a new OBP local user is created, they may be required to validate their email address before they can log in.
+				 |This is controlled by the `authUser.skipEmailValidation` property (default: `false`).
+				 |
+				 |When email validation is enabled, the user receives an email containing a signed JWT token with a validation link.
+				 |The user clicks the link, and the App (portal) extracts the token and calls the API to complete the validation.
+				 |
+				 |### Props
+				 |
+				 |The following properties are involved:
+				 |
+				 |- `authUser.skipEmailValidation` — Set to `true` to skip email validation entirely (default: `false`). Currently: `${APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)}`
+				 |- `portal_external_url` — **Required.** The base URL of your frontend/portal application. Used to construct the validation link in the email. For example: `portal_external_url=https://your-portal.example.com`. Currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`
+				 |- `email_validation_token_expiry_minutes` — Expiry time for the validation JWT token in minutes (default: `1440` i.e. 24 hours). Currently: `${APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)}`
+				 |
+				 |### Step 1: User Creation
+				 |
+				 |A user can be created via:
+				 |
+				 |**POST /obp/v6.0.0/users** (no authentication required)
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "username": "user@example.com",
+				 |      "password": "Str0ng!Password",
+				 |      "first_name": "Jane",
+				 |      "last_name": "Doe",
+				 |      "email": "user@example.com"
+				 |    }
+				 |
+				 |If `authUser.skipEmailValidation=false`, the API will:
+				 |
+				 |1. Create the user with `validated=false`
+				 |2. Generate a signed JWT token containing the user's unique ID as the subject, with a configurable expiry
+				 |3. Construct a validation link: `{portal_external_url}/user-validation?token={JWT}`
+				 |4. Send an email to the user with the validation link
+				 |
+				 |The user or the legacy Lift signup form can also trigger validation emails. In all cases, the same JWT-based token is used.
+				 |
+				 |### Step 2: Email Validation
+				 |
+				 |**POST /obp/v6.0.0/users/email-validation** (no authentication required)
+				 |
+				 |Request body:
+				 |
+				 |    {
+				 |      "token": "eyJhbGciOiJIUzI1NiJ9..."
+				 |    }
+				 |
+				 |Response (201):
+				 |
+				 |    {
+				 |      "user_id": "5995d6a2-01b3-423c-a173-5481df49bdaf",
+				 |      "email": "user@example.com",
+				 |      "username": "user@example.com",
+				 |      "provider": "https://your-api.example.com",
+				 |      "validated": true,
+				 |      "message": "Email validated successfully"
+				 |    }
+				 |
+				 |Error responses:
+				 |
+				 |- **400** — Invalid JSON format or empty token
+				 |- **404** — Invalid or expired JWT token (bad signature, expired, or user not found)
+				 |- **400** — User email is already validated
+				 |
+				 |This endpoint:
+				 |
+				 |1. Verifies the JWT signature (HMAC) and checks the expiry time
+				 |2. Extracts the unique ID from the JWT subject
+				 |3. Looks up the user by unique ID
+				 |4. Sets the user's validated status to `true`
+				 |5. Resets the unique ID (invalidating the token — it is single-use)
+				 |6. Grants default entitlements to the user
+				 |
+				 |### Token Security
+				 |
+				 |- The token is a **signed JWT** (HMAC-SHA256) — it cannot be forged without the server's shared secret.
+				 |- The token has a **configurable expiry** (default: 24 hours) set via `email_validation_token_expiry_minutes`.
+				 |- The token is **single-use** — after validation, the unique ID is reset, so the same token cannot be used again.
+				 |
+				 |### Typical App Flow
+				 |
+				 |1. User submits registration form
+				 |2. App calls POST /obp/v6.0.0/users
+				 |3. App shows "Check your email for a validation link"
+				 |4. User clicks link in email, App opens at `/user-validation?token={JWT}`
+				 |5. App extracts the token from the URL query parameter
+				 |6. App calls POST /obp/v6.0.0/users/email-validation with the token
+				 |7. App shows "Email validated successfully. Please log in."
+				 |
+				 |""")
+
+	glossaryItems += GlossaryItem(
 		title = "Password Reset for OBP Local Users",
 		description =
 			s"""
@@ -5073,6 +4939,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |- The response is always the same whether or not the user exists. This prevents user enumeration.
 				 |- If the user exists, is validated, and the email matches, a reset email is sent containing a link with a reset token.
+				 |- The reset link base URL is constructed from the `portal_external_url` props value (currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`). This must be set to your frontend/portal URL so that reset emails contain the correct link.
 				 |- The App should present a form asking for username and email, call this endpoint, and then show a message saying "Check your email for a reset link."
 				 |
 				 |### Step 2: Complete Password Reset
@@ -5101,7 +4968,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Notes:
 				 |
-				 |- The token is a signed JWT with a configurable expiry (default: 120 minutes). The server-side expiry can be configured with the `password_reset_token_expiry_minutes` property.
+				 |- The token is a signed JWT with a configurable expiry (default: 120 minutes). The server-side expiry can be configured with the `password_reset_token_expiry_minutes` property (currently: `${APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)}` minutes).
 				 |- The token comes from the reset email URL. The App should extract the token from the URL path (everything after `/user_mgt/reset_password/`) and URL-decode it before sending it to this endpoint.
 				 |- The token is single-use. Once the password is reset, the token is invalidated. An expired token will also be rejected.
 				 |
@@ -5148,7 +5015,7 @@ object Glossary extends MdcLoggable  {
 """)
 
 	glossaryItems += GlossaryItem(
-		title = "Credential Checking Flow",
+		title = "Authentication: Credential Checking Flow",
 		description =
 			s"""
 				 |### Overview
@@ -5370,7 +5237,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |1. **Check only** — validates credentials and returns user info, but does not create a session or token
 				 |2. **Requires an already-authenticated caller** with `canVerifyUserCredentials` role (or SuperAdmin)
-				 |3. **Does not auto-provision users** — unlike `externalUserHelper()` in the web login flow, this endpoint will not create a new AuthUser if the user doesn't exist locally
+				 |3. **May auto-provision users** — if the local lookup fails and the external fallback via `checkExternalUserViaConnector()` succeeds, a new AuthUser and ResourceUser will be created locally (same behaviour as the web login flow)
 				 |4. **Provider matching** — optionally verifies the user's provider matches what was posted (skipped if provider is empty)
 				 |
 				 |### Key Source Files

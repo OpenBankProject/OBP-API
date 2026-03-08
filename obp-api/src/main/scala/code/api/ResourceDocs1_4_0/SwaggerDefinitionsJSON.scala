@@ -2135,8 +2135,7 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     password = "String",
     first_name = "Simon",
-    last_name = "Redfern",
-    validating_application = Some("OBP-Portal")
+    last_name = "Redfern"
   )
 
 
@@ -2636,6 +2635,8 @@ object SwaggerDefinitionsJSON {
     provider_id = providerIdValueExample.value,
     provider = providerValueExample.value,
     username = usernameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     entitlements = entitlementJSONs,
     views = Some(viewsJSON300),
     agreements = Some(List(userAgreementJson)),
@@ -2648,6 +2649,22 @@ object SwaggerDefinitionsJSON {
 
   lazy val usersInfoJsonV600 = UsersInfoJsonV600(
     users = List(userInfoJsonV600)
+  )
+
+  lazy val userWithNamesJsonV510 = UserWithNamesJsonV510(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
+    entitlements = entitlementJSONs,
+    views = Some(viewsJSON300),
+    agreements = Some(List(userAgreementJson)),
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )
 
   lazy val migrationScriptLogJsonV600 = MigrationScriptLogJsonV600(
@@ -3146,8 +3163,8 @@ object SwaggerDefinitionsJSON {
     verb = "get",
     correlation_id = "v8ho6h5ivel3uq7a5zcnv0w1",
     duration = 39,
-    source_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
-    target_ip = "2001:0db8:3c4d:0015:0000:0000:1a2f:1a2b",
+    source_ip = ExampleValue.ipAddressExample.value,
+    target_ip = ExampleValue.ipAddressExample.value,
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
     operation_id = "OBPv4.0.0-getBanks"
   )
@@ -5324,6 +5341,20 @@ object SwaggerDefinitionsJSON {
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
 
+  lazy val featuresJsonV600 = FeaturesJsonV600(
+    allow_public_views = true,
+    allow_abac_account_access = false,
+    allow_account_firehose = false,
+    allow_customer_firehose = false,
+    allow_direct_login = true,
+    allow_gateway_login = false,
+    allow_oauth2_login = true,
+    allow_dauth = false,
+    allow_sandbox_account_creation = false,
+    allow_sandbox_data_import = false,
+    allow_account_deletion = false
+  )
+
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
   lazy val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
   
@@ -6147,6 +6178,22 @@ object SwaggerDefinitionsJSON {
     List(ConfigPropJsonV600("connector", "star"), ConfigPropJsonV600("write_metrics", "true"))
   )
 
+  lazy val appDirectoryJsonV600 = ListResult(
+    "app_directory",
+    List(
+      ConfigPropJsonV600("public_obp_api_url", "http://localhost:8080"),
+      ConfigPropJsonV600("public_obp_portal_url", "http://localhost:5174"),
+      ConfigPropJsonV600("public_obp_api_explorer_url", "http://localhost:5173"),
+      ConfigPropJsonV600("public_obp_api_manager_url", "http://localhost:3003"),
+      ConfigPropJsonV600("public_obp_sandbox_populator_url", "http://localhost:5178"),
+      ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
+      ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
+      ConfigPropJsonV600("public_obp_hola_url", "http://localhost:8087"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000")
+    )
+  )
+
   // HOLD sample (V600)
   lazy val transactionRequestBodyHoldJsonV600 = TransactionRequestBodyHoldJsonV600(
     value = amountOfMoneyJsonV121,
@@ -6187,6 +6234,59 @@ object SwaggerDefinitionsJSON {
 
   lazy val accountAccessRequestsJsonV600 = JSONFactory600.AccountAccessRequestsJsonV600(
     account_access_requests = List(accountAccessRequestJsonV600)
+  )
+
+  // Signal Channels swagger examples
+  lazy val postSignalMessageJsonV600 = PostSignalMessageJsonV600(
+    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}"""),
+    message_type = Some("announce"),
+    to_user_id = None
+  )
+
+  lazy val signalMessageJsonV600 = SignalMessageJsonV600(
+    message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
+    channel_name = "discovery",
+    sender_consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+    sender_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    to_user_id = None,
+    timestamp = "2026-02-20T10:30:00Z",
+    message_type = "announce",
+    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}""")
+  )
+
+  lazy val signalMessagesJsonV600 = SignalMessagesJsonV600(
+    channel_name = "discovery",
+    messages = List(signalMessageJsonV600),
+    total_count = 1,
+    has_more = false
+  )
+
+  lazy val signalMessagePublishedJsonV600 = SignalMessagePublishedJsonV600(
+    message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
+    channel_name = "discovery",
+    timestamp = "2026-02-20T10:30:00Z",
+    channel_message_count = 1
+  )
+
+  lazy val signalChannelInfoJsonV600 = SignalChannelInfoJsonV600(
+    channel_name = "discovery",
+    message_count = 5,
+    ttl_seconds = 3500
+  )
+
+  lazy val signalChannelsJsonV600 = SignalChannelsJsonV600(
+    channels = List(signalChannelInfoJsonV600)
+  )
+
+  lazy val signalStatsJsonV600 = SignalStatsJsonV600(
+    total_channels = 3,
+    total_messages = 12,
+    channels = List(signalChannelInfoJsonV600)
+  )
+
+  lazy val signalChannelDeletedJsonV600 = SignalChannelDeletedJsonV600(
+    channel_name = "discovery",
+    deleted = true
   )
 
   //The common error or success format.

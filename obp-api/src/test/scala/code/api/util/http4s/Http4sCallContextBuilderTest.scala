@@ -1,12 +1,9 @@
 package code.api.util.http4s
 
-import org.scalatest.Ignore
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global
-import code.api.util.APIUtil
-import net.liftweb.common.Full
+import code.api.util.ExampleValue
 import net.liftweb.http.Req
-import org.http4s.{Header, Headers, Method, Request, Uri}
+import org.http4s.{Header, Method, Request, Uri}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 import org.typelevel.ci.CIString
 
@@ -21,7 +18,6 @@ import org.typelevel.ci.CIString
  * 
  * Validates: Requirements 2.2
  */
-@Ignore
 class Http4sCallContextBuilderTest extends FeatureSpec with Matchers with GivenWhenThen {
 
   feature("HTTP4S to Lift Req conversion - Header handling") {
@@ -64,7 +60,7 @@ class Http4sCallContextBuilderTest extends FeatureSpec with Matchers with GivenW
 
     scenario("Extract Authorization header") {
       Given("An HTTP4S request with Authorization header")
-      val authValue = "DirectLogin username=\"test\", password=\"pass\", consumer_key=\"key\""
+      val authValue = s"""DirectLogin username=\"test\", password=\"${ExampleValue.passwordExample.value}\", consumer_key=\"key\"""""
       val request = Request[IO](
         method = Method.POST,
         uri = Uri.unsafeFromString("http://localhost:8086/my/logins/direct")

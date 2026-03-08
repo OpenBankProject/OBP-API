@@ -33,7 +33,6 @@ import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.model.{AppType, Consumer}
-import code.snippet.OpenIDConnectSessionState
 import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -105,7 +104,6 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     logger.debug("(code, state, sessionState) = " + (code, state, sessionState))
     logger.debug("S.receivedCookies = " + S.receivedCookies)
     logger.debug("S.responseCookies = " + S.responseCookies)
-    logger.debug("server_mode = " + APIUtil.getPropsValue("server_mode"))
 
     def chainErrorMessage(badObj: Failure, errorMessage: String) = {
       val chainedFailure: Failure = badObj ?~! errorMessage
@@ -202,7 +200,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     // TODO Figure out why ObpS does not contain response parameter code
     val code = s.param("code")
     val state = s.param("state")
-    val sessionState = OpenIDConnectSessionState.get
+    // Session state removed with portal pages - using default value
+    val sessionState = Box.legacyNullTest("")
     (code.getOrElse(""), state.getOrElse("0"), sessionState.map(_.toString).getOrElse("1"))
   }
 

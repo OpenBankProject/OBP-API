@@ -40,7 +40,7 @@ For more detailed information or the sources of truths, please refer to the indi
    - 8.3 [Views System](#83-views-system)
    - 8.4 [Rate Limiting](#84-rate-limiting)
    - 8.5 [Attribute-Based Access Control (ABAC)](#85-attribute-based-access-control-abac)
-   - 8.6 [User Attributes and Personal Data](#86-user-attributes-and-personal-data)
+   - 8.6 [User Attributes and Personal Data Fields](#86-user-attributes-and-personal-data-fields)
    - 8.7 [Security Best Practices](#87-security-best-practices)
 9. [Use Cases](#use-cases)
 10. [Monitoring, Logging, and Troubleshooting](#monitoring-logging-and-troubleshooting)
@@ -3034,11 +3034,11 @@ isAdmin || isBusinessHours
 - CanCreateAbacRule, CanGetAbacRule, CanUpdateAbacRule, CanDeleteAbacRule
 - CanExecuteAbacRule, CanGetAbacRuleSchema, CanValidateAbacRule
 
-### 8.6 User Attributes and Personal Data
+### 8.6 User Attributes and Personal Data Fields
 
 **Status:** New in v6.0.0
 
-**Purpose:** Manage user-associated data with clear separation between ABAC-accessible attributes and private personal data.
+**Purpose:** Manage user-associated data with clear separation between ABAC-accessible attributes and private personal data fields.
 
 **User Attributes** (Non-Personal):
 
@@ -3052,22 +3052,22 @@ PUT    /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID     # Update
 DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID     # Delete
 ```
 
-**Personal Data** (User-Managed):
+**Personal Data Fields** (User-Managed):
 
-Personal data is managed by users themselves without requiring special roles. For privacy, personal data is NOT available in ABAC rules.
+Personal Data Fields are managed by users themselves without requiring special roles. For privacy, Personal Data Fields are NOT available in ABAC rules.
 
 ```bash
-POST   /obp/v6.0.0/my/personal-data                       # Create
-GET    /obp/v6.0.0/my/personal-data                       # List
-GET    /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Get
-PUT    /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Update
-DELETE /obp/v6.0.0/my/personal-data/USER_ATTRIBUTE_ID     # Delete
+POST   /obp/v6.0.0/my/personal-data-fields                       # Create
+GET    /obp/v6.0.0/my/personal-data-fields                       # List
+GET    /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Get
+PUT    /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Update
+DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Delete
 ```
 
 **Key Distinction:**
 
-| Feature | User Attributes | Personal Data |
-|---------|-----------------|---------------|
+| Feature | User Attributes | Personal Data Fields |
+|---------|-----------------|----------------------|
 | Who manages | Administrators | Users themselves |
 | Roles required | Yes | No |
 | Available in ABAC | Yes | No (privacy) |

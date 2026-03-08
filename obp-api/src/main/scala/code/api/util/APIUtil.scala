@@ -27,13 +27,11 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import scala.language.implicitConversions
-import scala.language.reflectiveCalls
 import bootstrap.liftweb.CustomDBVendor
 import cats.effect.IO
+import code.abacrule.AbacRuleEngine
 import code.accountholders.AccountHolders
 import code.api.Constant._
-import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api._
@@ -44,8 +42,6 @@ import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api.dynamic.entity.helper.DynamicEntityHelper
-import code.api.oauth1a.Arithmetics
-import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
@@ -57,7 +53,6 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -83,7 +78,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{ContentParam, PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
-import dispatch.url
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
@@ -105,22 +99,44 @@ import org.http4s.HttpRoutes
 
 import java.io.InputStream
 import java.net.URLDecoder
-import java.nio.charset.Charset
 import java.security.AccessControlException
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 import java.util.{Calendar, Date, Locale, UUID}
-import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 import scala.io.BufferedSource
+import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
+
+  /**
+   * Deobfuscate a Jetty-style OBF: password string.
+   * Replaces org.eclipse.jetty.util.security.Password.deobfuscate
+   * to eliminate the Jetty dependency.
+   */
+  def deobfuscateJettyPassword(s: String): String = {
+    val stripped = if (s.startsWith("OBF:")) s.substring(4) else s
+    val b = new Array[Byte](stripped.length / 2)
+    var l = 0
+    var i = 0
+    while (i < stripped.length) {
+      val x = stripped.substring(i, i + 4)
+      val i0 = Integer.parseInt(x, 36)
+      val i1 = i0 / 256
+      val i2 = i0 % 256
+      b(l) = ((i1 + i2 - 254) / 2).toByte
+      l += 1
+      i += 4
+    }
+    new String(b, 0, l)
+  }
 
   val DateWithYear = "yyyy"
   val DateWithMonth = "yyyy-MM"
@@ -419,7 +435,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
     val compositeKey =
       if(consumerId == "None" && userId == "None") {
-        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+        "anonymous"
       } else {
         s"""consumerId${consumerId}::userId${userId}"""
       }
@@ -1203,6 +1219,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "connector_name" => Full(OBPConnectorName(values.head))
         case "customer_id" => Full(OBPCustomerId(values.head))
         case "locked_status" => Full(OBPLockedStatus(values.head))
+        case "role_name" => Full(OBPRoleName(values.head))
         case _ => Full(OBPEmpty())
       }
     } yield
@@ -1251,6 +1268,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
       lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
+      roleName <- getHttpParamValuesByName(httpParams, "role_name")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
       /**
@@ -1271,7 +1289,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1325,6 +1343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
     val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
+    val roleName =  getHttpRequestUrlParam(httpRequestUrl, "role_name")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -1357,7 +1376,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
       HTTPParam("is_deleted", isDeleted),
-      HTTPParam("locked_status", lockedStatus)
+      HTTPParam("locked_status", lockedStatus),
+      HTTPParam("role_name", roleName)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
 
@@ -1383,132 +1403,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
     import dispatch.{Req => Request}
-    import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{Map => IMap}
-
-    case class ReqData (
-                         url: String,
-                         method: String,
-                         body: String,
-                         body_encoding: String,
-                         headers: Map[String, String],
-                         query_params: Map[String,String],
-                         form_params: Map[String,String]
-                       )
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
-    object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
-        case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
-        case _ => None
-      }
-    }
-
-    /** @return oauth parameter map including signature */
-    def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
-      val oauth_params = IMap(
-        "oauth_consumer_key" -> consumer.key,
-        SignatureMethodName -> "HMAC-SHA256",
-        TimestampName -> (System.currentTimeMillis / 1000).toString,
-        NonceName -> System.nanoTime.toString,
-        VersionName -> "1.0"
-      ) ++ token.map { TokenName -> _.value } ++
-        verifier.map { VerifierName -> _ } ++
-        callback.map { CallbackName -> _ }
-
-      val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
-      logger.debug("signatureBase: " + signatureBase)
-      logger.debug("computedSignature: " + computedSignature)
-      oauth_params + (SignatureName -> computedSignature)
-    }
 
     /** Out-of-band callback code */
     val oob = "oob"
 
-    /** Map with oauth_callback set to the given url */
-    def callback(url: String) = IMap(CallbackName -> url)
-
-    //normalize to OAuth percent encoding
-    private def %% (str: String): String = {
-      val remaps = ("+", "%20") :: ("%7E", "~") :: ("*", "%2A") :: Nil
-      (encode_%(str) /: remaps) { case (str, (a, b)) => str.replace(a,b) }
-    }
-    private def %% (s: Seq[String]): String = s map %% mkString "&"
-    private def %% (t: (String, Any)): (String, String) = (%%(t._1), %%(t._2.toString))
-
-    private def bytes(str: String) = str.getBytes(UTF_8)
-
     /** Add OAuth operators to dispatch.Request */
     implicit def Request2RequestSigner(r: Request) = new RequestSigner(r)
 
-    /** @return %-encoded string for use in URLs */
-    def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)
-
-    /** @return %-decoded string e.g. from query string or form body */
-    def decode_% (s: String) = java.net.URLDecoder.decode(s, org.apache.http.protocol.HTTP.UTF_8)
-
     class RequestSigner(rb: Request) {
-      private val r = rb.toRequest
-      @deprecated("use <@ (consumer, callback) to pass the callback in the header for a request-token request")
-      def <@ (consumer: Consumer): Request = sign(consumer, None, None, None)
-      /** sign a request with a callback, e.g. a request-token request */
-      def <@ (consumer: Consumer, callback: String): Request = sign(consumer, None, None, Some(callback))
-      /** sign a request with a consumer, token, and verifier, e.g. access-token request */
-      def <@ (consumer: Consumer, token: Token, verifier: String): Request =
-        sign(consumer, Some(token), Some(verifier), None)
       /** sign a request with a consumer and a token, e.g. an OAuth-signed API request */
-      def <@ (consumer: Consumer, token: Token): Request = sign(consumer, Some(token), None, None)
+      def <@ (consumer: Consumer, token: Token): Request = {
+        rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+      }
       def <@ (consumerAndToken: Option[(Consumer,Token)]): Request = {
         consumerAndToken match {
-          case Some(cAndt) => sign(cAndt._1, Some(cAndt._2), None, None)
-          case _ => rb
+          case Some((_, token)) => 
+            rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+          case None => rb
         }
-      }
-
-      /** Sign request by reading Post (<<) and query string parameters */
-      private def sign(consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
-
-        val oauth_url = r.getUrl.split('?')(0)
-        val query_params = r.getQueryParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
-          case (k, v) => k -> v.toString
-        }
-        val form_params = r.getFormParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
-          case (k, v) => k -> v.toString
-        }
-        val body_encoding = r.getCharset
-        var body = new String()
-        if (r.getByteData != null )
-          body = new String(r.getByteData)
-        val oauth_params = OAuth.sign(r.getMethod, oauth_url,
-          query_params ++ form_params,
-          consumer, token, verifier, callback)
-
-        def createRequest( reqData: ReqData ): Request = {
-          val charset = if(reqData.body_encoding == "null") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
-          val rb = url(reqData.url)
-            .setMethod(reqData.method)
-            .setBodyEncoding(charset)
-            .setBody(reqData.body) <:< reqData.headers
-          if (reqData.query_params.nonEmpty)
-            rb <<? reqData.query_params
-          rb
-        }
-
-        createRequest( ReqData(
-          oauth_url,
-          r.getMethod,
-          body,
-          if (body_encoding == null) "null" else body_encoding.name(),
-          IMap("Authorization" -> ("OAuth " + oauth_params.map {
-            case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
-          }.mkString(",") )),
-          query_params,
-          form_params
-        ))
       }
     }
   }
@@ -1636,6 +1553,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       .filter(isPathVariable(_))
   }
   
+  sealed trait EndpointAuthMode
+  case object UserOnly extends EndpointAuthMode
+  case object ApplicationOnly extends EndpointAuthMode
+  case object UserOrApplication extends EndpointAuthMode
+  case object UserAndApplication extends EndpointAuthMode
+
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1659,6 +1582,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
+                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication
                           http4sPartialFunction: Http4sEndpoint = None // http4s endpoint handler
                         ) {
     // this code block will be merged to constructor.
@@ -1691,6 +1615,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |
              |$authenticationIsOptional
              |"""
+      }
+
+      // Auth-mode-aware error message adjustments
+      authMode match {
+        case ApplicationOnly | UserOrApplication =>
+          errorResponseBodies ?+= ApplicationNotIdentified
+          if (authMode == ApplicationOnly) {
+            errorResponseBodies ?-= AuthenticatedUserIsRequired
+          }
+        case UserAndApplication =>
+          errorResponseBodies ?+= AuthenticatedUserIsRequired
+          errorResponseBodies ?+= ApplicationNotIdentified
+        case UserOnly => // existing logic already handles this
       }
     }
 
@@ -1775,7 +1712,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-    private val isNeedCheckAuth = errorResponseBodies.contains($AuthenticatedUserIsRequired)
+    private val AuthCheckIsRequired = errorResponseBodies.contains($AuthenticatedUserIsRequired)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
     private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
@@ -1807,8 +1744,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
       _isEndpointAuthCheck = true
 
-      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
-        if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
+        case UserOnly | UserAndApplication =>
+          if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+        case ApplicationOnly | UserOrApplication =>
+          applicationAccessFun(cc)
       }
       
       def checkObpIds(obpKeyValuePairs:  List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = {
@@ -1830,7 +1770,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckRoles) {
           val bankIdStr = bankId.map(_.value).getOrElse("")
           val userIdStr = user.map(_.userId).openOr("")
-          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck, cc)
+          val consumerId = APIUtil.getConsumerPrimaryKey(cc)
+          val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty)
+            UserHasMissingRoles + rolesForCheck.mkString(" or ")
+          else
+            UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
+          Helper.booleanToFuture(errorMessage, cc = cc) {
+            APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode)
+          }
         } else {
           Future.successful(Full(Unit))
         }
@@ -1875,10 +1822,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // reset connectorMethods
       {
         val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
-        if (isNeedCheckAuth) {
-          checkerFunctions += authenticatedAccessFun
-        } else {
-          checkerFunctions += anonymousAccessFun
+        authMode match {
+          case UserOnly | UserAndApplication =>
+            if (AuthCheckIsRequired) checkerFunctions += authenticatedAccessFun
+            else checkerFunctions += anonymousAccessFun
+          case ApplicationOnly | UserOrApplication =>
+            checkerFunctions += applicationAccessFun
         }
         if (isNeedCheckRoles) {
           checkerFunctions += checkRolesFun
@@ -2401,6 +2350,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
+  def isOidcOperator(user_id: String): Boolean = {
+    val user_ids = APIUtil.getPropsValue("oidc_operator_user_ids") match {
+      case Full(v) =>
+        v.split(",").map(_.trim).toList
+      case _ =>
+        List()
+    }
+    user_ids.filter(_ == user_id).length > 0
+  }
+
+  // Virtual roles granted by super_admin_user_ids prop
+  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by oidc_operator_user_ids prop
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient")
+
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
@@ -2419,6 +2383,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
     case role =>
@@ -2440,6 +2405,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole): Box[EntitlementAndScopeStatus]= {
     for{
       hasEntitlement <- tryo{ !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty} ?~! s"$UnknownError"
@@ -2462,16 +2428,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
   
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
+  @deprecated("Use handleAccessControlWithAuthMode instead. It uses per-endpoint EndpointAuthMode rather than global config flags.", "OBP v6.0.0")
   def handleAccessControlRegardingEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
     if (roles.isEmpty) { // No access control, treat as pass auth check
       true
     } else {
+      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
+      val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                         else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                         else List.empty
+      if (roles.exists(role => virtualRoles.contains(role.toString))) {
+        true
+      } else {
       val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
       val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
 
@@ -2501,23 +2476,80 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty) {
         userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
       }
-      // Consumer OR User has the Role
-      else if (getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
-        roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role)) || userHasTheRoles
-      }
       // User has the Role
       else {
         userHasTheRoles
       }
+      } // end of virtual roles else
     }
   }
 
 
 
+  /**
+   * Per-endpoint auth mode access control. Checks virtual roles first, then matches on authMode:
+   * - UserOnly: user entitlements only (includes just-in-time entitlements)
+   * - ApplicationOnly: consumer scopes only
+   * - UserOrApplication: scopes OR entitlements
+   * - UserAndApplication: scopes AND entitlements
+   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior.
+   */
+  def handleAccessControlWithAuthMode(bankId: String, userId: String, consumerId: String, roles: List[ApiRole], authMode: EndpointAuthMode): Boolean = {
+    if (roles.isEmpty) {
+      true
+    } else {
+      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
+      val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                         else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                         else List.empty
+      if (roles.exists(role => virtualRoles.contains(role.toString))) {
+        true
+      } else {
+        // Global overrides that force UserAndApplication (scopes AND entitlements)
+        val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
+        val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
+        val globalOverrideToUserAndApp = ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty
+
+        def userHasTheRoles: Boolean = {
+          val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
+          userHasTheRole || {
+            getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+              (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
+                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
+                roles.forall { role =>
+                  val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+                    bankId, userId, role.toString, "create_just_in_time_entitlements"
+                  )
+                  logger.info(s"Just in Time Entitlements: $addedEntitlement")
+                  addedEntitlement.isDefined
+                }
+            }
+          }
+        }
+
+        def consumerHasTheScopes: Boolean =
+          roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
+
+        if (globalOverrideToUserAndApp) {
+          // Global config forces both scopes AND entitlements
+          userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+        } else {
+          authMode match {
+            case UserOnly => userHasTheRoles
+            case ApplicationOnly => consumerHasTheScopes
+            case UserOrApplication => consumerHasTheScopes || userHasTheRoles
+            case UserAndApplication => userHasTheRoles && consumerHasTheScopes
+          }
+        }
+      }
+    }
+  }
+
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned all roles from the list
   // when roles is empty, that means no access control, treat as pass auth check
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
+  @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.forall(hasEntitlement(bankId, userId, _))
 
@@ -2759,12 +2791,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else
         false
     }
-    code.api.Constant.serverMode match {
-      case mode if mode == "portal" => false
-      case mode if mode == "apis" => checkVersion
-      case mode if mode.contains("apis") && mode.contains("portal") => checkVersion
-      case _ => checkVersion
-    }
+    // Portal mode removed - always check version for API-only mode
+    checkVersion
   }
 
 
@@ -3174,8 +3202,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }
         }
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
-        getUserFromOAuthHeaderFuture(cc.copy(consumer = consumerByCertificate))
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc.copy(consumer = consumerByCertificate))
@@ -3654,7 +3680,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case (Full(property), Full(isEncrypted), Empty) if isEncrypted == "false" =>
             Full(property)
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "true" =>
-            Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+            Full(deobfuscateJettyPassword(property))
           case (Full(property), Empty, Full(isObfuscated)) if isObfuscated == "false" =>
             Full(property)
           case (Full(property), Empty, Empty) =>
@@ -3688,22 +3714,26 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }.map(_.trim) // Remove trailing or leading spaces in the end
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
+    registerDefault(nameOfProperty, defaultValue)
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }
 
   def getPropsAsBoolValue(nameOfProperty: String, defaultValue: Boolean): Boolean = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
   }
   def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
     getPropsValue(nameOfProperty) map(toInt)
   }
   def getPropsAsIntValue(nameOfProperty: String, defaultValue: Int): Int = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsAsIntValue(nameOfProperty) openOr(defaultValue)
   }
   def getPropsAsLongValue(nameOfProperty: String): Box[Long] = {
     getPropsValue(nameOfProperty) flatMap(asLong)
   }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
+    registerDefault(nameOfProperty, defaultValue.toString)
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
 
@@ -3773,6 +3803,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   def allowPublicViews: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  def allowAbacAccountAccess: Boolean = getPropsAsBoolValue("allow_abac_account_access", false)
   def allowAccountFirehose: Boolean = ApiPropsWithAlias.allowAccountFirehose
   def allowCustomerFirehose: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
@@ -3792,17 +3823,53 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param user Option User, can be Empty(No Authentication), or Login user.
    *
    */
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Box[Boolean] = {
     if(isPublicView(view: View))// No need for the Login user and public access
-      true
+      Full(true)
     else
       user match {
-        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
-        case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> true     // Login User and check view access
+        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => Full(true) //Login User and Firehose access
+        case Some(u) if hasAccountFirehoseAccess(view,u)  => Full(true)//Login User and Firehose access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> Full(true)     // Login User and check view access
+        case Some(u) =>
+          // Normal checks failed — try ABAC as fallback
+          checkAbacAccountAccess(u, view, bankIdAccountId, callContext)
         case _ =>
-          false
+          Full(false)
       }
+  }
+
+  private def checkAbacAccountAccess(
+    user: User,
+    view: View,
+    bankIdAccountId: BankIdAccountId,
+    callContext: Option[CallContext]
+  ): Box[Boolean] = {
+    if (!allowAbacAccountAccess) return Full(false)
+    if (!hasEntitlement("", user.userId, ApiRole.canExecuteAbacRule)) return Full(false)
+
+    callContext match {
+      case Some(cc) =>
+        try {
+          val futureResult = AbacRuleEngine.executeRulesByPolicyDetailed(
+            policy = ABAC_POLICY_ACCOUNT_ACCESS,
+            authenticatedUserId = user.userId,
+            callContext = cc,
+            bankId = Some(bankIdAccountId.bankId.value),
+            accountId = Some(bankIdAccountId.accountId.value),
+            viewId = Some(view.viewId.value)
+          )
+          Await.result(futureResult, Duration(10, java.util.concurrent.TimeUnit.SECONDS)) match {
+            case Full((true, _)) => Full(true)  // ABAC granted
+            case Full((false, ruleIds)) if ruleIds.nonEmpty =>
+              Failure(s"ABAC rules denied access. Failing rule IDs: ${ruleIds.mkString(", ")}")
+            case _ => Full(false)  // No rules or other issue
+          }
+        } catch {
+          case _: Exception => Full(false)
+        }
+      case None => Full(false)
+    }
   }
   /**
    * This function check does the user(anonymous or authenticated) have account access
@@ -3817,25 +3884,42 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
-      // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => customView
+      // 3rd: The user has account access to this custom view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => customView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ => // fall through to system view check
+            checkSystemView(viewId, bankIdAccountId, user, callContext)
+        }
       // The user has NO account access via custom view
       case _ =>
-        val systemView = MapperViews.systemView(viewId)
-        systemView match  { // CHECK SYSTEM VIEWS
-          // 1st: View is Pubic and Public views are NOT allowed on this instance.
-          case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
-          // 2nd: View is Pubic and Public views are allowed on this instance.
-          case Full(v) if(isPublicView(v)) => systemView
-          // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => systemView
-          // 4th: The user has firehose access to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
-          // 5th: The user has firehose access at a bank to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
-          // The user has NO account access at all
-          case _ => Empty
+        checkSystemView(viewId, bankIdAccountId, user, callContext)
+    }
+  }
+
+  private def checkSystemView(viewId: ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]): Box[View] = {
+    val systemView = MapperViews.systemView(viewId)
+    systemView match { // CHECK SYSTEM VIEWS
+      // 1st: View is Pubic and Public views are NOT allowed on this instance.
+      case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
+      // 2nd: View is Pubic and Public views are allowed on this instance.
+      case Full(v) if(isPublicView(v)) => systemView
+      // 3rd: The user has account access to this system view (including ABAC fallback)
+      case Full(v) if user.isDefined =>
+        hasAccountAccess(v, bankIdAccountId, user, callContext) match {
+          case Full(true) => systemView
+          case f@Failure(_, _, _) => f  // Propagate ABAC denial with rule IDs
+          case _ =>
+            // 4th: The user has firehose access to this system view
+            if (hasAccountFirehoseAccess(v, user.get)) systemView
+            // 5th: The user has firehose access at a bank to this system view
+            else if (hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) systemView
+            // The user has NO account access at all
+            else Empty
         }
+      // The user has NO account access at all
+      case _ => Empty
     }
   }
 
@@ -3923,49 +4007,101 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   //eg: List(("webui_get_started_text","Get started building your application using this sandbox now"),
   // ("webui_post_consumer_registration_more_info_text"," Please tell us more your Application and / or Startup using this link"))
   def getWebUIPropsPairs: List[(String, String)] = {
-    val filepath = this.getClass.getResource("/props/sample.props.template").getPath
-    val bufferedSource: BufferedSource = scala.io.Source.fromFile(filepath)
-
-    val proPairs: List[(String, String)] = for{
-      line <- bufferedSource.getLines.toList if(line.startsWith("webui_") || line.startsWith("#webui_"))
-      webuiProps = line.toString.split("=", 2)
-    } yield {
-      val webuiPropsKey = webuiProps(0).trim.replaceAll("#","") //Remove the whitespace 
-      val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1).trim else ""
-      (webuiPropsKey, webuiPropsValue)
-    }
-    bufferedSource.close()
-    proPairs
-  }
-
-  def getConfigPropsPairs: List[(String, String)] = {
-    val filepath = this.getClass.getResource("/props/sample.props.template").getPath
-    val bufferedSource: BufferedSource = scala.io.Source.fromFile(filepath)
+    val stream = this.getClass.getResourceAsStream("/props/sample.props.template")
+    val bufferedSource: BufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
     try {
-      val keys: List[String] = (for {
-        line <- bufferedSource.getLines.toList
-        trimmed = line.trim
-        if trimmed.nonEmpty
-        if !trimmed.startsWith("webui_") && !trimmed.startsWith("#webui_")
-        cleaned = if (trimmed.startsWith("#")) trimmed.substring(1).trim else trimmed
-        if cleaned.contains("=") && !cleaned.startsWith("#")
-        parts = cleaned.split("=", 2)
-        key = parts(0).trim
-        if key.nonEmpty
-      } yield key).distinct
-      keys.map { key =>
-        (key, getPropsValue(key).openOr(""))
+      val proPairs: List[(String, String)] = for{
+        line <- bufferedSource.getLines.toList if(line.startsWith("webui_") || line.startsWith("#webui_"))
+        webuiProps = line.toString.split("=", 2)
+      } yield {
+        val webuiPropsKey = webuiProps(0).trim.replaceAll("#","") //Remove the whitespace
+        val webuiPropsValue = if (webuiProps.length > 1) webuiProps(1).trim else ""
+        (webuiPropsKey, webuiPropsValue)
       }
+      proPairs
     } finally {
       bufferedSource.close()
+      stream.close()
     }
   }
 
-  private val sensitivePropsPatterns = List("password", "secret", "passphrase", "credential", "token_secret")
+  // Returns only props that code has actually accessed via getPropsValue/getPropsAsBoolValue/etc.
+  // with a default. Shows the actual runtime value for each registered key.
+  def getConfigPropsPairs: List[(String, String)] = {
+    getRegisteredDefaults.toList.sortBy(_._1).map { case (key, registeredDefault) =>
+      (key, getPropsValue(key).openOr(registeredDefault))
+    }
+  }
+
+  // Single source of truth for sensitive keyword patterns.
+  // Used by:
+  //   - APIUtil: to mask config prop values and exclude sensitive entries from the registered defaults map
+  //   - SecureLogging: to build regex patterns for masking sensitive data in log messages
+  val sensitiveKeywords = List("password", "secret", "passphrase", "credential", "token", "key", "authorization", "jdbc")
+
+  private val sensitivePropsPatterns = sensitiveKeywords
+
+  // Self-registering map of prop keys to their code-defined defaults.
+  // Populated automatically as getPropsValue/getPropsAsBoolValue/etc. are called with defaults.
+  // Sensitive keys and values are excluded.
+  private val registeredDefaults = new scala.collection.concurrent.TrieMap[String, String]()
+
+  private def isSensitive(key: String, value: String): Boolean = {
+    sensitivePropsPatterns.exists(p => key.toLowerCase.contains(p)) ||
+    sensitivePropsPatterns.exists(p => value.toLowerCase.contains(p))
+  }
+
+  private def registerDefault(key: String, value: String): Unit = {
+    // Guard against calls during initialization before sensitivePropsPatterns is set
+    if (sensitivePropsPatterns != null && !isSensitive(key, value)) {
+      registeredDefaults.get(key) match {
+        case Some(existing) if existing != value =>
+          logger.warn(s"Props key '$key' has conflicting defaults: '$existing' vs '$value'")
+        case _ =>
+          registeredDefaults.putIfAbsent(key, value)
+      }
+    }
+  }
+
+  def getRegisteredDefaults: Map[String, String] = registeredDefaults.toMap
 
   def maskSensitivePropValue(key: String, value: String): String = {
     if (sensitivePropsPatterns.exists(p => key.toLowerCase.contains(p)) && value.nonEmpty) "****"
+    else if (sensitivePropsPatterns.exists(p => value.toLowerCase.contains(p)) && value.nonEmpty) "****"
     else value
+  }
+
+  // Convention-based public app URL props.
+  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
+  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
+  // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
+  val publicAppUrlDefaults: Map[String, String] = Map(
+    "public_obp_api_url" -> getPropsValue("public_obp_api_url").openOr(getPropsValue("hostname").openOr("http://localhost:8080")),
+    "public_obp_portal_url" -> getPropsValue("public_obp_portal_url").openOr(getPropsValue("portal_external_url").openOr("http://localhost:5174")),
+    "public_obp_api_explorer_url" -> getPropsValue("public_obp_api_explorer_url").openOr("http://localhost:5173"),
+    "public_obp_api_manager_url" -> getPropsValue("public_obp_api_manager_url").openOr("http://localhost:3003"),
+    "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
+    "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
+    "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
+    "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:8087"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
+    "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
+  )
+  val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted
+  // Register defaults so they appear in getConfigPropsPairs
+  publicAppUrlDefaults.foreach { case (key, default) => getPropsValue(key, default) }
+
+  // Returns config props matching the public_*_url convention.
+  // Empty values are excluded (prop not configured).
+  def getAppDiscoveryPairs: List[(String, String)] = {
+    getConfigPropsPairs
+      .filter { case (key, _) =>
+        key.startsWith("public_") && key.endsWith("_url")
+      }
+      .filter { case (_, value) => value.nonEmpty }
+      .map { case (key, value) => (key, maskSensitivePropValue(key, value)) }
   }
 
   /**
@@ -4482,6 +4618,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   private val anonymousAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
     case x => anonymousAccess(x)
+  }
+  private val applicationAccessFun: PartialFunction[CallContext, Future[(Box[User], Option[CallContext])]] = {
+    case x => applicationAccess(x)
   }
   private val checkRolesFun: PartialFunction[String, (String, List[ApiRole], Option[CallContext]) => Future[Box[Unit]]] = {
     case x => NewStyle.function.handleEntitlementsAndScopes(x, _, _, _)

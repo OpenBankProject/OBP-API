@@ -293,28 +293,32 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
-      for{
-        (transaction, callContext)<-Connector.connector.vend.getTransactionLegacy(bankId, accountId, transactionId, callContext)
-        moderatedTransaction<- view.moderateTransaction(transaction)
-      } yield (moderatedTransaction, callContext)
-    else
-      viewNotAllowed(view)
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        for{
+          (transaction, callContext)<-Connector.connector.vend.getTransactionLegacy(bankId, accountId, transactionId, callContext)
+          moderatedTransaction<- view.moderateTransaction(transaction)
+        } yield (moderatedTransaction, callContext)
+      case f@Failure(_, _, _) => f
+      case _ => viewNotAllowed(view)
+    }
   }
   final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
-    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext))
-      for{
-        (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
-          x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
+    APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext) match {
+      case Full(true) =>
+        for{
+          (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
+            x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
+          }
+        } yield {
+          view.moderateTransaction(transaction) match {
+            case Full(m) => Full((m, callContext))
+            case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+          }
         }
-      } yield {
-        view.moderateTransaction(transaction) match {
-          case Full(m) => Full((m, callContext))
-          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
-        }
-      }
-    else
-      Future(viewNotAllowed(view))
+      case f@Failure(_, _, _) => Future(f)
+      case _ => Future(viewNotAllowed(view))
+    }
   }
 
   /*
@@ -323,57 +327,67 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactions(bank: Bank, user : Box[User], view : View, bankIdAccountId: BankIdAccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[ModeratedTransaction],Option[CallContext])] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)) {
-      for {
-        (transactions, callContext)  <- Connector.connector.vend.getTransactionsLegacy(bankId, accountId, callContext, queryParams)
-        moderated <- view.moderateTransactionsWithSameAccount(bank, transactions) ?~! "Server error"
-      } yield (moderated, callContext)
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        for {
+          (transactions, callContext)  <- Connector.connector.vend.getTransactionsLegacy(bankId, accountId, callContext, queryParams)
+          moderated <- view.moderateTransactionsWithSameAccount(bank, transactions) ?~! "Server error"
+        } yield (moderated, callContext)
+      case f@Failure(_, _, _) => f
+      case _ => viewNotAllowed(view)
     }
-    else viewNotAllowed(view)
   }
   final def getModeratedTransactionsFuture(bank: Bank, user : Box[User], view : View, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
-    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext)) {
-      for {
-        (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams) map {
-          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponseForGetTransactions, 400), x._2)
+    APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext) match {
+      case Full(true) =>
+        for {
+          (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams) map {
+            x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponseForGetTransactions, 400), x._2)
+          }
+        } yield {
+          logger.debug(s"getModeratedTransactionsFuture.view = $view")
+          logger.debug(s"getModeratedTransactionsFuture.transactions = $transactions")
+          view.moderateTransactionsWithSameAccount(bank, transactions) match {
+            case Full(m) => Full((m, callContext))
+            case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+          }
         }
-      } yield {
-        logger.debug(s"getModeratedTransactionsFuture.view = $view")
-        logger.debug(s"getModeratedTransactionsFuture.transactions = $transactions")
-        view.moderateTransactionsWithSameAccount(bank, transactions) match {
-          case Full(m) => Full((m, callContext))
-          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
-        }
-      }
+      case f@Failure(_, _, _) => Future(f)
+      case _ => Future(viewNotAllowed(view))
     }
-    else Future(viewNotAllowed(view))
   }
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactionsCore(bank: Bank, user : Box[User], view : View, bankIdAccountId: BankIdAccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext] ): OBPReturnType[Box[List[ModeratedTransactionCore]]] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId,user, callContext)) {
-      for {
-        (transactions, callContext) <- NewStyle.function.getTransactionsCore(bankId, accountId, queryParams, callContext)
-        moderated <- Future {view.moderateTransactionsWithSameAccountCore(bank, transactions)}
-      } yield (moderated, callContext)
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        for {
+          (transactions, callContext) <- NewStyle.function.getTransactionsCore(bankId, accountId, queryParams, callContext)
+          moderated <- Future {view.moderateTransactionsWithSameAccountCore(bank, transactions)}
+        } yield (moderated, callContext)
+      case f@Failure(_, _, _) => Future{(f, callContext)}
+      case _ => Future{(viewNotAllowed(view), callContext)}
     }
-    else Future{(viewNotAllowed(view), callContext)}
   }
 
   final def moderatedBankAccount(view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccount] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
-    //implicit conversion from option to box
-      view.moderateAccountLegacy(bankAccount)
-    else
-      viewNotAllowed(view)
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        //implicit conversion from option to box
+        view.moderateAccountLegacy(bankAccount)
+      case f@Failure(_, _, _) => f
+      case _ => viewNotAllowed(view)
+    }
   }
 
   final def moderatedBankAccountCore(view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccountCore] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
-    //implicit conversion from option to box
-      view.moderateAccountCore(bankAccount)
-    else
-      viewNotAllowed(view)
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        //implicit conversion from option to box
+        view.moderateAccountCore(bankAccount)
+      case f@Failure(_, _, _) => f
+      case _ => viewNotAllowed(view)
+    }
   }
 
   /**
@@ -384,25 +398,27 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     *  accounts that have at least one transaction in common with this bank account
     */
   final def moderatedOtherBankAccounts(view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : OBPReturnType[Box[List[ModeratedOtherBankAccount]]] =
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)){
-       val moderatedOtherBankAccountListFuture: Future[Full[List[ModeratedOtherBankAccount]]] = for{
-        (implicitCounterpartyList, callContext) <- NewStyle.function.getCounterpartiesFromTransaction(bankId, accountId, callContext)
-        implicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
-          implicitCounterpartyList.map(view.moderateOtherAccount).flatten
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        val moderatedOtherBankAccountListFuture: Future[Full[List[ModeratedOtherBankAccount]]] = for{
+          (implicitCounterpartyList, callContext) <- NewStyle.function.getCounterpartiesFromTransaction(bankId, accountId, callContext)
+          implicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+            implicitCounterpartyList.map(view.moderateOtherAccount).flatten
+          }
+          explicitCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
+          explicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+            if(explicitCounterpartiesBox.isDefined)
+              explicitCounterpartiesBox.head._1.map(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty.head))
+            else
+              Nil
+          }
+        }yield{
+          Full(explicitModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
         }
-        explicitCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
-        explicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
-          if(explicitCounterpartiesBox.isDefined)
-            explicitCounterpartiesBox.head._1.map(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty.head))
-          else
-            Nil
-        }
-      }yield{
-        Full(explicitModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
-      }
-      moderatedOtherBankAccountListFuture.map( i=> (i,callContext))
-    } else
-      Future{(viewNotAllowed(view), callContext)}
+        moderatedOtherBankAccountListFuture.map( i=> (i,callContext))
+      case f@Failure(_, _, _) => Future{(f, callContext)}
+      case _ => Future{(viewNotAllowed(view), callContext)}
+    }
       
   /**
     * @param the ID of the other bank account that the user want have access
@@ -412,21 +428,22 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     *  account that have at least one transaction in common with this bank account
     */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : OBPReturnType[Box[ModeratedOtherBankAccount]] =
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)) {
-      for{
-        (counterparty, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), callContext)
-        moderateOtherAccount <- if(counterparty.isDefined) {
-         Future{
-          counterparty.map(BankAccountX.toInternalCounterparty).flatten.map(view.moderateOtherAccount).flatten
-         }
-        } else {
-          Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID, callContext).map(oAccTuple => view.moderateOtherAccount(oAccTuple._1.head))
+    APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
+      case Full(true) =>
+        for{
+          (counterparty, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), callContext)
+          moderateOtherAccount <- if(counterparty.isDefined) {
+           Future{
+            counterparty.map(BankAccountX.toInternalCounterparty).flatten.map(view.moderateOtherAccount).flatten
+           }
+          } else {
+            Connector.connector.vend.getCounterpartyFromTransaction(bankId, accountId, counterpartyID, callContext).map(oAccTuple => view.moderateOtherAccount(oAccTuple._1.head))
+          }
+        } yield{
+          (moderateOtherAccount, callContext)
         }
-      } yield{
-        (moderateOtherAccount, callContext)
-      }
-    } else {
-      Future{(viewNotAllowed(view),callContext)}
+      case f@Failure(_, _, _) => Future{(f, callContext)}
+      case _ => Future{(viewNotAllowed(view), callContext)}
     }
 }
 

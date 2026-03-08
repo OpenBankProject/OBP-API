@@ -12,7 +12,9 @@ The OBP API abstracts away the peculiarities of each core banking system so that
 
 Our tagline is: "Bank as a Platform. Transparency as an Asset".
 
-The API supports [OAuth 1.0a](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%201.0a), [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google) and other authentication methods including [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login).
+The API supports [OAuth 2](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202), [OpenID Connect OIDC](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#OAuth%202%20with%20Google), [Direct Login](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Direct%20Login), and other authentication methods.
+
+**Note:** OAuth 1.0a support has been removed. Please use OAuth 2.0, OpenID Connect, or Direct Login for authentication.
 
 ## Documentation
 
@@ -60,23 +62,16 @@ OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https
 
 The project uses Maven 3 as its build tool.
 
-To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/default.props` and execute:
-To compile and run Jetty, install Maven 3, create your configuration in `obp-api/src/main/resources/props/`, copy `sample.props.template` to `default.props` and edit the latter. Then:
+### Running http4s server
+
+To run the API using the http4s server, use the `obp-api` module from the project root:
 
 ```sh
-mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
+MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true && \
+java -jar obp-api/target/obp-api.jar
 ```
 
-### Running http4s server (obp-http4s-runner)
-
-To run the API using the http4s server (without Jetty), use the `obp-http4s-runner` module from the project root:
-
-```sh
-MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-http4s-runner -am clean package -DskipTests=true -Dmaven.test.skip=true && \
-java -jar obp-http4s-runner/target/obp-http4s-runner.jar
-```
-
-The http4s server binds to `http4s.host` / `http4s.port` as configured in your props file (defaults are `127.0.0.1` and `8086`).
+The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
 
 ### ZED IDE Setup
 
@@ -91,7 +86,7 @@ This sets up automated build tasks, code navigation, and real-time error checkin
 In case the above command fails try the next one:
 
 ```sh
-export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
+export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons
 ```
 
 Note: depending on your Java version you might need to do this in the OBP-API directory.
@@ -216,9 +211,9 @@ db.driver=org.h2.Driver
 db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
 ```
 
-In order to start H2 web console go to [http://127.0.0.1:8080/console](http://127.0.0.1:8080/console) and you will see a login screen.
-Please use the following values:
-Note: make sure the JDBC URL used matches your Props value!
+**Note:** The H2 web console at `/console` was available when OBP-API ran on Jetty but is no longer served by the http4s server. To inspect the H2 database, connect directly using the [H2 Shell](https://h2database.com/html/tutorial.html#console_settings) or a database tool such as DBeaver.
+
+Use the following connection values (make sure the JDBC URL matches your Props value):
 
 ```
 Driver Class: org.h2.Driver
@@ -393,84 +388,38 @@ To populate the OBP database with sandbox data:
 
 ## Production Options
 
-- set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of `webapp/WEB-INF/web.xml`:
+OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, Correlation-Id, etc.) are applied automatically by `Http4sLiftWebBridge.withStandardHeaders` to all responses. Cookie flags and other session-related settings can be configured via the props file.
 
-```XML
-   <session-config>
-     <cookie-config>
-       <secure>true</secure>
-       <http-only>true</http-only>
-     </cookie-config>
-   </session-config>
+## Server Mode Configuration (Removed)
+
+**IMPORTANT:** The `server_mode` configuration property has been completely removed from OBP-API.
+
+OBP-API now operates exclusively as a backend API server. There is no configuration needed - the application automatically runs in API-only mode.
+
+### What Changed
+
+- ❌ `server_mode=portal` - Removed (no longer supported)
+- ❌ `server_mode=apis` - Removed (no longer needed, this is now the default and only mode)
+- ❌ `server_mode=apis,portal` - Removed (no longer supported)
+
+### Migration
+
+If your props file contains `server_mode`, you can safely remove it. The property is ignored.
+
+**Before:**
+```properties
+server_mode=apis
 ```
 
-## Running the API in Production Mode
+**After:**
+```properties
+# server_mode property removed - no configuration needed
+# OBP-API automatically runs in API-only mode
+```
 
-We use 9 to run the API in production mode.
+**For portal/UI functionality:** Deploy the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) application.
 
-1. Install java and jetty9.
-
-2. jetty configuration
-
-- Edit the `/etc/default/jetty9` file so that it contains the following settings:
-
-  ```
-  NO_START=0
-  JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
-  JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
-  ```
-
-- In obp-api/src/main/resources/props create a `test.default.props` file for tests. Set `connector=mapped`.
-
-- In obp-api/src/main/resources/props create a `default.props file` for development. Set `connector=mapped`.
-
-- In obp-api/src/main/resources/props create a `production.default.props` file for production. Set `connector=mapped`.
-
-- This file could be similar to the `default.props` file created above, or it could include production settings, such as information about the Postgresql server if you are using one. For example, it could have the following line for Postgresql configuration.
-
-  ```
-  db.driver=org.postgresql.Driver
-  db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
-  ```
-
-- Now, build the application to generate `.war` file which will be deployed on the jetty server:
-
-  ```sh
-  cd OBP-API/
-  mvn package
-  ```
-
-- This will generate OBP-API-1.0.war under `OBP-API/target/`.
-
-- Copy OBP-API-1.0.war to `/usr/share/jetty9/webapps/` directory and rename it to root.war
-
-- Edit the `/etc/jetty9/jetty.conf` file and comment out the lines:
-
-  ```
-  etc/jetty-logging.xml
-  etc/jetty-started.xml
-  ```
-
-- Now restart jetty9:
-
-  ```sh
-  sudo service jetty9 restart
-  ```
-
-- You should now be able to browse to `localhost:8080` (or `yourIPaddress:8080`).
-
-## Using OBP-API in different app modes
-
-1. `portal` => OBP-API as a portal i.e. without REST API.
-2. `apis` => OBP-API as an _APIs_ app i.e. only REST APIs.
-3. `apis,portal`=> OBP-API as portal and apis i.e. REST APIs and web portal.
-
-- Edit your props file(s) to contain one of the next cases:
-  1.  `server_mode=portal`
-  2.  `server_mode=apis`
-  3.  `server_mode=apis,portal`
-
-  In case it is not defined, the default case is the 3rd one. For example, `server_mode=apis,portal`.
+For migration instructions, see `.kiro/specs/remove-lift-portal-pages/MIGRATION_GUIDE.md`
 
 ## Using Akka remote storage
 
@@ -538,33 +487,15 @@ The Encrypt/Decrypt workflow is :
    echo -n $2 |openssl pkeyutl -pkeyopt rsa_padding_mode:pkcs1 -encrypt  -pubin -inkey $1 -out >(base64)
    ```
 
-## Using jetty password obfuscation with props file
-
-You can obfuscate passwords in the props file the same way as for jetty:
-
-1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
-
-2. A props key value, XXX, is considered obfuscated if has an obfuscation property (`XXX.is_obfuscated`) in addition to the regular props key name in the props file e.g:
-   - `db.url.is_obfuscated=true`
-   - `db.url=OBF:fdsafdsakwaetcetcetc`
-
 ## Code Generation
 
 Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md##code-generation) for links.
 
 ## Customize Portal WebPage
 
-Please refer to the [Custom Webapp](obp-api/src/main/resources/custom_webapp/README.md) for links.
+**DEPRECATED:** Portal functionality has been removed from OBP-API.
 
-## Using jetty password obfuscation with props file
-
-You can obfuscate passwords in the props file the same way as for jetty:
-
-1. Create the obfuscated value as described here: [https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html](https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html).
-
-2. A props key value, XXX, is considered obfuscated if has an obfuscation property (XXX.is_obfuscated) in addition to the regular props key name in the props file e.g:
-   - db.url.is_obfuscated=true
-   - db.url=OBF:fdsafdsakwaetcetcetc
+For UI customization, please use the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.
 
 ## Rate Limiting
 
@@ -679,7 +610,9 @@ There are 3 API endpoints related to webhooks:
 
 ## OpenID Connect
 
-In order to enable an OIDC workflow at an instance of OBP-API portal app(login functionality) you need to set up the following props:
+**Note:** OpenID Connect authentication is supported for API authentication. Portal login functionality has been moved to the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.
+
+In order to enable OIDC authentication for API access, you need to set up the following props:
 
 ```props
 ## Google as an identity provider
@@ -705,7 +638,7 @@ In order to enable an OIDC workflow at an instance of OBP-API portal app(login f
 # openid_connect_2.button_text = Yahoo
 ```
 
-Please note in the example above you MUST run OBP-API portal at the URL: http://127.0.0.1:8080
+**Note:** The callback URL should match your OBP-API deployment URL (e.g., `http://127.0.0.1:8080/auth/openid-connect/callback`).
 
 ## OAuth 2.0 Authentication
 
@@ -812,14 +745,22 @@ There is a video about the detail: [demonstrate the detail of the feature](https
 
 The same as `Frozen APIs`, if a related unit test fails, make sure whether the modification is required, if yes, run frozen util to re-generate frozen types metadata file. take `RestConnector_vMar2019` as an example, the corresponding util is `RestConnector_vMar2019_FrozenUtil`, the corresponding unit test is `RestConnector_vMar2019_FrozenTest`
 
-## Scala / Lift
+## Technology Stack
 
-- We use scala and liftweb: [http://www.liftweb.net/](http://www.liftweb.net/).
+OBP-API uses the following core technologies:
 
-- Advanced architecture: [http://exploring.liftweb.net/master/index-9.html
-  ](http://exploring.liftweb.net/master/index-9.html).
+- **HTTP Server:** [http4s](https://http4s.org/) with [Cats Effect](https://typelevel.org/cats-effect/) (`IOApp`). The server runs on http4s Ember in a single process on a single port.
+- **Routing:** Priority-based routing defined in `Http4sApp.scala`:
+  1. Native http4s routes for v5.0.0, v7.0.0, and Berlin Group v2
+  2. A Lift bridge fallback (`Http4sLiftWebBridge`) for all other API versions
+- **ORM / Database:** [Lift Mapper](http://www.liftweb.net/) for database access and schema management.
+- **JSON:** Lift JSON utilities are used in some areas alongside native http4s JSON handling.
 
-- A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
+For details on how the http4s and Lift layers coexist, see [LIFT_HTTP4S_COEXISTENCE.md](LIFT_HTTP4S_COEXISTENCE.md).
+
+Liftweb architecture: [http://exploring.liftweb.net/master/index-9.html](http://exploring.liftweb.net/master/index-9.html).
+
+A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
 
 ## Endpoint Request and Response Example
 

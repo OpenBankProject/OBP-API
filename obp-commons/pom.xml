@@ -13,14 +13,6 @@
     <packaging>jar</packaging>
     <name>Open Bank Project Commons</name>
 
-    <repositories>
-        <repository>
-            <id>artima</id>
-            <name>Artima Maven Repository</name>
-            <url>http://repo.artima.com/releases</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
             <groupId>net.liftweb</groupId>
@@ -73,19 +65,16 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <version>1.10.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.0.0-jre</version>
         </dependency>
     </dependencies>
 
@@ -95,7 +84,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${scala.version}</version>
+                <version>3.5.2</version>
                 <configuration>
                     <skipTests>true</skipTests>
                 </configuration>
@@ -172,7 +161,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>default-copy-resources</id>

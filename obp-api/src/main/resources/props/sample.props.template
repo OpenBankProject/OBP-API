@@ -5,6 +5,15 @@
 
 # Do NOT use trailing or leading spaces in your values.
 
+# Note: This file is parsed by the getWebUiProps API endpoint for webui_ properties.
+# The getConfigProps API endpoint does NOT read this file; it shows only
+# properties that the running code has actually accessed, via self-registration.
+# Still, please keep this template clean:
+# - Do not put real passwords or secrets in example values, use placeholders like CHANGE_ME
+# - Keep multi-line \ continuations to a minimum; prefer single-line values
+# - Do not put inline comments after values on the same line
+# - Best not use the string "=" in comments because it might be used to denote a key / value pair in the future.
+
 
 ### OBP-API configuration
 
@@ -28,7 +37,10 @@ connector=star
 #hikari.connectionTimeout=
 #hikari.maximumPoolSize=
 #hikari.idleTimeout=
-#hikari.keepaliveTime=
+# keepaliveTime must be set below the database/firewall idle TCP timeout to prevent stale-connection
+# failures on the first call after a period of inactivity. HikariCP will ping each idle connection
+# at this interval (in ms), keeping it alive. Recommended: 30000 (30s) when DB/firewall timeout is ~60s.
+#hikari.keepaliveTime=30000
 #hikari.maxLifetime=
 
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka.
@@ -278,12 +290,39 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 ## This is needed for oauth to work. it's important to access the api over this url, e.g.
 ## If this is 127.0.0.1 do NOT use localhost to access it.
 ## (this needs to be a URL)
-hostname=http://127.0.0.1:8080
+## IMPORTANT: hostname is also used as fallback for local_provider_name - do not change unless necessary
+hostname=http://127.0.0.1
 
-## This is only useful for running the api locally via RunWebApp
-## If you use it, make sure this matches your hostname port!
-## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
+# Used as the base URL for password reset and email validation links sent via email.
+# Set this to your frontend/portal URL so that emails contain the correct link.
+portal_external_url=http://localhost:5174
+
+# Public app URLs for the App Directory endpoint (GET /app-directory).
+# Any props starting with public_ and ending with _url are returned by that endpoint.
+# Defaults are localhost development ports. Override for production deployments.
+# Set to empty string to indicate to calling applications they should not display.
+public_obp_api_url=http://localhost:8080
+public_obp_portal_url=http://localhost:5174
+public_obp_api_explorer_url=http://localhost:5173
+public_obp_api_manager_url=http://localhost:3003
+public_obp_sandbox_populator_url=http://localhost:5178
+public_obp_oidc_url=http://localhost:9000
+public_keycloak_url=http://localhost:7787
+public_obp_hola_url=http://localhost:8087
+public_obp_mcp_url=http://localhost:9100
+public_obp_opey_url=http://localhost:5000
+
+## This port is used for local development
+## Note: OBP-API now uses http4s server
+## To start the server, use: java -jar obp-api/target/obp-api.jar
 dev.port=8080
+
+## Bind address for http4s server (optional)
+## If not set, the server will parse and use the host from the hostname property above
+## Use this if you need to bind to a different address than what's in hostname
+## Example: bind_address=0.0.0.0 (to listen on all interfaces)
+## Example: bind_address=127.0.0.1 (to listen only on localhost)
+#bind_address=127.0.0.1
 
 
 #The start of the api path (before the version)
@@ -693,21 +732,27 @@ defaultBank.bank_id=OBP
 
 ################################################################################
 ## Super Admin Users are used to boot-strap User Entitlements (access to Roles).
-## Super Admins listed below can grant them selves the following entitlements:
+## Super Admins listed below automatically have the following virtual roles:
 ## CanCreateEntitlementAtAnyBank
-## and
 ## CanCreateEntitlementAtOneBank
+## CanGetAnyUser
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.
 ##
 ## THUS, probably the first thing a Super Admin will do is to grant themselves or other users a number of Roles
-## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlment to a Role.
+## For instance, a Super Admin defined by their user_id in super_admin_user_ids CANNOT carry out actions unless they first give themselves an actual Entitlement to a Role.
 
 ## List the Users here, with their user_id(s), that should be Super Admins
 super_admin_user_ids=USER_ID1,USER_ID2,
 ################################################################################
 
+
+##################################################################################
+# List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# oidc_operator_user_ids=USER_ID1,USER_ID2,
+####################################################################################
 
 ######## Enable / Disable Versions and individual endpoints. ########
 # In OBP, endpoints are defined in various files but made available under a *version*
@@ -813,10 +858,21 @@ autocomplete_at_login_form_enabled=false
 # This involves this OBP-API sending an email to the newly registered email provided by the User and the User clicking on a link in that email
 # which results in a field being changed in the database.
 # To BYPASS this security features (for local development only), set this property to true to skip the email address validation.
-#authUser.skipEmailValidation=false
+authUser.skipEmailValidation=false
+
+# Expiry time in minutes for email validation JWT tokens (default: 1440 = 24 hours)
+email_validation_token_expiry_minutes=1440
+
+# Expiry time in minutes for password reset JWT tokens (default: 120 = 2 hours)
+password_reset_token_expiry_minutes=120
 
 # control the create and access to public views.
 # allow_public_views=false
+
+# Enable ABAC (Attribute-Based Access Control) for account access.
+# When true, users with CanExecuteAbacRule entitlement can gain access
+# to accounts via ABAC rules with the "account-access" policy.
+# allow_abac_account_access=false
 
 # control access to account firehose.
 # allow_account_firehose=false
@@ -1061,9 +1117,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
-# Scopes can also be used as an alternative to User Entitlements
-# i.e. instead of asking every user to have a Role, you can give the Role(s) to a Consumer in the form of a Scope
-# allow_entitlements_or_scopes=false
+# Scopes can also be used as an alternative to User Entitlements on a per-endpoint basis.
+# Set authMode = UserOrApplication on individual ResourceDoc instances to allow
+# consumer scopes OR user entitlements for that endpoint.
 # ---------------------------------------------------------------
 
 # -- Just in Time Entitlements -------------------------------
@@ -1108,15 +1164,6 @@ database_messages_scheduler_interval=3600
 # Possible cases: ONLINE, CERTIFICATE, NONE
 # In case isn't defined default value is "NONE"
 # requirePsd2Certificates=NONE
-# -----------------------------------------------
-
-# -- OBP-API mode -------------------------------
-# In case isn't defined default value is "apis,portal"
-# Possible cases: portal, apis
-# server_mode=apis,portal
-# In case there is a separate portal instance, the API side must also have the following key with the correct portal URL as value.
-# Else, it will just use "hostname":
-# portal_hostname=http://127.0.0.1:8080
 # -----------------------------------------------
 
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------
@@ -1588,7 +1635,7 @@ regulated_entities = []
 #    "grantee_consumer_id": "fb327484-94d7-44d2-83e5-8d27301e8279" \
 #}]
 
-# Bootstrap Super User
+# Bootstrap Super User / Break Glass
 # Given the following credentials, OBP will create a user if they do not already exist.
 # This user's password will be valid for a limited time.
 # This user will be granted ONLY the CanCreateEntitlementAtAnyBank permission.
@@ -1597,6 +1644,14 @@ regulated_entities = []
 # super_admin_username=TomWilliams
 # super_admin_inital_password=681aeeb9f681aeeb9f681aeeb9
 # super_admin_email=tom@tesobe.com
+
+# Bootstrap OIDC Operator User
+# Given the following credentials, OBP will create a user if they do not already exist.
+# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+# If you want to use this feature, please set up all three values properly at the same time.
+# oidc_operator_username=...
+# oidc_operator_initial_password=...
+# oidc_operator_email=...
 
 
 ## Ethereum Connector Configuration
@@ -1698,10 +1753,7 @@ securelogging_mask_email=true
 
 
 ############################################
-# http4s server configuration
+# Signal Channels (Redis-backed ephemeral channels for AI agent coordination)
 ############################################
-
-# Host and port for http4s server (used by bootstrap.http4s.Http4sServer)
-# Defaults (if not set) are 127.0.0.1 and 8086
-http4s.host=127.0.0.1
-http4s.port=8086
+# messaging.channel.ttl.seconds=3600
+# messaging.channel.max.messages=1000

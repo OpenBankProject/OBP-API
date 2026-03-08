@@ -27,7 +27,7 @@ import scala.concurrent.Future
 object AfterApiAuth extends MdcLoggable{
   /**
    * This function is used to execute actions after an user is authenticated via GUI
-   * Types of authentication: GUI logon(OpenID Connect and OAuth1.0a)
+   * Types of authentication: GUI logon(OpenID Connect)
    * @param authUser the authenticated user
    */
   def innerLoginUserInitAction(authUser: Box[AuthUser]) = {
@@ -42,7 +42,7 @@ object AfterApiAuth extends MdcLoggable{
   }
   /**
    * This function is used to execute actions after an user is authenticated via API
-   * Types of authentication: Direct Login, OpenID Connect, OAuth1.0a, Direct Login, DAuth and Gateway Login
+   * Types of authentication: Direct Login, OpenID Connect, DAuth and Gateway Login
    */
   def outerLoginUserInitAction(result: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
     logger.debug("AfterApiAuth.outerLoginUserInitAction started successfully")

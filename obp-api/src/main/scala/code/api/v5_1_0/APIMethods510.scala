@@ -62,6 +62,8 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.time.{LocalDate, ZoneId}
 import java.util.Date
 import scala.collection.immutable.{List, Nil}
@@ -2372,6 +2374,19 @@ trait APIMethods510 {
             }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ = logger.info(s"createConsent says: userId=${user.userId}, userName=${user.name}, requestedEntitlements=${requestedEntitlements.map(re => s"(role_name=${re.role_name}, bank_id=${re.bank_id})")}, myEntitlements=${myEntitlements.getOrElse(Nil).map(e => s"(roleName=${e.roleName}, bankId=${e.bankId})")}")
+            _ = {
+              val myEnts = myEntitlements.getOrElse(Nil)
+              requestedEntitlements.foreach { re =>
+                val matched = myEnts.exists(e => e.roleName == re.role_name && e.bankId == re.bank_id)
+                logger.info(s"createConsent says: checking requested role_name=${re.role_name}, bank_id='${re.bank_id}' => matched=$matched")
+                if (!matched) {
+                  myEnts.foreach { e =>
+                    logger.info(s"createConsent says: comparing with roleName=${e.roleName}, bankId='${e.bankId}' => nameMatch=${e.roleName == re.role_name}, bankIdMatch=${e.bankId == re.bank_id}")
+                  }
+                }
+              }
+            }
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContext) {
               requestedEntitlements.forall(
                 re => myEntitlements.getOrElse(Nil).exists(
@@ -2655,7 +2670,7 @@ trait APIMethods510 {
          |
       """.stripMargin,
       EmptyBody,
-      userJsonV400,
+      userWithNamesJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser))
@@ -2665,13 +2680,19 @@ trait APIMethods510 {
       case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            user <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(URLDecoder.decode(provider, StandardCharsets.UTF_8), username) map {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
           } yield {
-            (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
+            (JSONFactory510.createUserWithNamesJSON(
+              user,
+              authUser.map(_.firstName.get).getOrElse(""),
+              authUser.map(_.lastName.get).getOrElse(""),
+              entitlements, None, isLocked
+            ), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -2804,13 +2825,20 @@ trait APIMethods510 {
       "/management/users/USER_ID",
       "Validate a user",
       s"""
-         |Validate the User by USER_ID.
+         |Manually validate a User by USER_ID.
          |
-         |${userAuthenticationMessage(true)}
+         |This is an administrative endpoint that marks a user's account as validated (i.e. sets is_validated to true).
+         |
+         |This is useful when an administrator needs to validate a user on their behalf,
+         |for example if the user did not receive the validation email, or if the email validation token has expired.
+         |
+         |For self-service email validation, see the Validate User Email endpoint (POST /users/email-validation).
+         |
+         |Authentication is Required and the user must have the canValidateUser role.
          |
          |""".stripMargin,
       EmptyBody,
-      userLockStatusJson,
+      UserValidatedJson(is_validated = true),
       List(
         $AuthenticatedUserIsRequired,
         UserNotFoundByUserId,

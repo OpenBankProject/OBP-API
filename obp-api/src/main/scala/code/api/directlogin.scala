@@ -37,6 +37,7 @@ import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, UserX}
 import code.token.Tokens
 import code.transaction.MappedTransaction
+import code.users.Users
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -163,6 +164,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
         httpCode = 401
       } else if (userId == AuthUser.usernameLockedStateCode) {
         message = ErrorMessages.UsernameHasBeenLocked
+        httpCode = 401
+      } else if (userId == AuthUser.userEmailNotValidatedStateCode) {
+        message = ErrorMessages.UserEmailNotValidated
         httpCode = 401
       } else {
         val jwtPayloadAsJson =
@@ -351,6 +355,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
           case false => false
         }*/
         case _ => false
+      } recoverWith {
+        case e: Throwable =>
+          logger.error(s"validatorFuture.validAccessTokenFuture failed: ${e.getMessage}", e)
+          Future.failed(e)
       }
     }
 
@@ -426,6 +434,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
       Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
         case Full(token) => token.isValid
         case _ => false
+      } recoverWith {
+        case e: Throwable =>
+          logger.error(s"validatorFutureWithParams.validAccessTokenFuture failed: ${e.getMessage}", e)
+          Future.failed(e)
       }
     }
 
@@ -551,8 +563,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
         validatorFuture("protectedResource", httpMethod)
       }
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
-      consumer <- OAuthHandshake.getConsumerFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
-      user <- OAuthHandshake.getUserFromTokenFuture(200, (if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token") else Empty))
+      tokenKey = if (directLoginParameters.isDefinedAt("token")) directLoginParameters.get("token").getOrElse("") else ""
+      consumer <- getConsumerFromDirectLoginToken(tokenKey)
+      user <- getUserFromDirectLoginToken(tokenKey)
     } yield {
       (user, Some(sc.copy(user = user, directLoginParams = directLoginParameters, consumer = consumer)))
     }
@@ -562,9 +575,26 @@ object DirectLogin extends RestHelper with MdcLoggable {
     val username = directLoginParameters.getOrElse("username", "")
     val password = directLoginParameters.getOrElse("password", "")
 
-    //we first try to get the userId from local, if not find, we try to get it from external 
-    AuthUser.getResourceUserId(username, password)
-        .or(AuthUser.externalUserHelper(username, password).map(_.user.get))
+    logger.debug(s"getUserId: attempting authentication for username: $username")
+    
+    // Try local provider first
+    val localResult = AuthUser.getResourceUserId(username, password, Constant.localIdentityProvider)
+    localResult match {
+      case Full(userId) =>
+        logger.debug(s"getUserId: local authentication succeeded for username: $username, userId: $userId")
+        localResult
+      case _ =>
+        logger.debug(s"getUserId: local authentication failed for username: $username, trying external provider")
+        // Try external provider as fallback
+        val externalResult = AuthUser.getResourceUserId(username, password, s"External")
+        externalResult match {
+          case Full(userId) =>
+            logger.debug(s"getUserId: external authentication succeeded for username: $username, userId: $userId")
+          case _ =>
+            logger.debug(s"getUserId: external authentication also failed for username: $username")
+        }
+        externalResult
+    }
   }
 
 
@@ -616,5 +646,45 @@ object DirectLogin extends RestHelper with MdcLoggable {
       consumer
     }
     consumer
+  }
+
+  /**
+   * DirectLogin-specific method to get consumer from token
+   * This replaces the dependency on OAuthHandshake.getConsumerFromTokenFuture
+   * @param token DirectLogin token key
+   * @return Future[Box[Consumer]]
+   */
+  def getConsumerFromDirectLoginToken(token: String): Future[Box[Consumer]] = {
+    Tokens.tokens.vend.getTokenByKeyFuture(token) map {
+      case Full(t) => t.consumerId.foreign
+      case _ => Empty
+    } recoverWith {
+      case e: Throwable =>
+        logger.error(s"getConsumerFromDirectLoginToken failed: ${e.getMessage}", e)
+        Future.failed(e)
+    }
+  }
+
+  /**
+   * DirectLogin-specific method to get user from token
+   * This replaces the dependency on OAuthHandshake.getUserFromTokenFuture
+   * @param token DirectLogin token key
+   * @return Future[Box[User]]
+   */
+  def getUserFromDirectLoginToken(token: String): Future[Box[User]] = {
+    (for {
+      tokenBox <- Tokens.tokens.vend.getTokenByKeyFuture(token)
+      userIdBox = tokenBox.map(_.userForeignKey.get)
+      user <- userIdBox match {
+        case Full(userId) => Users.users.vend.getResourceUserByResourceUserIdFuture(userId)
+        case _ => Future { Empty }
+      }
+    } yield {
+      user
+    }) recoverWith {
+      case e: Throwable =>
+        logger.error(s"getUserFromDirectLoginToken failed: ${e.getMessage}", e)
+        Future.failed(e)
+    }
   }
 }

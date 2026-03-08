@@ -40,7 +40,6 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
@@ -432,6 +431,8 @@ import net.liftweb.util.Helpers._
 
   /**Marking the locked state to show different error message */
   val usernameLockedStateCode = Long.MaxValue
+  /**Marking the email not validated state to show different error message */
+  val userEmailNotValidatedStateCode = Long.MaxValue - 1
 
   val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
@@ -440,7 +441,8 @@ import net.liftweb.util.Helpers._
   
   override def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
-  override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
+  // screenWrap removed - API-only mode, no portal pages
+  override def screenWrap = Empty
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
@@ -448,26 +450,13 @@ import net.liftweb.util.Helpers._
   // To force validation of email addresses set this to false (default as of 29 June 2021)
   override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
-  override def loginXhtml = {
-    val loginXml = Templates(List("templates-hidden","_login")).map({
-        "form [action]" #> {ObpS.uri} &
-        "#loginText * " #> {S.?("log.in")} &
-        "#usernameText * " #> {S.?("username")} &
-        "#passwordText * " #> {S.?("password")} &
-        "#login_challenge [value]" #> ObpS.param("login_challenge").getOrElse("") &
-        "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
-        "#recoverPasswordLink * " #> {
-          "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
-          "a *" #> {S.?("recover.password")}
-        } &
-        "#SignUpLink * " #> {
-          "a [href]" #> {AuthUser.signUpPath.foldLeft("")(_ + "/" + _)} &
-          "a *" #> {S.?("sign.up")}
-        }
-      })
-
-    <div>{loginXml getOrElse NodeSeq.Empty}</div>
-  }
+  // Legacy Lift login UI - no longer used (API-only mode)
+  // Login is handled via OIDC/DirectLogin APIs, not HTML forms
+  override def loginXhtml = <div/>
+  
+  // Legacy Lift login method - no longer used (no frontend pages)
+  // Authentication is now handled via DirectLogin API endpoints
+  override def login: NodeSeq = <div/>
 
 
   // Update ResourceUser.LastUsedLocale only once per session in 60 seconds
@@ -525,9 +514,7 @@ import net.liftweb.util.Helpers._
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
-      else if (hasAnOAuthHeader(authorization)) {
-        OAuthHandshake.getUser
-      } else if (hasGatewayHeader(authorization)){
+      else if (hasGatewayHeader(authorization)){
         GatewayLogin.getUser
       } else {
         logger.debug(ErrorMessages.CurrentUserNotFoundException)
@@ -598,64 +585,17 @@ import net.liftweb.util.Helpers._
   override def userNameNotFoundString: String = "Thank you. If we found a matching user, password reset instructions have been sent."
 
 
-  /**
-   * Overridden to use the hostname set in the props file
-   */
-  override def sendPasswordReset(name: String) {
-    findAuthUserByUsernameLocallyLegacy(name).toList ::: findUsersByEmailLocally(name) map {
-      case u if u.validated_? =>
-        u.resetUniqueId().save
-        val resetPasswordLinkProps = Constant.HostName
-        val resetPasswordLink = APIUtil.getPropsValue("portal_hostname", resetPasswordLinkProps)+
-          passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
-        // Directly generate content using JakartaMail/CommonsEmailWrapper
-        val textContent = Some(s"Please use the following link to reset your password: $resetPasswordLink")
-        val htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetPasswordLink'>$resetPasswordLink</a></p>")
-        val emailContent = EmailContent(
-          from = emailFrom,
-          to = List(u.getEmail),
-          bcc = bccEmail.toList,
-          subject = passwordResetEmailSubject + " - " + u.username,
-          textContent = textContent,
-          htmlContent = htmlContent
-        )
-        sendHtmlEmail(emailContent) match {
-          case Full(messageId) => 
-            logger.debug(s"Password reset email sent successfully with Message-ID: $messageId")
-            S.notice("Password reset email sent successfully. Please check your email.")
-            S.redirectTo(homePage)
-          case Empty => 
-            logger.error("Failed to send password reset email")
-            S.error("Failed to send password reset email. Please try again.")
-            S.redirectTo(homePage)
-        }
-      case u =>
-        sendValidationEmail(u)
-    }
+  // sendPasswordReset removed - legacy Lift method, replaced by API endpoint /obp/v6.0.0/users/password-reset-url
+  override def sendPasswordReset(name: String) = {
+    // No-op: Password reset now handled via RESTful API endpoints
   }
 
-  override def lostPasswordXhtml = {
-    <div id="recover-password" tabindex="-1">
-          <h1>Recover Password</h1>
-          <div id="recover-password-explanation">Enter your email address or username and we'll email you a link to reset your password</div>
-          <form action={ObpS.uri} method="post">
-            <div class="form-group">
-              <label>Username or email address</label> <span id="recover-password-email"><input id="email" type="text" /></span>
-            </div>
-            <div id="recover-password-submit">
-              <input type="submit" />
-            </div>
-          </form>
-    </div>
-  }
+  // lostPasswordXhtml simplified - API-only mode, no portal pages
+  // Password reset is handled via API endpoints
+  override def lostPasswordXhtml = <div/>
 
-  override def lostPassword = {
-    val bind =
-          "#email" #> SHtml.text("", sendPasswordReset _) &
-          "type=submit" #> lostPasswordSubmitButton(S.?("submit"))
-
-    bind(lostPasswordXhtml)
-  }
+  // lostPassword simplified - API-only mode, no portal pages
+  override def lostPassword = NodeSeq.Empty
 
   //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
 
@@ -663,26 +603,40 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
-    val resetLink = Constant.HostName+"/"+validateUserPath.mkString("/")+"/"+urlEncode(user.getUniqueId())
-    val email: String = user.getEmail
-    val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $resetLink")
-    val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$resetLink'>$resetLink</a></p>")
-    val subjectContent = "Sign up confirmation"
-    val emailContent = EmailContent(
-      from = emailFrom,
-      to = List(user.getEmail),
-      bcc = bccEmail.toList,
-      subject = subjectContent,
-      textContent = textContent,
-      htmlContent = htmlContent
-    )
-    sendHtmlEmail(emailContent) match {
-      case Full(messageId) => 
-        logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
-        S.notice("Validation email sent successfully. Please check your email.")
-      case Empty => 
-        logger.error("Failed to send validation email")
-        S.error("Failed to send validation email. Please try again.")
+    APIUtil.getPropsValue("portal_external_url") match {
+      case Full(portalUrl) =>
+        // Create a JWT token with the uniqueId as subject and configurable expiry
+        val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+        val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+          .subject(user.getUniqueId())
+          .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+          .issueTime(new java.util.Date())
+          .build()
+        val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+        val validationLink = portalUrl+"/user-validation?token="+urlEncode(jwtToken)
+        val email: String = user.getEmail
+        val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $validationLink")
+        val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$validationLink'>$validationLink</a></p>")
+        val subjectContent = "Sign up confirmation"
+        val emailContent = EmailContent(
+          from = emailFrom,
+          to = List(user.getEmail),
+          bcc = bccEmail.toList,
+          subject = subjectContent,
+          textContent = textContent,
+          htmlContent = htmlContent
+        )
+        sendHtmlEmail(emailContent) match {
+          case Full(messageId) =>
+            logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
+            S.notice("Validation email sent successfully. Please check your email.")
+          case Empty =>
+            logger.error("Failed to send validation email")
+            S.error("Failed to send validation email. Please try again.")
+        }
+      case _ =>
+        logger.error("portal_external_url is not set in props. Cannot send validation email.")
+        S.error("Validation email could not be sent. Please contact the administrator.")
     }
   }
 
@@ -693,23 +647,40 @@ import net.liftweb.util.Helpers._
      }
    }
 
-  override def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
-    case Full(user) if !user.validated_? =>
-      user.setValidated(true).resetUniqueId().save
-      grantDefaultEntitlementsToAuthUser(user)
-      logUserIn(user, () => {
-        S.notice(S.?("account.validated"))
-        APIUtil.getPropsValue("user_account_validated_redirect_url") match {
-          case Full(redirectUrl) =>
-            logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
-            S.redirectTo(redirectUrl)
-          case _ =>
-            logger.debug(s"user_account_validated_redirect_url is NOT defined")
-            S.redirectTo(homePage)
-        }
-      })
+  override def validateUser(id: String): NodeSeq = {
+    // Extract uniqueId from JWT token: verify signature and expiry
+    val uniqueIdBox: Box[String] = tryo {
+      val signedJWT = com.nimbusds.jwt.SignedJWT.parse(id)
+      val expiration = signedJWT.getJWTClaimsSet.getExpirationTime
+      if (expiration == null || expiration.before(new java.util.Date())) {
+        throw new Exception("Token has expired")
+      }
+      if (!CertificateUtil.verifywtWithHmacProtection(id)) {
+        throw new Exception("Invalid token signature")
+      }
+      signedJWT.getJWTClaimsSet.getSubject
+    }
 
-    case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+    val userBox = uniqueIdBox.flatMap(findUserByUniqueId)
+
+    userBox match {
+      case Full(user) if !user.validated_? =>
+        user.setValidated(true).resetUniqueId().save
+        grantDefaultEntitlementsToAuthUser(user)
+        logUserIn(user, () => {
+          S.notice(S.?("account.validated"))
+          APIUtil.getPropsValue("user_account_validated_redirect_url") match {
+            case Full(redirectUrl) =>
+              logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
+              S.redirectTo(redirectUrl)
+            case _ =>
+              logger.debug(s"user_account_validated_redirect_url is NOT defined")
+              S.redirectTo(homePage)
+          }
+        })
+
+      case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+    }
   }
 
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
@@ -742,111 +713,27 @@ import net.liftweb.util.Helpers._
   }
 
 
-  def agreeTermsDiv = {
-    val webUi = new WebUI
-    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
-    val termsAndConditionsCheckboxTitle = Helper.i18n("terms_and_conditions_checkbox_text", Some("I agree to the above Terms and Conditions"))
-    val termsAndConditionsCheckboxLabel = Helper.i18n("terms_and_conditions_checkbox_label", Some("Terms and Conditions"))
-    val agreeTermsHtml = s"""<hr>
-                |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
-                |                            <details open style="cursor:s-resize;">
-                |                                <summary style="display:list-item;"><a class="api_group_name">$termsAndConditionsCheckboxLabel</a></summary>
-                |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
-                |                            </details>
-                |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
-                |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">$termsAndConditionsCheckboxTitle</label>
-                |                        </div>
-                |                        """.stripMargin
+  // agreeTermsDiv simplified - API-only mode, no portal pages
+  def agreeTermsDiv = NodeSeq.Empty
 
-    scala.xml.Unparsed(agreeTermsHtml)
-  }
+  // legalNoticeDiv simplified - API-only mode, no portal pages
+  def legalNoticeDiv = NodeSeq.Empty
 
-  def legalNoticeDiv = {
-    val agreeTermsHtml = getWebUiPropsValue("webui_legal_notice_html_text", "")
-    if(agreeTermsHtml.isEmpty){
-      s""
-    } else{
-      scala.xml.Unparsed(s"""$agreeTermsHtml""")
-    }
-  }
+  // agreePrivacyPolicy simplified - API-only mode, no portal pages
+  def agreePrivacyPolicy = NodeSeq.Empty
 
-  def agreePrivacyPolicy = {
-    val webUi = new WebUI
-    val privacyPolicyCheckboxText = Helper.i18n("privacy_policy_checkbox_text", Some("I agree to the above Privacy Policy"))
-    val privacyPolicyCheckboxLabel = Helper.i18n("privacy_policy_checkbox_label", Some("Privacy Policy"))
-    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
-    val agreePrivacyPolicy = s"""<hr>
-                           |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
-                           |                            <details open style="cursor:s-resize;">
-                           |                                <summary style="display:list-item;"><a class="api_group_name">$privacyPolicyCheckboxLabel</a></summary>
-                           |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
-                           |                            </details>
-                           |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
-                           |                            <label class="form-check-label" for="privacy_checkbox">$privacyPolicyCheckboxText</label>
-                           |                        </div>
-                           |                        <hr>""".stripMargin
-
-    scala.xml.Unparsed(agreePrivacyPolicy)
-  }
-  def enableDisableSignUpButton = {
-    val javaScriptCode = """<script>
-                               |                function enableDisableButton() {
-                               |                  var checkBox = document.getElementById("terms-and-conditions-div").querySelector("input[type=checkbox]");
-                               |                  var checkBox2 = document.getElementById("privacy-conditions-div").querySelector("input[type=checkbox]");
-                               |                  var button = document.getElementById("submit-button");
-                               |                  if (checkBox.checked == true && checkBox2.checked == true){
-                               |                    button.disabled = false;
-                               |                  } else {
-                               |                     button.disabled = true;
-                               |                  }
-                               |                }
-                               |                </script>""".stripMargin
-
-    scala.xml.Unparsed(javaScriptCode)
-  }
+  // enableDisableSignUpButton simplified - API-only mode, no portal pages
+  def enableDisableSignUpButton = NodeSeq.Empty
 
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
 
-  override def signupXhtml (user:AuthUser) =  {
-    <div id="signup" tabindex="-1">
-      <form method="post" action={ObpS.uriAndQueryString.getOrElse(ObpS.uri)}>
-          <h1>{signupFormTitle}</h1>
-          {legalNoticeDiv}
-          <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
-          {localForm(user, false, signupFields)}
-          {agreeTermsDiv}
-          {agreePrivacyPolicy}
-          <div id="signup-submit">
-            <input onmouseover="enableDisableButton()" onfocus="enableDisableButton()" disabled="true" id="submit-button" type="submit" class="btn btn-danger"/>
-          </div>
-          {enableDisableSignUpButton}
-      </form>
-    </div>
-  }
+  // signupXhtml simplified - API-only mode, no portal pages
+  // Signup is handled via API endpoints, not HTML forms
+  override def signupXhtml (user:AuthUser) = <div/>
 
 
-  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = {
-    for {
-      pointer <- fields
-      field <- computeFieldFromPointer(user, pointer).toList
-      if field.show_? && (!ignorePassword || !pointer.isPasswordField_?)
-      form <- field.toForm.toList
-    } yield {
-      if(field.uniqueFieldId.getOrElse("") == "authuser_password") {
-        <div class="form-group">
-          <label>{field.displayName}</label>
-          {form}
-        </div>
-      } else {
-        <div class="form-group">
-          <label>{field.displayName}</label>
-          {form}
-          <div id="signup-error" class="alert alert-danger hide"><span data-lift={s"Msg?id=${field.uniqueFieldId.getOrElse("")}&errorClass=error"}/></div>
-        </div>
-      }
-    }
-
-  }
+  // localForm simplified - API-only mode, no portal pages
+  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = NodeSeq.Empty
 
   def userLoginFailed = {
     logger.info("failed: " + failedLoginRedirect.get)
@@ -871,79 +758,250 @@ import net.liftweb.util.Helpers._
 
 
 
-  def getResourceUserId(username: String, password: String): Box[Long] = {
-    findAuthUserByUsernameLocallyLegacy(username) match {
-      // We have a user from the local provider.
-      case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
-        if (
-          user.validated_? &&
-          // User is NOT locked AND the password is good
-          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
-          user.testPassword(Full(password)))
-            {
-              // We logged in correctly, so reset badLoginAttempts counter (if it exists)
-              LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-              Full(user.user.get) // Return the user.
-            }
-        // User is unlocked AND password is bad
-        else if (
-          user.validated_? &&
-          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
-          ! user.testPassword(Full(password))
-        ) {
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          Empty
-        }
-        // User is locked
-        else if (LoginAttempt.userIsLocked(user.getProvider(), username))
-        {
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          logger.info(ErrorMessages.UsernameHasBeenLocked)
-          //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
+  /**
+    * Centralized authentication method that validates user credentials and returns the resource user ID.
+    * 
+    * This method implements a dual-path authentication strategy:
+    * - **Local Provider Path**: Validates credentials against the local OBP database
+    * - **External Provider Path**: Delegates validation to external authentication systems via connector
+    * 
+    * == Authentication Flow ==
+    * 
+    * === Local Provider Path (provider == localIdentityProvider or isEmpty) ===
+    * 1. **User Lookup**: Search for user in local database by username and provider
+    *    - If not found → increment bad login attempts → return Empty
+   *    
+    * 2. **Email Validation Check**: Verify user's email is validated
+    *    - If not validated → return `userEmailNotValidatedStateCode`
+   *    
+    * 3. **Account Lock Check**: Check if user account is locked due to failed attempts
+    *    - If locked → return `usernameLockedStateCode` (no attempt increment)
+   *    
+    * 4. **Password Validation**: Test provided password against stored hash
+    *    - If correct → reset bad login attempts → return user ID
+    *    - If incorrect → increment bad login attempts → return Empty
+    * 
+    * === External Provider Path (provider != localIdentityProvider) ===
+    * 1. **Connector Authentication Check**: Verify `connector.user.authentication` property is enabled
+    *    - If disabled → increment bad login attempts → return Empty
+   *    
+    * 2. **Account Lock Check**: Check if external user account is locked
+    *    - If locked → return `usernameLockedStateCode` (no attempt increment)
+   *    
+    * 3. **External Validation**: Call `checkExternalUserViaConnector` to validate via connector
+    *    - If successful → reset bad login attempts → return user ID
+    *    - If failed → increment bad login attempts → return Empty
+    * 
+    * == Security Features ==
+    * - **Login Attempt Tracking**: Failed authentications increment bad login attempt counter
+    * - **Account Locking**: Users are locked after exceeding maximum failed attempts
+    * - **Attempt Reset**: Successful authentication resets the bad login attempt counter
+    * - **Email Validation**: Local users must have validated email addresses
+    * - **Locked State Protection**: Locked accounts do not increment attempt counter further
+    * 
+    * == Return Values ==
+    * - `Full(userId)`: Authentication successful, returns the resource user ID
+    * - `Full(userEmailNotValidatedStateCode)`: User exists but email not validated (local only)
+    * - `Full(usernameLockedStateCode)`: User account is locked due to failed attempts
+    * - `Empty`: Authentication failed (user not found, wrong password, or connector failure)
+    * 
+    * == Special State Codes ==
+    * - `userEmailNotValidatedStateCode`: Indicates email validation required
+    * - `usernameLockedStateCode`: Indicates account is locked
+    * 
+    * == Parameter Validation ==
+    * - Username and password must not be null or empty
+    * - Provider is normalized: null or empty treated as localIdentityProvider
+    * 
+    * @param username The username to authenticate (must not be null or empty)
+    * @param password The password to validate (must not be null or empty)
+    * @param provider The authentication provider (defaults to localIdentityProvider)
+    *                 - Use `Constant.localIdentityProvider` for local database authentication
+    *                 - Use external provider name (e.g., "ldap", "oauth") for connector-based authentication
+    *                 - null or empty values are normalized to localIdentityProvider
+    * @return Box[Long] containing:
+    *         - User ID on successful authentication
+    *         - Special state code for email validation or account lock
+    *         - Empty on authentication failure or invalid parameters
+    * 
+    * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
+    * @see [[checkExternalUserViaConnector]] for external authentication
+    * @see [[LoginAttempt.userIsLocked]] for account lock checking
+    * @see [[LoginAttempt.incrementBadLoginAttempts]] for failed attempt tracking
+    * @see [[LoginAttempt.resetBadLoginAttempts]] for attempt counter reset
+    */
+  def getResourceUserId(username: String, password: String, provider: String): Box[Long] = {
+    // ========================================================================
+    // PARAMETER VALIDATION
+    // ========================================================================
+    if (username == null || username.trim.isEmpty) {
+      logger.warn(s"getResourceUserId: invalid username (null or empty)")
+      return Empty
+    }
+    if (password == null || password.isEmpty) {
+      logger.warn(s"getResourceUserId: invalid password (null or empty)")
+      return Empty
+    }
+    
+    // Normalize provider: treat null or empty as localIdentityProvider
+    val normalizedProvider = if (provider == null || provider.isEmpty) {
+      Constant.localIdentityProvider
+    } else {
+      provider
+    }
+    
+    logger.info(s"getResourceUserId says: starting for username: $username, provider: $normalizedProvider")
+    
+    // ========================================================================
+    // ROUTE DECISION: Local or External Provider?
+    // ========================================================================
+    if (normalizedProvider == Constant.localIdentityProvider) {
+      // ========================================================================
+      // LOCAL PROVIDER PATH: Validate against local database
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using local provider authentication for username: $username")
+      
+      findAuthUserByUsernameAndProvider(username, Constant.localIdentityProvider) match {
+        case Full(user) if !user.validated_? =>
+          // User exists but email not validated
+          logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $normalizedProvider")
+          Full(userEmailNotValidatedStateCode)
+        
+        case Full(user) if LoginAttempt.userIsLocked(Constant.localIdentityProvider, username) =>
+          // User is locked - do NOT increment attempts (already locked)
+          logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $normalizedProvider")
           Full(usernameLockedStateCode)
-        }
-        else {
-          // Nothing worked, so just increment bad login attempts
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          Empty
-        }
-      // We have a user from an external provider.
-      case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
-        APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
-            case true if !LoginAttempt.userIsLocked(user.getProvider(), username) =>
-              val userId =
-                for {
-                  authUser <- checkExternalUserViaConnector(username, password)
-                  resourceUser <- tryo {
-                    authUser.user
-                  }
-                } yield {
-                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-                  resourceUser.get
-                }
-              userId match {
-                case Full(l: Long) => Full(l)
-                case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-                  Empty
-              }
-            case false =>
-              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
+        
+        case Full(user) if user.testPassword(Full(password)) =>
+          // Password correct - extract user ID safely
+          logger.info(s"getResourceUserId says: password correct, username: $username, provider: $normalizedProvider")
+          LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, username)
+          user.user.obj match {
+            case Full(resourceUser) =>
+              Full(resourceUser.id.get)
+            case _ =>
+              logger.error(s"getResourceUserId: user.user foreign key not set for username: $username")
               Empty
           }
-      // Everything else.
-      case _ =>
-        LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), username)
+        
+        case Full(user) =>
+          // Password incorrect
+          logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $normalizedProvider")
+          LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+          Empty
+        
+        case _ =>
+          // User not found in local database
+          logger.info(s"getResourceUserId says: user not found, username: $username, provider: $normalizedProvider")
+          LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+          Empty
+      }
+      
+    } else {
+      // ========================================================================
+      // EXTERNAL PROVIDER PATH: Validate via connector
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using external provider authentication for username: $username, provider: $normalizedProvider")
+      
+      // Check if connector authentication is enabled
+      // DEBUG: Log the actual property value being read
+      val connectorAuthEnabled = APIUtil.getPropsAsBoolValue("connector.user.authentication", false)
+      logger.info(s"getResourceUserId says: READ connector.user.authentication = $connectorAuthEnabled")
+      
+      if (!connectorAuthEnabled) {
+        logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: $normalizedProvider")
+        LoginAttempt.incrementBadLoginAttempts(normalizedProvider, username)
         Empty
+      }
+      // Check if user is locked - do NOT increment attempts (already locked)
+      else if (LoginAttempt.userIsLocked(normalizedProvider, username)) {
+        logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: $normalizedProvider")
+        Full(usernameLockedStateCode)
+      }
+      // Validate via connector
+      else {
+        logger.info(s"getResourceUserId says: calling checkExternalUserViaConnector for username: $username, provider: $normalizedProvider")
+        
+        // Call connector validation and safely extract user ID
+        val connectorResult = checkExternalUserViaConnector(username, password).flatMap { authUser =>
+          authUser.user.obj match {
+            case Full(resourceUser) =>
+              Full(resourceUser.id.get)
+            case _ =>
+              logger.error(s"getResourceUserId: external user.user foreign key not set for username: $username")
+              Empty
+          }
+        }
+        
+        connectorResult match {
+          case Full(userId) =>
+            logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: $normalizedProvider")
+            LoginAttempt.resetBadLoginAttempts(normalizedProvider, username)
+            Full(userId)
+          
+          case _ =>
+            logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: $normalizedProvider")
+            LoginAttempt.incrementBadLoginAttempts(normalizedProvider, username)
+            Empty
+        }
+      }
     }
   }
 
   /**
-    * This method is belong to AuthUser, it is used for authentication(Login stuff)
-    * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side.
-    * 3 if not existing, will create new AuthUser.
-    * @return Return the authUser
+    * Validates external user credentials via connector and creates/retrieves local AuthUser.
+    * 
+    * This method is the primary entry point for external authentication. It performs the following:
+    * 
+    * 1. **Connector Validation**: Calls the connector's `checkExternalUserCredentials` to validate
+    *    the username and password against the external identity provider or Core Banking System.
+    * 
+    * 2. **Local User Lookup**: If connector validation succeeds, checks if the user already exists
+    *    in the local OBP database (AuthUser table) using `findAuthUserByUsernameAndProvider`.
+    * 
+    * 3. **Auto-Provisioning**: If the user doesn't exist locally, automatically creates a new AuthUser
+    *    record with data from the connector response (email, name, provider, validation status).
+    *    This also triggers creation of the associated ResourceUser via the `saveMe()` method.
+    * 
+    * 4. **User Auth Context**: If the connector returns user auth contexts (e.g., customer numbers),
+    *    these are stored/updated in the UserAuthContext table for both new and existing users.
+    * 
+    * == Authentication Flow ==
+    * ```
+    * checkExternalUserViaConnector(username, password)
+    *   │
+    *   ├─> Connector.checkExternalUserCredentials(username, password)
+    *   │   └─> Returns InboundExternalUser with: sub, iss, email, name, userAuthContexts
+    *   │
+    *   ├─> findAuthUserByUsernameAndProvider(sub, iss)
+    *   │   ├─> User exists and validated? → Return existing user
+    *   │   └─> User not found? → Create new AuthUser with connector data
+    *   │
+    *   └─> Update/Create UserAuthContexts if provided
+    * ```
+    * 
+    * == Return Values ==
+    * - `Full(AuthUser)`: Authentication successful, returns the AuthUser (existing or newly created)
+    * - `Empty`: Connector validation failed (invalid credentials or connector error)
+    * - `Failure`: Connector returned an error with details
+    * 
+    * == Side Effects ==
+    * - May create new AuthUser record in database
+    * - May create new ResourceUser record (via AuthUser.saveMe())
+    * - May create/update UserAuthContext records
+    * 
+    * == Usage ==
+    * This method is called by:
+    * - `getResourceUserId()` for external provider authentication
+    * - DirectLogin authentication flow for external users
+    * 
+    * @param username The username to authenticate against the external system
+    * @param password The password to validate via the connector
+    * @return Box[AuthUser] containing the authenticated user or Empty/Failure on error
+    * 
+    * @see [[getResourceUserId]] for the main authentication entry point
+    * @see [[Connector.checkExternalUserCredentials]] for connector validation
+    * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     logger.info(s"checkExternalUserViaConnector: calling checkExternalUserCredentials for username: $username")
@@ -1018,224 +1076,6 @@ def restoreSomeSessions(): Unit = {
       Nil
   }
 
-
-  //overridden to allow a redirection if login fails
-  /**
-    * Success cases:
-    *  case1: user validated && user not locked && user.provider from localhost && password correct --> Login in
-    *  case2: user validated && user not locked && user.provider not localhost  && password correct --> Login in
-    *  case3: user from remote && checked over connector --> Login in
-    *
-    * Error cases:
-    *  case1: user is locked --> UsernameHasBeenLocked
-    *  case2: user.validated_? --> account.validation.error
-    *  case3: right username but wrong password --> Invalid Login Credentials
-    *  case4: wrong username   --> Invalid Login Credentials
-    *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
-    */
-  override def login: NodeSeq = {
-    // This query parameter is specific to ORY Hydra login request
-    val loginChallenge: Box[String] = ObpS.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
-    def redirectUri(user: Box[ResourceUser]): String = {
-      val userId = user.map(_.userId).getOrElse("")
-      val hashedAgreementTextOfUser =
-        UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, "terms_and_conditions")
-          .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
-      val agreementText = getWebUiPropsValue("webui_terms_and_conditions", "not set")
-      val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
-      if(hashedAgreementTextOfUser == hashedAgreementText) { // Check terms and conditions
-        val hashedAgreementTextOfUser =
-          UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(userId, "privacy_conditions")
-            .map(_.agreementHash).getOrElse(HashUtil.Sha256Hash("not set"))
-        val agreementText = getWebUiPropsValue("webui_privacy_policy", "not set")
-        val hashedAgreementText = HashUtil.Sha256Hash(agreementText)
-        if(hashedAgreementTextOfUser == hashedAgreementText) { // Check privacy policy
-          loginRedirect.get match {
-            case Full(url) =>
-              loginRedirect(Empty)
-              url
-            case _ =>
-              homePage
-          }
-        } else {
-          "/privacy-policy"
-        }
-      } else {
-        "/terms-and-conditions"
-      }
-
-    }
-    //Check the internal redirect, in case for open redirect issue.
-    // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
-    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-    def checkInternalRedirectAndLogUserIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
-      if (Helper.isValidInternalRedirectUrl(redirect)) {
-        logUserIn(user, () => {
-          S.notice(S.?("logged.in"))
-          preLoginState()
-          if(emailDomainToSpaceMappings.nonEmpty){
-            Future{
-              tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
-                .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
-            }}
-          if(emailDomainToEntitlementMappings.nonEmpty){
-            Future{
-                tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
-                  .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEmailDomainEntitlementsToUser throw exception! "))
-            }}
-          // We use Hydra as an Headless Identity Provider which implies OBP-API must provide User Management.
-          // If there is the query parameter login_challenge in a url we know it is tha Hydra request
-          // TODO Write standalone application for Login and Consent Request of Hydra as Identity Provider
-          integrateWithHydra match {
-            case true =>
-              if (loginChallenge.isEmpty == false) {
-                val acceptLoginRequest = new AcceptLoginRequest
-                val adminApi: AdminApi = new AdminApi
-                acceptLoginRequest.setSubject(user.username.get)
-                val result = adminApi.acceptLoginRequest(loginChallenge.getOrElse(""), acceptLoginRequest)
-                S.redirectTo(result.getRedirectTo)
-              } else {
-                S.redirectTo(redirect)
-              }
-            case false =>
-              S.redirectTo(redirect)
-          }
-        })
-      } else {
-        S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-        logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-      }
-    }
-
-    def isObpProvider(user: AuthUser) = {
-      // TODO Consider does http://host should match https://host in development mode
-      user.getProvider() == Constant.localIdentityProvider
-    }
-
-    def obpUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
-      user.validated_? && !LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) &&
-        isObpProvider(user)
-    }
-
-    def externalUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
-      user.validated_? && !LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) &&
-        !isObpProvider(user)
-    }
-
-    def loginAction = {
-      if (S.post_?) {
-        val usernameFromGui = ObpS.param("username").getOrElse("")
-        val passwordFromGui = ObpS.param("password").getOrElse("")
-        val usernameEmptyField = ObpS.param("username").map(_.isEmpty()).getOrElse(true)
-        val passwordEmptyField = ObpS.param("password").map(_.isEmpty()).getOrElse(true)
-        val emptyField = usernameEmptyField || passwordEmptyField
-        emptyField match {
-          case true =>
-            if(usernameEmptyField)
-              S.error("login-form-username-error", Helper.i18n("please.enter.your.username"))
-            if(passwordEmptyField)
-              S.error("login-form-password-error", Helper.i18n("please.enter.your.password"))
-          case false =>
-            findAuthUserByUsernameLocallyLegacy(usernameFromGui) match {
-              case Full(user) if !user.validated_? =>
-                S.error(S.?("account.validation.error"))
-
-              // Check if user comes from localhost and
-              case Full(user) if obpUserIsValidatedAndNotLocked(usernameFromGui, user) =>
-                if(user.testPassword(Full(passwordFromGui))) { // if User is NOT locked and password is good
-                  // Reset any bad attempt
-                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
-                  val preLoginState = capturePreLoginState()
-                  // User init actions
-                  AfterApiAuth.innerLoginUserInitAction(Full(user))
-                  logger.info("login redirect: " + loginRedirect.get)
-                  val redirect = redirectUri(user.user.foreign)
-                  checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
-                } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
-                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
-                  S.error(Helper.i18n("invalid.login.credentials"))
-                }
-
-              // If user is locked, send the error to GUI
-              case Full(user) if LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) =>
-                LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
-                S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-                loginRedirect(ObpS.param("Referer").or(S.param("Referer")))
-
-              // Check if user came from CBS and
-              // if User is NOT locked. Then check username and password
-              // from connector in case they changed on the south-side
-              case Full(user) if externalUserIsValidatedAndNotLocked(usernameFromGui, user) && testExternalPassword(usernameFromGui, passwordFromGui) =>
-                  // Reset any bad attempts
-                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
-                  val preLoginState = capturePreLoginState()
-                  logger.info("login redirect: " + loginRedirect.get)
-                  val redirect = redirectUri(user.user.foreign)
-                  //This method is used for connector = cbs* || obpjvm*
-                  //It will update the views and createAccountHolder ....
-                  registeredUserHelper(user.getProvider(),user.username.get)
-                  // User init actions
-                  AfterApiAuth.innerLoginUserInitAction(Full(user))
-                  checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
-
-
-              // Error case:
-              // the username exist but provider cannot be matched
-              // It can happen via next scenario:
-              //   - sign up user at some obp-api cluster
-              //   - change a url of the cluster
-              //   - try to log on user at the cluster
-              case Full(user) if !isObpProvider(user) =>
-                S.error(S.?(s"${ErrorMessages.InvalidProviderUrl} Actual: ${Constant.localIdentityProvider}, Expected: ${user.provider}"))
-
-
-              // If user cannot be found locally, try to authenticate user via connector
-              case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) =>
-
-                val preLoginState = capturePreLoginState()
-                logger.info("login redirect: " + loginRedirect.get)
-                val redirect = redirectUri(user.foreign)
-                externalUserHelper(usernameFromGui, passwordFromGui) match {
-                    case Full(user: AuthUser) =>
-                      LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
-                      // User init actions
-                      AfterApiAuth.innerLoginUserInitAction(Full(user))
-                      checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
-                    case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), username.get)
-                      Empty
-                      S.error(Helper.i18n("invalid.login.credentials"))
-                }
-
-              //If there is NO the username, throw the error message.
-              case Empty =>
-                S.error(Helper.i18n("invalid.login.credentials"))
-              case unhandledCase =>
-                logger.error("------------------------------------------------------")
-                logger.error(s"username from GUI: $usernameFromGui")
-                logger.error("An unexpected login error occurred:")
-                logger.error(unhandledCase)
-                logger.error("------------------------------------------------------")
-                LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), usernameFromGui)
-                S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
-            }
-        }
-      }
-    }
-
-    // In this function we bind submit button to loginAction function.
-    // In case that unique token of submit button cannot be paired submit action will be omitted.
-    // Implemented in order to prevent a CSRF attack
-    def insertSubmitButton = {
-      scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
-    }
-
-    val bind =
-          "submit" #> insertSubmitButton
-   bind(loginXhtml)
-  }
-
   override def logout = {
     logoutCurrentUser
     S.request match {
@@ -1244,43 +1084,6 @@ def restoreSomeSessions(): Unit = {
         case _ => S.redirectTo(homePage)
       }
       case _ => S.redirectTo(homePage)
-    }
-  }
-
-
-  /**
-    * The user authentications is not exciting in obp side, it need get the user via connector
-    */
- def testExternalPassword(usernameFromGui: String, passwordFromGui: String): Boolean = {
-   checkExternalUserViaConnector(usernameFromGui, passwordFromGui) match {
-     case Full(user:AuthUser) => true
-     case _ => false
-   }
-  }
-
-  /**
-    * This method will update the views and createAccountHolder ....
-    */
-  def externalUserHelper(name: String, password: String): Box[AuthUser] = {
-    for {
-      user <- checkExternalUserViaConnector(name, password)
-      u <- Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
-    } yield {
-      user
-    }
-  }
-
-
-  /**
-    * This method will update the views and createAccountHolder ....
-    */
-  def registeredUserHelper(provider: String,  username: String) = {
-    if (connector.startsWith("rest_vMar2019")) {
-      for {
-       u <- Users.users.vend.getUserByProviderAndUsername(provider, username)
-      } yield {
-        refreshUserLegacy(u, None)
-      }
     }
   }
 
@@ -1551,41 +1354,21 @@ def restoreSomeSessions(): Unit = {
           │FIND A USER │
           │AT MAPPER DB│
           └──────┬─────┘
-      ___________▽___________                        ┌────────────────────────┐
-     ╱        props:         ╲                       │FIND USER BY COMPOSITE  │
-    ╱ local_identity_provider ╲______________________│KEY (username,          │
-    ╲                         ╱yes                   │local_identity_provider)│
-     ╲_______________________╱                       └────────────┬───────────┘
-                 │no                                              │
-              ___▽____     ┌────────────────────────┐             │
-             ╱ props: ╲    │FIND USER BY COMPOSITE  │             │
-            ╱ hostname ╲___│KEY (username, hostname)│             │
-            ╲          ╱yes└────────────┬───────────┘             │
-             ╲________╱                 │                         │
-                 │no                    │                         │
-              ┌──▽──┐                   │                         │
-              │ERROR│                   │                         │
-              └─────┘                   │                         │
-                                        └──────┬──────────────────┘
-                                          ┌────▽────┐
-                                          │BOX[USER]│
-                                          └─────────┘
+                 │
+                 │ Find by composite key:
+                 │ (username, provider)
+                 │
+                 │ provider = parameter value
+                 │
+              ┌──▽──────────────────────┐
+              │FIND USER BY COMPOSITE   │
+              │KEY (username, provider) │
+              └──────┬──────────────────┘
+                     │
+                ┌────▽────┐
+                │BOX[USER]│
+                └─────────┘
   */
-  /**
-   * Find the Auth User by the composite key (username, provider).
-   * Only search at the local database.
-   * Please note that provider is implicitly defined i.e. not provided via a parameter
-   */
-  @deprecated("AuthUser unique key is username and provider, please use @findAuthUserByUsernameAndProvider instead.","06.06.2024")
-  def findAuthUserByUsernameLocallyLegacy(name: String): Box[TheUserType] = {
-    // 1st try is provider with local_identity_provider or hostname value
-    find(By(this.username, name), By(this.provider, Constant.localIdentityProvider))
-      // 2nd try is provider with null value
-      .or(find(By(this.username, name), NullRef(this.provider)))
-      // 3rd try is provider with empty string value
-      .or(find(By(this.username, name), By(this.provider, "")))
-  }
-
   def findAuthUserByUsernameAndProvider(name: String, provider: String): Box[TheUserType] = {
     find(By(this.username, name), By(this.provider, provider))
   }
@@ -1610,22 +1393,9 @@ def restoreSomeSessions(): Unit = {
     }
   }
 
-  override def passwordResetXhtml = {
-    <div id="recover-password" tabindex="-1">
-      <h1>{if(ObpS.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
-      <form action={ObpS.uri} method="post">
-        <div class="form-group">
-          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
-        </div>
-        <div class="form-group">
-          <input type="submit" class="btn btn-danger" />
-        </div>
-      </form>
-    </div>
-  }
+  // passwordResetXhtml simplified - API-only mode, no portal pages
+  // Password reset is handled via POST /obp/v6.0.0/users/password API endpoint
+  override def passwordResetXhtml = <div/>
   
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).

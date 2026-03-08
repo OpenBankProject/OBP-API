@@ -11,7 +11,7 @@ import net.liftweb.util.Props
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
 
-  final val directLoginHeaderName = "directlogin"
+  final val directLoginHeaderName = "DirectLogin"
 
   object Pagination {
     final val offset = 0
@@ -140,7 +140,6 @@ object Constant extends MdcLoggable {
   final val oauth2JwkSetUrl = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
 
   final val consumerDefaultLogoUrl = APIUtil.getPropsValue("consumer_default_logo_url")
-  final val serverMode = APIUtil.getPropsValue("server_mode", "apis,portal")
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)

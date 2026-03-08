@@ -17,7 +17,7 @@ import code.api.util.APIUtil.stringOrNull
 import code.metrics.ConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
-import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON}
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON, UserJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, createMetaJson}
 import code.api.v2_0_0.{BasicViewJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
@@ -30,15 +30,16 @@ import code.api.v3_0_0.{
 }
 import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RateLimit, RedisCallLimitJson}
 import code.api.v3_1_0.JSONFactory310.createProductAttributesJson
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
+import code.api.v4_0_0.{AccountTagJSON, BankAttributeBankResponseJsonV400, ProductFeeJsonV400, ProductFeeValueJsonV400, TransactionAttributeResponseJson, UserAgreementJson}
 import code.entitlement.Entitlement
 import code.apiproduct.ApiProductTrait
 import code.apiproductattribute.ApiProductAttributeTrait
 import code.featuredapicollection.FeaturedApiCollectionTrait
 import code.loginattempts.LoginAttempt
 import code.model.ModeratedBankAccountCore
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.UserAgreement
+import net.liftweb.mapper.By
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{
   AmountOfMoneyJsonV121,
@@ -49,6 +50,20 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 
 import java.util.Date
+
+case class FeaturesJsonV600(
+  allow_public_views: Boolean,
+  allow_abac_account_access: Boolean,
+  allow_account_firehose: Boolean,
+  allow_customer_firehose: Boolean,
+  allow_direct_login: Boolean,
+  allow_gateway_login: Boolean,
+  allow_oauth2_login: Boolean,
+  allow_dauth: Boolean,
+  allow_sandbox_account_creation: Boolean,
+  allow_sandbox_data_import: Boolean,
+  allow_account_deletion: Boolean
+)
 
 case class CardanoPaymentJsonV600(
     address: String,
@@ -235,6 +250,8 @@ case class UserInfoJsonV600(
     provider_id: String,
     provider: String,
     username: String,
+    first_name: String,
+    last_name: String,
     entitlements: EntitlementJSONs,
     views: Option[ViewsJSON300],
     agreements: Option[List[UserAgreementJson]],
@@ -252,8 +269,7 @@ case class CreateUserJsonV600(
     username: String,
     password: String,
     first_name: String,
-    last_name: String,
-    validating_application: Option[String] = None
+    last_name: String
 )
 
 case class PostVerifyUserCredentialsJsonV600(
@@ -894,6 +910,59 @@ case class ConnectorTracesJsonV600(
 
 case class ConfigPropJsonV600(name: String, value: String)
 
+// Signal Channels case classes (Redis-backed ephemeral messaging channels)
+case class PostSignalMessageJsonV600(
+    payload: net.liftweb.json.JsonAST.JValue,
+    message_type: Option[String] = None,
+    to_user_id: Option[String] = None
+)
+
+case class SignalMessageJsonV600(
+    message_id: String,
+    channel_name: String,
+    sender_consumer_id: String,
+    sender_user_id: String,
+    to_user_id: Option[String],
+    timestamp: String,
+    message_type: String,
+    payload: net.liftweb.json.JsonAST.JValue
+)
+
+case class SignalMessagesJsonV600(
+    channel_name: String,
+    messages: List[SignalMessageJsonV600],
+    total_count: Long,
+    has_more: Boolean
+)
+
+case class SignalMessagePublishedJsonV600(
+    message_id: String,
+    channel_name: String,
+    timestamp: String,
+    channel_message_count: Long
+)
+
+case class SignalChannelInfoJsonV600(
+    channel_name: String,
+    message_count: Long,
+    ttl_seconds: Long
+)
+
+case class SignalChannelsJsonV600(
+    channels: List[SignalChannelInfoJsonV600]
+)
+
+case class SignalStatsJsonV600(
+    total_channels: Int,
+    total_messages: Long,
+    channels: List[SignalChannelInfoJsonV600]
+)
+
+case class SignalChannelDeletedJsonV600(
+    channel_name: String,
+    deleted: Boolean
+)
+
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createRedisCallCountersJson(
@@ -1011,6 +1080,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createUserInfoJsonV600(
       user: User,
+      firstName: String,
+      lastName: String,
       entitlements: List[Entitlement],
       agreements: Option[List[UserAgreement]],
       isLocked: Boolean,
@@ -1023,6 +1094,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
       provider = stringOrNull(user.provider),
+      first_name = firstName,
+      last_name = lastName,
       entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
       views = None,
       agreements = agreements.map(
@@ -1045,16 +1118,19 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       ]
   ): UsersInfoJsonV600 = {
     UsersInfoJsonV600(
-      users.map(t =>
+      users.map { t =>
+        val authUser = AuthUser.find(By(AuthUser.user, t._1.id.get))
         createUserInfoJsonV600(
           t._1,
+          authUser.map(_.firstName.get).getOrElse(""),
+          authUser.map(_.lastName.get).getOrElse(""),
           t._2.getOrElse(Nil),
           t._3,
           LoginAttempt.userIsLocked(t._1.provider, t._1.name),
           None,
           List.empty
         )
-      )
+      }
     )
   }
 
@@ -2317,6 +2393,101 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createAccountAccessRequestsJsonV600(requests: List[code.accountaccessrequest.AccountAccessRequestTrait]): AccountAccessRequestsJsonV600 = {
     AccountAccessRequestsJsonV600(requests.map(createAccountAccessRequestJsonV600))
+  }
+
+  case class AccountDirectoryItemJsonV600(
+    account_id: String,
+    bank_id: String,
+    label: String,
+    account_number: String,
+    account_type: String,
+    branch_id: String,
+    account_routings: List[FastFirehoseRoutings],
+    account_attributes: List[FastFirehoseAttributes],
+    view_ids: List[String]
+  )
+
+  case class AccountDirectoryJsonV600(
+    accounts: List[AccountDirectoryItemJsonV600]
+  )
+
+  def createAccountDirectoryJsonV600(
+    accounts: List[AccountDirectoryItem],
+    viewsPerAccount: Map[BankIdAccountId, List[String]]
+  ): AccountDirectoryJsonV600 = {
+    AccountDirectoryJsonV600(
+      accounts.map { a =>
+        AccountDirectoryItemJsonV600(
+          account_id = a.id,
+          bank_id = a.bankId,
+          label = a.label,
+          account_number = a.number,
+          account_type = a.productCode,
+          branch_id = a.branchId,
+          account_routings = a.accountRoutings,
+          account_attributes = a.accountAttributes,
+          view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
+        )
+      }
+    )
+  }
+
+  case class HasAccountAccessJsonV600(
+    has_account_access: Boolean,
+    access_source: String,
+    account_access_id: String,
+    abac_rule_id: String
+  )
+
+  case class UserWithViewAccessJsonV600(
+    user_id: String,
+    username: String,
+    email: String,
+    provider: String,
+    access_source: String  // "ACCOUNT_ACCESS" or "ABAC"
+  )
+
+  case class UsersWithViewAccessJsonV600(
+    users: List[UserWithViewAccessJsonV600]
+  )
+
+  case class ModeratedAccountJSON600(
+    id: String,
+    label: String,
+    number: String,
+    owners: List[UserJSONV121],
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    views_available: List[ViewJsonV600],
+    bank_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[AccountAttributeResponseJson],
+    tags: List[AccountTagJSON]
+  )
+
+  def createBankAccountJSON600(
+    account: ModeratedBankAccountCore,
+    viewsAvailable: List[ViewJsonV600],
+    accountAttributes: List[AccountAttribute],
+    tags: List[TransactionTag]
+  ): ModeratedAccountJSON600 = {
+    import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
+    import code.api.v3_0_0.JSONFactory300.createAccountRoutingsJSON
+    import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+    import code.api.v4_0_0.JSONFactory400.createAccountTagJSON
+    ModeratedAccountJSON600(
+      id = account.accountId.value,
+      label = stringOptionOrNull(account.label),
+      number = stringOptionOrNull(account.number),
+      owners = createOwnersJSON(account.owners.getOrElse(Set()), ""),
+      product_code = stringOptionOrNull(account.accountType),
+      balance = createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
+      views_available = viewsAvailable,
+      bank_id = stringOrNull(account.bankId.value),
+      account_routings = createAccountRoutingsJSON(account.accountRoutings),
+      account_attributes = accountAttributes.map(createAccountAttributeJson),
+      tags = tags.map(createAccountTagJSON)
+    )
   }
 
 }

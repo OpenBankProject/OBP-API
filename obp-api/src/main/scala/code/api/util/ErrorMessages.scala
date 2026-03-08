@@ -135,6 +135,7 @@ object ErrorMessages {
   val InvalidTagsParameter = "OBP-10053: Invalid tags parameter. Tags cannot be empty when provided"
   val InvalidFunctionsParameter = "OBP-10054: Invalid functions parameter. Functions cannot be empty when provided"
   val InvalidApiCollectionIdParameter = "OBP-10055: Invalid api-collection-id parameter. API collection ID cannot be empty when provided"
+  val IncompleteServerConfiguration = "OBP-10056: A required server configuration property is missing. "
 
 
 
@@ -158,6 +159,7 @@ object ErrorMessages {
   val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
 
   val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact an administrator!"
+  val UserEmailNotValidated = "OBP-20073: The user email has not been validated. Please validate your email address first."
 
   val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
 
@@ -686,6 +688,8 @@ object ErrorMessages {
   val AbacRuleNotFound = "OBP-38007: ABAC rule not found. Please specify a valid value for ABAC_RULE_ID."
   val AbacRuleNotActive = "OBP-38008: ABAC rule is not active."
   val AbacRuleExecutionFailed = "OBP-38009: ABAC rule execution failed. An error occurred while executing the rule."
+  val AbacRuleTooPermissive = "OBP-38010: ABAC rule is too permissive. The rule code contains a tautological expression (e.g. 'true', '1==1') that would always grant access. Please write a rule that checks specific attributes."
+  val AbacRuleStatisticallyTooPermissive = "OBP-38011: ABAC rule is statistically too permissive. When evaluated against a sample of system users with no resource context, the rule grants access to more than 50% of users. Please write a more selective rule that checks specific attributes."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -794,6 +798,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForGetPaymentLimit = "OBP-50220: Connector did not return the payment limit we requested."
   val InvalidConnectorResponseForCreateTransactionRequestBGV1 = "OBP-50221: CreateTransactionRequestBGV1 Connector did not return the data we requested."
   val InvalidConnectorResponseForGetStatus = "OBP-50222: Connector method getStatus did not return the data we requested."
+  val InvalidConnectorResponseForGetAccountDirectory = "OBP-50223: Connector did not return the account directory we requested."
 
   // Adapter Exceptions (OBP-6XXXX)
   // Also used for connector == mapped, and show it as the Internal errors.
@@ -879,6 +884,7 @@ object ErrorMessages {
     InvalidConsumerKey -> 401,
 //    InvalidConsumerCredentials -> 401, // or 400
     UsernameHasBeenLocked -> 401,
+    UserEmailNotValidated -> 401,
     UserNoPermissionAccessView -> 403,
     UserLacksPermissionCanGrantAccessToViewForTargetAccount -> 403,
     UserLacksPermissionCanRevokeAccessToViewForTargetAccount -> 403,

@@ -16,7 +16,6 @@
     <avro.version>1.8.2</avro.version>
     <lift.version>3.5.0</lift.version>
     <http4s.version>0.23.30</http4s.version>
-    <jetty.version>9.4.58.v20250814</jetty.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -36,7 +35,6 @@
   <modules>
     <module>obp-commons</module>
     <module>obp-api</module>
-    <module>obp-http4s-runner</module>
   </modules>
 
   <repositories>
@@ -44,11 +42,6 @@
       <id>scala-tools.releases</id>
       <name>Scala-Tools Dependencies Repository for Releases</name>
       <url>https://oss.sonatype.org/content/repositories/releases/</url>
-    </repository>
-    <repository>
-      <id>java.net.maven3</id>
-      <name>java.net Maven3 Repository</name>
-      <url>http://download.java.net/maven/3/</url>
     </repository>
     <repository>
       <id>scala-tools.snapshots</id>
@@ -100,13 +93,19 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.14.0</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.10.0</version>
+        <version>1.12.0</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>32.0.0-jre</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
@@ -134,20 +133,32 @@
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
             <displayCmd>true</displayCmd>
+            <!-- Optimized JVM settings for faster Scala compilation -->
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-              <jvmArg>-Xms64m</jvmArg>
-              <jvmArg>-Xmx1024m</jvmArg>
+              <jvmArg>-Xms512m</jvmArg>
+              <jvmArg>-Xmx3G</jvmArg>
+              <jvmArg>-Xss4m</jvmArg>
+              <jvmArg>-XX:+UseG1GC</jvmArg>
+              <jvmArg>-XX:ReservedCodeCacheSize=512m</jvmArg>
+              <jvmArg>-XX:+TieredCompilation</jvmArg>
             </jvmArgs>
+            <!-- Optimized compiler args for speed -->
             <args>
               <arg>-unchecked</arg>
-              <arg>-explaintypes</arg>
+              <!-- Removed -explaintypes for faster compilation -->
               <!--
               <arg>-verbose</arg>
               <arg>-deprecation</arg>
+              <arg>-explaintypes</arg>
               -->
               <arg>-Ypartial-unification</arg>
+              <!-- Parallel compilation optimization -->
+              <arg>-Ybackend-parallelism</arg>
+              <arg>4</arg>
             </args>
+            <!-- Enable incremental compilation with Zinc -->
+            <recompileMode>incremental</recompileMode>
           </configuration>
           <executions>
             <execution>
@@ -170,7 +181,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${scala.version}</version>
+        <version>3.5.2</version>
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
@@ -193,7 +204,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>3.3.1</version>
           <executions>
             <execution>
               <id>default-copy-resources</id>
@@ -219,47 +230,7 @@
         </plugin>
 
 
-<plugin>
-  <groupId>org.eclipse.jetty</groupId>
-  <artifactId>jetty-maven-plugin</artifactId>
-  <version>${jetty.version}</version>
-  <configuration>
-    <contextPath>/</contextPath>
-    <scanIntervalSeconds>5</scanIntervalSeconds>
-    <port>8080</port>
 
-    <!-- Jetty 9.4 plugin settings for max header size -->
-    <requestHeaderSize>32768</requestHeaderSize>
-    <responseHeaderSize>32768</responseHeaderSize>
-  </configuration>
-</plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-idea-plugin</artifactId>
-          <version>2.2.1</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-eclipse-plugin</artifactId>
-          <version>2.10</version>
-          <configuration>
-            <downloadSources>true</downloadSources>
-            <additionalProjectnatures>
-              <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-            </additionalProjectnatures>
-            <additionalBuildcommands>
-              <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-            </additionalBuildcommands>
-            <classpathContainers>
-              <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
-              <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-            </classpathContainers>
-          </configuration>
-        </plugin>
         <plugin>
           <groupId>pl.project13.maven</groupId>
           <artifactId>git-commit-id-plugin</artifactId>
@@ -283,7 +254,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.7.1</version>
+        <version>4.0.0-M13</version>
       </plugin>
 
       </plugins>

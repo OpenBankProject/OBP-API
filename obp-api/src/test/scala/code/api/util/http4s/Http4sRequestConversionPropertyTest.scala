@@ -1,12 +1,12 @@
 package code.api.util.http4s
 
-import org.scalatest.Ignore
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global
+import code.api.util.ExampleValue
 import net.liftweb.http.Req
-import org.http4s.{Header, Headers, Method, Request, Uri}
+import org.http4s.{Header, Method, Request, Uri}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
 import org.typelevel.ci.CIString
+
 import scala.util.Random
 
 /**
@@ -30,7 +30,6 @@ import scala.util.Random
  * - Test edge cases: empty bodies, special characters, large payloads, unusual headers
  * - Minimum 100 iterations per test
  */
-@Ignore
 class Http4sRequestConversionPropertyTest extends FeatureSpec 
   with Matchers 
   with GivenWhenThen {
@@ -452,7 +451,7 @@ class Http4sRequestConversionPropertyTest extends FeatureSpec
       val iterations = 100
 
       val authTypes = List(
-        "DirectLogin username=\"test\", password=\"pass\", consumer_key=\"key\"",
+        s"""DirectLogin username=\"test\", password=\"${ExampleValue.passwordExample.value}\", consumer_key=\"key\"""",
         "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
         "Basic dXNlcm5hbWU6cGFzc3dvcmQ=",
         "OAuth oauth_consumer_key=\"key\", oauth_token=\"token\""

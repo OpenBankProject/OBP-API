@@ -3,12 +3,24 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
-12/12/2025    f2e7b827      Http4s runner configuration
-                            Added http4s.host and http4s.port to props sample template:
-                            - http4s.host=127.0.0.1
-                            - http4s.port=8086
-                            These properties control the bind address of bootstrap.http4s.Http4sServer
-                            when running via the obp-http4s-runner fat JAR. 
+05/03/2026    TBD           BREAKING CHANGE: Removed allow_entitlements_or_scopes config flag.
+                            This global flag allowed consumer scopes as an alternative to user
+                            entitlements for ALL endpoints. It has been replaced by per-endpoint
+                            EndpointAuthMode on ResourceDoc with four modes:
+                            - UserOnly (default) — user entitlement required
+                            - ApplicationOnly — consumer scope required, no user needed
+                            - UserOrApplication — consumer scope OR user entitlement
+                            - UserAndApplication — consumer scope AND user entitlement
+                            Migration: add authMode = UserOrApplication to individual ResourceDoc
+                            instances that previously relied on allow_entitlements_or_scopes=true.
+                            The verifyUserCredentials endpoint is the first to use UserOrApplication.
+                            require_scopes_for_all_roles and require_scopes_for_listed_roles are
+                            unaffected and continue to work.
+27/02/2026    24035862      Http4s server bind address configuration
+                            Added bind_address property for http4s server configuration:
+                            - bind_address: Optional property to specify the network binding address
+                            - Falls back to parsing hostname property if not set
+                            - Maintains backward compatibility with existing hostname configuration
 11/12/2025    3c2df942      BREAKING CHANGE: Migration from Akka to Apache Pekko™ 1.1.2
                             Replaced Akka 2.5.32 with Apache Pekko™ 1.1.2 to address Akka licensing changes.
                             Updated all imports from com.typesafe.akka to org.apache.pekko.

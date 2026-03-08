@@ -26,7 +26,9 @@ object SecureLogging {
   }
 
   /**
-   * Toggleable sensitive patterns
+   * Toggleable sensitive patterns.
+   * Note: The sensitive keywords are defined in APIUtil.sensitiveKeywords.
+   * When adding new categories here, also update that shared list.
    */
   private lazy val sensitivePatterns: List[(Pattern, String)] = {
     val patterns = Seq(

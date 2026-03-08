@@ -96,13 +96,13 @@ object MappedAbacRuleProvider extends AbacRuleProvider {
 
   override def getAbacRulesByPolicy(policy: String): List[AbacRuleTrait] = {
     AbacRule.findAll().filter { rule =>
-      rule.policy.split(",").map(_.trim).contains(policy)
+      Option(rule.policy).exists(_.split(",").map(_.trim).contains(policy))
     }
   }
 
   override def getActiveAbacRulesByPolicy(policy: String): List[AbacRuleTrait] = {
     AbacRule.findAll(By(AbacRule.IsActive, true)).filter { rule =>
-      rule.policy.split(",").map(_.trim).contains(policy)
+      Option(rule.policy).exists(_.split(",").map(_.trim).contains(policy))
     }
   }
 
