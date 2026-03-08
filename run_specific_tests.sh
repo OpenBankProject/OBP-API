@@ -37,7 +37,7 @@
 #   The -Dtest parameter is for surefire plugin and doesn't work with ScalaTest
 ################################################################################
 
-set -e
+set -eo pipefail
 
 ################################################################################
 # CONFIGURATION
@@ -142,8 +142,11 @@ if [ "$TOTAL_TESTS" -gt 0 ]; then
   TOTAL_FAILED=$(grep "Tests: succeeded" "${DETAIL_LOG}" | sed -E 's/.*failed ([0-9]+).*/\1/' | awk '{s+=$1} END {print s}')
 fi
 
-# Determine overall result
-if [ ${#FAILED_TEST_NAMES[@]} -gt 0 ]; then
+# Determine overall result based on parsed test output
+if [ -n "$TOTAL_FAILED" ] && [ "$TOTAL_FAILED" -gt 0 ] 2>/dev/null; then
+  TEST_RESULT="FAILURE"
+elif [ ${#FAILED_TEST_NAMES[@]} -gt 0 ]; then
+  # Maven failed but no test failures parsed — likely compilation error
   TEST_RESULT="FAILURE"
 else
   TEST_RESULT="SUCCESS"
@@ -191,6 +194,28 @@ DURATION_SEC=$((DURATION % 60))
   echo "  ${DETAIL_LOG}"
   echo "  ${SUMMARY_LOG}"
 } | tee "${SUMMARY_LOG}"
+
+# Update failed_tests.txt with only the tests that still fail
+# so the next run doesn't re-run tests that have been fixed
+if [ -f "${FAILED_TESTS_FILE}" ]; then
+  if [ ${#FAILED_TEST_NAMES[@]} -gt 0 ]; then
+    {
+      echo "# Failed test classes from last specific run"
+      echo "# Updated: $(date)"
+      for failed_test in "${FAILED_TEST_NAMES[@]}"; do
+        echo "$failed_test"
+      done
+    } > "${FAILED_TESTS_FILE}"
+    echo "Updated ${FAILED_TESTS_FILE} with ${#FAILED_TEST_NAMES[@]} still-failing test(s)"
+  else
+    {
+      echo "# All tests passed on last specific run"
+      echo "# Updated: $(date)"
+      echo "# Add test classes here or run ./run_all_tests.sh to repopulate"
+    } > "${FAILED_TESTS_FILE}"
+    echo "Cleared ${FAILED_TESTS_FILE} — all tests passed"
+  fi
+fi
 
 echo ""
 echo "=========================================="
