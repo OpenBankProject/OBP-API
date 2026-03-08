@@ -1646,6 +1646,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   )
 
   case class ViewJsonV600(
+      bank_id: String,
+      account_id: String,
       view_id: String,
       short_name: String,
       description: String,
@@ -1698,6 +1700,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         ""
 
     ViewJsonV600(
+      bank_id = view.bankId.value,
+      account_id = view.accountId.value,
       view_id = view.viewId.value,
       short_name = view.name,
       description = view.description,

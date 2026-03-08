@@ -4997,6 +4997,8 @@ trait APIMethods600 {
       EmptyBody,
       ViewsJsonV600(List(
         ViewJsonV600(
+          bank_id = "",
+          account_id = "",
           view_id = "owner",
           short_name = "Owner",
           description = "The owner of the account",
@@ -5054,6 +5056,8 @@ trait APIMethods600 {
          |""".stripMargin,
       EmptyBody,
       ViewJsonV600(
+        bank_id = "",
+        account_id = "",
         view_id = "owner",
         short_name = "Owner",
         description = "The owner of the account. Has full privileges.",
@@ -5191,6 +5195,8 @@ trait APIMethods600 {
         can_revoke_access_to_views = Some(List("owner", "accountant"))
       ),
       ViewJsonV600(
+        bank_id = "",
+        account_id = "",
         view_id = "owner",
         short_name = "Owner",
         description = "This is the owner view",
@@ -5420,6 +5426,70 @@ trait APIMethods600 {
             customViews <- Future { ViewDefinition.getCustomViews() }
           } yield {
             (JSONFactory600.createViewsJsonV600(customViews), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomViewById,
+      implementedInApiVersion,
+      nameOf(getCustomViewById),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Get Custom View",
+      s"""Get a single custom view by bank, account, and view ID.
+         |
+         |Custom views are user-created views with names starting with underscore (_), such as:
+         |- _work
+         |- _personal
+         |- _audit
+         |
+         |Custom views are unique per bank_id, account_id, and view_id combination.
+         |
+         |The view is returned with an `allowed_actions` array containing all permissions for that view.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ViewJsonV600(
+        bank_id = ExampleValue.bankIdExample.value,
+        account_id = ExampleValue.accountIdExample.value,
+        view_id = "_work",
+        short_name = "Work",
+        description = "A custom view for work-related transactions.",
+        metadata_view = "_work",
+        is_public = false,
+        is_system = false,
+        is_firehose = Some(false),
+        alias = "private",
+        hide_metadata_if_alias_used = false,
+        can_grant_access_to_views = List("_work"),
+        can_revoke_access_to_views = List("_work"),
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment"
+        )
+      ),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagSystemView),
+      Some(List(canGetCustomViews))
+    )
+
+    lazy val getCustomViewById: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: viewId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            view <- ViewNewStyle.customView(ViewId(viewId), BankIdAccountId(bankId, accountId), callContext)
+          } yield {
+            (JSONFactory600.createViewJsonV600(view), HttpCode.`200`(callContext))
           }
       }
     }
@@ -11225,6 +11295,8 @@ trait APIMethods600 {
         product_code = ExampleValue.productCodeExample.value,
         balance = amountOfMoneyJsonV121,
         views_available = List(ViewJsonV600(
+          bank_id = "",
+          account_id = "",
           view_id = "owner",
           short_name = "Owner",
           description = "The owner of the account",
