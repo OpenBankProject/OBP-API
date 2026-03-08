@@ -34,6 +34,8 @@ import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOr
 import code.metadata.tags.Tags
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
+import code.mandate.{MappedMandateProvider}
+import code.api.v6_0_0.JSONFactory600.{createMandateJsonV600, createMandatesJsonV600, createMandateProvisionJsonV600, createMandateProvisionsJsonV600, createSignatoryPanelJsonV600, createSignatoryPanelsJsonV600}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
@@ -11367,6 +11369,904 @@ trait APIMethods600 {
       }
     }
 
+
+    // ========== Mandate Endpoints ==========
+
+    staticResourceDocs += ResourceDoc(
+      createMandate,
+      implementedInApiVersion,
+      nameOf(createMandate),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates",
+      "Create Mandate",
+      s"""Create a new mandate for a bank account.
+         |
+         |A mandate is a legal document that defines who can operate an account, what they can do,
+         |and under what conditions (e.g., signatory requirements, amount thresholds).
+         |
+         |Mandates tie together OBP constructs such as Views, ABAC Rules, Signatory Panels,
+         |and Challenges into a coherent authorization policy.
+         |
+         |**Status values:** ACTIVE, SUSPENDED, EXPIRED, DRAFT
+         |
+         |**Date format:** yyyy-MM-dd'T'HH:mm:ss'Z' (UTC)
+         |
+         |Authentication is Required
+         |""",
+      CreateMandateJsonV600(
+        customer_id = "customer-id-123",
+        mandate_name = "ACME Corp Operating Account Authority",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "The following persons are authorised to operate this account...",
+        description = "Payment and account access authority for ACME Corp",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z"
+      ),
+      MandateJsonV600(
+        mandate_id = "mandate-id-123",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02",
+        customer_id = "customer-id-123",
+        mandate_name = "ACME Corp Operating Account Authority",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "The following persons are authorised to operate this account...",
+        description = "Payment and account access authority for ACME Corp",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z",
+        created_by_user_id = "user-id-123",
+        updated_by_user_id = "user-id-123"
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canCreateMandate))
+    )
+
+    lazy val createMandate: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "mandates" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[CreateMandateJsonV600]
+            }
+            validFrom <- NewStyle.function.tryons(s"$InvalidDateFormat valid_from must be in yyyy-MM-dd'T'HH:mm:ss'Z' format", 400, cc.callContext) {
+              val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              formatter.setLenient(false)
+              formatter.parse(createJson.valid_from)
+            }
+            validTo <- NewStyle.function.tryons(s"$InvalidDateFormat valid_to must be in yyyy-MM-dd'T'HH:mm:ss'Z' format", 400, cc.callContext) {
+              val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              formatter.setLenient(false)
+              formatter.parse(createJson.valid_to)
+            }
+            (mandate, callContext) <- Connector.connector.vend.createMandate(
+              bankId,
+              accountId,
+              createJson.customer_id,
+              createJson.mandate_name,
+              createJson.mandate_reference,
+              createJson.legal_text,
+              createJson.description,
+              createJson.status,
+              validFrom,
+              validTo,
+              cc.userId,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not create mandate"), i._2)
+            }
+          } yield {
+            (createMandateJsonV600(mandate), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMandates,
+      implementedInApiVersion,
+      nameOf(getMandates),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates",
+      "Get Mandates for Account",
+      s"""Get all mandates for a bank account.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      MandatesJsonV600(List(MandateJsonV600(
+        mandate_id = "mandate-id-123",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02",
+        customer_id = "customer-id-123",
+        mandate_name = "ACME Corp Operating Account Authority",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "The following persons are authorised...",
+        description = "Payment authority for ACME Corp",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z",
+        created_by_user_id = "user-id-123",
+        updated_by_user_id = "user-id-123"
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetMandate))
+    )
+
+    lazy val getMandates: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "mandates" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (mandates, callContext) <- Connector.connector.vend.getMandatesByBankAndAccount(
+              bankId, accountId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not get mandates"), i._2)
+            }
+          } yield {
+            (createMandatesJsonV600(mandates), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMandate,
+      implementedInApiVersion,
+      nameOf(getMandate),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+      "Get Mandate",
+      s"""Get a mandate by its ID.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      MandateJsonV600(
+        mandate_id = "mandate-id-123",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02",
+        customer_id = "customer-id-123",
+        mandate_name = "ACME Corp Operating Account Authority",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "The following persons are authorised...",
+        description = "Payment authority for ACME Corp",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z",
+        created_by_user_id = "user-id-123",
+        updated_by_user_id = "user-id-123"
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetMandate))
+    )
+
+    lazy val getMandate: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "mandates" :: mandateId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (mandate, callContext) <- Connector.connector.vend.getMandateById(
+              mandateId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Mandate not found. Mandate ID: $mandateId", 404), i._2)
+            }
+          } yield {
+            (createMandateJsonV600(mandate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateMandate,
+      implementedInApiVersion,
+      nameOf(updateMandate),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+      "Update Mandate",
+      s"""Update a mandate.
+         |
+         |Authentication is Required
+         |""",
+      UpdateMandateJsonV600(
+        mandate_name = "Updated Mandate Name",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "Updated legal text...",
+        description = "Updated description",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z"
+      ),
+      MandateJsonV600(
+        mandate_id = "mandate-id-123",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02",
+        customer_id = "customer-id-123",
+        mandate_name = "Updated Mandate Name",
+        mandate_reference = "MND-2026-00042",
+        legal_text = "Updated legal text...",
+        description = "Updated description",
+        status = "ACTIVE",
+        valid_from = "2026-01-01T00:00:00Z",
+        valid_to = "2027-01-01T00:00:00Z",
+        created_by_user_id = "user-id-123",
+        updated_by_user_id = "user-id-456"
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canUpdateMandate))
+    )
+
+    lazy val updateMandate: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "mandates" :: mandateId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[UpdateMandateJsonV600]
+            }
+            validFrom <- NewStyle.function.tryons(s"$InvalidDateFormat valid_from must be in yyyy-MM-dd'T'HH:mm:ss'Z' format", 400, cc.callContext) {
+              val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              formatter.setLenient(false)
+              formatter.parse(updateJson.valid_from)
+            }
+            validTo <- NewStyle.function.tryons(s"$InvalidDateFormat valid_to must be in yyyy-MM-dd'T'HH:mm:ss'Z' format", 400, cc.callContext) {
+              val formatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              formatter.setLenient(false)
+              formatter.parse(updateJson.valid_to)
+            }
+            (mandate, callContext) <- Connector.connector.vend.updateMandate(
+              mandateId,
+              updateJson.mandate_name,
+              updateJson.mandate_reference,
+              updateJson.legal_text,
+              updateJson.description,
+              updateJson.status,
+              validFrom,
+              validTo,
+              cc.userId,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not update mandate. Mandate ID: $mandateId"), i._2)
+            }
+          } yield {
+            (createMandateJsonV600(mandate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMandate,
+      implementedInApiVersion,
+      nameOf(deleteMandate),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+      "Delete Mandate",
+      s"""Delete a mandate and all its provisions and signatory panels.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canDeleteMandate))
+    )
+
+    lazy val deleteMandate: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "mandates" :: mandateId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- Connector.connector.vend.deleteMandate(
+              mandateId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not delete mandate. Mandate ID: $mandateId"), i._2)
+            }
+          } yield {
+            (deleted, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // ========== Mandate Provision Endpoints ==========
+
+    staticResourceDocs += ResourceDoc(
+      createMandateProvision,
+      implementedInApiVersion,
+      nameOf(createMandateProvision),
+      "POST",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions",
+      "Create Mandate Provision",
+      s"""Create a new provision for a mandate.
+         |
+         |A provision links the mandate's legal clauses to OBP enforcement mechanisms
+         |(Views, ABAC Rules, Challenges).
+         |
+         |**Provision types:**
+         |- SIGNATORY_RULE — Who can sign and in what combination
+         |- VIEW_ASSIGNMENT — Which view a signatory panel gets on the account
+         |- ABAC_CONDITION — Links to an ABAC rule for attribute-based conditions
+         |- RESTRICTION — Negative rule (e.g., no international payments)
+         |- NOTIFICATION — Triggers notification rather than blocking
+         |
+         |Authentication is Required
+         |""",
+      CreateMandateProvisionJsonV600(
+        provision_name = "Payments under 5000",
+        provision_description = "Any single Director may authorise payments below EUR 5,000",
+        legal_reference = "Clause 3.1(a)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+        linked_view_id = Some("PaymentInitiator"),
+        linked_abac_rule_id = None,
+        linked_challenge_type = Some("OBP_TRANSACTION_REQUEST_CHALLENGE"),
+        is_active = true,
+        sort_order = 1
+      ),
+      MandateProvisionJsonV600(
+        provision_id = "provision-id-123",
+        mandate_id = "mandate-id-123",
+        provision_name = "Payments under 5000",
+        provision_description = "Any single Director may authorise payments below EUR 5,000",
+        legal_reference = "Clause 3.1(a)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+        linked_view_id = "PaymentInitiator",
+        linked_abac_rule_id = "",
+        linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+        is_active = true,
+        sort_order = 1
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canCreateMandateProvision))
+    )
+
+    lazy val createMandateProvision: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "provisions" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[CreateMandateProvisionJsonV600]
+            }
+            sigReqJson <- Future {
+              import net.liftweb.json._
+              implicit val formats: Formats = DefaultFormats
+              net.liftweb.json.Serialization.write(createJson.signatory_requirements)
+            }
+            (provision, callContext) <- Connector.connector.vend.createMandateProvision(
+              mandateId,
+              createJson.provision_name,
+              createJson.provision_description,
+              createJson.legal_reference,
+              createJson.provision_type,
+              createJson.conditions,
+              sigReqJson,
+              createJson.linked_view_id.getOrElse(""),
+              createJson.linked_abac_rule_id.getOrElse(""),
+              createJson.linked_challenge_type.getOrElse(""),
+              createJson.is_active,
+              createJson.sort_order,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not create mandate provision"), i._2)
+            }
+          } yield {
+            (createMandateProvisionJsonV600(provision), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMandateProvisions,
+      implementedInApiVersion,
+      nameOf(getMandateProvisions),
+      "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions",
+      "Get Mandate Provisions",
+      s"""Get all provisions for a mandate.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      MandateProvisionsJsonV600(List(MandateProvisionJsonV600(
+        provision_id = "provision-id-123",
+        mandate_id = "mandate-id-123",
+        provision_name = "Payments under 5000",
+        provision_description = "Any single Director may authorise payments below EUR 5,000",
+        legal_reference = "Clause 3.1(a)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+        linked_view_id = "PaymentInitiator",
+        linked_abac_rule_id = "",
+        linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+        is_active = true,
+        sort_order = 1
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetMandateProvision))
+    )
+
+    lazy val getMandateProvisions: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "provisions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (provisions, callContext) <- Connector.connector.vend.getMandateProvisionsByMandateId(
+              mandateId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not get provisions for mandate: $mandateId"), i._2)
+            }
+          } yield {
+            (createMandateProvisionsJsonV600(provisions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMandateProvision,
+      implementedInApiVersion,
+      nameOf(getMandateProvision),
+      "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+      "Get Mandate Provision",
+      s"""Get a specific provision by its ID.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      MandateProvisionJsonV600(
+        provision_id = "provision-id-123",
+        mandate_id = "mandate-id-123",
+        provision_name = "Payments under 5000",
+        provision_description = "Any single Director may authorise payments below EUR 5,000",
+        legal_reference = "Clause 3.1(a)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+        linked_view_id = "PaymentInitiator",
+        linked_abac_rule_id = "",
+        linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+        is_active = true,
+        sort_order = 1
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetMandateProvision))
+    )
+
+    lazy val getMandateProvision: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "provisions" :: provisionId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (provision, callContext) <- Connector.connector.vend.getMandateProvisionById(
+              provisionId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Mandate provision not found. Provision ID: $provisionId", 404), i._2)
+            }
+          } yield {
+            (createMandateProvisionJsonV600(provision), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateMandateProvision,
+      implementedInApiVersion,
+      nameOf(updateMandateProvision),
+      "PUT",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+      "Update Mandate Provision",
+      s"""Update a mandate provision.
+         |
+         |Authentication is Required
+         |""",
+      UpdateMandateProvisionJsonV600(
+        provision_name = "Updated provision",
+        provision_description = "Updated description",
+        legal_reference = "Clause 3.1(b)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 50000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 2)),
+        linked_view_id = Some("PaymentInitiator"),
+        linked_abac_rule_id = None,
+        linked_challenge_type = Some("OBP_TRANSACTION_REQUEST_CHALLENGE"),
+        is_active = true,
+        sort_order = 2
+      ),
+      MandateProvisionJsonV600(
+        provision_id = "provision-id-123",
+        mandate_id = "mandate-id-123",
+        provision_name = "Updated provision",
+        provision_description = "Updated description",
+        legal_reference = "Clause 3.1(b)",
+        provision_type = "SIGNATORY_RULE",
+        conditions = """{"currency": "EUR", "amount_below": 50000.00}""",
+        signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 2)),
+        linked_view_id = "PaymentInitiator",
+        linked_abac_rule_id = "",
+        linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+        is_active = true,
+        sort_order = 2
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canUpdateMandateProvision))
+    )
+
+    lazy val updateMandateProvision: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "provisions" :: provisionId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[UpdateMandateProvisionJsonV600]
+            }
+            sigReqJson <- Future {
+              import net.liftweb.json._
+              implicit val formats: Formats = DefaultFormats
+              net.liftweb.json.Serialization.write(updateJson.signatory_requirements)
+            }
+            (provision, callContext) <- Connector.connector.vend.updateMandateProvision(
+              provisionId,
+              updateJson.provision_name,
+              updateJson.provision_description,
+              updateJson.legal_reference,
+              updateJson.provision_type,
+              updateJson.conditions,
+              sigReqJson,
+              updateJson.linked_view_id.getOrElse(""),
+              updateJson.linked_abac_rule_id.getOrElse(""),
+              updateJson.linked_challenge_type.getOrElse(""),
+              updateJson.is_active,
+              updateJson.sort_order,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not update provision. Provision ID: $provisionId"), i._2)
+            }
+          } yield {
+            (createMandateProvisionJsonV600(provision), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMandateProvision,
+      implementedInApiVersion,
+      nameOf(deleteMandateProvision),
+      "DELETE",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+      "Delete Mandate Provision",
+      s"""Delete a mandate provision.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canDeleteMandateProvision))
+    )
+
+    lazy val deleteMandateProvision: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "provisions" :: provisionId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- Connector.connector.vend.deleteMandateProvision(
+              provisionId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not delete provision. Provision ID: $provisionId"), i._2)
+            }
+          } yield {
+            (deleted, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // ========== Signatory Panel Endpoints ==========
+
+    staticResourceDocs += ResourceDoc(
+      createSignatoryPanel,
+      implementedInApiVersion,
+      nameOf(createSignatoryPanel),
+      "POST",
+      "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels",
+      "Create Signatory Panel",
+      s"""Create a new signatory panel for a mandate.
+         |
+         |A signatory panel is a named set of authorised signatories (users) that can be
+         |referenced by mandate provisions. For example, "Panel A - Directors" and "Panel B - Finance".
+         |
+         |Provision rules then reference panels, e.g., "1 from Panel A and 1 from Panel B".
+         |
+         |Authentication is Required
+         |""",
+      CreateSignatoryPanelJsonV600(
+        panel_name = "Panel A - Directors",
+        description = "Board directors authorised to sign",
+        user_ids = List("user-id-1", "user-id-2", "user-id-3")
+      ),
+      SignatoryPanelJsonV600(
+        panel_id = "panel-id-001",
+        mandate_id = "mandate-id-123",
+        panel_name = "Panel A - Directors",
+        description = "Board directors authorised to sign",
+        user_ids = List("user-id-1", "user-id-2", "user-id-3")
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canCreateSignatoryPanel))
+    )
+
+    lazy val createSignatoryPanel: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "signatory-panels" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[CreateSignatoryPanelJsonV600]
+            }
+            userIdsStr = createJson.user_ids.mkString(",")
+            (panel, callContext) <- Connector.connector.vend.createSignatoryPanel(
+              mandateId,
+              createJson.panel_name,
+              createJson.description,
+              userIdsStr,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not create signatory panel"), i._2)
+            }
+          } yield {
+            (createSignatoryPanelJsonV600(panel), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSignatoryPanels,
+      implementedInApiVersion,
+      nameOf(getSignatoryPanels),
+      "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels",
+      "Get Signatory Panels",
+      s"""Get all signatory panels for a mandate.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      SignatoryPanelsJsonV600(List(SignatoryPanelJsonV600(
+        panel_id = "panel-id-001",
+        mandate_id = "mandate-id-123",
+        panel_name = "Panel A - Directors",
+        description = "Board directors authorised to sign",
+        user_ids = List("user-id-1", "user-id-2", "user-id-3")
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetSignatoryPanel))
+    )
+
+    lazy val getSignatoryPanels: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "signatory-panels" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (panels, callContext) <- Connector.connector.vend.getSignatoryPanelsByMandateId(
+              mandateId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not get signatory panels for mandate: $mandateId"), i._2)
+            }
+          } yield {
+            (createSignatoryPanelsJsonV600(panels), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSignatoryPanel,
+      implementedInApiVersion,
+      nameOf(getSignatoryPanel),
+      "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+      "Get Signatory Panel",
+      s"""Get a specific signatory panel by its ID.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      SignatoryPanelJsonV600(
+        panel_id = "panel-id-001",
+        mandate_id = "mandate-id-123",
+        panel_name = "Panel A - Directors",
+        description = "Board directors authorised to sign",
+        user_ids = List("user-id-1", "user-id-2", "user-id-3")
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canGetSignatoryPanel))
+    )
+
+    lazy val getSignatoryPanel: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "signatory-panels" :: panelId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (panel, callContext) <- Connector.connector.vend.getSignatoryPanelById(
+              panelId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Signatory panel not found. Panel ID: $panelId", 404), i._2)
+            }
+          } yield {
+            (createSignatoryPanelJsonV600(panel), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSignatoryPanel,
+      implementedInApiVersion,
+      nameOf(updateSignatoryPanel),
+      "PUT",
+      "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+      "Update Signatory Panel",
+      s"""Update a signatory panel.
+         |
+         |Authentication is Required
+         |""",
+      UpdateSignatoryPanelJsonV600(
+        panel_name = "Panel A - Updated Directors",
+        description = "Updated board directors",
+        user_ids = List("user-id-1", "user-id-2", "user-id-4")
+      ),
+      SignatoryPanelJsonV600(
+        panel_id = "panel-id-001",
+        mandate_id = "mandate-id-123",
+        panel_name = "Panel A - Updated Directors",
+        description = "Updated board directors",
+        user_ids = List("user-id-1", "user-id-2", "user-id-4")
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canUpdateSignatoryPanel))
+    )
+
+    lazy val updateSignatoryPanel: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "signatory-panels" :: panelId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat", 400, cc.callContext) {
+              json.extract[UpdateSignatoryPanelJsonV600]
+            }
+            userIdsStr = updateJson.user_ids.mkString(",")
+            (panel, callContext) <- Connector.connector.vend.updateSignatoryPanel(
+              panelId,
+              updateJson.panel_name,
+              updateJson.description,
+              userIdsStr,
+              cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not update signatory panel. Panel ID: $panelId"), i._2)
+            }
+          } yield {
+            (createSignatoryPanelJsonV600(panel), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteSignatoryPanel,
+      implementedInApiVersion,
+      nameOf(deleteSignatoryPanel),
+      "DELETE",
+      "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+      "Delete Signatory Panel",
+      s"""Delete a signatory panel.
+         |
+         |Authentication is Required
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagMandate),
+      Some(List(canDeleteSignatoryPanel))
+    )
+
+    lazy val deleteSignatoryPanel: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "mandates" :: mandateId :: "signatory-panels" :: panelId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- Connector.connector.vend.deleteSignatoryPanel(
+              panelId, cc.callContext
+            ) map {
+              i => (unboxFullOrFail(i._1, cc.callContext, s"Could not delete signatory panel. Panel ID: $panelId"), i._2)
+            }
+          } yield {
+            (deleted, HttpCode.`204`(callContext))
+          }
+      }
+    }
 
   }
 }

@@ -5254,6 +5254,72 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "Mandates",
+		description =
+			s"""
+				 |# Mandates
+				 |
+				 |## Overview
+				 |
+				 |A Mandate is a formal agreement between a corporate customer and a bank that defines who can operate an account, what they can do, and under what conditions.
+				 |
+				 |In OBP, a Mandate is an entity that ties together existing authorisation constructs (Views, ABAC Rules, Challenges) into a single, auditable policy document.
+				 |
+				 |## Structure
+				 |
+				 |A Mandate has three parts:
+				 |
+				 |### 1. Mandate
+				 |
+				 |The top-level container. It is linked to a bank account and a corporate customer, and holds the legal text, status (ACTIVE, SUSPENDED, EXPIRED, DRAFT), and validity period.
+				 |
+				 |### 2. Mandate Provisions
+				 |
+				 |Each provision maps a clause of the mandate to an OBP enforcement mechanism. Provision types:
+				 |
+				 |- **SIGNATORY_RULE** — defines who can sign and in what combination (e.g., "2 from Panel A" or "1 from Panel A and 1 from Panel B")
+				 |- **VIEW_ASSIGNMENT** — links a Signatory Panel to a View, controlling what members of that panel can see and do
+				 |- **ABAC_CONDITION** — links to an ABAC rule for attribute-based conditions (e.g., department matching, amount limits)
+				 |- **RESTRICTION** — a negative rule that blocks certain operations (e.g., no international payments)
+				 |- **NOTIFICATION** — triggers a notification rather than blocking (e.g., alert CFO for payments over a threshold)
+				 |
+				 |Provisions can specify conditions (e.g., amount thresholds, currency), link to a View, an ABAC Rule, and/or a Challenge type.
+				 |
+				 |### 3. Signatory Panels
+				 |
+				 |A Signatory Panel is a named set of users who are authorised to act under the mandate. For example:
+				 |
+				 |- Panel A: Directors (user-1, user-2, user-3)
+				 |- Panel B: Finance team (user-4, user-5)
+				 |
+				 |Provisions reference panels by ID and specify how many signatories are required from each panel.
+				 |
+				 |## How it connects to existing OBP features
+				 |
+				 |- **Views** control what each panel member can see and do on the account (e.g., canSeeTransactionAmount, canAddTransactionRequestToBeneficiary)
+				 |- **ABAC Rules** provide attribute-based conditions evaluated at runtime (e.g., user department must match account business unit)
+				 |- **Challenges / Maker-Checker** enforce signatory requirements. A provision can require multiple challenges answered by different users from specified panels
+				 |- **Corporate Customers** (CORPORATE / SUBSIDIARY types with parent-child hierarchy) represent the legal entities that mandates apply to
+				 |
+				 |## Example
+				 |
+				 |ACME Corp has a mandate on their operating account:
+				 |
+				 |1. Panel A (Directors): user-1, user-2, user-3
+				 |2. Panel B (Finance): user-4, user-5
+				 |3. Provision: payments < 5,000 EUR require 1 signature from Panel A
+				 |4. Provision: payments 5,000-50,000 EUR require 2 signatures from Panel A
+				 |5. Provision: payments > 50,000 EUR require 1 from Panel A and 1 from Panel B
+				 |
+				 |## API Endpoints
+				 |
+				 |Mandates, Provisions, and Signatory Panels each have CRUD endpoints under the Mandate tag.
+				 |
+				 |All endpoints require bank-level roles (e.g., CanCreateMandate, CanGetMandateProvision, CanUpdateSignatoryPanel).
+				 |
+""")
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

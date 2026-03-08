@@ -613,6 +613,124 @@ case class AbacRuleJsonV600(
 
 case class AbacRulesJsonV600(abac_rules: List[AbacRuleJsonV600])
 
+// Mandate JSON case classes
+
+case class CreateMandateJsonV600(
+    customer_id: String,
+    mandate_name: String,
+    mandate_reference: String,
+    legal_text: String,
+    description: String,
+    status: String,
+    valid_from: String,
+    valid_to: String
+)
+
+case class UpdateMandateJsonV600(
+    mandate_name: String,
+    mandate_reference: String,
+    legal_text: String,
+    description: String,
+    status: String,
+    valid_from: String,
+    valid_to: String
+)
+
+case class MandateJsonV600(
+    mandate_id: String,
+    bank_id: String,
+    account_id: String,
+    customer_id: String,
+    mandate_name: String,
+    mandate_reference: String,
+    legal_text: String,
+    description: String,
+    status: String,
+    valid_from: String,
+    valid_to: String,
+    created_by_user_id: String,
+    updated_by_user_id: String
+)
+
+case class MandatesJsonV600(mandates: List[MandateJsonV600])
+
+// Mandate Provision JSON case classes
+
+case class SignatoryRequirementJsonV600(
+    panel_id: String,
+    required_count: Int
+)
+
+case class CreateMandateProvisionJsonV600(
+    provision_name: String,
+    provision_description: String,
+    legal_reference: String,
+    provision_type: String,
+    conditions: String,
+    signatory_requirements: List[SignatoryRequirementJsonV600],
+    linked_view_id: Option[String],
+    linked_abac_rule_id: Option[String],
+    linked_challenge_type: Option[String],
+    is_active: Boolean,
+    sort_order: Int
+)
+
+case class UpdateMandateProvisionJsonV600(
+    provision_name: String,
+    provision_description: String,
+    legal_reference: String,
+    provision_type: String,
+    conditions: String,
+    signatory_requirements: List[SignatoryRequirementJsonV600],
+    linked_view_id: Option[String],
+    linked_abac_rule_id: Option[String],
+    linked_challenge_type: Option[String],
+    is_active: Boolean,
+    sort_order: Int
+)
+
+case class MandateProvisionJsonV600(
+    provision_id: String,
+    mandate_id: String,
+    provision_name: String,
+    provision_description: String,
+    legal_reference: String,
+    provision_type: String,
+    conditions: String,
+    signatory_requirements: List[SignatoryRequirementJsonV600],
+    linked_view_id: String,
+    linked_abac_rule_id: String,
+    linked_challenge_type: String,
+    is_active: Boolean,
+    sort_order: Int
+)
+
+case class MandateProvisionsJsonV600(provisions: List[MandateProvisionJsonV600])
+
+// Signatory Panel JSON case classes
+
+case class CreateSignatoryPanelJsonV600(
+    panel_name: String,
+    description: String,
+    user_ids: List[String]
+)
+
+case class UpdateSignatoryPanelJsonV600(
+    panel_name: String,
+    description: String,
+    user_ids: List[String]
+)
+
+case class SignatoryPanelJsonV600(
+    panel_id: String,
+    mandate_id: String,
+    panel_name: String,
+    description: String,
+    user_ids: List[String]
+)
+
+case class SignatoryPanelsJsonV600(signatory_panels: List[SignatoryPanelJsonV600])
+
 case class ExecuteAbacRuleJsonV600(
     authenticated_user_id: Option[String],
     on_behalf_of_user_id: Option[String],
@@ -1740,6 +1858,86 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       rules: List[code.abacrule.AbacRuleTrait]
   ): AbacRulesJsonV600 = {
     AbacRulesJsonV600(rules.map(createAbacRuleJsonV600))
+  }
+
+  // Mandate conversion functions
+  private val dateFormatter = {
+    val df = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    df.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+    df
+  }
+
+  def createMandateJsonV600(mandate: code.mandate.MandateTrait): MandateJsonV600 = {
+    MandateJsonV600(
+      mandate_id = mandate.mandateId,
+      bank_id = mandate.bankId,
+      account_id = mandate.accountId,
+      customer_id = mandate.customerId,
+      mandate_name = mandate.mandateName,
+      mandate_reference = mandate.mandateReference,
+      legal_text = mandate.legalText,
+      description = mandate.description,
+      status = mandate.status,
+      valid_from = if (mandate.validFrom != null) dateFormatter.format(mandate.validFrom) else "",
+      valid_to = if (mandate.validTo != null) dateFormatter.format(mandate.validTo) else "",
+      created_by_user_id = mandate.createdByUserId,
+      updated_by_user_id = mandate.updatedByUserId
+    )
+  }
+
+  def createMandatesJsonV600(mandates: List[code.mandate.MandateTrait]): MandatesJsonV600 = {
+    MandatesJsonV600(mandates.map(createMandateJsonV600))
+  }
+
+  private def parseSignatoryRequirements(json: String): List[SignatoryRequirementJsonV600] = {
+    if (json == null || json.isEmpty) Nil
+    else {
+      try {
+        import net.liftweb.json._
+        implicit val formats: Formats = DefaultFormats
+        net.liftweb.json.parse(json).extract[List[SignatoryRequirementJsonV600]]
+      } catch {
+        case _: Exception => Nil
+      }
+    }
+  }
+
+  def createMandateProvisionJsonV600(provision: code.mandate.MandateProvisionTrait): MandateProvisionJsonV600 = {
+    MandateProvisionJsonV600(
+      provision_id = provision.provisionId,
+      mandate_id = provision.mandateId,
+      provision_name = provision.provisionName,
+      provision_description = provision.provisionDescription,
+      legal_reference = provision.legalReference,
+      provision_type = provision.provisionType,
+      conditions = provision.conditions,
+      signatory_requirements = parseSignatoryRequirements(provision.signatoryRequirements),
+      linked_view_id = provision.linkedViewId,
+      linked_abac_rule_id = provision.linkedAbacRuleId,
+      linked_challenge_type = provision.linkedChallengeType,
+      is_active = provision.isActive,
+      sort_order = provision.sortOrder
+    )
+  }
+
+  def createMandateProvisionsJsonV600(provisions: List[code.mandate.MandateProvisionTrait]): MandateProvisionsJsonV600 = {
+    MandateProvisionsJsonV600(provisions.map(createMandateProvisionJsonV600))
+  }
+
+  def createSignatoryPanelJsonV600(panel: code.mandate.SignatoryPanelTrait): SignatoryPanelJsonV600 = {
+    val userIdList = if (panel.userIds == null || panel.userIds.isEmpty) Nil
+                     else panel.userIds.split(",").map(_.trim).filter(_.nonEmpty).toList
+    SignatoryPanelJsonV600(
+      panel_id = panel.panelId,
+      mandate_id = panel.mandateId,
+      panel_name = panel.panelName,
+      description = panel.description,
+      user_ids = userIdList
+    )
+  }
+
+  def createSignatoryPanelsJsonV600(panels: List[code.mandate.SignatoryPanelTrait]): SignatoryPanelsJsonV600 = {
+    SignatoryPanelsJsonV600(panels.map(createSignatoryPanelJsonV600))
   }
 
   def createFeaturedApiCollectionJsonV600(

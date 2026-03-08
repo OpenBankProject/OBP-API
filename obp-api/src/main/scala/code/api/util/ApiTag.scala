@@ -45,6 +45,7 @@ object ApiTag {
   val apiTagEntitlement = ResourceDocTag("Entitlement")
   val apiTagRole = ResourceDocTag("Role")
   val apiTagABAC = ResourceDocTag("ABAC")
+  val apiTagMandate = ResourceDocTag("Mandate")
   val apiTagScope = ResourceDocTag("Scope")
   val apiTagOwnerRequired = ResourceDocTag("OwnerViewRequired")
   val apiTagCounterparty = ResourceDocTag("Counterparty")
