@@ -50,6 +50,7 @@ package code.model.dataAccess {
   import code.users.Users
   import code.util.Helper.MdcLoggable
   import code.views.Views
+  import com.openbankproject.commons.ExecutionContext.Implicits.global
   import com.openbankproject.commons.model._
   import com.rabbitmq.client.{Channel, ConnectionFactory}
   import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
@@ -91,15 +92,6 @@ package code.model.dataAccess {
       
       // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
       AuthUser.refreshUser(user, callContext)
-    }
-    
-    @deprecated("This return Box, not a future, try to use @setAccountHolderAndRefreshUserAccountAccess instead. ","08-09-2023")
-    def setAccountHolderAndRefreshUserAccountAccessLegacy(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext])  = {
-      // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
-      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
-      
-      // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
-      AuthUser.refreshUserLegacy(user, callContext)
     }
    
   }
@@ -144,7 +136,14 @@ package code.model.dataAccess {
             )
           } yield {
             logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccessLegacy(bankAccount.bankId, bankAccount.accountId, user, None)
+            // Use async version and handle Future result
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None).map { _ =>
+              logger.debug(s"Successfully set account holder and refreshed user account access for account ${bankAccount.accountId.value}")
+            }.recover {
+              case ex: Exception =>
+                logger.error(s"Failed to set account holder and refresh user account access: ${ex.getMessage}", ex)
+            }
+            bankAccount
           }
 
           result match {
