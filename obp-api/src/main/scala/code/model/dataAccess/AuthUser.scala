@@ -758,78 +758,250 @@ import net.liftweb.util.Helpers._
 
 
 
-  def getResourceUserId(username: String, password: String, provider: String = Constant.localIdentityProvider): Box[Long] = {
-    logger.info(s"getResourceUserId says: starting for username: $username, provider: $provider")
-    findAuthUserByUsernameAndProvider(username, provider) match {
-      // We have a user from the local provider.
-      case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
-        if (!user.validated_?) {
-          logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $provider")
+  /**
+    * Centralized authentication method that validates user credentials and returns the resource user ID.
+    * 
+    * This method implements a dual-path authentication strategy:
+    * - **Local Provider Path**: Validates credentials against the local OBP database
+    * - **External Provider Path**: Delegates validation to external authentication systems via connector
+    * 
+    * == Authentication Flow ==
+    * 
+    * === Local Provider Path (provider == localIdentityProvider or isEmpty) ===
+    * 1. **User Lookup**: Search for user in local database by username and provider
+    *    - If not found → increment bad login attempts → return Empty
+   *    
+    * 2. **Email Validation Check**: Verify user's email is validated
+    *    - If not validated → return `userEmailNotValidatedStateCode`
+   *    
+    * 3. **Account Lock Check**: Check if user account is locked due to failed attempts
+    *    - If locked → return `usernameLockedStateCode` (no attempt increment)
+   *    
+    * 4. **Password Validation**: Test provided password against stored hash
+    *    - If correct → reset bad login attempts → return user ID
+    *    - If incorrect → increment bad login attempts → return Empty
+    * 
+    * === External Provider Path (provider != localIdentityProvider) ===
+    * 1. **Connector Authentication Check**: Verify `connector.user.authentication` property is enabled
+    *    - If disabled → increment bad login attempts → return Empty
+   *    
+    * 2. **Account Lock Check**: Check if external user account is locked
+    *    - If locked → return `usernameLockedStateCode` (no attempt increment)
+   *    
+    * 3. **External Validation**: Call `checkExternalUserViaConnector` to validate via connector
+    *    - If successful → reset bad login attempts → return user ID
+    *    - If failed → increment bad login attempts → return Empty
+    * 
+    * == Security Features ==
+    * - **Login Attempt Tracking**: Failed authentications increment bad login attempt counter
+    * - **Account Locking**: Users are locked after exceeding maximum failed attempts
+    * - **Attempt Reset**: Successful authentication resets the bad login attempt counter
+    * - **Email Validation**: Local users must have validated email addresses
+    * - **Locked State Protection**: Locked accounts do not increment attempt counter further
+    * 
+    * == Return Values ==
+    * - `Full(userId)`: Authentication successful, returns the resource user ID
+    * - `Full(userEmailNotValidatedStateCode)`: User exists but email not validated (local only)
+    * - `Full(usernameLockedStateCode)`: User account is locked due to failed attempts
+    * - `Empty`: Authentication failed (user not found, wrong password, or connector failure)
+    * 
+    * == Special State Codes ==
+    * - `userEmailNotValidatedStateCode`: Indicates email validation required
+    * - `usernameLockedStateCode`: Indicates account is locked
+    * 
+    * == Parameter Validation ==
+    * - Username and password must not be null or empty
+    * - Provider is normalized: null or empty treated as localIdentityProvider
+    * 
+    * @param username The username to authenticate (must not be null or empty)
+    * @param password The password to validate (must not be null or empty)
+    * @param provider The authentication provider (defaults to localIdentityProvider)
+    *                 - Use `Constant.localIdentityProvider` for local database authentication
+    *                 - Use external provider name (e.g., "ldap", "oauth") for connector-based authentication
+    *                 - null or empty values are normalized to localIdentityProvider
+    * @return Box[Long] containing:
+    *         - User ID on successful authentication
+    *         - Special state code for email validation or account lock
+    *         - Empty on authentication failure or invalid parameters
+    * 
+    * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
+    * @see [[checkExternalUserViaConnector]] for external authentication
+    * @see [[LoginAttempt.userIsLocked]] for account lock checking
+    * @see [[LoginAttempt.incrementBadLoginAttempts]] for failed attempt tracking
+    * @see [[LoginAttempt.resetBadLoginAttempts]] for attempt counter reset
+    */
+  def getResourceUserId(username: String, password: String, provider: String): Box[Long] = {
+    // ========================================================================
+    // PARAMETER VALIDATION
+    // ========================================================================
+    if (username == null || username.trim.isEmpty) {
+      logger.warn(s"getResourceUserId: invalid username (null or empty)")
+      return Empty
+    }
+    if (password == null || password.isEmpty) {
+      logger.warn(s"getResourceUserId: invalid password (null or empty)")
+      return Empty
+    }
+    
+    // Normalize provider: treat null or empty as localIdentityProvider
+    val normalizedProvider = if (provider == null || provider.isEmpty) {
+      Constant.localIdentityProvider
+    } else {
+      provider
+    }
+    
+    logger.info(s"getResourceUserId says: starting for username: $username, provider: $normalizedProvider")
+    
+    // ========================================================================
+    // ROUTE DECISION: Local or External Provider?
+    // ========================================================================
+    if (normalizedProvider == Constant.localIdentityProvider) {
+      // ========================================================================
+      // LOCAL PROVIDER PATH: Validate against local database
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using local provider authentication for username: $username")
+      
+      findAuthUserByUsernameAndProvider(username, Constant.localIdentityProvider) match {
+        case Full(user) if !user.validated_? =>
+          // User exists but email not validated
+          logger.info(s"getResourceUserId says: user not validated, username: $username, provider: $normalizedProvider")
           Full(userEmailNotValidatedStateCode)
-        }
-        else if (LoginAttempt.userIsLocked(user.getProvider(), username)) {
-          logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $provider")
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
+        
+        case Full(user) if LoginAttempt.userIsLocked(Constant.localIdentityProvider, username) =>
+          // User is locked - do NOT increment attempts (already locked)
+          logger.info(s"getResourceUserId says: user is locked, username: $username, provider: $normalizedProvider")
           Full(usernameLockedStateCode)
-        }
-        else if (user.testPassword(Full(password))) {
-          logger.info(s"getResourceUserId says: password correct, username: $username, provider: $provider")
-          LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-          Full(user.user.get)
-        }
-        else {
-          logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $provider")
-          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-          Empty
-        }
-      // We have a user from an external provider.
-      case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
-        APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
-            case true if !LoginAttempt.userIsLocked(user.getProvider(), username) =>
-              logger.info(s"getResourceUserId says: external user found, checking via connector, username: $username, provider: ${user.getProvider()}")
-              val userId =
-                for {
-                  authUser <- checkExternalUserViaConnector(username, password)
-                  resourceUser <- tryo {
-                    authUser.user
-                  }
-                } yield {
-                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
-                  resourceUser.get
-                }
-              userId match {
-                case Full(l: Long) =>
-                  logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: ${user.getProvider()}")
-                  Full(l)
-                case _ =>
-                  logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: ${user.getProvider()}")
-                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-                  Empty
-              }
-            case true =>
-              logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: ${user.getProvider()}")
-              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
-              Empty
-            case false =>
-              logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: ${user.getProvider()}")
-              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
+        
+        case Full(user) if user.testPassword(Full(password)) =>
+          // Password correct - extract user ID safely
+          logger.info(s"getResourceUserId says: password correct, username: $username, provider: $normalizedProvider")
+          LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, username)
+          user.user.obj match {
+            case Full(resourceUser) =>
+              Full(resourceUser.id.get)
+            case _ =>
+              logger.error(s"getResourceUserId: user.user foreign key not set for username: $username")
               Empty
           }
-      // Everything else (user not found for this username+provider).
-      case _ =>
-        logger.info(s"getResourceUserId says: user not found, username: $username, provider: $provider")
-        LoginAttempt.incrementBadLoginAttempts(provider, username)
+        
+        case Full(user) =>
+          // Password incorrect
+          logger.info(s"getResourceUserId says: wrong password, username: $username, provider: $normalizedProvider")
+          LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+          Empty
+        
+        case _ =>
+          // User not found in local database
+          logger.info(s"getResourceUserId says: user not found, username: $username, provider: $normalizedProvider")
+          LoginAttempt.incrementBadLoginAttempts(Constant.localIdentityProvider, username)
+          Empty
+      }
+      
+    } else {
+      // ========================================================================
+      // EXTERNAL PROVIDER PATH: Validate via connector
+      // ========================================================================
+      logger.info(s"getResourceUserId says: using external provider authentication for username: $username, provider: $normalizedProvider")
+      
+      // Check if connector authentication is enabled
+      // DEBUG: Log the actual property value being read
+      val connectorAuthEnabled = APIUtil.getPropsAsBoolValue("connector.user.authentication", false)
+      logger.info(s"getResourceUserId says: READ connector.user.authentication = $connectorAuthEnabled")
+      
+      if (!connectorAuthEnabled) {
+        logger.info(s"getResourceUserId says: connector.user.authentication is false, username: $username, provider: $normalizedProvider")
+        LoginAttempt.incrementBadLoginAttempts(normalizedProvider, username)
         Empty
+      }
+      // Check if user is locked - do NOT increment attempts (already locked)
+      else if (LoginAttempt.userIsLocked(normalizedProvider, username)) {
+        logger.info(s"getResourceUserId says: external user is locked, username: $username, provider: $normalizedProvider")
+        Full(usernameLockedStateCode)
+      }
+      // Validate via connector
+      else {
+        logger.info(s"getResourceUserId says: calling checkExternalUserViaConnector for username: $username, provider: $normalizedProvider")
+        
+        // Call connector validation and safely extract user ID
+        val connectorResult = checkExternalUserViaConnector(username, password).flatMap { authUser =>
+          authUser.user.obj match {
+            case Full(resourceUser) =>
+              Full(resourceUser.id.get)
+            case _ =>
+              logger.error(s"getResourceUserId: external user.user foreign key not set for username: $username")
+              Empty
+          }
+        }
+        
+        connectorResult match {
+          case Full(userId) =>
+            logger.info(s"getResourceUserId says: external connector auth succeeded, username: $username, provider: $normalizedProvider")
+            LoginAttempt.resetBadLoginAttempts(normalizedProvider, username)
+            Full(userId)
+          
+          case _ =>
+            logger.info(s"getResourceUserId says: external connector auth failed, username: $username, provider: $normalizedProvider")
+            LoginAttempt.incrementBadLoginAttempts(normalizedProvider, username)
+            Empty
+        }
+      }
     }
   }
 
   /**
-    * This method is belong to AuthUser, it is used for authentication(Login stuff)
-    * 1 get the user over connector.
-    * 2 check whether it is existing in AuthUser table in obp side.
-    * 3 if not existing, will create new AuthUser.
-    * @return Return the authUser
+    * Validates external user credentials via connector and creates/retrieves local AuthUser.
+    * 
+    * This method is the primary entry point for external authentication. It performs the following:
+    * 
+    * 1. **Connector Validation**: Calls the connector's `checkExternalUserCredentials` to validate
+    *    the username and password against the external identity provider or Core Banking System.
+    * 
+    * 2. **Local User Lookup**: If connector validation succeeds, checks if the user already exists
+    *    in the local OBP database (AuthUser table) using `findAuthUserByUsernameAndProvider`.
+    * 
+    * 3. **Auto-Provisioning**: If the user doesn't exist locally, automatically creates a new AuthUser
+    *    record with data from the connector response (email, name, provider, validation status).
+    *    This also triggers creation of the associated ResourceUser via the `saveMe()` method.
+    * 
+    * 4. **User Auth Context**: If the connector returns user auth contexts (e.g., customer numbers),
+    *    these are stored/updated in the UserAuthContext table for both new and existing users.
+    * 
+    * == Authentication Flow ==
+    * ```
+    * checkExternalUserViaConnector(username, password)
+    *   │
+    *   ├─> Connector.checkExternalUserCredentials(username, password)
+    *   │   └─> Returns InboundExternalUser with: sub, iss, email, name, userAuthContexts
+    *   │
+    *   ├─> findAuthUserByUsernameAndProvider(sub, iss)
+    *   │   ├─> User exists and validated? → Return existing user
+    *   │   └─> User not found? → Create new AuthUser with connector data
+    *   │
+    *   └─> Update/Create UserAuthContexts if provided
+    * ```
+    * 
+    * == Return Values ==
+    * - `Full(AuthUser)`: Authentication successful, returns the AuthUser (existing or newly created)
+    * - `Empty`: Connector validation failed (invalid credentials or connector error)
+    * - `Failure`: Connector returned an error with details
+    * 
+    * == Side Effects ==
+    * - May create new AuthUser record in database
+    * - May create new ResourceUser record (via AuthUser.saveMe())
+    * - May create/update UserAuthContext records
+    * 
+    * == Usage ==
+    * This method is called by:
+    * - `getResourceUserId()` for external provider authentication
+    * - DirectLogin authentication flow for external users
+    * 
+    * @param username The username to authenticate against the external system
+    * @param password The password to validate via the connector
+    * @return Box[AuthUser] containing the authenticated user or Empty/Failure on error
+    * 
+    * @see [[getResourceUserId]] for the main authentication entry point
+    * @see [[Connector.checkExternalUserCredentials]] for connector validation
+    * @see [[findAuthUserByUsernameAndProvider]] for local user lookup
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     logger.info(s"checkExternalUserViaConnector: calling checkExternalUserCredentials for username: $username")
@@ -912,52 +1084,6 @@ def restoreSomeSessions(): Unit = {
         case _ => S.redirectTo(homePage)
       }
       case _ => S.redirectTo(homePage)
-    }
-  }
-  /**  
-    * The user authentications is not exciting in obp side, it need get the user via connector
-    */
- def testExternalPassword(usernameFromGui: String, passwordFromGui: String): Boolean = {
-   checkExternalUserViaConnector(usernameFromGui, passwordFromGui) match {
-     case Full(user:AuthUser) => true
-     case _ => false
-   }
-  }
-
-  /**
-    * This method will update the views and createAccountHolder ....
-    */
-  def externalUserHelper(name: String, password: String): Box[AuthUser] = {
-    logger.info(s"externalUserHelper says: starting for username: $name")
-    val connectorUserBox = checkExternalUserViaConnector(name, password)
-    logger.info(s"externalUserHelper says: checkExternalUserViaConnector result: ${connectorUserBox.getClass.getSimpleName}")
-    connectorUserBox match {
-      case Full(user) =>
-        val providerUserBox = Users.users.vend.getUserByProviderAndUsername(user.getProvider(), name)
-        logger.info(s"externalUserHelper says: getUserByProviderAndUsername(${user.getProvider()}, $name) result: ${providerUserBox.getClass.getSimpleName}")
-        providerUserBox match {
-          case Full(_) => Full(user)
-          case _ =>
-            logger.warn(s"externalUserHelper says: connector authenticated user but getUserByProviderAndUsername failed for provider: ${user.getProvider()}, username: $name")
-            Empty
-        }
-      case _ =>
-        logger.info(s"externalUserHelper says: checkExternalUserViaConnector failed for username: $name")
-        Empty
-    }
-  }
-
-
-  /**
-    * This method will update the views and createAccountHolder ....
-    */
-  def registeredUserHelper(provider: String,  username: String) = {
-    if (connector.startsWith("rest_vMar2019")) {
-      for {
-       u <- Users.users.vend.getUserByProviderAndUsername(provider, username)
-      } yield {
-        refreshUserLegacy(u, None)
-      }
     }
   }
 

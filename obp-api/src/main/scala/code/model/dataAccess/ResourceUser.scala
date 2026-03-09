@@ -66,6 +66,8 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   def primaryKeyField = id
 
   object id extends MappedLongIndex(this)
+  
+  //this is the user_id!
   object userId_ extends MappedUUID(this)
   object email extends MappedEmail(this, 100){
     override def required_? = false

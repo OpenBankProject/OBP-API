@@ -5240,7 +5240,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |1. **Check only** — validates credentials and returns user info, but does not create a session or token
 				 |2. **Requires an already-authenticated caller** with `canVerifyUserCredentials` role (or SuperAdmin)
-				 |3. **May auto-provision users** — if the local lookup fails and the external fallback via `externalUserHelper()` / `checkExternalUserViaConnector()` succeeds, a new AuthUser and ResourceUser will be created locally (same behaviour as the web login flow)
+				 |3. **May auto-provision users** — if the local lookup fails and the external fallback via `checkExternalUserViaConnector()` succeeds, a new AuthUser and ResourceUser will be created locally (same behaviour as the web login flow)
 				 |4. **Provider matching** — optionally verifies the user's provider matches what was posted (skipped if provider is empty)
 				 |
 				 |### Key Source Files

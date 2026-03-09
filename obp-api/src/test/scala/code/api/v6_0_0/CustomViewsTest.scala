@@ -74,7 +74,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       
       And("All returned views should be custom views (names starting with underscore)")
       if (viewsArray.nonEmpty) {
-        val viewIds = viewsArray.map(view => (view \ "id").values.toString)
+        val viewIds = viewsArray.map(view => (view \ "view_id").values.toString)
         viewIds.foreach { viewId =>
           viewId should startWith("_")
         }
@@ -103,7 +103,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       And("Response should not contain system views like owner, accountant, auditor")
       val json = response.body
       val viewsArray = (json \ "views").children
-      val viewIds = viewsArray.map(view => (view \ "id").values.toString)
+      val viewIds = viewsArray.map(view => (view \ "view_id").values.toString)
       
       viewIds should not contain "owner"
       viewIds should not contain "accountant"
@@ -159,7 +159,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       if (viewsArray.nonEmpty) {
         info(s"Found ${viewsArray.size} custom view(s)")
         viewsArray.foreach { view =>
-          val viewId = (view \ "id").values.toString
+          val viewId = (view \ "view_id").values.toString
           info(s"  - Custom view: $viewId")
           viewId should startWith regex "^_.*"
         }
@@ -236,7 +236,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       
       And("Response should contain the created view")
       val json = response.body
-      val viewId = (json \ "id").values.toString
+      val viewId = (json \ "view_id").values.toString
       viewId should equal("_my_custom_view")
       
       And("View should be marked as custom view (is_system = false)")

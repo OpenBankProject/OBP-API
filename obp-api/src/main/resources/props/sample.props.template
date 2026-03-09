@@ -34,14 +34,16 @@ connector=star
 
 #OBP uses Hikari as the default database connection pool. OBP supports the following 5 configurations at the moment.
 #https://github.com/brettwooldridge/HikariCP#frequently-used
-#hikari.connectionTimeout=
-#hikari.maximumPoolSize=
-#hikari.idleTimeout=
+# All values are in milliseconds unless noted otherwise. Defaults match HikariCP built-in defaults
+# except keepaliveTime which defaults to 30000 (HikariCP default is 0 = disabled).
+#hikari.connectionTimeout=30000
+#hikari.maximumPoolSize=10
+#hikari.idleTimeout=600000
 # keepaliveTime must be set below the database/firewall idle TCP timeout to prevent stale-connection
 # failures on the first call after a period of inactivity. HikariCP will ping each idle connection
 # at this interval (in ms), keeping it alive. Recommended: 30000 (30s) when DB/firewall timeout is ~60s.
 #hikari.keepaliveTime=30000
-#hikari.maxLifetime=
+#hikari.maxLifetime=1800000
 
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka.
 starConnector_supported_types=mapped,internal
