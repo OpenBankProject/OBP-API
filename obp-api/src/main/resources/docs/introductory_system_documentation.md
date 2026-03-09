@@ -5,8 +5,8 @@ It provides an introduction to its key components, architecture, deployment and 
 
 For more detailed information or the sources of truths, please refer to the individual repository READMEs or contact TESOBE for commercial licences and support.
 
-**Version:** 0.5.0
-**Last Updated:** Jan 2026
+**Version:** 0.6.0
+**Last Updated:** Mar 2026
 **License:** Copyright TESOBE GmbH 2026 - AGPL V3
 
 ---
@@ -41,7 +41,10 @@ For more detailed information or the sources of truths, please refer to the indi
    - 8.4 [Rate Limiting](#84-rate-limiting)
    - 8.5 [Attribute-Based Access Control (ABAC)](#85-attribute-based-access-control-abac)
    - 8.6 [User Attributes and Personal Data Fields](#86-user-attributes-and-personal-data-fields)
-   - 8.7 [Security Best Practices](#87-security-best-practices)
+   - 8.7 [Endpoint Auth Modes](#87-endpoint-auth-modes)
+   - 8.8 [Maker/Checker for Transaction Requests](#88-makercchecker-for-transaction-requests)
+   - 8.9 [Mandates](#89-mandates)
+   - 8.10 [Security Best Practices](#810-security-best-practices)
 9. [Use Cases](#use-cases)
 10. [Monitoring, Logging, and Troubleshooting](#monitoring-logging-and-troubleshooting)
 11. [API Documentation and Service Guides](#api-documentation-and-service-guides)
@@ -88,6 +91,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Direct Debits**: Direct debit mandate management
 - **Transaction Challenges**: OTP and challenge-response for payment authorization
 - **Signing Baskets**: Batch payment approval workflows
+- **Maker/Checker Separation**: Enforce that the creator and approver of a transaction request are different users
 - **Transaction Attributes**: Custom metadata on transactions
 
 #### 1.2.3 Customer & KYC Management
@@ -136,6 +140,8 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Views System**: Account data visibility control (owner, public, accountant, auditor, custom)
 - **Scope Management**: OAuth 2.0 scope definitions
 - **Authentication Type Validation**: Enforce authentication requirements per endpoint
+- **Endpoint Auth Modes**: Per-endpoint control over user vs application authentication (UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+- **Mandates**: Corporate account governance with provisions, signatory panels, and multi-signature approval
 
 #### 1.2.9 Extensibility & Customization
 
@@ -207,7 +213,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 ### 1.3 Key Components
 
-- **OBP-API:** Core RESTful API server (Scala/Lift framework)
+- **OBP-API:** Core RESTful API server (Scala/Lift framework, HTTP4S runtime)
 - **API Explorer II:** Interactive API documentation and testing tool (Vue.js/TypeScript)
 - **API Manager II:** Administration interface for managing APIs and consumers (SvelteKit/TypeScript)
 - **Opey II:** AI-powered conversational banking assistant (Python/LangGraph)
@@ -237,7 +243,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
                                        ▼
                    ┌───────────────────────────────────────┐
                    │         OBP-API Core                  │
-                   │     (Scala/Lift Framework)            │
+                   │   (Scala/Lift Framework, HTTP4S)      │
                    │                                       │
                    │  ┌─────────────────────────────────┐  │
                    │  │   Client Authentication         │  │
@@ -319,7 +325,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 │         Single Server              │
 │                                    │
 │  ┌──────────────────────────────┐  │
-│  │       OBP-API (Jetty)        │  │
+│  │      OBP-API (HTTP4S)        │  │
 │  └──────────────────────────────┘  │
 │  ┌──────────────────────────────┐  │
 │  │      PostgreSQL              │  │
@@ -350,11 +356,12 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 **Backend (OBP-API):**
 
 - Language: Scala 2.12/2.13
-- Framework: Liftweb
-- Build Tool: Maven 3 / SBT
-- Server: Jetty or other Java Application Server
+- Framework: Liftweb (API logic), HTTP4S (runtime server)
+- Build Tool: Maven 3
+- Server: HTTP4S (Blaze) - standalone executable JAR, no application server required
 - Concurrency: Akka
-- JDK: OpenJDK 11, Oracle JDK 1.8/13
+- JDK: OpenJDK 11+
+- Modules: `obp-commons` + `obp-api` (2-module structure)
 
 **Frontend (API Explorer II):**
 
@@ -401,8 +408,8 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 **Key Features:**
 
-- Multi-version API support (v1.2.1 - v5.1.0+)
-- Pluggable connector architecture
+- Multi-version API support (v1.2.1 - v6.0.0+)
+- Pluggable connector architecture (Mapped, Kafka, RabbitMQ, Akka, gRPC, REST)
 - OAuth 1.0a/2.0/OIDC authentication
 - Role-based access control (RBAC)
 - Dynamic endpoint creation
@@ -433,7 +440,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 server_mode=apis,portal  # Options: portal, apis, apis,portal
 
 # Connector
-connector=mapped  # Options: mapped, kafka, akka, rest, etc.
+connector=mapped  # Options: mapped, kafka, akka, rest, grpc_vFeb2026, etc.
 
 # Database
 db.driver=org.postgresql.Driver
@@ -1087,18 +1094,24 @@ sbt "runMain sepa.scheduler.ProcessIncomingFilesActorSystem"
 
 ### 3.10 OBP-Rabbit-Cats-Adapter
 
-**Purpose:** OBP-Rabbit-Cats-Adapter is a functional, type-safe adapter that bridges OBP-API with Core Banking Systems (CBS) using RabbitMQ messaging. It is built on a modern Scala stack using Cats Effect and http4s.
+**Purpose:** OBP-Rabbit-Cats-Adapter is a functional, type-safe adapter that bridges OBP-API with Core Banking Systems (CBS) using RabbitMQ messaging and/or gRPC. It is built on a modern Scala stack using Cats Effect and http4s.
 
 **Architecture:**
 
+The adapter supports two transport mechanisms. Banks can use either or both simultaneously:
+
 ```
 OBP-API ↔ RabbitMQ ↔ OBP-Rabbit-Cats-Adapter ↔ Core Banking System (REST/SOAP/etc)
+OBP-API ↔ gRPC     ↔ OBP-Rabbit-Cats-Adapter ↔ Core Banking System (REST/SOAP/etc)
 ```
+
+Both transports share the same `MessageProcessor` and `LocalAdapter` interface, so the bank's integration code is transport-agnostic.
 
 **Technology Stack:**
 
 - **Scala 2.13** with **Cats Effect 3** for purely functional, non-blocking I/O
 - **fs2** and **fs2-rabbit** for functional streaming and RabbitMQ integration
+- **gRPC** (io.grpc) for high-performance RPC transport
 - **http4s** (Ember) for the discovery/health HTTP server
 - **Circe** for type-safe JSON serialization
 - **Prometheus** for metrics and monitoring
@@ -1120,12 +1133,19 @@ trait LocalAdapter {
 
 The generic adapter code handles RabbitMQ messaging and OBP protocol concerns, while the bank-specific `LocalAdapter` implementation handles CBS communication. This separation means banks do not need to modify the generic adapter code.
 
-**Message Flow:**
+**Message Flow (RabbitMQ):**
 
 1. OBP-API publishes a request to the RabbitMQ `obp.request` queue
 2. The adapter consumes the message and extracts the message type (e.g. `obp.getBank`)
 3. The `LocalAdapter` implementation processes the request against the CBS
 4. The response is published to the `obp.response` queue with a matching correlation ID
+
+**Message Flow (gRPC):**
+
+1. OBP-API calls the `ProcessObpRequest` RPC with a method name and JSON payload
+2. The adapter's gRPC server receives the request and routes it through `MessageProcessor`
+3. The `LocalAdapter` implementation processes the request against the CBS
+4. The response is returned as a JSON payload in the gRPC response
 
 **Supported Message Types** (via Message Docs):
 
@@ -1153,6 +1173,16 @@ The generic adapter code handles RabbitMQ messaging and OBP protocol concerns, w
 # Access discovery UI
 open http://localhost:52345
 ```
+
+**gRPC Configuration:**
+
+```bash
+# Enable gRPC transport (environment variables)
+GRPC_ENABLED=true
+GRPC_PORT=50051  # Default port
+```
+
+When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ consumer. On the OBP-API side, use the `grpc_vFeb2026` connector to connect via gRPC.
 
 **Repository:** https://github.com/OpenBankProject/OBP-Rabbit-Cats-Adapter
 
@@ -1192,6 +1222,14 @@ open http://localhost:52345
 - Enables distributed deployments
 - Configuration: `connector=akka_vDec2018`
 
+**gRPC**
+
+- High-performance RPC connector using Protocol Buffers
+- Uses a single `ProcessObpRequest` RPC method with JSON-serialized DTOs
+- Pairs with the OBP-Rabbit-Cats-Adapter gRPC server (or any gRPC-compatible adapter)
+- Low latency, suitable for high-throughput scenarios
+- Configuration: `connector=grpc_vFeb2026`
+
 **Cardano**
 
 - Blockchain connector for Cardano network
@@ -1227,7 +1265,7 @@ open http://localhost:52345
 
 Adapters act as the bridge between OBP-API and core banking systems:
 
-- **Receive:** Accept messages from OBP-API via message queues (Kafka/RabbitMQ) or remote calls (Akka)
+- **Receive:** Accept messages from OBP-API via message queues (Kafka/RabbitMQ), remote calls (Akka), or gRPC
 - **Process:** Interact with core banking systems, databases, or other backend services
 - **Respond:** Return data formatted according to Message Doc specifications
 
@@ -1500,7 +1538,7 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 - v3.0.0, v3.1.0 (STABLE)
 - v4.0.0 (STABLE)
 - v5.0.0, v5.1.0 (STABLE)
-- v6.0.0 (BLEEDING-EDGE)
+- v6.0.0 (BLEEDING-EDGE) - Mandates, Endpoint Auth Modes, Maker/Checker, gRPC connector, new User endpoints
 
 **Key Endpoint Categories:**
 
@@ -1608,15 +1646,20 @@ cp obp-api/src/main/resources/props/sample.props.template \
 # Edit configuration
 nano obp-api/src/main/resources/props/default.props
 
-# Build and run
-mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
+# Build
+mvn install -pl .,obp-commons -DskipTests
+mvn package -pl obp-api -DskipTests
+
+# Run (executable fat JAR)
+java -jar obp-api/target/obp-api.jar
 ```
 
 **Alternative with increased stack size:**
 
 ```bash
 export MAVEN_OPTS="-Xss128m"
-mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
+mvn install -pl .,obp-commons -DskipTests && mvn package -pl obp-api -DskipTests
+java -Xss128m -jar obp-api/target/obp-api.jar
 ```
 
 **For Java 11+ (if needed):**
@@ -1727,46 +1770,40 @@ cache.redis.port=6379
 
 ### 5.3 Production Deployment
 
-#### 5.3.1 Jetty 9 Configuration
+#### 5.3.1 HTTP4S Standalone Deployment
 
-**Install Jetty:**
+OBP-API runs as a standalone HTTP4S server packaged as an executable fat JAR. No external application server (e.g. Jetty, Tomcat) is required.
+
+**Build the fat JAR:**
 
 ```bash
-sudo apt install jetty9
+mvn clean package -pl obp-api -am -DskipTests
+# Output: obp-api/target/obp-api.jar
 ```
 
-**Configure Jetty (`/etc/default/jetty9`):**
+**Run:**
 
 ```bash
-NO_START=0
-JETTY_HOST=127.0.0.1  # Change to 0.0.0.0 for external access
-JAVA_OPTIONS="-Drun.mode=production \
-  -XX:PermSize=256M \
-  -XX:MaxPermSize=512M \
+java -Drun.mode=production \
   -Xmx768m \
-  -verbose \
-  -Dobp.resource.dir=$JETTY_HOME/resources \
-  -Dprops.resource.dir=$JETTY_HOME/resources"
+  -jar obp-api/target/obp-api.jar
 ```
 
-**Build WAR file:**
+**Systemd Service (recommended for production):**
 
-```bash
-mvn package
-# Output: target/OBP-API-1.0.war
-```
+```ini
+[Unit]
+Description=OBP-API Server
+After=network.target postgresql.service redis.service
 
-**Deploy:**
+[Service]
+Type=simple
+User=obp
+ExecStart=/usr/bin/java -Drun.mode=production -Xmx768m -jar /opt/obp/obp-api.jar
+Restart=always
 
-```bash
-sudo cp target/OBP-API-1.0.war /usr/share/jetty9/webapps/root.war
-sudo chown jetty:jetty /usr/share/jetty9/webapps/root.war
-
-# Edit /etc/jetty9/jetty.conf - comment out:
-# etc/jetty-logging.xml
-# etc/jetty-started.xml
-
-sudo systemctl restart jetty9
+[Install]
+WantedBy=multi-user.target
 ```
 
 #### 5.3.2 Production Props Configuration
@@ -1806,18 +1843,7 @@ webui_override_style_sheet=/path/to/custom.css
 
 #### 5.3.3 SSL/HTTPS Configuration
 
-**Enable secure cookies (`webapp/WEB-INF/web.xml`):**
-
-```xml
-<session-config>
-  <cookie-config>
-    <secure>true</secure>
-    <http-only>true</http-only>
-  </cookie-config>
-</session-config>
-```
-
-**Nginx Reverse Proxy:**
+**Nginx Reverse Proxy (recommended):**
 
 ```nginx
 server {
@@ -2865,6 +2891,10 @@ skip_consent_sca_for_consumer_id_pairs=[{
 }]
 ```
 
+**Pagination:**
+
+The `getMyConsents` endpoint supports pagination via `offset` and `limit` query parameters for managing large numbers of consents.
+
 ### 8.3 Views System
 
 **Overview:** Fine-grained control over what data is visible to different actors
@@ -2973,7 +3003,8 @@ X-Rate-Limit-Remaining: 0
 X-Rate-Limit-Reset: 45
 
 {
-  "error": "OBP-10018: Too Many Requests. We only allow 100 requests per minute for this Consumer."
+  "error": "OBP-10018: Too Many Requests. We only allow 100 requests per minute for this Consumer.",
+  "consumer_id": "CONSUMER_ID"
 }
 ```
 
@@ -3029,6 +3060,14 @@ val isBusinessHours = hour >= 9 && hour < 17
 isAdmin || isBusinessHours
 ```
 
+**Safety Checks:**
+
+- **AbacRuleStatisticallyTooPermissive**: When creating or updating an ABAC rule, the engine samples existing users and evaluates whether the rule would grant access to a statistically excessive proportion. If so, the rule is rejected with an `AbacRuleStatisticallyTooPermissive` error. This prevents accidentally creating overly broad rules.
+
+**ABAC for Account Access:**
+
+ABAC rules can be used to control account-level access, not just endpoint-level access. The ABAC engine is integrated into the account permission checking flow.
+
 **Related Roles:**
 
 - CanCreateAbacRule, CanGetAbacRule, CanUpdateAbacRule, CanDeleteAbacRule
@@ -3073,7 +3112,105 @@ DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Delete
 | Available in ABAC | Yes | No (privacy) |
 | Use case | Access control | User preferences |
 
-### 8.7 Security Best Practices
+### 8.7 Endpoint Auth Modes
+
+**Status:** New in v6.0.0
+
+**Purpose:** Per-endpoint control over whether authentication requires a user, an application (consumer), or both.
+
+**Overview:**
+
+Previously, a global `allow_entitlements_or_scopes` config flag allowed consumer scopes as an alternative to user entitlements for all endpoints. This has been replaced by a per-endpoint `authMode` field on `ResourceDoc`, providing fine-grained control.
+
+**Auth Modes:**
+
+| Mode | Description |
+|------|-------------|
+| `UserOnly` | (Default) Requires user authentication and user entitlements |
+| `ApplicationOnly` | Requires consumer scope only, no user authentication needed |
+| `UserOrApplication` | Either consumer scope OR user entitlement is sufficient |
+| `UserAndApplication` | Both consumer scope AND user entitlement are required |
+
+**Migration from `allow_entitlements_or_scopes`:**
+
+The global `allow_entitlements_or_scopes` config flag has been removed. Deployments that previously used `allow_entitlements_or_scopes=true` must now set `authMode = UserOrApplication` on individual endpoint `ResourceDoc` instances.
+
+The global overrides `require_scopes_for_all_roles` and `require_scopes_for_listed_roles` continue to work and force `UserAndApplication` behavior.
+
+**Example:**
+
+The `verifyUserCredentials` endpoint uses `UserOrApplication` mode, so it can be called either by a logged-in user with the appropriate entitlement, or by an application with the appropriate consumer scope.
+
+### 8.8 Maker/Checker for Transaction Requests
+
+**Status:** New in v6.0.0
+
+**Purpose:** Enforce separation of duties for transaction request approval, ensuring that the user who creates a transaction request (maker) is not the same user who approves it (checker).
+
+**How It Works:**
+
+1. When a transaction request is created, the `user_id` and `on_behalf_of_user_id` are recorded on the transaction request
+2. When a user attempts to answer the transaction request challenge, the system checks that the answering user is different from both the maker and the on-behalf-of user
+3. If the checker is the same as the maker, the request is rejected
+
+**View Permissions:**
+
+- `ENFORCE_TRANSACTION_REQUEST_MAKER_CHECKER` - Enable maker/checker enforcement on a view
+- `can_bypass_maker_checker_separation` - Allow a user to bypass the maker/checker check (e.g. for single-approval workflows)
+- `can_answer_transaction_request_challenge` - Permission to answer transaction request challenges
+
+**Configuration:**
+
+Maker/checker enforcement is controlled via view permissions. Add `ENFORCE_TRANSACTION_REQUEST_MAKER_CHECKER` to a view's allowed permissions to enable it for accounts using that view.
+
+### 8.9 Mandates
+
+**Status:** New in v6.0.0
+
+**Purpose:** Mandates are formal agreements between a corporate customer and a bank defining who can operate an account, what they can do, and under what conditions. They tie together Views, ABAC rules, and Challenges into auditable corporate account governance.
+
+**Data Model:**
+
+Mandates have a three-tier structure:
+
+1. **Mandate** - Top-level container linked to a bank account and customer, with:
+   - Status: `ACTIVE`, `SUSPENDED`, `EXPIRED`, `DRAFT`
+   - Legal text and validity period
+   - Bank ID and account ID
+
+2. **Mandate Provisions** - Each provision maps a mandate clause to an OBP enforcement mechanism:
+   - `VIEW_ACCESS` - Links to a View for data access control
+   - `ABAC_RULE` - Links to an ABAC rule for attribute-based decisions
+   - `SIGNATORY_RULE` - Links to a challenge type for transaction approval
+
+3. **Signatory Panels** - Lists of signatories for multi-signature transaction approval workflows
+
+**Key Endpoints:**
+
+```bash
+# Mandate Management
+POST   /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates           # Create
+GET    /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates           # List
+GET    /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID # Get
+PUT    /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID # Update
+DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID # Delete
+
+# Mandate Provisions
+POST   /obp/v6.0.0/.../mandates/MANDATE_ID/provisions                    # Create
+GET    /obp/v6.0.0/.../mandates/MANDATE_ID/provisions                    # List
+
+# Signatory Panels
+POST   /obp/v6.0.0/.../mandates/MANDATE_ID/signatory-panels              # Create
+GET    /obp/v6.0.0/.../mandates/MANDATE_ID/signatory-panels              # List
+```
+
+**Related Roles:**
+
+- CanCreateMandate, CanGetMandate, CanUpdateMandate, CanDeleteMandate
+- CanCreateMandateProvision, CanGetMandateProvision, CanUpdateMandateProvision, CanDeleteMandateProvision
+- CanCreateSignatoryPanel, CanGetSignatoryPanel, CanUpdateSignatoryPanel, CanDeleteSignatoryPanel
+
+### 8.10 Security Best Practices
 
 **Password Security:**
 
@@ -3103,18 +3240,14 @@ db.url=BASE64_ENCODED_ENCRYPTED_VALUE
 - Enable audit logging
 - Regular security updates
 
-**Jetty Password Obfuscation:**
+**Password Encryption:**
 
-```bash
-# Generate obfuscated password
-java -cp /usr/share/jetty9/lib/jetty-util-*.jar \
-  org.eclipse.jetty.util.security.Password password123
+Use OpenSSL-based encryption for sensitive props values:
 
-# Output: OBF:1v2j1uum1xtv1zej1zer1xtn1uvk1v1v
-
+```properties
 # In props
-db.password.is_obfuscated=true
-db.password=OBF:1v2j1uum1xtv1zej1zer1xtn1uvk1v1v
+db.url.is_encrypted=true
+db.url=BASE64_ENCODED_ENCRYPTED_VALUE
 ```
 
 ---
@@ -3241,6 +3374,16 @@ POST /obp/v5.1.0/search/metrics
 ```
 
 ### 10.3 Monitoring Endpoints
+
+**App Directory (Root URL):**
+
+The root URL (`/`) serves an App Directory page that returns JSON with:
+
+- `app_directory` - List of configured applications (name, key, URL) from props
+- `discovery_endpoints` - Links to API info, resource docs, well-known, banks endpoints
+- `links` - GitHub, TESOBE links
+
+This provides a discoverable entry point for the API server.
 
 **Health Check:**
 
@@ -3380,8 +3523,8 @@ use_consumer_limits=true
 # Increase JVM memory
 export MAVEN_OPTS="-Xmx2048m -Xms1024m -XX:MaxPermSize=512m"
 
-# For production (in jetty config)
-JAVA_OPTIONS="-Xmx4096m -Xms2048m"
+# For production
+java -Xmx4096m -Xms2048m -jar obp-api/target/obp-api.jar
 
 # Monitor memory usage
 jconsole  # Connect to JVM process
@@ -3650,8 +3793,9 @@ db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
 connector=mapped
 
 # 3. Build and run
-mvn clean install -pl .,obp-commons
-mvn jetty:run -pl obp-api
+mvn clean install -pl .,obp-commons -DskipTests
+mvn package -pl obp-api -DskipTests
+java -jar obp-api/target/obp-api.jar
 
 # 4. Access
 # API: http://localhost:8080
@@ -3674,12 +3818,11 @@ db.url=jdbc:postgresql://localhost:5432/obpdb_staging?user=obp_staging&password=
 connector=mapped
 allow_oauth2_login=true
 
-# 3. Build WAR
-mvn clean package
+# 3. Build fat JAR
+mvn clean package -pl obp-api -am -DskipTests
 
-# 4. Deploy to Jetty
-sudo cp target/OBP-API-1.0.war /usr/share/jetty9/webapps/root.war
-sudo systemctl restart jetty9
+# 4. Deploy
+java -Drun.mode=production -jar obp-api/target/obp-api.jar
 
 # 5. Setup API Explorer II
 cd API-Explorer-II
@@ -3778,8 +3921,8 @@ backend obp_nodes
 ```bash
 # Deploy to all nodes
 for node in node1 node2 node3; do
-    scp target/OBP-API-1.0.war $node:/usr/share/jetty9/webapps/root.war
-    ssh $node "sudo systemctl restart jetty9"
+    scp obp-api/target/obp-api.jar $node:/opt/obp/obp-api.jar
+    ssh $node "sudo systemctl restart obp-api"
 done
 
 # Monitor health
@@ -3895,7 +4038,7 @@ find $BACKUP_DIR -name "*.sql.gz" -mtime +30 -delete
 
 ```bash
 # 1. Stop OBP-API
-sudo systemctl stop jetty9
+sudo systemctl stop obp-api
 
 # 2. Restore database
 gunzip -c obpdb_20240115.sql.gz | psql -h localhost -U obp obpdb
@@ -3904,7 +4047,7 @@ gunzip -c obpdb_20240115.sql.gz | psql -h localhost -U obp obpdb
 tar -xzf props_20240115.tar.gz -C /path/to/restore/
 
 # 4. Start OBP-API
-sudo systemctl start jetty9
+sudo systemctl start obp-api
 ```
 
 ---
@@ -4254,17 +4397,25 @@ docker run -p 8080:8080 \
 
 **Consent:** Permission granted by user for data access
 
+**isNaturalPerson:** Boolean field on User that distinguishes human users (true, default) from service accounts/machine users (false)
+
+**Mandate:** Formal agreement between a corporate customer and a bank defining who can operate an account, what they can do, and under what conditions
+
 **Direct Login:** Username/password authentication method
 
 **Dynamic Entity:** User-defined data structure
 
 **Dynamic Endpoint:** User-defined API endpoint
 
+**Endpoint Auth Mode:** Per-endpoint setting controlling whether user authentication, application scope, or both are required (UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+
 **Entitlement:** Permission to perform specific operation (same as Role)
 
 **OIDC:** OpenID Connect identity layer
 
 **Opey:** AI-powered banking assistant
+
+**principalUserId:** Optional field on User that links a service/agent user back to the human principal it acts on behalf of, formalising the Human Agent delegation chain
 
 **Props:** Configuration properties file
 
@@ -4354,7 +4505,7 @@ db.driver=org.postgresql.Driver
 db.url=jdbc:postgresql://localhost:5432/obpdb?user=obp&password=xxx
 
 # Connector
-connector=mapped  # mapped | kafka | akka | rest | star
+connector=mapped  # mapped | kafka | akka | rest | grpc_vFeb2026 | star
 
 # Redis Cache
 cache.redis.url=127.0.0.1
