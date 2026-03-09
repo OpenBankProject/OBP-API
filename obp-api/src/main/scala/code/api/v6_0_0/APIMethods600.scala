@@ -2409,9 +2409,7 @@ trait APIMethods600 {
          |A connector is available for method routing if it matches the `connector` prop setting,
          |or if `connector=star` and the connector is listed in `starConnector_supported_types`.
          |
-         |${userAuthenticationMessage(true)}
-         |
-         |CanGetConnectorNames entitlement is required.
+         |Authentication is Optional.
          |
       """.stripMargin,
       EmptyBody,
@@ -2422,20 +2420,17 @@ trait APIMethods600 {
         ConnectorInfoJsonV600("stored_procedure_vDec2019", false)
       )),
       List(
-        $AuthenticatedUserIsRequired,
-        UserHasMissingRoles,
         UnknownError
       ),
       List(apiTagConnector, apiTagSystem, apiTagApi),
-      Some(List(canGetConnectorNames))
+      None
     )
 
     lazy val getConnectors: OBPEndpoint = {
       case "system" :: "connectors" :: Nil JsonGet _ =>
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetConnectorNames, callContext)
+            (_, callContext) <- anonymousAccess(cc)
           } yield {
             // Get the connector names from the Connector object's nameToConnector map
             // Also include "star" which is handled separately in getConnectorInstance
