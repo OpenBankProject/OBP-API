@@ -26,10 +26,12 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import code.entitlement.Entitlement
+import code.scope.Scope
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -169,14 +171,14 @@ class DynamicEntityTest extends V600ServerSetup {
 
   feature("v6.0.0 System Level Dynamic Entity endpoints with snake_case JSON") {
 
-    scenario("Create System Dynamic Entity - without user credentials", ApiEndpoint1, VersionOfApi) {
-      When(s"We make a POST request without user credentials")
+    scenario("Create System Dynamic Entity - without any credentials", ApiEndpoint1, VersionOfApi) {
+      When(s"We make a POST request without any credentials")
       val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST
       val response = makePostRequest(request, write(rightEntityV600))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      And("error should be " + ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
 
     scenario("Create System Dynamic Entity - without proper role", ApiEndpoint1, VersionOfApi) {
@@ -187,6 +189,32 @@ class DynamicEntityTest extends V600ServerSetup {
       response.code should equal(403)
       And("error should contain " + UserHasMissingRoles)
       response.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
+    }
+
+    scenario("Create System Dynamic Entity with consumer scope (no user entitlement)", ApiEndpoint1, VersionOfApi) {
+      // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
+      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanCreateSystemLevelDynamicEntity.toString)
+
+      When("We create a dynamic entity using consumer with scope")
+      val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val response = try {
+        makePostRequest(request, write(rightEntityV600))
+      } finally {
+        Scope.scope.vend.deleteScope(addedScope)
+      }
+
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      And("Response should have snake_case field: entity_name")
+      (response.body \ "entity_name").extract[String] should equal("foo_bar")
+
+      val dynamicEntityId = (response.body \ "dynamic_entity_id").extract[String]
+
+      // Cleanup
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      val deleteRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest)
     }
 
     scenario("Create and verify v6.0.0 snake_case response format", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {

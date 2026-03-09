@@ -1457,6 +1457,17 @@ trait APIMethods400 extends MdcLoggable {
             )
           }
 
+          // Check Maker/Checker separation if required by the view
+          _ <- NewStyle.function.checkMakerCheckerForTransactionRequest(
+            bankId,
+            accountId,
+            viewId,
+            transReqId,
+            challengeAnswerJson.id,
+            u.userId,
+            callContext
+          )
+
           // Check the input transactionRequestType is the same as when the user created the TransactionRequest
           existingTransactionRequestType = existingTransactionRequest.`type`
           _ <- Helper.booleanToFuture(
@@ -1584,15 +1595,30 @@ trait APIMethods400 extends MdcLoggable {
                   )
                 } yield (transactionRequest, callContext)
               case _ =>
+                // Determine if the current user is answering their own assigned challenge
+                val challengeToAnswer = challenges.find(_.challengeId == challengeAnswerJson.id)
+                val isAnsweringOwnChallenge = challengeToAnswer.exists(_.expectedUserId == u.userId)
+
                 for {
 
-                  (challengeAnswerIsValidated, callContext) <- NewStyle.function
-                    .validateChallengeAnswer(
+                  (challengeAnswerIsValidated, callContext) <- if (isAnsweringOwnChallenge) {
+                    // User is answering their own challenge — validate with userId check
+                    NewStyle.function.validateChallengeAnswer(
                       challengeAnswerJson.id,
                       challengeAnswerJson.answer,
                       SuppliedAnswerType.PLAIN_TEXT_VALUE,
                       callContext
                     )
+                  } else {
+                    // User is answering someone else's challenge (checker answering maker's challenge)
+                    // Safe because maker-checker check already approved this user
+                    NewStyle.function.validateChallengeAnswerWithoutUserIdCheck(
+                      challengeAnswerJson.id,
+                      challengeAnswerJson.answer,
+                      SuppliedAnswerType.PLAIN_TEXT_VALUE,
+                      callContext
+                    )
+                  }
 
                   _ <- Helper.booleanToFuture(
                     s"${InvalidChallengeAnswer
@@ -2159,7 +2185,7 @@ trait APIMethods400 extends MdcLoggable {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetBankLevelDynamicEntities))
+      Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities))
     )
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
@@ -2632,7 +2658,7 @@ trait APIMethods400 extends MdcLoggable {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateBankLevelDynamicEntity))
+      Some(List(canCreateBankLevelDynamicEntity, canCreateAnyBankLevelDynamicEntity))
     )
     lazy val createBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: BankId(

@@ -9,6 +9,7 @@ import code.api.util._
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
+import code.mandate.{MandateTrait, MandateProvisionTrait, SignatoryPanelTrait}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.cardano.CardanoConnector_vJun2025
 import code.bankconnectors.ethereum.EthereumConnector_vSept2025
@@ -1948,4 +1949,135 @@ trait Connector extends MdcLoggable {
     balanceId: BalanceId,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteBankAccountBalance _))), callContext)}
+
+  // Mandate methods
+  def getMandateById(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future{(Failure(setUnimplementedError(nameOf(getMandateById _))), callContext)}
+
+  def getMandatesByBankAndAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getMandatesByBankAndAccount _))), callContext)}
+
+  def getActiveMandatesByBankAndAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getActiveMandatesByBankAndAccount _))), callContext)}
+
+  def createMandate(
+    bankId: BankId,
+    accountId: AccountId,
+    customerId: String,
+    mandateName: String,
+    mandateReference: String,
+    legalText: String,
+    description: String,
+    status: String,
+    validFrom: Date,
+    validTo: Date,
+    createdByUserId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future{(Failure(setUnimplementedError(nameOf(createMandate _))), callContext)}
+
+  def updateMandate(
+    mandateId: String,
+    mandateName: String,
+    mandateReference: String,
+    legalText: String,
+    description: String,
+    status: String,
+    validFrom: Date,
+    validTo: Date,
+    updatedByUserId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future{(Failure(setUnimplementedError(nameOf(updateMandate _))), callContext)}
+
+  def deleteMandate(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteMandate _))), callContext)}
+
+  // Mandate Provision methods
+  def getMandateProvisionById(
+    provisionId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future{(Failure(setUnimplementedError(nameOf(getMandateProvisionById _))), callContext)}
+
+  def getMandateProvisionsByMandateId(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateProvisionTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getMandateProvisionsByMandateId _))), callContext)}
+
+  def createMandateProvision(
+    mandateId: String,
+    provisionName: String,
+    provisionDescription: String,
+    legalReference: String,
+    provisionType: String,
+    conditions: String,
+    signatoryRequirements: String,
+    linkedViewId: String,
+    linkedAbacRuleId: String,
+    linkedChallengeType: String,
+    isActive: Boolean,
+    sortOrder: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future{(Failure(setUnimplementedError(nameOf(createMandateProvision _))), callContext)}
+
+  def updateMandateProvision(
+    provisionId: String,
+    provisionName: String,
+    provisionDescription: String,
+    legalReference: String,
+    provisionType: String,
+    conditions: String,
+    signatoryRequirements: String,
+    linkedViewId: String,
+    linkedAbacRuleId: String,
+    linkedChallengeType: String,
+    isActive: Boolean,
+    sortOrder: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future{(Failure(setUnimplementedError(nameOf(updateMandateProvision _))), callContext)}
+
+  def deleteMandateProvision(
+    provisionId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteMandateProvision _))), callContext)}
+
+  // Signatory Panel methods
+  def getSignatoryPanelById(
+    panelId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future{(Failure(setUnimplementedError(nameOf(getSignatoryPanelById _))), callContext)}
+
+  def getSignatoryPanelsByMandateId(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[SignatoryPanelTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getSignatoryPanelsByMandateId _))), callContext)}
+
+  def createSignatoryPanel(
+    mandateId: String,
+    panelName: String,
+    description: String,
+    userIds: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future{(Failure(setUnimplementedError(nameOf(createSignatoryPanel _))), callContext)}
+
+  def updateSignatoryPanel(
+    panelId: String,
+    panelName: String,
+    description: String,
+    userIds: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future{(Failure(setUnimplementedError(nameOf(updateSignatoryPanel _))), callContext)}
+
+  def deleteSignatoryPanel(
+    panelId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteSignatoryPanel _))), callContext)}
 }

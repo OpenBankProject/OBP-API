@@ -345,7 +345,7 @@ object RateLimitingUtil extends MdcLoggable {
   def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     // Configuration and helper functions
     def perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
-    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer."
+    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long, consumerId: String): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer (consumer_id: $consumerId)."
     def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
 
     // Helper function to set rate limit headers in successful responses
@@ -422,17 +422,17 @@ object RateLimitingUtil extends MdcLoggable {
             // Return 429 error for first exceeded limit (shorter periods take precedence)
             checkLimits match {
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_SECOND, rl.per_second), 429, exceededRateLimit(rl, PER_SECOND))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_SECOND, rl.per_second, rl.consumer_id), 429, exceededRateLimit(rl, PER_SECOND))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MINUTE, rl.per_minute), 429, exceededRateLimit(rl, PER_MINUTE))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MINUTE, rl.per_minute, rl.consumer_id), 429, exceededRateLimit(rl, PER_MINUTE))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_HOUR, rl.per_hour), 429, exceededRateLimit(rl, PER_HOUR))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_HOUR, rl.per_hour, rl.consumer_id), 429, exceededRateLimit(rl, PER_HOUR))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_DAY, rl.per_day), 429, exceededRateLimit(rl, PER_DAY))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_DAY, rl.per_day, rl.consumer_id), 429, exceededRateLimit(rl, PER_DAY))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_WEEK, rl.per_week), 429, exceededRateLimit(rl, PER_WEEK))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_WEEK, rl.per_week, rl.consumer_id), 429, exceededRateLimit(rl, PER_WEEK))), userAndCallContext._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, rl.per_month), 429, exceededRateLimit(rl, PER_MONTH))), userAndCallContext._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, rl.per_month, rl.consumer_id), 429, exceededRateLimit(rl, PER_MONTH))), userAndCallContext._2)
               case _ =>
                 // All limits passed - increment counters and set rate limit headers
                 val incrementCounters = List (

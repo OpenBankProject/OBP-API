@@ -3974,6 +3974,8 @@ trait APIMethods310 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
         |
+        | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+        |
         | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
         | """,
       SwaggerDefinitionsJSON.createSystemViewJsonV300,

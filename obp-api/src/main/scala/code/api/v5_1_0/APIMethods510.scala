@@ -1842,16 +1842,25 @@ trait APIMethods510 {
       "Get My Consents",
       s"""
          |
-         |This endpoint gets the Consents created by a current User.
+         |This endpoint gets the Consents created by the current User.
          |
          |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 status  (ignore if omitted)
+         |
+         |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
+         |
+         |eg: /my/consents?limit=10&offset=0&sort_by=created_date:desc
          |
       """.stripMargin,
       EmptyBody,
       consentsInfoJsonV510,
       List(
         $AuthenticatedUserIsRequired,
-        $BankNotFound,
         UnknownError
       ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
@@ -1861,12 +1870,19 @@ trait APIMethods510 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            consents <- Future {
-              Consents.consentProvider.vend.getConsentsByUser(cc.userId)
-                .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // Add user_id filter for current user and default sort if not specified
+            userIdParam = OBPUserId(cc.userId)
+            sortByParam = obpQueryParams.collectFirst { case OBPSortBy(_) => true }
+            queryParamsWithDefaults = userIdParam :: obpQueryParams ++ (
+              if (sortByParam.isEmpty) List(OBPSortBy("created_date:desc")) else Nil
+            )
+            (consents, _) <- Future {
+              Consents.consentProvider.vend.getConsents(queryParamsWithDefaults)
             }
           } yield {
-            (createConsentsInfoJsonV510(consents), HttpCode.`200`(cc))
+            (createConsentsInfoJsonV510(consents), HttpCode.`200`(callContext))
           }
       }
     }
@@ -5016,6 +5032,8 @@ trait APIMethods510 {
          | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
          |
          | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+         |
+         | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
          |
          | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
          | """,

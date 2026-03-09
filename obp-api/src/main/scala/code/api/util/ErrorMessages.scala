@@ -572,6 +572,7 @@ object ErrorMessages {
   val AccountAccessRequestCannotBeCreated = "OBP-30277: Account Access Request could not be created."
   val AccountAccessRequestStatusNotInitiated = "OBP-30278: Account Access Request status is not INITIATED. Only INITIATED requests can be approved or rejected."
   val MakerCheckerSameUser = "OBP-30279: The checker (approver/rejecter) cannot be the same user as the maker (requestor). Maker/Checker separation is required."
+  val MakerCheckerUnknownMaker = "OBP-30283: Maker/Checker separation is required for this view but the Transaction Request has no user_id (maker) recorded. Cannot verify separation."
   val BusinessJustificationRequired = "OBP-30280: Business justification is required."
   val CheckerCommentRequiredForRejection = "OBP-30281: A comment is required when rejecting an Account Access Request."
   val AccountAccessRequestCannotBeUpdated = "OBP-30282: Account Access Request could not be updated."
