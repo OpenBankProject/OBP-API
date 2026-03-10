@@ -5312,6 +5312,26 @@ object Glossary extends MdcLoggable  {
 				 |4. Provision: payments 5,000-50,000 EUR require 2 signatures from Panel A
 				 |5. Provision: payments > 50,000 EUR require 1 from Panel A and 1 from Panel B
 				 |
+				 |## Enforcement via REQUIRED_CHALLENGE_ANSWERS
+				 |
+				 |The existing OBP mechanism for requiring multiple signatories on a transaction request is the Account Attribute `REQUIRED_CHALLENGE_ANSWERS`:
+				 |
+				 |- If the account attribute `REQUIRED_CHALLENGE_ANSWERS` is set to N, the system creates N SCA challenges when a transaction request is made.
+				 |- Each challenge is assigned to a user who has access to a View on the account with the `CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE` permission.
+				 |- The transaction request only completes when N challenges have been successfully answered (quorum).
+				 |- If `REQUIRED_CHALLENGE_ANSWERS` is not set, the default is 1 (only the initiating user is challenged).
+				 |
+				 |Combined with the `CAN_BYPASS_MAKER_CHECKER_SEPARATION` View permission:
+				 |
+				 |- If `CAN_BYPASS_MAKER_CHECKER_SEPARATION` is **false** on the View, the system enforces that the user who created the transaction request (maker) cannot be the same user who answers the challenge (checker).
+				 |- If **true**, the same user can both create and approve the transaction request.
+				 |
+				 |A Mandate Provision of type `SIGNATORY_RULE` maps to this mechanism:
+				 |
+				 |1. The provision's `signatory_requirements` (e.g., "2 from Panel A") determines the value of `REQUIRED_CHALLENGE_ANSWERS` on the account.
+				 |2. The panel members are granted access to a View that has `CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE = true`.
+				 |3. The View's `CAN_BYPASS_MAKER_CHECKER_SEPARATION` is set to `false` to enforce separation of duties.
+				 |
 				 |## API Endpoints
 				 |
 				 |Mandates, Provisions, and Signatory Panels each have CRUD endpoints under the Mandate tag.
