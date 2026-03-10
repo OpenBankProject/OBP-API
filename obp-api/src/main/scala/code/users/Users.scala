@@ -51,15 +51,17 @@ trait Users {
 
   def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
 
-  def createResourceUser(provider: String, 
-                         providerId: Option[String], 
-                         createdByConsentId: Option[String], 
-                         name: Option[String], 
-                         email: Option[String], 
-                         userId: Option[String], 
-                         createdByUserInvitationId: Option[String], 
+  def createResourceUser(provider: String,
+                         providerId: Option[String],
+                         createdByConsentId: Option[String],
+                         name: Option[String],
+                         email: Option[String],
+                         userId: Option[String],
+                         createdByUserInvitationId: Option[String],
                          company: Option[String],
-                         lastMarketingAgreementSignedDate: Option[Date]) : Box[ResourceUser]
+                         lastMarketingAgreementSignedDate: Option[Date],
+                         isNaturalPerson: Option[Boolean] = Some(true),
+                         principalUserId: Option[String] = None) : Box[ResourceUser]
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 

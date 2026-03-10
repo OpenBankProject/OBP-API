@@ -18,34 +18,37 @@ object ConsentScheduler extends MdcLoggable {
   val dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH)
   def currentDate = dateFormat.format(new Date())
 
-  // Starts multiple scheduled tasks with different intervals
+  // Starts multiple scheduled tasks with different intervals.
+  // All tasks are enabled by default. Set the interval prop to 0 to disable a task.
+  // Default intervals use prime-ish offsets (599, 597, 595) to avoid tasks firing at the same time
+  // and spreading load more evenly.
   def startAll(): Unit = {
     var initialDelay = 0
     // Berlin Group
-    APIUtil.getPropsAsIntValue("berlin_group_outdated_consents_interval_in_seconds") match {
-      case Full(interval) if interval > 0 =>
-        val time = APIUtil.getPropsAsIntValue("berlin_group_outdated_consents_time_in_seconds", 300)
-        SchedulerUtil.startTask(interval = interval, () => unfinishedBerlinGroupConsents(time)) // Runs periodically
-        initialDelay = initialDelay + 10
-      case _ =>
-        logger.warn("|---> Skipping unfinishedBerlinGroupConsents task: berlin_group_outdated_consents_interval_in_seconds not set or invalid")
+    val bgOutdatedInterval = APIUtil.getPropsAsIntValue("berlin_group_outdated_consents_interval_in_seconds", 599)
+    if (bgOutdatedInterval > 0) {
+      val time = APIUtil.getPropsAsIntValue("berlin_group_outdated_consents_time_in_seconds", 300)
+      SchedulerUtil.startTask(interval = bgOutdatedInterval, () => unfinishedBerlinGroupConsents(time))
+      initialDelay = initialDelay + 10
+    } else {
+      logger.warn("|---> Skipping unfinishedBerlinGroupConsents task: berlin_group_outdated_consents_interval_in_seconds set to 0")
     }
 
-    APIUtil.getPropsAsIntValue("berlin_group_expired_consents_interval_in_seconds") match {
-      case Full(interval) if interval > 0 =>
-        SchedulerUtil.startTask(interval = interval, () => expiredBerlinGroupConsents(), initialDelay) // Delay for 10 seconds
-        initialDelay = initialDelay + 10
-      case _ =>
-        logger.warn("|---> Skipping expiredBerlinGroupConsents task: berlin_group_expired_consents_interval_in_seconds not set or invalid")
+    val bgExpiredInterval = APIUtil.getPropsAsIntValue("berlin_group_expired_consents_interval_in_seconds", 597)
+    if (bgExpiredInterval > 0) {
+      SchedulerUtil.startTask(interval = bgExpiredInterval, () => expiredBerlinGroupConsents(), initialDelay)
+      initialDelay = initialDelay + 10
+    } else {
+      logger.warn("|---> Skipping expiredBerlinGroupConsents task: berlin_group_expired_consents_interval_in_seconds set to 0")
     }
 
     // Open Bank Project
-    APIUtil.getPropsAsIntValue("obp_expired_consents_interval_in_seconds") match {
-      case Full(interval) if interval > 0 =>
-        SchedulerUtil.startTask(interval = interval, () => expiredObpConsents(), initialDelay) // Delay for 10 seconds
-        initialDelay = initialDelay + 10
-      case _ =>
-        logger.warn("|---> Skipping expiredObpConsents task: obp_expired_consents_interval_in_seconds not set or invalid")
+    val obpExpiredInterval = APIUtil.getPropsAsIntValue("obp_expired_consents_interval_in_seconds", 595)
+    if (obpExpiredInterval > 0) {
+      SchedulerUtil.startTask(interval = obpExpiredInterval, () => expiredObpConsents(), initialDelay)
+      initialDelay = initialDelay + 10
+    } else {
+      logger.warn("|---> Skipping expiredObpConsents task: obp_expired_consents_interval_in_seconds set to 0")
     }
   }
 

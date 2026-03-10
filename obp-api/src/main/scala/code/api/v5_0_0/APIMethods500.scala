@@ -2121,6 +2121,8 @@ trait APIMethods500 {
          |
          | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
          |
+         | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+         |
          | System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
          | """,
       createSystemViewJsonV500,

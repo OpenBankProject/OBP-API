@@ -26,6 +26,7 @@ import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.counterpartylimit.CounterpartyLimitProvider
 import code.customer._
+import code.mandate.{MandateTrait, MandateProvisionTrait, SignatoryPanelTrait, MappedMandateProvider}
 import code.customer.agent.AgentX
 import code.customeraccountlinks.CustomerAccountLinkX
 import code.customeraddress.CustomerAddressX
@@ -4942,7 +4943,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                       for (
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
-                        permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+                        permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE))
                         match {
                           case true => Some(permission.user)
                           case _ => None
@@ -5675,5 +5676,182 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
-  
+
+  // Mandate methods
+  override def getMandateById(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future {
+    (MappedMandateProvider.getMandateById(mandateId), callContext)
+  }
+
+  override def getMandatesByBankAndAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateTrait]]] = Future {
+    (MappedMandateProvider.getMandatesByBankAndAccount(bankId.value, accountId.value), callContext)
+  }
+
+  override def getActiveMandatesByBankAndAccount(
+    bankId: BankId,
+    accountId: AccountId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateTrait]]] = Future {
+    (MappedMandateProvider.getActiveMandatesByBankAndAccount(bankId.value, accountId.value), callContext)
+  }
+
+  override def createMandate(
+    bankId: BankId,
+    accountId: AccountId,
+    customerId: String,
+    mandateName: String,
+    mandateReference: String,
+    legalText: String,
+    description: String,
+    status: String,
+    validFrom: Date,
+    validTo: Date,
+    createdByUserId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future {
+    (MappedMandateProvider.createMandate(
+      bankId.value, accountId.value, customerId, mandateName, mandateReference,
+      legalText, description, status, validFrom, validTo, createdByUserId
+    ), callContext)
+  }
+
+  override def updateMandate(
+    mandateId: String,
+    mandateName: String,
+    mandateReference: String,
+    legalText: String,
+    description: String,
+    status: String,
+    validFrom: Date,
+    validTo: Date,
+    updatedByUserId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateTrait]] = Future {
+    (MappedMandateProvider.updateMandate(
+      mandateId, mandateName, mandateReference, legalText, description,
+      status, validFrom, validTo, updatedByUserId
+    ), callContext)
+  }
+
+  override def deleteMandate(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future {
+    (MappedMandateProvider.deleteMandate(mandateId), callContext)
+  }
+
+  // Mandate Provision methods
+  override def getMandateProvisionById(
+    provisionId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future {
+    (MappedMandateProvider.getMandateProvisionById(provisionId), callContext)
+  }
+
+  override def getMandateProvisionsByMandateId(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[MandateProvisionTrait]]] = Future {
+    (MappedMandateProvider.getMandateProvisionsByMandateId(mandateId), callContext)
+  }
+
+  override def createMandateProvision(
+    mandateId: String,
+    provisionName: String,
+    provisionDescription: String,
+    legalReference: String,
+    provisionType: String,
+    conditions: String,
+    signatoryRequirements: String,
+    linkedViewId: String,
+    linkedAbacRuleId: String,
+    linkedChallengeType: String,
+    isActive: Boolean,
+    sortOrder: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future {
+    (MappedMandateProvider.createMandateProvision(
+      mandateId, provisionName, provisionDescription, legalReference, provisionType,
+      conditions, signatoryRequirements, linkedViewId, linkedAbacRuleId,
+      linkedChallengeType, isActive, sortOrder
+    ), callContext)
+  }
+
+  override def updateMandateProvision(
+    provisionId: String,
+    provisionName: String,
+    provisionDescription: String,
+    legalReference: String,
+    provisionType: String,
+    conditions: String,
+    signatoryRequirements: String,
+    linkedViewId: String,
+    linkedAbacRuleId: String,
+    linkedChallengeType: String,
+    isActive: Boolean,
+    sortOrder: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MandateProvisionTrait]] = Future {
+    (MappedMandateProvider.updateMandateProvision(
+      provisionId, provisionName, provisionDescription, legalReference, provisionType,
+      conditions, signatoryRequirements, linkedViewId, linkedAbacRuleId,
+      linkedChallengeType, isActive, sortOrder
+    ), callContext)
+  }
+
+  override def deleteMandateProvision(
+    provisionId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future {
+    (MappedMandateProvider.deleteMandateProvision(provisionId), callContext)
+  }
+
+  // Signatory Panel methods
+  override def getSignatoryPanelById(
+    panelId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future {
+    (MappedMandateProvider.getSignatoryPanelById(panelId), callContext)
+  }
+
+  override def getSignatoryPanelsByMandateId(
+    mandateId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[SignatoryPanelTrait]]] = Future {
+    (MappedMandateProvider.getSignatoryPanelsByMandateId(mandateId), callContext)
+  }
+
+  override def createSignatoryPanel(
+    mandateId: String,
+    panelName: String,
+    description: String,
+    userIds: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future {
+    (MappedMandateProvider.createSignatoryPanel(mandateId, panelName, description, userIds), callContext)
+  }
+
+  override def updateSignatoryPanel(
+    panelId: String,
+    panelName: String,
+    description: String,
+    userIds: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[SignatoryPanelTrait]] = Future {
+    (MappedMandateProvider.updateSignatoryPanel(panelId, panelName, description, userIds), callContext)
+  }
+
+  override def deleteSignatoryPanel(
+    panelId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future {
+    (MappedMandateProvider.deleteSignatoryPanel(panelId), callContext)
+  }
+
 }

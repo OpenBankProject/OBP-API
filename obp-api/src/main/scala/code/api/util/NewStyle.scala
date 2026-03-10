@@ -41,7 +41,10 @@ import code.users._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.validation.{JsonSchemaValidationProvider, JsonValidation}
+import code.transactionChallenge.Challenges
+import code.transactionrequests.TransactionRequests
 import code.views.Views
+import code.views.system.ViewPermission
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
@@ -543,6 +546,73 @@ object NewStyle extends MdcLoggable{
           s"current UserId(${user.userId})"+
           s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
         )
+      }
+    }
+
+    def checkMakerCheckerForTransactionRequest(
+      bankId: BankId,
+      accountId: AccountId,
+      viewId: ViewId,
+      transactionRequestId: TransactionRequestId,
+      challengeId: String,
+      checkerUserId: String,
+      callContext: Option[CallContext]
+    ): Future[Boolean] = {
+      Future {
+        // Check if the view has the can_bypass_maker_checker_separation permission
+        val permissionName = Constant.CAN_BYPASS_MAKER_CHECKER_SEPARATION
+        val hasPermission = Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) match {
+          case Full(view) => ViewPermission.findViewPermission(view, permissionName).isDefined
+          case _ => Views.views.vend.systemView(viewId) match {
+            case Full(view) => ViewPermission.findViewPermission(view, permissionName).isDefined
+            case _ => false
+          }
+        }
+
+        // If the view has can_bypass_maker_checker_separation, no check needed
+        if (hasPermission) {
+          Full(true)
+        } else {
+          // Maker-checker is required — get the TR
+          val transactionRequest = TransactionRequests.transactionRequestProvider.vend
+            .getTransactionRequest(transactionRequestId)
+
+          transactionRequest match {
+            case Full(tr) =>
+              tr.user_id match {
+                case None | Some("") =>
+                  Failure(MakerCheckerUnknownMaker)
+                case Some(makerUserId) if makerUserId == checkerUserId =>
+                  // Same user as maker — check if this is a multi-challenge scenario
+                  // where the user is answering their own assigned SCA challenge
+                  val challenges = Challenges.ChallengeProvider.vend
+                    .getChallengesByTransactionRequestId(transactionRequestId.value)
+                  challenges match {
+                    case Full(challengeList) if challengeList.size > 1 =>
+                      // Multiple challenges: allow if this specific challenge is assigned to the checker
+                      val isOwnChallenge = challengeList.exists(c =>
+                        c.challengeId == challengeId && c.expectedUserId == checkerUserId
+                      )
+                      if (isOwnChallenge) Full(true)
+                      else Failure(MakerCheckerSameUser)
+                    case _ =>
+                      // Single challenge or no challenges found: block same user
+                      Failure(MakerCheckerSameUser)
+                  }
+                case _ =>
+                  tr.on_behalf_of_user_id match {
+                    case Some(onBehalfOfUserId) if onBehalfOfUserId.nonEmpty && onBehalfOfUserId == checkerUserId =>
+                      Failure(MakerCheckerSameUser)
+                    case _ =>
+                      Full(true)
+                  }
+              }
+            case _ =>
+              Failure(s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId)")
+          }
+        }
+      } map {
+        unboxFullOrFail(_, callContext, "Maker/Checker check failed")
       }
     }
 
@@ -1269,7 +1339,7 @@ object NewStyle extends MdcLoggable{
       }
     }
     
-    def validateChallengeAnswer(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType.Value,  callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+    def validateChallengeAnswer(challengeId: String, suppliedAnswer: String, suppliedAnswerType:SuppliedAnswerType.Value,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
      Connector.connector.vend.validateChallengeAnswerV2(challengeId, suppliedAnswer, suppliedAnswerType, callContext) map { i =>
        (unboxFullOrFail(i._1, callContext, s"${
          InvalidChallengeAnswer
@@ -1277,6 +1347,30 @@ object NewStyle extends MdcLoggable{
            .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
        }"), i._2)
       }
+
+    /**
+     * Validate a challenge answer without checking the userId.
+     * Used when a checker (different user) answers a challenge that was assigned to the maker,
+     * in the single-challenge maker-checker scenario. The maker-checker check has already
+     * verified this user is allowed to answer.
+     */
+    def validateChallengeAnswerWithoutUserIdCheck(
+      challengeId: String,
+      suppliedAnswer: String,
+      suppliedAnswerType: SuppliedAnswerType.Value,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Future {
+        val result = Challenges.ChallengeProvider.vend.validateChallenge(challengeId, suppliedAnswer, None)
+        (Full(result.isDefined), callContext)
+      } map { i =>
+        (unboxFullOrFail(i._1, callContext, s"${
+          InvalidChallengeAnswer
+            .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+            .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+        }"), i._2)
+      }
+    }
 
     def allChallengesSuccessfullyAnswered(
       bankId: BankId,
