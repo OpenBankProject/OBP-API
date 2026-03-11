@@ -27,7 +27,7 @@ class RabbitMQConnectionFactory extends BasePooledObjectFactory[Connection] {
     } catch {
       case e: Throwable => throw new RuntimeException(s"${ErrorMessages.UnknownError}, " +
         s"you set `rabbitmq.use.ssl = true`, but do not provide proper props for it, OBP can not set up ssl for rabbitMq. " +
-        s"Please check the rabbitmq ssl settings:`keystore.path`, `keystore.password` and `truststore.path` . Exception details: $e")
+        s"Please check the rabbitmq ssl settings: `truststore.path` is mandatory, `keystore.path` and `keystore.password` are optional for standard TLS. Exception details: $e")
     }
     
   }

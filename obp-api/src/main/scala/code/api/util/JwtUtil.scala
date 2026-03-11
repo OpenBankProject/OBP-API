@@ -183,6 +183,15 @@ object JwtUtil extends MdcLoggable {
   }
 
   /**
+    * Get the provider claim from the JWT token
+    * @param jwtToken JSON Web Token (JWT) as a String value
+    * @return The provider value or None if not available
+    */
+  def getProvider(jwtToken: String): Option[String] = {
+    getOptionalClaim("provider", jwtToken)
+  }
+
+  /**
     * The Issuer Identifier for the Issuer of the response. 
     * Get the value of the "iss" claim, or None if it's not available.
     *

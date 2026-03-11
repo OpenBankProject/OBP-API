@@ -2450,7 +2450,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def cancelPaymentV400(transactionId: TransactionId,
                                  callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
-    (Full(CancelPayment(true, Some(true))), callContext)
+    // Get transaction to determine if SCA is needed based on amount
+    val transaction = MappedTransaction.find(By(MappedTransaction.transactionId, transactionId.value))
+
+    val startSca = transaction match {
+      case Full(t) =>
+        // Decide based on amount (similar to real CBS logic)
+        // Small amounts (<=100) don't need SCA, large amounts (>100) do
+        // Convert from smallest currency unit (cents) to actual decimal amount
+        val amount = Helper.smallestCurrencyUnitToBigDecimal(t.amount.get, t.currency.get).abs
+        val threshold = 100
+        Some(amount > threshold)
+      case _ =>
+        // If transaction not found, default to no SCA required
+        Some(false)
+    }
+    
+    (Full(CancelPayment(canBeCancelled = true, startSca = startSca)), callContext)
   }
   
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = 
