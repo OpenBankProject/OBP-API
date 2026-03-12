@@ -41,9 +41,10 @@ import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
+import code.api.util.APIUtil.{enableVersionIfAllowed, versionIsAllowed,errorJsonResponse, getPropsValue}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
@@ -463,7 +464,21 @@ class Boot extends MdcLoggable {
     ApiVersion.setUrlPrefix(ApiPathZero)
 
     // Add the various API versions
+    val scannedApisCount = ScannedApis.versionMapScannedApis.size
+    logger.info(s"ClassScanUtils found $scannedApisCount ScannedApis implementations")
+    
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
+
+
+    // Manual registration for Berlin Group v1.3 if not already registered by ClassScanUtils
+    if (!ScannedApis.versionMapScannedApis.contains(ConstantsBG.berlinGroupVersion1)) {
+      logger.warn("BGv1.3 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ConstantsBG.berlinGroupVersion1)) {
+        LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
+        logger.info(s"${ConstantsBG.berlinGroupVersion1.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)
