@@ -2823,7 +2823,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v6_0_0 => LiftRules.statelessDispatch.append(v6_0_0.OBPAPI6_0_0)
         case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
         case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
-        case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
+        case version: ScannedApiVersion => 
+          ScannedApis.versionMapScannedApis.get(version).foreach(api => LiftRules.statelessDispatch.append(api))
         case _ => logger.info(s"There is no ${version.toString}")
       }
 
