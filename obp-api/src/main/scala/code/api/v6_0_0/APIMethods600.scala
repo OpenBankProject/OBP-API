@@ -829,7 +829,8 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canGetConsumers))
+      Some(List(canGetConsumers)),
+      authMode = UserOrApplication
     )
 
     lazy val getConsumer: OBPEndpoint = {
@@ -8910,7 +8911,8 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
-      Some(List(canVerifyOidcClient))
+      Some(List(canVerifyOidcClient)),
+      authMode = UserOrApplication
     )
 
     lazy val verifyOidcClient: OBPEndpoint = {
@@ -8974,7 +8976,8 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagOIDC, apiTagConsumer, apiTagOAuth),
-      Some(List(canGetOidcClient))
+      Some(List(canGetOidcClient)),
+      authMode = UserOrApplication
     )
 
     lazy val getOidcClient: OBPEndpoint = {
