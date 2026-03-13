@@ -138,7 +138,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
-        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).allResourceDocs
+        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.allResourceDocs).getOrElse(ArrayBuffer.empty[ResourceDoc])
         case _ => ArrayBuffer.empty[ResourceDoc]
       }
 
@@ -161,7 +161,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
-        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).routes
+        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.routes).getOrElse(Nil)
         case _                 => Nil
       }
 
