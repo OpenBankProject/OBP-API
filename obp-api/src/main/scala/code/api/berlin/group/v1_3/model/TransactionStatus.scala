@@ -99,6 +99,8 @@ object TransactionStatus extends ApiModel {
     status match {
       case "COMPLETED" => TransactionStatus.ACCP.code
       case "INITIATED" => TransactionStatus.RCVD.code
+      case "PENDING" => TransactionStatus.PDNG.code
+      case "CANCELLED" => TransactionStatus.CANC.code
       case other => other
     }
   }

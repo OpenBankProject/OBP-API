@@ -215,7 +215,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   private def getOrCreateResourceUser(idToken: String): Box[User] = {
     val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken)
     val preferredUsername = JwtUtil.getOptionalClaim("preferred_username", idToken)
-    val provider = Hydra.resolveProvider(idToken)
+    // Try to get provider from token first, fallback to Hydra resolver
+    val provider = JwtUtil.getProvider(idToken).getOrElse(Hydra.resolveProvider(idToken))
     val providerId = preferredUsername.orElse(uniqueIdGivenByProvider)
     Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = providerId.getOrElse("")).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one

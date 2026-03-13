@@ -21,7 +21,7 @@ fi
 # Check if xelatex is available
 if ! command -v xelatex &> /dev/null; then
     echo "Error: xelatex is not installed"
-    echo "Install with: sudo apt-get install texlive-xetex texlive-fonts-extra"
+    echo "Install with: sudo apt-get install texlive-xetex texlive-fonts-recommended texlive-fonts-extra lmodern"
     exit 1
 fi
 

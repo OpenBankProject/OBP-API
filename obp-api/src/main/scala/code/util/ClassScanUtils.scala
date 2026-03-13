@@ -3,6 +3,7 @@ package code.util
 import java.io.File
 
 import com.openbankproject.commons.model.Bank
+import code.util.Helper.MdcLoggable
 import org.apache.commons.lang3.StringUtils
 import org.clapper.classutil.{ClassFinder, ClassInfo}
 import com.openbankproject.commons.util.ReflectUtils
@@ -13,7 +14,7 @@ import scala.reflect.runtime.universe.TypeTag
   * this is some util method to scan any class according some rules
   * @author shuang
   */
-object ClassScanUtils {
+object ClassScanUtils extends MdcLoggable {
 
   lazy val finder = ClassFinder(getClassPath(this.getClass, classOf[Bank], classOf[String]))
 
@@ -36,14 +37,23 @@ object ClassScanUtils {
   def getSubTypeObjects[T:TypeTag]: List[T] = {
     val clazz = ReflectUtils.typeTagToClass[T]
     val classes = try {
-      finder.getClasses().toList
+      val allClasses = finder.getClasses().toList
+      logger.info(s"ClassScanUtils successfully scanned ${allClasses.size} classes from classpath")
+      allClasses
     } catch {
-      case _: UnsupportedOperationException =>
+      case e: UnsupportedOperationException =>
         // ASM version is too old for some class files (e.g. requires ASM7). In that case,
         // skip scanned APIs instead of failing the whole application.
+        logger.warn(s"Class scanning failed with UnsupportedOperationException: ${e.getMessage}")
+        logger.warn("This is expected when running from a Fat JAR. Scanned APIs will not be auto-registered.")
+        Seq.empty
+      case e: Exception =>
+        logger.warn(s"Class scanning failed with ${e.getClass.getSimpleName}: ${e.getMessage}")
         Seq.empty
     }
-    classes.filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
+    val filtered = classes.filter(_.implements(clazz.getName))
+    logger.info(s"Found ${filtered.size} classes implementing ${clazz.getName}")
+    filtered.map(_.name).map(companion[T](_)).toList
   }
 
   /**

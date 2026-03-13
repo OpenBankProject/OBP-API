@@ -41,9 +41,17 @@ import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
+import code.api.berlin.group.v1_3.{OBP_BERLIN_GROUP_1_3, OBP_BERLIN_GROUP_1_3_Alias}
 import code.api.berlin.group.ConstantsBG
+import code.api.STET.v1_4.OBP_STET_1_4
+import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
+import code.api.MxOF.{OBP_MXOF_1_0_0, CNBV9_1_0_0}
+import code.api.BahrainOBF.v1_0_0.{ApiCollector => BahrainApiCollector}
+import code.api.AUOpenBanking.v1_0_0.{ApiCollector => AUApiCollector}
+import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.cache.Redis
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
+import code.api.util.APIUtil.{enableVersionIfAllowed, versionIsAllowed,errorJsonResponse, getPropsValue}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
@@ -463,7 +471,95 @@ class Boot extends MdcLoggable {
     ApiVersion.setUrlPrefix(ApiPathZero)
 
     // Add the various API versions
+    val scannedApisCount = ScannedApis.versionMapScannedApis.size
+    logger.info(s"ClassScanUtils found $scannedApisCount ScannedApis implementations")
+    
     ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
+
+
+    // Manual registration for ScannedApis if not already registered by ClassScanUtils
+    // This ensures all APIs work in Fat JAR environment where class scanning fails
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ConstantsBG.berlinGroupVersion1)) {
+      logger.warn("BGv1.3 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ConstantsBG.berlinGroupVersion1)) {
+        LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
+        logger.info(s"${ConstantsBG.berlinGroupVersion1.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(OBP_BERLIN_GROUP_1_3_Alias.apiVersion)) {
+      logger.warn("BGv1.3 Alias was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(OBP_BERLIN_GROUP_1_3_Alias.apiVersion)) {
+        LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3_Alias)
+        logger.info(s"${OBP_BERLIN_GROUP_1_3_Alias.apiVersion.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.stetV14)) {
+      logger.warn("STET v1.4 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.stetV14)) {
+        LiftRules.statelessDispatch.append(OBP_STET_1_4)
+        logger.info(s"${ApiVersion.stetV14.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.polishApiV2111)) {
+      logger.warn("Polish API v2.1.1.1 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.polishApiV2111)) {
+        LiftRules.statelessDispatch.append(OBP_PAPI_2_1_1_1)
+        logger.info(s"${ApiVersion.polishApiV2111.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.mxofV100)) {
+      logger.warn("Mexico Open Finance v1.0.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.mxofV100)) {
+        LiftRules.statelessDispatch.append(OBP_MXOF_1_0_0)
+        logger.info(s"${ApiVersion.mxofV100.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.cnbv9)) {
+      logger.warn("Mexico CNBV9 v1.0.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.cnbv9)) {
+        LiftRules.statelessDispatch.append(CNBV9_1_0_0)
+        logger.info(s"${ApiVersion.cnbv9.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.bahrainObfV100)) {
+      logger.warn("Bahrain OBF v1.0.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.bahrainObfV100)) {
+        LiftRules.statelessDispatch.append(BahrainApiCollector)
+        logger.info(s"${ApiVersion.bahrainObfV100.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.cdsAuV100)) {
+      logger.warn("Australia CDS v1.0.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.cdsAuV100)) {
+        LiftRules.statelessDispatch.append(AUApiCollector)
+        logger.info(s"${ApiVersion.cdsAuV100.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.ukOpenBankingV20)) {
+      logger.warn("UK Open Banking v2.0.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.ukOpenBankingV20)) {
+        LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
+        logger.info(s"${ApiVersion.ukOpenBankingV20.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
+    if (!ScannedApis.versionMapScannedApis.contains(ApiVersion.ukOpenBankingV31)) {
+      logger.warn("UK Open Banking v3.1.0 was NOT found by ClassScanUtils, registering manually")
+      if (versionIsAllowed(ApiVersion.ukOpenBankingV31)) {
+        LiftRules.statelessDispatch.append(OBP_UKOpenBanking_310)
+        logger.info(s"${ApiVersion.ukOpenBankingV31.fullyQualifiedVersion} was ENABLED (manual registration)")
+      }
+    }
+    
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)

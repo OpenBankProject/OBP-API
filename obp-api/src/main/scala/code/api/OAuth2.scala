@@ -358,8 +358,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
 
-    def getClaim(name: String, idToken: String): Option[String] = {
-      val claim = JwtUtil.getClaim(name = name, jwtToken = idToken)
+    def getClaim(name: String, jwtToken: String): Option[String] = {
+      val claim = JwtUtil.getClaim(name = name, jwtToken = jwtToken)
       claim match {
         case null => None
         case string => Some(string)
@@ -385,7 +385,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * It is mapped in next way:
       * iss => ResourceUser.provider_
       * sub => ResourceUser.providerId
-      * @param idToken Google's response example:
+      * @param jwtToken Google's response example:
       *                {
       *                "access_token": "ya29.GluUBg5DflrJciFikW5hqeKEp9r1whWnU5x2JXCm9rKkRMs2WseXX8O5UugFMDsIKuKCZlE7tTm1fMII_YYpvcMX6quyR5DXNHH8Lbx5TrZN__fA92kszHJEVqPc",
       *                "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6Im5HS1JUb0tOblZBMjhINk1od1hCeHciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzA1NjkxLCJleHAiOjE1NDc3MDkyOTF9.iUxhF_SU2vi76zPuRqAKJvFOzpb_EeP3lc5u9FO9o5xoXzVq3QooXexTfK2f1YAcWEy9LSftA34PB0QTuCZpkQChZVM359n3a3hplf6oWWkBXZN2_IG10NwEH4g0VVBCsjWBDMp6lvepN_Zn15x8opUB7272m4-smAou_WmUPTeivXRF8yPcp4J55DigcY31YP59dMQr2X-6Rr1vCRnJ6niqqJ1UDldfsgt4L7dXmUCnkDdXHwEQAZwbKbR4dUoEha3QeylCiBErmLdpIyqfKECphC6piGXZB-rRRqLz41WNfuF-3fswQvGmIkzTJDR7lQaletMp7ivsfVw8N5jFxg",
@@ -396,15 +396,15 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       *                }
       * @return an existing or a new user
       */
-    def getOrCreateResourceUserFuture(idToken: String): Future[Box[User]] = {
-      val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken).getOrElse("")
-      val provider = resolveProvider(idToken)
+    def getOrCreateResourceUserFuture(jwtToken: String): Future[Box[User]] = {
+      val uniqueIdGivenByProvider = JwtUtil.getSubject(jwtToken).getOrElse("")
+      val provider = resolveProvider(jwtToken)
       Users.users.vend.getOrCreateUserByProviderIdFuture(
         provider = provider,
         idGivenByProvider = uniqueIdGivenByProvider,
         consentId = None,
-        name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
-        email = getClaim(name = "email", idToken = idToken)
+        name = getClaim(name = "given_name", jwtToken = jwtToken).orElse(Some(uniqueIdGivenByProvider)),
+        email = getClaim(name = "email", jwtToken = jwtToken)
       ).map(_._1)
     }
     /** Old Style Endpoints
@@ -412,7 +412,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * It is mapped in next way:
       * iss => ResourceUser.provider_
       * sub => ResourceUser.providerId
-      * @param idToken Google's response example:
+      * @param jwtToken Google's response example:
       *                {
       *                "access_token": "ya29.GluUBg5DflrJciFikW5hqeKEp9r1whWnU5x2JXCm9rKkRMs2WseXX8O5UugFMDsIKuKCZlE7tTm1fMII_YYpvcMX6quyR5DXNHH8Lbx5TrZN__fA92kszHJEVqPc",
       *                "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6Im5HS1JUb0tOblZBMjhINk1od1hCeHciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzA1NjkxLCJleHAiOjE1NDc3MDkyOTF9.iUxhF_SU2vi76zPuRqAKJvFOzpb_EeP3lc5u9FO9o5xoXzVq3QooXexTfK2f1YAcWEy9LSftA34PB0QTuCZpkQChZVM359n3a3hplf6oWWkBXZN2_IG10NwEH4g0VVBCsjWBDMp6lvepN_Zn15x8opUB7272m4-smAou_WmUPTeivXRF8yPcp4J55DigcY31YP59dMQr2X-6Rr1vCRnJ6niqqJ1UDldfsgt4L7dXmUCnkDdXHwEQAZwbKbR4dUoEha3QeylCiBErmLdpIyqfKECphC6piGXZB-rRRqLz41WNfuF-3fswQvGmIkzTJDR7lQaletMp7ivsfVw8N5jFxg",
@@ -423,9 +423,9 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       *                }
       * @return an existing or a new user
       */
-    def getOrCreateResourceUser(idToken: String): Box[User] = {
-      val uniqueIdGivenByProvider = JwtUtil.getSubject(idToken).getOrElse("")
-      val provider = resolveProvider(idToken)
+    def getOrCreateResourceUser(jwtToken: String): Box[User] = {
+      val uniqueIdGivenByProvider = JwtUtil.getSubject(jwtToken).getOrElse("")
+      val provider = resolveProvider(jwtToken)
       KeycloakFederatedUserReference.parse(uniqueIdGivenByProvider) match {
         case Right(fedRef) => // Users log on via Keycloak, which uses User Federation to access the external OBP database.
           logger.debug(s"External ID = ${fedRef.externalId}")
@@ -438,8 +438,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
               provider = provider,
               providerId = Some(uniqueIdGivenByProvider),
               None,
-              name = getClaim(name = "given_name", idToken = idToken).orElse(Some(uniqueIdGivenByProvider)),
-              email = getClaim(name = "email", idToken = idToken),
+              name = getClaim(name = "given_name", jwtToken = jwtToken).orElse(Some(uniqueIdGivenByProvider)),
+              email = getClaim(name = "email", jwtToken = jwtToken),
               userId = None,
               createdByUserInvitationId = None,
               company = None,
@@ -449,21 +449,31 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       }
     }
 
-    def resolveProvider(idToken: String) = {
-      HydraUtil.integrateWithHydra && isIssuer(jwtToken = idToken, identityProvider = hydraPublicUrl) match {
-        case true if HydraUtil.hydraUsesObpUserCredentials => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
-          logger.debug("resolveProvider says: we are in Hydra ")
-        // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
-          // in order to avoid creation of a new user
-          Constant.localIdentityProvider
-        // if its OBPOIDC issuer
-        case false if OBPOIDC.isIssuer(idToken) =>
-          logger.debug("resolveProvider says: we are in OBPOIDC ")
-          Constant.localIdentityProvider
-        case _ => // All other cases implies a new user creation
-          logger.debug("resolveProvider says: Other cases ")
-          // TODO raise exception in case of else case
-          JwtUtil.getIssuer(idToken).getOrElse("")
+      def resolveProvider(jwtToken: String) = {
+      // First try to get provider from token's provider claim
+      val providerFromToken = JwtUtil.getProvider(jwtToken)
+      
+      providerFromToken match {
+        case Some(provider) =>
+          logger.debug(s"resolveProvider says: using provider from token claim: $provider")
+          provider
+        case None =>
+          // Fallback to existing logic if provider claim is not present
+          HydraUtil.integrateWithHydra && isIssuer(jwtToken = jwtToken, identityProvider = hydraPublicUrl) match {
+            case true if HydraUtil.hydraUsesObpUserCredentials => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
+              logger.debug(s"resolveProvider says: we are in Hydra, use Constant.localIdentityProvider ${Constant.localIdentityProvider}")
+            // In case that ORY Hydra login url is "hostname/user_mgt/login" we MUST override hydraPublicUrl as provider
+              // in order to avoid creation of a new user
+              Constant.localIdentityProvider
+            // if its OBPOIDC issuer
+            case false if OBPOIDC.isIssuer(jwtToken) =>
+              logger.debug(s"resolveProvider says: we are in OBP-OIDC, use Constant.localIdentityProvider ${Constant.localIdentityProvider}")
+              Constant.localIdentityProvider
+            case _ => // All other cases implies a new user creation
+              logger.debug("resolveProvider says: Other cases ")
+              // TODO raise exception in case of else case
+              JwtUtil.getIssuer(jwtToken).getOrElse("")
+          }
       }
     }
 
@@ -473,7 +483,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       * Unique criteria to decide do we create or get a consumer is pair o values: < sub : azp > i.e.
       * We cannot find consumer by sub and azp => Create
       * We can find consumer by sub and azp => Get
-      * @param idToken Google's response example:
+      * @param jwtToken Google's response example:
       *                {
       *                "access_token": "ya29.GluUBg5DflrJciFikW5hqeKEp9r1whWnU5x2JXCm9rKkRMs2WseXX8O5UugFMDsIKuKCZlE7tTm1fMII_YYpvcMX6quyR5DXNHH8Lbx5TrZN__fA92kszHJEVqPc",
       *                "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6Im5HS1JUb0tOblZBMjhINk1od1hCeHciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzA1NjkxLCJleHAiOjE1NDc3MDkyOTF9.iUxhF_SU2vi76zPuRqAKJvFOzpb_EeP3lc5u9FO9o5xoXzVq3QooXexTfK2f1YAcWEy9LSftA34PB0QTuCZpkQChZVM359n3a3hplf6oWWkBXZN2_IG10NwEH4g0VVBCsjWBDMp6lvepN_Zn15x8opUB7272m4-smAou_WmUPTeivXRF8yPcp4J55DigcY31YP59dMQr2X-6Rr1vCRnJ6niqqJ1UDldfsgt4L7dXmUCnkDdXHwEQAZwbKbR4dUoEha3QeylCiBErmLdpIyqfKECphC6piGXZB-rRRqLz41WNfuF-3fswQvGmIkzTJDR7lQaletMp7ivsfVw8N5jFxg",
@@ -484,13 +494,13 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       *                }
       * @return an existing or a new consumer
       */
-    def getOrCreateConsumer(idToken: String, userId: Box[String], description: Option[String]): Box[Consumer] = {
-      val aud = Some(JwtUtil.getAudience(idToken).mkString(","))
-      val azp = getClaim(name = "azp", idToken = idToken)
-      val iss = getClaim(name = "iss", idToken = idToken)
-      val sub = getClaim(name = "sub", idToken = idToken)
-      val email = getClaim(name = "email", idToken = idToken)
-      val name = getClaim(name = "name", idToken = idToken).orElse(description)
+    def getOrCreateConsumer(jwtToken: String, userId: Box[String], description: Option[String]): Box[Consumer] = {
+      val aud = Some(JwtUtil.getAudience(jwtToken).mkString(","))
+      val azp = getClaim(name = "azp", jwtToken = jwtToken)
+      val iss = getClaim(name = "iss", jwtToken = jwtToken)
+      val sub = getClaim(name = "sub", jwtToken = jwtToken)
+      val email = getClaim(name = "email", jwtToken = jwtToken)
+      val name = getClaim(name = "name", jwtToken = jwtToken).orElse(description)
       val consumerId = if(APIUtil.checkIfStringIsUUID(azp.getOrElse(""))) azp else Some(s"{$azp}_${APIUtil.generateUUID()}")
       Consumers.consumers.vend.getOrCreateConsumer(
         consumerId = consumerId, // Use azp as consumer id if it is uuid value
@@ -679,7 +689,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       val sourceOfTruth = APIUtil.getPropsAsBoolValue(nameOfProperty = "oauth2.keycloak.source_of_truth", defaultValue = false)
       // Consumers allowed to use the source of truth feature
       val resourceAccessName = APIUtil.getPropsValue(nameOfProperty = "oauth2.keycloak.resource_access_key_name_to_trust", "open-bank-project")
-      val consumerId = getClaim(name = "azp", idToken = token).getOrElse("")
+      val consumerId = getClaim(name = "azp", jwtToken = token).getOrElse("")
       if(sourceOfTruth) {
         logger.debug("Extracting roles from Access Token")
         import net.liftweb.json._

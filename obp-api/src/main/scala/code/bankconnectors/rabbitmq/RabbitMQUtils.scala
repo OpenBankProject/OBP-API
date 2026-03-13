@@ -32,10 +32,10 @@ object RabbitMQUtils extends MdcLoggable{
   
   val (keystorePath, keystorePassword, truststorePath, truststorePassword) = if (APIUtil.getPropsAsBoolValue("rabbitmq.use.ssl", false)) {
     (
-      APIUtil.getPropsValue("keystore.path").openOrThrowException("mandatory property keystore.path is missing!"), 
+      APIUtil.getPropsValue("keystore.path").getOrElse(""),
       APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd),
       APIUtil.getPropsValue("truststore.path").openOrThrowException("mandatory property truststore.path is missing!"),
-      APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
+      APIUtil.getPropsValue("truststore.password").getOrElse(APIUtil.initPasswd)
     )
   }else{
     ("", APIUtil.initPasswd,"",APIUtil.initPasswd)
@@ -163,28 +163,41 @@ object RabbitMQUtils extends MdcLoggable{
     truststorePath: String, 
     truststorePassword: String
   ): SSLContext = {
-    // Load client keystore
-    val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
-    val keystoreFile = new FileInputStream(keystorePath)
-    keyStore.load(keystoreFile, keystorePassword.toCharArray)
-    keystoreFile.close()
-    // Set up KeyManagerFactory for client certificates
-    val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
-    kmf.init(keyStore, keystorePassword.toCharArray)
+    // Load client keystore (optional for standard TLS)
+    val keyManagers = if (keystorePath.nonEmpty) {
+      val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+      val keystoreFile = new FileInputStream(keystorePath)
+      try {
+        keyStore.load(keystoreFile, keystorePassword.toCharArray)
+      } finally {
+        keystoreFile.close()
+      }
+      val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
+      kmf.init(keyStore, keystorePassword.toCharArray)
+      kmf.getKeyManagers
+    } else {
+      null
+    }
 
-    // Load truststore for CA certificates
-    val trustStore = KeyStore.getInstance(KeyStore.getDefaultType)
-    val truststoreFile = new FileInputStream(truststorePath)
-    trustStore.load(truststoreFile, truststorePassword.toCharArray)
-    truststoreFile.close()
+    // Load truststore for CA certificates (required)
+    val trustManagers = if (truststorePath.nonEmpty) {
+      val trustStore = KeyStore.getInstance(KeyStore.getDefaultType)
+      val truststoreFile = new FileInputStream(truststorePath)
+      try {
+        trustStore.load(truststoreFile, truststorePassword.toCharArray)
+      } finally {
+        truststoreFile.close()
+      }
+      val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
+      tmf.init(trustStore)
+      tmf.getTrustManagers
+    } else {
+      null
+    }
 
-    // Set up TrustManagerFactory for CA certificates
-    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
-    tmf.init(trustStore)
-
-    // Initialize SSLContext
+    // Initialize SSLContext with optional client authentication
     val sslContext = SSLContext.getInstance("TLSv1.3")
-    sslContext.init(kmf.getKeyManagers, tmf.getTrustManagers, null)
+    sslContext.init(keyManagers, trustManagers, null)
     sslContext
   }
   
