@@ -6080,7 +6080,27 @@ object SwaggerDefinitionsJSON {
   lazy val regulatedEntityAttributesJsonV510 = RegulatedEntityAttributesJsonV510(
     List(regulatedEntityAttributeResponseJsonV510)
   )
-  
+
+  lazy val counterpartyAttributeRequestJsonV600 = CounterpartyAttributeRequestJsonV600(
+    name = "TAX_NUMBER",
+    attribute_type = "STRING",
+    value = "123456789",
+    is_active = Some(true)
+  )
+
+  lazy val counterpartyAttributeResponseJsonV600 = CounterpartyAttributeResponseJsonV600(
+    counterparty_id = counterpartyIdExample.value,
+    counterparty_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "TAX_NUMBER",
+    attribute_type = "STRING",
+    value = "123456789",
+    is_active = Some(true)
+  )
+
+  lazy val counterpartyAttributesJsonV600 = CounterpartyAttributesJsonV600(
+    List(counterpartyAttributeResponseJsonV600)
+  )
+
   lazy val bankAccountBalanceRequestJsonV510 = BankAccountBalanceRequestJsonV510(
     balance_type = balanceTypeExample.value,
     balance_amount = balanceAmountExample.value

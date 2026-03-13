@@ -121,6 +121,7 @@ import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
+import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
@@ -1225,6 +1226,7 @@ object ToSchemify {
     CustomerAccountLink,
     TransactionIdMapping,
     RegulatedEntityAttribute,
+    CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
     AccountAccessRequest

@@ -35,7 +35,7 @@ import code.metadata.tags.Tags
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.mandate.{MappedMandateProvider}
-import code.api.v6_0_0.JSONFactory600.{createMandateJsonV600, createMandatesJsonV600, createMandateProvisionJsonV600, createMandateProvisionsJsonV600, createSignatoryPanelJsonV600, createSignatoryPanelsJsonV600}
+import code.api.v6_0_0.JSONFactory600.{createMandateJsonV600, createMandatesJsonV600, createMandateProvisionJsonV600, createMandateProvisionsJsonV600, createSignatoryPanelJsonV600, createSignatoryPanelsJsonV600, createCounterpartyAttributeJson, createCounterpartyAttributesJson}
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
@@ -57,8 +57,10 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.CounterpartyAttributeType
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.UserAttributeType
+import code.api.util.newstyle.CounterpartyAttributeNewStyle
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Helpers.tryo
@@ -12237,6 +12239,202 @@ trait APIMethods600 {
             }
           } yield {
             (deleted, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createCounterpartyAttribute,
+      implementedInApiVersion,
+      nameOf(createCounterpartyAttribute),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+      "Create Counterparty Attribute",
+      s"""
+         | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
+         |
+         | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+         | Authentication is Required
+         |
+     """.stripMargin,
+      counterpartyAttributeRequestJsonV600,
+      counterpartyAttributeResponseJsonV600,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyAttribute, apiTagApi),
+      Some(List(canCreateCounterpartyAttribute))
+    )
+
+    lazy val createCounterpartyAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: counterpartyId :: "attributes" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CounterpartyAttributeRequestJsonV600 ", 400, cc.callContext) {
+              json.extract[CounterpartyAttributeRequestJsonV600]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${CounterpartyAttributeType.DOUBLE}(12.1234), ${CounterpartyAttributeType.STRING}(TAX_NUMBER), ${CounterpartyAttributeType.INTEGER}(123) and ${CounterpartyAttributeType.DATE_WITH_DAY}(2012-04-23)"
+
+            counterpartyAttributeType <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              CounterpartyAttributeType.withName(postedData.attribute_type)
+            }
+
+            (attribute, callContext) <- CounterpartyAttributeNewStyle.createOrUpdateCounterpartyAttribute(
+              counterpartyId = CounterpartyId(counterpartyId),
+              counterpartyAttributeId = None,
+              name = postedData.name,
+              attributeType = counterpartyAttributeType,
+              value = postedData.value,
+              isActive = postedData.is_active,
+              callContext = cc.callContext
+            )
+          } yield {
+            (JSONFactory600.createCounterpartyAttributeJson(attribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteCounterpartyAttribute,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyAttribute),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Delete Counterparty Attribute",
+      s"""
+         | Delete a Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
+         |
+         | Authentication is Required
+         |
+     """.stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagCounterpartyAttribute, apiTagApi),
+      Some(List(canDeleteCounterpartyAttribute))
+    )
+
+    lazy val deleteCounterpartyAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: counterpartyId :: "attributes" :: attributeId :: Nil JsonDelete _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (deleted, callContext) <- CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyAttributeById,
+      implementedInApiVersion,
+      nameOf(getCounterpartyAttributeById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Get Counterparty Attribute By ID",
+      s"""
+         | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
+         |
+         | Authentication is Required
+         |
+     """.stripMargin,
+      EmptyBody,
+      counterpartyAttributeResponseJsonV600,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagCounterpartyAttribute, apiTagApi),
+      Some(List(canGetCounterpartyAttribute))
+    )
+
+    lazy val getCounterpartyAttributeById: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: counterpartyId :: "attributes" :: attributeId :: Nil JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (attribute, callContext) <- CounterpartyAttributeNewStyle.getCounterpartyAttributeById(attributeId, cc.callContext)
+          } yield {
+            (JSONFactory600.createCounterpartyAttributeJson(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllCounterpartyAttributes,
+      implementedInApiVersion,
+      nameOf(getAllCounterpartyAttributes),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+      "Get All Counterparty Attributes",
+      s"""
+         | Get all attributes for the specified Counterparty.
+         |
+         | Authentication is Required
+         |
+     """.stripMargin,
+      EmptyBody,
+      counterpartyAttributesJsonV600,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagCounterpartyAttribute, apiTagApi),
+      Some(List(canGetCounterpartyAttributes))
+    )
+
+    lazy val getAllCounterpartyAttributes: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: counterpartyId :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (attributes, callContext) <- CounterpartyAttributeNewStyle.getCounterpartyAttributes(CounterpartyId(counterpartyId), cc.callContext)
+          } yield {
+            (JSONFactory600.createCounterpartyAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateCounterpartyAttribute,
+      implementedInApiVersion,
+      nameOf(updateCounterpartyAttribute),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Update Counterparty Attribute",
+      s"""
+         | Update an existing Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
+         |
+         | Authentication is Required
+         |
+     """.stripMargin,
+      counterpartyAttributeRequestJsonV600,
+      counterpartyAttributeResponseJsonV600,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyAttribute, apiTagApi),
+      Some(List(canUpdateCounterpartyAttribute))
+    )
+
+    lazy val updateCounterpartyAttribute: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "counterparties" :: counterpartyId :: "attributes" :: attributeId :: Nil JsonPut json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CounterpartyAttributeRequestJsonV600 ", 400, cc.callContext) {
+              json.extract[CounterpartyAttributeRequestJsonV600]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${CounterpartyAttributeType.DOUBLE}(12.1234), ${CounterpartyAttributeType.STRING}(TAX_NUMBER), ${CounterpartyAttributeType.INTEGER}(123) and ${CounterpartyAttributeType.DATE_WITH_DAY}(2012-04-23)"
+
+            counterpartyAttributeType <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              CounterpartyAttributeType.withName(postedData.attribute_type)
+            }
+            (updatedAttribute, callContext) <- CounterpartyAttributeNewStyle.createOrUpdateCounterpartyAttribute(
+              counterpartyId = CounterpartyId(counterpartyId),
+              counterpartyAttributeId = Some(attributeId),
+              name = postedData.name,
+              attributeType = counterpartyAttributeType,
+              value = postedData.value,
+              isActive = postedData.is_active,
+              callContext = cc.callContext
+            )
+          } yield {
+            (JSONFactory600.createCounterpartyAttributeJson(updatedAttribute), HttpCode.`200`(callContext))
           }
       }
     }

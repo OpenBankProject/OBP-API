@@ -731,6 +731,21 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteRegulatedEntityAttribute(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteRegulatedEntityAttribute = CanDeleteRegulatedEntityAttribute()
 
+  case class CanGetCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCounterpartyAttribute = CanGetCounterpartyAttribute()
+
+  case class CanGetCounterpartyAttributes(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCounterpartyAttributes = CanGetCounterpartyAttributes()
+
+  case class CanCreateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateCounterpartyAttribute = CanCreateCounterpartyAttribute()
+
+  case class CanUpdateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateCounterpartyAttribute = CanUpdateCounterpartyAttribute()
+
+  case class CanDeleteCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteCounterpartyAttribute = CanDeleteCounterpartyAttribute()
+
 
   case class CanGetMethodRoutings(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetMethodRoutings = CanGetMethodRoutings()

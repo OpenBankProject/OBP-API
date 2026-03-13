@@ -49,6 +49,7 @@ object ApiTag {
   val apiTagScope = ResourceDocTag("Scope")
   val apiTagOwnerRequired = ResourceDocTag("OwnerViewRequired")
   val apiTagCounterparty = ResourceDocTag("Counterparty")
+  val apiTagCounterpartyAttribute = ResourceDocTag("Counterparty-Attribute")
   val apiTagKyc = ResourceDocTag("KYC")
   val apiTagCustomer = ResourceDocTag("Customer")
   val apiTagRetailCustomer = ResourceDocTag("Retail-Customer")
