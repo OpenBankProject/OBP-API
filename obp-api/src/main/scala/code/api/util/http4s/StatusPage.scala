@@ -10,12 +10,14 @@ object StatusPage {
 
   private def appDiscoveryPairs = APIUtil.getAppDiscoveryPairs
 
+  private val acronyms = Set("obp", "api", "mcp")
+
   private def humanName(key: String): String =
     key.stripPrefix("public_")
       .stripSuffix("_url")
       .replace("_", " ")
       .split(" ")
-      .map(_.capitalize)
+      .map(w => if (acronyms.contains(w.toLowerCase)) w.toUpperCase else w.capitalize)
       .mkString(" ")
 
   private def prefersJson(req: Request[IO]): Boolean =
