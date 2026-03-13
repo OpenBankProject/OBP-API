@@ -123,7 +123,7 @@ import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
-import code.scope.{MappedScope, MappedUserScope}
+import code.scope.{MappedScope, MappedUserScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -337,6 +337,8 @@ class Boot extends MdcLoggable {
     warnAboutSuperAdminUsers()
 
     createBootstrapOidcOperatorUser()
+
+    createBootstrapOidcOperatorConsumer()
 
     //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
     DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
@@ -1091,6 +1093,75 @@ class Boot extends MdcLoggable {
             }
           case _ =>
             logger.error(s"createBootstrapOidcOperatorUser- Error: Could not find user after creation")
+        }
+      }
+    }
+  }
+
+  /**
+   * Bootstrap OIDC Operator Consumer
+   * Given the following key and secret, OBP will create a consumer *if it does not exist already*.
+   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient
+   * This allows OBP-OIDC to authenticate as an application (without a user) and manage consumers via the API.
+   */
+  private def createBootstrapOidcOperatorConsumer() = {
+
+    val oidcOperatorConsumerKey = APIUtil.getPropsValue("oidc_operator_consumer_key", "")
+    val oidcOperatorConsumerSecret = APIUtil.getPropsValue("oidc_operator_consumer_secret", "")
+
+    val isPropsNotSetProperly = oidcOperatorConsumerKey == "" || oidcOperatorConsumerSecret == ""
+
+    if (isPropsNotSetProperly) {
+      logger.info(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key and/or oidc_operator_consumer_secret props are not set, skipping")
+    } else if (oidcOperatorConsumerKey.length < 10) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key is too short (${oidcOperatorConsumerKey.length} chars, minimum 10), skipping")
+    } else if (oidcOperatorConsumerKey.length > 250) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key is too long (${oidcOperatorConsumerKey.length} chars, maximum 250), skipping")
+    } else if (oidcOperatorConsumerSecret.length < 10) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_secret is too short (${oidcOperatorConsumerSecret.length} chars, minimum 10), skipping")
+    } else if (oidcOperatorConsumerSecret.length > 250) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_secret is too long (${oidcOperatorConsumerSecret.length} chars, maximum 250), skipping")
+    } else {
+      val existingConsumer = Consumers.consumers.vend.getConsumerByConsumerKey(oidcOperatorConsumerKey)
+
+      if (existingConsumer.isDefined) {
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer with key ${oidcOperatorConsumerKey} already exists, skipping creation")
+      } else {
+        val consumerBox = Consumers.consumers.vend.createConsumer(
+          Some(oidcOperatorConsumerKey),
+          Some(oidcOperatorConsumerSecret),
+          Some(true), // isActive
+          Some("OIDC Operator Consumer"), // name
+          None, // appType
+          Some("Bootstrap consumer for OBP-OIDC to manage consumers via the API"), // description
+          Some(""), // developerEmail
+          None, // redirectURL
+          None, // createdByUserId
+          None, // clientCertificate
+          None, // company
+          None  // logoURL
+        )
+
+        consumerBox match {
+          case Full(consumer) =>
+            logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully")
+
+            val oidcOperatorConsumerScopes = List(
+              CanGetConsumers,
+              CanCreateConsumer,
+              CanVerifyOidcClient,
+              CanGetOidcClient
+            )
+
+            oidcOperatorConsumerScopes.foreach { role =>
+              val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
+              if (resultBox.isEmpty) {
+                logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
+              }
+            }
+
+          case _ =>
+            logger.error(s"createBootstrapOidcOperatorConsumer says: Error creating consumer")
         }
       }
     }
