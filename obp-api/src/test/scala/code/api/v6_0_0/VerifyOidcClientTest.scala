@@ -32,7 +32,7 @@ class VerifyOidcClientTest extends V600ServerSetup with DefaultUsers {
       Then("We should get a 401")
       response.code should equal(401)
       And("The error message should indicate authentication is required")
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.ApplicationNotIdentified)
     }
 
     scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
