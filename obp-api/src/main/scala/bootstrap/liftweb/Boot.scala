@@ -73,6 +73,7 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
+import code.model.Consumer
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
@@ -1127,43 +1128,39 @@ class Boot extends MdcLoggable {
       if (existingConsumer.isDefined) {
         logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer with key ${oidcOperatorConsumerKey} already exists, skipping creation")
       } else {
-        val consumerBox = Consumers.consumers.vend.createConsumer(
-          Some(oidcOperatorConsumerKey),
-          Some(oidcOperatorConsumerSecret),
-          Some(true), // isActive
-          Some("OIDC Operator Consumer"), // name
-          None, // appType
-          Some("Bootstrap consumer for OBP-OIDC to manage consumers via the API"), // description
-          Some(""), // developerEmail
-          None, // redirectURL
-          None, // createdByUserId
-          None, // clientCertificate
-          None, // company
-          None  // logoURL
-        )
-
-        consumerBox match {
-          case Full(consumer) =>
-            logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully")
-
-            val oidcOperatorConsumerScopes = List(
-              CanGetConsumers,
-              CanCreateConsumer,
-              CanVerifyOidcClient,
-              CanGetOidcClient
-            )
-
-            oidcOperatorConsumerScopes.foreach { role =>
-              val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
-              if (resultBox.isEmpty) {
-                logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
-              }
-            }
-
-          case _ =>
-            logger.error(s"createBootstrapOidcOperatorConsumer says: Error creating consumer")
-        }
+        saveOidcOperatorConsumer(oidcOperatorConsumerKey, oidcOperatorConsumerSecret)
       }
+    }
+  }
+
+  // Separate method to create and save the OIDC operator consumer.
+  // Uses Consumer.create directly (not Consumers.consumers.vend.createConsumer)
+  // to avoid S.? calls during Boot (Lift's S scope is not initialized at boot time).
+  private def saveOidcOperatorConsumer(consumerKey: String, consumerSecret: String): Unit = {
+    // Create consumer directly, skipping validate (which calls S.? and fails during Boot)
+    val c = Consumer.create
+      .key(consumerKey)
+      .secret(consumerSecret)
+      .name("OIDC Operator Consumer")
+    c.isActive(true) // MappedBoolean.apply returns Mapper, must be separate statement
+    c.description("Bootstrap consumer for OBP-OIDC to manage consumers via the API") // MappedText.apply returns Mapper, must be separate statement
+
+    val consumerBox = tryo(c.saveMe())
+
+    consumerBox match {
+      case Full(consumer) =>
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId.get}")
+        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
+        scopes.foreach { role =>
+          val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
+          if (resultBox.isEmpty) {
+            logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
+          }
+        }
+      case net.liftweb.common.Failure(msg, exception, _) =>
+        logger.error(s"createBootstrapOidcOperatorConsumer says: Error creating consumer: $msg ${exception.map(_.getMessage).openOr("")}")
+      case _ =>
+        logger.error("createBootstrapOidcOperatorConsumer says: Error creating consumer (unknown error)")
     }
   }
 

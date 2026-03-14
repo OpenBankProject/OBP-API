@@ -1465,6 +1465,109 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Authentication: OAuth2 / OIDC Client Credentials",
+		description =
+			s"""
+			|OAuth2 Client Credentials authentication allows an application (Consumer) to call OBP-API endpoints without a user login.
+			|This is used for endpoints with authMode set to `ApplicationOnly` or `UserOrApplication`.
+			|
+			|### Overview
+			|
+			|Instead of authenticating a user with Direct Login, the application authenticates itself using its `client_id` (consumer_key) and `client_secret` (consumer_secret) via the OAuth2 Client Credentials grant type.
+			|The application obtains a Bearer token from the OIDC provider's token endpoint and then uses that token to call OBP-API.
+			|
+			|### 1) Register your Application
+			|
+			|Register your App / Consumer at OBP-API to obtain a `consumer_key` and `consumer_secret`.
+			|
+			|The `consumer_key` corresponds to the `client_id` in the OIDC provider.
+			|The `consumer_secret` corresponds to the `client_secret` in the OIDC provider.
+			|
+			|Ensure the Consumer record is active and the OIDC provider (e.g. Keycloak, Hydra, or OBP-OIDC) has a matching client configured.
+			|
+			|### 2) Obtain a Bearer Token
+			|
+			|Request an access token from the OIDC provider's token endpoint using the `client_credentials` grant type:
+			|
+			|```
+			|POST /realms/master/protocol/openid-connect/token HTTP/1.1
+			|Host: your-oidc-provider.example.com
+			|Content-Type: application/x-www-form-urlencoded
+			|
+			|client_id=your-consumer-key&client_secret=your-consumer-secret&grant_type=client_credentials
+			|```
+			|
+			|Or using cURL:
+			|
+			|```
+			|curl -X POST "https://your-oidc-provider.example.com/realms/master/protocol/openid-connect/token" \\
+			|     -H "Content-Type: application/x-www-form-urlencoded" \\
+			|     -d "client_id=your-consumer-key" \\
+			|     -d "client_secret=your-consumer-secret" \\
+			|     -d "grant_type=client_credentials"
+			|```
+			|
+			|You should receive a response like:
+			|
+			|```
+			|{
+			|    "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+			|    "token_type": "Bearer",
+			|    "expires_in": 3600
+			|}
+			|```
+			|
+			|### 3) Call OBP-API Endpoints
+			|
+			|Use the access token in the `Authorization` header of your API requests:
+			|
+			|```
+			|GET $getObpApiRoot/v6.0.0/some-endpoint HTTP/1.1
+			|Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+			|Content-Type: application/json
+			|```
+			|
+			|Or using cURL:
+			|
+			|```
+			|curl -X GET "$getObpApiRoot/v6.0.0/some-endpoint" \\
+			|     -H "Authorization: Bearer your-access-token" \\
+			|     -H "Content-Type: application/json"
+			|```
+			|
+			|### How It Works
+			|
+			|When OBP-API receives a request with an `Authorization: Bearer` header:
+			|
+			|1. It extracts the JWT token from the header.
+			|2. It identifies the OIDC provider from the token's `iss` (issuer) claim.
+			|3. It validates the token signature against the provider's JWKS (JSON Web Key Set).
+			|4. It extracts the `azp` (authorized party) or `sub` (subject) claim to identify the Consumer.
+			|5. For `ApplicationOnly` endpoints, no user is required — the Consumer identity is sufficient.
+			|6. For `UserOrApplication` endpoints, either the Consumer's scopes or a user's entitlements can satisfy the authorization check.
+			|
+			|### Consumer Scopes
+			|
+			|For the application to be authorized to call a protected endpoint, the Consumer must have the required Scope(s) assigned.
+			|Scopes link a Consumer to an API Role at a specific bank. They are the application-level equivalent of user Entitlements.
+			|
+			|### Endpoint Auth Modes
+			|
+			|Each endpoint has an `authMode` that determines what authentication is required:
+			|
+			|* `UserOnly` — Requires user authentication (e.g. Direct Login or OAuth2 with user login). This is the default.
+			|* `ApplicationOnly` — Requires only Consumer/application authentication. No user login needed.
+			|* `UserOrApplication` — Either a logged-in user with the right Entitlement, or an application with the right Scope.
+			|* `UserAndApplication` — Both user Entitlement and Consumer Scope are required.
+			|
+			|### Note
+			|
+			|The `client_id` used at the OIDC provider must match the `consumer_key` (or `azp` claim) of an active Consumer record in OBP-API.
+			|
+		  """)
+
+
+	glossaryItems += GlossaryItem(
 		title = "Echo Request Headers",
 		description =
 			s"""
