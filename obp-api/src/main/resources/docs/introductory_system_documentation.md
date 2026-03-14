@@ -2866,6 +2866,23 @@ super_admin_user_ids=uuid-1,uuid-2
 # Then remove super_admin_user_ids from props
 ```
 
+**Bootstrap OIDC Operator Consumer:**
+
+OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows OBP-OIDC to authenticate as an application (without a User) and manage consumers via the API, eliminating the need for direct database access.
+
+The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`.
+
+These endpoints use `authMode = UserOrApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by an Application using a Consumer Key with Scopes.
+
+```properties
+# Bootstrap OIDC Operator Consumer
+# Both values must be between 10 and 250 characters.
+oidc_operator_consumer_key=your-consumer-key-here
+oidc_operator_consumer_secret=your-consumer-secret-here
+```
+
+Note: If you use the Bootstrap OIDC Operator Consumer, you may not need the Bootstrap OIDC Operator User, depending on how OBP-OIDC implements its authentication.
+
 **Checking User Entitlements:**
 
 ```bash
