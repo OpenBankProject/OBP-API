@@ -1294,6 +1294,56 @@ Adapters listen to message queues or remote calls, parse incoming messages accor
 - Adapter in Go for high-performance transaction processing
 - Adapter in Scala for Akka-based distributed systems
 
+**Testing Adapters with Connector Endpoints:**
+
+When building an adapter, you can use the `connector.name.export.as.endpoints` props setting to expose all of a connector's internal methods as REST endpoints. This is very useful during adapter development because it allows you to call individual connector methods directly (e.g. `getBank`, `getBankAccount`) and inspect their request/response payloads without needing to go through the full API layer.
+
+When this property is set, OBP-API registers endpoints at `/obp/connector/{methodName}` which accept JSON request bodies matching the corresponding OutBound DTO and return JSON responses matching the InBound DTO. This lets you test each connector method in isolation.
+
+```properties
+# Export a connector's methods as REST endpoints for development/testing
+# Set this to the connector name you are building an adapter for:
+connector.name.export.as.endpoints=rabbitmq_vOct2024
+```
+
+**Validation rules:**
+- If `connector=star`, the value must match one of the connectors listed in `starConnector_supported_types`
+- If `connector=mapped`, the value can be `mapped`
+- Otherwise, the value must match the `connector` props value (e.g. if `connector=rest_vMar2019`, set `connector.name.export.as.endpoints=rest_vMar2019`)
+
+**Access control:** Calling these endpoints requires the `CanGetConnectorEndpoint` entitlement.
+
+**Debugging Adapters with Connector Traces:**
+
+Connector traces capture the full outbound (request) and inbound (response) messages for every connector call. This is invaluable when building an adapter because you can see exactly what OBP-API sent to your adapter and what it received back, making it easy to diagnose serialization issues, missing fields, or unexpected responses.
+
+Enable connector traces with:
+
+```properties
+write_connector_trace=true
+```
+
+Each trace records:
+- **correlationId** — links the trace to the originating API request
+- **connectorName** — which connector was used (e.g. `rabbitmq_vOct2024`)
+- **functionName** — the connector method called (e.g. `getBank`, `getBankAccount`)
+- **bankId** — the bank identifier, if applicable
+- **outboundMessage** — full serialized request parameters sent to the adapter
+- **inboundMessage** — full serialized response received from the adapter
+- **duration** — call duration in milliseconds
+- **isSuccessful** — whether the call succeeded
+- **userId**, **httpVerb**, **url** — context about the originating API request
+
+Traces can be retrieved via the API:
+
+```
+GET /obp/v6.0.0/management/connector/traces
+```
+
+This endpoint supports filtering by `connector_name`, `function_name`, `correlation_id`, `bank_id`, `user_id`, `from_date`, `to_date`, and pagination with `limit` and `offset`. It requires the `CanGetConnectorTrace` entitlement.
+
+There is also a **Connector Traces** page in **API Manager** which provides a UI for browsing and filtering connector traces.
+
 ---
 
 ### 3.13 Message Docs

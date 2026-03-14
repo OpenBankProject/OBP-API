@@ -29,6 +29,13 @@ object RegulatedEntityAttributeType extends OBPEnumeration[RegulatedEntityAttrib
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
 }
+sealed trait CounterpartyAttributeType extends EnumValue
+object CounterpartyAttributeType extends OBPEnumeration[CounterpartyAttributeType]{
+  object STRING         extends Value
+  object INTEGER        extends Value
+  object DOUBLE         extends Value
+  object DATE_WITH_DAY  extends Value
+}
 sealed trait BankAttributeType extends EnumValue
 object BankAttributeType extends OBPEnumeration[BankAttributeType]{
   object STRING         extends Value

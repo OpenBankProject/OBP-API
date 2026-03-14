@@ -3637,7 +3637,8 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canCreateConsumer))
+      Some(List(canCreateConsumer)),
+      authMode = UserOrApplication
     )
 
     lazy val createConsumer: OBPEndpoint = {
@@ -4022,7 +4023,8 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canGetConsumers))
+      Some(List(canGetConsumers)),
+      authMode = UserOrApplication
     )
 
 

@@ -28,7 +28,7 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired, ApplicationNotIdentified}
 import code.api.v3_1_0.ConsumerJsonV310
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
@@ -87,8 +87,9 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint3.code should equal(401)
       responseApiEndpoint4.code should equal(401)
       responseApiEndpoint6.code should equal(401)
-      responseApiEndpoint1.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
-      responseApiEndpoint2.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      // createConsumer and getConsumers use authMode=UserOrApplication, so unauthenticated requests get ApplicationNotIdentified
+      responseApiEndpoint1.body.toString contains(s"$ApplicationNotIdentified") should be (true)
+      responseApiEndpoint2.body.toString contains(s"$ApplicationNotIdentified") should be (true)
       responseApiEndpoint3.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       responseApiEndpoint4.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       responseApiEndpoint6.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)

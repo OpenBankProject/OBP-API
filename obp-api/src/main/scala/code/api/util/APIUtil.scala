@@ -1624,6 +1624,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           if (authMode == ApplicationOnly) {
             errorResponseBodies ?-= AuthenticatedUserIsRequired
           }
+          if (authMode == UserOrApplication) {
+            description +=
+              s"""
+                 |
+                 |This endpoint supports **User OR Application** authentication. You can authenticate either as a logged-in User (with Entitlements) or as an Application using a Consumer Key (with Scopes).
+                 |See ${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")} for more information.
+                 |"""
+          }
         case UserAndApplication =>
           errorResponseBodies ?+= AuthenticatedUserIsRequired
           errorResponseBodies ?+= ApplicationNotIdentified

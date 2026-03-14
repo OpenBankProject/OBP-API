@@ -73,6 +73,7 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
+import code.model.Consumer
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
@@ -121,8 +122,9 @@ import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
+import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
-import code.scope.{MappedScope, MappedUserScope}
+import code.scope.{MappedScope, MappedUserScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -336,6 +338,8 @@ class Boot extends MdcLoggable {
     warnAboutSuperAdminUsers()
 
     createBootstrapOidcOperatorUser()
+
+    createBootstrapOidcOperatorConsumer()
 
     //launch the scheduler to clean the database from the expired tokens and nonces, 1 hour
     DataBaseCleanerScheduler.start(intervalInSeconds = 60*60)
@@ -1095,6 +1099,71 @@ class Boot extends MdcLoggable {
     }
   }
 
+  /**
+   * Bootstrap OIDC Operator Consumer
+   * Given the following key and secret, OBP will create a consumer *if it does not exist already*.
+   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient
+   * This allows OBP-OIDC to authenticate as an application (without a user) and manage consumers via the API.
+   */
+  private def createBootstrapOidcOperatorConsumer() = {
+
+    val oidcOperatorConsumerKey = APIUtil.getPropsValue("oidc_operator_consumer_key", "")
+    val oidcOperatorConsumerSecret = APIUtil.getPropsValue("oidc_operator_consumer_secret", "")
+
+    val isPropsNotSetProperly = oidcOperatorConsumerKey == "" || oidcOperatorConsumerSecret == ""
+
+    if (isPropsNotSetProperly) {
+      logger.info(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key and/or oidc_operator_consumer_secret props are not set, skipping")
+    } else if (oidcOperatorConsumerKey.length < 10) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key is too short (${oidcOperatorConsumerKey.length} chars, minimum 10), skipping")
+    } else if (oidcOperatorConsumerKey.length > 250) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_key is too long (${oidcOperatorConsumerKey.length} chars, maximum 250), skipping")
+    } else if (oidcOperatorConsumerSecret.length < 10) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_secret is too short (${oidcOperatorConsumerSecret.length} chars, minimum 10), skipping")
+    } else if (oidcOperatorConsumerSecret.length > 250) {
+      logger.error(s"createBootstrapOidcOperatorConsumer says: oidc_operator_consumer_secret is too long (${oidcOperatorConsumerSecret.length} chars, maximum 250), skipping")
+    } else {
+      val existingConsumer = Consumers.consumers.vend.getConsumerByConsumerKey(oidcOperatorConsumerKey)
+
+      if (existingConsumer.isDefined) {
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer with key ${oidcOperatorConsumerKey} already exists, skipping creation")
+      } else {
+        saveOidcOperatorConsumer(oidcOperatorConsumerKey, oidcOperatorConsumerSecret)
+      }
+    }
+  }
+
+  // Separate method to create and save the OIDC operator consumer.
+  // Uses Consumer.create directly (not Consumers.consumers.vend.createConsumer)
+  // to avoid S.? calls during Boot (Lift's S scope is not initialized at boot time).
+  private def saveOidcOperatorConsumer(consumerKey: String, consumerSecret: String): Unit = {
+    // Create consumer directly, skipping validate (which calls S.? and fails during Boot)
+    val c = Consumer.create
+      .key(consumerKey)
+      .secret(consumerSecret)
+      .name("OIDC Operator Consumer")
+    c.isActive(true) // MappedBoolean.apply returns Mapper, must be separate statement
+    c.description("Bootstrap consumer for OBP-OIDC to manage consumers via the API") // MappedText.apply returns Mapper, must be separate statement
+
+    val consumerBox = tryo(c.saveMe())
+
+    consumerBox match {
+      case Full(consumer) =>
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId.get}")
+        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
+        scopes.foreach { role =>
+          val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
+          if (resultBox.isEmpty) {
+            logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
+          }
+        }
+      case net.liftweb.common.Failure(msg, exception, _) =>
+        logger.error(s"createBootstrapOidcOperatorConsumer says: Error creating consumer: $msg ${exception.map(_.getMessage).openOr("")}")
+      case _ =>
+        logger.error("createBootstrapOidcOperatorConsumer says: Error creating consumer (unknown error)")
+    }
+  }
+
   LiftRules.statelessDispatch.append(aliveCheck)
 
 }
@@ -1225,6 +1294,7 @@ object ToSchemify {
     CustomerAccountLink,
     TransactionIdMapping,
     RegulatedEntityAttribute,
+    CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
     AccountAccessRequest
