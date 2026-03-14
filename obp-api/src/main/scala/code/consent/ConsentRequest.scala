@@ -29,7 +29,7 @@ class ConsentRequest extends ConsentRequestTrait with LongKeyedMapper[ConsentReq
   //the following are the obp consent.
   object ConsentRequestId extends MappedUUID(this)
   object Payload extends MappedText(this)
-  object ConsumerId extends MappedUUID(this) {
+  object ConsumerId extends MappedString(this, 250) {
     override def defaultValue = null
   }
   
