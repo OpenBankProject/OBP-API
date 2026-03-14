@@ -790,6 +790,50 @@ object Glossary extends MdcLoggable  {
 
 
 
+	glossaryItems += GlossaryItem(
+		title = "API.Endpoint Auth Modes",
+		description =
+			s"""
+|
+|Each API endpoint has an **authMode** that determines how Roles are checked when both a User and a Consumer (Application) are present in the request.
+|
+|The four auth modes are:
+|
+|* **UserOnly** (default): Only the User's Entitlements are checked. Consumer Scopes are ignored.
+|
+|* **ApplicationOnly**: Only the Consumer's Scopes are checked. No User is required.
+|
+|* **UserOrApplication**: Access is granted if the Consumer has the required Scope **OR** the User has the required Entitlement. This effectively gives the union of both.
+|
+|* **UserAndApplication**: Access is granted only if the Consumer has the required Scope **AND** the User has the required Entitlement. Both are required.
+|
+|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserOrApplication*, the User can access the endpoint even without a personal *CanGetConsumers* Entitlement (because the Consumer's Scope is sufficient).
+|
+|The authMode is set in the ResourceDoc definition for each endpoint, for example:
+|
+|```
+|resourceDocs += ResourceDoc(
+|  getConsumers,
+|  implementedInApiVersion,
+|  nameOf(getConsumers),
+|  "GET",
+|  "/management/consumers",
+|  "Get Consumers",
+|  ...,
+|  Some(List(canGetConsumers)),
+|  authMode = UserOrApplication
+|)
+|```
+|
+|If authMode is not specified, it defaults to UserOnly.
+|
+|Note: If the property *require_scopes_for_all_roles* is set to true, all endpoints behave as *UserAndApplication* regardless of their configured authMode.
+|
+|See also: [Access Control](/index#API.Access-Control), [Scopes](/index#group-Scope), [Roles](/index#group-Role)
+|
+|"""
+	)
+
 	val justInTimeEntitlements : String = if (APIUtil.getPropsAsBoolValue("create_just_in_time_entitlements", false))
 	{"Just in Time Entitlements are ENABLED on this instance."} else {"Just in Time Entitlements are NOT enabled on this instance."}
 
