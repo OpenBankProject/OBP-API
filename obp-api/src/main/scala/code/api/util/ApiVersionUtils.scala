@@ -23,8 +23,6 @@ object ApiVersionUtils {
       v7_0_0 ::
       `dynamic-endpoint` ::
       `dynamic-entity` ::
-      ConstantsBG.berlinGroupVersion1 ::
-      ConstantsBG.berlinGroupVersion2 ::
       scannedApis
     ).distinct
 
@@ -49,7 +47,6 @@ object ApiVersionUtils {
       case v7_0_0.fullyQualifiedVersion | v7_0_0.apiShortVersion => v7_0_0
       case `dynamic-endpoint`.fullyQualifiedVersion | `dynamic-endpoint`.apiShortVersion => `dynamic-endpoint`
       case `dynamic-entity`.fullyQualifiedVersion | `dynamic-entity`.apiShortVersion => `dynamic-entity`
-      case version if version == ConstantsBG.berlinGroupVersion1.fullyQualifiedVersion || version == ConstantsBG.berlinGroupVersion1.apiShortVersion => ConstantsBG.berlinGroupVersion1
       case version if version == ConstantsBG.berlinGroupVersion2.fullyQualifiedVersion || version == ConstantsBG.berlinGroupVersion2.apiShortVersion => ConstantsBG.berlinGroupVersion2
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head
