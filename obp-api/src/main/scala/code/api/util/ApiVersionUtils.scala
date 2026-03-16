@@ -23,6 +23,7 @@ object ApiVersionUtils {
       v7_0_0 ::
       `dynamic-endpoint` ::
       `dynamic-entity` ::
+      ConstantsBG.berlinGroupVersion2 ::
       scannedApis
     ).distinct
 
