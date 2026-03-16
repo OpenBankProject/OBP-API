@@ -394,16 +394,62 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                                    logoUrl: Option[String],
                                   ): Box[Consumer] = {
 
-    val consumer: Box[Consumer] =
-      // 1st try to find via UUID issued by OBP-API back end
-      Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None"))) or
-        // 2nd try to find via the pair (azp, iss) issued by External Identity Provider
-        {
-          // The azp field in the payload of a JWT (JSON Web Token) represents the Authorized Party.
-          // It is typically used in the context of OAuth 2.0 and OpenID Connect to identify the client application that the token is issued for.
-          // The pair (azp, iss) is a unique key in case of Client of an Identity Provider
-          Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.iss, iss.getOrElse("None")))
+    logger.info(s"getOrCreateConsumer says: BEGIN lookup. Input: consumerId=${consumerId.getOrElse("None")}, azp=${azp.getOrElse("None")}, iss=${iss.getOrElse("None")}, sub=${sub.getOrElse("None")}")
+
+    // 1st try: find by consumerId (UUID issued by OBP-API back end)
+    val byConsumerId = Consumer.find(By(Consumer.consumerId, consumerId.getOrElse("None")))
+    val consumer: Box[Consumer] = if (byConsumerId.isDefined) {
+      val c = byConsumerId.openOrThrowException("checked isDefined")
+      logger.info(s"getOrCreateConsumer says: MATCH on lookup 1 (by consumerId). Found consumer: consumerId=${c.consumerId.get}, key=${c.key.get}, azp=${c.azp.get}, iss=${c.iss.get}")
+      byConsumerId
+    } else {
+      logger.info(s"getOrCreateConsumer says: MISS on lookup 1 (by consumerId=${consumerId.getOrElse("None")}). Trying lookup 2 (by Consumer.key matching azp)...")
+
+      // 2nd try: find by consumer key matching azp (pre-registered consumer whose key is the OAuth2 client_id)
+      // This is checked before (azp, iss) so that a pre-registered consumer takes priority over an auto-created one
+      val byKey = Consumer.find(By(Consumer.key, azp.getOrElse("None")))
+      if (byKey.isDefined) {
+        val c = byKey.openOrThrowException("checked isDefined")
+        logger.info(s"getOrCreateConsumer says: MATCH on lookup 2 (by Consumer.key matching azp). Found pre-registered consumer: consumerId=${c.consumerId.get}, key=${c.key.get}, azp=${c.azp.get}, iss=${c.iss.get}")
+        // Before updating azp/iss/sub on the pre-registered consumer, check if an auto-created consumer
+        // already holds that (azp, sub) pair in the unique index. If so, clear it first to avoid constraint violation.
+        val conflicting = Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.iss, iss.getOrElse("None")))
+        for (stale <- conflicting) {
+          if (stale.id.get != c.id.get) {
+            logger.info(s"getOrCreateConsumer says: Found CONFLICTING auto-created consumer holding the same (azp, iss). Clearing its azp/iss/sub to avoid unique constraint violation. Stale consumer: consumerId=${stale.consumerId.get}, key=${stale.key.get}, azp=${stale.azp.get}, iss=${stale.iss.get}, sub=${stale.sub.get}")
+            stale.azp(APIUtil.generateUUID())
+            stale.sub(APIUtil.generateUUID())
+            stale.saveMe()
+            logger.info(s"getOrCreateConsumer says: Cleared stale consumer. Now: consumerId=${stale.consumerId.get}, azp=${stale.azp.get}, sub=${stale.sub.get}")
+          }
         }
+        logger.info(s"getOrCreateConsumer says: Updating azp/iss/sub on pre-registered consumer so future lookups also match by (azp, iss)...")
+        // Populate azp, iss, sub on the existing consumer so future lookups can also find it by (azp, iss)
+        for (found <- byKey) {
+          azp.foreach(v => found.azp(v))
+          iss.foreach(v => found.iss(v))
+          sub.foreach(v => found.sub(v))
+          found.saveMe()
+          logger.info(s"getOrCreateConsumer says: Updated pre-registered consumer. Now: consumerId=${found.consumerId.get}, key=${found.key.get}, azp=${found.azp.get}, iss=${found.iss.get}, sub=${found.sub.get}")
+        }
+        byKey
+      } else {
+        logger.info(s"getOrCreateConsumer says: MISS on lookup 2 (no consumer has key=${azp.getOrElse("None")}). Trying lookup 3 (by azp+iss pair)...")
+
+        // 3rd try: find by (azp, iss) pair issued by External Identity Provider
+        // The azp field in a JWT represents the Authorized Party (OAuth 2.0 / OpenID Connect client application).
+        // The pair (azp, iss) is a unique key in case of Client of an Identity Provider
+        val byAzpIss = Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.iss, iss.getOrElse("None")))
+        if (byAzpIss.isDefined) {
+          val c = byAzpIss.openOrThrowException("checked isDefined")
+          logger.info(s"getOrCreateConsumer says: MATCH on lookup 3 (by azp+iss). Found auto-created consumer: consumerId=${c.consumerId.get}, key=${c.key.get}, azp=${c.azp.get}, iss=${c.iss.get}")
+          byAzpIss
+        } else {
+          logger.info(s"getOrCreateConsumer says: MISS on all 3 lookups. Will CREATE a new consumer. Searched: consumerId=${consumerId.getOrElse("None")}, key=${azp.getOrElse("None")}, (azp=${azp.getOrElse("None")}, iss=${iss.getOrElse("None")})")
+          Empty
+        }
+      }
+    }
     consumer match {
       case Full(c) => Full(c)
       case Failure(msg, t, c) => Failure(msg, t, c)

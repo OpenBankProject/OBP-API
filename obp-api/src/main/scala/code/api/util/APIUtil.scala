@@ -3170,7 +3170,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         // This is normal for certificate-based validation or anonymous requests
         Empty
     }
-    logger.debug(s"getUserAndSessionContextFuture says consumerByConsumerKey is: $consumerByConsumerKey")
+    //logger.debug(s"getUserAndSessionContextFuture says consumerByConsumerKey is: $consumerByConsumerKey")
 
     val res =
       if (authHeadersWithEmptyValues.nonEmpty) { // Check Authorization Headers Empty Values
