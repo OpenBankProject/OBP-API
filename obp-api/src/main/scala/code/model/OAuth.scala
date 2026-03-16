@@ -407,12 +407,14 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 
       // 2nd try: find by consumer key matching azp (pre-registered consumer whose key is the OAuth2 client_id)
       // This is checked before (azp, iss) so that a pre-registered consumer takes priority over an auto-created one
-      val byKey = Consumer.find(By(Consumer.key, azp.getOrElse("None")))
-      if (byKey.isDefined) {
-        val c = byKey.openOrThrowException("checked isDefined")
+      val byKeyMatchingAzp = Consumer.find(By(Consumer.key, azp.getOrElse("None")))
+      if (byKeyMatchingAzp.isDefined) {
+        val c = byKeyMatchingAzp.openOrThrowException("checked isDefined")
         logger.info(s"getOrCreateConsumer says: MATCH on lookup 2 (by Consumer.key matching azp). Found pre-registered consumer: consumerId=${c.consumerId.get}, key=${c.key.get}, azp=${c.azp.get}, iss=${c.iss.get}")
-        // Before updating azp/iss/sub on the pre-registered consumer, check if an auto-created consumer
-        // already holds that (azp, sub) pair in the unique index. If so, clear it first to avoid constraint violation.
+        // Transitional cleanup: before the duplicate-consumer fix, OAuth2/OIDC flows could auto-create
+        // consumers that now conflict with the pre-registered one we just found. Clear the stale consumer's
+        // azp/iss/sub so we can populate those fields on the pre-registered consumer without a unique
+        // constraint violation. This block can be removed once all environments have been cleaned up.
         val conflicting = Consumer.find(By(Consumer.azp, azp.getOrElse("None")), By(Consumer.iss, iss.getOrElse("None")))
         for (stale <- conflicting) {
           if (stale.id.get != c.id.get) {
@@ -423,16 +425,17 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             logger.info(s"getOrCreateConsumer says: Cleared stale consumer. Now: consumerId=${stale.consumerId.get}, azp=${stale.azp.get}, sub=${stale.sub.get}")
           }
         }
+        // End of transitional cleanup block
         logger.info(s"getOrCreateConsumer says: Updating azp/iss/sub on pre-registered consumer so future lookups also match by (azp, iss)...")
         // Populate azp, iss, sub on the existing consumer so future lookups can also find it by (azp, iss)
-        for (found <- byKey) {
+        for (found <- byKeyMatchingAzp) {
           azp.foreach(v => found.azp(v))
           iss.foreach(v => found.iss(v))
           sub.foreach(v => found.sub(v))
           found.saveMe()
           logger.info(s"getOrCreateConsumer says: Updated pre-registered consumer. Now: consumerId=${found.consumerId.get}, key=${found.key.get}, azp=${found.azp.get}, iss=${found.iss.get}, sub=${found.sub.get}")
         }
-        byKey
+        byKeyMatchingAzp
       } else {
         logger.info(s"getOrCreateConsumer says: MISS on lookup 2 (no consumer has key=${azp.getOrElse("None")}). Trying lookup 3 (by azp+iss pair)...")
 
@@ -457,14 +460,17 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       case Empty =>
         tryo {
           val c = Consumer.create
-          key match {
-            case Some(v) => c.key(v)
-            case None =>
+          val actualKey = key.getOrElse(Helpers.randomString(40).toLowerCase)
+          val actualSecret = secret.getOrElse(Helpers.randomString(40).toLowerCase)
+          val actualConsumerId = consumerId.getOrElse {
+            azp match {
+              case Some(value) if APIUtil.checkIfStringIsUUID(value) => value
+              case Some(value) => s"${value}_${APIUtil.generateUUID()}"
+              case None => APIUtil.generateUUID()
+            }
           }
-          secret match {
-            case Some(v) => c.secret(v)
-            case None =>
-          }
+          c.key(actualKey)
+          c.secret(actualSecret)
           aud match {
             case Some(v) => c.aud(v)
             case None =>
@@ -526,10 +532,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case Some(v) => c.logoUrl(v)
             case None =>
           }
-          consumerId match {
-            case Some(v) => c.consumerId(v)
-            case None =>
-          }
+          c.consumerId(actualConsumerId)
           val createdConsumer = c.saveMe()
           // In case we use Hydra ORY as Identity Provider we create corresponding client at Hydra side a well
           if(integrateWithHydra) createHydraClient(createdConsumer)
