@@ -271,11 +271,11 @@
       <version>4.0.3</version>
     </dependency>
     <!-- ********** flexmark END ********** -->
-    <!--scala utils, for type scan-->
+    <!--class scanning, replaces classutil for better Fat JAR support-->
     <dependency>
-      <groupId>org.clapper</groupId>
-      <artifactId>classutil_${scala.version}</artifactId>
-      <version>1.5.1</version>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>0.10.2</version>
     </dependency>
     <dependency>
       <groupId>com.github.grumlimited</groupId>

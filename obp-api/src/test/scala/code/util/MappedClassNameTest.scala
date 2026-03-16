@@ -120,11 +120,11 @@ class MappedClassNameTest extends FeatureSpec {
       "code.CustomerDependants.MappedCustomerDependant",
     )
 
-  val newMappedTypes = ClassScanUtils.findTypes{ info =>
-    val typeName = info.name
+  val newMappedTypes = ClassScanUtils.findTypes{ clazz =>
+    val typeName = clazz.getName
     !typeName.endsWith("$") &&
       !oldMappedTypeNames.contains(typeName) &&
-      mapperClazz.isAssignableFrom(Class.forName(typeName, false, mapperClazz.getClassLoader))
+      mapperClazz.isAssignableFrom(clazz)
   }.toSet
   feature("Validate New Entity name and column name") {
 
