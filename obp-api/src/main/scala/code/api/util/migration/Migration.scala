@@ -108,6 +108,7 @@ object Migration extends MdcLoggable {
       addIndexOnMappedMetricUserId()
       alterRoleNameLength()
       alterConsentRequestColumnConsumerIdLength()
+      alterMappedConsentColumnConsumerIdLength()
     }
     
     private def dummyScript(): Boolean = {
@@ -559,6 +560,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterConsentRequestColumnConsumerIdLength)
       runOnce(name) {
         MigrationOfConsentRequestConsumerIdFieldLength.alterColumnConsumerIdLength(name)
+      }
+    }
+
+    private def alterMappedConsentColumnConsumerIdLength(): Boolean = {
+      val name = nameOf(alterMappedConsentColumnConsumerIdLength)
+      runOnce(name) {
+        MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
       }
     }
   }

@@ -400,7 +400,7 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
     override def defaultValue = BCrypt.gensalt()
   }
   object mJsonWebToken extends MappedText(this)
-  object mConsumerId extends MappedUUID(this) {
+  object mConsumerId extends MappedString(this, 250) {
     override def defaultValue = null
   }
   object mConsentRequestId extends MappedUUID(this) {

@@ -900,7 +900,7 @@ obp.base_url=https://api.example.com
 
 # Client credentials (from OBP consumer registration)
 oauth2.client_id=your-client-id
-oauth2.redirect_uri=http://localhost:8087/callback
+oauth2.redirect_uri=http://localhost:48123/callback
 oauth2.client_scope=ReadAccountsDetail ReadBalances ReadTransactionsDetail
 
 # mTLS (if required)
@@ -917,14 +917,14 @@ mvn clean package
 # Run locally
 java -jar target/obp-hola-app-0.0.29-SNAPSHOT.jar
 
-# Access at http://localhost:8087
+# Access at http://localhost:48123
 ```
 
 **Docker Deployment:**
 
 ```bash
 docker build -t obp-hola .
-docker run -p 8087:8087 \
+docker run -p 48123:48123 \
   -e OAUTH2_PUBLIC_URL=https://oauth2.example.com \
   -e OBP_BASE_URL=https://api.example.com \
   obp-hola
