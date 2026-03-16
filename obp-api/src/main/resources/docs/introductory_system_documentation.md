@@ -900,7 +900,7 @@ obp.base_url=https://api.example.com
 
 # Client credentials (from OBP consumer registration)
 oauth2.client_id=your-client-id
-oauth2.redirect_uri=http://localhost:8087/callback
+oauth2.redirect_uri=http://localhost:48123/callback
 oauth2.client_scope=ReadAccountsDetail ReadBalances ReadTransactionsDetail
 
 # mTLS (if required)
@@ -917,14 +917,14 @@ mvn clean package
 # Run locally
 java -jar target/obp-hola-app-0.0.29-SNAPSHOT.jar
 
-# Access at http://localhost:8087
+# Access at http://localhost:48123
 ```
 
 **Docker Deployment:**
 
 ```bash
 docker build -t obp-hola .
-docker run -p 8087:8087 \
+docker run -p 48123:48123 \
   -e OAUTH2_PUBLIC_URL=https://oauth2.example.com \
   -e OBP_BASE_URL=https://api.example.com \
   obp-hola
@@ -2865,6 +2865,23 @@ super_admin_user_ids=uuid-1,uuid-2
 # After bootstrap, grant CanCreateEntitlementAtAnyBank
 # Then remove super_admin_user_ids from props
 ```
+
+**Bootstrap OIDC Operator Consumer:**
+
+OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows OBP-OIDC to authenticate as an application (without a User) and manage consumers via the API, eliminating the need for direct database access.
+
+The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`.
+
+These endpoints use `authMode = UserOrApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by an Application using a Consumer Key with Scopes.
+
+```properties
+# Bootstrap OIDC Operator Consumer
+# Both values must be between 10 and 250 characters.
+oidc_operator_consumer_key=your-consumer-key-here
+oidc_operator_consumer_secret=your-consumer-secret-here
+```
+
+Note: If you use the Bootstrap OIDC Operator Consumer, you may not need the Bootstrap OIDC Operator User, depending on how OBP-OIDC implements its authentication.
 
 **Checking User Entitlements:**
 

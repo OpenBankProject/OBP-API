@@ -102,6 +102,56 @@ object MigrationOfMappedConsent {
         isSuccessful
     }
   }
+  // The mConsumerId column was originally MappedUUID (varchar(36)), but Consumer.consumerId
+  // is MappedString(250) and can hold composite IDs like "{azp_value}_UUID" generated
+  // by OAuth2.getOrCreateConsumer when the azp claim is not a UUID.
+  // This migration widens mConsumerId to match the Consumer model.
+  def alterColumnConsumerIdLength(name: String): Boolean = {
+    DbFunction.tableExists(MappedConsent) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+            APIUtil.getPropsValue("db.driver") match {
+              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """ALTER TABLE mappedconsent ALTER COLUMN mconsumerid varchar(250);
+                    |""".stripMargin
+              case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                () =>
+                  """ALTER TABLE mappedconsent MODIFY COLUMN mconsumerid varchar(250);
+                    |""".stripMargin
+              case _ =>
+                () =>
+                  """ALTER TABLE mappedconsent ALTER COLUMN mconsumerid TYPE character varying(250);
+                    |""".stripMargin
+            }
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Executed SQL:
+             |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
+
   def alterColumnStatus(name: String): Boolean = {
     DbFunction.tableExists(MappedConsent) match {
       case true =>

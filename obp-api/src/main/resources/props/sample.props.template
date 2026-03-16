@@ -1151,7 +1151,7 @@ database_messages_scheduler_interval=3600
 # consumer_validation_method_for_consent=CONSUMER_CERTIFICATE
 #
 # consents.max_time_to_live=3600
-# In case isn't defined default value is "false"
+# In case isn't defined default value is "true"
 # consents.sca.enabled=true
 # ---------------------------------------------------------
 
