@@ -20,7 +20,7 @@ object DoobieQueries {
    */
   def getDistinctProviders: List[String] = {
     val query: ConnectionIO[List[String]] =
-      sql"""SELECT DISTINCT provider_ FROM resourceuser ORDER BY provider_"""
+      sql"""SELECT DISTINCT provider_ FROM resourceuser WHERE provider_ IS NOT NULL ORDER BY provider_"""
         .query[String]
         .to[List]
 

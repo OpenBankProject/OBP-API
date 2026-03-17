@@ -510,9 +510,17 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   def getSingleton = Consumer
   def primaryKeyField = id
   
-  //Note: we have two id here for Consumer. id is the primaryKeyField, we used it as the CONSUMER_ID in api level for a long time. 
-  //But from `a4222f9824fcac039e7968f4abcd009fa3918d4a` 2017-07-07 we introduced the consumerId here. It is confused now
-  //For now consumerId is only used in Gateway Login, all other cases, we should use the id instead `consumerId`.
+  // Note: There are two IDs on Consumer.
+  // `id` is the Long primary key (MappedLongIndex).
+  // `consumerId` is the UUID-based string identifier exposed externally as consumer_id in the API.
+  //
+  // consumerId is 250 chars to accommodate:
+  //   - Standard UUIDs (36 chars) — the default
+  //   - Gateway Login external app_id values (variable length)
+  //   - OAuth2 composite IDs in format "azp_UUID" created by OAuth2.getOrCreateConsumer (up to ~77 chars)
+  //
+  // WARNING: Do not increase this length. Other tables (e.g. MappedConsent.mConsumerId) store
+  // copies of this value.
   object id extends MappedLongIndex(this)
   object consumerId extends MappedString(this, 250) { // Introduced to cover gateway login functionality
     override def defaultValue = APIUtil.generateUUID()

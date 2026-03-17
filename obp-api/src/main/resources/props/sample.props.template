@@ -1151,7 +1151,7 @@ database_messages_scheduler_interval=3600
 # consumer_validation_method_for_consent=CONSUMER_CERTIFICATE
 #
 # consents.max_time_to_live=3600
-# In case isn't defined default value is "false"
+# In case isn't defined default value is "true"
 # consents.sca.enabled=true
 # ---------------------------------------------------------
 
@@ -1654,6 +1654,17 @@ regulated_entities = []
 # oidc_operator_username=...
 # oidc_operator_initial_password=...
 # oidc_operator_email=...
+
+# Bootstrap OIDC Operator Consumer
+# Given the following key and secret, OBP will create a consumer if it does not already exist.
+# This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient
+# This allows OBP-OIDC to authenticate as an application and manage consumers via the API.
+# Note: If you use this, you may not need the Bootstrap OIDC Operator User above,
+# depending on how OBP-OIDC implements its authentication.
+# If you want to use this feature, please set up both values properly at the same time.
+# Both values must be between 10 and 250 characters.
+# oidc_operator_consumer_key=...
+# oidc_operator_consumer_secret=...
 
 
 ## Ethereum Connector Configuration

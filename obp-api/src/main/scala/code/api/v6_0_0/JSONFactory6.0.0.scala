@@ -65,6 +65,26 @@ case class FeaturesJsonV600(
   allow_account_deletion: Boolean
 )
 
+case class CounterpartyAttributeRequestJsonV600(
+  name: String,
+  attribute_type: String,
+  value: String,
+  is_active: Option[Boolean]
+)
+
+case class CounterpartyAttributeResponseJsonV600(
+  counterparty_id: String,
+  counterparty_attribute_id: String,
+  name: String,
+  attribute_type: String,
+  value: String,
+  is_active: Option[Boolean]
+)
+
+case class CounterpartyAttributesJsonV600(
+  attributes: List[CounterpartyAttributeResponseJsonV600]
+)
+
 case class CardanoPaymentJsonV600(
     address: String,
     amount: CardanoAmountJsonV600,
@@ -2689,6 +2709,23 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       account_routings = createAccountRoutingsJSON(account.accountRoutings),
       account_attributes = accountAttributes.map(createAccountAttributeJson),
       tags = tags.map(createAccountTagJSON)
+    )
+  }
+
+  def createCounterpartyAttributeJson(attribute: CounterpartyAttributeTrait): CounterpartyAttributeResponseJsonV600 = {
+    CounterpartyAttributeResponseJsonV600(
+      counterparty_id = attribute.counterpartyId.value,
+      counterparty_attribute_id = attribute.counterpartyAttributeId,
+      name = attribute.name,
+      attribute_type = attribute.attributeType.toString,
+      value = attribute.value,
+      is_active = attribute.isActive
+    )
+  }
+
+  def createCounterpartyAttributesJson(attributes: List[CounterpartyAttributeTrait]): CounterpartyAttributesJsonV600 = {
+    CounterpartyAttributesJsonV600(
+      attributes.map(createCounterpartyAttributeJson)
     )
   }
 

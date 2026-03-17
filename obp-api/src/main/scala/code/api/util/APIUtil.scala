@@ -1624,6 +1624,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           if (authMode == ApplicationOnly) {
             errorResponseBodies ?-= AuthenticatedUserIsRequired
           }
+          if (authMode == UserOrApplication) {
+            description +=
+              s"""
+                 |
+                 |This endpoint supports **User OR Application** authentication. You can authenticate either as a logged-in User (with Entitlements) or as an Application using a Consumer Key (with Scopes).
+                 |See ${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")} for more information.
+                 |"""
+          }
         case UserAndApplication =>
           errorResponseBodies ?+= AuthenticatedUserIsRequired
           errorResponseBodies ?+= ApplicationNotIdentified
@@ -4085,7 +4093,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
     "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
-    "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:8087"),
+    "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
     "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")

@@ -550,6 +550,15 @@ trait RegulatedEntityAttributeTrait {
   def isActive: Option[Boolean]
 }
 
+trait CounterpartyAttributeTrait {
+  def counterpartyId: CounterpartyId
+  def counterpartyAttributeId: String
+  def attributeType: CounterpartyAttributeType.Value
+  def name: String
+  def value: String
+  def isActive: Option[Boolean]
+}
+
 trait BankAttributeTrait {
   def bankId: BankId
   def bankAttributeId: String
