@@ -453,12 +453,12 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       // First try to get provider from token's provider claim
       val providerFromToken = JwtUtil.getProvider(jwtToken)
       
-      providerFromToken match {
+      providerFromToken.filter(_.trim.nonEmpty) match {
         case Some(provider) =>
           logger.debug(s"resolveProvider says: using provider from token claim: $provider")
           provider
         case None =>
-          // Fallback to existing logic if provider claim is not present
+          // Fallback to existing logic if provider claim is not present or blank
           HydraUtil.integrateWithHydra && isIssuer(jwtToken = jwtToken, identityProvider = hydraPublicUrl) match {
             case true if HydraUtil.hydraUsesObpUserCredentials => // Case that source of the truth of Hydra user management is the OBP-API mapper DB
               logger.debug(s"resolveProvider says: we are in Hydra, use Constant.localIdentityProvider ${Constant.localIdentityProvider}")
