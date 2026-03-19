@@ -2,7 +2,7 @@ package code.util
 
 import code.api.util.APIUtil
 
-import java.util.regex.Pattern
+import java.util.regex.{Matcher, Pattern}
 import scala.collection.mutable
 
 /**
@@ -21,8 +21,19 @@ object SecureLogging {
   private def conditionalPattern(
                                   prop: String,
                                   defaultValue: Boolean = true
-                                )(pattern: => (Pattern, String)): Option[(Pattern, String)] = {
+                                )(pattern: => (Pattern, Matcher => String)): Option[(Pattern, Matcher => String)] = {
     if (APIUtil.getPropsAsBoolValue(prop, defaultValue)) Some(pattern) else None
+  }
+
+  /** Helper to create a static replacement function from a replacement string */
+  private def staticReplacement(replacement: String): Matcher => String = _ => replacement
+
+  /** Helper to create a partial-mask replacement that shows first 3 and last 3 chars of group 2 */
+  private def partialMaskReplacement: Matcher => String = m => {
+    val prefix = m.group(1)
+    val value = m.group(2)
+    if (value.length > 6) s"${prefix}${value.take(3)}...${value.takeRight(3)}"
+    else s"${prefix}***"
   }
 
   /**
@@ -30,89 +41,89 @@ object SecureLogging {
    * Note: The sensitive keywords are defined in APIUtil.sensitiveKeywords.
    * When adding new categories here, also update that shared list.
    */
-  private lazy val sensitivePatterns: List[(Pattern, String)] = {
+  private lazy val sensitivePatterns: List[(Pattern, Matcher => String)] = {
     val patterns = Seq(
       // OAuth2 / API secrets
       conditionalPattern("securelogging_mask_secret") {
-        (Pattern.compile("(?i)(secret=)([^,\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(secret=)([^,\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_client_secret") {
-        (Pattern.compile("(?i)(client_secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(client_secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_client_secret") {
-        (Pattern.compile("(?i)(client_secret\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(client_secret\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
 
       // Authorization / Tokens
       conditionalPattern("securelogging_mask_authorization") {
-        (Pattern.compile("(?i)(Authorization:\\s*Bearer\\s+)([^\\s,&]+)"), "$1***")
+        (Pattern.compile("(?i)(Authorization:\\s*Bearer\\s+)([^\\s,&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_access_token") {
-        (Pattern.compile("(?i)(access_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(access_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_access_token") {
-        (Pattern.compile("(?i)(access_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(access_token\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_refresh_token") {
-        (Pattern.compile("(?i)(refresh_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(refresh_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_refresh_token") {
-        (Pattern.compile("(?i)(refresh_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(refresh_token\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_id_token") {
-        (Pattern.compile("(?i)(id_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(id_token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_id_token") {
-        (Pattern.compile("(?i)(id_token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(id_token\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_token") {
-        (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_token") {
-        (Pattern.compile("(?i)(token\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(token\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
 
       // Passwords
       conditionalPattern("securelogging_mask_password") {
-        (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_password") {
-        (Pattern.compile("(?i)(password\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(password\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
 
-      // API keys
+      // API keys - use partial masking to show first 3 and last 3 characters
       conditionalPattern("securelogging_mask_api_key") {
-        (Pattern.compile("(?i)(api_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(api_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), partialMaskReplacement)
       },
       conditionalPattern("securelogging_mask_api_key") {
-        (Pattern.compile("(?i)(api_key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(api_key\\s*->\\s*)([^,\\s&\\)]+)"), partialMaskReplacement)
       },
       conditionalPattern("securelogging_mask_key") {
-        (Pattern.compile("(?i)(key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), partialMaskReplacement)
       },
       conditionalPattern("securelogging_mask_key") {
-        (Pattern.compile("(?i)(key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(key\\s*->\\s*)([^,\\s&\\)]+)"), partialMaskReplacement)
       },
       conditionalPattern("securelogging_mask_private_key") {
-        (Pattern.compile("(?i)(private_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), "$1***")
+        (Pattern.compile("(?i)(private_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***"))
       },
       conditionalPattern("securelogging_mask_private_key") {
-        (Pattern.compile("(?i)(private_key\\s*->\\s*)([^,\\s&\\)]+)"), "$1***")
+        (Pattern.compile("(?i)(private_key\\s*->\\s*)([^,\\s&\\)]+)"), staticReplacement("$1***"))
       },
 
       // Database
       conditionalPattern("securelogging_mask_jdbc") {
-        (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), "$1***$3")
+        (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), staticReplacement("$1***$3"))
       },
 
       // Credit card
       conditionalPattern("securelogging_mask_credit_card") {
-        (Pattern.compile("\\b([0-9]{4})[\\s-]?([0-9]{4})[\\s-]?([0-9]{4})[\\s-]?([0-9]{3,7})\\b"), "$1-****-****-$4")
+        (Pattern.compile("\\b([0-9]{4})[\\s-]?([0-9]{4})[\\s-]?([0-9]{4})[\\s-]?([0-9]{3,7})\\b"), staticReplacement("$1-****-****-$4"))
       },
 
       // Email addresses
       conditionalPattern("securelogging_mask_email") {
-        (Pattern.compile("(?i)(email[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+@[^\"',\\s&]+)"), "$1***@***.***")
+        (Pattern.compile("(?i)(email[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+@[^\"',\\s&]+)"), staticReplacement("$1***@***.***"))
       }
     )
 
@@ -129,8 +140,22 @@ object SecureLogging {
     val msgString = Option(msg).map(_.toString).getOrElse("")
     if (msgString.isEmpty) return msgString
 
-    sensitivePatterns.foldLeft(msgString) { case (acc, (pattern, replacement)) =>
-      pattern.matcher(acc).replaceAll(replacement)
+    sensitivePatterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
+      val matcher = pattern.matcher(acc)
+      val sb = new StringBuffer()
+      while (matcher.find()) {
+        val replacement = replaceFn(matcher)
+        // If the function returns a string with $ references (static replacements),
+        // use appendReplacement which handles group references.
+        // Otherwise, quote the replacement to avoid $ interpretation.
+        if (replacement.contains("$1") || replacement.contains("$2") || replacement.contains("$3") || replacement.contains("$4")) {
+          matcher.appendReplacement(sb, replacement)
+        } else {
+          matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement))
+        }
+      }
+      matcher.appendTail(sb)
+      sb.toString
     }
   }
 

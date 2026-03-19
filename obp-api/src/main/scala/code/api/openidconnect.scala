@@ -306,9 +306,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   
   private def getOrCreateConsumer(idToken: String, userId: String): Box[Consumer] = {
     Consumers.consumers.vend.getOrCreateConsumer(
-      consumerId=Some(APIUtil.generateUUID()),
-      Some(Helpers.randomString(40).toLowerCase),
-      Some(Helpers.randomString(40).toLowerCase),
+      consumerId=None,
+      None,
+      None,
       Some(JwtUtil.getAudience(idToken).mkString(",")),
       getClaim(name = "azp", idToken = idToken),
       JwtUtil.getIssuer(idToken),

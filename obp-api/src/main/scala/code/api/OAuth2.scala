@@ -501,15 +501,10 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       val sub = getClaim(name = "sub", jwtToken = jwtToken)
       val email = getClaim(name = "email", jwtToken = jwtToken)
       val name = getClaim(name = "name", jwtToken = jwtToken).orElse(description)
-      val consumerId = azp match {
-        case Some(value) if APIUtil.checkIfStringIsUUID(value) => azp
-        case Some(value) => Some(s"${value}_${APIUtil.generateUUID()}")
-        case None => Some(APIUtil.generateUUID())
-      }
       Consumers.consumers.vend.getOrCreateConsumer(
-        consumerId = consumerId, // Use azp as consumer id if it is uuid value
-        key = Some(Helpers.randomString(40).toLowerCase),
-        secret = Some(Helpers.randomString(40).toLowerCase),
+        consumerId = None,
+        key = None,
+        secret = None,
         aud = aud,
         azp = azp,
         iss = iss,
