@@ -5,7 +5,7 @@ import code.api.APIFailure
 import code.api.Constant._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.{APIUtil, AccountAccessWithViewRow, CallContext, DoobieAccountAccessViewQueries}
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
 import code.views.system.ViewDefinition.create
@@ -22,20 +22,12 @@ import scala.concurrent.Future
 object MapperViews extends Views with MdcLoggable {
   
   private def getViewsForUser(user: User): List[View] = {
-    val accountAccessList = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      OrderBy(AccountAccess.bank_id, Ascending),
-      OrderBy(AccountAccess.account_id, Ascending)
-    )
-    getViewsCommonPart(accountAccessList)
-  }  
+    val rows = DoobieAccountAccessViewQueries.getByUser(user.userId)
+    rowsToViewDefinitions(rows).map(_._2)
+  }
   private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
-    val accountAccessList = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, account.bankId.value),
-      By(AccountAccess.account_id, account.accountId.value)
-    )
-    getViewsCommonPart(accountAccessList)
+    val rows = DoobieAccountAccessViewQueries.getByUserBankAccount(user.userId, account.bankId.value, account.accountId.value)
+    rowsToViewDefinitions(rows).map(_._2)
   }
 
   private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
@@ -114,31 +106,85 @@ object MapperViews extends Views with MdcLoggable {
     batchLoadViewsForAccountAccess(accountAccessList).map(_._2)
   }
 
-  def permissions(account : BankIdAccountId) : List[Permission] = {
-    // 1. Single query: get all AccountAccess for this account
-    val allAccountAccess = AccountAccess.findAll(
-      By(AccountAccess.bank_id, account.bankId.value),
-      By(AccountAccess.account_id, account.accountId.value)
-    )
+  /**
+   * Convert Doobie rows to AccountAccess Mapper instances.
+   * These are unsaved in-memory objects with fields populated from the row data.
+   */
+  private def rowToAccountAccess(row: AccountAccessWithViewRow): AccountAccess = {
+    AccountAccess.create
+      .user_fk(row.resourceUserPrimaryKey)
+      .bank_id(row.bankId)
+      .account_id(row.accountId)
+      .view_id(row.viewId)
+      .consumer_id(row.consumerId)
+  }
 
-    // 2. Batch-load users: one query using ByList instead of N individual FK lookups
-    val distinctUserFks = allAccountAccess.map(_.user_fk.get).distinct
-    val usersMap: Map[Long, ResourceUser] = if (distinctUserFks.nonEmpty) {
-      ResourceUser.findAll(ByList(ResourceUser.id, distinctUserFks))
+  /**
+   * Batch-load ViewDefinition objects from Doobie rows.
+   * The Doobie query already filtered for valid views (SQL JOIN) and private views (WHERE clause).
+   * We still need the rich ViewDefinition Mapper objects for the View trait interface.
+   *
+   * Returns (row, ViewDefinition) pairs for rows that have a matching ViewDefinition.
+   */
+  private def rowsToViewDefinitions(rows: List[AccountAccessWithViewRow]): List[(AccountAccessWithViewRow, ViewDefinition)] = {
+    if (rows.isEmpty) return Nil
+
+    val (systemRows, customRows) = rows.partition(_.isSystem)
+
+    // System views: load each distinct viewId once to check existence,
+    // then call findSystemView per row (ViewDefinition is mutable, needs fresh instance per row)
+    val distinctSystemViewIds = systemRows.map(_.viewId).distinct
+    val validSystemViewIds: Set[String] = distinctSystemViewIds
+      .filter(vid => ViewDefinition.findSystemView(vid).isDefined)
+      .toSet
+
+    val systemPairs: List[(AccountAccessWithViewRow, ViewDefinition)] = systemRows.flatMap { row =>
+      if (validSystemViewIds.contains(row.viewId)) {
+        ViewDefinition.findSystemView(row.viewId).toList.map { v =>
+          (row, v.bank_id(row.bankId).account_id(row.accountId))
+        }
+      } else Nil
+    }
+
+    // Custom views: one batch query using ByList, then index for fast lookup
+    val customPairs: List[(AccountAccessWithViewRow, ViewDefinition)] = if (customRows.nonEmpty) {
+      val distinctCustomViewIds = customRows.map(_.viewId).distinct
+      val allCustomViews = ViewDefinition.findAll(
+        By(ViewDefinition.isSystem_, false),
+        ByList(ViewDefinition.view_id, distinctCustomViewIds)
+      )
+      val customViewMap: Map[(String, String, String), ViewDefinition] = allCustomViews
+        .map(v => (v.bank_id.get, v.account_id.get, v.view_id.get) -> v)
+        .toMap
+
+      customRows.flatMap { row =>
+        customViewMap.get((row.bankId, row.accountId, row.viewId)).map(v => (row, v))
+      }
+    } else Nil
+
+    systemPairs ::: customPairs
+  }
+
+  def permissions(account : BankIdAccountId) : List[Permission] = {
+    // 1. Single Doobie query against the SQL view (replaces AccountAccess + view joins)
+    val rows = DoobieAccountAccessViewQueries.getByBankAccount(account.bankId.value, account.accountId.value)
+    val viewPairs = rowsToViewDefinitions(rows)
+
+    // 2. Batch-load users by primary key
+    val distinctUserPks = viewPairs.map(_._1.resourceUserPrimaryKey).distinct
+    val usersMap: Map[Long, ResourceUser] = if (distinctUserPks.nonEmpty) {
+      ResourceUser.findAll(ByList(ResourceUser.id, distinctUserPks))
         .map(u => u.id.get -> u).toMap
     } else Map.empty
 
-    // 3. Batch-load views for all access records
-    val viewPairs = batchLoadViewsForAccountAccess(allAccountAccess)
+    // 3. Group views by user PK and build Permission objects
+    val viewsByUserPk: Map[Long, List[View]] = viewPairs
+      .groupBy(_._1.resourceUserPrimaryKey)
+      .map { case (pk, pairs) => pk -> pairs.map(_._2: View) }
 
-    // 4. Group views by user FK and build Permission objects
-    val viewsByUserFk: Map[Long, List[View]] = viewPairs
-      .groupBy(_._1.user_fk.get)
-      .map { case (userFk, pairs) => userFk -> pairs.map(_._2: View) }
-
-    distinctUserFks.flatMap { userFk =>
-      usersMap.get(userFk).map { user =>
-        Permission(user, viewsByUserFk.getOrElse(userFk, Nil))
+    distinctUserPks.flatMap { pk =>
+      usersMap.get(pk).map { user =>
+        Permission(user, viewsByUserPk.getOrElse(pk, Nil))
       }
     }
   }
@@ -618,44 +664,30 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
-    val allAccountAccess = AccountAccess.findAllByUserPrimaryKey(user.userPrimaryKey)
-    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
-    (pairs.map(_._2).distinct, pairs.map(_._1))
+    val rows = DoobieAccountAccessViewQueries.getByUser(user.userId)
+    val viewPairs = rowsToViewDefinitions(rows)
+    (viewPairs.map(_._2).distinct, viewPairs.map { case (row, _) => rowToAccountAccess(row) })
   }
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
-    val allAccountAccess = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      ByList(AccountAccess.view_id, viewIds.map(_.value))
-    )
-    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
-    (pairs.map(_._2), pairs.map(_._1))
+    val rows = DoobieAccountAccessViewQueries.getByUserAndViewIds(user.userId, viewIds.map(_.value))
+    val viewPairs = rowsToViewDefinitions(rows)
+    (viewPairs.map(_._2), viewPairs.map { case (row, _) => rowToAccountAccess(row) })
   }
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
-    val allAccountAccess = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, bankId.value)
-    )
-    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
-    (pairs.map(_._2), pairs.map(_._1))
+    val rows = DoobieAccountAccessViewQueries.getByUserAndBank(user.userId, bankId.value)
+    val viewPairs = rowsToViewDefinitions(rows)
+    (viewPairs.map(_._2), viewPairs.map { case (row, _) => rowToAccountAccess(row) })
   }
   def getAccountAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId): (List[View], List[AccountAccess]) ={
-    val allAccountAccess = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.view_id, viewId.value)
-    )
-    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
-    (pairs.map(_._2), pairs.map(_._1))
+    val rows = DoobieAccountAccessViewQueries.getByUserBankView(user.userId, bankId.value, viewId.value)
+    val viewPairs = rowsToViewDefinitions(rows)
+    (viewPairs.map(_._2), viewPairs.map { case (row, _) => rowToAccountAccess(row) })
   }
 
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
-    val accountAccess = AccountAccess.findByBankIdAccountIdUserPrimaryKey(
-      bankIdAccountId.bankId,
-      bankIdAccountId.accountId,
-      user.userPrimaryKey
-    )
-    val pairs = batchLoadViewsForAccountAccess(accountAccess)
-    pairs.map(_._2).distinct
+    val rows = DoobieAccountAccessViewQueries.getByUserBankAccount(user.userId, bankIdAccountId.bankId.value, bankIdAccountId.accountId.value)
+    val viewPairs = rowsToViewDefinitions(rows)
+    viewPairs.map(_._2).distinct
   }
 
   
