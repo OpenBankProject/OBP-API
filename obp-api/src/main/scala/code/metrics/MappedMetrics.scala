@@ -114,28 +114,26 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String): Unit = {
-    val metric = MappedMetric.create
-      .userId(userId)
-      .url(url)
-      .date(date)
-      .duration(duration)
-      .userName(userName)
-      .appName(appName)
-      .developerEmail(developerEmail)
-      .consumerId(consumerId)
-      .implementedByPartialFunction(implementedByPartialFunction)
-      .implementedInVersion(implementedInVersion)
-      .verb(verb)
-      .correlationId(correlationId)
-      .responseBody(responseBody)
-      .sourceIp(sourceIp)
-      .targetIp(targetIp)
-      
-    httpCode match {
-      case Some(code) => metric.httpCode(code)
-      case None =>
-    }
-    metric.save
+    MetricBatchWriter.enqueue(
+      MetricBatchWriter.MetricRow(
+        userId = userId,
+        url = url,
+        date = date,
+        duration = duration,
+        userName = userName,
+        appName = appName,
+        developerEmail = developerEmail,
+        consumerId = consumerId,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        httpCode = httpCode.getOrElse(0),
+        correlationId = correlationId,
+        responseBody = responseBody,
+        sourceIp = sourceIp,
+        targetIp = targetIp
+      )
+    )
   }
   override def saveMetricsArchive(primaryKey: Long, userId: String,
                                   url: String, date: Date, duration: Long, userName: String,

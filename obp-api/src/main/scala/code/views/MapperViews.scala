@@ -30,6 +30,24 @@ object MapperViews extends Views with MdcLoggable {
     rowsToViewDefinitions(rows).map(_._2)
   }
 
+  /**
+   * Build a ViewDefinition in-memory from Doobie row data. No database call needed.
+   * Permissions are resolved via ViewPermission table (called later via allowed_actions),
+   * not from the deprecated boolean fields on ViewDefinition.
+   */
+  private def viewDefinitionFromRow(row: AccountAccessWithViewRow): ViewDefinition = {
+    ViewDefinition.create
+      .bank_id(row.bankId)
+      .account_id(row.accountId)
+      .view_id(row.viewId)
+      .name_(row.viewName)
+      .description_(row.viewDescription.getOrElse(""))
+      .metadataView_(row.metadataView.getOrElse(""))
+      .isSystem_(row.isSystem)
+      .isPublic_(row.isPublic)
+      .isFirehose_(row.isFirehose)
+  }
+
   private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
     if (isValidSystemViewId(accountAccess.view_id.get)) {
       ViewDefinition.findSystemView(accountAccess.view_id.get)
@@ -39,72 +57,6 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  /**
-    * Batch-load all views for a list of AccountAccess records in minimal DB queries,
-    * instead of one query per AccountAccess row (N+1 problem).
-    *
-    * Returns a list of (AccountAccess, ViewDefinition) pairs for access records
-    * that have a valid, private view.
-    */
-  private def batchLoadViewsForAccountAccess(
-    accountAccessList: List[AccountAccess]
-  ): List[(AccountAccess, ViewDefinition)] = {
-    if (accountAccessList.isEmpty) return Nil
-
-    // 1. Separate system vs custom view access
-    val (systemAccessList, customAccessList) = accountAccessList.partition(a => isValidSystemViewId(a.view_id.get))
-
-    // 2. Batch-load system views: one query per distinct view_id (small fixed set).
-    // We cache which view_ids exist to avoid repeated DB lookups, but we must call
-    // findSystemView per access record because the returned ViewDefinition is mutable
-    // and we need to set bank_id/account_id per access record without cross-contamination.
-    val distinctSystemViewIds = systemAccessList.map(_.view_id.get).distinct
-    val validSystemViewIds: Set[String] = distinctSystemViewIds
-      .filter(vid => ViewDefinition.findSystemView(vid).isDefined)
-      .toSet
-
-    val systemPairs: List[(AccountAccess, ViewDefinition)] = systemAccessList.flatMap { aa =>
-      // Skip view_ids we already know don't exist in the DB (avoids pointless queries)
-      if (validSystemViewIds.contains(aa.view_id.get)) {
-        // We must call findSystemView per access record (not cache the ViewDefinition) because
-        // ViewDefinition is a mutable Mapper object. v.bank_id(...) is a setter that mutates v
-        // in place — caching one instance and reusing it across access records would cause each
-        // call to overwrite the previous bank_id/account_id, corrupting earlier results.
-        // System views are stored without bank_id/account_id (they're generic), so we stamp
-        // each fresh instance with the specific account's context from the access record.
-        ViewDefinition.findSystemView(aa.view_id.get).toList.map { v =>
-          (aa, v.bank_id(aa.bank_id.get).account_id(aa.account_id.get))
-        }
-      } else Nil
-    }
-
-    // 3. Batch-load custom views: one query using ByList on view_id, then filter in memory
-    val customPairs: List[(AccountAccess, ViewDefinition)] = if (customAccessList.nonEmpty) {
-      val distinctCustomViewIds = customAccessList.map(_.view_id.get).distinct
-      val allCustomViews = ViewDefinition.findAll(
-        By(ViewDefinition.isSystem_, false),
-        ByList(ViewDefinition.view_id, distinctCustomViewIds)
-      )
-      // Index by (bank_id, account_id, view_id) for fast lookup
-      val customViewMap: Map[(String, String, String), ViewDefinition] = allCustomViews
-        .map(v => (v.bank_id.get, v.account_id.get, v.view_id.get) -> v)
-        .toMap
-
-      customAccessList.flatMap { aa =>
-        customViewMap.get((aa.bank_id.get, aa.account_id.get, aa.view_id.get)).map(v => (aa, v))
-      }
-    } else Nil
-
-    // 4. Combine and filter for private views only
-    val allPairs = systemPairs ::: customPairs
-    allPairs.filter { case (_, view) =>
-      view.isPrivate || allowPublicViews
-    }
-  }
-  
-  private def getViewsCommonPart(accountAccessList: List[AccountAccess]): List[View] = {
-    batchLoadViewsForAccountAccess(accountAccessList).map(_._2)
-  }
 
   /**
    * Convert Doobie rows to AccountAccess Mapper instances.
@@ -126,43 +78,14 @@ object MapperViews extends Views with MdcLoggable {
    *
    * Returns (row, ViewDefinition) pairs for rows that have a matching ViewDefinition.
    */
+  /**
+   * Convert Doobie rows to (row, ViewDefinition) pairs.
+   * Builds ViewDefinition objects entirely in-memory from the row data.
+   * No Lift Mapper queries — stays on the Doobie pool only.
+   */
   private def rowsToViewDefinitions(rows: List[AccountAccessWithViewRow]): List[(AccountAccessWithViewRow, ViewDefinition)] = {
     if (rows.isEmpty) return Nil
-
-    val (systemRows, customRows) = rows.partition(_.isSystem)
-
-    // System views: load each distinct viewId once to check existence,
-    // then call findSystemView per row (ViewDefinition is mutable, needs fresh instance per row)
-    val distinctSystemViewIds = systemRows.map(_.viewId).distinct
-    val validSystemViewIds: Set[String] = distinctSystemViewIds
-      .filter(vid => ViewDefinition.findSystemView(vid).isDefined)
-      .toSet
-
-    val systemPairs: List[(AccountAccessWithViewRow, ViewDefinition)] = systemRows.flatMap { row =>
-      if (validSystemViewIds.contains(row.viewId)) {
-        ViewDefinition.findSystemView(row.viewId).toList.map { v =>
-          (row, v.bank_id(row.bankId).account_id(row.accountId))
-        }
-      } else Nil
-    }
-
-    // Custom views: one batch query using ByList, then index for fast lookup
-    val customPairs: List[(AccountAccessWithViewRow, ViewDefinition)] = if (customRows.nonEmpty) {
-      val distinctCustomViewIds = customRows.map(_.viewId).distinct
-      val allCustomViews = ViewDefinition.findAll(
-        By(ViewDefinition.isSystem_, false),
-        ByList(ViewDefinition.view_id, distinctCustomViewIds)
-      )
-      val customViewMap: Map[(String, String, String), ViewDefinition] = allCustomViews
-        .map(v => (v.bank_id.get, v.account_id.get, v.view_id.get) -> v)
-        .toMap
-
-      customRows.flatMap { row =>
-        customViewMap.get((row.bankId, row.accountId, row.viewId)).map(v => (row, v))
-      }
-    } else Nil
-
-    systemPairs ::: customPairs
+    rows.map(row => (row, viewDefinitionFromRow(row)))
   }
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
