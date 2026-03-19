@@ -109,6 +109,7 @@ object Migration extends MdcLoggable {
       alterRoleNameLength()
       alterConsentRequestColumnConsumerIdLength()
       alterMappedConsentColumnConsumerIdLength()
+      addAccountAccessWithViewsView(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -567,6 +568,18 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterMappedConsentColumnConsumerIdLength)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
+      }
+    }
+
+    private def addAccountAccessWithViewsView(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.addAccountAccessWithViewsView(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(addAccountAccessWithViewsView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
+        }
       }
     }
   }

@@ -5000,7 +5000,7 @@ trait APIMethods600 {
           bank_id = "",
           account_id = "",
           view_id = "owner",
-          short_name = "Owner",
+          view_name = "Owner",
           description = "The owner of the account",
           metadata_view = "owner",
           is_public = false,
@@ -5059,7 +5059,7 @@ trait APIMethods600 {
         bank_id = "",
         account_id = "",
         view_id = "owner",
-        short_name = "Owner",
+        view_name = "Owner",
         description = "The owner of the account. Has full privileges.",
         metadata_view = "owner",
         is_public = false,
@@ -5121,7 +5121,7 @@ trait APIMethods600 {
 //      EmptyBody,
 //      ViewJsonV600(
 //        view_id = "owner",
-//        short_name = "Owner",
+//        view_name = "Owner",
 //        description = "The owner of the account. Has full privileges.",
 //        metadata_view = "owner",
 //        is_public = false,
@@ -5198,7 +5198,7 @@ trait APIMethods600 {
         bank_id = "",
         account_id = "",
         view_id = "owner",
-        short_name = "Owner",
+        view_name = "Owner",
         description = "This is the owner view",
         metadata_view = "owner",
         is_public = false,
@@ -5456,7 +5456,7 @@ trait APIMethods600 {
         bank_id = ExampleValue.bankIdExample.value,
         account_id = ExampleValue.accountIdExample.value,
         view_id = "_work",
-        short_name = "Work",
+        view_name = "Work",
         description = "A custom view for work-related transactions.",
         metadata_view = "_work",
         is_public = false,
@@ -11257,7 +11257,7 @@ trait APIMethods600 {
         |* Owners
         |* Type
         |* Balance
-        |* Available views (sorted by short_name)
+        |* Available views (sorted by view_name)
         |
         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
@@ -11278,7 +11278,7 @@ trait APIMethods600 {
           bank_id = "",
           account_id = "",
           view_id = "owner",
-          short_name = "Owner",
+          view_name = "Owner",
           description = "The owner of the account",
           metadata_view = "owner",
           is_public = false,
@@ -11332,7 +11332,7 @@ trait APIMethods600 {
               BankIdAccountId(account.bankId, account.accountId)
             )
           val viewsAvailable =
-            availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.short_name)
+            availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.view_name)
           val tags = Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId)
           (
             createBankAccountJSON600(
