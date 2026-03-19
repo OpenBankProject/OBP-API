@@ -8,8 +8,6 @@ import doobie.implicits._
 import doobie.util.transactor.Strategy
 import net.liftweb.common.Full
 import net.liftweb.db.DB
-import net.liftweb.mapper.DefaultConnectionIdentifier
-import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -83,14 +81,18 @@ object DoobieUtil extends MdcLoggable {
 
   /**
    * Try to get the current Lift request's Connection.
+   * Uses DB.currentConnection which peeks at the DynoVar without
+   * triggering reference counting or creating a new connection.
    * Returns Some(connection) if inside a Lift HTTP request context,
    * None otherwise (background tasks, schedulers, tests without request context).
    */
   private def liftCurrentConnection: Option[java.sql.Connection] = {
-    tryo {
-      DB.use(DefaultConnectionIdentifier) { conn => conn }
-    } match {
-      case Full(conn) if conn != null && !conn.isClosed => Some(conn)
+    // DB.currentConnection returns Box[SuperConnection]
+    // SuperConnection has implicit conversion to java.sql.Connection
+    DB.currentConnection match {
+      case Full(superConn) =>
+        val conn: java.sql.Connection = superConn.connection
+        if (!conn.isClosed) Some(conn) else None
       case _ => None
     }
   }
