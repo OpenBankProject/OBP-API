@@ -148,7 +148,7 @@ import net.liftweb.db.{DB, DBLogEntry}
 import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.json.Extraction
-import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
+import net.liftweb.mapper.{DefaultConnectionIdentifier => _, ConnectionIdentifier, _}
 // SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
@@ -248,6 +248,9 @@ class Boot extends MdcLoggable {
     logger.debug("Boot says:Using database driver: " + APIUtil.driver)
 
     DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
+    // Register "lift" as an alias for DefaultConnectionIdentifier
+    // Some legacy code uses ConnectionIdentifier("lift") instead of DefaultConnectionIdentifier
+    DB.defineConnectionManager(ConnectionIdentifier("lift"), APIUtil.vendor)
 
     /**
      * Function that determines if foreign key constraints are
