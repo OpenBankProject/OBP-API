@@ -6,6 +6,10 @@ import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
 import doobie.util.transactor.Strategy
+import net.liftweb.common.Full
+import net.liftweb.db.DB
+import net.liftweb.mapper.DefaultConnectionIdentifier
+import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -16,14 +20,16 @@ import scala.concurrent.{ExecutionContext, Future}
  * This handles all JDBC types correctly, including SQL Server's NVARCHAR (type -9)
  * which Lift's DB.runQuery doesn't handle.
  *
- * IMPORTANT: This shares Lift's HikariCP connection pool (via APIUtil.vendor.HikariDatasource.ds)
- * instead of creating a separate pool. This reduces total database connections
- * and simplifies pool management.
+ * TRANSACTION UNIFICATION:
+ * When called within a Lift HTTP request context, Doobie uses the SAME Connection
+ * that Lift is holding for the current request transaction (via Transactor.fromConnection).
+ * This means Doobie queries participate in Lift's transaction boundary:
+ * - Same connection, same transaction, same commit/rollback
+ * - Doobie can see uncommitted Lift writes (same session)
+ * - If Lift rolls back, Doobie's operations are also rolled back
  *
- * NOTE: Doobie is used ONLY for READ-ONLY queries (SELECT).
- * All write operations (INSERT/UPDATE/DELETE) must go through Lift Mapper.
- * The transactor uses Strategy.void to avoid interfering with Lift's
- * transaction management (autoCommit=false, commit/rollback per HTTP request).
+ * When called outside a Lift request context (e.g., background tasks, schedulers),
+ * falls back to Lift's shared HikariCP connection pool via Transactor.fromDataSource.
  *
  * Benefits over DBUtil.runQuery:
  * - Type-safe query results via case classes
@@ -52,70 +58,92 @@ import scala.concurrent.{ExecutionContext, Future}
 object DoobieUtil extends MdcLoggable {
 
   /**
-   * Lazy-initialized transactor that shares Lift's HikariCP connection pool.
-   *
-   * Uses Transactor.fromDataSource to wrap Lift's existing HikariDataSource,
-   * so Doobie borrows connections from the same pool as Lift Mapper.
-   * This eliminates the separate Doobie pool (saving 10 database connections).
-   *
-   * Strategy.void is used because:
-   * - Doobie is only used for read-only queries
-   * - Lift already manages transactions (autoCommit=false, commit/rollback per request)
-   * - We don't want Doobie to call setAutoCommit/commit/rollback on shared connections
+   * Fallback transactor that shares Lift's HikariCP connection pool.
+   * Used when no Lift request context is available (background tasks, schedulers).
+   * Strategy.void: Doobie will not call setAutoCommit/commit/rollback.
    */
-  private lazy val transactor: Transactor[IO] = {
+  private lazy val fallbackTransactor: Transactor[IO] = {
     val liftDataSource = APIUtil.vendor.HikariDatasource.ds
-    logger.info("DoobieUtil: Sharing Lift's HikariCP connection pool (no separate Doobie pool)")
-    logger.info(s"DoobieUtil: Lift pool max size = ${liftDataSource.getMaximumPoolSize}")
-
-    // Use Lift's DataSource with Strategy.void (no transaction management by Doobie)
-    // connectEC = ExecutionContext.global is used for obtaining connections
+    logger.info("DoobieUtil: Initialized fallback transactor sharing Lift's HikariCP pool")
     val xa = Transactor.fromDataSource[IO].apply(
       liftDataSource,
       ExecutionContext.global
     )
-    // Override strategy to void: Doobie will not call setAutoCommit/commit/rollback
-    // This is safe because Doobie is only used for read-only queries
     xa.copy(strategy0 = Strategy.void)
   }
 
   /**
-   * Run a Doobie query synchronously using Lift's shared HikariCP connection pool.
+   * Create a transactor that wraps an existing JDBC Connection.
+   * Strategy.void ensures Doobie does not interfere with Lift's transaction management.
+   */
+  private def transactorFromConnection(conn: java.sql.Connection): Transactor[IO] = {
+    val xa = Transactor.fromConnection[IO].apply(conn, None)
+    xa.copy(strategy0 = Strategy.void)
+  }
+
+  /**
+   * Try to get the current Lift request's Connection.
+   * Returns Some(connection) if inside a Lift HTTP request context,
+   * None otherwise (background tasks, schedulers, tests without request context).
+   */
+  private def liftCurrentConnection: Option[java.sql.Connection] = {
+    tryo {
+      DB.use(DefaultConnectionIdentifier) { conn => conn }
+    } match {
+      case Full(conn) if conn != null && !conn.isClosed => Some(conn)
+      case _ => None
+    }
+  }
+
+  /**
+   * Run a Doobie query synchronously, sharing Lift's transaction when available.
    *
-   * IMPORTANT: Only use for READ-ONLY queries (SELECT).
-   * Do NOT use for write operations (INSERT/UPDATE/DELETE).
+   * When called within a Lift HTTP request context:
+   * - Uses the SAME Connection that Lift holds for the current request
+   * - Doobie query participates in Lift's transaction (same commit/rollback)
+   * - Can see uncommitted Lift writes (same database session)
+   *
+   * When called outside a Lift request context (background tasks, schedulers):
+   * - Falls back to Lift's shared HikariCP pool (separate connection)
    *
    * @param query The Doobie ConnectionIO query to execute
    * @return The query result
    */
   def runQuery[A](query: ConnectionIO[A]): A = {
-    query.transact(transactor).unsafeRunSync()
+    liftCurrentConnection match {
+      case Some(conn) =>
+        // Inside Lift request: use the same connection for transaction unification
+        query.transact(transactorFromConnection(conn)).unsafeRunSync()
+      case None =>
+        // Outside Lift request: fallback to shared pool
+        logger.debug("DoobieUtil.runQuery: No Lift request context, using fallback pool transactor")
+        query.transact(fallbackTransactor).unsafeRunSync()
+    }
   }
 
   /**
    * Run a Doobie query asynchronously, returning a Future.
-   *
-   * IMPORTANT: Only use for READ-ONLY queries (SELECT).
+   * Note: async queries always use the fallback pool transactor because
+   * Lift's request connection may not be available on a different thread.
    *
    * @param query The Doobie ConnectionIO query to execute
    * @param ec ExecutionContext for the Future
    * @return Future containing the query result
    */
   def runQueryAsync[A](query: ConnectionIO[A])(implicit ec: ExecutionContext): Future[A] = {
-    query.transact(transactor).unsafeToFuture()
+    query.transact(fallbackTransactor).unsafeToFuture()
   }
 
   /**
    * Run a Doobie query and return an IO.
-   * Useful when you want to compose with other cats-effect operations.
-   *
-   * IMPORTANT: Only use for READ-ONLY queries (SELECT).
+   * Note: IO queries always use the fallback pool transactor because
+   * the IO may be evaluated outside the Lift request context.
    *
    * @param query The Doobie ConnectionIO query to execute
    * @return IO containing the query result
    */
   def runQueryIO[A](query: ConnectionIO[A]): IO[A] = {
-    query.transact(transactor)
+    query.transact(fallbackTransactor)
   }
 
   /**
