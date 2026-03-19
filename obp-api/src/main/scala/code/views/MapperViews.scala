@@ -6,6 +6,7 @@ import code.api.Constant._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext}
+import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
 import code.views.system.ViewDefinition.create
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
@@ -61,18 +62,28 @@ object MapperViews extends Views with MdcLoggable {
     // 1. Separate system vs custom view access
     val (systemAccessList, customAccessList) = accountAccessList.partition(a => isValidSystemViewId(a.view_id.get))
 
-    // 2. Batch-load system views: one query per distinct view_id (small fixed set)
+    // 2. Batch-load system views: one query per distinct view_id (small fixed set).
+    // We cache which view_ids exist to avoid repeated DB lookups, but we must call
+    // findSystemView per access record because the returned ViewDefinition is mutable
+    // and we need to set bank_id/account_id per access record without cross-contamination.
     val distinctSystemViewIds = systemAccessList.map(_.view_id.get).distinct
-    val systemViewMap: Map[String, ViewDefinition] = distinctSystemViewIds
-      .flatMap(vid => ViewDefinition.findSystemView(vid).toList.map(v => vid -> v))
-      .toMap
+    val validSystemViewIds: Set[String] = distinctSystemViewIds
+      .filter(vid => ViewDefinition.findSystemView(vid).isDefined)
+      .toSet
 
     val systemPairs: List[(AccountAccess, ViewDefinition)] = systemAccessList.flatMap { aa =>
-      systemViewMap.get(aa.view_id.get).map { v =>
-        // Clone and set bank_id/account_id per access record (system views don't store these)
-        val viewWithContext = v.bank_id(aa.bank_id.get).account_id(aa.account_id.get)
-        (aa, viewWithContext)
-      }
+      // Skip view_ids we already know don't exist in the DB (avoids pointless queries)
+      if (validSystemViewIds.contains(aa.view_id.get)) {
+        // We must call findSystemView per access record (not cache the ViewDefinition) because
+        // ViewDefinition is a mutable Mapper object. v.bank_id(...) is a setter that mutates v
+        // in place — caching one instance and reusing it across access records would cause each
+        // call to overwrite the previous bank_id/account_id, corrupting earlier results.
+        // System views are stored without bank_id/account_id (they're generic), so we stamp
+        // each fresh instance with the specific account's context from the access record.
+        ViewDefinition.findSystemView(aa.view_id.get).toList.map { v =>
+          (aa, v.bank_id(aa.bank_id.get).account_id(aa.account_id.get))
+        }
+      } else Nil
     }
 
     // 3. Batch-load custom views: one query using ByList on view_id, then filter in memory
@@ -100,29 +111,35 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   private def getViewsCommonPart(accountAccessList: List[AccountAccess]): List[View] = {
-    //we need to get views from accountAccess
-    val views: List[ViewDefinition] = accountAccessList.flatMap(getViewFromAccountAccess).filter(
-        v =>
-          if (allowPublicViews) {
-            true // All views
-          } else {
-            v.isPrivate == true // Only private views
-          }
-      )
-    views
+    batchLoadViewsForAccountAccess(accountAccessList).map(_._2)
   }
 
   def permissions(account : BankIdAccountId) : List[Permission] = {
-    
-    val users = AccountAccess.findAll(
+    // 1. Single query: get all AccountAccess for this account
+    val allAccountAccess = AccountAccess.findAll(
       By(AccountAccess.bank_id, account.bankId.value),
       By(AccountAccess.account_id, account.accountId.value)
-    ).flatMap(_.user_fk.obj.toList).distinct
-    
-    for {
-      user <- users
-    } yield {
-      Permission(user, getViewsForUserAndAccount(user, account))
+    )
+
+    // 2. Batch-load users: one query using ByList instead of N individual FK lookups
+    val distinctUserFks = allAccountAccess.map(_.user_fk.get).distinct
+    val usersMap: Map[Long, ResourceUser] = if (distinctUserFks.nonEmpty) {
+      ResourceUser.findAll(ByList(ResourceUser.id, distinctUserFks))
+        .map(u => u.id.get -> u).toMap
+    } else Map.empty
+
+    // 3. Batch-load views for all access records
+    val viewPairs = batchLoadViewsForAccountAccess(allAccountAccess)
+
+    // 4. Group views by user FK and build Permission objects
+    val viewsByUserFk: Map[Long, List[View]] = viewPairs
+      .groupBy(_._1.user_fk.get)
+      .map { case (userFk, pairs) => userFk -> pairs.map(_._2: View) }
+
+    distinctUserFks.flatMap { userFk =>
+      usersMap.get(userFk).map { user =>
+        Permission(user, viewsByUserFk.getOrElse(userFk, Nil))
+      }
     }
   }
 
@@ -601,33 +618,33 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
-    val allAccess = AccountAccess.findAllByUserPrimaryKey(user.userPrimaryKey)
-    val pairs = batchLoadViewsForAccountAccess(allAccess)
+    val allAccountAccess = AccountAccess.findAllByUserPrimaryKey(user.userPrimaryKey)
+    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
     (pairs.map(_._2).distinct, pairs.map(_._1))
   }
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
-    val allAccess = AccountAccess.findAll(
+    val allAccountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       ByList(AccountAccess.view_id, viewIds.map(_.value))
     )
-    val pairs = batchLoadViewsForAccountAccess(allAccess)
+    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
     (pairs.map(_._2), pairs.map(_._1))
   }
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
-    val allAccess = AccountAccess.findAll(
+    val allAccountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankId.value)
     )
-    val pairs = batchLoadViewsForAccountAccess(allAccess)
+    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
     (pairs.map(_._2), pairs.map(_._1))
   }
   def getAccountAccessAtBankThroughView(user: User, bankId: BankId, viewId: ViewId): (List[View], List[AccountAccess]) ={
-    val allAccess = AccountAccess.findAll(
+    val allAccountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.view_id, viewId.value)
     )
-    val pairs = batchLoadViewsForAccountAccess(allAccess)
+    val pairs = batchLoadViewsForAccountAccess(allAccountAccess)
     (pairs.map(_._2), pairs.map(_._1))
   }
 
