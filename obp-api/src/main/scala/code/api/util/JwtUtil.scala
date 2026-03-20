@@ -173,7 +173,7 @@ object JwtUtil extends MdcLoggable {
     try {
       val signedJWT = SignedJWT.parse(jwtToken)
       // claims extraction...
-      Some(signedJWT.getJWTClaimsSet.getStringClaim(name))
+      Option(signedJWT.getJWTClaimsSet.getStringClaim(name)).filter(_.trim.nonEmpty)
     } catch {
       case e: Exception =>
         logger.debug(msg = s"code.api.util.JwtUtil.getClaim: $name")

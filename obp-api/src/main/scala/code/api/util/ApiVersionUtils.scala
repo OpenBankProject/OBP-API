@@ -7,7 +7,7 @@ import code.api.berlin.group.ConstantsBG
 object ApiVersionUtils {
 
   val scannedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
-  val versions =
+  val versions = (
       v1_2_1 ::
       v1_3_0 ::
       v1_4_0 ::
@@ -25,6 +25,7 @@ object ApiVersionUtils {
       `dynamic-entity` ::
       ConstantsBG.berlinGroupVersion2 ::
       scannedApis
+    ).distinct
 
   def valueOf(value: String): ScannedApiVersion = {
 

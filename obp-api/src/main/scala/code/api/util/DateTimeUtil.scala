@@ -37,13 +37,16 @@ object DateTimeUtil {
   }
 
   // Define the correct RFC 7231 date format (IMF-fixdate)
-  private val dateFormat = rfc7231Date
-  // Force timezone to be GMT
-  dateFormat.setLenient(false)
+  // Create a new instance per call to avoid SimpleDateFormat thread-safety issues
+  private def newRfc7231Format = {
+    val fmt = new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", java.util.Locale.ENGLISH)
+    fmt.setLenient(false)
+    fmt
+  }
 
   def isValidRfc7231Date(dateStr: String): Boolean = {
     try {
-      val parsedDate = dateFormat.parse(dateStr)
+      newRfc7231Format.parse(dateStr)
       // Check that the timezone part is exactly "GMT"
       dateStr.endsWith(" GMT")
     } catch {
