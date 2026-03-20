@@ -19,35 +19,24 @@ import scala.concurrent.duration.Duration
   * Created by zhanghongwei on 17/07/2017.
   */
 class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
-
-  // Commit Lift writes so the Doobie pool (separate connections) can see them.
-  // In production, Lift's buildLoanWrapper handles this for HTTP requests.
-  private def commitLiftWrites(): Unit = {
-    net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn => conn.connection.commit() }
-  }
-
+  
+  
   override def beforeAll() = {
     super.beforeAll()
     Connector.connector.default.set(MockedCbsConnector)
-    net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-      ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
-      AccountAccess.bulkDelete_!!()
-      MappedUserRefreshes.bulkDelete_!!()
-      conn.connection.commit()
-    }
+    ViewDefinition.bulkDelete_!!()
+    MapperAccountHolders.bulkDelete_!!()
+    AccountAccess.bulkDelete_!!()
+    MappedUserRefreshes.bulkDelete_!!()
   }
-
+  
   override def afterEach() = {
     super.afterEach()
     Connector.connector.default.set(Connector.buildOne)
-    net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-      ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
-      AccountAccess.bulkDelete_!!()
-      MappedUserRefreshes.bulkDelete_!!()
-      conn.connection.commit()
-    }
+    ViewDefinition.bulkDelete_!!()
+    MapperAccountHolders.bulkDelete_!!()
+    AccountAccess.bulkDelete_!!()
+    MappedUserRefreshes.bulkDelete_!!()
   }
   
   val bankIdAccountId1 = MockedCbsConnector.bankIdAccountId
@@ -501,29 +490,23 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
 
       When("1st Step: we create the `StageOneView` ")
-      net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-        AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithStageOneView, None)
-        conn.connection.commit()
-      }
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithStageOneView, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
-
+      
       Then("There is system view `StageOne`")
       allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STAGE_ONE_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should be (1)
       account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
-
+      
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("2rd Step: we create the `Owner` and remove the `StageOne` view")
-      net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-        AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
-        conn.connection.commit()
-      }
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -541,10 +524,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("3rd Step: we removed the all the views ")
-      net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-        AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
-        conn.connection.commit()
-      }
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
 
       Then("We check the AccountAccess, we can only remove the StageOne access, not owner view, if use is the account holder, we can not revoke the access")
       account1Access.length should equal(0)
@@ -553,10 +533,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("4th Step: we create both the views: owner and StageOne ")
-      net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-        AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithBothViews, None)
-        conn.connection.commit()
-      }
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithBothViews, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -574,12 +551,9 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
 
-
+      
       Then("5th Step: we removed all the  views  ")
-      net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-        AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
-        conn.connection.commit()
-      }
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)

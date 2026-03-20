@@ -6,8 +6,6 @@ import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.Full
-import net.liftweb.db.DB
-import net.liftweb.util.DefaultConnectionIdentifier
 
 class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
 
@@ -17,14 +15,8 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
 
   override def afterEach(): Unit = {
     super.afterEach()
-    // Wrap cleanup in DB.use so all deletes share one connection, then commit.
-    // Without this, HikariCP rollbacks uncommitted writes (autoCommit=false)
-    // and the Doobie pool wouldn't see a clean state for the next test.
-    DB.use(DefaultConnectionIdentifier) { conn =>
-      AccountAccess.bulkDelete_!!()
-      ViewDefinition.bulkDelete_!!()
-      conn.connection.commit()
-    }
+    AccountAccess.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
   }
 
   val bankId1 = BankId("test-bank-1")
@@ -34,15 +26,11 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
   val accountId3 = AccountId("test-account-3")
 
   private def createSystemViewAndGrantAccess(bankId: BankId, accountId: AccountId, viewId: String, user: code.model.dataAccess.ResourceUser): Unit = {
-    // Wrap in DB.use so all Mapper calls share one connection.
-    // Explicit commit ensures Doobie pool (separate connections) can see the writes.
-    // In production, Lift's buildLoanWrapper handles this for HTTP requests.
-    DB.use(DefaultConnectionIdentifier) { conn =>
-      MapperViews.getOrCreateSystemViewFromCbs(viewId)
-      val view = ViewDefinition.findSystemView(viewId).openOrThrowException(s"System view $viewId not found")
-      MapperViews.grantAccessToSystemView(bankId, accountId, view, user)
-      conn.connection.commit()
-    }
+    // Ensure the system view exists
+    MapperViews.getOrCreateSystemViewFromCbs(viewId)
+    // Grant access
+    val view = ViewDefinition.findSystemView(viewId).openOrThrowException(s"System view $viewId not found")
+    MapperViews.grantAccessToSystemView(bankId, accountId, view, user)
   }
 
   feature("privateViewsUserCanAccess") {
