@@ -50,6 +50,9 @@ object MetricBatchWriter extends MdcLoggable {
 
   private val started = new AtomicBoolean(false)
 
+  /** Check if the batch writer scheduler has been started. */
+  def isStarted: Boolean = started.get()
+
   /**
    * Start the background flush scheduler. Safe to call multiple times; only the first call starts it.
    */
@@ -107,20 +110,21 @@ object MetricBatchWriter extends MdcLoggable {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
+        // Use Option[String] so Doobie handles nullable fields properly via Put[Option[String]]
         val insert = Update[
-          (String, String, Timestamp, Long, String, String,
-           String, String, String,
-           String, String, Int, String,
-           String, String, String)
+          (Option[String], Option[String], Timestamp, Long, Option[String], Option[String],
+           Option[String], Option[String], Option[String],
+           Option[String], Option[String], Int, Option[String],
+           Option[String], Option[String], Option[String])
         ](insertSql)
 
         val values = rows.map { r =>
           (
-            r.userId, r.url, new Timestamp(if (r.date != null) r.date.getTime else 0L),
-            r.duration, r.userName, r.appName,
-            r.developerEmail, r.consumerId, r.implementedByPartialFunction,
-            r.implementedInVersion, r.verb, r.httpCode, r.correlationId,
-            r.responseBody, r.sourceIp, r.targetIp
+            Option(r.userId), Option(r.url), new Timestamp(if (r.date != null) r.date.getTime else 0L),
+            r.duration, Option(r.userName), Option(r.appName),
+            Option(r.developerEmail), Option(r.consumerId), Option(r.implementedByPartialFunction),
+            Option(r.implementedInVersion), Option(r.verb), r.httpCode, Option(r.correlationId),
+            Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp)
           )
         }
 
