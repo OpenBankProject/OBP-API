@@ -52,6 +52,108 @@ import code.util.Helper.MdcLoggable
  */
 object OpenAPI31JSONFactory extends MdcLoggable {
 
+  // =====================================================================================
+  // Authentication descriptions — SOURCE OF TRUTH
+  // These methods are the canonical documentation for OBP authentication methods.
+  // The Glossary and other docs import from here. (DRY)
+  // If you need to change authentication documentation, change it here.
+  // =====================================================================================
+
+  def directLoginDescription(hostname: String): String =
+    s"""Direct Login is a simple authentication process for trusted environments and testing.
+       |
+       |### Step 1: Get your Consumer Key
+       |
+       |Register your application at ${hostname}/consumer-registration to obtain a consumer_key.
+       |
+       |### Step 2: Obtain a token
+       |
+       |Send a POST request with your credentials in the DirectLogin header:
+       |
+       |    POST ${hostname}/obp/v6.0.0/my/logins/direct
+       |    Content-Type: application/json
+       |    DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
+       |
+       |The body should be left empty.
+       |
+       |A successful response returns a JSON object containing a token:
+       |
+       |    {"token": "your-token-string"}
+       |
+       |### Step 3: Use the token in subsequent API calls
+       |
+       |Include the token in the DirectLogin header on all subsequent requests:
+       |
+       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    DirectLogin: token=your-token-string
+       |
+       |### Parameters
+       |
+       |Parameter names and values are case sensitive. Each parameter must appear only once per request.
+       |
+       |- **username** - The name of the user to authenticate.
+       |- **password** - The password of the user.
+       |- **consumer_key** - The application identifier obtained during registration.
+       |
+       |### Notes
+       |
+       |- The header name is **DirectLogin** (case insensitive for HTTP/1.1, must be lower case for HTTP/2).
+       |- Direct Login is intended for hackathons, testing, and trusted environments.
+       |- For production use with third-party applications, use OAuth2 / OIDC instead.""".stripMargin
+
+  def oAuth2Description(hostname: String): String =
+    s"""OAuth2 / OpenID Connect (OIDC) is the recommended authentication method for production use.
+       |
+       |OBP supports the OAuth2 Authorization Code flow for user-facing applications and the
+       |Client Credentials flow for application-only (machine-to-machine) access.
+       |
+       |### Authorization Code Flow (3-legged)
+       |
+       |Use this flow when your application needs to act on behalf of a user.
+       |
+       |1. Register your application at ${hostname}/consumer-registration to obtain a client_id and client_secret.
+       |2. Redirect the user to the authorization URL with your client_id and redirect_uri.
+       |3. After the user authenticates and consents, they are redirected back with an authorization code.
+       |4. Exchange the authorization code for an access token at the token endpoint.
+       |5. Use the access token as a Bearer token in the Authorization header:
+       |
+       |       GET ${hostname}/obp/v6.0.0/my/banks
+       |       Authorization: Bearer your-access-token
+       |
+       |### Client Credentials Flow (2-legged / Application Only)
+       |
+       |Use this flow for endpoints with authMode ApplicationOnly or UserOrApplication.
+       |The application authenticates itself using its client_id and client_secret without a user login.
+       |
+       |    POST <OIDC_provider_token_endpoint>
+       |    Content-Type: application/x-www-form-urlencoded
+       |
+       |    grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET
+       |
+       |The response contains a Bearer token to use in subsequent API calls.
+       |
+       |### Notes
+       |
+       |- The authorization and token endpoint URLs depend on the OIDC provider configured for this OBP instance.
+       |- Token expiry and refresh behaviour depend on the OIDC provider configuration.
+       |- OAuth2 / OIDC is the recommended method for production deployments.""".stripMargin
+
+  def gatewayLoginDescription(hostname: String): String =
+    s"""Gateway Login allows a gateway (e.g. API Gateway) to authenticate on behalf of a user.
+       |
+       |The gateway sends a JWT in the Authorization header. The JWT is signed with a shared secret
+       |between the gateway and OBP. This method does not require a separate token-obtaining step —
+       |the JWT is sent directly with each API request.
+       |
+       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    Authorization: GatewayLogin token="your-jwt-token"
+       |
+       |### Notes
+       |
+       |- Gateway Login is intended for trusted infrastructure, not end-user applications.
+       |- The JWT must be signed with the pre-shared secret configured on the OBP instance.
+       |- Contact your OBP administrator for gateway integration details.""".stripMargin
+
   // OpenAPI 3.1 Root Object
   case class OpenAPI31Json(
     openapi: String = "3.1.0",
@@ -396,27 +498,27 @@ object OpenAPI31JSONFactory extends MdcLoggable {
     // Extract schemas from all request/response bodies
     val schemas = extractSchemas(resourceDocs)
 
-    // Create security schemes
+    // Create security schemes — descriptions come from the methods defined at the top of this object
     val securitySchemes = Map(
       "DirectLogin" -> SecuritySchemeJson(
         `type` = "apiKey",
-        description = Some("Direct Login token authentication"),
-        name = Some("Authorization"),
+        description = Some(directLoginDescription(hostname)),
+        name = Some("DirectLogin"),
         in = Some("header")
       ),
       "GatewayLogin" -> SecuritySchemeJson(
-        `type` = "apiKey", 
-        description = Some("Gateway Login token authentication"),
+        `type` = "apiKey",
+        description = Some(gatewayLoginDescription(hostname)),
         name = Some("Authorization"),
         in = Some("header")
       ),
       "OAuth2" -> SecuritySchemeJson(
         `type` = "oauth2",
-        description = Some("OAuth2 authentication"),
+        description = Some(oAuth2Description(hostname)),
         flows = Some(OAuthFlowsJson(
           authorizationCode = Some(OAuthFlowJson(
-            authorizationUrl = Some("/oauth/authorize"),
-            tokenUrl = Some("/oauth/token"),
+            authorizationUrl = Some(s"${hostname}/oauth/authorize"),
+            tokenUrl = Some(s"${hostname}/oauth/token"),
             scopes = Map.empty
           ))
         ))

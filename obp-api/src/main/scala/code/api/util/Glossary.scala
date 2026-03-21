@@ -2,6 +2,7 @@ package code.api.util
 
 import code.api.Constant
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
 import code.util.Helper.MdcLoggable
@@ -1398,217 +1399,18 @@ object Glossary extends MdcLoggable  {
 
 
 
+	// Direct Login documentation is sourced from OpenAPI31JSONFactory (the source of truth for auth docs)
 	glossaryItems += GlossaryItem(
 		title = "Authentication: Direct Login",
-		description =
-		  s"""
-			|Direct Login is a simple authentication process to be used at hackathons and trusted environments:
-			|
-			|
-			|### 1) Get your App key
-			|
-			|[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
-			|
-			|Register your App key [HERE](${getConsumerRegistrationUrl()})
-			|
-			|Copy and paste the consumer key for step two below.
-			|
-			|### 2) Authenticate
-			|
-			|
-			|Using your favorite http client:
-			|
-			|	POST $getServerUrl/my/logins/direct
-			|
-			|Body
-			|
-			|	Leave Empty!
-			|
-			|
-			|Headers:
-			|
-			|	Content-Type:  application/json
-			|
-			|
-			|    directlogin: username=janeburel,
-			|                 password=the-password-of-jane,
-			|                 consumer_key=your-consumer-key-from-step-one
-			|
-			|Here is it all together:
-			|
-			|	POST $getServerUrl/my/logins/direct HTTP/1.1
-			|	$directLoginHeaderName: username=janeburel, password=686876, consumer_key=GET-YOUR-OWN-API-KEY-FROM-THE-OBP
-			|	Content-Type: application/json
-			|	Host: 127.0.0.1:8080
-			|	Connection: close
-			|	User-Agent: Paw/2.3.3 (Macintosh; OS X/10.11.3) GCDHTTPRequest
-			|	Content-Length: 0
-			|
-			|Note: HTTP/2.0 requires that header names are *lower* case. Currently the header name for $directLoginHeaderName is case insensitive.
-			|
-      |To troubleshoot request headers, you may want to ask your administrator to Echo Request headers.
-			|
-			|You should receive a token:
-			|
-			|	{"token":"a-long-token-string"}
-			|
-			|### 3) Make authenticated API calls
-			|
-			|In subsequent calls you can use the token received in step 2
-			|
-			|e.g.
-			|
-			|
-			|Action:
-			|
-			|	PUT $getObpApiRoot/v2.0.0/banks/obp-bankx-n/accounts/my-new-account-id
-			|
-			|Body:
-			|
-			|	{  "type":"CURRENT",  "balance":{    "currency":"USD",    "amount":"0"  }}
-			|
-			|Headers:
-			|
-			|	Content-Type:  application/json
-			|
-			|	$directLoginHeaderName: token=your-token-from-step-2
-			|
-			|Here is another example:
-			|
-			|	PUT $getObpApiRoot/v2.0.0/banks/enbd-egy--p3/accounts/newaccount1 HTTP/1.1
-			|	$directLoginHeaderName: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyIiOiIifQ.C8hJZNPDI59OOu78pYs4BWp0YY_21C6r4A9VbgfZLMA
-			|	Content-Type: application/json
-			|	Cookie: JSESSIONID=7h1ssu6d7j151u08p37a6tsx1
-			|	Host: 127.0.0.1:8080
-			|	Connection: close
-			|	User-Agent: Paw/2.3.3 (Macintosh; OS X/10.11.3) GCDHTTPRequest
-			|	Content-Length: 60
-			|
-			|	{"type":"CURRENT","balance":{"currency":"USD","amount":"0"}}
-			|
-			|
-			|### More information
-			|
-			|   Parameter names and values are case sensitive.
-			|   The following parameters must be sent by the client to the server:
-			|
-			|       username
-			|         The name of the user to authenticate.
-			|
-			|       password
-			|         The password used to authenticate user. Alphanumeric string.
-			|
-			|       consumer_key
-			|         The application identifier. Generated on OBP side via
-			|         ${getConsumerRegistrationUrl()} endpoint.
-			|
-			|
-			|  Each parameter MUST NOT appear more than once per request.
-			|
-		  """)
+		description = OpenAPI31JSONFactory.directLoginDescription(getServerUrl)
+	)
 
 
+	// OAuth2 / OIDC Client Credentials documentation is sourced from OpenAPI31JSONFactory (the source of truth for auth docs)
 	glossaryItems += GlossaryItem(
 		title = "Authentication: OAuth2 / OIDC Client Credentials",
-		description =
-			s"""
-			|OAuth2 Client Credentials authentication allows an application (Consumer) to call OBP-API endpoints without a user login.
-			|This is used for endpoints with authMode set to `ApplicationOnly` or `UserOrApplication`.
-			|
-			|### Overview
-			|
-			|Instead of authenticating a user with Direct Login, the application authenticates itself using its `client_id` (consumer_key) and `client_secret` (consumer_secret) via the OAuth2 Client Credentials grant type.
-			|The application obtains a Bearer token from the OIDC provider's token endpoint and then uses that token to call OBP-API.
-			|
-			|### 1) Register your Application
-			|
-			|Register your App / Consumer at OBP-API to obtain a `consumer_key` and `consumer_secret`.
-			|
-			|The `consumer_key` corresponds to the `client_id` in the OIDC provider.
-			|The `consumer_secret` corresponds to the `client_secret` in the OIDC provider.
-			|
-			|Ensure the Consumer record is active and the OIDC provider (e.g. Keycloak, Hydra, or OBP-OIDC) has a matching client configured.
-			|
-			|### 2) Obtain a Bearer Token
-			|
-			|Request an access token from the OIDC provider's token endpoint using the `client_credentials` grant type:
-			|
-			|```
-			|POST /realms/master/protocol/openid-connect/token HTTP/1.1
-			|Host: your-oidc-provider.example.com
-			|Content-Type: application/x-www-form-urlencoded
-			|
-			|client_id=your-consumer-key&client_secret=your-consumer-secret&grant_type=client_credentials
-			|```
-			|
-			|Or using cURL:
-			|
-			|```
-			|curl -X POST "https://your-oidc-provider.example.com/realms/master/protocol/openid-connect/token" \\
-			|     -H "Content-Type: application/x-www-form-urlencoded" \\
-			|     -d "client_id=your-consumer-key" \\
-			|     -d "client_secret=your-consumer-secret" \\
-			|     -d "grant_type=client_credentials"
-			|```
-			|
-			|You should receive a response like:
-			|
-			|```
-			|{
-			|    "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-			|    "token_type": "Bearer",
-			|    "expires_in": 3600
-			|}
-			|```
-			|
-			|### 3) Call OBP-API Endpoints
-			|
-			|Use the access token in the `Authorization` header of your API requests:
-			|
-			|```
-			|GET $getObpApiRoot/v6.0.0/some-endpoint HTTP/1.1
-			|Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-			|Content-Type: application/json
-			|```
-			|
-			|Or using cURL:
-			|
-			|```
-			|curl -X GET "$getObpApiRoot/v6.0.0/some-endpoint" \\
-			|     -H "Authorization: Bearer your-access-token" \\
-			|     -H "Content-Type: application/json"
-			|```
-			|
-			|### How It Works
-			|
-			|When OBP-API receives a request with an `Authorization: Bearer` header:
-			|
-			|1. It extracts the JWT token from the header.
-			|2. It identifies the OIDC provider from the token's `iss` (issuer) claim.
-			|3. It validates the token signature against the provider's JWKS (JSON Web Key Set).
-			|4. It extracts the `azp` (authorized party) or `sub` (subject) claim to identify the Consumer.
-			|5. For `ApplicationOnly` endpoints, no user is required — the Consumer identity is sufficient.
-			|6. For `UserOrApplication` endpoints, either the Consumer's scopes or a user's entitlements can satisfy the authorization check.
-			|
-			|### Consumer Scopes
-			|
-			|For the application to be authorized to call a protected endpoint, the Consumer must have the required Scope(s) assigned.
-			|Scopes link a Consumer to an API Role at a specific bank. They are the application-level equivalent of user Entitlements.
-			|
-			|### Endpoint Auth Modes
-			|
-			|Each endpoint has an `authMode` that determines what authentication is required:
-			|
-			|* `UserOnly` — Requires user authentication (e.g. Direct Login or OAuth2 with user login). This is the default.
-			|* `ApplicationOnly` — Requires only Consumer/application authentication. No user login needed.
-			|* `UserOrApplication` — Either a logged-in user with the right Entitlement, or an application with the right Scope.
-			|* `UserAndApplication` — Both user Entitlement and Consumer Scope are required.
-			|
-			|### Note
-			|
-			|The `client_id` used at the OIDC provider must match the `consumer_key` (or `azp` claim) of an active Consumer record in OBP-API.
-			|
-		  """)
+		description = OpenAPI31JSONFactory.oAuth2Description(getServerUrl)
+	)
 
 
 	glossaryItems += GlossaryItem(
@@ -2285,98 +2087,18 @@ object Glossary extends MdcLoggable  {
   val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false))
 		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
+	// OAuth2 documentation is sourced from OpenAPI31JSONFactory (the source of truth for auth docs)
     glossaryItems += GlossaryItem(
       title = "Authentication: OAuth 2",
-      description =
-        s"""
-        |
+      description = s"""
         |$oauth2EnabledMessage
         |
-        |OAuth2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
-        |
-        |### OAuth2 Roles
-        |
-        |The following is a general introduction to a so called "3 legged OAuth2" flow:
-        |
-        |* Resource Owner
-        |* Client
-        |* Resource Server
-        |* Authorization Server
-        |
-        |### Resource Owner: User
-        |
-        |The resource owner is the user who authorizes an application to access their account. The application's access to the user's account is limited to the "scope" of the authorization granted (e.g. openid).
-        |
-        |### Authorization Server: API
-        |
-        |The authorization server verifies the identity of the user then issues access tokens to the application. E.g. Hydra
-        |
-        |### Resource Server: API
-        |
-        |The resource server hosts the protected user resources. E.g. OBP-API
-        |
-        |### Client: Application
-        |
-        |The client is the application that wants to access the user's resource. In order to do that, it must be authorized by the user, and the authorization must be validated by the Authorization Server: API.
-        |
-        |### Authorization Grant
-        |
-        |OAuth 2 defines four grant types, each of which is useful in different cases:
-        |
-        |* Authorization Code: used with server-side Applications
-        |
-        |* Implicit: used with Mobile Apps or Web Applications (applications that run on the user's device)
-        |
-        |* Resource Owner Password Credentials: used with trusted Applications, such as those owned by the service itself
-        |
-        |* Client Credentials: used with Applications API access
-        |
-        |### Step 1: Get your App key
-        |
-        |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer
-        |
-        |Register your App key [HERE](${getConsumerRegistrationUrl()})
-        |
-        |Copy and paste the CLIENT ID (AKA CONSUMER KEY), CLIENT SECRET (AKA CONSUMER SECRET) and REDIRECT_URL for the subsequent steps below.
-        |
-        |
-        |### Step 2: Initiate the OAuth 2.0 / OpenID Connect Flow
-        |
-        |Once you have registered your App you should initiate the OAuth2 / OIDC flow using the following URL
-        |
-        |${APIUtil.getHydraPublicServerUrl}/oauth2/auth
-        |
-        |WITH THE following parameters:
-        |
-        |${APIUtil.getHydraPublicServerUrl}/oauth2/auth?client_id=YOUR-CLIENT-ID&response_type=code&state=GENERATED_BY_YOUR_APP&scope=openid+offline+ReadAccountsBasic+ReadAccountsDetail+ReadBalances+ReadTransactionsBasic+ReadTransactionsDebits+ReadTransactionsDetail&redirect_uri=https%3A%2F%2FYOUR-APP.com%2Fmain.html
-        |
-        |### Step 3: Exchange the code for an access token
-        |
-        |The token endpoint is:
-        |
-        |${APIUtil.getHydraPublicServerUrl}/oauth2/token
-        |
-        |
-        |For further information please see [here](https://www.ory.sh/hydra/docs/concepts/login#initiating-the-oauth-20--openid-connect-flow)
-        |
-        |In this sandbox, this will cause the following flow:
-        |
-        |1) The User is authenticated using OAuth2 / OpenID Connect against the banks authentication system
-        |2) The User grants consent to the App on the bank's Consent page.
-        |3) The User grants access to one or more accounts that they own on the bank's Account Selection page
-        |4) The User is redirected back to the App where they can now see the Accounts they have selected.
-        |
-        |
+        |${OpenAPI31JSONFactory.oAuth2Description(getServerUrl)}
         |
         |<img src="https://static.openbankproject.com/images/OBP-OAuth2-flow.png" width="885"></img>
         |
-        |
-        |
         |An example Consent Testing App (Hola) using this flow can be found [here](https://github.com/OpenBankProject/OBP-Hola)
-        |
-        |
-        |
-			""")
+			""".stripMargin)
 
 
 
@@ -2494,30 +2216,28 @@ object Glossary extends MdcLoggable  {
 	{"Note: Gateway Login is enabled."} else {"Note: *Gateway Login is NOT enabled on this instance!*"}
 
 
+	// Gateway Login core documentation is sourced from OpenAPI31JSONFactory (the source of truth for auth docs)
+	// Additional operational/admin details are Glossary-specific below.
 	glossaryItems += GlossaryItem(
 		title = "Authentication: Gateway Login",
 		description =
 			s"""
-						 |### Introduction
-|
 |$gatewayLoginEnabledMessage
 |
-|Gateway Login Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
-|
-|Note: Gateway Login does *not* require an explicit POST like Direct Login to create the token.
-|
-|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**!
-|
-|When OBP recieves a token via Gateway Login, OBP creates or gets a user based on the username supplied.
+|${OpenAPI31JSONFactory.gatewayLoginDescription(getServerUrl)}
 |
 |![obp login via gateway and jwt](https://user-images.githubusercontent.com/485218/32783397-e39620ee-c94b-11e7-92e3-b244b8e841dd.png)
 |
+|---
 |
-|To use Gateway Login:
+|### Administrator Guide: Configuration and JWT Details
 |
-|### 1) Configure OBP API to accept Gateway Login.
+|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**.
+|When OBP receives a token via Gateway Login, OBP creates or gets a user based on the username supplied.
 |
-|Set up properties in a props file
+|### 1) Configure OBP API to accept Gateway Login
+|
+|Set up properties in a props file:
 |
 |```
 |# -- Gateway login --------------------------------------
@@ -2530,13 +2250,12 @@ object Glossary extends MdcLoggable  {
 |# jwt_token_secret=your-at-least-256-bit-secret-token
 |# -------------------------------------- Gateway login --
 |```
-|Please keep in mind that property jwt_token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
 |
-|### 2) Create / have access to a JWT
+|The property jwt_token_secret is used to validate the JWT token to check it is not changed or corrupted during transport.
 |
+|### 2) JWT Structure
 |
-|
-|HEADER:ALGORITHM & TOKEN TYPE
+|HEADER:
 |
 |```
 |{
@@ -2544,7 +2263,8 @@ object Glossary extends MdcLoggable  {
 |  "typ": "JWT"
 |}
 |```
-|PAYLOAD:DATA
+|
+|PAYLOAD:
 |
 |```
 |{
@@ -2558,97 +2278,13 @@ object Glossary extends MdcLoggable  {
 |    "session_id": "123456789"
 |}
 |```
-|VERIFY SIGNATURE
-|```
-|HMACSHA256(
-|  base64UrlEncode(header) + "." +
-|  base64UrlEncode(payload),
-|
-|) your-at-least-256-bit-secret-token
-|```
-|
-|Here is the above example token:
-|
-|```
-|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
-|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k
-|```
-|
-|
-|
-|### 3) Try a REST call using the header
-|
-|
-|Using your favorite http client:
-|
-|  GET $getServerUrl/obp/v3.0.0/users/current
-|
-|Body
-|
-|  Leave Empty!
-|
-|
-|Headers:
-|
-|       Authorization: GatewayLogin token="your-jwt-from-step-above"
-|
-|Here is it all together:
-|
-|  GET $getServerUrl/obp/v3.0.0/users/current HTTP/1.1
-|        Host: localhost:8080
-|        User-Agent: curl/7.47.0
-|        Accept: */*
-|        Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU"
-|
-|CURL example
-|
-|```
-|curl -v -H 'Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
-|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k"' $getServerUrl/obp/v3.0.0/users/current
-|```
-|
-|
-|You should receive a response like:
-|
-|```
-|{
-|  "user_id": "33fd104f-3e6f-4025-97cc-b76bbdc9148e",
-|  "email": "marko@tesobe.com",
-|  "provider_id": "marko.milic",
-|  "provider": "https://tesobe.openbankproject.com",
-|  "username": "marko.milic",
-|  "entitlements": {
-|    "list": []
-|  }
-|}
-|```
-|and custom response header i.e. OBP returns a new token in the custom response header called GatewayLogin (to the Gateway)
-|
-|```
-|{
-|"username": "simonr",
-|"CBS_auth_token": "fapsoidfuipoi889w3ih", (Encrypted by OBP Adapter)
-|"timestamp": "timestamp",
-|"consumer_id": "123",
-|"consumer_name": "Name of Consumer"
-|}
-|```
-|GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU"
 |
 |### Example python script
+|
 |```
 |import jwt
 |from datetime import datetime, timezone
 |import requests
-|
-|env = 'local'
-|DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 |
 |obp_api_host = 'https://yourhost.com'
 |payload = {
@@ -2662,20 +2298,17 @@ object Glossary extends MdcLoggable  {
 |    "session_id": "123456789"
 |}
 |
-|
-|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
+|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256')
 |authorization = 'GatewayLogin token="{}"'.format(token)
 |headers = {'Authorization': authorization}
-|url = obp_api_host + '/obp/v4.0.0/users/current'
+|url = obp_api_host + '/obp/v6.0.0/users/current'
 |req = requests.get(url, headers=headers)
 |print(req.text)
 |```
 |
 |### Under the hood
 |
-|The file, GatewayLogin.scala handles the Gateway Login.
-|
-|We:
+|The file GatewayLogin.scala handles the Gateway Login:
 |
 |```
 |-> Check if Props allow_gateway_login is true
@@ -2686,15 +2319,6 @@ object Glossary extends MdcLoggable  {
 |```
 |
 |The CBS_auth_token (either the new one from CBS or existing one from previous token) is returned in the GatewayLogin custom response header.
-|
-|
-|
-|### More information
-|
-|   Parameter names and values are case sensitive.
-|
-|
-|  Each parameter MUST NOT appear more than once per request.
 |
 					""")
 

@@ -19,7 +19,6 @@ import doobie.implicits.javasql._
  * competing with API request handling for Lift/HikariPool-1 connections.
  *
  * Configuration:
- *   - metrics.batch.size: flush threshold (default: 50)
  *   - metrics.batch.interval.seconds: flush interval (default: 5)
  */
 object MetricBatchWriter extends MdcLoggable {
@@ -45,7 +44,6 @@ object MetricBatchWriter extends MdcLoggable {
 
   private val queue = new ConcurrentLinkedQueue[MetricRow]()
 
-  private val batchSize = APIUtil.getPropsAsIntValue("metrics.batch.size", 50)
   private val flushIntervalSeconds = APIUtil.getPropsAsLongValue("metrics.batch.interval.seconds", 5L)
 
   private val started = new AtomicBoolean(false)
@@ -66,7 +64,7 @@ object MetricBatchWriter extends MdcLoggable {
         flushIntervalSeconds,
         TimeUnit.SECONDS
       )
-      logger.info(s"MetricBatchWriter says: started (batchSize=$batchSize, flushInterval=${flushIntervalSeconds}s)")
+      logger.info(s"MetricBatchWriter says: started (flushInterval=${flushIntervalSeconds}s)")
     }
   }
 
