@@ -112,6 +112,7 @@ object Migration extends MdcLoggable {
       addAccountAccessWithViewsView(startedBeforeSchemifier)
       addMetricView(startedBeforeSchemifier)
       addConsentView(startedBeforeSchemifier)
+      updateConsentViewAddNote(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -591,6 +592,18 @@ object Migration extends MdcLoggable {
         true
       } else {
         val name = nameOf(addConsentView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfConsentView.addConsentView(name)
+        }
+      }
+    }
+
+    private def updateConsentViewAddNote(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.updateConsentViewAddNote(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(updateConsentViewAddNote(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfConsentView.addConsentView(name)
         }
