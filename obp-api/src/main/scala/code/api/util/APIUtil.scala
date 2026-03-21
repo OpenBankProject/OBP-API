@@ -534,9 +534,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val hash = HashUtil.calculateETag(i.url, httpBody)
       CustomResponseHeaders(
         List(
-          (ResponseHeader.ETag, hash),
-          // TODO Add Cache-Control Header
-          // (ResponseHeader.`Cache-Control`, "No-Cache")
+          (ResponseHeader.ETag, hash)
+          // Cache-Control is set per-endpoint via implicit CustomResponseHeaders where appropriate
+          // (e.g. getApiGlossary sets max-age=3600 for static content)
         )
       )
     }.getOrElse(CustomResponseHeaders(Nil))

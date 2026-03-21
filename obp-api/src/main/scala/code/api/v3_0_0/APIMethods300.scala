@@ -2120,7 +2120,15 @@ trait APIMethods300 {
       "Get Glossary of the API",
       """Get API Glossary
         |
-        |Returns the glossary of the API
+        |Returns the glossary of the API.
+        |
+        |The glossary content is static and only changes when the API is redeployed.
+        |This endpoint supports HTTP caching:
+        |
+        |* The response includes a **Cache-Control** header (max-age=3600) indicating clients should cache for 1 hour.
+        |* The response includes an **ETag** header. Clients can send **If-None-Match** with the ETag value on subsequent requests to receive a **304 Not Modified** if the content has not changed.
+        |
+        |Clients and agents are encouraged to cache the glossary response locally.
         |
         |""",
       EmptyBody,
@@ -2128,9 +2136,16 @@ trait APIMethods300 {
       List(UnknownError),
       apiTagDocumentation  :: Nil)
 
+    // Glossary content is static — cache the serialized JSON to avoid re-computing markdown-to-HTML on every request
+    private lazy val cachedGlossaryJson = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+
     lazy val getApiGlossary : OBPEndpoint = {
       case "api" :: "glossary" ::  Nil JsonGet req => {
-        cc => implicit val ec = EndpointContext(Some(cc))
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          implicit val cacheHeaders = CustomResponseHeaders(List(
+            (ResponseHeader.`Cache-Control`, "max-age=3600")
+          ))
           for{
           _ <- if (glossaryDocsRequireRole){
               for {
@@ -2142,9 +2157,8 @@ trait APIMethods300 {
             } else {
               Future{Full(())}
             }
-            json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
           } yield {
-            (json, HttpCode.`200`(cc))
+            (cachedGlossaryJson, HttpCode.`200`(cc))
           }
       }
     }
