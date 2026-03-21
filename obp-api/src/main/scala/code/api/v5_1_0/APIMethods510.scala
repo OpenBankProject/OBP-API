@@ -33,7 +33,7 @@ import code.api.v5_0_0.JSONFactory500
 import code.api.v5_1_0.JSONFactory510.{createCallLimitJson, createConsentsInfoJsonV510, createConsentsJsonV510, createRegulatedEntitiesJson, createRegulatedEntityJson}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
-import code.consent.{ConsentRequests, ConsentStatus, Consents, MappedConsent}
+import code.consent.{ConsentRequests, ConsentStatus, Consents, DoobieConsentQueries, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -54,7 +54,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
@@ -1822,13 +1822,25 @@ trait APIMethods510 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           for {
-            consents <- Future {
-              Consents.consentProvider.vend.getConsentsByUser(cc.userId)
-                .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            rows <- Future {
+              DoobieConsentQueries.getAllConsentsByUser(cc.userId)
             }
           } yield {
-            val consentsOfBank = Consent.filterByBankId(consents, bankId)
-            (createConsentsInfoJsonV510(consentsOfBank), HttpCode.`200`(cc))
+            // Bank filtering requires JWT decoding — done in Scala
+            val filteredRows = rows.filter { row =>
+              row.jwt.exists { jwt =>
+                val jwtPayload: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
+                jwtPayload match {
+                  case Full(c) if c.views.isEmpty => true
+                  case Full(c) if c.views.map(_.bank_id).contains(bankId.value) => true
+                  case Full(c) if c.entitlements.exists(_.bank_id.isEmpty()) => true
+                  case Full(c) if c.entitlements.map(_.bank_id).contains(bankId.value) => true
+                  case _ => false
+                }
+              }
+            }
+            val consents = filteredRows.map(rowToConsentInfoJsonV510)
+            (ConsentsInfoJsonV510(consents), HttpCode.`200`(cc))
           }
       }
     }
@@ -1869,24 +1881,65 @@ trait APIMethods510 {
       case "my" :: "consents" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
+          val url = cc.url
+          val limitParam = getHttpRequestUrlParam(url, "limit") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(50)
+            case _ => 50
+          }
+          val offsetParam = getHttpRequestUrlParam(url, "offset") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(0)
+            case _ => 0
+          }
+          val statusParam = getHttpRequestUrlParam(url, "status") match {
+            case s if s.nonEmpty => Some(s)
+            case _ => None
+          }
+          val sortByParam = getHttpRequestUrlParam(url, "sort_by") match {
+            case s if s.nonEmpty => s
+            case _ => "created_date:desc"
+          }
+          val sortParts = sortByParam.split(":").map(_.trim.toLowerCase)
+          val sortField = sortParts(0)
+          val sortDirection = sortParts.lift(1).getOrElse("desc")
           for {
-            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
-            // Add user_id filter for current user and default sort if not specified
-            userIdParam = OBPUserId(cc.userId)
-            sortByParam = obpQueryParams.collectFirst { case OBPSortBy(_) => true }
-            queryParamsWithDefaults = userIdParam :: obpQueryParams ++ (
-              if (sortByParam.isEmpty) List(OBPSortBy("created_date:desc")) else Nil
-            )
-            (consents, _) <- Future {
-              Consents.consentProvider.vend.getConsents(queryParamsWithDefaults)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (rows, _) <- Future {
+              DoobieConsentQueries.getConsentsByUser(
+                userId = u.userId,
+                status = statusParam,
+                limit = limitParam,
+                offset = offsetParam,
+                sortField = sortField,
+                sortDirection = sortDirection
+              )
             }
           } yield {
-            (createConsentsInfoJsonV510(consents), HttpCode.`200`(callContext))
+            (ConsentsInfoJsonV510(rows.map(rowToConsentInfoJsonV510)), HttpCode.`200`(callContext))
           }
       }
     }
 
+    private def rowToConsentInfoJsonV510(row: DoobieConsentQueries.ConsentRow): ConsentInfoJsonV510 = {
+      val jwtPayload: Box[ConsentJWT] = row.jwt match {
+        case Some(jwt) => JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
+        case None => Empty
+      }
+      ConsentInfoJsonV510(
+        consent_reference_id = row.consentReferenceId.toString,
+        consent_id = row.consentId,
+        consumer_id = row.consumerId.orNull,
+        created_by_user_id = row.createdByUserId,
+        status = row.status,
+        last_action_date =
+          row.lastActionDate.map(d => new java.text.SimpleDateFormat(DateWithDay).format(d)).orNull,
+        last_usage_date =
+          row.lastUsageDate.map(d => new java.text.SimpleDateFormat(DateWithSeconds).format(d)).orNull,
+        jwt = row.jwt.orNull,
+        jwt_payload = jwtPayload,
+        api_standard = row.apiStandard.orNull,
+        api_version = row.apiVersion.orNull
+      )
+    }
 
     staticResourceDocs += ResourceDoc(
       getConsentsAtBank,

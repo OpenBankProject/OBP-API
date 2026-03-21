@@ -71,10 +71,24 @@ object MappedConsentProvider extends ConsentProvider {
 
   private def getPagedConsents(queryParams: List[OBPQueryParam]): (List[MappedConsent], Long) = {
     // Extract pagination params
-    val limitOpt = queryParams.collectFirst { case OBPLimit(value) => value }
-    val offsetOpt = queryParams.collectFirst { case OBPOffset(value) => value }
+    val limit = queryParams.collectFirst { case OBPLimit(value) => MaxRows[MappedConsent](value) }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => StartAt[MappedConsent](value) }
 
-    // Extract filters (exclude limit/offset)
+    // Extract sort params — push sorting to DB
+    val orderBy: Option[OrderBy[MappedConsent, _]] = queryParams.collectFirst { case OBPSortBy(value) => value }
+      .flatMap { sortSpec =>
+        val parts = sortSpec.split(":").map(_.trim.toLowerCase)
+        val fieldName = parts(0)
+        val direction = if (parts.lift(1).contains("desc")) Descending else Ascending
+        fieldName match {
+          case "created_date" => Some(OrderBy(MappedConsent.createdAt, direction))
+          case "status"       => Some(OrderBy(MappedConsent.mStatus, direction))
+          case "consumer_id"  => Some(OrderBy(MappedConsent.mConsumerId, direction))
+          case _              => None
+        }
+      }
+
+    // Extract filters
     val consumerId = queryParams.collectFirst { case OBPConsumerId(value) => By(MappedConsent.mConsumerId, value) }
     val consentId = queryParams.collectFirst { case OBPConsentId(value) => By(MappedConsent.mConsentId, value) }
     val providerProviderId: Option[Cmp[MappedConsent, String]] = queryParams.collectFirst {
@@ -98,29 +112,27 @@ object MappedConsentProvider extends ConsentProvider {
         ByList(MappedConsent.mStatus, distinctLowerAndUpperCaseStatuses)
     }
 
-    // Build filters (without limit/offset)
-    val filters = Seq(
+    // Build query params for DB — filters + pagination + sorting
+    val filters: Seq[QueryParam[MappedConsent]] = Seq(
+      status.toSeq,
+      userId.orElse(providerProviderId).toSeq,
+      consentId.toSeq,
+      consumerId.toSeq,
+      limit.toSeq,
+      offset.toSeq,
+      orderBy.toSeq
+    ).flatten
+
+    // Total count for pagination (filters only, no limit/offset/orderBy)
+    val countFilters: Seq[QueryParam[MappedConsent]] = Seq(
       status.toSeq,
       userId.orElse(providerProviderId).toSeq,
       consentId.toSeq,
       consumerId.toSeq
     ).flatten
+    val totalCount = MappedConsent.count(countFilters: _*)
 
-    // Total count for pagination
-    val totalCount = MappedConsent.count(filters: _*)
-
-    // Apply limit/offset if provided
-    val pageData = (limitOpt, offsetOpt) match {
-      case (Some(limit), Some(offset)) => MappedConsent.findAll(filters: _*).drop(offset).take(limit)
-      case (Some(limit), None) => MappedConsent.findAll(filters: _*).take(limit)
-      case _ => MappedConsent.findAll(filters: _*)
-    }
-
-    // Compute number of pages
-    val totalPages = limitOpt match {
-      case Some(limit) if limit > 0 => Math.ceil(totalCount.toDouble / limit).toInt
-      case _ => 1
-    }
+    val pageData = MappedConsent.findAll(filters: _*)
 
     (pageData, totalCount)
   }
@@ -172,13 +184,12 @@ object MappedConsentProvider extends ConsentProvider {
 
 
   override def getConsents(queryParams: List[OBPQueryParam]): (List[MappedConsent], Long) = {
-    val sortBy: Option[String] = queryParams.collectFirst { case OBPSortBy(value) => value }
     val (consents, totalCount) = getPagedConsents(queryParams)
     val bankId: Option[String] = queryParams.collectFirst { case OBPBankId(value) => value }
     if(bankId.isDefined) {
       (Consent.filterStrictlyByBank(consents, bankId.get), totalCount)
     } else {
-      (sortConsents(consents, sortBy.getOrElse("")), totalCount)
+      (consents, totalCount)
     }
   }
 
@@ -459,5 +470,5 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
 }
 
 object MappedConsent extends MappedConsent with LongKeyedMetaMapper[MappedConsent] {
-  override def dbIndexes = UniqueIndex(mConsentId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mConsentId) :: Index(mUserId) :: super.dbIndexes
 }
