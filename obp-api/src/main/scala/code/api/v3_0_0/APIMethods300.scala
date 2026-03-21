@@ -18,7 +18,7 @@ import code.api.v2_0_0.AccountsHelper._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v4_0_0.{AtmJsonV400, JSONFactory400}
-import code.api.{APIFailureNewStyle, Constant}
+import code.api.{APIFailureNewStyle, Constant, ResponseHeader}
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
