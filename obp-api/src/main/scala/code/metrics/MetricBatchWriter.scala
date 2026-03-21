@@ -79,7 +79,7 @@ object MetricBatchWriter extends MdcLoggable {
   /**
    * Drain the queue and batch-insert all pending metrics via Doobie.
    */
-  private def flush(): Unit = {
+  private[metrics] def flush(): Unit = {
     try {
       val batch = new java.util.ArrayList[MetricRow]()
       var item = queue.poll()
