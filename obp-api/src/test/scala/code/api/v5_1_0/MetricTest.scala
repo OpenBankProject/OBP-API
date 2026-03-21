@@ -6,6 +6,7 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.v3_0_0.AggregateMetricJSON
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
+import code.metrics.MetricBatchWriter
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -81,6 +82,8 @@ class MetricTest extends V510ServerSetup {
         makeGetRequest(requestBanks)
         makeGetRequest(requestBanks)
       }
+
+      MetricBatchWriter.flush()
 
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", testConsumer.name.get))
