@@ -100,31 +100,39 @@ object MetricBatchWriter extends MdcLoggable {
 
         val insertSql = """
           INSERT INTO metric (
-            userid_c, url_c, date_c, duration_c, username_c, appname_c,
-            developeremail_c, consumerid_c, implementedbypartialfunction,
+            userid, url, date_c, duration, username, appname,
+            developeremail, consumerid, implementedbypartialfunction,
             implementedinversion, verb, httpcode, correlationid,
             responsebody, sourceip, targetip
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
+        // Use Option[String] so Doobie handles nullable fields via Put[Option[String]]
+        // instead of Put[String] which throws "oops, null" on null values
         val insert = Update[
-          (String, String, Timestamp, Long, String, String,
-           String, String, String,
-           String, String, Int, String,
-           String, String, String)
+          (Option[String], Option[String], Timestamp, Long, Option[String], Option[String],
+           Option[String], Option[String], Option[String],
+           Option[String], Option[String], Int, Option[String],
+           Option[String], Option[String], Option[String])
         ](insertSql)
 
         val values = rows.map { r =>
           (
-            r.userId, r.url, new Timestamp(if (r.date != null) r.date.getTime else 0L),
-            r.duration, r.userName, r.appName,
-            r.developerEmail, r.consumerId, r.implementedByPartialFunction,
-            r.implementedInVersion, r.verb, r.httpCode, r.correlationId,
-            r.responseBody, r.sourceIp, r.targetIp
+            Option(r.userId), Option(r.url), new Timestamp(if (r.date != null) r.date.getTime else 0L),
+            r.duration, Option(r.userName), Option(r.appName),
+            Option(r.developerEmail), Option(r.consumerId), Option(r.implementedByPartialFunction),
+            Option(r.implementedInVersion), Option(r.verb), r.httpCode, Option(r.correlationId),
+            Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp)
           )
         }
 
-        val program: ConnectionIO[Int] = insert.updateMany(values)
+        // Explicit commit needed: the background thread has no Lift request context,
+        // so DoobieUtil falls back to the shared HikariCP pool (autoCommit=false)
+        // with Strategy.void (no auto-commit/rollback).
+        val program: ConnectionIO[Int] = for {
+          n <- insert.updateMany(values)
+          _ <- FC.commit
+        } yield n
         val count = DoobieUtil.runQuery(program)
         logger.debug(s"MetricBatchWriter says: flushed $count metrics via doobie-pool")
       }

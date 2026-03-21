@@ -3154,7 +3154,7 @@ object SwaggerDefinitionsJSON {
     user_id = ExampleValue.userIdExample.value,
     url = "www.openbankproject.com",
     date = DateWithDayExampleObject,
-    user_name = "OBP",
+    username = "OBP",
     app_name = "SOFI",
     developer_email = ExampleValue.emailExample.value,
     implemented_by_partial_function = "getBanks",
@@ -5352,7 +5352,8 @@ object SwaggerDefinitionsJSON {
     allow_dauth = false,
     allow_sandbox_account_creation = false,
     allow_sandbox_data_import = false,
-    allow_account_deletion = false
+    allow_account_deletion = false,
+    allow_just_in_time_entitlements = false
   )
 
   lazy val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")

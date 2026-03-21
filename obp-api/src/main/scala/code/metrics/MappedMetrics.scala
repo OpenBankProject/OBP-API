@@ -231,7 +231,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         }
         field match {
           case Some(s) if s == "user_id" => OrderBy(MappedMetric.userId, direction)
-          case Some(s) if s == "user_name" => OrderBy(MappedMetric.userName, direction)
+          case Some(s) if s == "username" || s == "user_name" => OrderBy(MappedMetric.userName, direction)
           case Some(s) if s == "developer_email" => OrderBy(MappedMetric.developerEmail, direction)
           case Some(s) if s == "app_name" => OrderBy(MappedMetric.appName, direction)
           case Some(s) if s == "url" => OrderBy(MappedMetric.url, direction)
