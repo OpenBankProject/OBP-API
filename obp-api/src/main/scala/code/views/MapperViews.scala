@@ -589,6 +589,9 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
     val rows = DoobieAccountAccessViewQueries.getByUser(user.userId)
     val viewPairs = rowsToViewDefinitions(rows)
+    // Deduplicate views by (bank_id, account_id, view_id) rather than using .distinct,
+    // because viewDefinitionFromRow creates unsaved Mapper objects (id=0) whose .equals
+    // treats all instances as identical regardless of their field values.
     val distinctViews = viewPairs.map(_._2)
       .groupBy(v => (v.bank_id.get, v.account_id.get, v.viewId.value))
       .values.map(_.head).toList
@@ -613,6 +616,7 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
     val rows = DoobieAccountAccessViewQueries.getByUserBankAccount(user.userId, bankIdAccountId.bankId.value, bankIdAccountId.accountId.value)
     val viewPairs = rowsToViewDefinitions(rows)
+    // See privateViewsUserCanAccess for why we use groupBy instead of .distinct
     viewPairs.map(_._2)
       .groupBy(v => (v.bank_id.get, v.account_id.get, v.viewId.value))
       .values.map(_.head).toList
