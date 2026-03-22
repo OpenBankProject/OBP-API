@@ -110,6 +110,10 @@ object Migration extends MdcLoggable {
       alterConsentRequestColumnConsumerIdLength()
       alterMappedConsentColumnConsumerIdLength()
       addAccountAccessWithViewsView(startedBeforeSchemifier)
+      addMetricView(startedBeforeSchemifier)
+      addConsentView(startedBeforeSchemifier)
+      updateConsentViewAddJwtPayload(startedBeforeSchemifier)
+      updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -571,12 +575,62 @@ object Migration extends MdcLoggable {
       }
     }
 
+    private def addMetricView(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.addMetricView(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(addMetricView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfMetricView.addMetricView(name)
+        }
+      }
+    }
+
+    private def addConsentView(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.addConsentView(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(addConsentView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfConsentView.addConsentView(name)
+        }
+      }
+    }
+
+    private def updateConsentViewAddJwtPayload(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.updateConsentViewAddJwtPayload(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(updateConsentViewAddJwtPayload(startedBeforeSchemifier))
+        runOnce(name) {
+          val viewResult = MigrationOfConsentView.addConsentView(name)
+          MigrationOfConsentJwtPayload.backfillJwtPayload(name)
+          viewResult
+        }
+      }
+    }
+
     private def addAccountAccessWithViewsView(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
         logger.warn(s"Migration.database.addAccountAccessWithViewsView(true) cannot be run before Schemifier.")
         true
       } else {
         val name = nameOf(addAccountAccessWithViewsView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
+        }
+      }
+    }
+
+    private def updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.updateAccountAccessWithViewsViewUnionAll(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
         }

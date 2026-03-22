@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.util.{APIUtil, OBPLimit}
 import code.api.util.APIUtil.getCorrelationId
+import code.metrics.MetricBatchWriter
 import code.setup.ServerSetup
 
 
@@ -64,6 +65,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUserId,testUrl1, day1, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp)
+      MetricBatchWriter.flush()
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
 
@@ -90,6 +92,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUserId, testUrl2, day2, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp)
+      MetricBatchWriter.flush()
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit1))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
@@ -119,6 +122,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metrics.saveMetric(testUserId, testUrl2, day2, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp)
+      MetricBatchWriter.flush()
 
       val byDay = metrics.getAllMetrics(List(OBPLimit(limit2))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))
@@ -146,6 +150,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
  */
 trait WipeMetrics {
   def wipeAllExistingMetrics() = {
+    MetricBatchWriter.flush()
     APIMetrics.apiMetrics.vend.bulkDeleteMetrics()
   }
 }

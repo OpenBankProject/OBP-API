@@ -541,7 +541,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 }
 
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
-  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: super.dbIndexes
+  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: Index(isSystem_, view_id) :: Index(bank_id, account_id, view_id) :: super.dbIndexes
   override def beforeSave = List(
     t =>{
       tryo {

@@ -62,7 +62,8 @@ case class FeaturesJsonV600(
   allow_dauth: Boolean,
   allow_sandbox_account_creation: Boolean,
   allow_sandbox_data_import: Boolean,
-  allow_account_deletion: Boolean
+  allow_account_deletion: Boolean,
+  allow_just_in_time_entitlements: Boolean
 )
 
 case class CounterpartyAttributeRequestJsonV600(
@@ -382,7 +383,7 @@ case class MetricJsonV600(
     user_id: String,
     url: String,
     date: Date,
-    user_name: String,
+    username: String,
     app_name: String,
     developer_email: String,
     implemented_by_partial_function: String,
@@ -1422,7 +1423,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
     MetricJsonV600(
       user_id = metric.getUserId(),
-      user_name = metric.getUserName(),
+      username = metric.getUserName(),
       developer_email = metric.getDeveloperEmail(),
       app_name = metric.getAppName(),
       url = metric.getUrl(),

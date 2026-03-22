@@ -532,6 +532,7 @@ class Boot extends MdcLoggable {
     // If set to true we will write each URL with params to a datastore / log file
     if (APIUtil.getPropsAsBoolValue("write_metrics", false)) {
       logger.info("writeMetrics is true. We will write API metrics")
+      code.metrics.MetricBatchWriter.start()
     } else {
       logger.info("writeMetrics is false. We will NOT write API metrics")
     }

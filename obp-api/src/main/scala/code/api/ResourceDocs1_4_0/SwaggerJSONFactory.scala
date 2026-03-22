@@ -91,16 +91,18 @@ object SwaggerJSONFactory extends MdcLoggable {
     directLogin: DirectLoginJson ,
     gatewayLogin: GatewayLoginJson
   )
+  // NOTE: For full authentication documentation, see the securitySchemes in OpenAPI31JSONFactory.scala
+  // which is the source of truth. These Swagger 2.0 definitions are kept for backward compatibility.
   case class DirectLoginJson(
     `type`: String = "apiKey",
-    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login", // TODO replace with Glossary link
+    description: String = "Direct Login authentication. POST to /obp/v6.0.0/my/logins/direct with header 'DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY' to obtain a token. Then use header 'DirectLogin: token=YOUR_TOKEN' on subsequent requests. See the OpenAPI 3.1 spec for full details.",
     in: String = "header",
-    name: String = "Authorization"
+    name: String = "DirectLogin"
   )
-  
+
   case class GatewayLoginJson(
     `type`: String = "apiKey",
-    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login", // TODO replace with Glossary link
+    description: String = "Gateway Login authentication. The gateway sends a JWT in the Authorization header signed with a pre-shared secret. See the OpenAPI 3.1 spec for full details.",
     in: String = "header",
     name: String = "Authorization"
   )

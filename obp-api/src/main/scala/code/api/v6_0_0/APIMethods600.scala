@@ -165,7 +165,8 @@ trait APIMethods600 {
               allow_dauth = APIUtil.getPropsAsBoolValue("allow_dauth", false),
               allow_sandbox_account_creation = APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false),
               allow_sandbox_data_import = APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false),
-              allow_account_deletion = APIUtil.getPropsAsBoolValue("allow_account_deletion", false)
+              allow_account_deletion = APIUtil.getPropsAsBoolValue("allow_account_deletion", false),
+              allow_just_in_time_entitlements = APIUtil.getPropsAsBoolValue("create_just_in_time_entitlements", false)
             )
             (featuresJson, HttpCode.`200`(cc.callContext))
           }
@@ -3579,7 +3580,7 @@ trait APIMethods600 {
          |  possible values:
          |    "url",
          |    "date",
-         |    "user_name",
+         |    "username" (or "user_name" for backward compatibility),
          |    "app_name",
          |    "developer_email",
          |    "implemented_by_partial_function",
@@ -3589,7 +3590,7 @@ trait APIMethods600 {
          |
          |6 direction (defaults to date desc) eg: direction=desc
          |
-         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
          |
          |Other filters:
          |

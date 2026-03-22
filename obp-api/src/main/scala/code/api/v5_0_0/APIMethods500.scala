@@ -1970,7 +1970,7 @@ trait APIMethods500 {
          |  possible values:
          |    "url",
          |    "date",
-         |    "user_name",
+         |    "username" (or "user_name" for backward compatibility),
          |    "app_name",
          |    "developer_email",
          |    "implemented_by_partial_function",
@@ -1980,7 +1980,7 @@ trait APIMethods500 {
          |
          |6 direction (defaults to date desc) eg: direction=desc
          |
-         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
          |
          |Other filters:
          |
