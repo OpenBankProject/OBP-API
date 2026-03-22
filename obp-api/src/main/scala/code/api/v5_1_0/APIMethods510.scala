@@ -1962,7 +1962,8 @@ trait APIMethods510 {
         jwt = row.jwt.orNull,
         jwt_payload = row.jwtPayload.orNull,
         api_standard = row.apiStandard.orNull,
-        api_version = row.apiVersion.orNull
+        api_version = row.apiVersion.orNull,
+        jwt_expires_at = row.jwtExpiresAt.map(d => new java.text.SimpleDateFormat(DateWithSeconds).format(d)).orNull
       )
     }
 

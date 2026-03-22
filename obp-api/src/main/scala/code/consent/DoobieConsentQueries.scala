@@ -39,7 +39,8 @@ object DoobieConsentQueries {
     note: Option[String],
     frequencyPerDay: Option[Int],
     usesSoFarTodayCounter: Option[Int],
-    jwtPayload: Option[String]
+    jwtPayload: Option[String],
+    jwtExpiresAt: Option[Timestamp]
   )
 
   /**
@@ -74,7 +75,7 @@ object DoobieConsentQueries {
       fr"""SELECT consent_reference_id, consent_id, created_by_user_id, consumer_id,
            status, jwt, consent_request_id, api_standard, api_version,
            last_action_date, last_usage_date, created_date,
-           note, frequency_per_day, uses_so_far_today_counter, jwt_payload
+           note, frequency_per_day, uses_so_far_today_counter, jwt_payload, jwt_expires_at
            FROM v_consent
            WHERE created_by_user_id = $userId
            ORDER BY created_date DESC, api_standard DESC"""
@@ -113,7 +114,7 @@ object DoobieConsentQueries {
     fr"""SELECT consent_reference_id, consent_id, created_by_user_id, consumer_id,
          status, jwt, consent_request_id, api_standard, api_version,
          last_action_date, last_usage_date, created_date,
-         note, frequency_per_day, uses_so_far_today_counter, jwt_payload
+         note, frequency_per_day, uses_so_far_today_counter, jwt_payload, jwt_expires_at
          FROM v_consent"""
 
   private def buildStatusCondition(status: Option[String]): Fragment = status match {
@@ -236,7 +237,7 @@ object DoobieConsentQueries {
       fr"""SELECT DISTINCT v.consent_reference_id, v.consent_id, v.created_by_user_id, v.consumer_id,
            v.status, v.jwt, v.consent_request_id, v.api_standard, v.api_version,
            v.last_action_date, v.last_usage_date, v.created_date,
-           v.note, v.frequency_per_day, v.uses_so_far_today_counter, v.jwt_payload
+           v.note, v.frequency_per_day, v.uses_so_far_today_counter, v.jwt_payload, v.jwt_expires_at
            FROM v_consent v
            JOIN consent_items cb ON cb.consent_reference_id = v.consent_reference_id
            WHERE v.created_by_user_id = $userId

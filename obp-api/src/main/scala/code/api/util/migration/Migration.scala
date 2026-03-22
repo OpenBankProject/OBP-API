@@ -113,6 +113,7 @@ object Migration extends MdcLoggable {
       addMetricView(startedBeforeSchemifier)
       addConsentView(startedBeforeSchemifier)
       updateConsentViewAddJwtPayload(startedBeforeSchemifier)
+      updateConsentViewAddJwtExpiresAt(startedBeforeSchemifier)
       updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier)
     }
     
@@ -609,6 +610,18 @@ object Migration extends MdcLoggable {
           val viewResult = MigrationOfConsentView.addConsentView(name)
           MigrationOfConsentJwtPayload.backfillJwtPayload(name)
           viewResult
+        }
+      }
+    }
+
+    private def updateConsentViewAddJwtExpiresAt(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.updateConsentViewAddJwtExpiresAt(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(updateConsentViewAddJwtExpiresAt(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfConsentView.addConsentView(name)
         }
       }
     }
