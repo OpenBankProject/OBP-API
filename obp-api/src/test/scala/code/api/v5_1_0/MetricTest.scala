@@ -237,6 +237,7 @@ class MetricTest extends V510ServerSetup {
       }
       
       {
+        MetricBatchWriter.flush()
         Then("we test the anon params")
         val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("anon", s"false"))
         val response2 = makeGetRequest(request2)
