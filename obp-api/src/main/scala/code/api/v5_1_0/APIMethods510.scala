@@ -1816,7 +1816,7 @@ trait APIMethods510 {
          |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
          |
          |Note: This endpoint only returns consents that explicitly reference the specified BANK_ID.
-         |Consents created before the consent_items join table was introduced will not appear in results.
+         |Consents created before the consent_item join table was introduced will not appear in results.
          |
          |eg: /banks/BANK_ID/my/consents?limit=10&offset=0&sort_by=created_date:desc
          |

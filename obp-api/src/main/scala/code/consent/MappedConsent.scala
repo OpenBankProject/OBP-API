@@ -328,7 +328,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
           .mJsonWebTokenPayload(payload)
           .saveMe())
 
-        // Denormalise bank_id, account_id, view_id and role_name from the JWT into consent_items
+        // Denormalise bank_id, account_id, view_id and role_name from the JWT into consent_item
         // so that bank-scoped queries can use an indexed SQL join instead of extracting every JWT.
         result.foreach { savedConsent =>
           try {
@@ -337,7 +337,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
             }
           } catch {
             case e: Exception =>
-              logger.error(s"setJsonWebToken says: Failed to populate consent_items for consent $consentId: ${e.getMessage}")
+              logger.error(s"setJsonWebToken says: Failed to populate consent_item for consent $consentId: ${e.getMessage}")
           }
         }
         result

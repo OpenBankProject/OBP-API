@@ -186,7 +186,7 @@ object DoobieConsentQueries {
       val bankId = view.bank_id
       val accountId: Option[String] = Option(view.account_id).filter(_.nonEmpty)
       val viewId: Option[String] = Option(view.view_id).filter(_.nonEmpty)
-      fr"""INSERT INTO consent_items (consent_item_id, consent_reference_id, item_type, bank_id, account_id, view_id)
+      fr"""INSERT INTO consent_item (consent_item_id, consent_reference_id, item_type, bank_id, account_id, view_id)
            VALUES ($consentItemId, $consentReferenceId, $itemType, $bankId, $accountId, $viewId)""".update.run
     }
     val entitlementInserts = consentJWT.entitlements.filter(_.bank_id.nonEmpty).map { role =>
@@ -194,7 +194,7 @@ object DoobieConsentQueries {
       val itemType = "ENTITLEMENT"
       val bankId = role.bank_id
       val roleName: Option[String] = Option(role.role_name).filter(_.nonEmpty)
-      fr"""INSERT INTO consent_items (consent_item_id, consent_reference_id, item_type, bank_id, role_name)
+      fr"""INSERT INTO consent_item (consent_item_id, consent_reference_id, item_type, bank_id, role_name)
            VALUES ($consentItemId, $consentReferenceId, $itemType, $bankId, $roleName)""".update.run
     }
     val allInserts = viewInserts ++ entitlementInserts
@@ -206,7 +206,7 @@ object DoobieConsentQueries {
 
   /**
    * Get consents for a user filtered by bank_id, with pagination.
-   * Uses the consent_items join table for efficient bank-scoped queries.
+   * Uses the consent_item join table for efficient bank-scoped queries.
    */
   def getConsentsByUserAndBank(
     userId: String,
@@ -239,7 +239,7 @@ object DoobieConsentQueries {
            v.last_action_date, v.last_usage_date, v.created_date,
            v.note, v.frequency_per_day, v.uses_so_far_today_counter, v.jwt_payload, v.jwt_expires_at
            FROM v_consent v
-           JOIN consent_items cb ON cb.consent_reference_id = v.consent_reference_id
+           JOIN consent_item cb ON cb.consent_reference_id = v.consent_reference_id
            WHERE v.created_by_user_id = $userId
            AND cb.bank_id = $bankId""" ++ statusCond ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
 

@@ -12127,6 +12127,10 @@ trait APIMethods400 extends MdcLoggable {
          |
          |${userAuthenticationMessage(true)}
          |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
          |""".stripMargin,
       EmptyBody,
       apiCollectionsJson400,
@@ -12140,12 +12144,22 @@ trait APIMethods400 extends MdcLoggable {
     lazy val getMyApiCollections: OBPEndpoint = {
       case "my" :: "api-collections" :: Nil JsonGet _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
+        val url = cc.url
+        val limitParam = getHttpRequestUrlParam(url, "limit") match {
+          case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(50)
+          case _ => 50
+        }
+        val offsetParam = getHttpRequestUrlParam(url, "offset") match {
+          case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(0)
+          case _ => 0
+        }
         for {
           (apiCollections, callContext) <- NewStyle.function
             .getApiCollectionsByUserId(cc.userId, Some(cc))
         } yield {
+          val paginated = apiCollections.drop(offsetParam).take(limitParam)
           (
-            JSONFactory400.createApiCollectionsJsonV400(apiCollections),
+            JSONFactory400.createApiCollectionsJsonV400(paginated),
             HttpCode.`200`(callContext)
           )
         }

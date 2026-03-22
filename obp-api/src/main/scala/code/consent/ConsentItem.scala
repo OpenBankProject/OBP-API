@@ -3,11 +3,11 @@ package code.consent
 import code.util.MappedUUID
 import net.liftweb.mapper._
 
-// consent_items denormalises key fields (bank_id, account_id, view_id, role_name) from the consent JWT
+// consent_item denormalises key fields (bank_id, account_id, view_id, role_name) from the consent JWT
 // so that bank-scoped queries can be done via a simple indexed SQL join instead of extracting and
 // parsing every JWT. Rows are written at consent creation time alongside JWT generation.
-class MappedConsentItems extends LongKeyedMapper[MappedConsentItems] with IdPK {
-  def getSingleton = MappedConsentItems
+class ConsentItem extends LongKeyedMapper[ConsentItem] with IdPK {
+  def getSingleton = ConsentItem
 
   object consentItemId extends MappedUUID(this) {
     override def dbColumnName = "consent_item_id"
@@ -35,7 +35,7 @@ class MappedConsentItems extends LongKeyedMapper[MappedConsentItems] with IdPK {
   }
 }
 
-object MappedConsentItems extends MappedConsentItems with LongKeyedMetaMapper[MappedConsentItems] {
-  override def dbTableName = "consent_items"
+object ConsentItem extends ConsentItem with LongKeyedMetaMapper[ConsentItem] {
+  override def dbTableName = "consent_item"
   override def dbIndexes = UniqueIndex(consentItemId) :: Index(consentReferenceId) :: Index(bankId) :: Index(consentReferenceId, bankId) :: super.dbIndexes
 }

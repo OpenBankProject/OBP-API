@@ -63,7 +63,7 @@ import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
-import code.consent.{ConsentRequest, MappedConsent, MappedConsentItems}
+import code.consent.{ConsentItem, ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
@@ -1120,7 +1120,7 @@ object ToSchemify {
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
-    MappedConsentItems,
+    ConsentItem,
     ConsentRequest,
     MigrationScriptLog,
     MethodRouting,
