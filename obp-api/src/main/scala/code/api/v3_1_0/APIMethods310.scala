@@ -25,7 +25,7 @@ import code.api.v3_0_0.{CreateViewJsonV300, JSONFactory300}
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.{Connector, LocalMappedConnector}
-import code.consent.{ConsentStatus, Consents, MappedConsent}
+import code.consent.{ConsentStatus, Consents, DoobieConsentQueries, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -3726,6 +3726,10 @@ trait APIMethods310 {
         |
         |${userAuthenticationMessage(true)}
         |
+        |1 limit (for pagination: defaults to 50)  eg:limit=200
+        |
+        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
       """.stripMargin,
       EmptyBody,
       consentsJsonV310,
@@ -3739,12 +3743,32 @@ trait APIMethods310 {
     lazy val getConsents: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
+          val url = cc.url
+          val limitParam = APIUtil.getHttpRequestUrlParam(url, "limit") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(50)
+            case _ => 50
+          }
+          val offsetParam = APIUtil.getHttpRequestUrlParam(url, "offset") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(0)
+            case _ => 0
+          }
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            consents <- Future(Consents.consentProvider.vend.getConsentsByUser(user.userId))
+            rows <- Future {
+              DoobieConsentQueries.getConsentsByUserAndBank(
+                userId = user.userId,
+                bankId = bankId.value,
+                status = None,
+                limit = limitParam,
+                offset = offsetParam,
+                sortField = "created_date",
+                sortDirection = "desc"
+              )
+            }
           } yield {
-            (JSONFactory310.createConsentsJsonV310(consents), HttpCode.`200`(callContext))
+            val consents = rows.map(r => ConsentJsonV310(r.consentId, r.jwt.getOrElse(""), r.status))
+            (ConsentsJsonV310(consents), HttpCode.`200`(callContext))
           }
       }
     }

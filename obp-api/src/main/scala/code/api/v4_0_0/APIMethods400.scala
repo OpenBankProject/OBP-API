@@ -42,7 +42,7 @@ import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.LocalMappedConnectorInternal._
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector, LocalMappedConnectorInternal}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentStatus, Consents, DoobieConsentQueries}
 import code.dynamicEntity.DynamicEntityCommons
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -11479,6 +11479,10 @@ trait APIMethods400 extends MdcLoggable {
          |
          |${userAuthenticationMessage(true)}
          |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
       """.stripMargin,
       EmptyBody,
       consentsJsonV400,
@@ -11494,19 +11498,33 @@ trait APIMethods400 extends MdcLoggable {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
+          val url = cc.url
+          val limitParam = getHttpRequestUrlParam(url, "limit") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(50)
+            case _ => 50
+          }
+          val offsetParam = getHttpRequestUrlParam(url, "offset") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(0)
+            case _ => 0
+          }
           for {
-            consents <- Future {
-              Consents.consentProvider.vend
-                .getConsentsByUser(cc.userId)
-                .sortBy(i => (i.creationDateTime, i.apiStandard))
-                .reverse
+            rows <- Future {
+              DoobieConsentQueries.getConsentsByUserAndBank(
+                userId = cc.userId,
+                bankId = bankId.value,
+                status = None,
+                limit = limitParam,
+                offset = offsetParam,
+                sortField = "created_date",
+                sortDirection = "desc"
+              )
             }
           } yield {
-            val consentsOfBank = Consent.filterByBankId(consents, bankId)
-            (
-              JSONFactory400.createConsentsJsonV400(consentsOfBank),
-              HttpCode.`200`(cc)
-            )
+            val consents = rows.map(r => ConsentJsonV400(
+              r.consentId, r.jwt.getOrElse(""), r.status,
+              r.apiStandard.getOrElse(""), r.apiVersion.getOrElse("")
+            ))
+            (ConsentsJsonV400(consents), HttpCode.`200`(cc))
           }
       }
     }

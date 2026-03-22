@@ -1,7 +1,7 @@
 package code.consent
 
 import java.util.Date
-import code.api.util.{APIUtil, Consent, ErrorMessages, JwtUtil, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
+import code.api.util.{APIUtil, Consent, ConsentJWT, ErrorMessages, JwtUtil, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
 import code.model.dataAccess.ResourceUser
@@ -17,7 +17,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import scala.collection.immutable.List
 
-object MappedConsentProvider extends ConsentProvider {
+object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLoggable {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {
     MappedConsent.find(
       By(MappedConsent.mConsentId, consentId)
@@ -305,10 +305,26 @@ object MappedConsentProvider extends ConsentProvider {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         val payload = JwtUtil.getSignedPayloadAsJson(jwt).openOr(null)
-        tryo(consent
+        val result = tryo(consent
           .mJsonWebToken(jwt)
           .mJsonWebTokenPayload(payload)
           .saveMe())
+        // Denormalise bank_id, account_id, view_id and role_name from the JWT into consent_items
+        // so that bank-scoped queries can use an indexed SQL join instead of extracting every JWT.
+        result.foreach { savedConsent =>
+          try {
+            if (payload != null) {
+              import net.liftweb.json._
+              implicit val formats: DefaultFormats.type = DefaultFormats
+              val consentJWT = parse(payload).extract[ConsentJWT]
+              DoobieConsentQueries.insertConsentItems(savedConsent.id.get, consentJWT)
+            }
+          } catch {
+            case e: Exception =>
+              logger.error(s"setJsonWebToken says: Failed to populate consent_items for consent $consentId: ${e.getMessage}")
+          }
+        }
+        result
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>
