@@ -1,7 +1,7 @@
 package code.consent
 
 import java.util.Date
-import code.api.util.{APIUtil, Consent, ErrorMessages, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
+import code.api.util.{APIUtil, Consent, ErrorMessages, JwtUtil, OBPBankId, OBPConsentId, OBPConsumerId, OBPLimit, OBPOffset, OBPQueryParam, OBPSortBy, OBPStatus, OBPUserId, ProviderProviderId, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.model.Consumer
 import code.model.dataAccess.ResourceUser
@@ -304,8 +304,10 @@ object MappedConsentProvider extends ConsentProvider {
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
+        val payload = JwtUtil.getSignedPayloadAsJson(jwt).openOr(null)
         tryo(consent
           .mJsonWebToken(jwt)
+          .mJsonWebTokenPayload(payload)
           .saveMe())
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
@@ -313,7 +315,7 @@ object MappedConsentProvider extends ConsentProvider {
         Failure(msg)
       case _ =>
         Failure(ErrorMessages.UnknownError)
-    } 
+    }
   }
   override def setValidUntil(consentId: String, validUntil: Date): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
@@ -436,6 +438,7 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   object mTransactionToDateTime extends MappedDateTime(this)
   object mStatusUpdateDateTime extends MappedDateTime(this)
   object mNote extends MappedText(this)
+  object mJsonWebTokenPayload extends MappedText(this)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -470,5 +473,5 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
 }
 
 object MappedConsent extends MappedConsent with LongKeyedMetaMapper[MappedConsent] {
-  override def dbIndexes = UniqueIndex(mConsentId) :: Index(mUserId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mConsentId) :: Index(mUserId) :: Index(mUserId, createdAt) :: super.dbIndexes
 }

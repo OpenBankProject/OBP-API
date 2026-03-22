@@ -1920,9 +1920,13 @@ trait APIMethods510 {
     }
 
     private def rowToConsentInfoJsonV510(row: DoobieConsentQueries.ConsentRow): ConsentInfoJsonV510 = {
-      val jwtPayload: Box[ConsentJWT] = row.jwt match {
-        case Some(jwt) => JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
-        case None => Empty
+      // Use pre-computed jwt_payload from DB; fall back to parsing jwt if not yet populated
+      val jwtPayload: Box[ConsentJWT] = row.jwtPayload match {
+        case Some(payload) => tryo(parse(payload).extract[ConsentJWT])
+        case None => row.jwt match {
+          case Some(jwt) => JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
+          case None => Empty
+        }
       }
       ConsentInfoJsonV510(
         consent_reference_id = row.consentReferenceId.toString,

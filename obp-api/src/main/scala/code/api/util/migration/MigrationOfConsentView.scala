@@ -36,7 +36,8 @@ object MigrationOfConsentView {
                     |    createdat                          AS created_date,
                     |    mnote                              AS note,
                     |    mfrequencyperday                   AS frequency_per_day,
-                    |    musessofartodaycounter             AS uses_so_far_today_counter
+                    |    musessofartodaycounter             AS uses_so_far_today_counter,
+                    |    mjsonwebtokenpayload               AS jwt_payload
                     |FROM mappedconsent;
                     |""".stripMargin
               case _ =>
@@ -58,7 +59,8 @@ object MigrationOfConsentView {
                     |    createdat                          AS created_date,
                     |    mnote                              AS note,
                     |    mfrequencyperday                   AS frequency_per_day,
-                    |    musessofartodaycounter             AS uses_so_far_today_counter
+                    |    musessofartodaycounter             AS uses_so_far_today_counter,
+                    |    mjsonwebtokenpayload               AS jwt_payload
                     |FROM mappedconsent;
                     |""".stripMargin
             }

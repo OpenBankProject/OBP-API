@@ -112,7 +112,8 @@ object Migration extends MdcLoggable {
       addAccountAccessWithViewsView(startedBeforeSchemifier)
       addMetricView(startedBeforeSchemifier)
       addConsentView(startedBeforeSchemifier)
-      updateConsentViewAddNote(startedBeforeSchemifier)
+      updateConsentViewAddJwtPayload(startedBeforeSchemifier)
+      updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -598,14 +599,16 @@ object Migration extends MdcLoggable {
       }
     }
 
-    private def updateConsentViewAddNote(startedBeforeSchemifier: Boolean): Boolean = {
+    private def updateConsentViewAddJwtPayload(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
-        logger.warn(s"Migration.database.updateConsentViewAddNote(true) cannot be run before Schemifier.")
+        logger.warn(s"Migration.database.updateConsentViewAddJwtPayload(true) cannot be run before Schemifier.")
         true
       } else {
-        val name = nameOf(updateConsentViewAddNote(startedBeforeSchemifier))
+        val name = nameOf(updateConsentViewAddJwtPayload(startedBeforeSchemifier))
         runOnce(name) {
-          MigrationOfConsentView.addConsentView(name)
+          val viewResult = MigrationOfConsentView.addConsentView(name)
+          MigrationOfConsentJwtPayload.backfillJwtPayload(name)
+          viewResult
         }
       }
     }
@@ -616,6 +619,18 @@ object Migration extends MdcLoggable {
         true
       } else {
         val name = nameOf(addAccountAccessWithViewsView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
+        }
+      }
+    }
+
+    private def updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.updateAccountAccessWithViewsViewUnionAll(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
         }

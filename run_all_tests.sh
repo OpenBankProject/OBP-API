@@ -384,12 +384,12 @@ generate_summary() {
     
     WARNINGS=$(grep -c "WARNING" "${detail_log}" 2>/dev/null || echo "0")
 
-    # Determine build status
-    if grep -q "BUILD SUCCESS" "${detail_log}"; then
-        BUILD_STATUS="SUCCESS"
-        BUILD_COLOR=""
-    elif grep -q "BUILD FAILURE" "${detail_log}"; then
+    # Determine build status (check FAILURE first — if both appear, the build failed)
+    if grep -q "BUILD FAILURE" "${detail_log}"; then
         BUILD_STATUS="FAILURE"
+        BUILD_COLOR=""
+    elif grep -q "BUILD SUCCESS" "${detail_log}"; then
+        BUILD_STATUS="SUCCESS"
         BUILD_COLOR=""
     else
         BUILD_STATUS="UNKNOWN"
@@ -904,6 +904,8 @@ MONITOR_PID=$!
 # Run Maven with optional timeout
 if [ "$TIMEOUT_MINUTES" -gt 0 ] 2>/dev/null; then
     # Run Maven in background and monitor for timeout
+    # Use pipefail so the pipeline returns mvn's exit code, not tee's
+    set -o pipefail
     mvn clean test 2>&1 | tee "${DETAIL_LOG}" &
     MAVEN_PID=$!
     
@@ -930,13 +932,17 @@ if [ "$TIMEOUT_MINUTES" -gt 0 ] 2>/dev/null; then
             TEST_RESULT="FAILURE"
         fi
     fi
+    set +o pipefail
 else
     # Run Maven normally (all output goes to terminal AND log file)
+    # Use pipefail so the pipeline returns mvn's exit code, not tee's
+    set -o pipefail
     if mvn clean test 2>&1 | tee "${DETAIL_LOG}"; then
         TEST_RESULT="SUCCESS"
     else
         TEST_RESULT="FAILURE"
     fi
+    set +o pipefail
 fi
 
 ################################################################################
@@ -947,7 +953,7 @@ print_header "Generating HTML Report"
 log_message "Running: mvn surefire-report:report-only -DskipTests"
 
 # Generate HTML report from surefire XML files (without re-running tests)
-if mvn surefire-report:report-only -DskipTests 2>&1 | tee -a "${DETAIL_LOG}"; then
+if mvn surefire-report:report-only -DskipTests 2>&1; then
     log_message "[OK] HTML report generated"
     
     # Copy HTML reports to test-results directory for easy access
