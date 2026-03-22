@@ -93,6 +93,7 @@ class MetricTest extends V510ServerSetup {
       val aggregateMetricJSON = response.body.extract[AggregateMetricJSON]
       aggregateMetricJSON.count shouldBe(7)
 
+      MetricBatchWriter.flush()
       When("We make a request v5.1.0")
       val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get}"))
       val response2 = makeGetRequest(request2)
@@ -103,6 +104,7 @@ class MetricTest extends V510ServerSetup {
       aggregateMetricJSON2.count shouldBe (15)
 
       {
+        MetricBatchWriter.flush()
         When("We make a request v5.1.0")
         val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get},${testConsumer3.name.get}"))
         val response2 = makeGetRequest(request2)

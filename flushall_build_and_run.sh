@@ -105,9 +105,16 @@ echo ""
 # - -T 4: Use 4 threads for parallel compilation
 echo "Building obp-api module..."
 echo "Build output will be saved to: build.log"
+> build.log
+# Show last 3 lines of build output in real-time
+tail -n 3 -f build.log &
+TAIL_PID=$!
 mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4 > build.log 2>&1
+BUILD_EXIT=$?
+kill $TAIL_PID 2>/dev/null
+wait $TAIL_PID 2>/dev/null
 
-if [ $? -ne 0 ]; then
+if [ $BUILD_EXIT -ne 0 ]; then
     echo ""
     echo "❌ Build failed! Please check build.log for details."
     echo "Last 30 lines of build log:"

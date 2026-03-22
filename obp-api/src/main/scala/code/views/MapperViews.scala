@@ -589,7 +589,10 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
     val rows = DoobieAccountAccessViewQueries.getByUser(user.userId)
     val viewPairs = rowsToViewDefinitions(rows)
-    (viewPairs.map(_._2).distinct, viewPairs.map { case (row, _) => rowToAccountAccess(row) })
+    val distinctViews = viewPairs.map(_._2)
+      .groupBy(v => (v.bank_id.get, v.account_id.get, v.viewId.value))
+      .values.map(_.head).toList
+    (distinctViews, viewPairs.map { case (row, _) => rowToAccountAccess(row) })
   }
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
     val rows = DoobieAccountAccessViewQueries.getByUserAndViewIds(user.userId, viewIds.map(_.value))
@@ -610,7 +613,9 @@ object MapperViews extends Views with MdcLoggable {
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
     val rows = DoobieAccountAccessViewQueries.getByUserBankAccount(user.userId, bankIdAccountId.bankId.value, bankIdAccountId.accountId.value)
     val viewPairs = rowsToViewDefinitions(rows)
-    viewPairs.map(_._2).distinct
+    viewPairs.map(_._2)
+      .groupBy(v => (v.bank_id.get, v.account_id.get, v.viewId.value))
+      .values.map(_.head).toList
   }
 
   
