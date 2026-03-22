@@ -111,8 +111,8 @@ tail -n 3 -f build.log &
 TAIL_PID=$!
 mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4 > build.log 2>&1
 BUILD_EXIT=$?
-kill $TAIL_PID 2>/dev/null
-wait $TAIL_PID 2>/dev/null
+kill $TAIL_PID 2>/dev/null || true
+wait $TAIL_PID 2>/dev/null || true
 
 if [ $BUILD_EXIT -ne 0 ]; then
     echo ""
