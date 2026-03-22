@@ -305,18 +305,34 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         val payload = JwtUtil.getSignedPayloadAsJson(jwt).openOr(null)
+        // Parse JWT payload to denormalise exp and consent items
+        val consentJWTParsed: Option[ConsentJWT] = if (payload != null) {
+          try {
+            import net.liftweb.json._
+            implicit val formats: DefaultFormats.type = DefaultFormats
+            Some(parse(payload).extract[ConsentJWT])
+          } catch {
+            case e: Exception =>
+              logger.error(s"setJsonWebToken says: Failed to parse JWT payload for consent $consentId: ${e.getMessage}")
+              None
+          }
+        } else None
+
+        // Set jwt_expires_at from the JWT exp claim
+        consentJWTParsed.foreach { jwt =>
+          consent.mJwtExpiresAt(new Date(jwt.exp * 1000L))
+        }
+
         val result = tryo(consent
           .mJsonWebToken(jwt)
           .mJsonWebTokenPayload(payload)
           .saveMe())
+
         // Denormalise bank_id, account_id, view_id and role_name from the JWT into consent_items
         // so that bank-scoped queries can use an indexed SQL join instead of extracting every JWT.
         result.foreach { savedConsent =>
           try {
-            if (payload != null) {
-              import net.liftweb.json._
-              implicit val formats: DefaultFormats.type = DefaultFormats
-              val consentJWT = parse(payload).extract[ConsentJWT]
+            consentJWTParsed.foreach { consentJWT =>
               DoobieConsentQueries.insertConsentItems(savedConsent.id.get, consentJWT)
             }
           } catch {
@@ -455,6 +471,10 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   object mStatusUpdateDateTime extends MappedDateTime(this)
   object mNote extends MappedText(this)
   object mJsonWebTokenPayload extends MappedText(this)
+  // Denormalised from the JWT exp claim so we can query expiry without parsing the JWT.
+  object mJwtExpiresAt extends MappedDateTime(this) {
+    override def dbColumnName = "jwt_expires_at"
+  }
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
