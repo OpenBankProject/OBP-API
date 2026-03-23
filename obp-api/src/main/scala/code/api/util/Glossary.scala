@@ -5111,6 +5111,20 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "SDKs",
+		description =
+			s"""
+				 |# SDKs
+				 |
+				 |OBP SDKs (Software Development Kits) are client libraries that make it easier to interact with the OBP API from various programming languages.
+				 |
+				 |SDKs are available for multiple languages including Python, Java, Scala, PHP, C#, Javascript and more.
+				 |
+				 |For more information see [OBP SDKs on GitHub](https://github.com/OpenBankProject/OBP-SDKs).
+				 |
+""")
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

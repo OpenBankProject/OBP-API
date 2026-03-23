@@ -1803,9 +1803,22 @@ trait APIMethods510 {
       "Get My Consents at Bank",
       s"""
          |
-         |This endpoint gets the Consents created by a current User.
+         |This endpoint gets the Consents created by a current User at the specified Bank.
          |
          |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 status  (ignore if omitted)
+         |
+         |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
+         |
+         |Note: This endpoint only returns consents that explicitly reference the specified BANK_ID.
+         |Consents created before the consent_item join table was introduced will not appear in results.
+         |
+         |eg: /banks/BANK_ID/my/consents?limit=10&offset=0&sort_by=created_date:desc
          |
       """.stripMargin,
       EmptyBody,
@@ -1821,26 +1834,42 @@ trait APIMethods510 {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
+          val url = cc.url
+          val limitParam = getHttpRequestUrlParam(url, "limit") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(50)
+            case _ => 50
+          }
+          val offsetParam = getHttpRequestUrlParam(url, "offset") match {
+            case s if s.nonEmpty => scala.util.Try(s.toInt).getOrElse(0)
+            case _ => 0
+          }
+          val statusParam = getHttpRequestUrlParam(url, "status") match {
+            case s if s.nonEmpty => Some(s)
+            case _ => None
+          }
+          val sortByParam = getHttpRequestUrlParam(url, "sort_by") match {
+            case s if s.nonEmpty => s
+            case _ => "created_date:desc"
+          }
+          val sortParts = sortByParam.split(":").map(_.trim.toLowerCase)
+          val sortField = sortParts(0)
+          val sortDirection = sortParts.lift(1).getOrElse("desc")
           for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
             rows <- Future {
-              DoobieConsentQueries.getAllConsentsByUser(cc.userId)
+              DoobieConsentQueries.getConsentsByUserAndBank(
+                userId = u.userId,
+                bankId = bankId.value,
+                status = statusParam,
+                limit = limitParam,
+                offset = offsetParam,
+                sortField = sortField,
+                sortDirection = sortDirection
+              )
             }
           } yield {
-            // Bank filtering requires JWT decoding — done in Scala
-            val filteredRows = rows.filter { row =>
-              row.jwt.exists { jwt =>
-                val jwtPayload: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
-                jwtPayload match {
-                  case Full(c) if c.views.isEmpty => true
-                  case Full(c) if c.views.map(_.bank_id).contains(bankId.value) => true
-                  case Full(c) if c.entitlements.exists(_.bank_id.isEmpty()) => true
-                  case Full(c) if c.entitlements.map(_.bank_id).contains(bankId.value) => true
-                  case _ => false
-                }
-              }
-            }
-            val consents = filteredRows.map(rowToConsentInfoJsonV510)
-            (ConsentsInfoJsonV510(consents), HttpCode.`200`(cc))
+            val consents = rows.map(rowToConsentInfoJsonV510)
+            (ConsentsInfoJsonV510(consents), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1903,7 +1932,7 @@ trait APIMethods510 {
           val sortDirection = sortParts.lift(1).getOrElse("desc")
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            (rows, _) <- Future {
+            rows <- Future {
               DoobieConsentQueries.getConsentsByUser(
                 userId = u.userId,
                 status = statusParam,
@@ -1920,14 +1949,6 @@ trait APIMethods510 {
     }
 
     private def rowToConsentInfoJsonV510(row: DoobieConsentQueries.ConsentRow): ConsentInfoJsonV510 = {
-      // Use pre-computed jwt_payload from DB; fall back to parsing jwt if not yet populated
-      val jwtPayload: Box[ConsentJWT] = row.jwtPayload match {
-        case Some(payload) => tryo(parse(payload).extract[ConsentJWT])
-        case None => row.jwt match {
-          case Some(jwt) => JwtUtil.getSignedPayloadAsJson(jwt).map(parse(_).extract[ConsentJWT])
-          case None => Empty
-        }
-      }
       ConsentInfoJsonV510(
         consent_reference_id = row.consentReferenceId.toString,
         consent_id = row.consentId,
@@ -1939,9 +1960,10 @@ trait APIMethods510 {
         last_usage_date =
           row.lastUsageDate.map(d => new java.text.SimpleDateFormat(DateWithSeconds).format(d)).orNull,
         jwt = row.jwt.orNull,
-        jwt_payload = jwtPayload,
+        jwt_payload = row.jwtPayload.orNull,
         api_standard = row.apiStandard.orNull,
-        api_version = row.apiVersion.orNull
+        api_version = row.apiVersion.orNull,
+        jwt_expires_at = row.jwtExpiresAt.map(d => new java.text.SimpleDateFormat(DateWithSeconds).format(d)).orNull
       )
     }
 

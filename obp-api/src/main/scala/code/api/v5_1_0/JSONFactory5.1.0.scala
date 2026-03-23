@@ -172,9 +172,10 @@ case class ConsentInfoJsonV510(consent_reference_id: String,
                                last_action_date: String,
                                last_usage_date: String,
                                jwt: String,
-                               jwt_payload: Box[ConsentJWT],
+                               jwt_payload: String,
                                api_standard: String,
                                api_version: String,
+                               jwt_expires_at: String,
                               )
 case class ConsentsInfoJsonV510(consents: List[ConsentInfoJsonV510])
 
@@ -1007,9 +1008,6 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
 
     ConsentsInfoJsonV510(
       consents.map { c =>
-        val jwtPayload: Box[ConsentJWT] =
-          JwtUtil.getSignedPayloadAsJson(c.jsonWebToken).map(parse(_).extract[ConsentJWT])
-
         ConsentInfoJsonV510(
           consent_reference_id = c.consentReferenceId,
           consent_id = c.consentId,
@@ -1021,9 +1019,10 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
           last_usage_date =
             if (c.usesSoFarTodayCounterUpdatedAt != null) new SimpleDateFormat(DateWithSeconds).format(c.usesSoFarTodayCounterUpdatedAt) else null,
           jwt = c.jsonWebToken,
-          jwt_payload = jwtPayload,
+          jwt_payload = null,
           api_standard = c.apiStandard,
-          api_version = c.apiVersion
+          api_version = c.apiVersion,
+          jwt_expires_at = null
         )
       }
     )

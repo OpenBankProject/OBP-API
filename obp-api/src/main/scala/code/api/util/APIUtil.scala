@@ -1271,19 +1271,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       roleName <- getHttpParamValuesByName(httpParams, "role_name")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
-      /**
-       * sortBy is currently disabled as it would open up a security hole:
-       *
-       * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
-       * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
-       * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
-       * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
-       *
-       * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
-       *
-       */
-      //val sortBy = json.header("obp_sort_by")
-      val ordering = OBPOrdering(None, sortDirection)
+      // Extract the sort field name from the sort_by query param (e.g. "url", "date").
+      // OBPOrdering expects Option[String], but sortBy is an OBPQueryParam.
+      val sortField = sortBy match {
+        case OBPSortBy(v) => Some(v)
+        case _ => None
+      }
+      val ordering = OBPOrdering(sortField, sortDirection)
       //This guarantee the order
       List(limit, offset, ordering, sortBy, fromDate, toDate,
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,

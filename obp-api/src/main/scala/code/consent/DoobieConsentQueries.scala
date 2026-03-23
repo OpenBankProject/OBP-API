@@ -39,31 +39,8 @@ object DoobieConsentQueries {
     note: Option[String],
     frequencyPerDay: Option[Int],
     usesSoFarTodayCounter: Option[Int],
-    jwtPayload: Option[String]
-  )
-
-  /**
-   * Row type for paginated queries that include total_count via window function.
-   * Eliminates the need for a separate COUNT(*) query.
-   */
-  case class ConsentRowWithCount(
-    consentReferenceId: Long,
-    consentId: String,
-    createdByUserId: String,
-    consumerId: Option[String],
-    status: String,
-    jwt: Option[String],
-    consentRequestId: Option[String],
-    apiStandard: Option[String],
-    apiVersion: Option[String],
-    lastActionDate: Option[Timestamp],
-    lastUsageDate: Option[Timestamp],
-    createdDate: Option[Timestamp],
-    note: Option[String],
-    frequencyPerDay: Option[Int],
-    usesSoFarTodayCounter: Option[Int],
     jwtPayload: Option[String],
-    totalCount: Long
+    jwtExpiresAt: Option[Timestamp]
   )
 
   /**
@@ -84,22 +61,9 @@ object DoobieConsentQueries {
     offset: Int,
     sortField: String,
     sortDirection: String
-  ): (List[ConsentRow], Long) = {
+  ): List[ConsentRow] = {
     val query = buildGetConsentsQuery(userId, status, limit, offset, sortField, sortDirection)
     DoobieUtil.runQuery(query)
-  }
-
-  def getConsentsByUserFuture(
-    userId: String,
-    status: Option[String],
-    limit: Int,
-    offset: Int,
-    sortField: String,
-    sortDirection: String
-  )(implicit ec: ExecutionContext): Future[(List[ConsentRow], Long)] = {
-    Future {
-      getConsentsByUser(userId, status, limit, offset, sortField, sortDirection)
-    }
   }
 
   /**
@@ -111,7 +75,7 @@ object DoobieConsentQueries {
       fr"""SELECT consent_reference_id, consent_id, created_by_user_id, consumer_id,
            status, jwt, consent_request_id, api_standard, api_version,
            last_action_date, last_usage_date, created_date,
-           note, frequency_per_day, uses_so_far_today_counter, jwt_payload
+           note, frequency_per_day, uses_so_far_today_counter, jwt_payload, jwt_expires_at
            FROM v_consent
            WHERE created_by_user_id = $userId
            ORDER BY created_date DESC, api_standard DESC"""
@@ -141,7 +105,7 @@ object DoobieConsentQueries {
     offset: Int = 0,
     sortField: String = "created_date",
     sortDirection: String = "desc"
-  ): (List[ConsentRow], Long) = {
+  ): List[ConsentRow] = {
     val query = buildFilteredQuery(userId, consumerId, consentId, status, limit, offset, sortField, sortDirection)
     DoobieUtil.runQuery(query)
   }
@@ -150,15 +114,7 @@ object DoobieConsentQueries {
     fr"""SELECT consent_reference_id, consent_id, created_by_user_id, consumer_id,
          status, jwt, consent_request_id, api_standard, api_version,
          last_action_date, last_usage_date, created_date,
-         note, frequency_per_day, uses_so_far_today_counter, jwt_payload
-         FROM v_consent"""
-
-  private val selectColumnsWithCount =
-    fr"""SELECT consent_reference_id, consent_id, created_by_user_id, consumer_id,
-         status, jwt, consent_request_id, api_standard, api_version,
-         last_action_date, last_usage_date, created_date,
-         note, frequency_per_day, uses_so_far_today_counter, jwt_payload,
-         count(*) OVER() AS total_count
+         note, frequency_per_day, uses_so_far_today_counter, jwt_payload, jwt_expires_at
          FROM v_consent"""
 
   private def buildStatusCondition(status: Option[String]): Fragment = status match {
@@ -187,23 +143,14 @@ object DoobieConsentQueries {
     offset: Int,
     sortField: String,
     sortDirection: String
-  ): ConnectionIO[(List[ConsentRow], Long)] = {
+  ): ConnectionIO[List[ConsentRow]] = {
     val statusCond = buildStatusCondition(status)
     val orderBy = buildOrderBy(sortField, sortDirection)
 
     val whereClause = fr"WHERE created_by_user_id = $userId " ++ statusCond
-    val dataQuery = selectColumnsWithCount ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
+    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
 
-    dataQuery.query[ConsentRowWithCount].to[List].map { rowsWithCount =>
-      val total = rowsWithCount.headOption.map(_.totalCount).getOrElse(0L)
-      val rows = rowsWithCount.map(r => ConsentRow(
-        r.consentReferenceId, r.consentId, r.createdByUserId, r.consumerId,
-        r.status, r.jwt, r.consentRequestId, r.apiStandard, r.apiVersion,
-        r.lastActionDate, r.lastUsageDate, r.createdDate,
-        r.note, r.frequencyPerDay, r.usesSoFarTodayCounter, r.jwtPayload
-      ))
-      (rows, total)
-    }
+    dataQuery.query[ConsentRow].to[List]
   }
 
   private def buildFilteredQuery(
@@ -215,7 +162,7 @@ object DoobieConsentQueries {
     offset: Int,
     sortField: String,
     sortDirection: String
-  ): ConnectionIO[(List[ConsentRow], Long)] = {
+  ): ConnectionIO[List[ConsentRow]] = {
     val userCond = userId.map(v => fr"AND created_by_user_id = $v").getOrElse(fr"")
     val consumerCond = consumerId.map(v => fr"AND consumer_id = $v").getOrElse(fr"")
     val consentCond = consentId.map(v => fr"AND consent_id = $v").getOrElse(fr"")
@@ -223,17 +170,79 @@ object DoobieConsentQueries {
     val orderBy = buildOrderBy(sortField, sortDirection)
 
     val whereClause = fr"WHERE 1=1 " ++ userCond ++ consumerCond ++ consentCond ++ statusCond
-    val dataQuery = selectColumnsWithCount ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
+    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
 
-    dataQuery.query[ConsentRowWithCount].to[List].map { rowsWithCount =>
-      val total = rowsWithCount.headOption.map(_.totalCount).getOrElse(0L)
-      val rows = rowsWithCount.map(r => ConsentRow(
-        r.consentReferenceId, r.consentId, r.createdByUserId, r.consumerId,
-        r.status, r.jwt, r.consentRequestId, r.apiStandard, r.apiVersion,
-        r.lastActionDate, r.lastUsageDate, r.createdDate,
-        r.note, r.frequencyPerDay, r.usesSoFarTodayCounter, r.jwtPayload
-      ))
-      (rows, total)
+    dataQuery.query[ConsentRow].to[List]
+  }
+
+  /**
+   * Insert consent items from the consent's views and entitlements.
+   * Called at consent creation time after the JWT is set.
+   */
+  def insertConsentItems(consentReferenceId: Long, consentJWT: code.api.util.ConsentJWT): Unit = {
+    val viewInserts = consentJWT.views.filter(_.bank_id.nonEmpty).map { view =>
+      val consentItemId = java.util.UUID.randomUUID().toString
+      val itemType = "VIEW"
+      val bankId = view.bank_id
+      val accountId: Option[String] = Option(view.account_id).filter(_.nonEmpty)
+      val viewId: Option[String] = Option(view.view_id).filter(_.nonEmpty)
+      fr"""INSERT INTO consent_item (consent_item_id, consent_reference_id, item_type, bank_id, account_id, view_id)
+           VALUES ($consentItemId, $consentReferenceId, $itemType, $bankId, $accountId, $viewId)""".update.run
     }
+    val entitlementInserts = consentJWT.entitlements.filter(_.bank_id.nonEmpty).map { role =>
+      val consentItemId = java.util.UUID.randomUUID().toString
+      val itemType = "ENTITLEMENT"
+      val bankId = role.bank_id
+      val roleName: Option[String] = Option(role.role_name).filter(_.nonEmpty)
+      fr"""INSERT INTO consent_item (consent_item_id, consent_reference_id, item_type, bank_id, role_name)
+           VALUES ($consentItemId, $consentReferenceId, $itemType, $bankId, $roleName)""".update.run
+    }
+    val allInserts = viewInserts ++ entitlementInserts
+    if (allInserts.nonEmpty) {
+      val combined = allInserts.reduce((a, b) => a.flatMap(_ => b))
+      DoobieUtil.runQuery(combined)
+    }
+  }
+
+  /**
+   * Get consents for a user filtered by bank_id, with pagination.
+   * Uses the consent_item join table for efficient bank-scoped queries.
+   */
+  def getConsentsByUserAndBank(
+    userId: String,
+    bankId: String,
+    status: Option[String],
+    limit: Int,
+    offset: Int,
+    sortField: String,
+    sortDirection: String
+  ): List[ConsentRow] = {
+    val query = buildGetConsentsByBankQuery(userId, bankId, status, limit, offset, sortField, sortDirection)
+    DoobieUtil.runQuery(query)
+  }
+
+  private def buildGetConsentsByBankQuery(
+    userId: String,
+    bankId: String,
+    status: Option[String],
+    limit: Int,
+    offset: Int,
+    sortField: String,
+    sortDirection: String
+  ): ConnectionIO[List[ConsentRow]] = {
+    val statusCond = buildStatusCondition(status)
+    val orderBy = buildOrderBy(sortField, sortDirection)
+
+    val dataQuery =
+      fr"""SELECT DISTINCT v.consent_reference_id, v.consent_id, v.created_by_user_id, v.consumer_id,
+           v.status, v.jwt, v.consent_request_id, v.api_standard, v.api_version,
+           v.last_action_date, v.last_usage_date, v.created_date,
+           v.note, v.frequency_per_day, v.uses_so_far_today_counter, v.jwt_payload, v.jwt_expires_at
+           FROM v_consent v
+           JOIN consent_item cb ON cb.consent_reference_id = v.consent_reference_id
+           WHERE v.created_by_user_id = $userId
+           AND cb.bank_id = $bankId""" ++ statusCond ++ fr" " ++ orderBy ++ fr" LIMIT $limit OFFSET $offset"
+
+    dataQuery.query[ConsentRow].to[List]
   }
 }

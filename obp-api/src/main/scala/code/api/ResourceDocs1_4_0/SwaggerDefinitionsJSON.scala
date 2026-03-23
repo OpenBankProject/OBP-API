@@ -4601,9 +4601,10 @@ object SwaggerDefinitionsJSON {
     last_action_date = dateExample.value,
     last_usage_date = dateTimeExample.value,
     jwt = jwtExample.value,
-    jwt_payload = Some(consentJWT),
+    jwt_payload = """{"createdByUserId":"user-id","sub":"subject","iss":"issuer","aud":"audience","jti":"jwt-id","iat":1611749820,"nbf":1611749820,"exp":1611753420,"request_headers":[],"name":null,"email":null,"entitlements":[],"views":[],"access":null}""",
     api_standard = "Berlin Group",
     api_version = "v1.3",
+    jwt_expires_at = dateTimeExample.value,
   )
   
   lazy val consentsInfoJsonV510 = ConsentsInfoJsonV510(
