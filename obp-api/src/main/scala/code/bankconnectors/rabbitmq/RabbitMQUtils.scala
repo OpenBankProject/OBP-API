@@ -90,43 +90,46 @@ object RabbitMQUtils extends MdcLoggable{
   def sendRequestUndGetResponseFromRabbitMQ[T: Manifest](messageId: String, outBound: TopicTrait): Future[Box[T]] = {
 
     val rabbitRequestJsonString: String = write(outBound) // convert OutBound to json string
-    
-    val connection = RabbitMQConnectionPool.borrowConnection()
-    // Check if queue already exists using a temporary channel (passive declare closes channel on failure)
-    val queueExists = try {
-      val tempChannel = connection.createChannel()
-      try {
-        tempChannel.queueDeclarePassive(RPC_QUEUE_NAME)
-        true
-      } finally {
-        if (tempChannel.isOpen) tempChannel.close()
-      }
-    } catch {
-      case _: java.io.IOException => false
-    }
-    
-    val channel = connection.createChannel() // channel is not thread safe, so we always create new channel for each message.
-    // Only declare queue if it doesn't already exist (avoids argument conflicts with external adapters)
-    if (!queueExists) {
-      channel.queueDeclare(
-        RPC_QUEUE_NAME,  // Queue name
-        true,            // durable: non-persis, here set durable = true
-        false,           // exclusive: non-excl4, here set exclusive = false
-        false,           // autoDelete: delete, here set autoDelete = false 
-        rpcQueueArgs     // extra arguments,
-      )
-    }
 
-    val replyQueueName:String = channel.queueDeclare(
-      s"${RPC_REPLY_TO_QUEUE_NAME_PREFIX}_${messageId.replace("obp_","")}_${UUID.randomUUID.toString}",  // Queue name, it will be a unique name for each queue
-      false,            // durable: non-persis, here set durable = false
-      true,           // exclusive: non-excl4, here set exclusive = true
-      true,           // autoDelete: delete, here set autoDelete = true 
-      rpcReplyToQueueArgs // extra arguments,
-    ).getQueue
+    var connectionOpt: Option[com.rabbitmq.client.Connection] = None
 
     val rabbitResponseJsonFuture  = {
       try {
+        val connection = RabbitMQConnectionPool.borrowConnection()
+        connectionOpt = Some(connection)
+        // Check if queue already exists using a temporary channel (passive declare closes channel on failure)
+        val queueExists = try {
+          val tempChannel = connection.createChannel()
+          try {
+            tempChannel.queueDeclarePassive(RPC_QUEUE_NAME)
+            true
+          } finally {
+            if (tempChannel.isOpen) tempChannel.close()
+          }
+        } catch {
+          case _: java.io.IOException => false
+        }
+
+        val channel = connection.createChannel() // channel is not thread safe, so we always create new channel for each message.
+        // Only declare queue if it doesn't already exist (avoids argument conflicts with external adapters)
+        if (!queueExists) {
+          channel.queueDeclare(
+            RPC_QUEUE_NAME,  // Queue name
+            true,            // durable: non-persis, here set durable = true
+            false,           // exclusive: non-excl4, here set exclusive = false
+            false,           // autoDelete: delete, here set autoDelete = false
+            rpcQueueArgs     // extra arguments,
+          )
+        }
+
+        val replyQueueName:String = channel.queueDeclare(
+          s"${RPC_REPLY_TO_QUEUE_NAME_PREFIX}_${messageId.replace("obp_","")}_${UUID.randomUUID.toString}",  // Queue name, it will be a unique name for each queue
+          false,            // durable: non-persis, here set durable = false
+          true,           // exclusive: non-excl4, here set exclusive = true
+          true,           // autoDelete: delete, here set autoDelete = true
+          rpcReplyToQueueArgs // extra arguments,
+        ).getQueue
+
         logger.debug(s"${RabbitMQConnector_vOct2024.toString} outBoundJson: $messageId = $rabbitRequestJsonString")
         logger.info(s"[RabbitMQ] Sending message to queue: $RPC_QUEUE_NAME, messageId: $messageId, replyTo: $replyQueueName")
         
@@ -144,13 +147,15 @@ object RabbitMQUtils extends MdcLoggable{
         channel.basicConsume(replyQueueName, true, responseCallback, cancelCallback)
         responseCallback.take()
       } catch {
-        case e: Throwable =>{
+        case e: RuntimeException if e.getMessage != null && e.getMessage.startsWith("OBP-") =>
+          logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
+          throw e
+        case e: Throwable =>
           logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")
           throw new RuntimeException(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}")//TODO error handling to API level
-        }
-      } 
+      }
       finally {
-        RabbitMQConnectionPool.returnConnection(connection)
+        connectionOpt.foreach(RabbitMQConnectionPool.returnConnection)
       }
     }
     rabbitResponseJsonFuture.map(rabbitResponseJsonString =>logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson: $messageId = $rabbitResponseJsonString" ))
