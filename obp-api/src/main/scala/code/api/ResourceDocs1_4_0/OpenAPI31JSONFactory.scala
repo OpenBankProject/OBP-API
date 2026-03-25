@@ -613,7 +613,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         description = Some("Request body"),
         content = Map(
           "application/json" -> MediaTypeJson(
-            schema = Some(inferSchemaFromExample(doc.typed_request_body)),
+            schema = Some(convertJValueSchemaToSchemaJson(doc.typed_request_body)),
             example = Some(doc.typed_request_body)
           )
         ),
@@ -627,7 +627,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
       content = if (doc.typed_success_response_body != JNothing) {
         Some(Map(
           "application/json" -> MediaTypeJson(
-            schema = Some(inferSchemaFromExample(doc.typed_success_response_body)),
+            schema = Some(convertJValueSchemaToSchemaJson(doc.typed_success_response_body)),
             example = Some(doc.typed_success_response_body)
           )
         ))
@@ -677,41 +677,48 @@ object OpenAPI31JSONFactory extends MdcLoggable {
   }
 
   /**
-   * Infers a JSON Schema from an example JSON value
+   * Converts a JValue that is already a JSON Schema into a SchemaJson case class.
+   *
+   * The typed_request_body and typed_success_response_body fields from ResourceDocJson
+   * are already JSON Schemas produced by JSONFactory1_4_0.translateEntity(),
+   * so we convert them directly rather than inferring a schema from example data.
    */
-  private def inferSchemaFromExample(example: JValue): SchemaJson = {
-    example match {
+  private def convertJValueSchemaToSchemaJson(schema: JValue): SchemaJson = {
+    schema match {
       case JObject(fields) =>
-        val properties = fields.map { case JField(name, value) =>
-          name -> inferSchemaFromExample(value)
-        }.toMap
-        
-        val required = fields.collect {
-          case JField(name, value) if value != JNothing && value != JNull => name
+        val fieldMap = fields.map(f => f.name -> f.value).toMap
+
+        val schemaType = fieldMap.get("type").collect { case JString(t) => t }
+        val format = fieldMap.get("format").collect { case JString(f) => f }
+
+        val enum = fieldMap.get("enum").collect {
+          case JArray(values) => values
+        }
+
+        val properties = fieldMap.get("properties").collect {
+          case JObject(props) =>
+            props.map { case JField(name, value) =>
+              name -> convertJValueSchemaToSchemaJson(value)
+            }.toMap
+        }
+
+        val items = fieldMap.get("items").map(convertJValueSchemaToSchemaJson)
+
+        val required = fieldMap.get("required").collect {
+          case JArray(values) => values.collect { case JString(v) => v }
         }
 
         SchemaJson(
-          `type` = Some("object"),
-          properties = Some(properties),
-          required = if (required.nonEmpty) Some(required) else None
+          `type` = schemaType,
+          format = format,
+          properties = properties,
+          items = items,
+          required = required,
+          enum = enum
         )
 
-      case JArray(values) =>
-        val itemSchema = values.headOption.map(inferSchemaFromExample)
-          .getOrElse(SchemaJson(`type` = Some("object")))
-        
-        SchemaJson(
-          `type` = Some("array"),
-          items = Some(itemSchema)
-        )
-
-      case JString(_) => SchemaJson(`type` = Some("string"))
-      case JInt(_) => SchemaJson(`type` = Some("integer"))
-      case JDouble(_) => SchemaJson(`type` = Some("number"))
-      case JBool(_) => SchemaJson(`type` = Some("boolean"))
-      case JNull => SchemaJson(`type` = Some("null"))
-      case JNothing => SchemaJson(`type` = Some("object"))
-      case _ => SchemaJson(`type` = Some("object"))
+      case _ =>
+        SchemaJson(`type` = Some("object"))
     }
   }
 
