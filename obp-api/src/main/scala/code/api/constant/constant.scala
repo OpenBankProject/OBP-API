@@ -4,6 +4,7 @@ import code.api.util.{APIUtil, ErrorMessages}
 import code.api.cache.Redis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiStandards
+import net.liftweb.common.Box
 import net.liftweb.util.Props
 
 
@@ -137,7 +138,7 @@ object Constant extends MdcLoggable {
 
   final val mailUsersUserinfoSenderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
 
-  final val oauth2JwkSetUrl = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+  def oauth2JwkSetUrl: Box[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
 
   final val consumerDefaultLogoUrl = APIUtil.getPropsValue("consumer_default_logo_url")
 
