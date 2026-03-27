@@ -124,13 +124,15 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
-    scenario("Success Case - 200 with real paymentId and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
-      // Create a real payment first, then create a basket referencing it
-      val realPaymentId = createRealPaymentId()
+    scenario("Success Case - 200 with multiple real paymentIds and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
+      // Create two real payments, then create a basket referencing both
+      val paymentId1 = createRealPaymentId()
+      val paymentId2 = createRealPaymentId()
       val postJson =
         s"""{
            |  "paymentIds": [
-           |    "${realPaymentId}"
+           |    "${paymentId1}",
+           |    "${paymentId2}"
            |  ]
            |}""".stripMargin
       val requestPost = (V1_3_BG / "signing-baskets").POST <@ (user1)
@@ -138,7 +140,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       responsePost.code should equal(201)
       val basketId = responsePost.body.extract[SigningBasketResponseJson].basketId
 
-      // Verify basket GET returns correct data including the real paymentId
+      // Verify basket GET returns correct data including both real paymentIds
       val requestGet = (V1_3_BG / "signing-baskets" / basketId).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
@@ -146,10 +148,11 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       val basket = responseGet.body.extract[SigningBasketGetResponseJson]
       basket.transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
       basket.payments.isDefined should be(true)
-      basket.payments.get should contain(realPaymentId)
+      basket.payments.get should contain(paymentId1)
+      basket.payments.get should contain(paymentId2)
 
-      // Verify each paymentId in the basket has a valid payment status
-      Then("Each payment in the basket should return a valid status")
+      // Verify each paymentId in the basket has ACCP status
+      Then("Each payment in the basket should return ACCP status")
       basket.payments.get.foreach { pid =>
         val requestPaymentStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / pid / "status").GET <@ (user1)
         val responsePaymentStatus = makeGetRequest(requestPaymentStatus)
