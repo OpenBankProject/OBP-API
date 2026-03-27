@@ -155,7 +155,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
         val responsePaymentStatus = makeGetRequest(requestPaymentStatus)
         responsePaymentStatus.code should be(200)
         val txStatus = (responsePaymentStatus.body \ "transactionStatus").extract[String]
-        txStatus should be(TransactionStatus.RCVD.code)
+        txStatus should be(TransactionStatus.ACCP.code)
       }
     }
   }
