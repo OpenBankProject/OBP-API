@@ -131,6 +131,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.customerlinks.MappedCustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -1161,6 +1162,7 @@ object ToSchemify {
     MappedNarrative,
     MappedCustomer,
     MappedUserCustomerLink,
+    MappedCustomerLink,
     Consumer,
     Token,
     OpenIDConnectToken,

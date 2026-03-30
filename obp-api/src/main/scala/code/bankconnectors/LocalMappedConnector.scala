@@ -5508,6 +5508,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def createCustomerLink(bankId: String, customerId: String, otherBankId: String, otherCustomerId: String, relationshipTo: String, callContext: Option[CallContext]): OBPReturnType[Box[code.customerlinks.CustomerLink]] = Future{
+    (code.customerlinks.CustomerLinkX.customerLink.vend.createCustomerLink(bankId, customerId, otherBankId, otherCustomerId, relationshipTo), callContext)
+  }
+
+  override def getCustomerLinkById(customerLinkId: String, callContext: Option[CallContext]): OBPReturnType[Box[code.customerlinks.CustomerLink]] = Future{
+    (code.customerlinks.CustomerLinkX.customerLink.vend.getCustomerLinkById(customerLinkId), callContext)
+  }
+
+  override def getCustomerLinksByBankId(bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[code.customerlinks.CustomerLink]]] = Future{
+    (code.customerlinks.CustomerLinkX.customerLink.vend.getCustomerLinksByBankId(bankId), callContext)
+  }
+
+  override def getCustomerLinksByCustomerId(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[code.customerlinks.CustomerLink]]] = Future{
+    (code.customerlinks.CustomerLinkX.customerLink.vend.getCustomerLinksByCustomerId(customerId), callContext)
+  }
+
+  override def updateCustomerLinkById(customerLinkId: String, relationshipTo: String, callContext: Option[CallContext]): OBPReturnType[Box[code.customerlinks.CustomerLink]] = Future{
+    (code.customerlinks.CustomerLinkX.customerLink.vend.updateCustomerLinkById(customerLinkId, relationshipTo), callContext)
+  }
+
+  override def deleteCustomerLinkById(customerLinkId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    code.customerlinks.CustomerLinkX.customerLink.vend.deleteCustomerLinkById(customerLinkId).map{(_, callContext)}
+  }
+
   override def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[Box[ConsentImplicitSCAT]] = Future {
   //find the email from the user, and the OBP Implicit SCA is email
     (Full(ConsentImplicitSCA(

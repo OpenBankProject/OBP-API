@@ -389,6 +389,11 @@ object ErrorMessages {
   val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
   val ExcludeParametersNotSupported = "OBP-30146: The exclude_* parameters are not supported in v6.0.0+. Please use the corresponding include_* parameters instead (include_app_names, include_url_patterns, include_implemented_by_partial_functions). "
 
+  val CustomerLinkNotFound = "OBP-30147: Customer Link not found. Please specify a valid value for CUSTOMER_LINK_ID."
+  val CreateCustomerLinkError = "OBP-30148: Could not create the Customer Link."
+  val UpdateCustomerLinkError = "OBP-30149: Could not update the Customer Link."
+  val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
+
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
   val UpdateWebhookError = "OBP-30049: Cannot create Webhook"

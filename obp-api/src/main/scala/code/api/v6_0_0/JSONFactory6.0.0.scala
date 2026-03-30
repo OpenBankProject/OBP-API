@@ -86,6 +86,32 @@ case class CounterpartyAttributesJsonV600(
   attributes: List[CounterpartyAttributeResponseJsonV600]
 )
 
+case class PostCustomerLinkJsonV600(
+  customer_id: String,
+  other_bank_id: String,
+  other_customer_id: String,
+  relationship_to: String
+)
+
+case class PutCustomerLinkJsonV600(
+  relationship_to: String
+)
+
+case class CustomerLinkJsonV600(
+  customer_link_id: String,
+  bank_id: String,
+  customer_id: String,
+  other_bank_id: String,
+  other_customer_id: String,
+  relationship_to: String,
+  date_inserted: Date,
+  date_updated: Date
+)
+
+case class CustomerLinksJsonV600(
+  customer_links: List[CustomerLinkJsonV600]
+)
+
 case class CardanoPaymentJsonV600(
     address: String,
     amount: CardanoAmountJsonV600,
@@ -1100,6 +1126,50 @@ case class SignalStatsJsonV600(
 case class SignalChannelDeletedJsonV600(
     channel_name: String,
     deleted: Boolean
+)
+
+// Investigation Report
+case class InvestigationTransactionJsonV600(
+  transaction_id: String,
+  account_id: String,
+  amount: String,
+  currency: String,
+  transaction_type: String,
+  description: String,
+  start_date: java.util.Date,
+  finish_date: java.util.Date,
+  counterparty_name: String,
+  counterparty_account: String,
+  counterparty_bank_name: String
+)
+
+case class InvestigationAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  currency: String,
+  balance: String,
+  account_name: String,
+  account_type: String,
+  transactions: List[InvestigationTransactionJsonV600]
+)
+
+case class InvestigationCustomerLinkJsonV600(
+  customer_link_id: String,
+  other_customer_id: String,
+  other_bank_id: String,
+  relationship: String,
+  other_legal_name: String
+)
+
+case class InvestigationReportJsonV600(
+  customer_id: String,
+  legal_name: String,
+  bank_id: String,
+  accounts: List[InvestigationAccountJsonV600],
+  related_customers: List[InvestigationCustomerLinkJsonV600],
+  from_date: java.util.Date,
+  to_date: java.util.Date,
+  data_source: String
 )
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
@@ -2727,6 +2797,85 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createCounterpartyAttributesJson(attributes: List[CounterpartyAttributeTrait]): CounterpartyAttributesJsonV600 = {
     CounterpartyAttributesJsonV600(
       attributes.map(createCounterpartyAttributeJson)
+    )
+  }
+
+  def createCustomerLinkJson(customerLink: code.customerlinks.CustomerLink): CustomerLinkJsonV600 = {
+    CustomerLinkJsonV600(
+      customer_link_id = customerLink.customerLinkId,
+      bank_id = customerLink.bankId,
+      customer_id = customerLink.customerId,
+      other_bank_id = customerLink.otherBankId,
+      other_customer_id = customerLink.otherCustomerId,
+      relationship_to = customerLink.relationshipTo,
+      date_inserted = customerLink.dateInserted,
+      date_updated = customerLink.dateUpdated
+    )
+  }
+
+  def createCustomerLinksJson(customerLinks: List[code.customerlinks.CustomerLink]): CustomerLinksJsonV600 = {
+    CustomerLinksJsonV600(
+      customerLinks.map(createCustomerLinkJson)
+    )
+  }
+
+  def createInvestigationReportJson(
+    customer: code.investigation.DoobieInvestigationQueries.CustomerRow,
+    bankId: String,
+    accounts: List[code.investigation.DoobieInvestigationQueries.AccountRow],
+    transactions: List[code.investigation.DoobieInvestigationQueries.TransactionRow],
+    customerLinks: List[code.investigation.DoobieInvestigationQueries.CustomerLinkRow],
+    fromDate: java.util.Date,
+    toDate: java.util.Date
+  ): InvestigationReportJsonV600 = {
+    val transactionsByAccount = transactions.groupBy(_.accountId)
+
+    val accountJsons = accounts.map { acc =>
+      val txns = transactionsByAccount.getOrElse(acc.accountId, Nil)
+      InvestigationAccountJsonV600(
+        account_id = acc.accountId,
+        bank_id = acc.bankId,
+        currency = acc.currency,
+        balance = acc.balance.toString,
+        account_name = acc.accountName,
+        account_type = acc.accountType,
+        transactions = txns.map { t =>
+          InvestigationTransactionJsonV600(
+            transaction_id = t.transactionId,
+            account_id = t.accountId,
+            amount = t.amount.toString,
+            currency = t.currency,
+            transaction_type = t.transactionType,
+            description = t.description,
+            start_date = t.startDate,
+            finish_date = t.finishDate,
+            counterparty_name = t.counterpartyName,
+            counterparty_account = t.counterpartyAccount,
+            counterparty_bank_name = t.counterpartyBankName
+          )
+        }
+      )
+    }
+
+    val relatedCustomerJsons = customerLinks.map { cl =>
+      InvestigationCustomerLinkJsonV600(
+        customer_link_id = cl.customerLinkId,
+        other_customer_id = cl.otherCustomerId,
+        other_bank_id = cl.otherBankId,
+        relationship = cl.relationship,
+        other_legal_name = cl.otherLegalName
+      )
+    }
+
+    InvestigationReportJsonV600(
+      customer_id = customer.customerId,
+      legal_name = customer.legalName,
+      bank_id = bankId,
+      accounts = accountJsons,
+      related_customers = relatedCustomerJsons,
+      from_date = fromDate,
+      to_date = toDate,
+      data_source = "mapped_database"
     )
   }
 

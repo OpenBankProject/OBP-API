@@ -12443,6 +12443,362 @@ trait APIMethods600 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createCustomerLink,
+      implementedInApiVersion,
+      nameOf(createCustomerLink),
+      "POST",
+      "/banks/BANK_ID/customer-links",
+      "Create Customer Link",
+      s"""Link a Customer to another Customer (e.g. spouse, parent, close_associate).
+         |
+         |Authentication is Required
+         |
+         |""",
+      postCustomerLinkJsonV600,
+      customerLinkJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        CreateCustomerLinkError,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canCreateCustomerLink)))
+
+    lazy val createCustomerLink: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer-links" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerLinkJsonV600 ", 400, callContext) {
+              json.extract[PostCustomerLinkJsonV600]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, callContext)
+            _ <- Helper.booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to match BANK_ID(${bankId.value}) in URL", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            (_, callContext) <- NewStyle.function.getBank(BankId(postedData.other_bank_id), callContext)
+            (otherCustomer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.other_customer_id, callContext)
+            _ <- Helper.booleanToFuture(s"Bank of the other customer specified by the OTHER_CUSTOMER_ID(${otherCustomer.bankId}) has to match OTHER_BANK_ID(${postedData.other_bank_id})", 400, callContext) {
+              otherCustomer.bankId == postedData.other_bank_id
+            }
+            (customerLink, callContext) <- NewStyle.function.createCustomerLink(bankId.value, postedData.customer_id, postedData.other_bank_id, postedData.other_customer_id, postedData.relationship_to, callContext)
+          } yield {
+            (JSONFactory600.createCustomerLinkJson(customerLink), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerLinksByCustomerId,
+      implementedInApiVersion,
+      nameOf(getCustomerLinksByCustomerId),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/customer-links",
+      "Get Customer Links by CUSTOMER_ID",
+      s"""Get Customer Links by CUSTOMER_ID.
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      customerLinksJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canGetCustomerLinks)))
+
+    lazy val getCustomerLinksByCustomerId: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "customer-links" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customerLinks, callContext) <- NewStyle.function.getCustomerLinksByCustomerId(customerId, callContext)
+          } yield {
+            (JSONFactory600.createCustomerLinksJson(customerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerLinksByBankId,
+      implementedInApiVersion,
+      nameOf(getCustomerLinksByBankId),
+      "GET",
+      "/banks/BANK_ID/customer-links",
+      "Get Customer Links at Bank",
+      s"""Get all Customer Links at a Bank.
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      customerLinksJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canGetCustomerLinks)))
+
+    lazy val getCustomerLinksByBankId: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer-links" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            (customerLinks, callContext) <- NewStyle.function.getCustomerLinksByBankId(bankId.value, callContext)
+          } yield {
+            (JSONFactory600.createCustomerLinksJson(customerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerLinkById,
+      implementedInApiVersion,
+      nameOf(getCustomerLinkById),
+      "GET",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+      "Get Customer Link by CUSTOMER_LINK_ID",
+      s"""Get Customer Link by CUSTOMER_LINK_ID.
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      customerLinkJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerLinkNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canGetCustomerLink)))
+
+    lazy val getCustomerLinkById: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer-links" :: customerLinkId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            (customerLink, callContext) <- NewStyle.function.getCustomerLinkById(customerLinkId, callContext)
+          } yield {
+            (JSONFactory600.createCustomerLinkJson(customerLink), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateCustomerLink,
+      implementedInApiVersion,
+      nameOf(updateCustomerLink),
+      "PUT",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+      "Update Customer Link",
+      s"""Update an existing Customer Link.
+         |
+         |Authentication is Required
+         |
+         |""",
+      putCustomerLinkJsonV600,
+      customerLinkJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerLinkNotFound,
+        UserHasMissingRoles,
+        UpdateCustomerLinkError,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canUpdateCustomerLink)))
+
+    lazy val updateCustomerLink: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer-links" :: customerLinkId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutCustomerLinkJsonV600 ", 400, callContext) {
+              json.extract[PutCustomerLinkJsonV600]
+            }
+            (customerLink, callContext) <- NewStyle.function.updateCustomerLinkById(customerLinkId, postedData.relationship_to, callContext)
+          } yield {
+            (JSONFactory600.createCustomerLinkJson(customerLink), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteCustomerLink,
+      implementedInApiVersion,
+      nameOf(deleteCustomerLink),
+      "DELETE",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+      "Delete Customer Link",
+      s"""Delete a Customer Link.
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerLinkNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer),
+      Some(List(canDeleteCustomerLink)))
+
+    lazy val deleteCustomerLink: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer-links" :: customerLinkId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            (_, callContext) <- NewStyle.function.deleteCustomerLinkById(customerLinkId, callContext)
+          } yield {
+            (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerInvestigationReport,
+      implementedInApiVersion,
+      nameOf(getCustomerInvestigationReport),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report",
+      "Get Customer Investigation Report",
+      s"""Get a Customer Investigation Report for fraud detection, AML (Anti-Money Laundering), and financial crime analysis.
+         |
+         |This endpoint assembles a comprehensive data package for a customer in a single API call,
+         |designed for use by AI agents, compliance officers, and financial crime investigators.
+         |
+         |**Use Cases:**
+         |
+         |* Fraud Detection - identify suspicious transaction patterns
+         |* AML / Anti-Money Laundering - trace fund flows and flag anomalies
+         |* KYC Enhanced Due Diligence - deep-dive into customer activity
+         |* Suspicious Activity Report (SAR) preparation
+         |* Financial crime investigation and evidence gathering
+         |
+         |**Data Returned:**
+         |
+         |* Customer details (legal name, KYC status)
+         |* All accounts linked to the customer (with balances)
+         |* Transaction history for those accounts (within the specified date range)
+         |* Related customers (via customer links) — spouses, associates, business partners
+         |
+         |**Suspicious Patterns This Data Supports Detecting:**
+         |
+         |* Money flowing through intermediary companies (A to B to C patterns)
+         |* Payments inconsistent with known income or salary
+         |* Transfers to related parties (spouses, associates) shortly after large inflows
+         |* Round-tripping — money returning to origin via indirect paths
+         |* Vague or generic transaction descriptions on large amounts
+         |* Structuring — multiple transactions just below reporting thresholds
+         |* Rapid movement of funds across accounts (layering)
+         |
+         |**Query Parameters:**
+         |
+         |* from_date: Start date for transactions (ISO format, e.g. $DateWithMsExampleString). Defaults to 1 year ago.
+         |* to_date: End date for transactions (ISO format, e.g. $DateWithMsExampleString). Defaults to now.
+         |* limit: Maximum number of transactions per account (default 500).
+         |
+         |**Note:** This endpoint is only available in mapped mode (connector=mapped).
+         |For other connector configurations, use the individual endpoints to retrieve
+         |customer, account, transaction, and customer link data separately.
+         |
+         |Authentication is Required
+         |
+         |""",
+      EmptyBody,
+      investigationReportJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        InvestigationReportNotAvailable,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagKyc, apiTagTransaction, apiTagAccount, apiTagFinancialCrime, apiTagAiAgent),
+      Some(List(canGetInvestigationReport)))
+
+    lazy val getCustomerInvestigationReport: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "investigation-report" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, _, callContext) <- SS.userBank
+            // Check connector is mapped
+            connectorName = code.api.Constant.CONNECTOR.openOrThrowException("connector not set")
+            _ <- Helper.booleanToFuture(failMsg = InvestigationReportNotAvailable, cc = callContext) {
+              connectorName == "mapped"
+            }
+            // Validate customer exists
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"Customer bank (${customer.bankId}) does not match BANK_ID (${bankId.value})", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            // Parse query params
+            fromDateStr = ObpS.param("from_date")
+            toDateStr = ObpS.param("to_date")
+            limitStr = ObpS.param("limit")
+            fromDate = fromDateStr.flatMap(d => APIUtil.parseDate(d)).getOrElse {
+              new java.util.Date(System.currentTimeMillis() - 365L * 24 * 60 * 60 * 1000)
+            }
+            toDate = toDateStr.flatMap(d => APIUtil.parseDate(d)).getOrElse {
+              new java.util.Date()
+            }
+            limit = limitStr.flatMap(s => tryo(s.toInt)).getOrElse(500)
+            // Run Doobie queries
+            accounts <- Future {
+              code.investigation.DoobieInvestigationQueries.getAccountsForCustomer(customerId)
+            }
+            accountIds = accounts.map(_.accountId)
+            transactions <- Future {
+              code.investigation.DoobieInvestigationQueries.getTransactionsForAccounts(
+                accountIds, bankId.value,
+                new java.sql.Timestamp(fromDate.getTime),
+                new java.sql.Timestamp(toDate.getTime),
+                limit
+              )
+            }
+            customerLinks <- Future {
+              code.investigation.DoobieInvestigationQueries.getCustomerLinks(customerId)
+            }
+            customerRow = code.investigation.DoobieInvestigationQueries.CustomerRow(
+              customerId = customer.customerId,
+              legalName = customer.legalName,
+              email = customer.email,
+              mobileNumber = customer.mobileNumber,
+              kycStatus = customer.kycStatus
+            )
+          } yield {
+            (JSONFactory600.createInvestigationReportJson(
+              customerRow, bankId.value, accounts, transactions, customerLinks, fromDate, toDate
+            ), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
   }
 }
 

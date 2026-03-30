@@ -4401,6 +4401,36 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerAccountLinkError), i._2)
       }
     
+    def createCustomerLink(bankId: String, customerId: String, otherBankId: String, otherCustomerId: String, relationshipTo: String, callContext: Option[CallContext]): OBPReturnType[code.customerlinks.CustomerLink] =
+      Connector.connector.vend.createCustomerLink(bankId, customerId, otherBankId, otherCustomerId, relationshipTo, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerLinkError), i._2)
+      }
+
+    def getCustomerLinkById(customerLinkId: String, callContext: Option[CallContext]): OBPReturnType[code.customerlinks.CustomerLink] =
+      Connector.connector.vend.getCustomerLinkById(customerLinkId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CustomerLinkNotFound), i._2)
+      }
+
+    def getCustomerLinksByBankId(bankId: String, callContext: Option[CallContext]): OBPReturnType[List[code.customerlinks.CustomerLink]] =
+      Connector.connector.vend.getCustomerLinksByBankId(bankId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CustomerLinkNotFound), i._2)
+      }
+
+    def getCustomerLinksByCustomerId(customerId: String, callContext: Option[CallContext]): OBPReturnType[List[code.customerlinks.CustomerLink]] =
+      Connector.connector.vend.getCustomerLinksByCustomerId(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CustomerLinkNotFound), i._2)
+      }
+
+    def updateCustomerLinkById(customerLinkId: String, relationshipTo: String, callContext: Option[CallContext]): OBPReturnType[code.customerlinks.CustomerLink] =
+      Connector.connector.vend.updateCustomerLinkById(customerLinkId, relationshipTo, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerLinkError), i._2)
+      }
+
+    def deleteCustomerLinkById(customerLinkId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Connector.connector.vend.deleteCustomerLinkById(customerLinkId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CustomerLinkNotFound), i._2)
+      }
+
     def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[ConsentImplicitSCAT] =
       Connector.connector.vend.getConsentImplicitSCA(user: User, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, GetConsentImplicitSCAError), i._2)

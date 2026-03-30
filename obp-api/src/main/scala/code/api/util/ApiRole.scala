@@ -317,7 +317,25 @@ object ApiRole extends MdcLoggable{
   
   case class CanGetCustomerAccountLinks(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomerAccountLinks = CanGetCustomerAccountLinks()
-  
+
+  case class CanCreateCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerLink = CanCreateCustomerLink()
+
+  case class CanUpdateCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerLink = CanUpdateCustomerLink()
+
+  case class CanDeleteCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerLink = CanDeleteCustomerLink()
+
+  case class CanGetCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerLink = CanGetCustomerLink()
+
+  case class CanGetCustomerLinks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerLinks = CanGetCustomerLinks()
+
+  case class CanGetInvestigationReport(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetInvestigationReport = CanGetInvestigationReport()
+
   case class CanCreateBranch(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBranch = CanCreateBranch()
 
