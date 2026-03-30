@@ -66,7 +66,17 @@ object RabbitMQConnectionPool {
   private val pool = new GenericObjectPool[Connection](new RabbitMQConnectionFactory(), poolConfig)
 
   // Method to borrow a connection from the pool
-  def borrowConnection(): Connection = pool.borrowObject()
+  def borrowConnection(): Connection = try {
+    pool.borrowObject()
+  } catch {
+    case e: java.net.ConnectException =>
+      throw new RuntimeException(
+        s"OBP-60013: RabbitMQ is unavailable. Could not connect to ${RabbitMQUtils.host}:${RabbitMQUtils.port}. " +
+        s"Please ensure RabbitMQ is running and reachable. Details: ${e.getMessage}", e)
+    case e: Exception =>
+      throw new RuntimeException(
+        s"OBP-60013: Failed to borrow a RabbitMQ connection from the pool. Details: ${e.getMessage}", e)
+  }
 
   // Method to return a connection to the pool
   def returnConnection(conn: Connection): Unit = pool.returnObject(conn)
