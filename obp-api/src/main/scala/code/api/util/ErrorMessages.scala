@@ -921,7 +921,7 @@ object ErrorMessages {
     MeetingApiKeyNotConfigured -> 403,
     MeetingApiSecretNotConfigured -> 403,
     EntitlementNotFound -> 404,
-    EntitlementCannotBeDeleted -> 404,
+    EntitlementCannotBeDeleted -> 500,
     ConsentStatusIssue -> 401,
     ConsentDisabled -> 401,
     InternalServerError -> 500,

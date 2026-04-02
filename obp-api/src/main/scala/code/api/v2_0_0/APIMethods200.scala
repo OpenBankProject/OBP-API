@@ -1921,7 +1921,7 @@ trait APIMethods200 {
               } map { unboxFull(_) }
               _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement, cc=callContext) { entitlement.userId == userId }
               deleted <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement))) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 404, callContext.map(_.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 500, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield (deleted, HttpCode.`204`(cc.callContext))
       }
