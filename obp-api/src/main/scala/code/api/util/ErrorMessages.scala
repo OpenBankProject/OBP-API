@@ -697,6 +697,22 @@ object ErrorMessages {
   val AbacRuleTooPermissive = "OBP-38010: ABAC rule is too permissive. The rule code contains a tautological expression (e.g. 'true', '1==1') that would always grant access. Please write a rule that checks specific attributes."
   val AbacRuleStatisticallyTooPermissive = "OBP-38011: ABAC rule is statistically too permissive. When evaluated against a sample of system users with no resource context, the rule grants access to more than 50% of users. Please write a more selective rule that checks specific attributes."
 
+  // Chat / Messaging related messages (OBP-39XXX)
+  val ChatRoomNotFound = "OBP-39001: Chat Room not found. Please specify a valid value for CHAT_ROOM_ID."
+  val ChatRoomAlreadyExists = "OBP-39002: Chat Room with this name already exists in this bank."
+  val ChatRoomIsArchived = "OBP-39003: Chat Room is archived. No new messages or participants can be added."
+  val NotChatRoomParticipant = "OBP-39004: Current user is not a participant of this Chat Room."
+  val ChatMessageNotFound = "OBP-39005: Chat Message not found. Please specify a valid value for CHAT_MESSAGE_ID."
+  val ChatRoomParticipantAlreadyExists = "OBP-39006: User is already a participant of this Chat Room."
+  val ChatRoomParticipantNotFound = "OBP-39007: Participant not found in this Chat Room."
+  val InsufficientChatPermission = "OBP-39008: You do not have the required permission for this Chat Room action."
+  val CannotEditOthersMessage = "OBP-39009: You can only edit your own messages."
+  val CannotDeleteMessage = "OBP-39010: You do not have permission to delete this message."
+  val InvalidJoiningKey = "OBP-39011: Invalid joining key. The key may have been refreshed."
+  val ReactionAlreadyExists = "OBP-39012: You have already added this reaction to this message."
+  val ReactionNotFound = "OBP-39013: Reaction not found."
+  val MustSpecifyUserIdOrConsumerId = "OBP-39014: Must specify either user_id or consumer_id, but not both."
+
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. " +

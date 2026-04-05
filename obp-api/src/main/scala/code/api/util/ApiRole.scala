@@ -1370,6 +1370,20 @@ object ApiRole extends MdcLoggable{
   case class CanGetAccountDirectoryAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetAccountDirectoryAtOneBank = CanGetAccountDirectoryAtOneBank()
 
+  // Chat Room roles
+  case class CanDeleteBankChatRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankChatRoom = CanDeleteBankChatRoom()
+  case class CanDeleteSystemChatRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemChatRoom = CanDeleteSystemChatRoom()
+  case class CanArchiveBankChatRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canArchiveBankChatRoom = CanArchiveBankChatRoom()
+  case class CanArchiveSystemChatRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canArchiveSystemChatRoom = CanArchiveSystemChatRoom()
+  case class CanSetBankChatRoomAUAP(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canSetBankChatRoomAUAP = CanSetBankChatRoomAUAP()
+  case class CanSetSystemChatRoomAUAP(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSetSystemChatRoomAUAP = CanSetSystemChatRoomAUAP()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

@@ -323,16 +323,25 @@
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
       <version>0.8.4</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
     <dependency>
       <groupId>io.grpc</groupId>
-      <artifactId>grpc-all</artifactId>
+      <artifactId>grpc-netty-shaded</artifactId>
       <version>1.48.1</version>
     </dependency>
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-tcnative-boringssl-static</artifactId>
-      <version>2.0.27.Final</version>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+      <version>1.48.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-stub</artifactId>
+      <version>1.48.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-services</artifactId>
+      <version>1.48.1</version>
     </dependency>
     <dependency>
       <groupId>org.asynchttpclient</groupId>

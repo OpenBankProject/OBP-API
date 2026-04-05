@@ -36,6 +36,7 @@ import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.mandate.{MappedMandateProvider}
 import code.api.v6_0_0.JSONFactory600.{createMandateJsonV600, createMandatesJsonV600, createMandateProvisionJsonV600, createMandateProvisionsJsonV600, createSignatoryPanelJsonV600, createSignatoryPanelsJsonV600, createCounterpartyAttributeJson, createCounterpartyAttributesJson}
+// Chat case classes are at package level in JSONFactory6.0.0.scala, not inside JSONFactory600 object
 import code.metrics.{APIMetrics, ConnectorCountsRedis, ConnectorTraceProvider}
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
@@ -12795,6 +12796,3659 @@ trait APIMethods600 {
             (JSONFactory600.createInvestigationReportJson(
               customerRow, bankId.value, accounts, transactions, customerLinks, fromDate, toDate
             ), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ============================================ CHAT / MESSAGING API ENDPOINTS ============================================
+
+    // ------ Batch A: Room CRUD ------
+
+    // 1a. createBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      createBankChatRoom,
+      implementedInApiVersion,
+      nameOf(createBankChatRoom),
+      "POST",
+      "/banks/BANK_ID/chat-rooms",
+      "Create Bank Chat Room",
+      s"""Create a new chat room scoped to a bank.
+         |The creator is automatically added as a participant with all permissions.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatRoomJsonV600(name = "General Discussion", description = "A place to discuss general topics"),
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val createBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatRoomJsonV600", 400, callContext) {
+              json.extract[PostChatRoomJsonV600]
+            }
+            existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName(bankId.value, postJson.name))
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+              existingRoom.isEmpty
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.createChatRoom(bankId.value, postJson.name, postJson.description, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot create chat room", 400)
+            }
+            _ <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(room.chatRoomId, u.userId, "", code.chat.ChatPermissions.ALL_PERMISSIONS, "")
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 1b. createSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      createSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(createSystemChatRoom),
+      "POST",
+      "/chat-rooms",
+      "Create System Chat Room",
+      s"""Create a new system-level chat room (not scoped to a bank).
+         |The creator is automatically added as a participant with all permissions.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatRoomJsonV600(name = "General Discussion", description = "A place to discuss general topics"),
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val createSystemChatRoom: OBPEndpoint = {
+      case "chat-rooms" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatRoomJsonV600", 400, callContext) {
+              json.extract[PostChatRoomJsonV600]
+            }
+            existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName("", postJson.name))
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+              existingRoom.isEmpty
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.createChatRoom("", postJson.name, postJson.description, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot create chat room", 400)
+            }
+            _ <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(room.chatRoomId, u.userId, "", code.chat.ChatPermissions.ALL_PERMISSIONS, "")
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 2a. getBankChatRooms
+    staticResourceDocs += ResourceDoc(
+      getBankChatRooms,
+      implementedInApiVersion,
+      nameOf(getBankChatRooms),
+      "GET",
+      "/banks/BANK_ID/chat-rooms",
+      "Get Bank Chat Rooms",
+      s"""Get all chat rooms for the specified bank that the current user is a participant of.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankChatRooms: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            rooms <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomsByBankIdForUser(bankId.value, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get chat rooms", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 2b. getSystemChatRooms
+    staticResourceDocs += ResourceDoc(
+      getSystemChatRooms,
+      implementedInApiVersion,
+      nameOf(getSystemChatRooms),
+      "GET",
+      "/chat-rooms",
+      "Get System Chat Rooms",
+      s"""Get all system-level chat rooms that the current user is a participant of.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemChatRooms: OBPEndpoint = {
+      case "chat-rooms" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            rooms <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomsByBankIdForUser("", u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get chat rooms", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 3a. getBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      getBankChatRoom,
+      implementedInApiVersion,
+      nameOf(getBankChatRoom),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+      "Get Bank Chat Room",
+      s"""Get a specific chat room by ID within a bank. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 3b. getSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      getSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(getSystemChatRoom),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID",
+      "Get System Chat Room",
+      s"""Get a specific system-level chat room by ID. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemChatRoom: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 4a. updateBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      updateBankChatRoom,
+      implementedInApiVersion,
+      nameOf(updateBankChatRoom),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+      "Update Bank Chat Room",
+      s"""Update the name and/or description of a chat room. Requires can_update_room permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutChatRoomJsonV600(name = Some("Updated Name"), description = Some("Updated description")),
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "Updated Name",
+        description = "Updated description",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        InsufficientChatPermission,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val updateBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutChatRoomJsonV600", 400, callContext) {
+              json.extract[PutChatRoomJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_UPDATE_ROOM)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.updateChatRoom(chatRoomId, putJson.name, putJson.description)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 4b. updateSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      updateSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(updateSystemChatRoom),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID",
+      "Update System Chat Room",
+      s"""Update the name and/or description of a system-level chat room. Requires can_update_room permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutChatRoomJsonV600(name = Some("Updated Name"), description = Some("Updated description")),
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "Updated Name",
+        description = "Updated description",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        InsufficientChatPermission,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val updateSystemChatRoom: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutChatRoomJsonV600", 400, callContext) {
+              json.extract[PutChatRoomJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_UPDATE_ROOM)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.updateChatRoom(chatRoomId, putJson.name, putJson.description)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 5a. deleteBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      deleteBankChatRoom,
+      implementedInApiVersion,
+      nameOf(deleteBankChatRoom),
+      "DELETE",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+      "Delete Bank Chat Room",
+      s"""Delete a chat room. Requires the CanDeleteBankChatRoom role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canDeleteBankChatRoom))
+    )
+
+    lazy val deleteBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canDeleteBankChatRoom, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.deleteChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot delete chat room", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 5b. deleteSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      deleteSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(deleteSystemChatRoom),
+      "DELETE",
+      "/chat-rooms/CHAT_ROOM_ID",
+      "Delete System Chat Room",
+      s"""Delete a system-level chat room. Requires the CanDeleteSystemChatRoom role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canDeleteSystemChatRoom))
+    )
+
+    lazy val deleteSystemChatRoom: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteSystemChatRoom, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.deleteChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot delete chat room", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 6a. archiveBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      archiveBankChatRoom,
+      implementedInApiVersion,
+      nameOf(archiveBankChatRoom),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status",
+      "Archive Bank Chat Room",
+      s"""Archive a chat room. Archived rooms cannot receive new messages or participants.
+         |Requires the CanArchiveBankChatRoom role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = true,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canArchiveBankChatRoom))
+    )
+
+    lazy val archiveBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "archive-status" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canArchiveBankChatRoom, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            archivedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.archiveChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 6b. archiveSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      archiveSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(archiveSystemChatRoom),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/archive-status",
+      "Archive System Chat Room",
+      s"""Archive a system-level chat room. Archived rooms cannot receive new messages or participants.
+         |Requires the CanArchiveSystemChatRoom role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = true,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canArchiveSystemChatRoom))
+    )
+
+    lazy val archiveSystemChatRoom: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "archive-status" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canArchiveSystemChatRoom, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            archivedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.archiveChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 6c. setBankChatRoomAllUsersAreParticipants
+    staticResourceDocs += ResourceDoc(
+      setBankChatRoomAllUsersAreParticipants,
+      implementedInApiVersion,
+      nameOf(setBankChatRoomAllUsersAreParticipants),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/all-users-are-participants",
+      "Set Chat Room All Users Are Participants",
+      s"""Set whether all authenticated users are implicit participants of this chat room.
+         |
+         |If true, all users can read and send messages without needing an explicit Participant record.
+         |
+         |Requires the CanSetBankChatRoomAUAP role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "username",
+        created_by_provider = "provider",
+        all_users_are_participants = true,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canSetBankChatRoomAUAP))
+    )
+
+    lazy val setBankChatRoomAllUsersAreParticipants: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "all-users-are-participants" :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canSetBankChatRoomAUAP, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            allUsersAreParticipants = (json \ "all_users_are_participants").extractOrElse[Boolean](false)
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.setAllUsersAreParticipants(chatRoomId, allUsersAreParticipants)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 6d. setSystemChatRoomAllUsersAreParticipants
+    staticResourceDocs += ResourceDoc(
+      setSystemChatRoomAllUsersAreParticipants,
+      implementedInApiVersion,
+      nameOf(setSystemChatRoomAllUsersAreParticipants),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/all-users-are-participants",
+      "Set System Chat Room All Users Are Participants",
+      s"""Set whether all authenticated users are implicit participants of this system-level chat room.
+         |
+         |If true, all users can read and send messages without needing an explicit Participant record.
+         |
+         |Requires the CanSetSystemChatRoomAUAP role.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "username",
+        created_by_provider = "provider",
+        all_users_are_participants = true,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        ChatRoomNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      Some(List(canSetSystemChatRoomAUAP))
+    )
+
+    lazy val setSystemChatRoomAllUsersAreParticipants: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "all-users-are-participants" :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetSystemChatRoomAUAP, callContext)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            allUsersAreParticipants = (json \ "all_users_are_participants").extractOrElse[Boolean](false)
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.setAllUsersAreParticipants(chatRoomId, allUsersAreParticipants)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch B: Joining ------
+
+    // 7a. joinBankChatRoom
+    staticResourceDocs += ResourceDoc(
+      joinBankChatRoom,
+      implementedInApiVersion,
+      nameOf(joinBankChatRoom),
+      "POST",
+      "/banks/BANK_ID/chat-room-participants",
+      "Join Bank Chat Room",
+      s"""Join a chat room using a joining key (passed as joining_key in the JSON body).
+         |The user is added as a participant with no special permissions.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ParticipantJsonV600(
+        participant_id = "participant-id-123",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List(),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJoiningKey,
+        ChatRoomIsArchived,
+        ChatRoomParticipantAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val joinBankChatRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-room-participants" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            joiningKey = (json \ "joining_key").extractOpt[String].getOrElse("")
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey)
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidJoiningKey, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+              existingParticipant.isEmpty
+            }
+            participant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(room.chatRoomId, u.userId, "", List.empty, "")
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot join chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(participant), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 7b. joinSystemChatRoom
+    staticResourceDocs += ResourceDoc(
+      joinSystemChatRoom,
+      implementedInApiVersion,
+      nameOf(joinSystemChatRoom),
+      "POST",
+      "/chat-room-participants",
+      "Join System Chat Room",
+      s"""Join a system-level chat room using a joining key (passed as joining_key in the JSON body).
+         |The user is added as a participant with no special permissions.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ParticipantJsonV600(
+        participant_id = "participant-id-123",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List(),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJoiningKey,
+        ChatRoomIsArchived,
+        ChatRoomParticipantAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val joinSystemChatRoom: OBPEndpoint = {
+      case "chat-room-participants" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            joiningKey = (json \ "joining_key").extractOpt[String].getOrElse("")
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey)
+            } map {
+              x => unboxFullOrFail(x, callContext, InvalidJoiningKey, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+              existingParticipant.isEmpty
+            }
+            participant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(room.chatRoomId, u.userId, "", List.empty, "")
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot join chat room", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(participant), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 8a. refreshBankJoiningKey
+    staticResourceDocs += ResourceDoc(
+      refreshBankJoiningKey,
+      implementedInApiVersion,
+      nameOf(refreshBankJoiningKey),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key",
+      "Refresh Bank Chat Room Joining Key",
+      s"""Refresh the joining key for a chat room. The old key becomes invalid.
+         |Requires can_refresh_joining_key permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JoiningKeyJsonV600(joining_key = "new-key-abc123"),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val refreshBankJoiningKey: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "joining-key" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_REFRESH_JOINING_KEY)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.refreshJoiningKey(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot refresh joining key", 400)
+            }
+          } yield {
+            (JoiningKeyJsonV600(joining_key = updatedRoom.joiningKey), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 8b. refreshSystemJoiningKey
+    staticResourceDocs += ResourceDoc(
+      refreshSystemJoiningKey,
+      implementedInApiVersion,
+      nameOf(refreshSystemJoiningKey),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/joining-key",
+      "Refresh System Chat Room Joining Key",
+      s"""Refresh the joining key for a system-level chat room. The old key becomes invalid.
+         |Requires can_refresh_joining_key permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      JoiningKeyJsonV600(joining_key = "new-key-abc123"),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val refreshSystemJoiningKey: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "joining-key" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_REFRESH_JOINING_KEY)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            updatedRoom <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.refreshJoiningKey(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot refresh joining key", 400)
+            }
+          } yield {
+            (JoiningKeyJsonV600(joining_key = updatedRoom.joiningKey), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch C: Participants ------
+
+    // 9a. addBankChatRoomParticipant
+    staticResourceDocs += ResourceDoc(
+      addBankChatRoomParticipant,
+      implementedInApiVersion,
+      nameOf(addBankChatRoomParticipant),
+      "POST",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants",
+      "Add Bank Chat Room Participant",
+      s"""Add a participant to a chat room. Requires can_manage_permissions permission.
+         |Specify either user_id or consumer_id, but not both.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostParticipantJsonV600(user_id = Some("user-id-456"), consumer_id = None, permissions = Some(List("can_delete_message")), webhook_url = None),
+      ParticipantJsonV600(
+        participant_id = "participant-id-456",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-456",
+        username = "ellie.y.1.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_delete_message"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        MustSpecifyUserIdOrConsumerId,
+        ChatRoomParticipantAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val addBankChatRoomParticipant: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "participants" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostParticipantJsonV600", 400, callContext) {
+              json.extract[PostParticipantJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_MANAGE_PERMISSIONS)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            userId = postJson.user_id.getOrElse("")
+            consumerId = postJson.consumer_id.getOrElse("")
+            _ <- Helper.booleanToFuture(failMsg = MustSpecifyUserIdOrConsumerId, cc = callContext) {
+              (userId.nonEmpty || consumerId.nonEmpty) && !(userId.nonEmpty && consumerId.nonEmpty)
+            }
+            existingParticipant <- Future {
+              if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
+              else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+              existingParticipant.isEmpty
+            }
+            participant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(
+                chatRoomId, userId, consumerId,
+                postJson.permissions.getOrElse(List.empty),
+                postJson.webhook_url.getOrElse("")
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add participant", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(participant), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 9b. addSystemChatRoomParticipant
+    staticResourceDocs += ResourceDoc(
+      addSystemChatRoomParticipant,
+      implementedInApiVersion,
+      nameOf(addSystemChatRoomParticipant),
+      "POST",
+      "/chat-rooms/CHAT_ROOM_ID/participants",
+      "Add System Chat Room Participant",
+      s"""Add a participant to a system-level chat room. Requires can_manage_permissions permission.
+         |Specify either user_id or consumer_id, but not both.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostParticipantJsonV600(user_id = Some("user-id-456"), consumer_id = None, permissions = Some(List("can_delete_message")), webhook_url = None),
+      ParticipantJsonV600(
+        participant_id = "participant-id-456",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-456",
+        username = "ellie.y.1.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_delete_message"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        MustSpecifyUserIdOrConsumerId,
+        ChatRoomParticipantAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val addSystemChatRoomParticipant: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "participants" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostParticipantJsonV600", 400, callContext) {
+              json.extract[PostParticipantJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_MANAGE_PERMISSIONS)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            userId = postJson.user_id.getOrElse("")
+            consumerId = postJson.consumer_id.getOrElse("")
+            _ <- Helper.booleanToFuture(failMsg = MustSpecifyUserIdOrConsumerId, cc = callContext) {
+              (userId.nonEmpty || consumerId.nonEmpty) && !(userId.nonEmpty && consumerId.nonEmpty)
+            }
+            existingParticipant <- Future {
+              if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
+              else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+              existingParticipant.isEmpty
+            }
+            participant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.addParticipant(
+                chatRoomId, userId, consumerId,
+                postJson.permissions.getOrElse(List.empty),
+                postJson.webhook_url.getOrElse("")
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add participant", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(participant), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 10a. getBankChatRoomParticipants
+    staticResourceDocs += ResourceDoc(
+      getBankChatRoomParticipants,
+      implementedInApiVersion,
+      nameOf(getBankChatRoomParticipants),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants",
+      "Get Bank Chat Room Participants",
+      s"""Get all participants of a chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ParticipantsJsonV600(participants = List(ParticipantJsonV600(
+        participant_id = "participant-id-123",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_update_room", "can_delete_message"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankChatRoomParticipants: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "participants" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            participants <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipants(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participants", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantsJson(participants), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 10b. getSystemChatRoomParticipants
+    staticResourceDocs += ResourceDoc(
+      getSystemChatRoomParticipants,
+      implementedInApiVersion,
+      nameOf(getSystemChatRoomParticipants),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/participants",
+      "Get System Chat Room Participants",
+      s"""Get all participants of a system-level chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ParticipantsJsonV600(participants = List(ParticipantJsonV600(
+        participant_id = "participant-id-123",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_update_room", "can_delete_message"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemChatRoomParticipants: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "participants" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            participants <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipants(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participants", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantsJson(participants), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 11a. updateBankParticipantPermissions
+    staticResourceDocs += ResourceDoc(
+      updateBankParticipantPermissions,
+      implementedInApiVersion,
+      nameOf(updateBankParticipantPermissions),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+      "Update Bank Chat Room Participant Permissions",
+      s"""Update the permissions of a participant. Requires can_manage_permissions permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutParticipantPermissionsJsonV600(permissions = List("can_delete_message", "can_update_room")),
+      ParticipantJsonV600(
+        participant_id = "participant-id-456",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-456",
+        username = "ellie.y.1.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_delete_message", "can_update_room"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        ChatRoomParticipantNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val updateBankParticipantPermissions: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "participants" :: targetUserId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutParticipantPermissionsJsonV600", 400, callContext) {
+              json.extract[PutParticipantPermissionsJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_MANAGE_PERMISSIONS)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomParticipantNotFound, 404)
+            }
+            updatedParticipant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.updateParticipantPermissions(chatRoomId, targetUserId, putJson.permissions)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update participant permissions", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(updatedParticipant), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 11b. updateSystemParticipantPermissions
+    staticResourceDocs += ResourceDoc(
+      updateSystemParticipantPermissions,
+      implementedInApiVersion,
+      nameOf(updateSystemParticipantPermissions),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+      "Update System Chat Room Participant Permissions",
+      s"""Update the permissions of a participant in a system-level chat room. Requires can_manage_permissions permission.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutParticipantPermissionsJsonV600(permissions = List("can_delete_message", "can_update_room")),
+      ParticipantJsonV600(
+        participant_id = "participant-id-456",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-456",
+        username = "ellie.y.1.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List("can_delete_message", "can_update_room"),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        ChatRoomParticipantNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val updateSystemParticipantPermissions: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "participants" :: targetUserId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutParticipantPermissionsJsonV600", 400, callContext) {
+              json.extract[PutParticipantPermissionsJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_MANAGE_PERMISSIONS)
+            } map {
+              x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomParticipantNotFound, 404)
+            }
+            updatedParticipant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.updateParticipantPermissions(chatRoomId, targetUserId, putJson.permissions)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update participant permissions", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(updatedParticipant), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 12a. removeBankChatRoomParticipant
+    staticResourceDocs += ResourceDoc(
+      removeBankChatRoomParticipant,
+      implementedInApiVersion,
+      nameOf(removeBankChatRoomParticipant),
+      "DELETE",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+      "Remove Bank Chat Room Participant",
+      s"""Remove a participant from a chat room. Requires can_remove_participant permission, or the user can remove themselves.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        ChatRoomParticipantNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val removeBankChatRoomParticipant: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "participants" :: targetUserId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            // Self-removal is allowed; otherwise need can_remove_participant
+            _ <- if (u.userId == targetUserId) {
+              Future.successful(Full(()))
+            } else {
+              Future {
+                code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_REMOVE_PARTICIPANT)
+              } map {
+                x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+              }
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomParticipantNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.removeParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove participant", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 12b. removeSystemChatRoomParticipant
+    staticResourceDocs += ResourceDoc(
+      removeSystemChatRoomParticipant,
+      implementedInApiVersion,
+      nameOf(removeSystemChatRoomParticipant),
+      "DELETE",
+      "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+      "Remove System Chat Room Participant",
+      s"""Remove a participant from a system-level chat room. Requires can_remove_participant permission, or the user can remove themselves.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        InsufficientChatPermission,
+        ChatRoomParticipantNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val removeSystemChatRoomParticipant: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "participants" :: targetUserId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- if (u.userId == targetUserId) {
+              Future.successful(Full(()))
+            } else {
+              Future {
+                code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_REMOVE_PARTICIPANT)
+              } map {
+                x => unboxFullOrFail(x, callContext, InsufficientChatPermission, 403)
+              }
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomParticipantNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.removeParticipant(chatRoomId, targetUserId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove participant", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch D: Messages ------
+
+    // 13a. sendBankChatMessage
+    staticResourceDocs += ResourceDoc(
+      sendBankChatMessage,
+      implementedInApiVersion,
+      nameOf(sendBankChatMessage),
+      "POST",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages",
+      "Send Bank Chat Message",
+      s"""Send a message in a chat room. The current user must be a participant and the room must not be archived.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatMessageJsonV600(content = "Hello everyone!", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatRoomIsArchived,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val sendBankChatMessage: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatMessageJsonV600", 400, callContext) {
+              json.extract[PostChatMessageJsonV600]
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
+                chatRoomId,
+                u.userId,
+                "",
+                postJson.content,
+                postJson.message_type.getOrElse("text"),
+                postJson.mentioned_user_ids.getOrElse(List.empty),
+                postJson.reply_to_message_id.getOrElse(""),
+                postJson.thread_id.getOrElse("")
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot send message", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterCreate(msg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(msg, List.empty), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 13b. sendSystemChatMessage
+    staticResourceDocs += ResourceDoc(
+      sendSystemChatMessage,
+      implementedInApiVersion,
+      nameOf(sendSystemChatMessage),
+      "POST",
+      "/chat-rooms/CHAT_ROOM_ID/messages",
+      "Send System Chat Message",
+      s"""Send a message in a system-level chat room. The current user must be a participant and the room must not be archived.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatMessageJsonV600(content = "Hello everyone!", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatRoomIsArchived,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val sendSystemChatMessage: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatMessageJsonV600", 400, callContext) {
+              json.extract[PostChatMessageJsonV600]
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
+                chatRoomId,
+                u.userId,
+                "",
+                postJson.content,
+                postJson.message_type.getOrElse("text"),
+                postJson.mentioned_user_ids.getOrElse(List.empty),
+                postJson.reply_to_message_id.getOrElse(""),
+                postJson.thread_id.getOrElse("")
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot send message", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterCreate(msg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(msg, List.empty), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 14a. getBankChatMessages
+    staticResourceDocs += ResourceDoc(
+      getBankChatMessages,
+      implementedInApiVersion,
+      nameOf(getBankChatMessages),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages",
+      "Get Bank Chat Messages",
+      s"""Get messages in a chat room.
+         |
+         |${getObpApiRoot}/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages?limit=50&offset=0&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+         |
+         |The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankChatMessages: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            limitParam = ObpS.param("limit").map(_.toInt).getOrElse(50)
+            offsetParam = ObpS.param("offset").map(_.toInt).getOrElse(0)
+            fromDate = ObpS.param("from_date").flatMap(parseObpStandardDate(_).toOption).getOrElse(theEpochTime)
+            toDate = ObpS.param("to_date").flatMap(parseObpStandardDate(_).toOption).getOrElse(APIUtil.DefaultToDate)
+            (messageRows, reactionRows) = code.chat.DoobieChatMessageQueries.getMessagesWithReactions(chatRoomId, fromDate, toDate, limitParam, offsetParam)
+          } yield {
+            (JSONFactory600.createChatMessagesJsonFromRows(messageRows, reactionRows), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 14b. getSystemChatMessages
+    staticResourceDocs += ResourceDoc(
+      getSystemChatMessages,
+      implementedInApiVersion,
+      nameOf(getSystemChatMessages),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages",
+      "Get System Chat Messages",
+      s"""Get messages in a system-level chat room.
+         |
+         |${getObpApiRoot}/chat-rooms/CHAT_ROOM_ID/messages?limit=50&offset=0&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+         |
+         |The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemChatMessages: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            limitParam = ObpS.param("limit").map(_.toInt).getOrElse(50)
+            offsetParam = ObpS.param("offset").map(_.toInt).getOrElse(0)
+            fromDate = ObpS.param("from_date").flatMap(parseObpStandardDate(_).toOption).getOrElse(theEpochTime)
+            toDate = ObpS.param("to_date").flatMap(parseObpStandardDate(_).toOption).getOrElse(APIUtil.DefaultToDate)
+            (messageRows, reactionRows) = code.chat.DoobieChatMessageQueries.getMessagesWithReactions(chatRoomId, fromDate, toDate, limitParam, offsetParam)
+          } yield {
+            (JSONFactory600.createChatMessagesJsonFromRows(messageRows, reactionRows), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 15a. getBankChatMessage
+    staticResourceDocs += ResourceDoc(
+      getBankChatMessage,
+      implementedInApiVersion,
+      nameOf(getBankChatMessage),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Get Bank Chat Message",
+      s"""Get a specific message by ID. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankChatMessage: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty)
+            }
+          } yield {
+            (JSONFactory600.createChatMessageJson(msg, reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 15b. getSystemChatMessage
+    staticResourceDocs += ResourceDoc(
+      getSystemChatMessage,
+      implementedInApiVersion,
+      nameOf(getSystemChatMessage),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Get System Chat Message",
+      s"""Get a specific message by ID in a system-level chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hello everyone!",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemChatMessage: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty)
+            }
+          } yield {
+            (JSONFactory600.createChatMessageJson(msg, reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 16a. editBankChatMessage
+    staticResourceDocs += ResourceDoc(
+      editBankChatMessage,
+      implementedInApiVersion,
+      nameOf(editBankChatMessage),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Edit Bank Chat Message",
+      s"""Edit a message. Only the sender can edit their own messages.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutChatMessageJsonV600(content = "Updated message content"),
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Updated message content",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        CannotEditOthersMessage,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val editBankChatMessage: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutChatMessageJsonV600", 400, callContext) {
+              json.extract[PutChatMessageJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = CannotEditOthersMessage, cc = callContext) {
+              msg.senderUserId == u.userId
+            }
+            updatedMsg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, putJson.content)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot edit message", 400)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterUpdate(updatedMsg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(updatedMsg, reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 16b. editSystemChatMessage
+    staticResourceDocs += ResourceDoc(
+      editSystemChatMessage,
+      implementedInApiVersion,
+      nameOf(editSystemChatMessage),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Edit System Chat Message",
+      s"""Edit a message in a system-level chat room. Only the sender can edit their own messages.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PutChatMessageJsonV600(content = "Updated message content"),
+      ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Updated message content",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        CannotEditOthersMessage,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val editSystemChatMessage: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutChatMessageJsonV600", 400, callContext) {
+              json.extract[PutChatMessageJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            _ <- Helper.booleanToFuture(failMsg = CannotEditOthersMessage, cc = callContext) {
+              msg.senderUserId == u.userId
+            }
+            updatedMsg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, putJson.content)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot edit message", 400)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterUpdate(updatedMsg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(updatedMsg, reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 17a. deleteBankChatMessage
+    staticResourceDocs += ResourceDoc(
+      deleteBankChatMessage,
+      implementedInApiVersion,
+      nameOf(deleteBankChatMessage),
+      "DELETE",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Delete Bank Chat Message",
+      s"""Soft-delete a message. The sender can delete their own messages, or a participant with can_delete_message permission can delete any message.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        CannotDeleteMessage,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val deleteBankChatMessage: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            _ <- if (msg.senderUserId == u.userId) {
+              Future.successful(Full(()))
+            } else {
+              Future {
+                code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_DELETE_MESSAGE)
+              } map {
+                x => unboxFullOrFail(x, callContext, CannotDeleteMessage, 403)
+              }
+            }
+            deletedMsg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.softDeleteMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot delete message", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterDelete(deletedMsg, u.name, u.provider, "")
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 17b. deleteSystemChatMessage
+    staticResourceDocs += ResourceDoc(
+      deleteSystemChatMessage,
+      implementedInApiVersion,
+      nameOf(deleteSystemChatMessage),
+      "DELETE",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+      "Delete System Chat Message",
+      s"""Soft-delete a message in a system-level chat room. The sender can delete their own messages, or a participant with can_delete_message permission can delete any message.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        CannotDeleteMessage,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val deleteSystemChatMessage: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            _ <- if (msg.senderUserId == u.userId) {
+              Future.successful(Full(()))
+            } else {
+              Future {
+                code.chat.ChatPermissions.checkParticipantPermission(chatRoomId, u.userId, code.chat.ChatPermissions.CAN_DELETE_MESSAGE)
+              } map {
+                x => unboxFullOrFail(x, callContext, CannotDeleteMessage, 403)
+              }
+            }
+            deletedMsg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.softDeleteMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot delete message", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterDelete(deletedMsg, u.name, u.provider, "")
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch E: Threads ------
+
+    // 18a. getBankThreadReplies
+    staticResourceDocs += ResourceDoc(
+      getBankThreadReplies,
+      implementedInApiVersion,
+      nameOf(getBankThreadReplies),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+      "Get Bank Thread Replies",
+      s"""Get all replies in a message thread. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+        chat_message_id = "reply-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-456",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "This is a reply",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "msg-id-123",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankThreadReplies: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "thread" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            replies <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get thread replies", 400)
+            }
+            allReactions <- Future {
+              replies.map { msg =>
+                val reactions = code.chat.ReactionTrait.reactionProvider.vend.getReactions(msg.chatMessageId).openOr(List.empty)
+                (msg.chatMessageId, reactions)
+              }.toMap
+            }
+          } yield {
+            (JSONFactory600.createChatMessagesJson(replies, allReactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 18b. getSystemThreadReplies
+    staticResourceDocs += ResourceDoc(
+      getSystemThreadReplies,
+      implementedInApiVersion,
+      nameOf(getSystemThreadReplies),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+      "Get System Thread Replies",
+      s"""Get all replies in a message thread in a system-level chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+        chat_message_id = "reply-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-456",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "This is a reply",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "msg-id-123",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemThreadReplies: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "thread" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            replies <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get thread replies", 400)
+            }
+            allReactions <- Future {
+              replies.map { msg =>
+                val reactions = code.chat.ReactionTrait.reactionProvider.vend.getReactions(msg.chatMessageId).openOr(List.empty)
+                (msg.chatMessageId, reactions)
+              }.toMap
+            }
+          } yield {
+            (JSONFactory600.createChatMessagesJson(replies, allReactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 19a. replyInBankThread
+    staticResourceDocs += ResourceDoc(
+      replyInBankThread,
+      implementedInApiVersion,
+      nameOf(replyInBankThread),
+      "POST",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+      "Reply In Bank Thread",
+      s"""Reply to a message in a thread. The current user must be a participant and the room must not be archived.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatMessageJsonV600(content = "This is a thread reply", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+      ChatMessageJsonV600(
+        chat_message_id = "reply-id-456",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "This is a thread reply",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "msg-id-123",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatRoomIsArchived,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val replyInBankThread: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "thread" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatMessageJsonV600", 400, callContext) {
+              json.extract[PostChatMessageJsonV600]
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
+                chatRoomId,
+                u.userId,
+                "",
+                postJson.content,
+                postJson.message_type.getOrElse("text"),
+                postJson.mentioned_user_ids.getOrElse(List.empty),
+                postJson.reply_to_message_id.getOrElse(""),
+                chatMessageId // threadId is the parent message ID
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot send thread reply", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterCreate(msg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(msg, List.empty), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 19b. replyInSystemThread
+    staticResourceDocs += ResourceDoc(
+      replyInSystemThread,
+      implementedInApiVersion,
+      nameOf(replyInSystemThread),
+      "POST",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+      "Reply In System Thread",
+      s"""Reply to a message in a thread in a system-level chat room. The current user must be a participant and the room must not be archived.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostChatMessageJsonV600(content = "This is a thread reply", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+      ChatMessageJsonV600(
+        chat_message_id = "reply-id-456",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-123",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "This is a thread reply",
+        message_type = "text",
+        mentioned_user_ids = List(),
+        reply_to_message_id = "",
+        thread_id = "msg-id-123",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatRoomIsArchived,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val replyInSystemThread: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "thread" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostChatMessageJsonV600", 400, callContext) {
+              json.extract[PostChatMessageJsonV600]
+            }
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomIsArchived, cc = callContext) {
+              !room.isArchived
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            msg <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
+                chatRoomId,
+                u.userId,
+                "",
+                postJson.content,
+                postJson.message_type.getOrElse("text"),
+                postJson.mentioned_user_ids.getOrElse(List.empty),
+                postJson.reply_to_message_id.getOrElse(""),
+                chatMessageId // threadId is the parent message ID
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot send thread reply", 400)
+            }
+          } yield {
+            code.chat.ChatEventPublisher.afterCreate(msg, u.name, u.provider, "")
+            (JSONFactory600.createChatMessageJson(msg, List.empty), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch F: Reactions ------
+
+    // 20a. addBankReaction
+    staticResourceDocs += ResourceDoc(
+      addBankReaction,
+      implementedInApiVersion,
+      nameOf(addBankReaction),
+      "POST",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+      "Add Bank Reaction",
+      s"""Add a reaction (emoji) to a message. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostReactionJsonV600(emoji = "thumbsup"),
+      ReactionJsonV600(
+        reaction_id = "reaction-id-123",
+        chat_message_id = "msg-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        emoji = "thumbsup",
+        created_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        ReactionAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val addBankReaction: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostReactionJsonV600", 400, callContext) {
+              json.extract[PostReactionJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+              existingReaction.isEmpty
+            }
+            reaction <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.addReaction(chatMessageId, u.userId, postJson.emoji)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
+            }
+          } yield {
+            (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 20b. addSystemReaction
+    staticResourceDocs += ResourceDoc(
+      addSystemReaction,
+      implementedInApiVersion,
+      nameOf(addSystemReaction),
+      "POST",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+      "Add System Reaction",
+      s"""Add a reaction (emoji) to a message in a system-level chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      PostReactionJsonV600(emoji = "thumbsup"),
+      ReactionJsonV600(
+        reaction_id = "reaction-id-123",
+        chat_message_id = "msg-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        emoji = "thumbsup",
+        created_at = new java.util.Date()
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        ReactionAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val addSystemReaction: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostReactionJsonV600", 400, callContext) {
+              json.extract[PostReactionJsonV600]
+            }
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+              existingReaction.isEmpty
+            }
+            reaction <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.addReaction(chatMessageId, u.userId, postJson.emoji)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
+            }
+          } yield {
+            (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    // 21a. removeBankReaction
+    staticResourceDocs += ResourceDoc(
+      removeBankReaction,
+      implementedInApiVersion,
+      nameOf(removeBankReaction),
+      "DELETE",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI",
+      "Remove Bank Reaction",
+      s"""Remove your own reaction from a message.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        ReactionNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val removeBankReaction: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: emoji :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            decodedEmoji = URLDecoder.decode(emoji, StandardCharsets.UTF_8.name())
+            existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, decodedEmoji))
+            _ <- Helper.booleanToFuture(failMsg = ReactionNotFound, cc = callContext) {
+              existingReaction.isDefined
+            }
+            _ <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.removeReaction(chatMessageId, u.userId, decodedEmoji)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 21b. removeSystemReaction
+    staticResourceDocs += ResourceDoc(
+      removeSystemReaction,
+      implementedInApiVersion,
+      nameOf(removeSystemReaction),
+      "DELETE",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI",
+      "Remove System Reaction",
+      s"""Remove your own reaction from a message in a system-level chat room.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        ReactionNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val removeSystemReaction: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: emoji :: Nil JsonDelete _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            decodedEmoji = URLDecoder.decode(emoji, StandardCharsets.UTF_8.name())
+            existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, decodedEmoji))
+            _ <- Helper.booleanToFuture(failMsg = ReactionNotFound, cc = callContext) {
+              existingReaction.isDefined
+            }
+            _ <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.removeReaction(chatMessageId, u.userId, decodedEmoji)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // 22a. getBankReactions
+    staticResourceDocs += ResourceDoc(
+      getBankReactions,
+      implementedInApiVersion,
+      nameOf(getBankReactions),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+      "Get Bank Reactions",
+      s"""Get all reactions for a message. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ReactionsJsonV600(reactions = List(ReactionJsonV600(
+        reaction_id = "reaction-id-123",
+        chat_message_id = "msg-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        emoji = "thumbsup",
+        created_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankReactions: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get reactions", 400)
+            }
+          } yield {
+            (JSONFactory600.createReactionsJson(reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 22b. getSystemReactions
+    staticResourceDocs += ResourceDoc(
+      getSystemReactions,
+      implementedInApiVersion,
+      nameOf(getSystemReactions),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+      "Get System Reactions",
+      s"""Get all reactions for a message in a system-level chat room. The current user must be a participant.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ReactionsJsonV600(reactions = List(ReactionJsonV600(
+        reaction_id = "reaction-id-123",
+        chat_message_id = "msg-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        emoji = "thumbsup",
+        created_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        ChatMessageNotFound,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemReactions: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: chatMessageId :: "reactions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
+            }
+            reactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get reactions", 400)
+            }
+          } yield {
+            (JSONFactory600.createReactionsJson(reactions), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch G: Typing ------
+
+    // 23a. signalBankTyping
+    staticResourceDocs += ResourceDoc(
+      signalBankTyping,
+      implementedInApiVersion,
+      nameOf(signalBankTyping),
+      "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+      "Signal Bank Typing",
+      s"""Signal that the current user is typing in a chat room. The typing indicator expires after 5 seconds.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val signalBankTyping: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "typing-indicators" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              val key = s"chat_typing_${chatRoomId}_${u.userId}"
+              Redis.use(code.api.JedisMethod.SET, key, Some(5), Some("1"))
+              code.chat.ChatEventPublisher.afterTyping(chatRoomId, u.userId, u.name, u.provider, true)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 23b. signalSystemTyping
+    staticResourceDocs += ResourceDoc(
+      signalSystemTyping,
+      implementedInApiVersion,
+      nameOf(signalSystemTyping),
+      "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+      "Signal System Typing",
+      s"""Signal that the current user is typing in a system-level chat room. The typing indicator expires after 5 seconds.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val signalSystemTyping: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "typing-indicators" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            _ <- Future {
+              val key = s"chat_typing_${chatRoomId}_${u.userId}"
+              Redis.use(code.api.JedisMethod.SET, key, Some(5), Some("1"))
+              code.chat.ChatEventPublisher.afterTyping(chatRoomId, u.userId, u.name, u.provider, true)
+            }
+          } yield {
+            (EmptyBody, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 24a. getBankTypingUsers
+    staticResourceDocs += ResourceDoc(
+      getBankTypingUsers,
+      implementedInApiVersion,
+      nameOf(getBankTypingUsers),
+      "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+      "Get Bank Typing Users",
+      s"""Get the list of users currently typing in a chat room.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      TypingUsersJsonV600(users = List(TypingUserJsonV600(user_id = "user-id-123", username = "robert.x.0.gh", provider = "https://github.com"))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBankTypingUsers: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "typing-indicators" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            participants <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipants(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participants", 400)
+            }
+            typingUsers <- Future {
+              participants.filter(_.userId.nonEmpty).flatMap { p =>
+                val key = s"chat_typing_${chatRoomId}_${p.userId}"
+                try {
+                  Redis.use(code.api.JedisMethod.GET, key) match {
+                    case Some(_) =>
+                      val typingUser = code.users.Users.users.vend.getUserByUserId(p.userId)
+                      Some(TypingUserJsonV600(user_id = p.userId, username = typingUser.map(_.name).getOrElse(""), provider = typingUser.map(_.provider).getOrElse("")))
+                    case None => None
+                  }
+                } catch {
+                  case _: Throwable => None
+                }
+              }
+            }
+          } yield {
+            (TypingUsersJsonV600(users = typingUsers), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 24b. getSystemTypingUsers
+    staticResourceDocs += ResourceDoc(
+      getSystemTypingUsers,
+      implementedInApiVersion,
+      nameOf(getSystemTypingUsers),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+      "Get System Typing Users",
+      s"""Get the list of users currently typing in a system-level chat room.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      TypingUsersJsonV600(users = List(TypingUserJsonV600(user_id = "user-id-123", username = "robert.x.0.gh", provider = "https://github.com"))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getSystemTypingUsers: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "typing-indicators" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            participants <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipants(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participants", 400)
+            }
+            typingUsers <- Future {
+              participants.filter(_.userId.nonEmpty).flatMap { p =>
+                val key = s"chat_typing_${chatRoomId}_${p.userId}"
+                try {
+                  Redis.use(code.api.JedisMethod.GET, key) match {
+                    case Some(_) =>
+                      val typingUser = code.users.Users.users.vend.getUserByUserId(p.userId)
+                      Some(TypingUserJsonV600(user_id = p.userId, username = typingUser.map(_.name).getOrElse(""), provider = typingUser.map(_.provider).getOrElse("")))
+                    case None => None
+                  }
+                } catch {
+                  case _: Throwable => None
+                }
+              }
+            }
+          } yield {
+            (TypingUsersJsonV600(users = typingUsers), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // ------ Batch H: User-Level ------
+
+    // 25. getMyChatRooms
+    staticResourceDocs += ResourceDoc(
+      getMyChatRooms,
+      implementedInApiVersion,
+      nameOf(getMyChatRooms),
+      "GET",
+      "/users/current/chat-rooms",
+      "Get My Chat Rooms",
+      s"""Get all chat rooms the current user is a participant of, across all banks and system-level rooms.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "gh.29.uk",
+        name = "General Discussion",
+        description = "A place to discuss general topics",
+        joining_key = "abc123key",
+        created_by = "user-id-123",
+        created_by_username = "robert.x.0.gh",
+        created_by_provider = "https://github.com",
+        all_users_are_participants = false,
+        is_archived = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getMyChatRooms: OBPEndpoint = {
+      case "users" :: "current" :: "chat-rooms" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            participantRecords <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipantRoomsByUserId(u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participant records", 400)
+            }
+            rooms <- Future {
+              participantRecords.flatMap { p =>
+                code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId).toList
+              }
+            }
+          } yield {
+            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 26. getMyUnreadCounts
+    staticResourceDocs += ResourceDoc(
+      getMyUnreadCounts,
+      implementedInApiVersion,
+      nameOf(getMyUnreadCounts),
+      "GET",
+      "/users/current/chat-rooms/unread",
+      "Get My Unread Counts",
+      s"""Get unread message counts for all chat rooms the current user is a participant of.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      UnreadCountsJsonV600(unread_counts = List(UnreadCountJsonV600(chat_room_id = "chat-room-id-123", unread_count = 5))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getMyUnreadCounts: OBPEndpoint = {
+      case "users" :: "current" :: "chat-rooms" :: "unread" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            participantRecords <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.getParticipantRoomsByUserId(u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participant records", 400)
+            }
+            unreadCounts <- Future {
+              participantRecords.flatMap { p =>
+                val count = code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.lastReadAt)
+                count.toList.map(c => UnreadCountJsonV600(chat_room_id = p.chatRoomId, unread_count = c))
+              }
+            }
+          } yield {
+            (UnreadCountsJsonV600(unread_counts = unreadCounts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 27. markChatRoomRead
+    staticResourceDocs += ResourceDoc(
+      markChatRoomRead,
+      implementedInApiVersion,
+      nameOf(markChatRoomRead),
+      "PUT",
+      "/users/current/chat-rooms/CHAT_ROOM_ID/read-marker",
+      "Mark Chat Room Read",
+      s"""Mark all messages in a chat room as read for the current user by updating lastReadAt to now.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ParticipantJsonV600(
+        participant_id = "participant-id-123",
+        chat_room_id = "chat-room-id-123",
+        user_id = "user-id-123",
+        username = "robert.x.0.gh",
+        provider = "https://github.com",
+        consumer_id = "",
+        consumer_name = "",
+        permissions = List(),
+        webhook_url = "",
+        joined_at = new java.util.Date(),
+        last_read_at = new java.util.Date(),
+        is_muted = false
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val markChatRoomRead: OBPEndpoint = {
+      case "users" :: "current" :: "chat-rooms" :: chatRoomId :: "read-marker" :: Nil JsonPut _ -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            updatedParticipant <- Future {
+              code.chat.ParticipantTrait.participantProvider.vend.updateLastReadAt(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot mark as read", 400)
+            }
+          } yield {
+            (JSONFactory600.createParticipantJson(updatedParticipant), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 28. getMyMentions
+    staticResourceDocs += ResourceDoc(
+      getMyMentions,
+      implementedInApiVersion,
+      nameOf(getMyMentions),
+      "GET",
+      "/users/current/mentions",
+      "Get My Mentions",
+      s"""Get messages where the current user is mentioned. Supports limit and offset query parameters.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+        chat_message_id = "msg-id-123",
+        chat_room_id = "chat-room-id-123",
+        sender_user_id = "user-id-456",
+        sender_consumer_id = "",
+        sender_username = "robert.x.0.gh",
+        sender_provider = "https://github.com",
+        sender_consumer_name = "My Banking App",
+        content = "Hey @user-id-123, check this out!",
+        message_type = "text",
+        mentioned_user_ids = List("user-id-123"),
+        reply_to_message_id = "",
+        thread_id = "",
+        is_deleted = false,
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date(),
+        reactions = List()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getMyMentions: OBPEndpoint = {
+      case "users" :: "current" :: "mentions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            limitParam = ObpS.param("limit").map(_.toInt).getOrElse(50)
+            offsetParam = ObpS.param("offset").map(_.toInt).getOrElse(0)
+            messages <- Future {
+              code.chat.ChatMessageTrait.chatMessageProvider.vend.getMentionsForUser(u.userId, limitParam, offsetParam)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get mentions", 400)
+            }
+            allReactions <- Future {
+              messages.map { msg =>
+                val reactions = code.chat.ReactionTrait.reactionProvider.vend.getReactions(msg.chatMessageId).openOr(List.empty)
+                (msg.chatMessageId, reactions)
+              }.toMap
+            }
+          } yield {
+            (JSONFactory600.createChatMessagesJson(messages, allReactions), HttpCode.`200`(callContext))
           }
       }
     }

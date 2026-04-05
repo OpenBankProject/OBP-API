@@ -23,28 +23,36 @@ import net.liftweb.json.{Extraction, JArray}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * [[https://github.com/grpc/grpc-java/blob/v0.15.0/examples/src/main/java/io/grpc/examples/helloworld/HelloWorldServer.java]]
+ * OBP gRPC server — serves banking RPCs (ObpService) and chat streaming RPCs (ChatStreamService).
+ * Enable via grpc.server.enabled=true in props.
  */
-object HelloWorldServer {
+object ObpGrpcServer {
 
   def main(args: Array[String] = Array.empty): Unit = {
-    val server = new HelloWorldServer(ExecutionContext.global)
+    val server = new ObpGrpcServer(ExecutionContext.global)
     server.start()
     server.blockUntilShutdown()
   }
 
-  val port = APIUtil.getPropsAsIntValue("grpc.server.port", Helper.findAvailablePort())
+  val port = APIUtil.getPropsAsIntValue("grpc.server.port", 50051)
 }
 
-class HelloWorldServer(executionContext: ExecutionContext) extends MdcLoggable { self =>
+class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { self =>
   private[this] var server: Server = null
   def start(): Unit = {
 
-    val serverBuilder = ServerBuilder.forPort(HelloWorldServer.port)
+    // Start chat event bus for Redis pub/sub streaming
+    code.chat.ChatEventBus.start()
+
+    val serverBuilder = ServerBuilder.forPort(ObpGrpcServer.port)
       .addService(ObpServiceGrpc.bindService(ObpServiceImpl, executionContext))
+      .addService(code.obp.grpc.chat.api.ChatStreamServiceGrpc.bindService(
+        code.obp.grpc.chat.ChatStreamServiceImpl, executionContext))
+      .addService(io.grpc.protobuf.services.ProtoReflectionService.newInstance())
+      .intercept(new code.obp.grpc.chat.AuthInterceptor())
       .asInstanceOf[ServerBuilder[_]]
     server = serverBuilder.build.start;
-    logger.info("Server started, listening on " + HelloWorldServer.port)
+    logger.info("Server started, listening on " + ObpGrpcServer.port)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
@@ -53,6 +61,7 @@ class HelloWorldServer(executionContext: ExecutionContext) extends MdcLoggable {
   }
 
   def stop(): Unit = {
+    code.chat.ChatEventBus.stop()
     if (server != null) {
       server.shutdown()
       server = null
