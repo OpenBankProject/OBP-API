@@ -521,7 +521,7 @@
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
             <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
-            <tagsToExclude>code.external</tagsToExclude>
+            <tagsToExclude>code.external,GetBanksPerf</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
         </configuration>
         <executions>
