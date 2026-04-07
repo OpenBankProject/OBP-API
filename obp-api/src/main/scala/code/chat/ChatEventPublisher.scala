@@ -67,6 +67,16 @@ object ChatEventPublisher extends MdcLoggable {
     publishMessageEvent("deleted", msg, senderUsername, senderProvider, senderConsumerName)
   }
 
+  def afterReactionAdd(chatRoomId: String, chatMessageId: String, emoji: String,
+                       userId: String, username: String, provider: String): Unit = {
+    publishReactionEvent("reacted", chatRoomId, chatMessageId, emoji, userId, username, provider)
+  }
+
+  def afterReactionRemove(chatRoomId: String, chatMessageId: String, emoji: String,
+                          userId: String, username: String, provider: String): Unit = {
+    publishReactionEvent("unreacted", chatRoomId, chatMessageId, emoji, userId, username, provider)
+  }
+
   def afterTyping(chatRoomId: String, userId: String, username: String, provider: String, isTyping: Boolean): Unit = {
     val event = TypingEvent(chatRoomId, userId, username, provider, isTyping)
     ChatEventBus.publishTyping(chatRoomId, write(event))
@@ -108,5 +118,36 @@ object ChatEventPublisher extends MdcLoggable {
       updated_at = dateFormat.format(msg.updatedDate)
     )
     ChatEventBus.publishMessage(msg.chatRoomId, write(event))
+  }
+
+  private def publishReactionEvent(
+    eventType: String,
+    chatRoomId: String,
+    chatMessageId: String,
+    emoji: String,
+    userId: String,
+    username: String,
+    provider: String
+  ): Unit = {
+    val now = dateFormat.format(new java.util.Date())
+    val event = MessageEvent(
+      event_type = eventType,
+      chat_message_id = chatMessageId,
+      chat_room_id = chatRoomId,
+      sender_user_id = userId,
+      sender_consumer_id = "",
+      sender_username = username,
+      sender_provider = provider,
+      sender_consumer_name = "",
+      content = emoji,
+      message_type = "",
+      mentioned_user_ids = List.empty,
+      reply_to_message_id = "",
+      thread_id = "",
+      is_deleted = false,
+      created_at = now,
+      updated_at = now
+    )
+    ChatEventBus.publishMessage(chatRoomId, write(event))
   }
 }

@@ -15650,6 +15650,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionAdd(chatRoomId, chatMessageId, postJson.emoji, u.userId, u.name, u.provider)
             (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
           }
       }
@@ -15724,6 +15725,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionAdd(chatRoomId, chatMessageId, postJson.emoji, u.userId, u.name, u.provider)
             (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
           }
       }
@@ -15787,6 +15789,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionRemove(chatRoomId, chatMessageId, decodedEmoji, u.userId, u.name, u.provider)
             (EmptyBody, HttpCode.`204`(callContext))
           }
       }
@@ -15850,6 +15853,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionRemove(chatRoomId, chatMessageId, decodedEmoji, u.userId, u.name, u.provider)
             (EmptyBody, HttpCode.`204`(callContext))
           }
       }
