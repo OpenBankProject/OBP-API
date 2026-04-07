@@ -75,11 +75,12 @@ object MappedChatMessageProvider extends ChatMessageProvider {
     if (sinceDate.before(sixtyDaysAgo)) sixtyDaysAgo else sinceDate
   }
 
-  override def getUnreadCount(chatRoomId: String, sinceDate: Date): Box[Long] = {
+  override def getUnreadCount(chatRoomId: String, userId: String, sinceDate: Date): Box[Long] = {
     tryo {
       ChatMessage.count(
         By(ChatMessage.ChatRoomId, chatRoomId),
-        By_>(ChatMessage.createdAt, effectiveSinceDate(sinceDate))
+        By_>(ChatMessage.createdAt, effectiveSinceDate(sinceDate)),
+        NotBy(ChatMessage.SenderUserId, userId)
       )
     }
   }
@@ -89,6 +90,7 @@ object MappedChatMessageProvider extends ChatMessageProvider {
       ChatMessage.count(
         By(ChatMessage.ChatRoomId, chatRoomId),
         By_>(ChatMessage.createdAt, effectiveSinceDate(sinceDate)),
+        NotBy(ChatMessage.SenderUserId, userId),
         Like(ChatMessage.MentionedUserIds, s"%$userId%")
       )
     }

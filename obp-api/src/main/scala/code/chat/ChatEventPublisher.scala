@@ -58,6 +58,8 @@ object ChatEventPublisher extends MdcLoggable {
 
   def afterCreate(msg: ChatMessageTrait, senderUsername: String, senderProvider: String, senderConsumerName: String): Unit = {
     publishMessageEvent("new", msg, senderUsername, senderProvider, senderConsumerName)
+    // Sending a message means the sender has "read" the room up to this point
+    ParticipantTrait.participantProvider.vend.updateLastReadAt(msg.chatRoomId, msg.senderUserId)
     Future { broadcastUnreadCounts(msg) }(ExecutionContext.global)
   }
 
@@ -124,7 +126,7 @@ object ChatEventPublisher extends MdcLoggable {
         } else {
           // Private rooms: notify all participants
           val count = ChatMessageTrait.chatMessageProvider.vend
-            .getUnreadCount(msg.chatRoomId, p.lastReadAt).openOr(0L)
+            .getUnreadCount(msg.chatRoomId, p.userId, p.lastReadAt).openOr(0L)
           afterUnreadCountChange(p.userId, msg.chatRoomId, count)
         }
       }
