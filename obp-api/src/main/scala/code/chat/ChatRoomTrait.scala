@@ -29,7 +29,7 @@ trait ChatRoomProvider {
     description: Option[String]
   ): Box[ChatRoomTrait]
 
-  def setAllUsersAreParticipants(chatRoomId: String, allUsersAreParticipants: Boolean): Box[ChatRoomTrait]
+  def setIsOpenRoom(chatRoomId: String, isOpenRoom: Boolean): Box[ChatRoomTrait]
   def archiveChatRoom(chatRoomId: String): Box[ChatRoomTrait]
   def deleteChatRoom(chatRoomId: String): Box[Boolean]
   def refreshJoiningKey(chatRoomId: String): Box[ChatRoomTrait]
@@ -43,7 +43,8 @@ trait ChatRoomTrait {
   def description: String
   def joiningKey: String
   def createdBy: String
-  def allUsersAreParticipants: Boolean
+  /** Whether this is an "open room" where all users are implicit participants. */
+  def isOpenRoom: Boolean
   def isArchived: Boolean
   def createdDate: Date
   def updatedDate: Date

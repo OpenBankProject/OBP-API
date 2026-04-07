@@ -26,6 +26,7 @@ trait ChatMessageProvider {
   def getThreadReplies(threadId: String): Box[List[ChatMessageTrait]]
   def getMentionsForUser(userId: String, limit: Int, offset: Int): Box[List[ChatMessageTrait]]
   def getUnreadCount(chatRoomId: String, sinceDate: Date): Box[Long]
+  def getUnreadMentionCount(chatRoomId: String, userId: String, sinceDate: Date): Box[Long]
 
   def updateMessage(chatMessageId: String, content: String): Box[ChatMessageTrait]
   def softDeleteMessage(chatMessageId: String): Box[ChatMessageTrait]
