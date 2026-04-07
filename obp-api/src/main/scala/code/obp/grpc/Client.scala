@@ -6,7 +6,7 @@ import com.google.protobuf.empty.Empty
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 
 object Client extends App {
-  private val channelBuilder = ManagedChannelBuilder.forAddress("demo.openbankproject.com", HelloWorldServer.port)
+  private val channelBuilder = ManagedChannelBuilder.forAddress("demo.openbankproject.com", ObpGrpcServer.port)
     .usePlaintext()
     .asInstanceOf[ManagedChannelBuilder[_]]
   val channel: ManagedChannel = channelBuilder.build()

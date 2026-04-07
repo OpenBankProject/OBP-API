@@ -115,6 +115,7 @@ object Migration extends MdcLoggable {
       updateConsentViewAddJwtPayload(startedBeforeSchemifier)
       updateConsentViewAddJwtExpiresAt(startedBeforeSchemifier)
       updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier)
+      migrateChatRoomIsOpenRoom()
     }
     
     private def dummyScript(): Boolean = {
@@ -647,6 +648,13 @@ object Migration extends MdcLoggable {
         runOnce(name) {
           MigrationOfAccountAccessWithViewsView.addAccountAccessWithViewsView(name)
         }
+      }
+    }
+
+    private def migrateChatRoomIsOpenRoom(): Boolean = {
+      val name = nameOf(migrateChatRoomIsOpenRoom)
+      runOnce(name) {
+        MigrationOfChatRoomIsOpenRoom.migrateColumn(name)
       }
     }
   }

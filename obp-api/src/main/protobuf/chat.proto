@@ -1,0 +1,68 @@
+syntax = "proto3";
+package code.obp.grpc.chat.g1;
+
+import "google/protobuf/timestamp.proto";
+
+message StreamMessagesRequest {
+  string chat_room_id = 1;
+}
+
+// Fields match ChatMessageJsonV600 exactly, plus event_type for stream events
+message ChatMessageEvent {
+  string event_type = 1;
+  string chat_message_id = 2;
+  string chat_room_id = 3;
+  string sender_user_id = 4;
+  string sender_consumer_id = 5;
+  string sender_username = 6;
+  string sender_provider = 7;
+  string sender_consumer_name = 8;
+  string content = 9;
+  string message_type = 10;
+  repeated string mentioned_user_ids = 11;
+  string reply_to_message_id = 12;
+  string thread_id = 13;
+  bool is_deleted = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message TypingEvent {
+  string chat_room_id = 1;
+  bool is_typing = 2;
+}
+
+// Fields match TypingUserJsonV600
+message TypingIndicator {
+  string chat_room_id = 1;
+  string user_id = 2;
+  string username = 3;
+  string provider = 4;
+  bool is_typing = 5;
+}
+
+message StreamPresenceRequest {
+  string chat_room_id = 1;
+}
+
+message PresenceEvent {
+  string user_id = 1;
+  string username = 2;
+  string provider = 3;
+  bool is_online = 4;
+}
+
+message StreamUnreadCountsRequest {
+}
+
+message UnreadCountEvent {
+  string chat_room_id = 1;
+  int64 unread_count = 2;
+}
+
+service ChatStreamService {
+  rpc StreamMessages(StreamMessagesRequest) returns (stream ChatMessageEvent);
+  rpc StreamTyping(stream TypingEvent) returns (stream TypingIndicator);
+  rpc StreamPresence(StreamPresenceRequest) returns (stream PresenceEvent);
+  rpc StreamUnreadCounts(StreamUnreadCountsRequest) returns (stream UnreadCountEvent);
+}

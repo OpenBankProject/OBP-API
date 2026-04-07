@@ -149,19 +149,23 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 --add-opens java.base/java.util.jar=ALL-UNNAMED \
 --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
 
+RUNTIME_LOG=/tmp/obp-api.log
+
 if [ "$RUN_BACKGROUND" = true ]; then
-    # Run in background with output to log file
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
+    # Run in background with output to log file (tee'd to /tmp as well)
+    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > >(tee "$RUNTIME_LOG") 2>&1 &
     SERVER_PID=$!
     echo "✓ HTTP4S server started in background"
     echo "  PID: $SERVER_PID"
-    echo "  Log: http4s-server.log"
+    echo "  Log: http4s-server.log (also $RUNTIME_LOG)"
     echo ""
     echo "To stop the server: kill $SERVER_PID"
     echo "To view logs: tail -f http4s-server.log"
 else
-    # Run in foreground (Ctrl+C to stop)
+    # Run in foreground (Ctrl+C to stop). Also tee output to /tmp so it can be
+    # tailed from another terminal without taking over this one.
     echo "Press Ctrl+C to stop the server"
+    echo "Runtime log also written to: $RUNTIME_LOG"
     echo ""
-    java $JAVA_OPTS -jar obp-api/target/obp-api.jar
+    java $JAVA_OPTS -jar obp-api/target/obp-api.jar 2>&1 | tee "$RUNTIME_LOG"
 fi

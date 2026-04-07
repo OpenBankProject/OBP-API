@@ -49,7 +49,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore, UserX}
-import code.obp.grpc.HelloWorldServer
+import code.obp.grpc.ObpGrpcServer
 import code.ratelimiting
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, CustomerAttribute, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, UserAuthContextUpdate, _}
@@ -923,7 +923,7 @@ object JSONFactory310{
   def getConfigInfoJSON(): ConfigurationJsonV310 = {
     val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
     val defaultBankId= APIUtil.defaultBankId
-    val grpcPort = HelloWorldServer.port
+    val grpcPort = ObpGrpcServer.port
     ConfigurationJsonV310(
       defaultBankId,
       configurationJson.akka,

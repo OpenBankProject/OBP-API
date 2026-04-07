@@ -86,6 +86,32 @@ case class CounterpartyAttributesJsonV600(
   attributes: List[CounterpartyAttributeResponseJsonV600]
 )
 
+case class PostCustomerLinkJsonV600(
+  customer_id: String,
+  other_bank_id: String,
+  other_customer_id: String,
+  relationship_to: String
+)
+
+case class PutCustomerLinkJsonV600(
+  relationship_to: String
+)
+
+case class CustomerLinkJsonV600(
+  customer_link_id: String,
+  bank_id: String,
+  customer_id: String,
+  other_bank_id: String,
+  other_customer_id: String,
+  relationship_to: String,
+  date_inserted: Date,
+  date_updated: Date
+)
+
+case class CustomerLinksJsonV600(
+  customer_links: List[CustomerLinkJsonV600]
+)
+
 case class CardanoPaymentJsonV600(
     address: String,
     amount: CardanoAmountJsonV600,
@@ -1101,6 +1127,131 @@ case class SignalChannelDeletedJsonV600(
     channel_name: String,
     deleted: Boolean
 )
+
+// Investigation Report
+case class InvestigationTransactionJsonV600(
+  transaction_id: String,
+  account_id: String,
+  amount: String,
+  currency: String,
+  transaction_type: String,
+  description: String,
+  start_date: java.util.Date,
+  finish_date: java.util.Date,
+  counterparty_name: String,
+  counterparty_account: String,
+  counterparty_bank_name: String
+)
+
+case class InvestigationAccountJsonV600(
+  account_id: String,
+  bank_id: String,
+  currency: String,
+  balance: String,
+  account_name: String,
+  account_type: String,
+  transactions: List[InvestigationTransactionJsonV600]
+)
+
+case class InvestigationCustomerLinkJsonV600(
+  customer_link_id: String,
+  other_customer_id: String,
+  other_bank_id: String,
+  relationship: String,
+  other_legal_name: String
+)
+
+case class InvestigationReportJsonV600(
+  customer_id: String,
+  legal_name: String,
+  bank_id: String,
+  accounts: List[InvestigationAccountJsonV600],
+  related_customers: List[InvestigationCustomerLinkJsonV600],
+  from_date: java.util.Date,
+  to_date: java.util.Date,
+  data_source: String
+)
+
+// Chat / Messaging API case classes
+case class PostChatRoomJsonV600(name: String, description: String)
+case class PutChatRoomJsonV600(name: Option[String], description: Option[String])
+case class PostParticipantJsonV600(user_id: Option[String], consumer_id: Option[String], permissions: Option[List[String]], webhook_url: Option[String])
+case class PutParticipantPermissionsJsonV600(permissions: List[String])
+case class PostChatMessageJsonV600(content: String, message_type: Option[String], mentioned_user_ids: Option[List[String]], reply_to_message_id: Option[String], thread_id: Option[String])
+case class PutChatMessageJsonV600(content: String)
+case class PostReactionJsonV600(emoji: String)
+
+case class ChatRoomJsonV600(
+  chat_room_id: String,
+  bank_id: String,
+  name: String,
+  description: String,
+  joining_key: String,
+  created_by: String,
+  created_by_username: String,
+  created_by_provider: String,
+  is_open_room: Boolean,
+  is_archived: Boolean,
+  created_at: java.util.Date,
+  updated_at: java.util.Date
+)
+case class ChatRoomsJsonV600(chat_rooms: List[ChatRoomJsonV600])
+
+case class ParticipantJsonV600(
+  participant_id: String,
+  chat_room_id: String,
+  user_id: String,
+  username: String,
+  provider: String,
+  consumer_id: String,
+  consumer_name: String,
+  permissions: List[String],
+  webhook_url: String,
+  joined_at: java.util.Date,
+  last_read_at: java.util.Date,
+  is_muted: Boolean
+)
+case class ParticipantsJsonV600(participants: List[ParticipantJsonV600])
+
+case class ChatMessageJsonV600(
+  chat_message_id: String,
+  chat_room_id: String,
+  sender_user_id: String,
+  sender_consumer_id: String,
+  sender_username: String,
+  sender_provider: String,
+  sender_consumer_name: String,
+  content: String,
+  message_type: String,
+  mentioned_user_ids: List[String],
+  reply_to_message_id: String,
+  thread_id: String,
+  is_deleted: Boolean,
+  created_at: java.util.Date,
+  updated_at: java.util.Date,
+  reactions: List[ReactionSummaryJsonV600]
+)
+case class ChatMessagesJsonV600(messages: List[ChatMessageJsonV600])
+
+case class ReactionJsonV600(
+  reaction_id: String,
+  chat_message_id: String,
+  user_id: String,
+  username: String,
+  provider: String,
+  emoji: String,
+  created_at: java.util.Date
+)
+case class ReactionsJsonV600(reactions: List[ReactionJsonV600])
+case class ReactionSummaryJsonV600(emoji: String, count: Int, user_ids: List[String])
+
+case class TypingUserJsonV600(user_id: String, username: String, provider: String)
+case class TypingUsersJsonV600(users: List[TypingUserJsonV600])
+
+case class UnreadCountJsonV600(chat_room_id: String, unread_count: Long)
+case class UnreadCountsJsonV600(unread_counts: List[UnreadCountJsonV600])
+
+case class JoiningKeyJsonV600(joining_key: String)
 
 object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
@@ -2728,6 +2879,212 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     CounterpartyAttributesJsonV600(
       attributes.map(createCounterpartyAttributeJson)
     )
+  }
+
+  def createCustomerLinkJson(customerLink: code.customerlinks.CustomerLinkTrait): CustomerLinkJsonV600 = {
+    CustomerLinkJsonV600(
+      customer_link_id = customerLink.customerLinkId,
+      bank_id = customerLink.bankId,
+      customer_id = customerLink.customerId,
+      other_bank_id = customerLink.otherBankId,
+      other_customer_id = customerLink.otherCustomerId,
+      relationship_to = customerLink.relationshipTo,
+      date_inserted = customerLink.dateInserted,
+      date_updated = customerLink.dateUpdated
+    )
+  }
+
+  def createCustomerLinksJson(customerLinks: List[code.customerlinks.CustomerLinkTrait]): CustomerLinksJsonV600 = {
+    CustomerLinksJsonV600(
+      customerLinks.map(createCustomerLinkJson)
+    )
+  }
+
+  def createInvestigationReportJson(
+    customer: code.investigation.DoobieInvestigationQueries.CustomerRow,
+    bankId: String,
+    accounts: List[code.investigation.DoobieInvestigationQueries.AccountRow],
+    transactions: List[code.investigation.DoobieInvestigationQueries.TransactionRow],
+    customerLinks: List[code.investigation.DoobieInvestigationQueries.CustomerLinkRow],
+    fromDate: java.util.Date,
+    toDate: java.util.Date
+  ): InvestigationReportJsonV600 = {
+    val transactionsByAccount = transactions.groupBy(_.accountId)
+
+    val accountJsons = accounts.map { acc =>
+      val txns = transactionsByAccount.getOrElse(acc.accountId, Nil)
+      InvestigationAccountJsonV600(
+        account_id = acc.accountId,
+        bank_id = acc.bankId,
+        currency = acc.currency,
+        balance = acc.balance.toString,
+        account_name = acc.accountName,
+        account_type = acc.accountType,
+        transactions = txns.map { t =>
+          InvestigationTransactionJsonV600(
+            transaction_id = t.transactionId,
+            account_id = t.accountId,
+            amount = t.amount.toString,
+            currency = t.currency,
+            transaction_type = t.transactionType,
+            description = t.description,
+            start_date = t.startDate,
+            finish_date = t.finishDate,
+            counterparty_name = t.counterpartyName,
+            counterparty_account = t.counterpartyAccount,
+            counterparty_bank_name = t.counterpartyBankName
+          )
+        }
+      )
+    }
+
+    val relatedCustomerJsons = customerLinks.map { cl =>
+      InvestigationCustomerLinkJsonV600(
+        customer_link_id = cl.customerLinkId,
+        other_customer_id = cl.otherCustomerId,
+        other_bank_id = cl.otherBankId,
+        relationship = cl.relationship,
+        other_legal_name = cl.otherLegalName
+      )
+    }
+
+    InvestigationReportJsonV600(
+      customer_id = customer.customerId,
+      legal_name = customer.legalName,
+      bank_id = bankId,
+      accounts = accountJsons,
+      related_customers = relatedCustomerJsons,
+      from_date = fromDate,
+      to_date = toDate,
+      data_source = "mapped_database"
+    )
+  }
+
+  // Chat / Messaging factory functions
+  def createChatRoomJson(room: code.chat.ChatRoomTrait): ChatRoomJsonV600 = {
+    val creator = code.users.Users.users.vend.getUserByUserId(room.createdBy)
+    ChatRoomJsonV600(
+      chat_room_id = room.chatRoomId,
+      bank_id = room.bankId,
+      name = room.name,
+      description = room.description,
+      joining_key = room.joiningKey,
+      created_by = room.createdBy,
+      created_by_username = creator.map(_.name).getOrElse(""),
+      created_by_provider = creator.map(_.provider).getOrElse(""),
+      is_open_room = room.isOpenRoom,
+      is_archived = room.isArchived,
+      created_at = room.createdDate,
+      updated_at = room.updatedDate
+    )
+  }
+  def createChatRoomsJson(rooms: List[code.chat.ChatRoomTrait]): ChatRoomsJsonV600 = {
+    ChatRoomsJsonV600(rooms.map(createChatRoomJson))
+  }
+
+  def createParticipantJson(p: code.chat.ParticipantTrait): ParticipantJsonV600 = {
+    val user = code.users.Users.users.vend.getUserByUserId(p.userId)
+    val consumerName = if (p.consumerId.nonEmpty)
+      code.model.Consumer.find(By(code.model.Consumer.consumerId, p.consumerId)).map(_.name.get).getOrElse("")
+    else ""
+    ParticipantJsonV600(
+      participant_id = p.participantId,
+      chat_room_id = p.chatRoomId,
+      user_id = p.userId,
+      username = user.map(_.name).getOrElse(""),
+      provider = user.map(_.provider).getOrElse(""),
+      consumer_id = p.consumerId,
+      consumer_name = consumerName,
+      permissions = p.permissions,
+      webhook_url = p.webhookUrl,
+      joined_at = p.joinedAt,
+      last_read_at = p.lastReadAt,
+      is_muted = p.isMuted
+    )
+  }
+  def createParticipantsJson(participants: List[code.chat.ParticipantTrait]): ParticipantsJsonV600 = {
+    ParticipantsJsonV600(participants.map(createParticipantJson))
+  }
+
+  def createChatMessageJson(msg: code.chat.ChatMessageTrait, reactions: List[code.chat.ReactionTrait]): ChatMessageJsonV600 = {
+    val reactionSummaries = reactions.groupBy(_.emoji).map { case (emoji, rs) =>
+      ReactionSummaryJsonV600(emoji = emoji, count = rs.size, user_ids = rs.map(_.userId))
+    }.toList
+    val user = code.users.Users.users.vend.getUserByUserId(msg.senderUserId)
+    val consumerAppName = if (msg.senderConsumerId.nonEmpty)
+      code.model.Consumer.find(By(code.model.Consumer.consumerId, msg.senderConsumerId)).map(_.name.get).getOrElse("")
+    else ""
+    ChatMessageJsonV600(
+      chat_message_id = msg.chatMessageId,
+      chat_room_id = msg.chatRoomId,
+      sender_user_id = msg.senderUserId,
+      sender_consumer_id = msg.senderConsumerId,
+      sender_username = user.map(_.name).getOrElse(""),
+      sender_provider = user.map(_.provider).getOrElse(""),
+      sender_consumer_name = consumerAppName,
+      content = if (msg.isDeleted) "" else msg.content,
+      message_type = msg.messageType,
+      mentioned_user_ids = msg.mentionedUserIds,
+      reply_to_message_id = msg.replyToMessageId,
+      thread_id = msg.threadId,
+      is_deleted = msg.isDeleted,
+      created_at = msg.createdDate,
+      updated_at = msg.updatedDate,
+      reactions = reactionSummaries
+    )
+  }
+  def createChatMessagesJson(messages: List[code.chat.ChatMessageTrait], allReactions: Map[String, List[code.chat.ReactionTrait]]): ChatMessagesJsonV600 = {
+    ChatMessagesJsonV600(messages.map(msg => createChatMessageJson(msg, allReactions.getOrElse(msg.chatMessageId, List.empty))))
+  }
+
+  def createChatMessagesJsonFromRows(
+    messages: List[code.chat.DoobieChatMessageQueries.ChatMessageRow],
+    allReactions: Map[String, List[code.chat.DoobieChatMessageQueries.ReactionRow]]
+  ): ChatMessagesJsonV600 = {
+    ChatMessagesJsonV600(messages.map { msg =>
+      val reactions = allReactions.getOrElse(msg.chatMessageId, List.empty)
+      val reactionSummaries = reactions.groupBy(_.emoji).map { case (emoji, rs) =>
+        ReactionSummaryJsonV600(emoji = emoji, count = rs.size, user_ids = rs.map(_.userId))
+      }.toList
+      val mentionedIds = msg.mentionedUserIds match {
+        case Some(ids) if ids.nonEmpty => ids.split(",").map(_.trim).filter(_.nonEmpty).toList
+        case _ => List.empty
+      }
+      ChatMessageJsonV600(
+        chat_message_id = msg.chatMessageId,
+        chat_room_id = msg.chatRoomId,
+        sender_user_id = msg.senderUserId,
+        sender_consumer_id = msg.senderConsumerId,
+        sender_username = msg.senderUsername,
+        sender_provider = msg.senderProvider,
+        sender_consumer_name = msg.senderConsumerName,
+        content = if (msg.isDeleted) "" else msg.content,
+        message_type = msg.messageType,
+        mentioned_user_ids = mentionedIds,
+        reply_to_message_id = msg.replyToMessageId,
+        thread_id = msg.threadId,
+        is_deleted = msg.isDeleted,
+        created_at = msg.createdAt,
+        updated_at = msg.updatedAt,
+        reactions = reactionSummaries
+      )
+    })
+  }
+
+  def createReactionJson(r: code.chat.ReactionTrait): ReactionJsonV600 = {
+    val user = code.users.Users.users.vend.getUserByUserId(r.userId)
+    ReactionJsonV600(
+      reaction_id = r.reactionId,
+      chat_message_id = r.chatMessageId,
+      user_id = r.userId,
+      username = user.map(_.name).getOrElse(""),
+      provider = user.map(_.provider).getOrElse(""),
+      emoji = r.emoji,
+      created_at = r.createdDate
+    )
+  }
+  def createReactionsJson(reactions: List[code.chat.ReactionTrait]): ReactionsJsonV600 = {
+    ReactionsJsonV600(reactions.map(createReactionJson))
   }
 
 }

@@ -2,7 +2,7 @@ package code.api.util.http4s
 
 import cats.effect._
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.CallContext
+import code.api.util.{AuthHeaderParser, CallContext}
 import com.openbankproject.commons.model.{Bank, User}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -256,74 +256,35 @@ object Http4sCallContextBuilder {
   }
   
   /**
-   * Extract DirectLogin header parameters if present
+   * Extract DirectLogin header parameters if present.
    * Supports two formats:
-   * 1. New format (2021): DirectLogin: token=xxx
-   * 2. Old format (deprecated): Authorization: DirectLogin token=xxx
+   * 1. New format (2021): `DirectLogin: token=xxx`                  (dedicated header)
+   * 2. Old format (deprecated): `Authorization: DirectLogin token=xxx`
+   *
+   * Delegates the actual parsing of header values to [[AuthHeaderParser]] so
+   * it stays consistent with other transports (e.g. gRPC).
    */
   private def extractDirectLoginParams(request: Request[IO]): Map[String, String] = {
     // Try new format first: DirectLogin header
     request.headers.get(CIString("DirectLogin"))
-      .map(h => parseDirectLoginHeader(h.head.value))
+      .map(h => AuthHeaderParser.parseDirectLoginHeader(h.head.value))
       .getOrElse {
         // Fall back to old format: Authorization: DirectLogin token=xxx
         request.headers.get(CIString("Authorization"))
           .filter(_.head.value.contains("DirectLogin"))
-          .map(h => parseDirectLoginHeader(h.head.value))
+          .map(h => AuthHeaderParser.parseDirectLoginHeader(h.head.value))
           .getOrElse(Map.empty)
       }
   }
-  
+
   /**
-   * Parse DirectLogin header value into parameter map
-   * Matches Lift's parsing logic in directlogin.scala getAllParameters
-   * Supports formats:
-   * - DirectLogin token="xxx"
-   * - DirectLogin token=xxx
-   * - token="xxx", username="yyy"
-   */
-  private def parseDirectLoginHeader(headerValue: String): Map[String, String] = {
-    val directLoginPossibleParameters = List("consumer_key", "token", "username", "password")
-    
-    // Strip "DirectLogin" prefix and split by comma, then trim each part (matches Lift logic)
-    val cleanedParameterList = headerValue.stripPrefix("DirectLogin").split(",").map(_.trim).toList
-    
-    cleanedParameterList.flatMap { input =>
-      if (input.contains("=")) {
-        val split = input.split("=", 2)
-        val paramName = split(0).trim
-        // Remove surrounding quotes if present
-        val paramValue = split(1).replaceAll("^\"|\"$", "").trim
-        if (directLoginPossibleParameters.contains(paramName) && paramValue.nonEmpty)
-          Some(paramName -> paramValue)
-        else
-          None
-      } else {
-        None
-      }
-    }.toMap
-  }
-  
-  /**
-   * Extract OAuth parameters from Authorization header if OAuth
+   * Extract OAuth 1.0a parameters from the Authorization header if it uses the OAuth scheme.
    */
   private def extractOAuthParams(request: Request[IO]): Map[String, String] = {
     request.headers.get(CIString("Authorization"))
       .filter(_.head.value.startsWith("OAuth "))
-      .map(h => parseOAuthHeader(h.head.value))
+      .map(h => AuthHeaderParser.parseOAuthHeader(h.head.value))
       .getOrElse(Map.empty)
-  }
-  
-  /**
-   * Parse OAuth Authorization header value into parameter map
-   * Format: OAuth oauth_consumer_key="xxx", oauth_token="yyy", ...
-   */
-  private def parseOAuthHeader(headerValue: String): Map[String, String] = {
-    val oauthPart = headerValue.stripPrefix("OAuth ").trim
-    val pattern = """(\w+)="([^"]*)"""".r
-    pattern.findAllMatchIn(oauthPart).map { m =>
-      m.group(1) -> m.group(2)
-    }.toMap
   }
 }
 

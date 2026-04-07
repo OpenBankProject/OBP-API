@@ -495,7 +495,14 @@ There are the following request types on this access path:
                    val basket = SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId)
                    val existAll: Box[Boolean] =
                      basket.flatMap(_.payments.map(_.forall(i => Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), callContext).isDefined)))
-                   if (existAll.getOrElse(false)) {
+                   val alreadyCompleted: List[String] =
+                     basket.flatMap(_.payments).getOrElse(Nil).filter { i =>
+                       Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), callContext)
+                         .exists(_._1.status == COMPLETED.toString)
+                     }
+                   if (alreadyCompleted.nonEmpty) {
+                     unboxFullOrFail(Empty, callContext, s"$InvalidConnectorResponse Some of paymentIds [${alreadyCompleted.mkString(",")}] are already completed")
+                   } else if (existAll.getOrElse(false)) {
                      basket.map { i =>
                        i.payments.map(_.map { i =>
                          NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(i), COMPLETED.toString, callContext)

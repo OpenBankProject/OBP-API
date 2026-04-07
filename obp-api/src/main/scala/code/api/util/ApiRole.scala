@@ -317,7 +317,25 @@ object ApiRole extends MdcLoggable{
   
   case class CanGetCustomerAccountLinks(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomerAccountLinks = CanGetCustomerAccountLinks()
-  
+
+  case class CanCreateCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerLink = CanCreateCustomerLink()
+
+  case class CanUpdateCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerLink = CanUpdateCustomerLink()
+
+  case class CanDeleteCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerLink = CanDeleteCustomerLink()
+
+  case class CanGetCustomerLink(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerLink = CanGetCustomerLink()
+
+  case class CanGetCustomerLinks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerLinks = CanGetCustomerLinks()
+
+  case class CanGetInvestigationReport(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetInvestigationReport = CanGetInvestigationReport()
+
   case class CanCreateBranch(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBranch = CanCreateBranch()
 
@@ -1351,6 +1369,20 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetAccountDirectoryAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetAccountDirectoryAtOneBank = CanGetAccountDirectoryAtOneBank()
+
+  // Chat Room roles
+  case class CanDeleteBankChatRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankChatRoom = CanDeleteBankChatRoom()
+  case class CanDeleteSystemChatRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemChatRoom = CanDeleteSystemChatRoom()
+  case class CanArchiveBankChatRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canArchiveBankChatRoom = CanArchiveBankChatRoom()
+  case class CanArchiveSystemChatRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canArchiveSystemChatRoom = CanArchiveSystemChatRoom()
+  case class CanSetBankChatRoomIsOpenRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canSetBankChatRoomIsOpenRoom = CanSetBankChatRoomIsOpenRoom()
+  case class CanSetSystemChatRoomIsOpenRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSetSystemChatRoomIsOpenRoom = CanSetSystemChatRoomIsOpenRoom()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

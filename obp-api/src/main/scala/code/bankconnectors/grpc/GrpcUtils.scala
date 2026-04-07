@@ -6,8 +6,8 @@ import code.bankconnectors.Connector
 import code.bankconnectors.grpc.api.{ObpConnectorRequest, ObpConnectorServiceGrpc}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
-import io.grpc.netty.{GrpcSslContexts, NettyChannelBuilder}
-import io.netty.handler.ssl.SslContextBuilder
+import io.grpc.netty.shaded.io.grpc.netty.{GrpcSslContexts, NettyChannelBuilder}
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.json.Serialization.write
 
