@@ -5192,13 +5192,22 @@ object Glossary extends MdcLoggable  {
 				 |### Polling
 				 |Clients retrieve new messages by polling the GET messages endpoint with a **since** parameter (timestamp). This avoids the complexity of WebSocket infrastructure while providing a simple, reliable mechanism for near-real-time updates.
 				 |
+				 |### gRPC Streaming (real-time)
+				 |For clients that need true real-time updates without polling, OBP exposes a **ChatStreamService** over gRPC (see `chat.proto`, package `code.obp.grpc.chat.g1`). It provides four server-streaming / bidirectional RPCs:
+				 |- **StreamMessages(StreamMessagesRequest) → stream ChatMessageEvent** — push new/edited/deleted messages for a given chat room as they happen.
+				 |- **StreamTyping(stream TypingEvent) → stream TypingIndicator** — bidirectional stream: clients send their own typing state, server fans out typing indicators from other participants.
+				 |- **StreamPresence(StreamPresenceRequest) → stream PresenceEvent** — online/offline updates for participants in a room.
+				 |- **StreamUnreadCounts(StreamUnreadCountsRequest) → stream UnreadCountEvent** — per-room unread counters for the authenticated user.
+				 |
+				 |gRPC calls are authenticated via the same credentials as REST (see `AuthInterceptor`). The REST polling endpoints remain the canonical API; the gRPC streams are an optional push channel for clients that want lower latency and less request overhead.
+				 |
 				 |## API Endpoints
 				 |
-				 |All chat endpoints are available in two forms:
+				 |All chat REST endpoints are available in two forms:
 				 |- **Bank-scoped**: /banks/BANK_ID/chat-rooms/...
 				 |- **System-level**: /chat-rooms/...
 				 |
-				 |See the API Explorer for the full list of Chat endpoints, tagged with **Chat**.
+				 |See the API Explorer for the full list of Chat endpoints, tagged with **Chat**. For the real-time streaming surface, see `chat.proto` / `ChatStreamServiceImpl`.
 				 |
 """)
 
