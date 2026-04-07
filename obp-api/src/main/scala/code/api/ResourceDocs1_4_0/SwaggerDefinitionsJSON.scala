@@ -6103,6 +6103,75 @@ object SwaggerDefinitionsJSON {
     List(counterpartyAttributeResponseJsonV600)
   )
 
+  lazy val postCustomerLinkJsonV600 = PostCustomerLinkJsonV600(
+    customer_id = customerIdExample.value,
+    other_bank_id = bankIdExample.value,
+    other_customer_id = customerIdExample.value,
+    relationship_to = "spouse"
+  )
+
+  lazy val putCustomerLinkJsonV600 = PutCustomerLinkJsonV600(
+    relationship_to = "close_associate"
+  )
+
+  lazy val customerLinkJsonV600 = CustomerLinkJsonV600(
+    customer_link_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    bank_id = bankIdExample.value,
+    customer_id = customerIdExample.value,
+    other_bank_id = bankIdExample.value,
+    other_customer_id = customerIdExample.value,
+    relationship_to = "spouse",
+    date_inserted = DateWithDayExampleObject,
+    date_updated = DateWithDayExampleObject
+  )
+
+  lazy val customerLinksJsonV600 = CustomerLinksJsonV600(
+    List(customerLinkJsonV600)
+  )
+
+  lazy val investigationTransactionJsonV600 = InvestigationTransactionJsonV600(
+    transaction_id = transactionIdExample.value,
+    account_id = accountIdExample.value,
+    amount = "1250",
+    currency = currencyExample.value,
+    transaction_type = "DEBIT",
+    description = "Payment for consulting services",
+    start_date = DateWithDayExampleObject,
+    finish_date = DateWithDayExampleObject,
+    counterparty_name = "ACME Corp",
+    counterparty_account = "DE89370400440532013000",
+    counterparty_bank_name = "Deutsche Bank"
+  )
+
+  lazy val investigationAccountJsonV600 = InvestigationAccountJsonV600(
+    account_id = accountIdExample.value,
+    bank_id = bankIdExample.value,
+    currency = currencyExample.value,
+    balance = "150000",
+    account_name = "Current Account",
+    account_type = "CURRENT",
+    transactions = List(investigationTransactionJsonV600)
+  )
+
+  lazy val investigationCustomerLinkJsonV600 = InvestigationCustomerLinkJsonV600(
+    customer_link_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    other_customer_id = customerIdExample.value,
+    other_bank_id = bankIdExample.value,
+    relationship = "spouse",
+    other_legal_name = "Jane Doe"
+  )
+
+  lazy val investigationReportJsonV600 = InvestigationReportJsonV600(
+    customer_id = customerIdExample.value,
+    legal_name = "John Doe",
+    bank_id = bankIdExample.value,
+    accounts = List(investigationAccountJsonV600),
+    related_customers = List(investigationCustomerLinkJsonV600),
+    from_date = DateWithDayExampleObject,
+    to_date = DateWithDayExampleObject,
+    data_source = "mapped_database"
+  )
+
   lazy val bankAccountBalanceRequestJsonV510 = BankAccountBalanceRequestJsonV510(
     balance_type = balanceTypeExample.value,
     balance_amount = balanceAmountExample.value

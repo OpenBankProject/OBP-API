@@ -105,7 +105,7 @@ import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
-import code.obp.grpc.HelloWorldServer
+import code.obp.grpc.ObpGrpcServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
@@ -131,6 +131,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
+import code.customerlinks.CustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -761,6 +762,8 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+    // Create default system-level "general" chat room (all_users_are_participants = true)
+    code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
   }
 
   private def showExceptionAtJson(error: Throwable): String = {
@@ -1161,6 +1164,7 @@ object ToSchemify {
     MappedNarrative,
     MappedCustomer,
     MappedUserCustomerLink,
+    CustomerLink,
     Consumer,
     Token,
     OpenIDConnectToken,
@@ -1203,12 +1207,16 @@ object ToSchemify {
     CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
-    AccountAccessRequest
+    AccountAccessRequest,
+    code.chat.ChatRoom,
+    code.chat.Participant,
+    code.chat.ChatMessage,
+    code.chat.Reaction
   )
 
   // start grpc server
   if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
-    val server = new HelloWorldServer(ExecutionContext.global)
+    val server = new ObpGrpcServer(ExecutionContext.global)
     server.start()
     LiftRules.unloadHooks.append(server.stop)
   }

@@ -1196,10 +1196,13 @@ database_messages_scheduler_interval=3600
 # GRPC
 # the default GRPC is disabled
 # grpc.server.enabled = false
-# If do not set this props, the grpc port will be set randomly when OBP starts.
-# And you can call `Get API Configuration` endpoint to see the `grpc_port` there.
-# When you set this props, need to make sure this port is available.
+# The default gRPC port is 50051. Override if needed.
 # grpc.server.port = 50051
+# When gRPC is enabled, chat streaming services (StreamMessages, StreamTyping,
+# StreamPresence, StreamUnreadCounts) are available on the same port.
+# Clients authenticate via the "authorization" metadata key using the same
+# DirectLogin or OAuth tokens as the REST API.
+# See src/main/protobuf/chat.proto for the service contract.
 
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true

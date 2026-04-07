@@ -89,6 +89,7 @@ object ApiTag {
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagSystemIntegrity = ResourceDocTag("System-Integrity")
   val apiTagBalance = ResourceDocTag("Balance")
+  val apiTagChat = ResourceDocTag("Chat")
   val apiTagGroup = ResourceDocTag("Group")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
@@ -164,6 +165,7 @@ object ApiTag {
   val apiTagSignal = ResourceDocTag("Signal")
   val apiTagSignalling = ResourceDocTag("Signalling")
   val apiTagChannel = ResourceDocTag("Channel")
+  val apiTagFinancialCrime = ResourceDocTag("Financial-Crime")
 
   private[this] val tagNameSymbolMapTag: MutableMap[String, ResourceDocTag] = MutableMap()
 
