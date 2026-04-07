@@ -2084,7 +2084,7 @@ object Glossary extends MdcLoggable  {
 |
 		  """)
 
-  val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false))
+  val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", true))
 		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
 	// OAuth2 documentation is sourced from OpenAPI31JSONFactory (the source of truth for auth docs)

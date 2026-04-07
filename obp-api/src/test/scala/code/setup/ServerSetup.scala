@@ -60,9 +60,18 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
   setPropsValues("connector" -> "star")
 
-  // Berlin Group
+  // Berlin Group - set in trait body for initial setup
   setPropsValues("berlin_group_mandatory_headers" -> "")
   setPropsValues("berlin_group_mandatory_header_consent" -> "")
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    // Re-apply Berlin Group props after each PropsReset.afterEach() restores lockedProviders
+    setPropsValues(
+      "berlin_group_mandatory_headers" -> "",
+      "berlin_group_mandatory_header_consent" -> ""
+    )
+  }
   
   // Set system properties to force Pekko to use random available ports
   // This prevents conflicts when both RunWebApp and tests are running

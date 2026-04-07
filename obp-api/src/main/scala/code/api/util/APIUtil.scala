@@ -3032,14 +3032,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   private def getFilteredOrFullErrorMessage[T](e: Box[Throwable]): JsonResponse = {
+    def findObpMessage(t: Throwable): Option[String] = {
+      if (t == null) None
+      else Option(t.getMessage).filter(_.startsWith("OBP-"))
+        .orElse(findObpMessage(t.getCause))
+    }
     getPropsAsBoolValue("display_internal_errors", false) match {
       case true => // Show all error in a chain
         errorJsonResponse(
-          AnUnspecifiedOrInternalErrorOccurred +
-            e.map(error => " -> " + error.getCause() + " -> " + error.getStackTrace().mkString(";")).getOrElse("")
+          e.map { error =>
+            val leadMessage = findObpMessage(error).getOrElse(AnUnspecifiedOrInternalErrorOccurred)
+            leadMessage + " -> " + error.getStackTrace().mkString(";")
+          }.getOrElse(AnUnspecifiedOrInternalErrorOccurred)
         )
       case false => // Do not display internal errors
-        errorJsonResponse(AnUnspecifiedOrInternalErrorOccurred)
+        val obpMessage = e.flatMap(error => findObpMessage(error))
+        errorJsonResponse(obpMessage.getOrElse(AnUnspecifiedOrInternalErrorOccurred))
     }
   }
 

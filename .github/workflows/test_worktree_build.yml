@@ -1,0 +1,72 @@
+name: Test Git Worktree Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to test'
+        required: false
+        default: 'develop'
+
+jobs:
+  test-worktree:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: "11"
+          distribution: "adopt"
+          cache: maven
+
+      - name: Create git worktree
+        run: git worktree add --detach ../obp-api-worktree HEAD
+
+      - name: Build from worktree
+        working-directory: ../obp-api-worktree
+        run: |
+          set -o pipefail
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -DskipTests 2>&1 | tee "$GITHUB_WORKSPACE/worktree-build.log"
+
+      - name: Verify git.properties was generated
+        run: |
+          PROPS_FILE="../obp-api-worktree/obp-api/target/classes/git.properties"
+          if [ ! -f "$PROPS_FILE" ]; then
+            echo "FAIL: git.properties not found"
+            exit 1
+          fi
+          echo "Contents of git.properties:"
+          cat "$PROPS_FILE"
+
+          check_field() {
+            local field=$1
+            local value
+            value=$(grep "^${field}=" "$PROPS_FILE" | cut -d'=' -f2-)
+            if [ -z "$value" ]; then
+              echo "FAIL: $field is empty or missing"
+              exit 1
+            fi
+            echo "OK: $field=$value"
+          }
+
+          check_field "git.commit.id"
+          check_field "git.branch"
+          check_field "git.build.time"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worktree-build-log
+          if-no-files-found: ignore
+          path: worktree-build.log
+
+      - name: Clean up worktree
+        if: always()
+        run: git worktree remove ../obp-api-worktree --force || true
