@@ -12828,7 +12828,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -12895,7 +12895,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -12961,7 +12961,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13013,7 +13013,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13065,7 +13065,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13124,7 +13124,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13183,7 +13183,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13252,7 +13252,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13416,7 +13416,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = true,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13477,7 +13477,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = true,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13514,19 +13514,19 @@ trait APIMethods600 {
       }
     }
 
-    // 6c. setBankChatRoomAllUsersAreParticipants
+    // 6c. setBankChatRoomOpenRoom
     staticResourceDocs += ResourceDoc(
-      setBankChatRoomAllUsersAreParticipants,
+      setBankChatRoomOpenRoom,
       implementedInApiVersion,
-      nameOf(setBankChatRoomAllUsersAreParticipants),
+      nameOf(setBankChatRoomOpenRoom),
       "PUT",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/all-users-are-participants",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room",
       "Set Chat Room All Users Are Participants",
       s"""Set whether all authenticated users are implicit participants of this chat room.
          |
          |If true, all users can read and send messages without needing an explicit Participant record.
          |
-         |Requires the CanSetBankChatRoomAUAP role.
+         |Requires the CanSetBankChatRoomIsOpenRoom role.
          |
          |Authentication is Required
          |
@@ -13541,7 +13541,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "username",
         created_by_provider = "provider",
-        all_users_are_participants = true,
+        is_open_room = true,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13553,23 +13553,23 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagChat),
-      Some(List(canSetBankChatRoomAUAP))
+      Some(List(canSetBankChatRoomIsOpenRoom))
     )
 
-    lazy val setBankChatRoomAllUsersAreParticipants: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "all-users-are-participants" :: Nil JsonPut json -> _ => {
+    lazy val setBankChatRoomOpenRoom: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "chat-rooms" :: chatRoomId :: "open-room" :: Nil JsonPut json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canSetBankChatRoomAUAP, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canSetBankChatRoomIsOpenRoom, callContext)
             _ <- Future {
               code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
             } map {
               x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
             }
-            allUsersAreParticipants = (json \ "all_users_are_participants").extractOrElse[Boolean](false)
+            isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
             updatedRoom <- Future {
-              code.chat.ChatRoomTrait.chatRoomProvider.vend.setAllUsersAreParticipants(chatRoomId, allUsersAreParticipants)
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.setIsOpenRoom(chatRoomId, isOpenRoom)
             } map {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
@@ -13579,19 +13579,19 @@ trait APIMethods600 {
       }
     }
 
-    // 6d. setSystemChatRoomAllUsersAreParticipants
+    // 6d. setSystemChatRoomOpenRoom
     staticResourceDocs += ResourceDoc(
-      setSystemChatRoomAllUsersAreParticipants,
+      setSystemChatRoomOpenRoom,
       implementedInApiVersion,
-      nameOf(setSystemChatRoomAllUsersAreParticipants),
+      nameOf(setSystemChatRoomOpenRoom),
       "PUT",
-      "/chat-rooms/CHAT_ROOM_ID/all-users-are-participants",
+      "/chat-rooms/CHAT_ROOM_ID/open-room",
       "Set System Chat Room All Users Are Participants",
       s"""Set whether all authenticated users are implicit participants of this system-level chat room.
          |
          |If true, all users can read and send messages without needing an explicit Participant record.
          |
-         |Requires the CanSetSystemChatRoomAUAP role.
+         |Requires the CanSetSystemChatRoomIsOpenRoom role.
          |
          |Authentication is Required
          |
@@ -13606,7 +13606,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "username",
         created_by_provider = "provider",
-        all_users_are_participants = true,
+        is_open_room = true,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13618,23 +13618,23 @@ trait APIMethods600 {
         UnknownError
       ),
       List(apiTagChat),
-      Some(List(canSetSystemChatRoomAUAP))
+      Some(List(canSetSystemChatRoomIsOpenRoom))
     )
 
-    lazy val setSystemChatRoomAllUsersAreParticipants: OBPEndpoint = {
-      case "chat-rooms" :: chatRoomId :: "all-users-are-participants" :: Nil JsonPut json -> _ => {
+    lazy val setSystemChatRoomOpenRoom: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "open-room" :: Nil JsonPut json -> _ => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetSystemChatRoomAUAP, callContext)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetSystemChatRoomIsOpenRoom, callContext)
             _ <- Future {
               code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
             } map {
               x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
             }
-            allUsersAreParticipants = (json \ "all_users_are_participants").extractOrElse[Boolean](false)
+            isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
             updatedRoom <- Future {
-              code.chat.ChatRoomTrait.chatRoomProvider.vend.setAllUsersAreParticipants(chatRoomId, allUsersAreParticipants)
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.setIsOpenRoom(chatRoomId, isOpenRoom)
             } map {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
@@ -15650,6 +15650,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionAdd(chatRoomId, chatMessageId, postJson.emoji, u.userId, u.name, u.provider)
             (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
           }
       }
@@ -15724,6 +15725,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionAdd(chatRoomId, chatMessageId, postJson.emoji, u.userId, u.name, u.provider)
             (JSONFactory600.createReactionJson(reaction), HttpCode.`201`(callContext))
           }
       }
@@ -15787,6 +15789,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionRemove(chatRoomId, chatMessageId, decodedEmoji, u.userId, u.name, u.provider)
             (EmptyBody, HttpCode.`204`(callContext))
           }
       }
@@ -15850,6 +15853,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot remove reaction", 400)
             }
           } yield {
+            code.chat.ChatEventPublisher.afterReactionRemove(chatRoomId, chatMessageId, decodedEmoji, u.userId, u.name, u.provider)
             (EmptyBody, HttpCode.`204`(callContext))
           }
       }
@@ -16246,7 +16250,7 @@ trait APIMethods600 {
         created_by = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
-        all_users_are_participants = false,
+        is_open_room = false,
         is_archived = false,
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -16315,7 +16319,13 @@ trait APIMethods600 {
             }
             unreadCounts <- Future {
               participantRecords.flatMap { p =>
-                val count = code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.lastReadAt)
+                val room = code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId)
+                val isOpenRoom = room.map(_.isOpenRoom).openOr(false)
+                val count = if (isOpenRoom) {
+                  code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(p.chatRoomId, p.userId, p.lastReadAt)
+                } else {
+                  code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.userId, p.lastReadAt)
+                }
                 count.toList.map(c => UnreadCountJsonV600(chat_room_id = p.chatRoomId, unread_count = c))
               }
             }

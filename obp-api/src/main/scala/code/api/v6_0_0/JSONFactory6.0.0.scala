@@ -1190,7 +1190,7 @@ case class ChatRoomJsonV600(
   created_by: String,
   created_by_username: String,
   created_by_provider: String,
-  all_users_are_participants: Boolean,
+  is_open_room: Boolean,
   is_archived: Boolean,
   created_at: java.util.Date,
   updated_at: java.util.Date
@@ -2972,7 +2972,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       created_by = room.createdBy,
       created_by_username = creator.map(_.name).getOrElse(""),
       created_by_provider = creator.map(_.provider).getOrElse(""),
-      all_users_are_participants = room.allUsersAreParticipants,
+      is_open_room = room.isOpenRoom,
       is_archived = room.isArchived,
       created_at = room.createdDate,
       updated_at = room.updatedDate

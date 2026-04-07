@@ -4,7 +4,7 @@ import java.util.Date
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 /**
- * A synthetic participant for rooms with allUsersAreParticipants = true.
+ * A synthetic participant for rooms with isOpenRoom = true.
  * No database row exists — the user is implicitly a member with no special permissions.
  */
 case class ImplicitParticipant(chatRoomId: String, userId: String) extends ParticipantTrait {
@@ -34,15 +34,15 @@ object ChatPermissions {
 
   /**
    * Check if user is a participant of the room. Returns the Participant record if found,
-   * or a synthetic participant (via the room's allUsersAreParticipants flag) with empty permissions.
+   * or a synthetic participant (via the room's isOpenRoom flag) with empty permissions.
    */
   def isParticipant(chatRoomId: String, userId: String): Box[ParticipantTrait] = {
     ParticipantTrait.participantProvider.vend.getParticipant(chatRoomId, userId) match {
       case Full(p) => Full(p)
       case _ =>
-        // Check if room has allUsersAreParticipants = true
+        // Check if room has isOpenRoom = true
         ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId) match {
-          case Full(room) if room.allUsersAreParticipants =>
+          case Full(room) if room.isOpenRoom =>
             Full(ImplicitParticipant(chatRoomId, userId))
           case _ => Empty
         }

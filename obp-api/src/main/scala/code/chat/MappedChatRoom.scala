@@ -53,7 +53,7 @@ object MappedChatRoomProvider extends ChatRoomProvider {
       )
       val openRooms = ChatRoom.findAll(
         By(ChatRoom.BankId, bankId),
-        By(ChatRoom.AllUsersAreParticipants, true)
+        By(ChatRoom.IsOpenRoom, true)
       )
       (explicitRooms ++ openRooms).groupBy(_.chatRoomId).values.map(_.head).toList
     }
@@ -77,10 +77,10 @@ object MappedChatRoomProvider extends ChatRoomProvider {
     }
   }
 
-  override def setAllUsersAreParticipants(chatRoomId: String, allUsersAreParticipants: Boolean): Box[ChatRoomTrait] = {
+  override def setIsOpenRoom(chatRoomId: String, isOpenRoom: Boolean): Box[ChatRoomTrait] = {
     ChatRoom.find(By(ChatRoom.ChatRoomId, chatRoomId)).flatMap { room =>
       tryo {
-        room.AllUsersAreParticipants(allUsersAreParticipants).saveMe()
+        room.IsOpenRoom(isOpenRoom).saveMe()
       }
     }
   }
@@ -119,7 +119,7 @@ object MappedChatRoomProvider extends ChatRoomProvider {
             .Name("general")
             .Description("Default system-wide chat room for all users")
             .CreatedBy("system")
-            .AllUsersAreParticipants(true)
+            .IsOpenRoom(true)
             .IsArchived(false)
             .saveMe()
         }
@@ -137,7 +137,7 @@ class ChatRoom extends ChatRoomTrait with LongKeyedMapper[ChatRoom] with IdPK wi
   object Description extends MappedText(this)
   object JoiningKey extends MappedUUID(this)
   object CreatedBy extends MappedString(this, 36)
-  object AllUsersAreParticipants extends MappedBoolean(this)
+  object IsOpenRoom extends MappedBoolean(this)
   object IsArchived extends MappedBoolean(this)
 
   override def chatRoomId: String = ChatRoomId.get
@@ -146,7 +146,7 @@ class ChatRoom extends ChatRoomTrait with LongKeyedMapper[ChatRoom] with IdPK wi
   override def description: String = Description.get
   override def joiningKey: String = JoiningKey.get
   override def createdBy: String = CreatedBy.get
-  override def allUsersAreParticipants: Boolean = AllUsersAreParticipants.get
+  override def isOpenRoom: Boolean = IsOpenRoom.get
   override def isArchived: Boolean = IsArchived.get
   override def createdDate: Date = createdAt.get
   override def updatedDate: Date = updatedAt.get

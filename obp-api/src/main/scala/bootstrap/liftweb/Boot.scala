@@ -762,7 +762,7 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
-    // Create default system-level "general" chat room (all_users_are_participants = true)
+    // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
   }
 

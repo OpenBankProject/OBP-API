@@ -3,6 +3,7 @@ package code.chat
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json.Serialization.write
+import scala.concurrent.{Future, ExecutionContext}
 
 /**
  * Publishes chat events to ChatEventBus after REST operations.
@@ -57,6 +58,9 @@ object ChatEventPublisher extends MdcLoggable {
 
   def afterCreate(msg: ChatMessageTrait, senderUsername: String, senderProvider: String, senderConsumerName: String): Unit = {
     publishMessageEvent("new", msg, senderUsername, senderProvider, senderConsumerName)
+    // Sending a message means the sender has "read" the room up to this point
+    ParticipantTrait.participantProvider.vend.updateLastReadAt(msg.chatRoomId, msg.senderUserId)
+    Future { broadcastUnreadCounts(msg) }(ExecutionContext.global)
   }
 
   def afterUpdate(msg: ChatMessageTrait, senderUsername: String, senderProvider: String, senderConsumerName: String): Unit = {
@@ -65,6 +69,16 @@ object ChatEventPublisher extends MdcLoggable {
 
   def afterDelete(msg: ChatMessageTrait, senderUsername: String, senderProvider: String, senderConsumerName: String): Unit = {
     publishMessageEvent("deleted", msg, senderUsername, senderProvider, senderConsumerName)
+  }
+
+  def afterReactionAdd(chatRoomId: String, chatMessageId: String, emoji: String,
+                       userId: String, username: String, provider: String): Unit = {
+    publishReactionEvent("reacted", chatRoomId, chatMessageId, emoji, userId, username, provider)
+  }
+
+  def afterReactionRemove(chatRoomId: String, chatMessageId: String, emoji: String,
+                          userId: String, username: String, provider: String): Unit = {
+    publishReactionEvent("unreacted", chatRoomId, chatMessageId, emoji, userId, username, provider)
   }
 
   def afterTyping(chatRoomId: String, userId: String, username: String, provider: String, isTyping: Boolean): Unit = {
@@ -80,6 +94,45 @@ object ChatEventPublisher extends MdcLoggable {
   def afterUnreadCountChange(userId: String, chatRoomId: String, unreadCount: Long): Unit = {
     val event = UnreadEvent(chatRoomId, unreadCount)
     ChatEventBus.publishUnread(userId, write(event))
+  }
+
+  /**
+   * Broadcast unread counts to affected participants after a new message.
+   *
+   * "Open rooms" (isOpenRoom=true)
+   * only notify users who are explicitly @mentioned, to avoid generating
+   * hundreds of thousands of publish events for large rooms.
+   *
+   * Private rooms notify all participants except the sender.
+   *
+   * Unread counts respect a 60-day cutoff — older messages are ignored.
+   */
+  private def broadcastUnreadCounts(msg: ChatMessageTrait): Unit = {
+    try {
+      val room = ChatRoomTrait.chatRoomProvider.vend.getChatRoom(msg.chatRoomId)
+      val isOpenRoom = room.map(_.isOpenRoom).openOr(false)
+
+      val participants = ParticipantTrait.participantProvider.vend
+        .getParticipants(msg.chatRoomId).openOr(List.empty)
+
+      for (p <- participants if p.userId != msg.senderUserId) {
+        if (isOpenRoom) {
+          // Open rooms: only notify explicitly mentioned users
+          if (msg.mentionedUserIds.contains(p.userId)) {
+            val count = ChatMessageTrait.chatMessageProvider.vend
+              .getUnreadMentionCount(msg.chatRoomId, p.userId, p.lastReadAt).openOr(0L)
+            afterUnreadCountChange(p.userId, msg.chatRoomId, count)
+          }
+        } else {
+          // Private rooms: notify all participants
+          val count = ChatMessageTrait.chatMessageProvider.vend
+            .getUnreadCount(msg.chatRoomId, p.userId, p.lastReadAt).openOr(0L)
+          afterUnreadCountChange(p.userId, msg.chatRoomId, count)
+        }
+      }
+    } catch {
+      case e: Throwable => logger.error(s"Failed to broadcast unread counts: ${e.getMessage}")
+    }
   }
 
   private def publishMessageEvent(
@@ -108,5 +161,36 @@ object ChatEventPublisher extends MdcLoggable {
       updated_at = dateFormat.format(msg.updatedDate)
     )
     ChatEventBus.publishMessage(msg.chatRoomId, write(event))
+  }
+
+  private def publishReactionEvent(
+    eventType: String,
+    chatRoomId: String,
+    chatMessageId: String,
+    emoji: String,
+    userId: String,
+    username: String,
+    provider: String
+  ): Unit = {
+    val now = dateFormat.format(new java.util.Date())
+    val event = MessageEvent(
+      event_type = eventType,
+      chat_message_id = chatMessageId,
+      chat_room_id = chatRoomId,
+      sender_user_id = userId,
+      sender_consumer_id = "",
+      sender_username = username,
+      sender_provider = provider,
+      sender_consumer_name = "",
+      content = emoji,
+      message_type = "",
+      mentioned_user_ids = List.empty,
+      reply_to_message_id = "",
+      thread_id = "",
+      is_deleted = false,
+      created_at = now,
+      updated_at = now
+    )
+    ChatEventBus.publishMessage(chatRoomId, write(event))
   }
 }

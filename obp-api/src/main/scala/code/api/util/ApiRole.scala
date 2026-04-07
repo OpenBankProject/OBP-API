@@ -1379,10 +1379,10 @@ object ApiRole extends MdcLoggable{
   lazy val canArchiveBankChatRoom = CanArchiveBankChatRoom()
   case class CanArchiveSystemChatRoom(requiresBankId: Boolean = false) extends ApiRole
   lazy val canArchiveSystemChatRoom = CanArchiveSystemChatRoom()
-  case class CanSetBankChatRoomAUAP(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canSetBankChatRoomAUAP = CanSetBankChatRoomAUAP()
-  case class CanSetSystemChatRoomAUAP(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSetSystemChatRoomAUAP = CanSetSystemChatRoomAUAP()
+  case class CanSetBankChatRoomIsOpenRoom(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canSetBankChatRoomIsOpenRoom = CanSetBankChatRoomIsOpenRoom()
+  case class CanSetSystemChatRoomIsOpenRoom(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSetSystemChatRoomIsOpenRoom = CanSetSystemChatRoomIsOpenRoom()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

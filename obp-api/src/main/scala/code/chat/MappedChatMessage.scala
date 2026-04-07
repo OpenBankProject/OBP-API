@@ -70,11 +70,28 @@ object MappedChatMessageProvider extends ChatMessageProvider {
     }
   }
 
-  override def getUnreadCount(chatRoomId: String, sinceDate: Date): Box[Long] = {
+  private def effectiveSinceDate(sinceDate: Date): Date = {
+    val sixtyDaysAgo = new Date(System.currentTimeMillis() - 60L * 24 * 60 * 60 * 1000)
+    if (sinceDate.before(sixtyDaysAgo)) sixtyDaysAgo else sinceDate
+  }
+
+  override def getUnreadCount(chatRoomId: String, userId: String, sinceDate: Date): Box[Long] = {
     tryo {
       ChatMessage.count(
         By(ChatMessage.ChatRoomId, chatRoomId),
-        By_>(ChatMessage.createdAt, sinceDate)
+        By_>(ChatMessage.createdAt, effectiveSinceDate(sinceDate)),
+        NotBy(ChatMessage.SenderUserId, userId)
+      )
+    }
+  }
+
+  override def getUnreadMentionCount(chatRoomId: String, userId: String, sinceDate: Date): Box[Long] = {
+    tryo {
+      ChatMessage.count(
+        By(ChatMessage.ChatRoomId, chatRoomId),
+        By_>(ChatMessage.createdAt, effectiveSinceDate(sinceDate)),
+        NotBy(ChatMessage.SenderUserId, userId),
+        Like(ChatMessage.MentionedUserIds, s"%$userId%")
       )
     }
   }
