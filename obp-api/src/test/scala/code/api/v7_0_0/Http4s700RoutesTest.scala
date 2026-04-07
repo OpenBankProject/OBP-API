@@ -622,6 +622,54 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ─── routing priority guard ───────────────────────────────────────────────────
+  //
+  // These scenarios guard the allRoutes ordering invariant.
+  // If a less-specific route ever shadows a more-specific one, these tests fail.
+  // Add one scenario here for every new route added to allRoutes.
+
+  feature("Http4s700 routing priority") {
+
+    scenario("GET /banks/BANK_ID/cards is served by getCardsForBank, not getBanks", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID/cards without auth")
+      val bankId = testBankId1.value
+
+      When("Making HTTP request — if getBanks shadowed getCardsForBank this would return 200 with banks array")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards")
+
+      Then("Response is 401 (auth required) — proving getCardsForBank matched, not getBanks")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(AuthenticatedUserIsRequired)
+            case _ =>
+              fail("Expected message field — if this is a banks list, getBanks is shadowing getCardsForBank")
+          }
+        case _ =>
+          fail("Expected JSON object")
+      }
+    }
+
+    scenario("GET /banks returns banks list, not intercepted by getCardsForBank", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks without auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks")
+
+      Then("Response is 200 with banks array — proving getBanks matched")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("banks") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected banks array — getBanks may not have matched")
+          }
+        case _ =>
+          fail("Expected JSON object")
+      }
+    }
+  }
+
   // ─── unknown paths and wrong methods ─────────────────────────────────────────
 
   feature("Http4s700 routing edge cases") {

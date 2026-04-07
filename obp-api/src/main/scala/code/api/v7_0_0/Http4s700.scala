@@ -239,14 +239,28 @@ object Http4s700 {
     }
 
 
-    // All routes combined (without middleware - for direct use)
+    // All routes combined (without middleware - for direct use).
+    //
+    // ORDERING RULE: more-specific paths MUST appear before less-specific ones.
+    // .orElse() is first-match-wins; a wildcard placed before a longer pattern
+    // silently shadows it with no compile or runtime error.
+    //
+    // Current specificity order (most → least segments after /obp/v7.0.0):
+    //   /banks/BANK_ID/cards          (3 segments) — getCardsForBank
+    //   /banks                        (1 segment)  — getBanks
+    //   /cards                        (1 segment)  — getCards
+    //   /root                         (1 segment)  — root
+    //   /resource-docs/API_VERSION/obp (3 segments) — getResourceDocsObpV700
+    //
+    // When adding a new route: place it above any existing route whose URL template
+    // it could shadow, and add a corresponding test in Http4s700RoutesTest.
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-        root(req)
-          .orElse(getBanks(req))
-          .orElse(getCards(req))
-          .orElse(getCardsForBank(req))
-          .orElse(getResourceDocsObpV700(req))
+        getCardsForBank(req)               // /banks/BANK_ID/cards — before /banks
+          .orElse(getBanks(req))           // /banks
+          .orElse(getCards(req))           // /cards
+          .orElse(root(req))               // /root
+          .orElse(getResourceDocsObpV700(req)) // /resource-docs/API_VERSION/obp
       }
     
     // Routes wrapped with ResourceDocMiddleware for automatic validation
