@@ -136,7 +136,7 @@ object Constant extends MdcLoggable {
 
   final val localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
 
-  final val mailUsersUserinfoSenderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
+  final val mailUsersUserinfoSenderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "noreply@example.com")
 
   def oauth2JwkSetUrl: Box[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
 
