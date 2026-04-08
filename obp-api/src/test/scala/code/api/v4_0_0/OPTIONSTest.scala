@@ -61,7 +61,9 @@ class OPTIONSTest extends V400ServerSetup {
       Then("response header should be correct")
       response204.getHeader("Access-Control-Allow-Origin") shouldBe "*"
       response204.getHeader("Access-Control-Allow-Credentials") shouldBe "true"
-      response204.getHeader("Content-Type") shouldBe "text/plain; charset=utf-8"
+      // Content-Type is absent on 204 No Content — HTTP spec does not permit a body on 204,
+      // so Content-Type is irrelevant. The previous assertion reflected incidental Lift bridge
+      // behaviour; the native corsHandler correctly omits it.
 
       Then("body should be empty")
       response204.getResponseBody shouldBe empty
