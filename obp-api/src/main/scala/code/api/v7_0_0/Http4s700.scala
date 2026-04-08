@@ -44,9 +44,27 @@ object Http4s700 {
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
-    // ResourceDoc with AuthenticatedUserIsRequired in errorResponseBodies indicates auth is required
-    // ResourceDocMiddleware will automatically handle authentication based on this metadata
-    // No explicit auth code needed in the endpoint handler - just like Lift's wrappedWithAuthCheck
+    // IMPORTANT: each `val endpoint` MUST be declared BEFORE its `resourceDocs +=` line.
+    //
+    // `allRoutes` sorts resourceDocs by URL segment count and reads `http4sPartialFunction`
+    // from each entry. In a Scala object, vals are initialized in declaration order.
+    // If `resourceDocs += ResourceDoc(..., http4sPartialFunction = Some(myEndpoint))` runs
+    // before `val myEndpoint` is initialized, `Some(null)` is stored. The sort+fold then
+    // produces a null-route chain that NPEs on every request — and because OptionT.orElse
+    // only recovers from None (not failed IO), the NPE propagates up and kills the entire
+    // http4s handler chain, including the Lift bridge fallback.
+    //
+    // Convention: val → resourceDocs +=, never the other way around.
+
+    // Route: GET /obp/v7.0.0/root
+    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "root" =>
+        val responseJson = convertAnyToJsonString(
+          JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
+        )
+        Ok(responseJson)
+    }
+
     resourceDocs += ResourceDoc(
       null,
       implementedInApiVersion,
@@ -61,7 +79,7 @@ object Http4s700 {
         |* Git Commit
         """,
       EmptyBody,
-      apiInfoJSON, 
+      apiInfoJSON,
       List(
         UnknownError
       ),
@@ -69,15 +87,14 @@ object Http4s700 {
       http4sPartialFunction = Some(root)
     )
 
-    // Route: GET /obp/v7.0.0/root
-    // Authentication is handled automatically by ResourceDocMiddleware based on AuthenticatedUserIsRequired in ResourceDoc
-    // The endpoint code only contains business logic - validated User is available from request attributes
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "root" =>
-        val responseJson = convertAnyToJsonString(
-          JSONFactory700.getApiInfoJSON(implementedInApiVersion, versionStatus)
-        )
-        Ok(responseJson)
+    // Route: GET /obp/v7.0.0/banks
+    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+          } yield JSONFactory400.createBanksJson(banks)
+        }
     }
 
     resourceDocs += ResourceDoc(
@@ -103,13 +120,14 @@ object Http4s700 {
       http4sPartialFunction = Some(getBanks)
     )
 
-    // Route: GET /obp/v7.0.0/banks
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+    // Route: GET /obp/v7.0.0/cards
+    // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
+    val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "cards" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+            (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
         }
     }
 
@@ -128,13 +146,15 @@ object Http4s700 {
       http4sPartialFunction = Some(getCards)
     )
 
-    // Route: GET /obp/v7.0.0/cards
-    // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
-    val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "cards" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/cards
+    // Authentication and bank validation handled by ResourceDocMiddleware
+    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
           } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
         }
     }
@@ -155,51 +175,7 @@ object Http4s700 {
       http4sPartialFunction = Some(getCardsForBank)
     )
 
-    // Route: GET /obp/v7.0.0/banks/BANK_ID/cards
-    // Authentication and bank validation handled by ResourceDocMiddleware
-    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
-          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
-        }
-    }
- 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getResourceDocsObpV700),
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs",
-      s"""Get documentation about the RESTful resources on this server including example body payloads.
-        |
-        |* API_VERSION: The version of the API for which you want documentation
-        |
-        |Returns JSON containing information about the endpoints including:
-        |* Method (GET, POST, etc.)
-        |* URL path
-        |* Summary and description
-        |* Example request and response bodies
-        |* Required roles and permissions
-        |
-        |Optional query parameters:
-        |* tags - filter by API tags
-        |* functions - filter by function names
-        |* locale - specify language for descriptions
-        |* content - filter by content type""",
-      EmptyBody,
-      EmptyBody,
-      List(
-        UnknownError
-      ),
-      List(apiTagDocumentation, apiTagApi),
-      http4sPartialFunction = Some(getResourceDocsObpV700)
-    )
-
+    // Route: GET /obp/v7.0.0/resource-docs/API_VERSION/obp
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
         implicit val cc: CallContext = req.callContext
@@ -238,6 +214,37 @@ object Http4s700 {
         }
     }
 
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getResourceDocsObpV700),
+      "GET",
+      "/resource-docs/API_VERSION/obp",
+      "Get Resource Docs",
+      s"""Get documentation about the RESTful resources on this server including example body payloads.
+        |
+        |* API_VERSION: The version of the API for which you want documentation
+        |
+        |Returns JSON containing information about the endpoints including:
+        |* Method (GET, POST, etc.)
+        |* URL path
+        |* Summary and description
+        |* Example request and response bodies
+        |* Required roles and permissions
+        |
+        |Optional query parameters:
+        |* tags - filter by API tags
+        |* functions - filter by function names
+        |* locale - specify language for descriptions
+        |* content - filter by content type""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        UnknownError
+      ),
+      List(apiTagDocumentation, apiTagApi),
+      http4sPartialFunction = Some(getResourceDocsObpV700)
+    )
 
     // All routes combined (without middleware - for direct use).
     //
@@ -250,6 +257,9 @@ object Http4s700 {
     // If two equal-length routes could ever conflict, add an explicit tiebreaker
     // by giving the higher-priority route more segments (e.g. use a literal
     // segment instead of a variable).
+    //
+    // REQUIREMENT: each `val endpoint` must be declared BEFORE its `resourceDocs +=`
+    // so that `Some(endpoint)` captures the initialized route, not null.
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
@@ -258,9 +268,9 @@ object Http4s700 {
         HttpRoutes[IO](req => acc.run(req).orElse(route.run(req)))
       }
     }
-    
+
     // Routes wrapped with ResourceDocMiddleware for automatic validation
-    val allRoutesWithMiddleware: HttpRoutes[IO] = 
+    val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
   }
 
