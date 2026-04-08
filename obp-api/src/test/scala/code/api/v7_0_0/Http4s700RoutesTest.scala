@@ -664,9 +664,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   // ─── routing priority guard ───────────────────────────────────────────────────
   //
-  // These scenarios guard the allRoutes ordering invariant.
-  // If a less-specific route ever shadows a more-specific one, these tests fail.
-  // Add one scenario here for every new route added to allRoutes.
+  // allRoutes is built by sorting ResourceDocs by URL segment count (descending),
+  // so most-specific routes win automatically. These scenarios verify the sort
+  // produces the correct outcome. Add one scenario per new route to keep CI coverage.
 
   feature("Http4s700 routing priority") {
 

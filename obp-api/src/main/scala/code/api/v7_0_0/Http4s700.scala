@@ -241,27 +241,23 @@ object Http4s700 {
 
     // All routes combined (without middleware - for direct use).
     //
-    // ORDERING RULE: more-specific paths MUST appear before less-specific ones.
-    // .orElse() is first-match-wins; a wildcard placed before a longer pattern
-    // silently shadows it with no compile or runtime error.
+    // Routes are sorted automatically by URL template specificity (segment count,
+    // descending) derived from each ResourceDoc's requestUrl. This guarantees
+    // most-specific-first ordering without manual maintenance — adding a new
+    // ResourceDoc with http4sPartialFunction places it correctly at startup.
     //
-    // Current specificity order (most → least segments after /obp/v7.0.0):
-    //   /banks/BANK_ID/cards          (3 segments) — getCardsForBank
-    //   /banks                        (1 segment)  — getBanks
-    //   /cards                        (1 segment)  — getCards
-    //   /root                         (1 segment)  — root
-    //   /resource-docs/API_VERSION/obp (3 segments) — getResourceDocsObpV700
-    //
-    // When adding a new route: place it above any existing route whose URL template
-    // it could shadow, and add a corresponding test in Http4s700RoutesTest.
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-        getCardsForBank(req)               // /banks/BANK_ID/cards — before /banks
-          .orElse(getBanks(req))           // /banks
-          .orElse(getCards(req))           // /cards
-          .orElse(root(req))               // /root
-          .orElse(getResourceDocsObpV700(req)) // /resource-docs/API_VERSION/obp
+    // Two routes with equal segment count keep declaration order (stable sort).
+    // If two equal-length routes could ever conflict, add an explicit tiebreaker
+    // by giving the higher-priority route more segments (e.g. use a literal
+    // segment instead of a variable).
+    val allRoutes: HttpRoutes[IO] = {
+      val sorted = resourceDocs
+        .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
+        .flatMap(_.http4sPartialFunction)
+      sorted.foldLeft(HttpRoutes.empty[IO]) { (acc, route) =>
+        HttpRoutes[IO](req => acc.run(req).orElse(route.run(req)))
       }
+    }
     
     // Routes wrapped with ResourceDocMiddleware for automatic validation
     val allRoutesWithMiddleware: HttpRoutes[IO] = 

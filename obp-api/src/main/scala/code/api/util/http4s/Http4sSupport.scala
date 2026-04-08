@@ -99,13 +99,18 @@ object Http4sRequestAttributes {
      * Write endpoint metric and log timing after the response is built.
      * Stamps endTime and httpCode onto the CallContext before converting to light form.
      */
-    private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] = IO {
-      val endTime = new Date()
-      val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
-      val ccLight = cc.copy(httpCode = Some(response.status.code), endTime = Some(endTime)).toLight
-      logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
-      WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
-    }
+    // Metric recording runs on the blocking threadpool (IO.blocking) so that
+    // synchronous logger/DB writes do not steal cats-effect compute threads.
+    // Not fired as a background fiber: response waits for metric to be written,
+    // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
+    private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
+      IO.blocking {
+        val endTime = new Date()
+        val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
+        val ccLight = cc.copy(httpCode = Some(response.status.code), endTime = Some(endTime)).toLight
+        logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
+        WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
+      }
 
     /**
      * Execute Future-based business logic and return JSON response.
