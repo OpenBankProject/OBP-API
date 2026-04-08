@@ -68,10 +68,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     val base = url(s"$baseUrl$path")
     val withHeaders = headers.foldLeft(base) { case (req, (key, value)) => req.addHeader(key, value) }
     val methodReq = method.toUpperCase match {
-      case "POST"   => withHeaders.POST
-      case "PUT"    => withHeaders.PUT
-      case "DELETE" => withHeaders.DELETE
-      case _        => withHeaders
+      case "POST"    => withHeaders.POST
+      case "PUT"     => withHeaders.PUT
+      case "DELETE"  => withHeaders.DELETE
+      case "OPTIONS" => withHeaders.OPTIONS
+      case "PATCH"   => withHeaders.PATCH
+      case "HEAD"    => withHeaders.HEAD
+      case _         => withHeaders
     }
 
     try {
@@ -619,6 +622,43 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       Then("401 error response still has Correlation-Id")
       statusCode shouldBe 401
       hasHeader(headers, ResponseHeader.`Correlation-Id`) shouldBe true
+    }
+  }
+
+  // ─── CORS preflight ──────────────────────────────────────────────────────────
+
+  feature("Http4s700 CORS preflight") {
+
+    scenario("OPTIONS /obp/v7.0.0/banks returns 204 with CORS headers without Lift overhead", Http4s700RoutesTag) {
+      Given("OPTIONS /obp/v7.0.0/banks — a browser preflight request")
+      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", "/obp/v7.0.0/banks")
+
+      Then("Response is 204 No Content with all required CORS headers")
+      statusCode shouldBe 204
+      headers.find { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") }
+        .map(_._2) shouldBe Some("*")
+      hasHeader(headers, "Access-Control-Allow-Methods") shouldBe true
+      hasHeader(headers, "Access-Control-Allow-Headers") shouldBe true
+      hasHeader(headers, "Access-Control-Allow-Credentials") shouldBe true
+    }
+
+    scenario("OPTIONS /obp/v7.0.0/cards returns 204 with CORS headers", Http4s700RoutesTag) {
+      Given("OPTIONS /obp/v7.0.0/cards — preflight for an authenticated endpoint")
+      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", "/obp/v7.0.0/cards")
+
+      Then("Response is 204 No Content — no auth required for preflight")
+      statusCode shouldBe 204
+      hasHeader(headers, "Access-Control-Allow-Origin") shouldBe true
+    }
+
+    scenario("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards returns 204 with CORS headers", Http4s700RoutesTag) {
+      Given("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards — preflight for a nested endpoint")
+      val bankId = testBankId1.value
+      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", s"/obp/v7.0.0/banks/$bankId/cards")
+
+      Then("Response is 204 No Content with CORS headers")
+      statusCode shouldBe 204
+      hasHeader(headers, "Access-Control-Allow-Origin") shouldBe true
     }
   }
 

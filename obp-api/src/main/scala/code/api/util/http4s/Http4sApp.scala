@@ -3,6 +3,7 @@ package code.api.util.http4s
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import org.http4s._
+import org.typelevel.ci.CIString
 
 /**
  * Shared HTTP4S Application Builder
@@ -24,11 +25,37 @@ object Http4sApp {
   
   type HttpF[A] = OptionT[IO, A]
 
+  // Handles all OPTIONS (CORS preflight) requests before they reach the Lift bridge.
+  //
+  // Without this, OPTIONS falls through the Kleisli chain to Http4sLiftWebBridge →
+  // OBPAPI6_0_0's `this.serve({case OPTIONS => corsResponse})`, which pays full Lift
+  // overhead (body buffering, S.init) for every preflight. More critically, when the
+  // Lift bridge is eventually removed, CORS would break silently. Headers match the
+  // corsResponse defined in v4/v5/v6 Lift endpoints.
+  private val corsHandler: HttpRoutes[IO] = HttpRoutes[IO] { req =>
+    if (req.method == Method.OPTIONS) {
+      OptionT.liftF(
+        IO.pure(
+          Response[IO](Status.NoContent)
+            .putHeaders(
+              Header.Raw(CIString("Access-Control-Allow-Origin"), "*"),
+              Header.Raw(CIString("Access-Control-Allow-Methods"), "GET, POST, OPTIONS, PUT, PATCH, DELETE"),
+              Header.Raw(CIString("Access-Control-Allow-Headers"), "*"),
+              Header.Raw(CIString("Access-Control-Allow-Credentials"), "true")
+            )
+        )
+      )
+    } else {
+      OptionT.none
+    }
+  }
+
   /**
    * Build the base HTTP4S routes with priority-based routing
    */
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    StatusPage.routes.run(req)
+    corsHandler.run(req)
+      .orElse(StatusPage.routes.run(req))
       .orElse(code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req))
       .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))
       .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
