@@ -3,7 +3,7 @@ package code.chat
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
 import net.liftweb.json.Serialization.write
-import scala.concurrent.{Future, ExecutionContext}
+// No async imports needed — broadcastUnreadCounts runs synchronously (1-2 fast queries)
 
 /**
  * Publishes chat events to ChatEventBus after REST operations.
@@ -49,6 +49,9 @@ object ChatEventPublisher extends MdcLoggable {
     is_online: Boolean
   )
 
+  /** Unread count event. The unread_count field is an increment (e.g. 1 for a new message),
+   *  not an absolute count. Clients should add this to their local total.
+   *  Exact counts are reconciled via the GET /users/current/chat-rooms/unread REST endpoint. */
   case class UnreadEvent(
     chat_room_id: String,
     unread_count: Long
@@ -60,7 +63,7 @@ object ChatEventPublisher extends MdcLoggable {
     publishMessageEvent("new", msg, senderUsername, senderProvider, senderConsumerName)
     // Sending a message means the sender has "read" the room up to this point
     ParticipantTrait.participantProvider.vend.updateLastReadAt(msg.chatRoomId, msg.senderUserId)
-    Future { broadcastUnreadCounts(msg) }(ExecutionContext.global)
+    broadcastUnreadCounts(msg)
   }
 
   def afterUpdate(msg: ChatMessageTrait, senderUsername: String, senderProvider: String, senderConsumerName: String): Unit = {
@@ -97,37 +100,33 @@ object ChatEventPublisher extends MdcLoggable {
   }
 
   /**
-   * Broadcast unread counts to affected participants after a new message.
+   * Broadcast unread count increments to affected participants after a new message.
    *
-   * "Open rooms" (isOpenRoom=true)
-   * only notify users who are explicitly @mentioned, to avoid generating
-   * hundreds of thousands of publish events for large rooms.
+   * Instead of computing exact counts (which requires a DB query per participant),
+   * we send an increment of 1. Clients can add this to their local count.
+   * Exact counts are reconciled on page load via the REST endpoint.
    *
-   * Private rooms notify all participants except the sender.
+   * "Open rooms" (isOpenRoom=true) only notify explicitly @mentioned users.
+   * Private rooms notify all explicit participants except the sender.
    *
-   * Unread counts respect a 60-day cutoff — older messages are ignored.
+   * Uses only 2 DB queries total (room + participants), not N+2.
    */
   private def broadcastUnreadCounts(msg: ChatMessageTrait): Unit = {
     try {
       val room = ChatRoomTrait.chatRoomProvider.vend.getChatRoom(msg.chatRoomId)
       val isOpenRoom = room.map(_.isOpenRoom).openOr(false)
 
-      val participants = ParticipantTrait.participantProvider.vend
-        .getParticipants(msg.chatRoomId).openOr(List.empty)
-
-      for (p <- participants if p.userId != msg.senderUserId) {
-        if (isOpenRoom) {
-          // Open rooms: only notify explicitly mentioned users
-          if (msg.mentionedUserIds.contains(p.userId)) {
-            val count = ChatMessageTrait.chatMessageProvider.vend
-              .getUnreadMentionCount(msg.chatRoomId, p.userId, p.lastReadAt).openOr(0L)
-            afterUnreadCountChange(p.userId, msg.chatRoomId, count)
-          }
-        } else {
-          // Private rooms: notify all participants
-          val count = ChatMessageTrait.chatMessageProvider.vend
-            .getUnreadCount(msg.chatRoomId, p.userId, p.lastReadAt).openOr(0L)
-          afterUnreadCountChange(p.userId, msg.chatRoomId, count)
+      if (isOpenRoom) {
+        // Open rooms: only notify explicitly mentioned users — no DB query needed
+        for (userId <- msg.mentionedUserIds if userId != msg.senderUserId) {
+          afterUnreadCountChange(userId, msg.chatRoomId, 1L)
+        }
+      } else {
+        // Private rooms: notify all participants except the sender
+        val participants = ParticipantTrait.participantProvider.vend
+          .getParticipants(msg.chatRoomId).openOr(List.empty)
+        for (p <- participants if p.userId != msg.senderUserId) {
+          afterUnreadCountChange(p.userId, msg.chatRoomId, 1L)
         }
       }
     } catch {
