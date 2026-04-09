@@ -13,6 +13,7 @@ trait ReactionProvider {
   def addReaction(chatMessageId: String, userId: String, emoji: String): Box[ReactionTrait]
   def removeReaction(chatMessageId: String, userId: String, emoji: String): Box[Boolean]
   def getReactions(chatMessageId: String): Box[List[ReactionTrait]]
+  def getReactionsForMessages(chatMessageIds: List[String]): Box[Map[String, List[ReactionTrait]]]
   def getReaction(chatMessageId: String, userId: String, emoji: String): Box[ReactionTrait]
 }
 

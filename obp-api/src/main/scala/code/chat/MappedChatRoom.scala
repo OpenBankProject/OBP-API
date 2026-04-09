@@ -85,6 +85,17 @@ object MappedChatRoomProvider extends ChatRoomProvider {
     }
   }
 
+  override def updateLastMessageInfo(chatRoomId: String, lastMessageAt: Date, preview: String, senderUsername: String): Box[ChatRoomTrait] = {
+    ChatRoom.find(By(ChatRoom.ChatRoomId, chatRoomId)).flatMap { room =>
+      tryo {
+        room.LastMessageAt(lastMessageAt)
+          .LastMessagePreview(if (preview.length > 100) preview.substring(0, 100) else preview)
+          .LastMessageSender(senderUsername)
+          .saveMe()
+      }
+    }
+  }
+
   override def archiveChatRoom(chatRoomId: String): Box[ChatRoomTrait] = {
     ChatRoom.find(By(ChatRoom.ChatRoomId, chatRoomId)).flatMap { room =>
       tryo {
@@ -139,6 +150,9 @@ class ChatRoom extends ChatRoomTrait with LongKeyedMapper[ChatRoom] with IdPK wi
   object CreatedBy extends MappedString(this, 36)
   object IsOpenRoom extends MappedBoolean(this)
   object IsArchived extends MappedBoolean(this)
+  object LastMessageAt extends MappedDateTime(this)
+  object LastMessagePreview extends MappedString(this, 100)
+  object LastMessageSender extends MappedString(this, 255)
 
   override def chatRoomId: String = ChatRoomId.get
   override def bankId: String = BankId.get
@@ -148,6 +162,9 @@ class ChatRoom extends ChatRoomTrait with LongKeyedMapper[ChatRoom] with IdPK wi
   override def createdBy: String = CreatedBy.get
   override def isOpenRoom: Boolean = IsOpenRoom.get
   override def isArchived: Boolean = IsArchived.get
+  override def lastMessageAt: Option[Date] = Option(LastMessageAt.get)
+  override def lastMessagePreview: String = LastMessagePreview.get
+  override def lastMessageSender: String = LastMessageSender.get
   override def createdDate: Date = createdAt.get
   override def updatedDate: Date = updatedAt.get
 }
