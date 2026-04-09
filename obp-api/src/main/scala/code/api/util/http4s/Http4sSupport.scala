@@ -4,7 +4,7 @@ import cats.effect._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{AuthHeaderParser, CallContext, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{Bank, User}
+import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import org.http4s._
@@ -170,6 +170,60 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User and BankAccount (URL must contain ACCOUNT_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withBankAccount[A](req: Request[IO])(f: (User, BankAccount, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        result      <- IO.fromFuture(IO(f(user, bankAccount, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withView[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        result      <- IO.fromFuture(IO(f(user, bankAccount, view, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User, BankAccount, View, and Counterparty (URL must contain COUNTERPARTY_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withCounterparty[A](req: Request[IO])(f: (User, BankAccount, View, CounterpartyTrait, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user         <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount  <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view         <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        counterparty <- IO.fromOption(cc.counterparty)(new RuntimeException("Counterparty not found in CallContext"))
+        result       <- IO.fromFuture(IO(f(user, bankAccount, view, counterparty, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
 
