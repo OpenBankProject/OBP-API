@@ -36,6 +36,16 @@ object MappedReactionProvider extends ReactionProvider {
     }
   }
 
+  override def getReactionsForMessages(chatMessageIds: List[String]): Box[Map[String, List[ReactionTrait]]] = {
+    tryo {
+      if (chatMessageIds.isEmpty) Map.empty[String, List[ReactionTrait]]
+      else {
+        Reaction.findAll(ByList(Reaction.ChatMessageId, chatMessageIds))
+          .groupBy(_.chatMessageId)
+      }
+    }
+  }
+
   override def getReaction(chatMessageId: String, userId: String, emoji: String): Box[ReactionTrait] = {
     Reaction.find(
       By(Reaction.ChatMessageId, chatMessageId),

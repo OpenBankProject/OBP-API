@@ -63,6 +63,13 @@ object ChatEventPublisher extends MdcLoggable {
     publishMessageEvent("new", msg, senderUsername, senderProvider, senderConsumerName)
     // Sending a message means the sender has "read" the room up to this point
     ParticipantTrait.participantProvider.vend.updateLastReadAt(msg.chatRoomId, msg.senderUserId)
+    // Denormalize last message info onto the ChatRoom for efficient listing
+    ChatRoomTrait.chatRoomProvider.vend.updateLastMessageInfo(
+      msg.chatRoomId,
+      msg.createdDate,
+      if (msg.isDeleted) "" else msg.content,
+      senderUsername
+    )
     broadcastUnreadCounts(msg)
   }
 

@@ -12830,6 +12830,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -12897,6 +12901,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -12963,6 +12971,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ))),
@@ -12984,8 +12996,11 @@ trait APIMethods600 {
             } map {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get chat rooms", 400)
             }
+            unreadCounts <- Future {
+              computeUnreadCounts(rooms, u.userId)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13015,6 +13030,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ))),
@@ -13036,8 +13055,11 @@ trait APIMethods600 {
             } map {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get chat rooms", 400)
             }
+            unreadCounts <- Future {
+              computeUnreadCounts(rooms, u.userId)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13067,6 +13089,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13126,6 +13152,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13185,6 +13215,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13254,6 +13288,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13418,6 +13456,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = true,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13479,6 +13521,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = true,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13543,6 +13589,10 @@ trait APIMethods600 {
         created_by_provider = "provider",
         is_open_room = true,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -13608,6 +13658,10 @@ trait APIMethods600 {
         created_by_provider = "provider",
         is_open_room = true,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ),
@@ -16252,6 +16306,10 @@ trait APIMethods600 {
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello everyone!"),
+        last_message_sender = Some("robert.x.0.gh"),
+        unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
       ))),
@@ -16273,13 +16331,22 @@ trait APIMethods600 {
             } map {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get participant records", 400)
             }
-            rooms <- Future {
+            roomsAndCounts <- Future {
               participantRecords.flatMap { p =>
-                code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId).toList
+                code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId).toList.map { room =>
+                  val count = if (room.isOpenRoom) {
+                    code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(p.chatRoomId, p.userId, p.lastReadAt)
+                  } else {
+                    code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.userId, p.lastReadAt)
+                  }
+                  (room, count.openOr(0L))
+                }
               }
             }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms), HttpCode.`200`(callContext))
+            val rooms = roomsAndCounts.map(_._1)
+            val unreadCounts = roomsAndCounts.map { case (room, count) => room.chatRoomId -> count }.toMap
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16461,6 +16528,83 @@ trait APIMethods600 {
             (JSONFactory600.createChatMessagesJson(messages, allReactions), HttpCode.`200`(callContext))
           }
       }
+    }
+
+    // 29. getBulkReactions
+    staticResourceDocs += ResourceDoc(
+      getBulkReactions,
+      implementedInApiVersion,
+      nameOf(getBulkReactions),
+      "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages/reactions",
+      "Get Bulk Reactions",
+      s"""Get reactions for multiple messages in a single request.
+         |
+         |Pass message IDs as a comma-separated query parameter: ?message_ids=id1,id2,id3
+         |
+         |Returns reactions grouped by message ID.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      EmptyBody,
+      BulkReactionsJsonV600(message_reactions = List(MessageReactionsJsonV600(
+        chat_message_id = "msg-id-123",
+        reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        ChatRoomNotFound,
+        NotChatRoomParticipant,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val getBulkReactions: OBPEndpoint = {
+      case "chat-rooms" :: chatRoomId :: "messages" :: "reactions" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            room <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId)
+            } map {
+              x => unboxFullOrFail(x, callContext, ChatRoomNotFound, 404)
+            }
+            _ <- Future {
+              code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId)
+            } map {
+              x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
+            }
+            messageIds = ObpS.param("message_ids").map(_.split(",").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
+            allReactions <- Future {
+              code.chat.ReactionTrait.reactionProvider.vend.getReactionsForMessages(messageIds)
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot get reactions", 400)
+            }
+          } yield {
+            (JSONFactory600.createBulkReactionsJson(allReactions, messageIds), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    /**
+     * Compute unread counts for a list of rooms for a given user.
+     * For open rooms, counts only mentions. For private rooms, counts all unread messages.
+     */
+    private def computeUnreadCounts(rooms: List[code.chat.ChatRoomTrait], userId: String): Map[String, Long] = {
+      rooms.flatMap { room =>
+        val participant = code.chat.ChatPermissions.isParticipant(room.chatRoomId, userId)
+        participant.toList.map { p =>
+          val count = if (room.isOpenRoom) {
+            code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(room.chatRoomId, userId, p.lastReadAt)
+          } else {
+            code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(room.chatRoomId, userId, p.lastReadAt)
+          }
+          room.chatRoomId -> count.openOr(0L)
+        }
+      }.toMap
     }
 
   }

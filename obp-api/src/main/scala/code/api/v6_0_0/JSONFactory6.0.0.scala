@@ -1192,6 +1192,10 @@ case class ChatRoomJsonV600(
   created_by_provider: String,
   is_open_room: Boolean,
   is_archived: Boolean,
+  last_message_at: Option[java.util.Date],
+  last_message_preview: Option[String],
+  last_message_sender: Option[String],
+  unread_count: Option[Long],
   created_at: java.util.Date,
   updated_at: java.util.Date
 )
@@ -1250,6 +1254,9 @@ case class TypingUsersJsonV600(users: List[TypingUserJsonV600])
 
 case class UnreadCountJsonV600(chat_room_id: String, unread_count: Long)
 case class UnreadCountsJsonV600(unread_counts: List[UnreadCountJsonV600])
+
+case class MessageReactionsJsonV600(chat_message_id: String, reactions: List[ReactionSummaryJsonV600])
+case class BulkReactionsJsonV600(message_reactions: List[MessageReactionsJsonV600])
 
 case class JoiningKeyJsonV600(joining_key: String)
 
@@ -2961,8 +2968,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
 
   // Chat / Messaging factory functions
-  def createChatRoomJson(room: code.chat.ChatRoomTrait): ChatRoomJsonV600 = {
+  def createChatRoomJson(room: code.chat.ChatRoomTrait, unreadCount: Option[Long] = None): ChatRoomJsonV600 = {
     val creator = code.users.Users.users.vend.getUserByUserId(room.createdBy)
+    val hasLastMessage = room.lastMessageAt.isDefined
     ChatRoomJsonV600(
       chat_room_id = room.chatRoomId,
       bank_id = room.bankId,
@@ -2974,12 +2982,16 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       created_by_provider = creator.map(_.provider).getOrElse(""),
       is_open_room = room.isOpenRoom,
       is_archived = room.isArchived,
+      last_message_at = room.lastMessageAt,
+      last_message_preview = if (hasLastMessage) Some(room.lastMessagePreview) else None,
+      last_message_sender = if (hasLastMessage) Some(room.lastMessageSender) else None,
+      unread_count = unreadCount,
       created_at = room.createdDate,
       updated_at = room.updatedDate
     )
   }
-  def createChatRoomsJson(rooms: List[code.chat.ChatRoomTrait]): ChatRoomsJsonV600 = {
-    ChatRoomsJsonV600(rooms.map(createChatRoomJson))
+  def createChatRoomsJson(rooms: List[code.chat.ChatRoomTrait], unreadCounts: Map[String, Long] = Map.empty): ChatRoomsJsonV600 = {
+    ChatRoomsJsonV600(rooms.map(r => createChatRoomJson(r, unreadCounts.get(r.chatRoomId))))
   }
 
   def createParticipantJson(p: code.chat.ParticipantTrait): ParticipantJsonV600 = {
@@ -3035,6 +3047,17 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
   def createChatMessagesJson(messages: List[code.chat.ChatMessageTrait], allReactions: Map[String, List[code.chat.ReactionTrait]]): ChatMessagesJsonV600 = {
     ChatMessagesJsonV600(messages.map(msg => createChatMessageJson(msg, allReactions.getOrElse(msg.chatMessageId, List.empty))))
+  }
+  def createBulkReactionsJson(allReactions: Map[String, List[code.chat.ReactionTrait]], messageIds: List[String]): BulkReactionsJsonV600 = {
+    BulkReactionsJsonV600(
+      message_reactions = messageIds.map { msgId =>
+        val reactions = allReactions.getOrElse(msgId, List.empty)
+        val summaries = reactions.groupBy(_.emoji).map { case (emoji, rs) =>
+          ReactionSummaryJsonV600(emoji = emoji, count = rs.size, user_ids = rs.map(_.userId))
+        }.toList
+        MessageReactionsJsonV600(chat_message_id = msgId, reactions = summaries)
+      }
+    )
   }
 
   def createChatMessagesJsonFromRows(
