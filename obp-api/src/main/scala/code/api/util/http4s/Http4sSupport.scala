@@ -2,6 +2,7 @@ package code.api.util.http4s
 
 import cats.effect._
 import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ErrorMessages.InvalidJsonFormat
 import code.api.util.{AuthHeaderParser, CallContext, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
@@ -170,6 +171,137 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Parse the request body from CallContext into type B.
+     * Returns Left(error message) if body is absent or not valid JSON for B.
+     */
+    private def parseBody[B](cc: CallContext)(implicit formats: Formats, mf: Manifest[B]): Either[String, B] =
+      cc.httpBody match {
+        case None | Some("") => Left(s"$InvalidJsonFormat Missing request body.")
+        case Some(raw) =>
+          scala.util.Try(net.liftweb.json.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
+      }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureWithBody[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureWithBodyCreated[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing, requiring validated User.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBody[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing, requiring validated User.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBodyCreated[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing, requiring validated User and Bank.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankAndBody[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing, requiring validated User and Bank.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankAndBodyCreated[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
       }
     }
 
