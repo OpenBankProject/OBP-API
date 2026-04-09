@@ -1,9 +1,12 @@
 package code.api.v7_0_0
 
 import code.Http4sTestServer
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
-import code.api.util.ApiRole.{canGetCardsForBank, canReadResourceDoc}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank, canGetCardsForBank, canReadResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
+import code.entitlement.Entitlement
+import code.metadata.counterparties.Counterparties
 import code.setup.ServerSetupWithTestData
 import dispatch.Defaults._
 import dispatch._
@@ -47,6 +50,43 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       )
       val (statusCode, body, responseHeaders) = Await.result(response, 10.seconds)
       val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+      (statusCode, json, responseHeaders)
+    } catch {
+      case e: java.util.concurrent.ExecutionException =>
+        val statusPattern = """(\d{3})""".r
+        statusPattern.findFirstIn(e.getCause.getMessage) match {
+          case Some(code) => (code.toInt, JObject(Nil), Map.empty)
+          case None => throw e
+        }
+      case e: Exception =>
+        throw e
+    }
+  }
+
+  private def makeHttpRequestWithBody(
+    method: String,
+    path: String,
+    body: String,
+    headers: Map[String, String] = Map.empty
+  ): (Int, JValue, Map[String, String]) = {
+    val base = url(s"$baseUrl$path")
+    val withHeaders = (headers + ("Content-Type" -> "application/json")).foldLeft(base) {
+      case (req, (key, value)) => req.addHeader(key, value)
+    }
+    val methodReq = method.toUpperCase match {
+      case "POST" => withHeaders.POST << body
+      case "PUT"  => withHeaders.PUT  << body
+      case _      => withHeaders << body
+    }
+
+    try {
+      val response = Http.default(
+        methodReq.setHeader("Accept", "*/*") > as.Response(p =>
+          (p.getStatusCode, p.getResponseBody, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
+        )
+      )
+      val (statusCode, responseBody, responseHeaders) = Await.result(response, 10.seconds)
+      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
       (statusCode, json, responseHeaders)
     } catch {
       case e: java.util.concurrent.ExecutionException =>
@@ -728,6 +768,397 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       Then("Response is not 200")
       statusCode should not be 200
+    }
+  }
+
+  // ─── getCurrentUser ───────────────────────────────────────────────────────────
+
+  feature("Http4s700 getCurrentUser endpoint") {
+
+    scenario("Reject unauthenticated access to /users/current", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/current with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/current")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return user info JSON when authenticated", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/current with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/current", headers)
+
+      Then("Response is 200 with user_id, username, email fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val keys = fields.map(_.name)
+          keys should contain("user_id")
+          keys should contain("username")
+          keys should contain("email")
+        case _ => fail("Expected JSON object for getCurrentUser")
+      }
+    }
+
+    scenario("Returned user_id matches the authenticated user", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/current with DirectLogin header for resourceUser1")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/current", headers)
+
+      Then("Response contains user_id equal to resourceUser1.userId")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("user_id") match {
+            case Some(JString(uid)) => uid shouldBe resourceUser1.userId
+            case _ => fail("Expected user_id field as JSON string")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getBank ─────────────────────────────────────────────────────────────────
+
+  feature("Http4s700 getBank endpoint") {
+
+    scenario("Return bank info JSON without authentication", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID with no auth headers")
+      val bankId = testBankId1.value
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId")
+
+      Then("Response is 200 with bank_id, full_name fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val fieldMap = toFieldMap(fields)
+          fieldMap.get("bank_id") match {
+            case Some(JString(id)) => id shouldBe bankId
+            case _ => fail(s"Expected bank_id field as JSON string, got: ${fields.map(_.name)}")
+          }
+          val keys = fields.map(_.name)
+          keys should contain("full_name")
+        case _ => fail("Expected JSON object for getBank")
+      }
+    }
+
+    scenario("Return 404 when bank does not exist", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/non-existing-bank with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks/non-existing-bank-id")
+
+      Then("Response is 404 with BankNotFound message")
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(BankNotFound)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getCoreAccountById ───────────────────────────────────────────────────────
+
+  feature("Http4s700 getCoreAccountById endpoint") {
+
+    scenario("Reject unauthenticated access to core account", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account with no auth")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/my/banks/$bankId/accounts/$accountId/account")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return core account JSON when authenticated and account owner", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account with DirectLogin header")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/my/banks/$bankId/accounts/$accountId/account", headers)
+
+      Then("Response is 200 with account_id and balance fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val keys = fields.map(_.name)
+          keys should contain("account_id")
+          keys should contain("balance")
+        case _ => fail("Expected JSON object for getCoreAccountById")
+      }
+    }
+  }
+
+  // ─── getPrivateAccountByIdFull ────────────────────────────────────────────────
+
+  feature("Http4s700 getPrivateAccountByIdFull endpoint") {
+
+    scenario("Reject unauthenticated access to full account", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account with no auth")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val viewId = SYSTEM_OWNER_VIEW_ID
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/$viewId/account")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return full account JSON when authenticated with view access", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/owner/account with DirectLogin header")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val viewId = SYSTEM_OWNER_VIEW_ID
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/$viewId/account", headers)
+
+      Then("Response is 200 with id, views_available, and balance fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val keys = fields.map(_.name)
+          keys should contain("id")
+          keys should contain("views_available")
+          keys should contain("balance")
+        case _ => fail("Expected JSON object for getPrivateAccountByIdFull")
+      }
+    }
+  }
+
+  // ─── getExplicitCounterpartyById ─────────────────────────────────────────────
+
+  feature("Http4s700 getExplicitCounterpartyById endpoint") {
+
+    scenario("Reject unauthenticated access to counterparty", Http4s700RoutesTag) {
+      Given("GET .../counterparties/COUNTERPARTY_ID with no auth")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val viewId = SYSTEM_OWNER_VIEW_ID
+      val (statusCode, json, _) = makeHttpRequest(
+        s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/$viewId/counterparties/some-id"
+      )
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return counterparty JSON when authenticated and counterparty exists", Http4s700RoutesTag) {
+      Given("A counterparty (with metadata) created on testAccountId0 in testBankId1")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val viewId = SYSTEM_OWNER_VIEW_ID
+      val counterparty = createCounterparty(bankId, accountId, accountId, isBeneficiary = true, resourceUser1.userId)
+      val counterpartyId = counterparty.counterpartyId
+      // getMetadata requires a MappedCounterpartyMetadata row — createCounterparty does not create one
+      Counterparties.counterparties.vend.getOrCreateMetadata(
+        com.openbankproject.commons.model.BankId(bankId),
+        com.openbankproject.commons.model.AccountId(accountId),
+        counterpartyId,
+        counterparty.name
+      ).openOrThrowException("Expected counterparty metadata to be created")
+
+      When("GET .../counterparties/COUNTERPARTY_ID with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(
+        s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/$viewId/counterparties/$counterpartyId",
+        headers
+      )
+
+      Then("Response is 200 with counterparty_id field")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("counterparty_id") match {
+            case Some(JString(id)) => id shouldBe counterpartyId
+            case _ => fail("Expected counterparty_id field as JSON string")
+          }
+        case _ => fail("Expected JSON object for getExplicitCounterpartyById")
+      }
+    }
+  }
+
+  // ─── deleteEntitlement ────────────────────────────────────────────────────────
+
+  feature("Http4s700 deleteEntitlement endpoint") {
+
+    scenario("Reject unauthenticated DELETE to /entitlements/ENTITLEMENT_ID", Http4s700RoutesTag) {
+      Given("DELETE /obp/v7.0.0/entitlements/some-id with no auth")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/entitlements/some-id")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canDeleteEntitlementAtAnyBank role", Http4s700RoutesTag) {
+      Given("DELETE /obp/v7.0.0/entitlements/some-id without the required role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/entitlements/some-id", headers)
+
+      Then("Response is 403 with UserHasMissingRoles message")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canDeleteEntitlementAtAnyBank.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 204 when authenticated with role and entitlement exists", Http4s700RoutesTag) {
+      Given("An entitlement created for resourceUser1 and canDeleteEntitlementAtAnyBank granted")
+      addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
+      val targetEntitlement = Entitlement.entitlement.vend
+        .addEntitlement(testBankId1.value, resourceUser1.userId, canGetCardsForBank.toString)
+        .openOrThrowException("Expected entitlement to be created")
+
+      When("DELETE /obp/v7.0.0/entitlements/{entitlementId} with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/entitlements/${targetEntitlement.entitlementId}", headers)
+
+      Then("Response is 204 No Content")
+      statusCode shouldBe 204
+    }
+
+    scenario("Return 204 even when entitlement ID does not exist (idempotent)", Http4s700RoutesTag) {
+      Given("canDeleteEntitlementAtAnyBank role granted and a non-existent entitlement ID")
+      addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
+
+      When("DELETE /obp/v7.0.0/entitlements/non-existent-id with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/entitlements/non-existent-entitlement-id-xyz", headers)
+
+      Then("Response is 204 — delete is idempotent")
+      statusCode shouldBe 204
+    }
+  }
+
+  // ─── addEntitlement ───────────────────────────────────────────────────────────
+
+  feature("Http4s700 addEntitlement endpoint") {
+
+    scenario("Reject unauthenticated POST to /users/USER_ID/entitlements", Http4s700RoutesTag) {
+      Given("POST /obp/v7.0.0/users/USER_ID/entitlements with no auth")
+      val body = s"""{"bank_id":"${testBankId1.value}","role_name":"CanGetAnyUser"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body)
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canCreateEntitlementAtAnyBank role", Http4s700RoutesTag) {
+      Given("POST /obp/v7.0.0/users/USER_ID/entitlements without the required role")
+      val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+
+      Then("Response is 403 with UserHasMissingRoles message")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(UserHasMissingRoles)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with entitlement JSON when authenticated with role and valid body", Http4s700RoutesTag) {
+      Given("canCreateEntitlementAtAnyBank role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+
+      When("POST /obp/v7.0.0/users/USER_ID/entitlements with a valid body")
+      val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+
+      Then("Response is 201 with entitlement_id, role_name fields")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val keys = fields.map(_.name)
+          keys should contain("entitlement_id")
+          keys should contain("role_name")
+          toFieldMap(fields).get("role_name") match {
+            case Some(JString(role)) => role shouldBe "CanGetAnyUser"
+            case _ => fail("Expected role_name as JSON string")
+          }
+        case _ => fail("Expected JSON object for addEntitlement")
+      }
+    }
+
+    scenario("Return 400 when role_name is not a valid API role", Http4s700RoutesTag) {
+      Given("canCreateEntitlementAtAnyBank role granted and an invalid role_name in body")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+
+      When("POST /obp/v7.0.0/users/USER_ID/entitlements with invalid role_name")
+      val body = s"""{"bank_id":"","role_name":"NotARealRole"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+
+      Then("Response is 400")
+      statusCode shouldBe 400
     }
   }
 }
