@@ -6,18 +6,26 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.ApiRole.canGetCardsForBank
+import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetCardsForBank}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
-import code.api.util.http4s.Http4sRequestAttributes.{RequestOps, EndpointHelpers}
-import code.api.util.{ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
+import code.api.v6_0_0.{BankJsonV600, JSONFactory600, UserV600}
+import code.entitlement.Entitlement
+import code.metadata.tags.Tags
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, ViewId}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import org.http4s._
@@ -245,6 +253,240 @@ object Http4s700 {
       List(apiTagDocumentation, apiTagApi),
       http4sPartialFunction = Some(getResourceDocsObpV700)
     )
+
+    // ── POC endpoints — one per EndpointHelper category ────────────────────
+
+    // Category: withBank (no user auth, bank resolved from BANK_ID by middleware)
+    val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ =>
+        EndpointHelpers.withBank(req) { (bank, cc) =>
+          for {
+            (attributes, _) <- NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc))
+          } yield JSONFactory600.createBankJsonV600(bank, attributes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID. Returns information about a single bank including name, logo and website.""",
+      EmptyBody,
+      BankJsonV600("gh.29.uk", "OBP", "Open Bank Project", "https://example.com/logo.png", "https://openbankproject.com", Nil, None),
+      List(BankNotFound, UnknownError),
+      apiTagBank :: Nil,
+      http4sPartialFunction = Some(getBank)
+    )
+
+    // Category: withUser (user auth, no bank)
+    val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+          } yield {
+            val permissions = Views.views.vend.getPermissionForUser(user).toOption
+            val virtualRoleNames =
+              if (APIUtil.isSuperAdmin(user.userId)) APIUtil.superAdminVirtualRoles
+              else if (APIUtil.isOidcOperator(user.userId)) APIUtil.oidcOperatorVirtualRoles
+              else Nil
+            val existingRoleNames = entitlements.map(_.roleName).toSet
+            val virtualEntitlements = virtualRoleNames.filterNot(existingRoleNames.contains).map { role =>
+              new Entitlement {
+                def entitlementId      = ""
+                def bankId             = ""
+                def userId             = user.userId
+                def roleName           = role
+                def createdByProcess   = if (APIUtil.isSuperAdmin(user.userId)) "super_admin_user_ids" else "oidc_operator_user_ids"
+                def entitlementRequestId: Option[String] = None
+                def groupId: Option[String]              = None
+                def process: Option[String]              = None
+              }
+            }
+            JSONFactory600.createUserInfoJSON(UserV600(user, entitlements ::: virtualEntitlements, permissions), None)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCurrentUser),
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user. Returns profile, entitlements and views.""",
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil,
+      http4sPartialFunction = Some(getCurrentUser)
+    )
+
+    // Category: withBankAccount (user + account resolved from BANK_ID + ACCOUNT_ID by middleware)
+    val getCoreAccountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
+        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          for {
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(
+              user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+              user, BankIdAccountId(account.bankId, account.accountId))
+            JSONFactory600.createModeratedCoreAccountJsonV600(moderatedAccount, availableViews)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCoreAccountById),
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get Account by Id (Core)",
+      """Returns core information about the account specified by ACCOUNT_ID including balance, routings and available views.""",
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
+      apiTagAccount :: Nil,
+      http4sPartialFunction = Some(getCoreAccountById)
+    )
+
+    // Category: withView (user + account + view resolved from BANK_ID + ACCOUNT_ID + VIEW_ID by middleware)
+    val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "account" =>
+        EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          for {
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+            (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
+              account.bankId, account.accountId, Some(cc))
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+              user, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.view_name)
+            val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(ViewId(viewIdStr))
+            JSONFactory600.createBankAccountJSON600(moderatedAccount, viewsAvailable, accountAttributes, tags)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Returns full information about an account as moderated by the view (VIEW_ID).""",
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+      apiTagAccount :: Nil,
+      http4sPartialFunction = Some(getPrivateAccountByIdFull)
+    )
+
+    // Category: withCounterparty (user + account + view + counterparty resolved by middleware)
+    val getExplicitCounterpartyById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / counterpartyIdStr =>
+        EndpointHelpers.withCounterparty(req) { (user, account, view, counterparty, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(
+              failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc = Some(cc))(view.canGetCounterparty)
+            counterpartyMetadata <- NewStyle.function.getMetadata(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
+          } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getExplicitCounterpartyById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Get Counterparty by Id (Explicit)",
+      """Returns a single Counterparty on an Account View specified by COUNTERPARTY_ID.""",
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+      apiTagCounterparty :: Nil,
+      http4sPartialFunction = Some(getExplicitCounterpartyById)
+    )
+
+    // Category: withUserDelete (user auth, 204 No Content)
+    val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "entitlements" / entitlementId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          Entitlement.entitlement.vend.getEntitlementById(entitlementId) match {
+            case Full(e) => Future(Entitlement.entitlement.vend.deleteEntitlement(Some(e))).map(_ => ())
+            case _       => Future.successful(()) // idempotent — already gone
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteEntitlement),
+      "DELETE",
+      "/entitlements/ENTITLEMENT_ID",
+      "Delete Entitlement",
+      """Delete the Entitlement specified by ENTITLEMENT_ID. Idempotent — returns 204 even if not found.""",
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagEntitlement :: apiTagRole :: Nil,
+      Some(List(canDeleteEntitlementAtAnyBank)),
+      http4sPartialFunction = Some(deleteEntitlement)
+    )
+
+    // Category: withUserAndBodyCreated (user auth, body parsing, 201 Created)
+    val addEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / userId / "entitlements" =>
+        EndpointHelpers.withUserAndBodyCreated[CreateEntitlementJSON, AnyRef](req) { (user, body, cc) =>
+          for {
+            (_, _)   <- NewStyle.function.findByUserId(userId, Some(cc))
+            role     <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat Unknown role: ${body.role_name}. Possible roles: ${ApiRole.availableRoles.sorted.mkString(", ")}",
+              400, Some(cc)) { ApiRole.valueOf(body.role_name) }
+            _ <- Helper.booleanToFuture(
+              failMsg = if (role.requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
+              cc = Some(cc))(role.requiresBankId == body.bank_id.nonEmpty)
+            _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
+                 else NewStyle.function.hasAtLeastOneEntitlement(
+                   UserHasMissingRoles + s" $canCreateEntitlementAtOneBank or $canCreateEntitlementAtAnyBank")(
+                   body.bank_id, user.userId,
+                   canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc = Some(cc))(
+              !hasEntitlement(body.bank_id, userId, role))
+            entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
+              .map(e => unboxFull(e))
+          } yield JSONFactory200.createEntitlementJSON(entitlement)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(addEntitlement),
+      "POST",
+      "/users/USER_ID/entitlements",
+      "Add Entitlement for a User",
+      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.""",
+      CreateEntitlementJSON("gh.29.uk", "CanGetAnyUser"),
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, EntitlementAlreadyExists, UnknownError),
+      apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
+      Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
+      http4sPartialFunction = Some(addEntitlement)
+    )
+
+    // ── End POC endpoints ────────────────────────────────────────────────────
 
     // All routes combined (without middleware - for direct use).
     //
