@@ -396,7 +396,8 @@ object Http4s700 {
         EndpointHelpers.withCounterparty(req) { (user, account, view, counterparty, cc) =>
           for {
             _ <- Helper.booleanToFuture(
-              failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc = Some(cc))(view.canGetCounterparty)
+              failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc = Some(cc))(
+              view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY))
             counterpartyMetadata <- NewStyle.function.getMetadata(
               account.bankId, account.accountId, counterpartyIdStr, Some(cc))
           } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
