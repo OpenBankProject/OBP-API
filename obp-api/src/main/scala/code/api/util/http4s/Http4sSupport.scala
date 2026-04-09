@@ -316,15 +316,53 @@ object Http4sCallContextBuilder {
  * and extracts path parameters.
  */
 object ResourceDocMatcher {
-  
+
   // API prefix pattern: /obp/vX.X.X
   private val apiPrefixPattern = """^/obp/v\d+\.\d+\.\d+""".r
-  
+
+  // Pre-built index type: (VERB, apiVersion, segmentCount) -> candidates
+  type ResourceDocIndex = Map[(String, String, Int), List[ResourceDoc]]
+
   /**
-   * Find ResourceDoc matching the given verb and path
-   * 
-   * @param verb HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path Request path
+   * Build a lookup index from a collection of ResourceDocs.
+   * Call this once at middleware startup; pass the result to findResourceDoc.
+   */
+  def buildIndex(resourceDocs: Iterable[ResourceDoc]): ResourceDocIndex =
+    resourceDocs.groupBy { doc =>
+      val segCount = doc.requestUrl.split("/").count(_.nonEmpty)
+      (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString, segCount)
+    }.map { case (k, v) => k -> v.toList }
+
+  /**
+   * Find ResourceDoc matching the given verb and path using a pre-built index.
+   * O(1) map lookup + O(k) scan where k is the number of docs with the same
+   * verb/version/segment-count (typically 1–3 in practice).
+   *
+   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
+   * @param path         Request path
+   * @param index        Index built by buildIndex — create once, reuse per request
+   * @return Option[ResourceDoc] if a match is found
+   */
+  def findResourceDoc(
+    verb: String,
+    path: Uri.Path,
+    index: ResourceDocIndex
+  ): Option[ResourceDoc] = {
+    val pathString  = path.renderString
+    val apiVersion  = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
+    val segCount    = strippedPath.split("/").count(_.nonEmpty)
+    index.getOrElse((verb.toUpperCase, apiVersion, segCount), Nil)
+      .find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+  }
+
+  /**
+   * Find ResourceDoc matching the given verb and path.
+   * Builds a transient index on every call — use for tests or one-off lookups.
+   * For hot paths, prefer buildIndex + findResourceDoc(verb, path, index).
+   *
+   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
+   * @param path         Request path
    * @param resourceDocs Collection of ResourceDoc entries to search
    * @return Option[ResourceDoc] if a match is found
    */
@@ -332,18 +370,8 @@ object ResourceDocMatcher {
     verb: String,
     path: Uri.Path,
     resourceDocs: ArrayBuffer[ResourceDoc]
-  ): Option[ResourceDoc] = {
-    val pathString = path.renderString
-    // Extract API version from path (e.g., "v5.0.0" from "/obp/v5.0.0/banks")
-    val apiVersion = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
-    // Strip the API prefix (/obp/vX.X.X) from the path for matching
-    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    resourceDocs.find { doc =>
-      doc.requestVerb.equalsIgnoreCase(verb) && 
-      doc.implementedInApiVersion.toString == apiVersion &&
-      matchesUrlTemplate(strippedPath, doc.requestUrl)
-    }
-  }
+  ): Option[ResourceDoc] =
+    findResourceDoc(verb, path, buildIndex(resourceDocs))
   
   /**
    * Check if a path matches a URL template
