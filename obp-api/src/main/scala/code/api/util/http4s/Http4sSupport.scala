@@ -199,6 +199,51 @@ object Http4sRequestAttributes {
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
+
+    /**
+     * Execute DELETE business logic (no auth required).
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def executeDelete(req: Request[IO])(f: CallContext => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f(cc))).attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute DELETE business logic requiring validated User.
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserDelete(req: Request[IO])(f: (User, CallContext) => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute DELETE business logic requiring validated User and Bank.
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankDelete(req: Request[IO])(f: (User, Bank, CallContext) => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, bank, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
   }
 }
 
