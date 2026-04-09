@@ -85,6 +85,8 @@ object ResourceDocMiddleware extends MdcLoggable {
    * Finds the matching ResourceDoc, validates the request, and enriches CallContext.
    */
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
+    // Build the lookup index once per middleware instance (at startup), not per request.
+    val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
         case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
@@ -92,7 +94,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
       // Build initial CallContext from request
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
-        ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocs) match {
+        ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)

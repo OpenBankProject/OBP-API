@@ -1,9 +1,11 @@
 package code.api.util.http4s
 
 import cats.effect._
-import code.api.util.APIUtil.ResourceDoc
-import code.api.util.{AuthHeaderParser, CallContext}
-import com.openbankproject.commons.model.{Bank, User}
+import code.api.util.APIUtil.{ResourceDoc, getPropsAsBoolValue}
+import code.api.util.ErrorMessages.InvalidJsonFormat
+import code.api.util.{AuthHeaderParser, CallContext, WriteMetricUtil}
+import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import org.http4s._
@@ -85,7 +87,7 @@ object Http4sRequestAttributes {
    * - JSON serialization with Lift JSON
    * - Ok response creation
    */
-  object EndpointHelpers {
+  object EndpointHelpers extends MdcLoggable {
     import net.liftweb.json.JsonAST.prettyRender
     import net.liftweb.json.{Extraction, Formats}
 
@@ -95,17 +97,35 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Write endpoint metric and log timing after the response is built.
+     * Stamps endTime and httpCode onto the CallContext before converting to light form.
+     */
+    // Metric recording runs on the blocking threadpool (IO.blocking) so that
+    // synchronous logger/DB writes do not steal cats-effect compute threads.
+    // Not fired as a background fiber: response waits for metric to be written,
+    // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
+    private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
+      if (!getPropsAsBoolValue("write_metrics", false)) IO.unit
+      else IO.blocking {
+        val endTime = new Date()
+        val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
+        val ccLight = cc.copy(httpCode = Some(response.status.code), endTime = Some(endTime)).toLight
+        logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
+        WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
+      }
+
+    /**
      * Execute Future-based business logic and return JSON response.
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
     def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       IO.fromFuture(IO(f(cc))).attempt.flatMap {
-        case Right(result) => toJsonOk(result)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
-    
+
     /**
      * Execute business logic requiring validated User.
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
@@ -117,11 +137,11 @@ object Http4sRequestAttributes {
         result <- IO.fromFuture(IO(f(user, cc)))
       } yield result
       io.attempt.flatMap {
-        case Right(result) => toJsonOk(result)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
-    
+
     /**
      * Execute business logic requiring validated Bank.
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
@@ -133,11 +153,11 @@ object Http4sRequestAttributes {
         result <- IO.fromFuture(IO(f(bank, cc)))
       } yield result
       io.attempt.flatMap {
-        case Right(result) => toJsonOk(result)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
-    
+
     /**
      * Execute business logic requiring both User and Bank.
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
@@ -150,8 +170,193 @@ object Http4sRequestAttributes {
         result <- IO.fromFuture(IO(f(user, bank, cc)))
       } yield result
       io.attempt.flatMap {
-        case Right(result) => toJsonOk(result)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Parse the request body from CallContext into type B.
+     * Returns Left(error message) if body is absent or not valid JSON for B.
+     */
+    private def parseBody[B](cc: CallContext)(implicit formats: Formats, mf: Manifest[B]): Either[String, B] =
+      cc.httpBody match {
+        case None | Some("") => Left(s"$InvalidJsonFormat Missing request body.")
+        case Some(raw) =>
+          scala.util.Try(net.liftweb.json.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
+      }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureWithBody[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def executeFutureWithBodyCreated[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing, requiring validated User.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBody[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing, requiring validated User.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBodyCreated[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST/PUT business logic with JSON body parsing, requiring validated User and Bank.
+     * Returns 200 OK on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankAndBody[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+            case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute POST business logic with JSON body parsing, requiring validated User and Bank.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankAndBodyCreated[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User and BankAccount (URL must contain ACCOUNT_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withBankAccount[A](req: Request[IO])(f: (User, BankAccount, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        result      <- IO.fromFuture(IO(f(user, bankAccount, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withView[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        result      <- IO.fromFuture(IO(f(user, bankAccount, view, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User, BankAccount, View, and Counterparty (URL must contain COUNTERPARTY_ID).
+     * Returns 200 OK on success, converts errors via ErrorResponseConverter.
+     */
+    def withCounterparty[A](req: Request[IO])(f: (User, BankAccount, View, CounterpartyTrait, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user         <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount  <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view         <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        counterparty <- IO.fromOption(cc.counterparty)(new RuntimeException("Counterparty not found in CallContext"))
+        result       <- IO.fromFuture(IO(f(user, bankAccount, view, counterparty, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
 
@@ -163,8 +368,8 @@ object Http4sRequestAttributes {
     def executeFuture[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       IO.fromFuture(IO(f)).attempt.flatMap {
-        case Right(result) => toJsonOk(result)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
 
@@ -177,8 +382,53 @@ object Http4sRequestAttributes {
       IO.fromFuture(IO(f)).attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString)
-        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+          Created(jsonString).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute DELETE business logic (no auth required).
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def executeDelete(req: Request[IO])(f: CallContext => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      IO.fromFuture(IO(f(cc))).attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute DELETE business logic requiring validated User.
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserDelete(req: Request[IO])(f: (User, CallContext) => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute DELETE business logic requiring validated User and Bank.
+     * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankDelete(req: Request[IO])(f: (User, Bank, CallContext) => Future[_]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- IO.fromFuture(IO(f(user, bank, cc)))
+      } yield result
+      io.attempt.flatMap {
+        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
   }
@@ -201,8 +451,10 @@ object Http4sCallContextBuilder {
    * @return IO[CallContext] with all request data populated
    */
   def fromRequest(request: Request[IO], apiVersion: String): IO[CallContext] = {
+    val noBody = Set(Method.GET, Method.DELETE, Method.HEAD, Method.OPTIONS)
     for {
-      body <- request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      body <- if (noBody.contains(request.method)) IO.pure(None)
+              else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
     } yield CallContext(
       url = request.uri.renderString,
       verb = request.method.name,
@@ -298,15 +550,53 @@ object Http4sCallContextBuilder {
  * and extracts path parameters.
  */
 object ResourceDocMatcher {
-  
+
   // API prefix pattern: /obp/vX.X.X
   private val apiPrefixPattern = """^/obp/v\d+\.\d+\.\d+""".r
-  
+
+  // Pre-built index type: (VERB, apiVersion, segmentCount) -> candidates
+  type ResourceDocIndex = Map[(String, String, Int), List[ResourceDoc]]
+
   /**
-   * Find ResourceDoc matching the given verb and path
-   * 
-   * @param verb HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path Request path
+   * Build a lookup index from a collection of ResourceDocs.
+   * Call this once at middleware startup; pass the result to findResourceDoc.
+   */
+  def buildIndex(resourceDocs: Iterable[ResourceDoc]): ResourceDocIndex =
+    resourceDocs.groupBy { doc =>
+      val segCount = doc.requestUrl.split("/").count(_.nonEmpty)
+      (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString, segCount)
+    }.map { case (k, v) => k -> v.toList }
+
+  /**
+   * Find ResourceDoc matching the given verb and path using a pre-built index.
+   * O(1) map lookup + O(k) scan where k is the number of docs with the same
+   * verb/version/segment-count (typically 1–3 in practice).
+   *
+   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
+   * @param path         Request path
+   * @param index        Index built by buildIndex — create once, reuse per request
+   * @return Option[ResourceDoc] if a match is found
+   */
+  def findResourceDoc(
+    verb: String,
+    path: Uri.Path,
+    index: ResourceDocIndex
+  ): Option[ResourceDoc] = {
+    val pathString  = path.renderString
+    val apiVersion  = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
+    val segCount    = strippedPath.split("/").count(_.nonEmpty)
+    index.getOrElse((verb.toUpperCase, apiVersion, segCount), Nil)
+      .find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+  }
+
+  /**
+   * Find ResourceDoc matching the given verb and path.
+   * Builds a transient index on every call — use for tests or one-off lookups.
+   * For hot paths, prefer buildIndex + findResourceDoc(verb, path, index).
+   *
+   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
+   * @param path         Request path
    * @param resourceDocs Collection of ResourceDoc entries to search
    * @return Option[ResourceDoc] if a match is found
    */
@@ -314,18 +604,8 @@ object ResourceDocMatcher {
     verb: String,
     path: Uri.Path,
     resourceDocs: ArrayBuffer[ResourceDoc]
-  ): Option[ResourceDoc] = {
-    val pathString = path.renderString
-    // Extract API version from path (e.g., "v5.0.0" from "/obp/v5.0.0/banks")
-    val apiVersion = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
-    // Strip the API prefix (/obp/vX.X.X) from the path for matching
-    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    resourceDocs.find { doc =>
-      doc.requestVerb.equalsIgnoreCase(verb) && 
-      doc.implementedInApiVersion.toString == apiVersion &&
-      matchesUrlTemplate(strippedPath, doc.requestUrl)
-    }
-  }
+  ): Option[ResourceDoc] =
+    findResourceDoc(verb, path, buildIndex(resourceDocs))
   
   /**
    * Check if a path matches a URL template
