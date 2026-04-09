@@ -219,8 +219,10 @@ object Http4sCallContextBuilder {
    * @return IO[CallContext] with all request data populated
    */
   def fromRequest(request: Request[IO], apiVersion: String): IO[CallContext] = {
+    val noBody = Set(Method.GET, Method.DELETE, Method.HEAD, Method.OPTIONS)
     for {
-      body <- request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      body <- if (noBody.contains(request.method)) IO.pure(None)
+              else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
     } yield CallContext(
       url = request.uri.renderString,
       verb = request.method.name,
