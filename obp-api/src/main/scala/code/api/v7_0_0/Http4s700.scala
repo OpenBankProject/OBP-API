@@ -7,7 +7,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetCardsForBank}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCardsForBank, canGetCustomersAtOneBank}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
@@ -15,22 +15,30 @@ import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
+import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v6_0_0.{BankJsonV600, JSONFactory600, UserV600}
+import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, FeaturesJsonV600, JSONFactory600, UserV600}
+import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, ViewId}
+import code.accountattribute.AccountAttributeX
+import code.users.{Users => UserVend}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, CustomerId, ListResult, ViewId}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import code.loginattempts.LoginAttempt
+import code.metrics.MappedMetric
+import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
+import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
@@ -487,7 +495,374 @@ object Http4s700 {
       http4sPartialFunction = Some(addEntitlement)
     )
 
-    // ── End POC endpoints ────────────────────────────────────────────────────
+    // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
+
+    // Route: GET /obp/v7.0.0/features
+    val getFeatures: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "features" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(FeaturesJsonV600(
+            allow_public_views                = APIUtil.getPropsAsBoolValue("allow_public_views", false),
+            allow_abac_account_access         = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false),
+            allow_account_firehose            = APIUtil.getPropsAsBoolValue("allow_account_firehose", false),
+            allow_customer_firehose           = APIUtil.getPropsAsBoolValue("allow_customer_firehose", false),
+            allow_direct_login                = APIUtil.getPropsAsBoolValue("allow_direct_login", true),
+            allow_gateway_login               = APIUtil.getPropsAsBoolValue("allow_gateway_login", false),
+            allow_oauth2_login                = APIUtil.getPropsAsBoolValue("allow_oauth2_login", true),
+            allow_dauth                       = APIUtil.getPropsAsBoolValue("allow_dauth", false),
+            allow_sandbox_account_creation    = APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false),
+            allow_sandbox_data_import         = APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false),
+            allow_account_deletion            = APIUtil.getPropsAsBoolValue("allow_account_deletion", false),
+            allow_just_in_time_entitlements   = APIUtil.getPropsAsBoolValue("create_just_in_time_entitlements", false)
+          ))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getFeatures),
+      "GET",
+      "/features",
+      "Get Features",
+      """Returns information about the features enabled on this OBP instance.
+        |
+        |No Authentication is Required.""",
+      EmptyBody,
+      FeaturesJsonV600(false, false, false, false, true, false, true, false, false, false, false, false),
+      List(UnknownError),
+      apiTagApi :: Nil,
+      http4sPartialFunction = Some(getFeatures)
+    )
+
+    // Route: GET /obp/v7.0.0/api/versions
+    val getScannedApiVersions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "versions" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future {
+            val versions = ApiVersion.allScannedApiVersion.asScala.toList
+              .filter(v => v.urlPrefix.trim.nonEmpty)
+              .map { v =>
+                JSONFactory600.ScannedApiVersionJsonV600(
+                  url_prefix             = v.urlPrefix,
+                  api_standard           = v.apiStandard,
+                  api_short_version      = v.apiShortVersion,
+                  fully_qualified_version= v.fullyQualifiedVersion,
+                  is_active              = versionIsAllowed(v)
+                )
+              }
+            ListResult("scanned_api_versions", versions)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getScannedApiVersions),
+      "GET",
+      "/api/versions",
+      "Get Scanned API Versions",
+      """Get all scanned API versions available in this codebase including their active status.""",
+      EmptyBody,
+      ListResult(
+        "scanned_api_versions",
+        List(JSONFactory600.ScannedApiVersionJsonV600("obp", "OBP", "v6.0.0", "OBPv6.0.0", true))
+      ),
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getScannedApiVersions)
+    )
+
+    // Route: GET /obp/v7.0.0/system/connectors
+    val getConnectors: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "connectors" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful {
+            val connectorNames = BankConnector.nameToConnector.keys.toList :+ "star"
+            val connectorInfos = connectorNames.map { name =>
+              ConnectorInfoJsonV600(
+                connector_name                    = name,
+                is_available_in_method_routing    = NewStyle.function.getConnectorByName(name).isDefined
+              )
+            }
+            JSONFactory600.createConnectorsJson(connectorInfos)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getConnectors),
+      "GET",
+      "/system/connectors",
+      "Get Connectors",
+      """Get the list of connectors and their availability for method routing.
+        |
+        |Authentication is Optional.""",
+      EmptyBody,
+      ConnectorsJsonV600(List(
+        ConnectorInfoJsonV600("mapped", true),
+        ConnectorInfoJsonV600("star", true)
+      )),
+      List(UnknownError),
+      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getConnectors)
+    )
+
+    // Route: GET /obp/v7.0.0/providers
+    val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "providers" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            providers <- Future { code.model.dataAccess.ResourceUser.getDistinctProviders }
+          } yield JSONFactory600.createProvidersJson(providers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getProviders),
+      "GET",
+      "/providers",
+      "Get Providers",
+      """Get the list of authentication providers that have been used to create users on this OBP instance.""",
+      EmptyBody,
+      JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP")),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil,
+      http4sPartialFunction = Some(getProviders)
+    )
+
+    // ── Phase 1 batch 2 ─────────────────────────────────────────────────────
+
+    // Route: GET /obp/v7.0.0/users
+    val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            users <- UserVend.users.vend.getUsers(obpQueryParams)
+          } yield JSONFactory600.createUsersInfoJsonV600(users)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getUsers),
+      "GET",
+      "/users",
+      "Get all Users",
+      """Get all users.
+        |
+        |Authentication is required.
+        |
+        |CanGetAnyUser entitlement is required.""",
+      EmptyBody,
+      usersInfoJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagUser :: Nil,
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUsers)
+    )
+
+    // Route: GET /obp/v7.0.0/users/user-id/USER_ID
+    val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            user <- UserVend.users.vend.getUserByUserIdFuture(userId).map(
+              x => unboxFullOrFail(x, cc.callContext, s"$UserNotFoundByUserId Current USER_ID($userId)", 404)
+            )
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            agreements <- Future {
+              val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "accept_marketing_info")
+              val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "terms_and_conditions")
+              val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "privacy_conditions")
+              val agreementList = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+              if (agreementList.isEmpty) None else Some(agreementList)
+            }
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = code.model.dataAccess.AuthUser.find(
+              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
+            )
+            userMetrics <- Future {
+              MappedMetric.findAll(
+                By(MappedMetric.userId, userId),
+                OrderBy(MappedMetric.date, Descending),
+                MaxRows(5)
+              )
+            }
+            lastActivityDate = userMetrics.headOption.map(_.getDate())
+            recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
+          } yield JSONFactory600.createUserInfoJsonV600(
+            user,
+            authUser.map(_.firstName.get).getOrElse(""),
+            authUser.map(_.lastName.get).getOrElse(""),
+            entitlements,
+            agreements,
+            isLocked,
+            lastActivityDate,
+            recentOperationIds
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getUserByUserId),
+      "GET",
+      "/users/user-id/USER_ID",
+      "Get User by USER_ID",
+      """Get user by USER_ID.
+        |
+        |Authentication is required.
+        |
+        |CanGetAnyUser entitlement is required.""",
+      EmptyBody,
+      userInfoJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+      apiTagUser :: Nil,
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUserByUserId)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/customers
+    val getCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          val bankId = BankId(bankIdStr)
+          for {
+            (requestParams, _) <- NewStyle.function.extractQueryParams(
+              req.uri.renderString,
+              List("limit", "offset", "sort_direction"),
+              cc.callContext
+            )
+            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+          } yield JSONFactory600.createCustomersJson(customers.sortBy(_.bankId))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersAtOneBank),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers at Bank",
+      """Get Customers at Bank.
+        |
+        |Returns a list of all customers at the specified bank.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      customerJSONsV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: apiTagUser :: Nil,
+      Some(List(canGetCustomersAtOneBank)),
+      http4sPartialFunction = Some(getCustomersAtOneBank)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/customers/CUSTOMER_ID
+    val getCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(
+              bank.bankId,
+              CustomerId(customerId),
+              callContext
+            )
+          } yield JSONFactory600.createCustomerWithAttributesJson(customer, customerAttributes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerByCustomerId),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID",
+      "Get Customer by CUSTOMER_ID",
+      """Gets the Customer specified by CUSTOMER_ID.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      customerWithAttributesJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(List(canGetCustomersAtOneBank)),
+      http4sPartialFunction = Some(getCustomerByCustomerId)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts
+    val getAccountsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" =>
+        EndpointHelpers.withUserAndBank(req) { (u, bank, cc) =>
+          val bankId = BankId(bankIdStr)
+          for {
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
+              Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            }
+            params <- Future {
+              req.uri.query.multiParams
+                .filterNot(_._1 == PARAM_TIMESTAMP)
+                .filterNot(_._1 == PARAM_LOCALE)
+                .map { case (k, vs) => k -> vs.toList }
+            }
+            privateAccountAccess2 <-
+              if (params.isEmpty || privateAccountAccess.isEmpty) {
+                Future.successful(privateAccountAccess)
+              } else {
+                AccountAttributeX.accountAttributeProvider.vend
+                  .getAccountIdsByParams(bankId, params)
+                  .map { boxedAccountIds =>
+                    val accountIds = boxedAccountIds.getOrElse(Nil)
+                    privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                  }
+              }
+            (availablePrivateAccounts, _) <- code.model.BankExtended(bank).privateAccountsFuture(privateAccountAccess2, cc.callContext)
+          } yield {
+            val accountsJson = availablePrivateAccounts.map { account =>
+              val viewsAvailable = privateViewsUserCanAccessAtOneBank
+                .filter(v => v.bankId == bankId && v.accountId == account.accountId)
+                .map(v => BasicViewJson(v.viewId.value, v.name, v.isPublic))
+              JSONFactory600.createBasicAccountJsonV600(account, viewsAvailable)
+            }
+            BasicAccountsJsonV600(accountsJson)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountsAtBank),
+      "GET",
+      "/banks/BANK_ID/accounts",
+      "Get Accounts at Bank",
+      """Returns the list of accounts at BANK_ID that the user has access to.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      BasicAccountsJsonV600(List(BasicAccountJsonV600(
+        account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        bank_id = "gh.29.uk",
+        label = "My Account",
+        views_available = List(BasicViewJson("owner", "Owner", false))
+      ))),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      apiTagAccount :: apiTagPrivateData :: apiTagPublicData :: Nil,
+      http4sPartialFunction = Some(getAccountsAtBank)
+    )
+
+    // ── End Phase 1 batch 2 ──────────────────────────────────────────────────
 
     // All routes combined (without middleware - for direct use).
     //
