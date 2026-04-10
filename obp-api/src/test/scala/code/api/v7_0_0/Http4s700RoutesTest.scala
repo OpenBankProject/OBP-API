@@ -5,7 +5,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCardsForBank, canGetCustomersAtOneBank, canReadResourceDoc}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UserNotFoundByUserId}
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metadata.counterparties.Counterparties
@@ -1415,6 +1415,90 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("Expected users array")
           }
         case _ => fail("Expected JSON object for getUsers")
+      }
+    }
+  }
+
+  // ─── getUserByUserId ──────────────────────────────────────────────────────────
+
+  feature("Http4s700 getUserByUserId endpoint") {
+
+    scenario("Reject unauthenticated access to /users/user-id/USER_ID", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/user-id/USER_ID with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/users/user-id/${resourceUser1.userId}")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetAnyUser role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/user-id/USER_ID with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/users/user-id/${resourceUser1.userId}", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetAnyUser.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 with user fields when authenticated with canGetAnyUser role", Http4s700RoutesTag) {
+      Given("canGetAnyUser role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetAnyUser.toString)
+
+      When(s"GET /obp/v7.0.0/users/user-id/${resourceUser1.userId} with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/users/user-id/${resourceUser1.userId}", headers)
+
+      Then("Response is 200 with user_id, username, email fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("user_id") match {
+            case Some(JString(id)) => id shouldBe resourceUser1.userId
+            case _ => fail("Expected user_id field")
+          }
+          m.keys should contain("username")
+          m.keys should contain("email")
+          m.keys should contain("entitlements")
+        case _ => fail("Expected JSON object for getUserByUserId")
+      }
+    }
+
+    scenario("Return 404 when USER_ID does not exist", Http4s700RoutesTag) {
+      Given("canGetAnyUser role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetAnyUser.toString)
+
+      When("GET /obp/v7.0.0/users/user-id/non-existing-user-id with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/user-id/non-existing-user-id-xyz", headers)
+
+      Then("Response is 404 with UserNotFoundByUserId message")
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(UserNotFoundByUserId)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
       }
     }
   }

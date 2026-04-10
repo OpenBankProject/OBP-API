@@ -28,9 +28,13 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Co
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import code.loginattempts.LoginAttempt
+import code.metrics.MappedMetric
+import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
+import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -664,6 +668,68 @@ object Http4s700 {
       apiTagUser :: Nil,
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUsers)
+    )
+
+    // Route: GET /obp/v7.0.0/users/user-id/USER_ID
+    val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            user <- UserVend.users.vend.getUserByUserIdFuture(userId).map(
+              x => unboxFullOrFail(x, cc.callContext, s"$UserNotFoundByUserId Current USER_ID($userId)", 404)
+            )
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            agreements <- Future {
+              val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "accept_marketing_info")
+              val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "terms_and_conditions")
+              val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "privacy_conditions")
+              val agreementList = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+              if (agreementList.isEmpty) None else Some(agreementList)
+            }
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = code.model.dataAccess.AuthUser.find(
+              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
+            )
+            userMetrics <- Future {
+              MappedMetric.findAll(
+                By(MappedMetric.userId, userId),
+                OrderBy(MappedMetric.date, Descending),
+                MaxRows(5)
+              )
+            }
+            lastActivityDate = userMetrics.headOption.map(_.getDate())
+            recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
+          } yield JSONFactory600.createUserInfoJsonV600(
+            user,
+            authUser.map(_.firstName.get).getOrElse(""),
+            authUser.map(_.lastName.get).getOrElse(""),
+            entitlements,
+            agreements,
+            isLocked,
+            lastActivityDate,
+            recentOperationIds
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getUserByUserId),
+      "GET",
+      "/users/user-id/USER_ID",
+      "Get User by USER_ID",
+      """Get user by USER_ID.
+        |
+        |Authentication is required.
+        |
+        |CanGetAnyUser entitlement is required.""",
+      EmptyBody,
+      userInfoJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+      apiTagUser :: Nil,
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUserByUserId)
     )
 
     // Route: GET /obp/v7.0.0/banks/BANK_ID/customers
