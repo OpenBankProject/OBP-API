@@ -1175,6 +1175,10 @@ case class InvestigationReportJsonV600(
 // Chat / Messaging API case classes
 case class PostChatRoomJsonV600(name: String, description: String)
 case class PutChatRoomJsonV600(name: Option[String], description: Option[String])
+case class ChatRoomSearchRequestJsonV600(
+  with_user_ids: List[String],
+  exact_participants: Option[Boolean] = Some(false)
+)
 case class PostParticipantJsonV600(user_id: Option[String], consumer_id: Option[String], permissions: Option[List[String]], webhook_url: Option[String])
 case class PutParticipantPermissionsJsonV600(permissions: List[String])
 case class PostChatMessageJsonV600(content: String, message_type: Option[String], mentioned_user_ids: Option[List[String]], reply_to_message_id: Option[String], thread_id: Option[String])
