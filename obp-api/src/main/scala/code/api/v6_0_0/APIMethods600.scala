@@ -12870,7 +12870,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -12941,7 +12941,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -12999,8 +12999,11 @@ trait APIMethods600 {
             unreadCounts <- Future {
               computeUnreadCounts(rooms, u.userId)
             }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13058,8 +13061,11 @@ trait APIMethods600 {
             unreadCounts <- Future {
               computeUnreadCounts(rooms, u.userId)
             }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13122,7 +13128,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13185,7 +13191,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13258,7 +13264,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13331,7 +13337,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13490,7 +13496,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(archivedRoom, participantCount = computeParticipantCount(archivedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13555,7 +13561,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(archivedRoom, participantCount = computeParticipantCount(archivedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13624,7 +13630,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13693,7 +13699,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16343,10 +16349,13 @@ trait APIMethods600 {
                 }
               }
             }
+            participantCounts <- Future {
+              computeParticipantCounts(roomsAndCounts.map(_._1))
+            }
           } yield {
             val rooms = roomsAndCounts.map(_._1)
             val unreadCounts = roomsAndCounts.map { case (room, count) => room.chatRoomId -> count }.toMap
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16428,8 +16437,11 @@ trait APIMethods600 {
             unreadCounts <- Future {
               computeUnreadCounts(rooms, u.userId)
             }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16670,6 +16682,24 @@ trait APIMethods600 {
             (JSONFactory600.createBulkReactionsJson(allReactions, messageIds), HttpCode.`200`(callContext))
           }
       }
+    }
+
+    /**
+     * Compute the participant count for a single chat room.
+     */
+    private def computeParticipantCount(chatRoomId: String): Long = {
+      code.chat.ParticipantTrait.participantProvider.vend
+        .getParticipants(chatRoomId)
+        .map(_.length.toLong)
+        .openOr(0L)
+    }
+
+    /**
+     * Compute the participant count for each given room.
+     * One DB query per room — same N+1 pattern as `computeUnreadCounts`.
+     */
+    private def computeParticipantCounts(rooms: List[code.chat.ChatRoomTrait]): Map[String, Long] = {
+      rooms.map(room => room.chatRoomId -> computeParticipantCount(room.chatRoomId)).toMap
     }
 
     /**
