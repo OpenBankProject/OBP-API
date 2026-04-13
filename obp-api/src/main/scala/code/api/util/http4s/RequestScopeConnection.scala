@@ -145,6 +145,8 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
 
   override def newConnection(name: ConnectionIdentifier): Box[Connection] = {
     val proxy = RequestScopeConnection.currentProxy.get()
+    val thread = Thread.currentThread().getName
+    val caller = new Exception().getStackTrace.drop(1).take(5).mkString(" <- ")
     if (proxy != null) {
       // Guard: if the underlying connection is already closed, the proxy is stale — it
       // was captured in a TtlRunnable submitted during a prior request and that request's
@@ -152,27 +154,29 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
       // Returning a stale proxy would throw "Connection is closed" inside the caller's
       // DB.use and, if that caller is inside authenticate, would be caught as Left(_)
       // and silently turned into a 401 response.
-      val proxyIsClosed = try { proxy.isClosed() } catch { case _: Exception => true }
+      val proxyIsClosed = try { proxy.isClosed() } catch { case e: Exception =>
+        logger.warn(s"[RequestAwareConnectionManager] isClosed() threw on proxy (thread=$thread): ${e.getClass.getName}: ${e.getMessage}")
+        true
+      }
       if (!proxyIsClosed) {
         logger.debug(
           s"[RequestAwareConnectionManager] newConnection: returning open request-scoped proxy " +
-          s"(thread=${Thread.currentThread().getName})"
+          s"(thread=$thread, caller=$caller)"
         )
         Full(proxy)
       } else {
         logger.warn(
           s"[RequestAwareConnectionManager] newConnection: currentProxy is set but its underlying " +
-          s"connection is already closed (thread=${Thread.currentThread().getName}). " +
-          s"This is a TTL-stale proxy from a prior request whose withRequestTransaction already " +
-          s"committed and closed the real connection. Falling back to a fresh vendor connection " +
-          s"so the caller (likely a background scalacache compute callback) can proceed normally."
+          s"connection is already closed (thread=$thread). " +
+          s"TTL-stale proxy from a prior request. Falling back to a fresh vendor connection. " +
+          s"caller=$caller"
         )
         delegate.newConnection(name)
       }
     } else {
       logger.debug(
         s"[RequestAwareConnectionManager] newConnection: no request proxy — delegating to vendor " +
-        s"(thread=${Thread.currentThread().getName})"
+        s"(thread=$thread, caller=$caller)"
       )
       delegate.newConnection(name)
     }
@@ -186,7 +190,14 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
    */
   override def releaseConnection(conn: Connection): Unit = {
     val proxy = RequestScopeConnection.currentProxy.get()
-    if (proxy != null && (conn eq proxy.asInstanceOf[AnyRef])) ()
-    else delegate.releaseConnection(conn)
+    val thread = Thread.currentThread().getName
+    if (proxy != null && (conn eq proxy.asInstanceOf[AnyRef])) {
+      logger.debug(s"[RequestAwareConnectionManager] releaseConnection: skipping release of request-scoped proxy (thread=$thread)")
+    } else {
+      if (proxy != null) {
+        logger.debug(s"[RequestAwareConnectionManager] releaseConnection: conn is NOT the request proxy — delegating to vendor (thread=$thread)")
+      }
+      delegate.releaseConnection(conn)
+    }
   }
 }

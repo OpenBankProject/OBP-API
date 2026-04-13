@@ -82,7 +82,13 @@ jobs:
             echo "No maven-build.log found; skipping failure scan."
             exit 0
           fi
-          if grep -n "\*\*\* FAILED \*\*\*" maven-build.log; then
+
+          echo "=== BRIDGE / UNCAUGHT EXCEPTIONS ==="
+          grep -n "\[BRIDGE\] Exception\|Uncaught exception in dispatch\|requestScopeProxy=" maven-build.log | head -200 || true
+
+          echo ""
+          echo "=== FAILING TEST SCENARIOS (with 30 lines context) ==="
+          if grep -C 30 -n "\*\*\* FAILED \*\*\*" maven-build.log; then
             echo "Failing tests detected above."
             exit 1
           else
