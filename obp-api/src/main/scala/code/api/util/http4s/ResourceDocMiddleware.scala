@@ -121,8 +121,12 @@ object ResourceDocMiddleware extends MdcLoggable {
    *
    * Borrows a Connection from HikariCP, wraps it in a non-closing proxy (so Lift's
    * internal DB.use lifecycle cannot commit or return it to the pool prematurely),
-   * and stores it in both requestProxyLocal (IOLocal — fiber-local source of truth)
-   * and currentProxy (TTL — propagated to Future workers via TtlRunnable).
+   * and stores it in requestProxyLocal (IOLocal — fiber-local source of truth).
+   *
+   * currentProxy (TTL) is NOT set here.  Every DB call goes through
+   * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
+   * TTL within a single IO.defer block on the compute thread, so the thread is never
+   * left dirty after the fromFuture call returns.
    *
    * On success: commits and closes the real connection.
    * On exception: rolls back and closes the real connection.
@@ -136,30 +140,17 @@ object ResourceDocMiddleware extends MdcLoggable {
       realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
       proxy     = RequestScopeConnection.makeProxy(realConn)
       _        <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
-      _        <- IO {
-                    logger.debug(
-                      s"[withRequestTransaction] Setting currentProxy on thread=${Thread.currentThread().getName}"
-                    )
-                    RequestScopeConnection.currentProxy.set(proxy)
-                  }
+      // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
+      // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
+      // the TTL within a single IO.defer block on the compute thread.  Setting it
+      // here would leave the compute thread's TTL dirty if guaranteeCase runs on a
+      // different thread.
       result   <- io.guaranteeCase {
                     case Outcome.Succeeded(_) =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO {
-                          logger.debug(
-                            s"[withRequestTransaction] Clearing currentProxy (success) on thread=${Thread.currentThread().getName}"
-                          )
-                          RequestScopeConnection.currentProxy.set(null)
-                        } *>
                         IO.blocking { try { realConn.commit() } finally { realConn.close() } }
                     case _ =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO {
-                          logger.debug(
-                            s"[withRequestTransaction] Clearing currentProxy (failure/cancellation) on thread=${Thread.currentThread().getName}"
-                          )
-                          RequestScopeConnection.currentProxy.set(null)
-                        } *>
                         IO.blocking { try { realConn.rollback() } finally { realConn.close() } }
                   }
     } yield result

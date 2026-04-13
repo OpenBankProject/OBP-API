@@ -37,16 +37,19 @@ import scala.concurrent.Future
  * FLOW per request (ResourceDocMiddleware):
  *   1. Borrow a real Connection from HikariCP.
  *   2. Wrap it in a non-closing proxy (commit/rollback/close are no-ops).
- *   3. Store the proxy in requestProxyLocal (IOLocal) and currentProxy (TTL).
+ *   3. Store the proxy in requestProxyLocal (IOLocal) only — currentProxy (TTL) is
+ *      NOT set here to avoid leaving compute threads dirty.
  *   4. Run validateRequest + routes.run inside withRequestTransaction.
- *   5. Each IO.fromFuture call site uses RequestScopeConnection.fromFuture, which:
- *        a. Reads the proxy from requestProxyLocal (IOLocal — always correct).
- *        b. Sets currentProxy (TTL) on the current compute thread.
- *        c. Calls IO.fromFuture — the Future is submitted from the compute thread
- *           where TTL is set, so TtlRunnable propagates it to the worker thread.
+ *   5. Each IO.fromFuture call site uses RequestScopeConnection.fromFuture, which in
+ *      a single synchronous IO.defer block on compute thread T:
+ *        a. Sets currentProxy (TTL) on T.
+ *        b. Evaluates `fut` — the Future is submitted; TtlRunnable captures T's TTL.
+ *        c. Removes currentProxy from T immediately after submission (T is clean).
+ *        d. Awaits the already-submitted future asynchronously.
  *   6. Inside the Future, Lift Mapper calls DB.use(DefaultConnectionIdentifier).
- *      RequestAwareConnectionManager.newConnection reads currentProxy (TTL) and
- *      returns the proxy → all mapper calls share one underlying Connection.
+ *      RequestAwareConnectionManager.newConnection reads currentProxy (TTL — set by
+ *      TtlRunnable on the worker thread) and returns the proxy → all mapper calls
+ *      share one underlying Connection.
  *   7. The proxy's no-op commit/close prevents Lift from committing or releasing
  *      the connection at the end of each individual DB.use scope.
  *   8. At request end: commit (or rollback on exception) and close the real connection.
@@ -119,14 +122,25 @@ object RequestScopeConnection extends MdcLoggable {
    * Drop-in replacement for IO.fromFuture(IO(fut)).
    *
    * Reads the request proxy from the IOLocal (reliable across IO thread switches),
-   * re-sets the TTL on the current compute thread, then submits the Future.
-   * The global EC's TtlRunnable propagates the TTL to the Future's worker thread,
-   * so DB.use inside the Future sees and reuses the request-scoped connection.
+   * then — in a single synchronous IO.defer block on the current compute thread T:
+   *   1. Sets TTL on T so TtlRunnable captures it at Future-submission time.
+   *   2. Evaluates `fut`, which submits the Future to the OBP EC; the TtlRunnable
+   *      wraps the submitted task and carries the proxy to the Future's worker thread.
+   *   3. Removes the TTL from T immediately, so T is clean after this step.
+   *   4. Returns IO.fromFuture(IO.pure(f)) to await the already-submitted future.
+   *
+   * Steps 1-3 are synchronous within IO.defer, guaranteeing they all run on T before
+   * any fiber scheduling can switch threads.  The Future worker still receives the
+   * proxy via the TtlRunnable captured in step 2.
    */
   def fromFuture[A](fut: => Future[A]): IO[A] =
     requestProxyLocal.get.flatMap { proxyOpt =>
-      IO(proxyOpt.foreach(currentProxy.set)) *>
-        IO.fromFuture(IO(fut))
+      IO.defer {
+        proxyOpt.foreach(currentProxy.set)  // (1) set TTL on current thread T
+        val f = fut                          // (2) submit Future; TtlRunnable captures proxy from T
+        currentProxy.remove()               // (3) clear TTL on T — T is clean after this point
+        IO.fromFuture(IO.pure(f))           // await the already-submitted future
+      }
     }
 }
 
