@@ -12870,7 +12870,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -12941,7 +12941,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot add creator as participant", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`201`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -12999,8 +12999,11 @@ trait APIMethods600 {
             unreadCounts <- Future {
               computeUnreadCounts(rooms, u.userId)
             }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13058,8 +13061,11 @@ trait APIMethods600 {
             unreadCounts <- Future {
               computeUnreadCounts(rooms, u.userId)
             }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
           } yield {
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13122,7 +13128,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13185,7 +13191,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, NotChatRoomParticipant, 403)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(room), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13258,7 +13264,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13331,7 +13337,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13490,7 +13496,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(archivedRoom, participantCount = computeParticipantCount(archivedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13555,7 +13561,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot archive chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(archivedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(archivedRoom, participantCount = computeParticipantCount(archivedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13624,7 +13630,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -13693,7 +13699,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot update chat room", 400)
             }
           } yield {
-            (JSONFactory600.createChatRoomJson(updatedRoom), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomJson(updatedRoom, participantCount = computeParticipantCount(updatedRoom.chatRoomId)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16343,10 +16349,99 @@ trait APIMethods600 {
                 }
               }
             }
+            participantCounts <- Future {
+              computeParticipantCounts(roomsAndCounts.map(_._1))
+            }
           } yield {
             val rooms = roomsAndCounts.map(_._1)
             val unreadCounts = roomsAndCounts.map { case (room, count) => room.chatRoomId -> count }.toMap
-            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts), HttpCode.`200`(callContext))
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    // 25b. searchChatRooms
+    staticResourceDocs += ResourceDoc(
+      searchChatRooms,
+      implementedInApiVersion,
+      nameOf(searchChatRooms),
+      "POST",
+      "/chat-rooms/search",
+      "Search Chat Rooms",
+      s"""Search chat rooms the current user is a participant of, filtered by the supplied criteria.
+         |
+         |Currently supports filtering by participant set:
+         |
+         |- `with_user_ids` (array of user_id strings, required): only return rooms where the current user
+         |  AND every listed user_id are participants. Pass an empty list to match all of the current user's rooms.
+         |- `exact_participants` (boolean, optional, default `false`): if `true`, the room's participant set
+         |  must equal exactly `{current user} ∪ with_user_ids` with no extras. Open rooms are excluded
+         |  from exact-participant searches because their participant set is implicitly "everyone".
+         |
+         |Primary use case: a client looking up an existing 1-on-1 direct-message room before creating one,
+         |by calling with `with_user_ids: [<other user_id>]` and `exact_participants: true`.
+         |
+         |The response shape is the same as `Get My Chat Rooms`.
+         |
+         |Authentication is Required
+         |
+         |""".stripMargin,
+      ChatRoomSearchRequestJsonV600(
+        with_user_ids = List("user-id-123"),
+        exact_participants = Some(true)
+      ),
+      ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+        chat_room_id = "chat-room-id-123",
+        bank_id = "",
+        name = "DM with robert.x.0.gh",
+        description = "",
+        joining_key = "abc123key",
+        created_by = "user-id-456",
+        created_by_username = "alice",
+        created_by_provider = "https://github.com",
+        is_open_room = false,
+        is_archived = false,
+        last_message_at = Some(new java.util.Date()),
+        last_message_preview = Some("Hello!"),
+        last_message_sender = Some("alice"),
+        unread_count = Some(0),
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ))),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagChat),
+      None
+    )
+
+    lazy val searchChatRooms: OBPEndpoint = {
+      case "chat-rooms" :: "search" :: Nil JsonPost json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChatRoomSearchRequestJsonV600", 400, callContext) {
+              json.extract[ChatRoomSearchRequestJsonV600]
+            }
+            rooms <- Future {
+              code.chat.ChatRoomTrait.chatRoomProvider.vend.searchChatRoomsForUserWithParticipants(
+                u.userId,
+                postJson.with_user_ids,
+                postJson.exact_participants.getOrElse(false)
+              )
+            } map {
+              x => unboxFullOrFail(x, callContext, s"$UnknownError Cannot search chat rooms", 400)
+            }
+            unreadCounts <- Future {
+              computeUnreadCounts(rooms, u.userId)
+            }
+            participantCounts <- Future {
+              computeParticipantCounts(rooms)
+            }
+          } yield {
+            (JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -16587,6 +16682,24 @@ trait APIMethods600 {
             (JSONFactory600.createBulkReactionsJson(allReactions, messageIds), HttpCode.`200`(callContext))
           }
       }
+    }
+
+    /**
+     * Compute the participant count for a single chat room.
+     */
+    private def computeParticipantCount(chatRoomId: String): Long = {
+      code.chat.ParticipantTrait.participantProvider.vend
+        .getParticipants(chatRoomId)
+        .map(_.length.toLong)
+        .openOr(0L)
+    }
+
+    /**
+     * Compute the participant count for each given room.
+     * One DB query per room — same N+1 pattern as `computeUnreadCounts`.
+     */
+    private def computeParticipantCounts(rooms: List[code.chat.ChatRoomTrait]): Map[String, Long] = {
+      rooms.map(room => room.chatRoomId -> computeParticipantCount(room.chatRoomId)).toMap
     }
 
     /**
