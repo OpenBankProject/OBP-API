@@ -1175,6 +1175,10 @@ case class InvestigationReportJsonV600(
 // Chat / Messaging API case classes
 case class PostChatRoomJsonV600(name: String, description: String)
 case class PutChatRoomJsonV600(name: Option[String], description: Option[String])
+case class ChatRoomSearchRequestJsonV600(
+  with_user_ids: List[String],
+  exact_participants: Option[Boolean] = Some(false)
+)
 case class PostParticipantJsonV600(user_id: Option[String], consumer_id: Option[String], permissions: Option[List[String]], webhook_url: Option[String])
 case class PutParticipantPermissionsJsonV600(permissions: List[String])
 case class PostChatMessageJsonV600(content: String, message_type: Option[String], mentioned_user_ids: Option[List[String]], reply_to_message_id: Option[String], thread_id: Option[String])
@@ -1197,7 +1201,8 @@ case class ChatRoomJsonV600(
   last_message_sender: Option[String],
   unread_count: Option[Long],
   created_at: java.util.Date,
-  updated_at: java.util.Date
+  updated_at: java.util.Date,
+  participant_count: Long = 0L
 )
 case class ChatRoomsJsonV600(chat_rooms: List[ChatRoomJsonV600])
 
@@ -2968,7 +2973,11 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
 
   // Chat / Messaging factory functions
-  def createChatRoomJson(room: code.chat.ChatRoomTrait, unreadCount: Option[Long] = None): ChatRoomJsonV600 = {
+  def createChatRoomJson(
+    room: code.chat.ChatRoomTrait,
+    unreadCount: Option[Long] = None,
+    participantCount: Long = 0L
+  ): ChatRoomJsonV600 = {
     val creator = code.users.Users.users.vend.getUserByUserId(room.createdBy)
     val hasLastMessage = room.lastMessageAt.isDefined
     ChatRoomJsonV600(
@@ -2987,11 +2996,18 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_message_sender = if (hasLastMessage) Some(room.lastMessageSender) else None,
       unread_count = unreadCount,
       created_at = room.createdDate,
-      updated_at = room.updatedDate
+      updated_at = room.updatedDate,
+      participant_count = participantCount
     )
   }
-  def createChatRoomsJson(rooms: List[code.chat.ChatRoomTrait], unreadCounts: Map[String, Long] = Map.empty): ChatRoomsJsonV600 = {
-    ChatRoomsJsonV600(rooms.map(r => createChatRoomJson(r, unreadCounts.get(r.chatRoomId))))
+  def createChatRoomsJson(
+    rooms: List[code.chat.ChatRoomTrait],
+    unreadCounts: Map[String, Long] = Map.empty,
+    participantCounts: Map[String, Long] = Map.empty
+  ): ChatRoomsJsonV600 = {
+    ChatRoomsJsonV600(rooms.map(r =>
+      createChatRoomJson(r, unreadCounts.get(r.chatRoomId), participantCounts.getOrElse(r.chatRoomId, 0L))
+    ))
   }
 
   def createParticipantJson(p: code.chat.ParticipantTrait): ParticipantJsonV600 = {

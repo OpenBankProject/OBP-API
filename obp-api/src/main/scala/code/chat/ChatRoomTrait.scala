@@ -23,6 +23,19 @@ trait ChatRoomProvider {
   def getChatRoomsByBankIdForUser(bankId: String, userId: String): Box[List[ChatRoomTrait]]
   def getChatRoomByJoiningKey(joiningKey: String): Box[ChatRoomTrait]
 
+  /**
+   * Find chat rooms where the given user AND all of `requiredParticipantUserIds`
+   * are participants. If `exactParticipants` is true, the room's participant set
+   * must equal exactly `{userId} ∪ requiredParticipantUserIds` and open rooms
+   * are excluded (their participant set is "everyone" so an exact match is
+   * meaningless).
+   */
+  def searchChatRoomsForUserWithParticipants(
+    userId: String,
+    requiredParticipantUserIds: List[String],
+    exactParticipants: Boolean
+  ): Box[List[ChatRoomTrait]]
+
   def updateChatRoom(
     chatRoomId: String,
     name: Option[String],

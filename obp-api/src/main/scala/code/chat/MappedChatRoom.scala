@@ -63,6 +63,46 @@ object MappedChatRoomProvider extends ChatRoomProvider {
     ChatRoom.find(By(ChatRoom.JoiningKey, joiningKey))
   }
 
+  override def searchChatRoomsForUserWithParticipants(
+    userId: String,
+    requiredParticipantUserIds: List[String],
+    exactParticipants: Boolean
+  ): Box[List[ChatRoomTrait]] = {
+    tryo {
+      // 1. Find every room where the current user is an explicit participant.
+      val myRoomIds = Participant.findAll(By(Participant.UserId, userId))
+        .map(_.chatRoomId)
+        .distinct
+      val myRooms = if (myRoomIds.isEmpty) Nil
+        else ChatRoom.findAll(ByList(ChatRoom.ChatRoomId, myRoomIds))
+
+      // 2. For each candidate room, fetch the full participant set and apply
+      //    the requested filters.
+      val requiredSet = requiredParticipantUserIds.toSet
+      val expectedExactSize = requiredSet.size + 1 // +1 for the current user
+
+      myRooms.filter { room =>
+        // Open rooms have implicit participants ("everyone"), so an exact-match
+        // query is meaningless against them — exclude them in that case.
+        if (exactParticipants && room.isOpenRoom) {
+          false
+        } else {
+          val participantUserIds = Participant.findAll(By(Participant.ChatRoomId, room.chatRoomId))
+            .map(_.userId)
+            .toSet
+          val containsAllRequired = requiredSet.subsetOf(participantUserIds)
+          if (!containsAllRequired) {
+            false
+          } else if (exactParticipants) {
+            participantUserIds.size == expectedExactSize
+          } else {
+            true
+          }
+        }
+      }
+    }
+  }
+
   override def updateChatRoom(
     chatRoomId: String,
     name: Option[String],
