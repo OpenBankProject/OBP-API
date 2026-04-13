@@ -17,6 +17,7 @@ import org.http4s._
 import org.http4s.headers.`Content-Type`
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.NonFatal
 
 /**
  * ResourceDoc-driven validation middleware for http4s.
@@ -98,15 +99,70 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Run full validation chain
-            OptionT(validateRequest(req, resourceDoc, pathParams, ccWithDoc, routes).map(Option(_)))
+            // Wrap in a request-scoped transaction, then run full validation chain
+            OptionT(withRequestTransaction(
+              validateRequest(req, resourceDoc, pathParams, ccWithDoc, routes)
+            ).map(Option(_)))
 
           case None =>
-            // No matching ResourceDoc: fallback to original route
+            // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
+            // ResourceDocMatcher.findResourceDoc already logged a WARN with full key/index detail.
+            // Any background DB calls triggered by the Lift bridge for this request will use
+            // RequestAwareConnectionManager, which now falls back to a fresh vendor connection
+            // when the TTL-stale proxy is detected as closed.
             routes.run(req)
         }
       }
     }
+  }
+
+  /**
+   * Wraps an IO[Response[IO]] in a request-scoped DB transaction.
+   *
+   * Borrows a Connection from HikariCP, wraps it in a non-closing proxy (so Lift's
+   * internal DB.use lifecycle cannot commit or return it to the pool prematurely),
+   * and stores it in both requestProxyLocal (IOLocal — fiber-local source of truth)
+   * and currentProxy (TTL — propagated to Future workers via TtlRunnable).
+   *
+   * On success: commits and closes the real connection.
+   * On exception: rolls back and closes the real connection.
+   *
+   * Metric writes (IO.blocking in recordMetric) run on the blocking pool where
+   * currentProxy is not set — they get their own pool connection and commit
+   * independently, matching v6 behaviour.
+   */
+  private def withRequestTransaction(io: IO[Response[IO]]): IO[Response[IO]] = {
+    for {
+      realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+      proxy     = RequestScopeConnection.makeProxy(realConn)
+      _        <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
+      _        <- IO {
+                    logger.debug(
+                      s"[withRequestTransaction] Setting currentProxy on thread=${Thread.currentThread().getName}"
+                    )
+                    RequestScopeConnection.currentProxy.set(proxy)
+                  }
+      result   <- io.guaranteeCase {
+                    case Outcome.Succeeded(_) =>
+                      RequestScopeConnection.requestProxyLocal.set(None) *>
+                        IO {
+                          logger.debug(
+                            s"[withRequestTransaction] Clearing currentProxy (success) on thread=${Thread.currentThread().getName}"
+                          )
+                          RequestScopeConnection.currentProxy.set(null)
+                        } *>
+                        IO.blocking { try { realConn.commit() } finally { realConn.close() } }
+                    case _ =>
+                      RequestScopeConnection.requestProxyLocal.set(None) *>
+                        IO {
+                          logger.debug(
+                            s"[withRequestTransaction] Clearing currentProxy (failure/cancellation) on thread=${Thread.currentThread().getName}"
+                          )
+                          RequestScopeConnection.currentProxy.set(null)
+                        } *>
+                        IO.blocking { try { realConn.rollback() } finally { realConn.close() } }
+                  }
+    } yield result
   }
 
   /**
@@ -160,8 +216,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
     val io =
-      if (needsAuth) IO.fromFuture(IO(APIUtil.authenticatedAccess(ctx.callContext)))
-      else IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
+      if (needsAuth) RequestScopeConnection.fromFuture(APIUtil.authenticatedAccess(ctx.callContext))
+      else RequestScopeConnection.fromFuture(APIUtil.anonymousAccess(ctx.callContext))
 
     EitherT(
       io.attempt.flatMap {
@@ -219,7 +275,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     pathParams.get("BANK_ID") match {
       case Some(bankId) =>
         EitherT(
-          IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))
+          RequestScopeConnection.fromFuture(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext)))
             .attempt.flatMap {
               case Right((bank, Some(updatedCC))) => IO.pure(Right(ctx.copy(bank = Some(bank), callContext = updatedCC)))
               case Right((bank, None))             => IO.pure(Right(ctx.copy(bank = Some(bank))))
@@ -237,7 +293,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
       case (Some(bankId), Some(accountId)) =>
         EitherT(
-          IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext))))
+          RequestScopeConnection.fromFuture(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext)))
             .attempt.flatMap {
               case Right((acc, Some(updatedCC))) => IO.pure(Right(ctx.copy(account = Some(acc), callContext = updatedCC)))
               case Right((acc, None))            => IO.pure(Right(ctx.copy(account = Some(acc))))
@@ -255,7 +311,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
       case (Some(bankId), Some(accountId), Some(viewId)) =>
         EitherT(
-          IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext))))
+          RequestScopeConnection.fromFuture(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext)))
             .attempt.flatMap {
               case Right(view) => IO.pure(Right(ctx.copy(view = Some(view))))
               case Left(e: APIFailureNewStyle) => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
@@ -272,7 +328,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
       case (Some(bankId), Some(accountId), Some(counterpartyId)) =>
         EitherT(
-          IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext))))
+          RequestScopeConnection.fromFuture(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext)))
             .attempt.flatMap {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))

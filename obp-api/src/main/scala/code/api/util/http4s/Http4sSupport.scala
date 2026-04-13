@@ -17,6 +17,7 @@ import java.util.{Date, UUID}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.higherKinds
+import code.api.util.http4s.RequestScopeConnection
 
 /**
  * Http4s support utilities for OBP API.
@@ -120,7 +121,7 @@ object Http4sRequestAttributes {
      */
     def executeAndRespond[A](req: Request[IO])(f: CallContext => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      IO.fromFuture(IO(f(cc))).attempt.flatMap {
+      RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -134,7 +135,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       val io = for {
         user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-        result <- IO.fromFuture(IO(f(user, cc)))
+        result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -150,7 +151,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       val io = for {
         bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-        result <- IO.fromFuture(IO(f(bank, cc)))
+        result <- RequestScopeConnection.fromFuture(f(bank, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -167,7 +168,7 @@ object Http4sRequestAttributes {
       val io = for {
         user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-        result <- IO.fromFuture(IO(f(user, bank, cc)))
+        result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -195,7 +196,7 @@ object Http4sRequestAttributes {
       parseBody[B](cc) match {
         case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
         case Right(body) =>
-          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+          RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
             case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -211,7 +212,7 @@ object Http4sRequestAttributes {
       parseBody[B](cc) match {
         case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
         case Right(body) =>
-          IO.fromFuture(IO(f(body, cc))).attempt.flatMap {
+          RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
               Created(jsonString).flatTap(recordMetric(result, _))
@@ -231,7 +232,7 @@ object Http4sRequestAttributes {
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-            result <- IO.fromFuture(IO(f(user, body, cc)))
+            result <- RequestScopeConnection.fromFuture(f(user, body, cc))
           } yield result
           io.attempt.flatMap {
             case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -251,7 +252,7 @@ object Http4sRequestAttributes {
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-            result <- IO.fromFuture(IO(f(user, body, cc)))
+            result <- RequestScopeConnection.fromFuture(f(user, body, cc))
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
@@ -274,7 +275,7 @@ object Http4sRequestAttributes {
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
             bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+            result <- RequestScopeConnection.fromFuture(f(user, bank, body, cc))
           } yield result
           io.attempt.flatMap {
             case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -295,7 +296,7 @@ object Http4sRequestAttributes {
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
             bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-            result <- IO.fromFuture(IO(f(user, bank, body, cc)))
+            result <- RequestScopeConnection.fromFuture(f(user, bank, body, cc))
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
@@ -315,7 +316,7 @@ object Http4sRequestAttributes {
       val io = for {
         user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
-        result      <- IO.fromFuture(IO(f(user, bankAccount, cc)))
+        result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -333,7 +334,7 @@ object Http4sRequestAttributes {
         user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
-        result      <- IO.fromFuture(IO(f(user, bankAccount, view, cc)))
+        result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -352,7 +353,7 @@ object Http4sRequestAttributes {
         bankAccount  <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         view         <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
         counterparty <- IO.fromOption(cc.counterparty)(new RuntimeException("Counterparty not found in CallContext"))
-        result       <- IO.fromFuture(IO(f(user, bankAccount, view, counterparty, cc)))
+        result       <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, counterparty, cc))
       } yield result
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -367,7 +368,7 @@ object Http4sRequestAttributes {
      */
     def executeFuture[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      IO.fromFuture(IO(f)).attempt.flatMap {
+      RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -379,7 +380,7 @@ object Http4sRequestAttributes {
      */
     def executeFutureCreated[A](req: Request[IO])(f: => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      IO.fromFuture(IO(f)).attempt.flatMap {
+      RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
           Created(jsonString).flatTap(recordMetric(result, _))
@@ -393,7 +394,7 @@ object Http4sRequestAttributes {
      */
     def executeDelete(req: Request[IO])(f: CallContext => Future[_]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
-      IO.fromFuture(IO(f(cc))).attempt.flatMap {
+      RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
         case Right(_)  => NoContent().flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -407,7 +408,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       val io = for {
         user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
-        result <- IO.fromFuture(IO(f(user, cc)))
+        result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
         case Right(_)  => NoContent().flatTap(recordMetric("", _))
@@ -424,7 +425,7 @@ object Http4sRequestAttributes {
       val io = for {
         user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
         bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
-        result <- IO.fromFuture(IO(f(user, bank, cc)))
+        result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
       io.attempt.flatMap {
         case Right(_)  => NoContent().flatTap(recordMetric("", _))
@@ -549,7 +550,7 @@ object Http4sCallContextBuilder {
  * This matcher finds the corresponding ResourceDoc for a given request
  * and extracts path parameters.
  */
-object ResourceDocMatcher {
+object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
 
   // API prefix pattern: /obp/vX.X.X
   private val apiPrefixPattern = """^/obp/v\d+\.\d+\.\d+""".r
@@ -582,12 +583,22 @@ object ResourceDocMatcher {
     path: Uri.Path,
     index: ResourceDocIndex
   ): Option[ResourceDoc] = {
-    val pathString  = path.renderString
-    val apiVersion  = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+    val pathString   = path.renderString
+    val apiVersion   = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val segCount    = strippedPath.split("/").count(_.nonEmpty)
-    index.getOrElse((verb.toUpperCase, apiVersion, segCount), Nil)
-      .find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+    val segCount     = strippedPath.split("/").count(_.nonEmpty)
+    val lookupKey    = (verb.toUpperCase, apiVersion, segCount)
+    val candidates   = index.getOrElse(lookupKey, Nil)
+    val result       = candidates.find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+    if (result.isEmpty) {
+      logger.debug(
+        s"[ResourceDocMatcher] No match for $verb $pathString. " +
+        s"lookupKey=$lookupKey strippedPath='$strippedPath'. " +
+        s"Candidates with that key: ${if (candidates.isEmpty) "(none)" else candidates.map(d => s"${d.requestVerb} ${d.requestUrl}(${d.implementedInApiVersion})").mkString(", ")}. " +
+        s"Index keys for apiVersion=$apiVersion: ${index.keys.filter(_._2 == apiVersion).mkString(", ")}"
+      )
+    }
+    result
   }
 
   /**
