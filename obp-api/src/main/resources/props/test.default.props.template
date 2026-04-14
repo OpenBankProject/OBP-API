@@ -141,3 +141,11 @@ allow_public_views =true
 
 # Enable /Disable Create password reset url endpoint
 #ResetPasswordUrlEnabled=true
+
+# HikariCP pool size for tests.
+# withRequestTransaction (v7 native endpoints) holds 1 connection per concurrent request.
+# ScalaCache rate-limit queries (RateLimiting.findAll) fire concurrently on the OBP EC on
+# cache miss, needing additional connections from the same pool. Worst case: N concurrent
+# requests + N background queries = 2*N connections needed. Default of 10 is exhausted by
+# the 10-thread concurrency tests. Set to 20 to provide headroom.
+hikari.maximumPoolSize=20
