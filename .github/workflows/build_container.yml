@@ -8,32 +8,200 @@ env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
 
+# ---------------------------------------------------------------------------
+# compile  — compiles everything once, packages the JAR, uploads classes
+# test     — 3-way matrix downloads compiled output and runs a shard of tests
+# docker   — downloads compiled output, builds and pushes the container image
+#
+# Wall-clock target:
+#   compile ~10 min  (parallel with setup of test shards)
+#   tests   ~8 min   (3 shards in parallel after compile finishes)
+#   docker  ~3 min   (after all shards pass)
+#   total   ~21 min  (vs ~30 min single-job)
+# ---------------------------------------------------------------------------
+
 jobs:
-  build:
+
+  # --------------------------------------------------------------------------
+  # Job 1: compile
+  # --------------------------------------------------------------------------
+  compile:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: "11"
+          distribution: "adopt"
+          cache: maven          # caches ~/.m2/repository keyed on pom.xml hash
+
+      - name: Setup production props
+        run: |
+          cp obp-api/src/main/resources/props/sample.props.template \
+             obp-api/src/main/resources/props/production.default.props
+
+      - name: Compile and install (skip test execution)
+        run: |
+          # -DskipTests  — compile test sources but do NOT run them
+          # Test classes must be in target/test-classes for the test shards
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
+            mvn clean install -T 4 -Pprod -DskipTests
+
+      - name: Upload compiled output
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-output
+          retention-days: 1
+          # Upload full target dirs — test shards and docker job download these
+          path: |
+            obp-api/target/
+            obp-commons/target/
+
+      - name: Save .jar artifact
+        run: mkdir -p ./push && cp obp-api/target/obp-api.jar ./push/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          path: push/
+
+  # --------------------------------------------------------------------------
+  # Job 2: test (3-way matrix)
+  #
+  # Shard assignment (based on actual build #48 timings):
+  #   Shard 1  ~440s  v4_0_0(292) v5_0_0(47) v3_0_0(42) v2_1_0(37) v2_2_0(11) …
+  #   Shard 2  ~460s  v1_2_1(175) v6_0_0(162) ResourceDocs(82) util(15) berlin(41) …
+  #   Shard 3  ~420s  v5_1_0(156) v3_1_0(124) http4sbridge(53) v7_0_0(27) code.api(26) …
+  # --------------------------------------------------------------------------
+  test:
+    needs: compile
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1
+            name: "v4 + v5_0 + v3_0 + v2 + small"
+            # ~440s of test work
+            # Space-separated package prefixes for scalatest wildcardSuites (-w)
+            test_filter: >-
+              code.api.v4_0_0
+              code.api.v5_0_0
+              code.api.v3_0_0
+              code.api.v2_1_0
+              code.api.v2_2_0
+              code.api.v2_0_0
+              code.api.v1_4_0
+              code.api.v1_3_0
+              code.api.UKOpenBanking
+              code.atms
+              code.branches
+              code.products
+              code.crm
+              code.accountHolder
+              code.entitlement
+              code.bankaccountcreation
+              code.bankconnectors
+              code.container
+          - shard: 2
+            name: "v1_2_1 + v6 + ResourceDocs + util + berlin + small"
+            # ~460s of test work
+            test_filter: >-
+              code.api.v1_2_1
+              code.api.v6_0_0
+              code.api.ResourceDocs1_4_0
+              code.api.util
+              code.api.berlin
+              code.management
+              code.metrics
+              code.model
+              code.views
+              code.usercustomerlinks
+              code.customer
+              code.errormessages
+          - shard: 3
+            name: "v5_1 + v3_1 + http4sbridge + v7 + code.api + util + connector"
+            # ~420s of test work
+            # Root-level code.api tests use class-name prefix matching (lowercase classes)
+            test_filter: >-
+              code.api.v5_1_0
+              code.api.v3_1_0
+              code.api.http4sbridge
+              code.api.v7_0_0
+              code.api.Authentication
+              code.api.dauthTest
+              code.api.DirectLoginTest
+              code.api.gateWayloginTest
+              code.api.OBPRestHelperTest
+              code.util
+              code.connector
+
     services:
       redis:
         image: redis
         ports:
           - 6379:6379
-        # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
           java-version: "11"
           distribution: "adopt"
           cache: maven
-      - name: Build with Maven
+
+      - name: Download compiled output
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-output
+
+      - name: Verify compiled output
         run: |
-          set -o pipefail
-          cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/production.default.props
+          echo "=== obp-api/target/ layout ==="
+          ls -la obp-api/target/ 2>/dev/null || echo "MISSING: obp-api/target/"
+          echo ""
+          echo "=== .class file counts ==="
+          echo "main:  $(find obp-api/target/classes     -name '*.class' 2>/dev/null | wc -l)"
+          echo "test:  $(find obp-api/target/test-classes -name '*.class' 2>/dev/null | wc -l)"
+          echo "commons: $(find obp-commons/target/classes -name '*.class' 2>/dev/null | wc -l)"
+          echo ""
+          echo "=== sample test-classes paths ==="
+          find obp-api/target/test-classes -name '*.class' 2>/dev/null | head -5 || echo "none found"
+
+      - name: Install local artifacts into Maven repo
+        run: |
+          # The compile runner's ~/.m2 is discarded after that job completes.
+          # Install the two local multi-module artifacts so scalatest:test can
+          # resolve com.tesobe:* without hitting remote repos.
+          #
+          # 1. Parent POM — obp-commons' pom.xml declares obp-parent as its
+          #    <parent>; Maven fetches it when reading transitive deps.
+          mvn install:install-file \
+            -Dfile=pom.xml \
+            -DgroupId=com.tesobe \
+            -DartifactId=obp-parent \
+            -Dversion=1.10.1 \
+            -Dpackaging=pom \
+            -DgeneratePom=false
+          # 2. obp-commons JAR with its full POM (lists compile deps inherited
+          #    by obp-api at test classpath resolution time).
+          mvn install:install-file \
+            -Dfile=obp-commons/target/obp-commons-1.10.1.jar \
+            -DpomFile=obp-commons/pom.xml
+
+      - name: Setup props
+        run: |
+          cp obp-api/src/main/resources/props/sample.props.template \
+             obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
           echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
@@ -54,51 +222,61 @@ jobs:
           echo openredirects.hostname.whitlelist=http://127.0.0.1,http://localhost >> obp-api/src/main/resources/props/test.default.props
           echo remotedata.secret = foobarbaz >> obp-api/src/main/resources/props/test.default.props
           echo allow_public_views=true >> obp-api/src/main/resources/props/test.default.props
-
           echo SIMPLE_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo SEPA_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
           echo SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
-
           echo allow_oauth2_login=true >> obp-api/src/main/resources/props/test.default.props
           echo oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs >> obp-api/src/main/resources/props/test.default.props
-
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
-
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
-          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -T 4 -Pprod > maven-build.log 2>&1
+          echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
+          echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
 
-      - name: Report failing tests (if any)
+      - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
+        run: |
+          # wildcardSuites requires comma-separated package prefixes (-w per entry).
+          # The YAML >- scalar collapses newlines to spaces, so we convert here.
+          FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
+            mvn test \
+              -DwildcardSuites="$FILTER" \
+            > maven-build-shard${{ matrix.shard }}.log 2>&1
+
+      - name: Report failing tests — shard ${{ matrix.shard }}
         if: always()
         run: |
-          echo "Checking build log for failing tests via grep..."
-          if [ ! -f maven-build.log ]; then
-            echo "No maven-build.log found; skipping failure scan."
-            exit 0
+          echo "Checking shard ${{ matrix.shard }} log for failing tests..."
+          if [ ! -f maven-build-shard${{ matrix.shard }}.log ]; then
+            echo "No build log found."; exit 0
           fi
-          if grep -C 3 -n "\*\*\* FAILED \*\*\*" maven-build.log; then
-            echo "Failing tests detected above."
+          echo "=== BRIDGE / UNCAUGHT EXCEPTIONS ==="
+          grep -n "\[BRIDGE\] Exception\|Uncaught exception in dispatch\|requestScopeProxy=" \
+            maven-build-shard${{ matrix.shard }}.log | head -200 || true
+          echo ""
+          echo "=== FAILING TEST SCENARIOS (with 30 lines context) ==="
+          if grep -C 30 -n "\*\*\* FAILED \*\*\*" maven-build-shard${{ matrix.shard }}.log; then
+            echo "Failing tests detected in shard ${{ matrix.shard }}."
             exit 1
           else
-            echo "No failing tests detected in maven-build.log."
+            echo "No failing tests detected in shard ${{ matrix.shard }}."
           fi
 
-      - name: Upload Maven build log
+      - name: Upload Maven build log — shard ${{ matrix.shard }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: maven-build-log
+          name: maven-build-log-shard${{ matrix.shard }}
           if-no-files-found: ignore
-          path: |
-            maven-build.log
+          path: maven-build-shard${{ matrix.shard }}.log
 
-      - name: Upload test reports
+      - name: Upload test reports — shard ${{ matrix.shard }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-reports-shard${{ matrix.shard }}
           if-no-files-found: ignore
           path: |
             obp-api/target/surefire-reports/**
@@ -107,24 +285,33 @@ jobs:
             **/target/site/surefire-report.html
             **/target/site/surefire-report/*
 
-      - name: Save .jar artifact
-        continue-on-error: true
-        run: |
-          mkdir -p ./push
-          cp obp-api/target/obp-api.jar ./push/
-      - uses: actions/upload-artifact@v4
+  # --------------------------------------------------------------------------
+  # Job 3: docker — build and push container image (runs after all shards pass)
+  # --------------------------------------------------------------------------
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: vars.ENABLE_CONTAINER_BUILDING == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download compiled output
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ github.sha }}
-          path: push/
+          name: compiled-output
 
       - name: Build the Docker image
-        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: |
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
           if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
-            docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
+            docker build . --file .github/Dockerfile_PreBuild \
+              --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA \
+              --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest \
+              --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
           else
-            docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
+            docker build . --file .github/Dockerfile_PreBuild \
+              --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA \
+              --tag docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
           fi
           docker push docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }} --all-tags
           echo docker done
@@ -132,19 +319,17 @@ jobs:
       - uses: sigstore/cosign-installer@4d14d7f17e7112af04ea6108fbb4bfc714c00390
 
       - name: Write signing key to disk (only needed for `cosign sign --key`)
-        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
 
       - name: Sign container image
-        if: vars.ENABLE_CONTAINER_BUILDING == 'true'
         run: |
           cosign sign -y --key cosign.key \
             docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${GITHUB_REF##*/}
           cosign sign -y --key cosign.key \
-                      docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA
+            docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA
           if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
             cosign sign -y --key cosign.key \
-                        docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest
+              docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest
           fi
         env:
           COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"
