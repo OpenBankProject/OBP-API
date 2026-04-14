@@ -135,13 +135,15 @@ class JavaWebSignatureTest extends V400ServerSetup {
     scenario("We try to make ur call - unsuccessful", ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "development" / "echo" / "jws-verified-request-jws-signed-response").GET <@ (user1)
+      // Sign with a timestamp 65 seconds in the past — always outside the 60s validity window,
+      // no sleep needed, and independent of the jws.signing_time_validity_seconds prop value.
       val signHeaders = signRequest(
         Full(""),
         "get",
         "/obp/v4.0.0/development/echo/jws-verified-request-jws-signed-response",
-        "application/json;charset=UTF-8"
+        "application/json;charset=UTF-8",
+        signingTime = Some(ZonedDateTime.now(ZoneOffset.UTC).minusSeconds(65))
       ).map(i => (i.name, i.values.mkString(",")))
-      Thread.sleep(6.seconds) // jws.signing_time_validity_seconds=5 in test props; 6s ensures we're past the window
       val responseGet = makeGetRequest(requestGet, signHeaders)
       Then("We should get a 401")
       responseGet.code should equal(401)

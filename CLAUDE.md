@@ -516,10 +516,8 @@ Build time baseline: ~32 min (build #44). Current target after fixes below.
 
 Three targeted fixes based on per-test timing from Jenkins report:
 
-### `code.api.util` (1m2s → ~8s, saves 54s)
-`JavaWebSignatureTest` had `Thread.sleep(60 seconds)` to let a JWS signature expire before making an HTTP call that should return 401. Root cause: `JwsUtil.verifySigningTime` had a hardcoded `60 * 1e9 ns` validity window.
-- `JwsUtil.verifySigningTime` now reads `jws.signing_time_validity_seconds` from props (default 60).
-- CI sets `jws.signing_time_validity_seconds=5`; test sleeps 6s (1s buffer). Same coverage.
+### `code.api.util` (1m2s → ~2s, saves 60s)
+`JavaWebSignatureTest` had `Thread.sleep(60 seconds)` to let a JWS signature expire. Fixed by signing with a pre-stale timestamp (`signingTime = now - 65s`) instead — no sleep, no prop dependency, works against any reasonable validity window. `JwsUtil.verifySigningTime` also made configurable via `jws.signing_time_validity_seconds` prop (default 60) for future use.
 
 ### `code.api.ResourceDocs1_4_0` (2m0s → ~45s, saves 75s)
 Two independent problems:
