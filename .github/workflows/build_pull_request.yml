@@ -252,6 +252,14 @@ jobs:
           if [ ! -f maven-build-shard${{ matrix.shard }}.log ]; then
             echo "No build log found."; exit 0
           fi
+          echo "=== RECOMPILATION CHECK ==="
+          if grep -c "Compiling " maven-build-shard${{ matrix.shard }}.log > /dev/null 2>&1; then
+            echo "WARNING: Scala recompilation occurred on this shard:"
+            grep "Compiling " maven-build-shard${{ matrix.shard }}.log | head -10
+          else
+            echo "OK: no recompilation (Zinc used pre-compiled classes)"
+          fi
+          echo ""
           echo "=== BRIDGE / UNCAUGHT EXCEPTIONS ==="
           grep -n "\[BRIDGE\] Exception\|Uncaught exception in dispatch\|requestScopeProxy=" \
             maven-build-shard${{ matrix.shard }}.log | head -200 || true
