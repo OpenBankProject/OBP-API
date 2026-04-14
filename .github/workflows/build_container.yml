@@ -164,18 +164,15 @@ jobs:
         with:
           name: compiled-output
 
-      - name: Verify compiled output
+      - name: Touch artifact files (prevent Zinc recompilation)
         run: |
-          echo "=== obp-api/target/ layout ==="
-          ls -la obp-api/target/ 2>/dev/null || echo "MISSING: obp-api/target/"
-          echo ""
-          echo "=== .class file counts ==="
-          echo "main:  $(find obp-api/target/classes     -name '*.class' 2>/dev/null | wc -l)"
-          echo "test:  $(find obp-api/target/test-classes -name '*.class' 2>/dev/null | wc -l)"
-          echo "commons: $(find obp-commons/target/classes -name '*.class' 2>/dev/null | wc -l)"
-          echo ""
-          echo "=== sample test-classes paths ==="
-          find obp-api/target/test-classes -name '*.class' 2>/dev/null | head -5 || echo "none found"
+          # actions/download-artifact preserves original compile-job timestamps.
+          # actions/checkout gives source files the current (later) time.
+          # Zinc sees sources newer than classes → full recompile (~215 s wasted).
+          # Touching everything in target/ makes all artifact files appear
+          # just-downloaded (current time) → newer than sources → Zinc skips.
+          find obp-api/target obp-commons/target -type f -exec touch {} + 2>/dev/null || true
+          echo "Touched $(find obp-api/target obp-commons/target -type f 2>/dev/null | wc -l) files"
 
       - name: Install local artifacts into Maven repo
         run: |
