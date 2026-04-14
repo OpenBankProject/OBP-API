@@ -141,7 +141,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
         "/obp/v4.0.0/development/echo/jws-verified-request-jws-signed-response",
         "application/json;charset=UTF-8"
       ).map(i => (i.name, i.values.mkString(",")))
-      Thread.sleep(60 seconds)
+      Thread.sleep(6.seconds) // jws.signing_time_validity_seconds=5 in test props; 6s ensures we're past the window
       val responseGet = makeGetRequest(requestGet, signHeaders)
       Then("We should get a 401")
       responseGet.code should equal(401)

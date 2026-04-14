@@ -73,6 +73,7 @@ jobs:
 
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
+          echo jws.signing_time_validity_seconds=5 >> obp-api/src/main/resources/props/test.default.props
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -T 4 -Pprod > maven-build.log 2>&1
 
       - name: Report failing tests (if any)

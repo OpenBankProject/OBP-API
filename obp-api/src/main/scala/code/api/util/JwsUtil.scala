@@ -61,7 +61,8 @@ object JwsUtil extends MdcLoggable {
         val timeDifferenceInNanos = (timeDifference.abs.getSeconds * 1000000000L) + timeDifference.abs.getNano
         val criteriaOneOk = signingTime.isBefore(verifyingTime) || // Signing Time > Verifying Time otherwise
           (signingTime.isAfter(verifyingTime) && timeDifferenceInNanos < (2 * 1000000000L)) // IF "Verifying Time > Signing Time" THEN "Verifying Time - Signing Time < 2 seconds"
-        val criteriaTwoOk = timeDifferenceInNanos < (60 * 1000000000L) // Signing Time - Verifying Time < 60 seconds
+        val validitySeconds = APIUtil.getPropsAsLongValue("jws.signing_time_validity_seconds", 60L)
+        val criteriaTwoOk = timeDifferenceInNanos < (validitySeconds * 1000000000L) // Signing Time - Verifying Time < validitySeconds
         criteriaOneOk && criteriaTwoOk
       case None => false
     }

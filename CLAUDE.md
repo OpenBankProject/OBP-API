@@ -474,3 +474,57 @@ Tests three features: commit on successful write (POST addEntitlement), commit o
 **Fix (layer 2)**: `fromFuture` now uses `IO.defer` to atomically: (1) set TTL on current compute thread T, (2) evaluate `fut` — the Future is submitted and `TtlRunnable` captures T's proxy, (3) call `currentProxy.remove()` on T immediately, (4) return `IO.fromFuture(IO.pure(f))` to await the already-submitted future. Steps 1–3 are synchronous within the `IO.defer` block, so T is always cleaned up before any fiber scheduling can switch threads. Additionally, `withRequestTransaction` no longer sets `currentProxy` at request start (previously another dirty-thread source); all TTL management is now local to `fromFuture`.
 
 **Key design note**: `proxy.isClosed()` forwards to the real HikariCP `ProxyConnection`. After `realConn.close()` is called in `withRequestTransaction.guaranteeCase`, HikariCP marks the proxy as closed and all subsequent method calls throw `SQLException: Connection is closed` — but `isClosed()` correctly returns `true` per JDBC spec, allowing detection without triggering the error.
+
+## HikariCP Pool Exhaustion in Concurrent Tests ✓ FIXED
+
+**Root cause**: `withRequestTransaction` (applied by `ResourceDocMiddleware` to all v7/v5 native routes) holds one HikariCP connection for the full duration of each request. ScalaCache rate-limit queries (`RateLimiting.findAll` via `getActiveCallLimitsByConsumerIdAtDate`) run concurrently on the OBP EC (a `TtlRunnable`-wrapping global EC) on cache miss, each needing an additional pool connection. With the default pool of 10 and 10 concurrent test threads (`Http4sLiftBridgePropertyTest` Property 7.1), all 10 connections are held by active requests → pool timeout after 30s → test's 10-second HTTP client timeout fires first → "Futures timed out after [10 seconds]".
+
+**Worst-case math**: N concurrent requests hold N connections; up to N background rate-limit queries each need 1 more → 2*N needed at peak. Pool of 10 is exhausted at N=5+.
+
+**Fix**: `hikari.maximumPoolSize=20` added to:
+- `.github/workflows/build_pull_request.yml` (CI props generation script)
+- `obp-api/src/main/resources/props/test.default.props.template` (local developer baseline)
+
+Pool of 20 covers the 10-thread concurrency test (2×10=20) with zero waste. The setting is test-only — production `test.default.props` is not in git and must be updated manually.
+
+## CI Test Performance — Overview
+
+Build time baseline: ~32 min (build #44). Current target after fixes below.
+
+### Brainstorm: Further Speed-Up Opportunities
+
+| Action | Effort | Estimated saving | Status |
+|---|---|---|---|
+| GitHub Actions matrix split (3 shards) | Low — CI YAML only | ~20 min wall-clock | **not done** |
+| Build cache (`~/.m2` + `target/`) | Low — CI YAML only | 8–12 min on cache hit | **not done** |
+| Add `write_metrics=false` to CI echo block | Trivial | prevents MetricsTest hang | **not done** |
+| Profile slow tail, fix top outliers | Medium | 5–10 min | **partially done** |
+| Two-tier fast gate + full suite | Medium | unblocks PRs faster | **not done** |
+| Surefire parallel forks | High — port/DB parameterisation | 10–15 min | **not done** |
+
+**Optimal 3-shard split** (based on actual Jenkins timings):
+- Shard 1: `v4_0_0` (4:15) + `v2_1_0` (0:35) + `v3_0_0` (0:29) + `v5_0_0` (0:39) + small → ~6.5 min
+- Shard 2: `http4sbridge` (2:49) + `ResourceDocs` (2:00) + `v3_1_0` (2:05) + `util` (1:02) → ~8 min
+- Shard 3: `v5_1_0` (2:31) + `v6_0_0` (2:02) + `v1_2_1` (2:18) + `api` (0:33) + small → ~7.5 min
+- Result: ~32 min → ~12–15 min wall-clock
+
+**v7 migration pays CI dividends**: `v7_0_0` runs 75 tests in 7.4s (0.1s/test) vs `v6_0_0` 314 tests in 2m2s. As more endpoints migrate, the test suite naturally gets faster.
+
+**Skipped tests to audit** (`v5_0_0`: 13 skipped, `container`: 1 fully-skipped class) — setup cost paid, no value returned.
+
+## CI Test Performance Fixes ✓ DONE (~4 min saved)
+
+Three targeted fixes based on per-test timing from Jenkins report:
+
+### `code.api.util` (1m2s → ~8s, saves 54s)
+`JavaWebSignatureTest` had `Thread.sleep(60 seconds)` to let a JWS signature expire before making an HTTP call that should return 401. Root cause: `JwsUtil.verifySigningTime` had a hardcoded `60 * 1e9 ns` validity window.
+- `JwsUtil.verifySigningTime` now reads `jws.signing_time_validity_seconds` from props (default 60).
+- CI sets `jws.signing_time_validity_seconds=5`; test sleeps 6s (1s buffer). Same coverage.
+
+### `code.api.ResourceDocs1_4_0` (2m0s → ~45s, saves 75s)
+Two independent problems:
+- **ResourceDocsTest**: called `stringToNodeSeq` on ALL 600+ endpoint descriptions per scenario → 7,800 HTML5 parses across 13 API versions. Changed to `take(3).foreach` — verifies the function works without O(N) per-version cost.
+- **SwaggerDocsTest**: ran `OpenAPIParser.readContents()` (full spec validation) for 12 API versions. Kept v5.1.0, v4.0.0, v1.2.1; dropped 9 redundant intermediate versions. Access-control scenarios unchanged. 19 → 10 scenarios.
+
+### `code.api.http4sbridge` (2m49s → ~50s, saves 119s)
+50 property scenarios ran `val iterations = 10` (three at 20) = 530 total HTTP round-trips. Added `CI_ITERATIONS = 3` / `CI_ITERATIONS_HEAVY = 5` constants at the top of `Http4sLiftBridgePropertyTest`; all scenarios reference them. To run full coverage locally: change `CI_ITERATIONS` to 10.
