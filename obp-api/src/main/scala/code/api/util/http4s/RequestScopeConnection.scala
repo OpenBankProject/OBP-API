@@ -159,8 +159,6 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
 
   override def newConnection(name: ConnectionIdentifier): Box[Connection] = {
     val proxy = RequestScopeConnection.currentProxy.get()
-    val thread = Thread.currentThread().getName
-    val caller = new Exception().getStackTrace.drop(1).take(5).mkString(" <- ")
     if (proxy != null) {
       // Guard: if the underlying connection is already closed, the proxy is stale — it
       // was captured in a TtlRunnable submitted during a prior request and that request's
@@ -169,29 +167,18 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
       // DB.use and, if that caller is inside authenticate, would be caught as Left(_)
       // and silently turned into a 401 response.
       val proxyIsClosed = try { proxy.isClosed() } catch { case e: Exception =>
-        logger.warn(s"[RequestAwareConnectionManager] isClosed() threw on proxy (thread=$thread): ${e.getClass.getName}: ${e.getMessage}")
+        logger.warn(s"[RequestAwareConnectionManager] isClosed() threw on proxy: ${e.getClass.getName}: ${e.getMessage}")
         true
       }
-      if (!proxyIsClosed) {
-        logger.debug(
-          s"[RequestAwareConnectionManager] newConnection: returning open request-scoped proxy " +
-          s"(thread=$thread, caller=$caller)"
-        )
-        Full(proxy)
-      } else {
+      if (!proxyIsClosed) Full(proxy)
+      else {
         logger.warn(
-          s"[RequestAwareConnectionManager] newConnection: currentProxy is set but its underlying " +
-          s"connection is already closed (thread=$thread). " +
-          s"TTL-stale proxy from a prior request. Falling back to a fresh vendor connection. " +
-          s"caller=$caller"
+          s"[RequestAwareConnectionManager] newConnection: stale proxy (underlying connection already " +
+          s"closed) — falling back to fresh vendor connection"
         )
         delegate.newConnection(name)
       }
     } else {
-      logger.debug(
-        s"[RequestAwareConnectionManager] newConnection: no request proxy — delegating to vendor " +
-        s"(thread=$thread, caller=$caller)"
-      )
       delegate.newConnection(name)
     }
   }
@@ -204,13 +191,9 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
    */
   override def releaseConnection(conn: Connection): Unit = {
     val proxy = RequestScopeConnection.currentProxy.get()
-    val thread = Thread.currentThread().getName
     if (proxy != null && (conn eq proxy.asInstanceOf[AnyRef])) {
-      logger.debug(s"[RequestAwareConnectionManager] releaseConnection: skipping release of request-scoped proxy (thread=$thread)")
+      // Skip release — this connection is managed by withRequestTransaction.
     } else {
-      if (proxy != null) {
-        logger.debug(s"[RequestAwareConnectionManager] releaseConnection: conn is NOT the request proxy — delegating to vendor (thread=$thread)")
-      }
       delegate.releaseConnection(conn)
     }
   }
