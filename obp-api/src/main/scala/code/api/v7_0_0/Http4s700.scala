@@ -1112,6 +1112,417 @@ object Http4s700 {
 
     // ── End Phase 1 batch 2 ──────────────────────────────────────────────────
 
+    // ── Market Endpoints (Phase 2) ─────────────────────────────────────────
+
+    // Route: POST /obp/v7.0.0/market/orders
+    val createMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "market" / "orders" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketOrderRequestJson, JSONFactory700.MarketOrderJson](req) { (user, createOrderJson, cc) =>
+          for {
+            // Validate side
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidOrderSide,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOrderJson.side == "BUY" || createOrderJson.side == "SELL")
+
+            // Validate price
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOrderJson.price > 0)
+
+            // Validate quantity
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOrderJson.quantity > 0)
+
+            // Invoke connector
+            (order, callContext) <- NewStyle.function.createMarketOrder(
+              createOrderJson.side,
+              createOrderJson.price,
+              createOrderJson.quantity,
+              createOrderJson.account_id,
+              createOrderJson.idempotency_key,
+              Some(cc)
+            )
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createMarketOrder),
+      "POST",
+      "/market/orders",
+      "Create Market Order",
+      """Create a new market order to buy or sell assets.
+        |
+        |The order will be matched against existing orders in the order book.
+        |The order_id is automatically generated as a UUID.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateMarketOrderRequestJson(
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        idempotency_key = "order-12345"
+      ),
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "active",
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:30:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(createMarketOrder)
+    )
+
+    // Route: GET /obp/v7.0.0/market/orders/ORDER_ID
+    val getMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "market" / "orders" / orderId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (order, callContext) <- NewStyle.function.getMarketOrder(orderId, Some(cc))
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getMarketOrder),
+      "GET",
+      "/market/orders/ORDER_ID",
+      "Get Market Order",
+      """Get details of a specific market order.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "active",
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:30:00Z"
+      ),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(getMarketOrder)
+    )
+
+    // Route: DELETE /obp/v7.0.0/market/orders/ORDER_ID
+    val cancelMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "market" / "orders" / orderId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (order, callContext) <- NewStyle.function.cancelMarketOrder(orderId, Some(cc))
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(cancelMarketOrder),
+      "DELETE",
+      "/market/orders/ORDER_ID",
+      "Cancel Market Order",
+      """Cancel an active market order.
+        |
+        |This operation is idempotent - canceling an already-cancelled order returns success.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "cancelled",
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:35:00Z"
+      ),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(cancelMarketOrder)
+    )
+
+    // Route: POST /obp/v7.0.0/market/matches
+    val createMarketMatch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "market" / "matches" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketMatchRequestJson, JSONFactory700.MarketMatchJson](req) { (user, createMatchJson, cc) =>
+          for {
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidMatchParameters,
+              failCode = 400,
+              cc = Some(cc)
+            )(createMatchJson.amount > 0)
+
+            // Validate price
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidMatchParameters,
+              failCode = 400,
+              cc = Some(cc)
+            )(createMatchJson.price > 0)
+
+            // Invoke connector
+            (matchResult, callContext) <- NewStyle.function.createMarketMatch(
+              createMatchJson.order_id,
+              createMatchJson.counter_order_id,
+              createMatchJson.amount,
+              createMatchJson.price,
+              Some(cc)
+            )
+          } yield JSONFactory700.createMarketMatchJson(matchResult)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createMarketMatch),
+      "POST",
+      "/market/matches",
+      "Create Market Match",
+      """Create a match between two market orders.
+        |
+        |This creates a MarketMatch and automatically generates a corresponding MarketTrade.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateMarketMatchRequestJson(
+        order_id = "order-123",
+        counter_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0")
+      ),
+      JSONFactory700.MarketMatchJson(
+        match_id = "match-789",
+        order_id = "order-123",
+        counter_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0"),
+        created_at = "2026-04-16T00:40:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(createMarketMatch)
+    )
+
+    // Route: GET /obp/v7.0.0/market/trades/TRADE_ID
+    val getMarketTrade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "market" / "trades" / tradeId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (trade, callContext) <- NewStyle.function.getMarketTrade(tradeId, Some(cc))
+          } yield JSONFactory700.createMarketTradeJson(trade)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getMarketTrade),
+      "GET",
+      "/market/trades/TRADE_ID",
+      "Get Market Trade",
+      """Get details of a specific market trade.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketTradeJson(
+        trade_id = "trade-789",
+        buy_order_id = "order-123",
+        sell_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0"),
+        status = "pending",
+        created_at = "2026-04-16T00:40:00Z"
+      ),
+      List(TradeNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(getMarketTrade)
+    )
+
+    // Route: POST /obp/v7.0.0/market/settlements
+    val requestSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "market" / "settlements" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestSettlementJson, JSONFactory700.SettlementJson](req) { (user, requestJson, cc) =>
+          for {
+            // Invoke connector
+            (settlement, callContext) <- NewStyle.function.requestSettlement(
+              requestJson.trade_id,
+              requestJson.step,
+              Some(cc)
+            )
+          } yield JSONFactory700.createSettlementJson(settlement)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(requestSettlement),
+      "POST",
+      "/market/settlements",
+      "Request Settlement",
+      """Request settlement for a completed trade.
+        |
+        |Authentication is required.""",
+      JSONFactory700.RequestSettlementJson(
+        trade_id = "trade-789",
+        step = Some("step1")
+      ),
+      JSONFactory700.SettlementJson(
+        settlement_id = "settlement-101",
+        trade_id = "trade-789",
+        step = Some("step1"),
+        status = "pending",
+        created_at = "2026-04-16T00:45:00Z",
+        completed_at = None
+      ),
+      List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(requestSettlement)
+    )
+
+    // Route: POST /obp/v7.0.0/market/deposits
+    val notifyDeposit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "market" / "deposits" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.NotifyDepositJson, JSONFactory700.DepositJson](req) { (user, depositJson, cc) =>
+          for {
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(depositJson.amount > 0)
+
+            // Validate confirmations
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidMatchParameters,
+              failCode = 400,
+              cc = Some(cc)
+            )(depositJson.confirmations >= 0)
+
+            // Invoke connector
+            (deposit, callContext) <- NewStyle.function.notifyDeposit(
+              depositJson.tx_hash,
+              depositJson.from,
+              depositJson.to,
+              depositJson.amount,
+              depositJson.confirmations,
+              Some(cc)
+            )
+          } yield JSONFactory700.createDepositJson(deposit)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(notifyDeposit),
+      "POST",
+      "/market/deposits",
+      "Notify Deposit",
+      """Record a blockchain deposit notification.
+        |
+        |Authentication is required.""",
+      JSONFactory700.NotifyDepositJson(
+        tx_hash = "0x123abc",
+        from = "0xsender",
+        to = "0xreceiver",
+        amount = BigDecimal("100.0"),
+        confirmations = 6
+      ),
+      JSONFactory700.DepositJson(
+        deposit_id = "deposit-202",
+        tx_hash = "0x123abc",
+        from = "0xsender",
+        to = "0xreceiver",
+        amount = BigDecimal("100.0"),
+        confirmations = 6,
+        status = "confirmed",
+        created_at = "2026-04-16T00:50:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(notifyDeposit)
+    )
+
+    // Route: POST /obp/v7.0.0/market/withdrawals
+    val requestWithdrawal: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "market" / "withdrawals" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
+          for {
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(withdrawalJson.amount > 0)
+
+            // Invoke connector
+            (withdrawal, callContext) <- NewStyle.function.requestWithdrawal(
+              withdrawalJson.account_id,
+              withdrawalJson.amount,
+              withdrawalJson.address,
+              withdrawalJson.idempotency_key,
+              Some(cc)
+            )
+          } yield JSONFactory700.createWithdrawalJson(withdrawal)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(requestWithdrawal),
+      "POST",
+      "/market/withdrawals",
+      "Request Withdrawal",
+      """Request a withdrawal to a blockchain address.
+        |
+        |This operation is idempotent via the idempotency_key.
+        |
+        |Authentication is required.""",
+      JSONFactory700.RequestWithdrawalJson(
+        account_id = "account-123",
+        amount = BigDecimal("50.0"),
+        address = "0xdestination",
+        idempotency_key = "withdrawal-456"
+      ),
+      JSONFactory700.WithdrawalJson(
+        withdrawal_id = "withdrawal-303",
+        account_id = "account-123",
+        amount = BigDecimal("50.0"),
+        address = "0xdestination",
+        status = "pending",
+        tx_hash = None,
+        created_at = "2026-04-16T00:55:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(requestWithdrawal)
+    )
+
+    // ── End Market Endpoints (Phase 2) ─────────────────────────────────────
+
     // All routes combined (without middleware - for direct use).
     //
     // Routes are sorted automatically by URL template specificity (segment count,

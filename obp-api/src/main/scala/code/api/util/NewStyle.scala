@@ -4613,6 +4613,102 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound"), i._2)
       }
     }
+
+    // Market Methods
+    def createMarketOrder(
+      side: String,
+      price: BigDecimal,
+      quantity: BigDecimal,
+      accountId: String,
+      idempotencyKey: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.createMarketOrder(
+        side, price, quantity, accountId, idempotencyKey, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def getMarketOrder(
+      orderId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.getMarketOrder(orderId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def cancelMarketOrder(
+      orderId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.cancelMarketOrder(orderId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def createMarketMatch(
+      orderId: String,
+      counterOrderId: String,
+      amount: BigDecimal,
+      price: BigDecimal,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketMatch] = {
+      Connector.connector.vend.createMarketMatch(
+        orderId, counterOrderId, amount, price, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidMatchParameters"), i._2)
+      }
+    }
+
+    def getMarketTrade(
+      tradeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketTrade] = {
+      Connector.connector.vend.getMarketTrade(tradeId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$TradeNotFound"), i._2)
+      }
+    }
+
+    def requestSettlement(
+      tradeId: String,
+      step: Option[String],
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Settlement] = {
+      Connector.connector.vend.requestSettlement(tradeId, step, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$SettlementFailed"), i._2)
+      }
+    }
+
+    def notifyDeposit(
+      txHash: String,
+      from: String,
+      to: String,
+      amount: BigDecimal,
+      confirmations: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Deposit] = {
+      Connector.connector.vend.notifyDeposit(
+        txHash, from, to, amount, confirmations, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidTradingAmount"), i._2)
+      }
+    }
+
+    def requestWithdrawal(
+      accountId: String,
+      amount: BigDecimal,
+      address: String,
+      idempotencyKey: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Withdrawal] = {
+      Connector.connector.vend.requestWithdrawal(
+        accountId, amount, address, idempotencyKey, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$WithdrawalFailed"), i._2)
+      }
+    }
   }
 
 }
