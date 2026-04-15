@@ -237,6 +237,42 @@ jobs:
           # wildcardSuites requires comma-separated package prefixes (-w per entry).
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
+
+          # Shard 3 is the catch-all: append any test package not explicitly
+          # assigned to shard 1 or shard 2, so new packages are never silently skipped.
+          if [ "${{ matrix.shard }}" = "3" ]; then
+            SHARD1="code.api.v4_0_0 code.api.v5_0_0 code.api.v3_0_0 code.api.v2_1_0 \
+                    code.api.v2_2_0 code.api.v2_0_0 code.api.v1_4_0 code.api.v1_3_0 \
+                    code.api.UKOpenBanking code.atms code.branches code.products code.crm \
+                    code.accountHolder code.entitlement code.bankaccountcreation \
+                    code.bankconnectors code.container"
+            SHARD2="code.api.v1_2_1 code.api.v6_0_0 code.api.ResourceDocs1_4_0 \
+                    code.api.util code.api.berlin code.management code.metrics \
+                    code.model code.views code.usercustomerlinks code.customer \
+                    code.errormessages"
+            ASSIGNED="$SHARD1 $SHARD2 ${{ matrix.test_filter }}"
+
+            # Discover all packages that contain at least one .scala test file
+            ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
+                         -name "*.scala" 2>/dev/null \
+                       | sed 's|.*/test/scala/||; s|/[^/]*\.scala$||; s|/|.|g' \
+                       | sort -u)
+
+            EXTRAS=""
+            for pkg in $ALL_PKGS; do
+              covered=false
+              for prefix in $ASSIGNED; do
+                if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* ]]; then
+                  covered=true; break
+                fi
+              done
+              [ "$covered" = "false" ] && EXTRAS="$EXTRAS,$pkg"
+            done
+
+            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard 3:$EXTRAS"
+            FILTER="${FILTER}${EXTRAS}"
+          fi
+
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             mvn test \
               -DwildcardSuites="$FILTER" \
@@ -289,3 +325,23 @@ jobs:
             **/target/scalatest-reports/**
             **/target/site/surefire-report.html
             **/target/site/surefire-report/*
+
+  # --------------------------------------------------------------------------
+  # Job 3: report — http4s v7 vs Lift per-test speed table
+  # --------------------------------------------------------------------------
+  report:
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download test reports — all shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-shard*
+          path: all-reports
+          merge-multiple: true
+
+      - name: http4s v7 vs Lift — per-test speed
+        run: python3 .github/scripts/test_speed_report.py all-reports
