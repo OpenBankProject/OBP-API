@@ -1003,6 +1003,79 @@ object Http4s700 {
       http4sPartialFunction = Some(getTradingOffer)
     )
 
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
+    val getTradingOffers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          // Extract query parameters
+          val status = req.uri.query.params.get("status")
+          val offerType = req.uri.query.params.get("offer_type")
+          
+          for {
+            // Invoke connector
+            (offers, callContext) <- NewStyle.function.getTradingOffers(
+              BankId(bankId),
+              AccountId(accountId),
+              status,
+              offerType,
+              Some(cc)
+            )
+          } yield {
+            // Convert to JSON
+            val offersJson = offers.map(JSONFactory700.createTradingOfferJson)
+            JSONFactory700.TradingOffersJson(offersJson)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getTradingOffers),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
+      "Get Trading Offers",
+      """Get a list of trading offers for a specific account.
+        |
+        |Optional query parameters:
+        |- status: Filter by offer status (e.g., "active", "cancelled", "filled", "expired")
+        |- offer_type: Filter by offer type ("BUY" or "SELL")
+        |
+        |Results are sorted by creation date (most recent first).
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.TradingOffersJson(
+        offers = List(
+          JSONFactory700.TradingOfferJson(
+            offer_id = "550e8400-e29b-41d4-a716-446655440000",
+            status = "active",
+            offer_details = JSONFactory700.OfferDetailsJson(
+              offer_type = "BUY",
+              asset_code = "OGCR",
+              asset_amount = BigDecimal("100.00"),
+              price_currency = "EUR",
+              price_amount = BigDecimal("1.50"),
+              settlement_account_id = "settlement-account-123",
+              expiry_datetime = None,
+              minimum_fill = None
+            ),
+            account_info = JSONFactory700.AccountInfoJson(
+              bank_id = "gh.29.uk",
+              account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+              view_id = "owner"
+            ),
+            executions = List.empty,
+            created_at = "2026-04-15T10:30:00Z",
+            updated_at = º"2026-04-15T10:30:00Z"
+          )
+        )
+      ),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: Nil,
+      http4sPartialFunction = Some(getTradingOffers)
+    )
+
     // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>

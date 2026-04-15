@@ -88,6 +88,7 @@ import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPo
 import java.util.Date
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
+import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -5951,6 +5952,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case None =>
         (Empty, callContext)
     }
+  }
+
+  override def getTradingOffers(
+    bankId: BankId,
+    accountId: AccountId,
+    status: Option[String],
+    offerType: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TradingOffer]]] = Future {
+    // Get all offers and filter by bankId and accountId
+    val allOffers = tradingOffers.values().asScala.toList
+    
+    val filteredOffers = allOffers
+      .filter(o => o.accountInfo.bankId == bankId.value && o.accountInfo.accountId == accountId.value)
+      .filter(o => status.forall(_ == o.status))
+      .filter(o => offerType.forall(_ == o.offerType))
+      .sortBy(_.createdAt.getTime)(Ordering[Long].reverse) // Most recent first
+    
+    (Full(filteredOffers), callContext)
   }
 
 }

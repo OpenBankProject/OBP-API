@@ -2121,4 +2121,14 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[TradingOffer]] = Future {
     (Failure(setUnimplementedError(nameOf(cancelTradingOffer _))), callContext)
   }
+
+  def getTradingOffers(
+    bankId: BankId,
+    accountId: AccountId,
+    status: Option[String],
+    offerType: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TradingOffer]]] = Future {
+    (Full(List.empty), callContext)
+  }
 }

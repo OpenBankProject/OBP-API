@@ -111,6 +111,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     status: String
   )
 
+  case class TradingOffersJson(
+    offers: List[TradingOfferJson]
+  )
+
   // Conversion Functions
   def createTradingOfferJson(offer: com.openbankproject.commons.model.TradingOffer): TradingOfferJson = {
     TradingOfferJson(

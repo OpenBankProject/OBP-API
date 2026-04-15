@@ -4601,6 +4601,18 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
       }
     }
+
+    def getTradingOffers(
+      bankId: BankId,
+      accountId: AccountId,
+      status: Option[String],
+      offerType: Option[String],
+      callContext: Option[CallContext]
+    ): OBPReturnType[List[com.openbankproject.commons.model.TradingOffer]] = {
+      Connector.connector.vend.getTradingOffers(bankId, accountId, status, offerType, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound"), i._2)
+      }
+    }
   }
 
 }
