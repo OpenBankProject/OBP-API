@@ -1375,3 +1375,39 @@ case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
   def itemType: Type = implicitly[TypeTag[T]].tpe
 
 }
+
+// Trading Offer Models
+case class TradingOffer(
+  offerId: String,
+  offerType: String,  // "BUY" | "SELL"
+  status: String,     // "active" | "cancelled" | "filled" | "expired"
+  offerDetails: TradingOfferDetails,
+  accountInfo: TradingAccountInfo,
+  executions: List[OfferExecution],
+  createdAt: Date,
+  updatedAt: Date
+)
+
+case class TradingOfferDetails(
+  assetCode: String,
+  assetAmount: BigDecimal,
+  priceCurrency: String,
+  priceAmount: BigDecimal,
+  settlementAccountId: String,
+  expiryDatetime: Option[Date],
+  minimumFill: Option[BigDecimal]
+)
+
+case class TradingAccountInfo(
+  bankId: String,
+  accountId: String,
+  viewId: String
+)
+
+case class OfferExecution(
+  executionId: String,
+  executedAmount: BigDecimal,
+  executedPrice: BigDecimal,
+  executedAt: Date,
+  counterpartOfferId: String
+)

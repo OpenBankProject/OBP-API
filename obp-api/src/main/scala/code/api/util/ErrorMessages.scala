@@ -846,6 +846,13 @@ object ErrorMessages {
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
   val MethodRoutingAlreadyExistsError = "OBP-70003: Method Routing is already exists."
 
+  // Trading Exceptions (OBP-71XXX)
+  val OfferNotFound = "OBP-71001: Trading offer not found."
+  val InvalidOfferType = "OBP-71002: Invalid offer type. Must be 'BUY' or 'SELL'."
+  val InvalidTradingAmount = "OBP-71003: Invalid amount. Must be a positive number."
+  val DuplicateIdempotencyKey = "OBP-71004: Duplicate idempotency key."
+  val CreateTradingOfferError = "OBP-71005: Could not create trading offer."
+
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
   val CannotDeleteCascadePersonalEntity = "OBP-80002: Cannot delete cascade for personal entities (hasPersonalEntity=true). Please delete the records and definition separately."

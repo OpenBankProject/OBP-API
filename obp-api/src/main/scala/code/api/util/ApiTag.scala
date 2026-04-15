@@ -103,6 +103,7 @@ object ApiTag {
   val apiTagSystem = ResourceDocTag("System")
   val apiTagCache = ResourceDocTag("Cache")
   val apiTagLogCache = ResourceDocTag("Log-Cache")
+  val apiTagTrading = ResourceDocTag("Trading")
 
   val apiTagApiCollection = ResourceDocTag("Api-Collection")
   
