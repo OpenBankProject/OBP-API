@@ -1411,3 +1411,64 @@ case class OfferExecution(
   executedAt: Date,
   counterpartOfferId: String
 )
+
+// Market Trading Models
+case class MarketOrder(
+  orderId: String,
+  side: String,              // "BUY" | "SELL"
+  price: BigDecimal,
+  quantity: BigDecimal,
+  accountId: String,
+  status: String,            // "active" | "cancelled" | "filled"
+  createdAt: Date,
+  updatedAt: Date
+)
+
+case class MarketMatch(
+  matchId: String,
+  orderId: String,
+  counterOrderId: String,
+  amount: BigDecimal,
+  price: BigDecimal,
+  createdAt: Date
+)
+
+case class MarketTrade(
+  tradeId: String,
+  buyOrderId: String,
+  sellOrderId: String,
+  amount: BigDecimal,
+  price: BigDecimal,
+  status: String,            // "pending" | "settled"
+  createdAt: Date
+)
+
+case class Settlement(
+  settlementId: String,
+  tradeId: String,
+  step: Option[String],
+  status: String,            // "pending" | "completed" | "failed"
+  createdAt: Date,
+  completedAt: Option[Date]
+)
+
+case class Deposit(
+  depositId: String,
+  txHash: String,
+  from: String,
+  to: String,
+  amount: BigDecimal,
+  confirmations: Int,
+  status: String,            // "confirmed" | "pending"
+  createdAt: Date
+)
+
+case class Withdrawal(
+  withdrawalId: String,
+  accountId: String,
+  amount: BigDecimal,
+  address: String,
+  status: String,            // "pending" | "completed" | "failed"
+  txHash: Option[String],
+  createdAt: Date
+)

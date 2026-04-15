@@ -103,6 +103,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   // Trading offer storage
   private val tradingOffers = new java.util.concurrent.ConcurrentHashMap[String, TradingOffer]()
 
+  // Market trading storage
+  private val marketOrders = new java.util.concurrent.ConcurrentHashMap[String, MarketOrder]()
+  private val marketMatches = new java.util.concurrent.ConcurrentHashMap[String, MarketMatch]()
+  private val marketTrades = new java.util.concurrent.ConcurrentHashMap[String, MarketTrade]()
+  private val settlements = new java.util.concurrent.ConcurrentHashMap[String, Settlement]()
+  private val deposits = new java.util.concurrent.ConcurrentHashMap[String, Deposit]()
+  private val withdrawals = new java.util.concurrent.ConcurrentHashMap[String, Withdrawal]()
+  private val orderIdempotencyKeys = new java.util.concurrent.ConcurrentHashMap[String, String]()
+  private val withdrawalIdempotencyKeys = new java.util.concurrent.ConcurrentHashMap[String, String]()
+
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
@@ -5971,6 +5981,210 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .sortBy(_.createdAt.getTime)(Ordering[Long].reverse) // Most recent first
     
     (Full(filteredOffers), callContext)
+  }
+
+  // Market Trading Methods Implementation
+  override def createMarketOrder(
+    side: String,
+    price: BigDecimal,
+    quantity: BigDecimal,
+    accountId: String,
+    idempotencyKey: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    // Check idempotency
+    val existingOrderId = Option(orderIdempotencyKeys.get(idempotencyKey))
+    existingOrderId match {
+      case Some(orderId) =>
+        // Return existing order
+        val existingOrder = Option(marketOrders.get(orderId))
+        (Box(existingOrder), callContext)
+      case None =>
+        // Generate order ID
+        val orderId = randomUUID().toString
+
+        // Create order
+        val order = MarketOrder(
+          orderId = orderId,
+          side = side,
+          price = price,
+          quantity = quantity,
+          accountId = accountId,
+          status = "active",
+          createdAt = new Date(),
+          updatedAt = new Date()
+        )
+
+        // Store order and idempotency key
+        marketOrders.put(orderId, order)
+        orderIdempotencyKeys.put(idempotencyKey, orderId)
+
+        (Full(order), callContext)
+    }
+  }
+
+  override def getMarketOrder(
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    val order = Option(marketOrders.get(orderId))
+    (Box(order), callContext)
+  }
+
+  override def cancelMarketOrder(
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    val order = Option(marketOrders.get(orderId))
+
+    order match {
+      case Some(o) =>
+        val cancelledOrder = o.copy(
+          status = "cancelled",
+          updatedAt = new Date()
+        )
+        marketOrders.put(orderId, cancelledOrder)
+        (Full(cancelledOrder), callContext)
+      case None =>
+        (Empty, callContext)
+    }
+  }
+
+  override def createMarketMatch(
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketMatch]] = Future {
+    // Generate match ID
+    val matchId = randomUUID().toString
+
+    // Create match
+    val marketMatch = MarketMatch(
+      matchId = matchId,
+      orderId = orderId,
+      counterOrderId = counterOrderId,
+      amount = amount,
+      price = price,
+      createdAt = new Date()
+    )
+
+    // Store match
+    marketMatches.put(matchId, marketMatch)
+
+    // Create corresponding trade
+    val tradeId = randomUUID().toString
+    val trade = MarketTrade(
+      tradeId = tradeId,
+      buyOrderId = orderId,
+      sellOrderId = counterOrderId,
+      amount = amount,
+      price = price,
+      status = "pending",
+      createdAt = new Date()
+    )
+    marketTrades.put(tradeId, trade)
+
+    (Full(marketMatch), callContext)
+  }
+
+  override def getMarketTrade(
+    tradeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketTrade]] = Future {
+    val trade = Option(marketTrades.get(tradeId))
+    (Box(trade), callContext)
+  }
+
+  override def requestSettlement(
+    tradeId: String,
+    step: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Settlement]] = Future {
+    // Generate settlement ID
+    val settlementId = randomUUID().toString
+
+    // Create settlement
+    val settlement = Settlement(
+      settlementId = settlementId,
+      tradeId = tradeId,
+      step = step,
+      status = "pending",
+      createdAt = new Date(),
+      completedAt = None
+    )
+
+    // Store settlement
+    settlements.put(settlementId, settlement)
+
+    (Full(settlement), callContext)
+  }
+
+  override def notifyDeposit(
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Deposit]] = Future {
+    // Generate deposit ID
+    val depositId = randomUUID().toString
+
+    // Create deposit
+    val deposit = Deposit(
+      depositId = depositId,
+      txHash = txHash,
+      from = from,
+      to = to,
+      amount = amount,
+      confirmations = confirmations,
+      status = "confirmed",
+      createdAt = new Date()
+    )
+
+    // Store deposit
+    deposits.put(depositId, deposit)
+
+    (Full(deposit), callContext)
+  }
+
+  override def requestWithdrawal(
+    accountId: String,
+    amount: BigDecimal,
+    address: String,
+    idempotencyKey: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Withdrawal]] = Future {
+    // Check idempotency
+    val existingWithdrawalId = Option(withdrawalIdempotencyKeys.get(idempotencyKey))
+    existingWithdrawalId match {
+      case Some(withdrawalId) =>
+        // Return existing withdrawal
+        val existingWithdrawal = Option(withdrawals.get(withdrawalId))
+        (Box(existingWithdrawal), callContext)
+      case None =>
+        // Generate withdrawal ID
+        val withdrawalId = randomUUID().toString
+
+        // Create withdrawal
+        val withdrawal = Withdrawal(
+          withdrawalId = withdrawalId,
+          accountId = accountId,
+          amount = amount,
+          address = address,
+          status = "pending",
+          txHash = None,
+          createdAt = new Date()
+        )
+
+        // Store withdrawal and idempotency key
+        withdrawals.put(withdrawalId, withdrawal)
+        withdrawalIdempotencyKeys.put(idempotencyKey, withdrawalId)
+
+        (Full(withdrawal), callContext)
+    }
   }
 
 }

@@ -2131,4 +2131,76 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[List[TradingOffer]]] = Future {
     (Full(List.empty), callContext)
   }
+
+  // Market Trading Methods
+  def createMarketOrder(
+    side: String,
+    price: BigDecimal,
+    quantity: BigDecimal,
+    accountId: String,
+    idempotencyKey: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Failure(setUnimplementedError(nameOf(createMarketOrder _))), callContext)
+  }
+
+  def getMarketOrder(
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Empty, callContext)
+  }
+
+  def cancelMarketOrder(
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Failure(setUnimplementedError(nameOf(cancelMarketOrder _))), callContext)
+  }
+
+  def createMarketMatch(
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketMatch]] = Future {
+    (Failure(setUnimplementedError(nameOf(createMarketMatch _))), callContext)
+  }
+
+  def getMarketTrade(
+    tradeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketTrade]] = Future {
+    (Empty, callContext)
+  }
+
+  def requestSettlement(
+    tradeId: String,
+    step: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Settlement]] = Future {
+    (Failure(setUnimplementedError(nameOf(requestSettlement _))), callContext)
+  }
+
+  def notifyDeposit(
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Deposit]] = Future {
+    (Failure(setUnimplementedError(nameOf(notifyDeposit _))), callContext)
+  }
+
+  def requestWithdrawal(
+    accountId: String,
+    amount: BigDecimal,
+    address: String,
+    idempotencyKey: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Withdrawal]] = Future {
+    (Failure(setUnimplementedError(nameOf(requestWithdrawal _))), callContext)
+  }
 }
