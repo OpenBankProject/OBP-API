@@ -853,6 +853,14 @@ object ErrorMessages {
   val DuplicateIdempotencyKey = "OBP-71004: Duplicate idempotency key."
   val CreateTradingOfferError = "OBP-71005: Could not create trading offer."
 
+  // Market Trading Exceptions (OBP-72XXX)
+  val OrderNotFound = "OBP-72001: Market order not found."
+  val InvalidOrderSide = "OBP-72002: Invalid order side. Must be 'BUY' or 'SELL'."
+  val TradeNotFound = "OBP-72003: Market trade not found."
+  val InvalidMatchParameters = "OBP-72004: Invalid match parameters."
+  val SettlementFailed = "OBP-72005: Settlement request failed."
+  val WithdrawalFailed = "OBP-72006: Withdrawal request failed."
+
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
   val CannotDeleteCascadePersonalEntity = "OBP-80002: Cannot delete cascade for personal entities (hasPersonalEntity=true). Please delete the records and definition separately."

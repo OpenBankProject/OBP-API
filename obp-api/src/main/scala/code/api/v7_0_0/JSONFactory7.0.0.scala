@@ -153,4 +153,176 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       status = offer.status
     )
   }
+
+  // Market Trading JSON Models
+
+  // Market Request Models
+  case class CreateMarketOrderRequestJson(
+    side: String,                 // "BUY" | "SELL"
+    price: BigDecimal,
+    quantity: BigDecimal,
+    accountId: String,
+    idempotencyKey: String
+  )
+
+  case class CreateMarketMatchRequestJson(
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal
+  )
+
+  case class RequestSettlementJson(
+    tradeId: String,
+    step: Option[String]
+  )
+
+  case class NotifyDepositJson(
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int
+  )
+
+  case class RequestWithdrawalJson(
+    accountId: String,
+    amount: BigDecimal,
+    address: String,
+    idempotencyKey: String
+  )
+
+  // Market Response Models
+  case class MarketOrderJson(
+    orderId: String,
+    side: String,
+    price: BigDecimal,
+    quantity: BigDecimal,
+    accountId: String,
+    status: String,
+    createdAt: String,  // ISO 8601
+    updatedAt: String   // ISO 8601
+  )
+
+  case class MarketMatchJson(
+    matchId: String,
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    createdAt: String  // ISO 8601
+  )
+
+  case class MarketTradeJson(
+    tradeId: String,
+    buyOrderId: String,
+    sellOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    status: String,
+    createdAt: String  // ISO 8601
+  )
+
+  case class SettlementJson(
+    settlementId: String,
+    tradeId: String,
+    step: Option[String],
+    status: String,
+    createdAt: String,           // ISO 8601
+    completedAt: Option[String]  // ISO 8601
+  )
+
+  case class DepositJson(
+    depositId: String,
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int,
+    status: String,
+    createdAt: String  // ISO 8601
+  )
+
+  case class WithdrawalJson(
+    withdrawalId: String,
+    accountId: String,
+    amount: BigDecimal,
+    address: String,
+    status: String,
+    txHash: Option[String],
+    createdAt: String  // ISO 8601
+  )
+
+  // Market Conversion Functions
+  def createMarketOrderJson(order: com.openbankproject.commons.model.MarketOrder): MarketOrderJson = {
+    MarketOrderJson(
+      orderId = order.orderId,
+      side = order.side,
+      price = order.price,
+      quantity = order.quantity,
+      accountId = order.accountId,
+      status = order.status,
+      createdAt = order.createdAt.toInstant.toString,
+      updatedAt = order.updatedAt.toInstant.toString
+    )
+  }
+
+  def createMarketMatchJson(marketMatch: com.openbankproject.commons.model.MarketMatch): MarketMatchJson = {
+    MarketMatchJson(
+      matchId = marketMatch.matchId,
+      orderId = marketMatch.orderId,
+      counterOrderId = marketMatch.counterOrderId,
+      amount = marketMatch.amount,
+      price = marketMatch.price,
+      createdAt = marketMatch.createdAt.toInstant.toString
+    )
+  }
+
+  def createMarketTradeJson(trade: com.openbankproject.commons.model.MarketTrade): MarketTradeJson = {
+    MarketTradeJson(
+      tradeId = trade.tradeId,
+      buyOrderId = trade.buyOrderId,
+      sellOrderId = trade.sellOrderId,
+      amount = trade.amount,
+      price = trade.price,
+      status = trade.status,
+      createdAt = trade.createdAt.toInstant.toString
+    )
+  }
+
+  def createSettlementJson(settlement: com.openbankproject.commons.model.Settlement): SettlementJson = {
+    SettlementJson(
+      settlementId = settlement.settlementId,
+      tradeId = settlement.tradeId,
+      step = settlement.step,
+      status = settlement.status,
+      createdAt = settlement.createdAt.toInstant.toString,
+      completedAt = settlement.completedAt.map(_.toInstant.toString)
+    )
+  }
+
+  def createDepositJson(deposit: com.openbankproject.commons.model.Deposit): DepositJson = {
+    DepositJson(
+      depositId = deposit.depositId,
+      txHash = deposit.txHash,
+      from = deposit.from,
+      to = deposit.to,
+      amount = deposit.amount,
+      confirmations = deposit.confirmations,
+      status = deposit.status,
+      createdAt = deposit.createdAt.toInstant.toString
+    )
+  }
+
+  def createWithdrawalJson(withdrawal: com.openbankproject.commons.model.Withdrawal): WithdrawalJson = {
+    WithdrawalJson(
+      withdrawalId = withdrawal.withdrawalId,
+      accountId = withdrawal.accountId,
+      amount = withdrawal.amount,
+      address = withdrawal.address,
+      status = withdrawal.status,
+      txHash = withdrawal.txHash,
+      createdAt = withdrawal.createdAt.toInstant.toString
+    )
+  }
 }

@@ -1067,7 +1067,7 @@ object Http4s700 {
             ),
             executions = List.empty,
             created_at = "2026-04-15T10:30:00Z",
-            updated_at = º"2026-04-15T10:30:00Z"
+            updated_at = "2026-04-15T10:30:00Z"
           )
         )
       ),
