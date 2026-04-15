@@ -113,6 +113,84 @@ EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } /
 
 **CI**: Tests run with `mvn test -DwildcardSuites="..."`. `hikari.maximumPoolSize=20` required in test props for concurrent tests (`withRequestTransaction` holds 1 connection per request; rate-limit queries need a 2nd → pool of 10 exhausts at 5 concurrent requests).
 
+## CI Performance Profile
+
+Measured from a 3-shard run (2691 tests total, all passing). Numbers are stable across shards.
+
+### Time budget per shard (~9–11 min total)
+
+| Phase | Time | % of total |
+|---|---|---|
+| Main compile (Zinc) | ~130s | ~22% |
+| Test compile (Zinc) | ~68s | ~11% |
+| Test discovery (ScalaTest) | ~20s | ~3% |
+| **Test execution** | **~340–420s** | **~60–64%** |
+
+Compile times are consistent across all three shards — Zinc cache restores correctly. Test execution is the dominant cost.
+
+### http4s v7 vs Lift — per-test speed
+
+| Category | Tests | Avg/test |
+|---|---|---|
+| http4s v7 — unit/pure (no server) | 172 | **0.008s** |
+| http4s v7 — integration (real server) | 160 | 0.418s |
+| Lift v4 | 515 | 0.448s |
+| Lift v3 | 269 | 0.446s |
+| Lift v5 | 337 | 0.432s |
+| Lift v1 | 431 | 0.425s |
+| Lift v2 | 124 | 0.414s |
+| Lift v6 | 314 | 0.411s |
+
+At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
+
+The 5 integration suites (160 tests, 66.9s total):
+- `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
+- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 75 tests, 23.8s
+- `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
+- `obp-api/src/test/scala/code/api/v5_0_0/Http4s500SystemViewsTest.scala` — 13 tests, 4.4s
+- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700TransactionTest.scala` — 5 tests, 1.9s
+
+The 12 pure-unit suites (172 tests, 1.3s total):
+- `obp-api/src/test/scala/code/api/util/http4s/Http4sCallContextBuilderTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/Http4sResponseConversionTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/Http4sResponseConversionPropertyTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/Http4sRequestConversionPropertyTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/ResourceDocMatcherTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/Http4sConfigUtilTest.scala`
+- `obp-api/src/test/scala/code/api/util/http4s/RequestScopeConnectionTest.scala`
+- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2AISTest.scala`
+- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2PISTest.scala`
+- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2ResourceDocTest.scala`
+- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2PIISTest.scala`
+- `obp-api/src/test/scala/code/api/v5_0_0/Http4s500RoutesTest.scala`
+
+### Known bottlenecks
+
+**`API1_2_1Test`** (Lift v1) — 143s for 323 tests, 36% of shard2's entire test time. Larger than the full http4s v7 budget. The first test in the suite (`"base line URL works"`) takes 0.97s — Lift's lazy init cost. Moving this suite to its own shard would reduce pipeline wall-clock by ~90s.
+
+**`Http4sLiftBridgePropertyTest`** — 31.9s for 51 tests. Property 7 ("Session and Context Adapter Correctness") accounts for 13.4s of that: three ScalaCheck properties exercise concurrent requests through the Lift/http4s bridge, hitting real lock contention between Lift's session manager and the http4s fiber scheduler. Property 7.4 alone is 8.54s. These are the most meaningful slow tests — they exercise a genuine concurrency boundary.
+
+**`ResourceDocsTest` / `SwaggerDocsTest`** — 34s + 24s = 58s, averaging 0.85s/test — the slowest per-test cost in the suite. Each test serializes the entire API surface (633+ endpoints) into JSON/Swagger. Cost scales linearly with endpoint count. Will worsen as the http4s migration adds endpoints unless ResourceDoc serialization is cached or the heavy tests are isolated.
+
+**Shard imbalance**: shard2 runs ~100s longer than shard3 because it holds `API1_2_1Test`. Reassigning that one suite to its own shard or splitting it would balance all three shards to ~9m15s.
+
+### Shard assignment
+
+Shards are defined by explicit package-prefix allowlists in `.github/workflows/build_pull_request.yml` (lines 89–139). Shard 3 also runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1 or 2 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 3:"`.
+
+| Package prefix | Shard |
+|---|---|
+| `code.api.v4_0_0`, `code.api.v5_0_0`, `code.api.v3_0_0`, `code.api.v2_*`, `code.api.v1_[34]_0`, `code.api.UKOpenBanking`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container` | 1 |
+| `code.api.v1_2_1`, `code.api.v6_0_0`, `code.api.ResourceDocs1_4_0`, `code.api.util`, `code.api.berlin`, `code.management`, `code.metrics`, `code.model`, `code.views`, `code.usercustomerlinks`, `code.customer`, `code.errormessages` | 2 |
+| `code.api.v5_1_0`, `code.api.v3_1_0`, `code.api.http4sbridge`, `code.api.v7_0_0`, `code.api.Authentication*`, `code.api.DirectLoginTest`, `code.api.dauthTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.util`, `code.connector` | 3 |
+| anything else | **3** (catch-all) |
+
+To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically.
+
+### Implication for the migration
+
+Per-endpoint integration test cost stays roughly constant as endpoints move Lift → http4s (both bound by DB + HTTP). Gains appear from: (1) pure unit tests replacing integration tests, (2) eventual removal of Lift endpoint tests when v6 is retired. ResourceDocs overhead is the one cost that compounds — needs caching before the migration is complete.
+
 ## TODO / Phase Progress
 
 ### Phase 1 — Simple GETs (~192 remaining)
