@@ -99,6 +99,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   val getTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
+  // Trading offer storage
+  private val tradingOffers = new java.util.concurrent.ConcurrentHashMap[String, TradingOffer]()
+
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
@@ -5876,6 +5879,78 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future {
     (MappedMandateProvider.deleteSignatoryPanel(panelId), callContext)
+  }
+
+  // Trading Methods Implementation
+  override def createTradingOffer(
+    bankId: BankId,
+    accountId: AccountId,
+    offerType: String,
+    assetCode: String,
+    assetAmount: BigDecimal,
+    priceCurrency: String,
+    priceAmount: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    // Generate offer ID (auto-generated UUID following OBP design pattern)
+    val offerId = randomUUID().toString
+
+    // Create offer
+    val offer = TradingOffer(
+      offerId = offerId,
+      offerType = offerType,
+      status = "active",
+      offerDetails = TradingOfferDetails(
+        assetCode = assetCode,
+        assetAmount = assetAmount,
+        priceCurrency = priceCurrency,
+        priceAmount = priceAmount,
+        settlementAccountId = settlementAccountId,
+        expiryDatetime = None,
+        minimumFill = None
+      ),
+      accountInfo = TradingAccountInfo(
+        bankId = bankId.value,
+        accountId = accountId.value,
+        viewId = "owner" // Default view
+      ),
+      executions = List.empty,
+      createdAt = new Date(),
+      updatedAt = new Date()
+    )
+
+    // Store offer
+    tradingOffers.put(offerId, offer)
+
+    (Full(offer), callContext)
+  }
+
+  override def getTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+    (Box(offer), callContext)
+  }
+
+  override def cancelTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+
+    offer match {
+      case Some(o) =>
+        val cancelledOffer = o.copy(
+          status = "cancelled",
+          updatedAt = new Date()
+        )
+        tradingOffers.put(offerId, cancelledOffer)
+        (Full(cancelledOffer), callContext)
+      case None =>
+        (Empty, callContext)
+    }
   }
 
 }

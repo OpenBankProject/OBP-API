@@ -4563,6 +4563,44 @@ object NewStyle extends MdcLoggable{
     ) map {
       i => (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyLimitError"), i._2)
     }
+
+    // Trading Methods
+    def createTradingOffer(
+      bankId: BankId,
+      accountId: AccountId,
+      offerType: String,
+      assetCode: String,
+      assetAmount: BigDecimal,
+      priceCurrency: String,
+      priceAmount: BigDecimal,
+      settlementAccountId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.createTradingOffer(
+        bankId, accountId, offerType, assetCode, assetAmount,
+        priceCurrency, priceAmount, settlementAccountId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def getTradingOffer(
+      offerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.getTradingOffer(offerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def cancelTradingOffer(
+      offerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.cancelTradingOffer(offerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
   }
 
 }

@@ -862,6 +862,181 @@ object Http4s700 {
       http4sPartialFunction = Some(getAccountsAtBank)
     )
 
+    // ── Trading Endpoints ──────────────────────────────────────────────────
+    
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
+    val createTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateOfferRequestJson, JSONFactory700.TradingOfferJson](req) { (user, createOfferJson, cc) =>
+          for {
+            // Validate offer_type
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidOfferType,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.offer_type == "BUY" || createOfferJson.offer_type == "SELL")
+
+            // Validate asset_amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.asset_amount > 0)
+
+            // Validate price_amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.price_amount > 0)
+
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.createTradingOffer(
+              BankId(bankId),
+              AccountId(accountId),
+              createOfferJson.offer_type,
+              createOfferJson.asset_code,
+              createOfferJson.asset_amount,
+              createOfferJson.price_currency,
+              createOfferJson.price_amount,
+              createOfferJson.settlement_account_id,
+              Some(cc)
+            )
+          } yield JSONFactory700.createTradingOfferJson(offer)
+        }
+    }
+    
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTradingOffer),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
+      "Create Trading Offer",
+      """Create a new trading offer to buy or sell digital assets.
+        |
+        |The offer will be matched against existing offers in the order book.
+        |The offer_id is automatically generated as a UUID.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateOfferRequestJson(
+        offer_type = "BUY",
+        asset_code = "OGCR",
+        asset_amount = BigDecimal("100.00"),
+        price_currency = "EUR",
+        price_amount = BigDecimal("1.50"),
+        settlement_account_id = "settlement-account-123"
+      ),
+      JSONFactory700.TradingOfferJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "active",
+        offer_details = JSONFactory700.OfferDetailsJson(
+          offer_type = "BUY",
+          asset_code = "OGCR",
+          asset_amount = BigDecimal("100.00"),
+          price_currency = "EUR",
+          price_amount = BigDecimal("1.50"),
+          settlement_account_id = "settlement-account-123",
+          expiry_datetime = None,
+          minimum_fill = None
+        ),
+        account_info = JSONFactory700.AccountInfoJson(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          view_id = "owner"
+        ),
+        executions = List.empty,
+        created_at = "2026-04-15T10:30:00Z",
+        updated_at = "2026-04-15T10:30:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidOfferType, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: Nil,
+      http4sPartialFunction = Some(createTradingOffer)
+    )
+    
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
+    val getTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.getTradingOffer(offerId, Some(cc))
+          } yield JSONFactory700.createTradingOfferJson(offer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getTradingOffer),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
+      "Get Trading Offer",
+      """Get details of a specific trading offer including execution history.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.TradingOfferJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "active",
+        offer_details = JSONFactory700.OfferDetailsJson(
+          offer_type = "BUY",
+          asset_code = "OGCR",
+          asset_amount = BigDecimal("100.00"),
+          price_currency = "EUR",
+          price_amount = BigDecimal("1.50"),
+          settlement_account_id = "settlement-account-123",
+          expiry_datetime = None,
+          minimum_fill = None
+        ),
+        account_info = JSONFactory700.AccountInfoJson(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          view_id = "owner"
+        ),
+        executions = List.empty,
+        created_at = "2026-04-15T10:30:00Z",
+        updated_at = "2026-04-15T10:30:00Z"
+      ),
+      List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: Nil,
+      http4sPartialFunction = Some(getTradingOffer)
+    )
+
+    // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
+    val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.cancelTradingOffer(offerId, Some(cc))
+          } yield JSONFactory700.createCancelOfferResponseJson(offer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(cancelTradingOffer),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
+      "Cancel Trading Offer",
+      """Cancel an active trading offer.
+        |
+        |This operation is idempotent - canceling an already-cancelled offer returns success.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.CancelOfferResponseJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "cancelled"
+      ),
+      List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: Nil,
+      http4sPartialFunction = Some(cancelTradingOffer)
+    )
+
+
     // ── End Phase 1 batch 2 ──────────────────────────────────────────────────
 
     // All routes combined (without middleware - for direct use).

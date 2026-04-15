@@ -2092,4 +2092,33 @@ trait Connector extends MdcLoggable {
     panelId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteSignatoryPanel _))), callContext)}
+
+  // Trading Methods
+  def createTradingOffer(
+    bankId: BankId,
+    accountId: AccountId,
+    offerType: String,
+    assetCode: String,
+    assetAmount: BigDecimal,
+    priceCurrency: String,
+    priceAmount: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Failure(setUnimplementedError(nameOf(createTradingOffer _))), callContext)
+  }
+
+  def getTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Empty, callContext)
+  }
+
+  def cancelTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Failure(setUnimplementedError(nameOf(cancelTradingOffer _))), callContext)
+  }
 }
