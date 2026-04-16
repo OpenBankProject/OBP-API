@@ -4,7 +4,7 @@ import code.Http4sTestServer
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCardsForBank, canGetCustomersAtOneBank, canReadResourceDoc}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UserNotFoundByUserId}
 import code.customer.CustomerX
 import code.entitlement.Entitlement
@@ -1713,6 +1713,347 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getCacheConfig ──────────────────────────────────────────────────────────
+
+  feature("Http4s700 getCacheConfig endpoint") {
+
+    scenario("Reject unauthenticated access to /system/cache/config", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/config with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/config")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetCacheConfig role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/config with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/config", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetCacheConfig.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return cache config when authenticated with canGetCacheConfig role", Http4s700RoutesTag) {
+      Given("canGetCacheConfig role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetCacheConfig.toString)
+
+      When("GET /obp/v7.0.0/system/cache/config with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/config", headers)
+
+      Then("Response is 200 with redis_status, in_memory_status, instance_id fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.keys should contain("redis_status")
+          m.keys should contain("in_memory_status")
+          m.keys should contain("instance_id")
+        case _ => fail("Expected JSON object for getCacheConfig")
+      }
+    }
+  }
+
+  // ─── getCacheInfo ────────────────────────────────────────────────────────────
+
+  feature("Http4s700 getCacheInfo endpoint") {
+
+    scenario("Reject unauthenticated access to /system/cache/info", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/info with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/info")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetCacheInfo role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/info with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/info", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetCacheInfo.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return cache info when authenticated with canGetCacheInfo role", Http4s700RoutesTag) {
+      Given("canGetCacheInfo role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetCacheInfo.toString)
+
+      When("GET /obp/v7.0.0/system/cache/info with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/info", headers)
+
+      Then("Response is 200 with namespaces, total_keys, redis_available fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.keys should contain("namespaces")
+          m.keys should contain("total_keys")
+          m.keys should contain("redis_available")
+        case _ => fail("Expected JSON object for getCacheInfo")
+      }
+    }
+  }
+
+  // ─── getDatabasePoolInfo ─────────────────────────────────────────────────────
+
+  feature("Http4s700 getDatabasePoolInfo endpoint") {
+
+    scenario("Reject unauthenticated access to /system/database/pool", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/database/pool with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/database/pool")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetDatabasePoolInfo role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/database/pool with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/database/pool", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetDatabasePoolInfo.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return pool info when authenticated with canGetDatabasePoolInfo role", Http4s700RoutesTag) {
+      Given("canGetDatabasePoolInfo role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetDatabasePoolInfo.toString)
+
+      When("GET /obp/v7.0.0/system/database/pool with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/database/pool", headers)
+
+      Then("Response is 200 with pool_name, active_connections, maximum_pool_size fields")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.keys should contain("pool_name")
+          m.keys should contain("active_connections")
+          m.keys should contain("maximum_pool_size")
+        case _ => fail("Expected JSON object for getDatabasePoolInfo")
+      }
+    }
+  }
+
+  // ─── getStoredProcedureConnectorHealth ───────────────────────────────────────
+
+  feature("Http4s700 getStoredProcedureConnectorHealth endpoint") {
+
+    scenario("Reject unauthenticated access to stored_procedure_vDec2019/health", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/connectors/stored_procedure_vDec2019/health with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/connectors/stored_procedure_vDec2019/health")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetConnectorHealth role", Http4s700RoutesTag) {
+      Given("GET stored_procedure_vDec2019/health with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/connectors/stored_procedure_vDec2019/health", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetConnectorHealth.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    // Note: no 200 scenario — StoredProcedureUtils init block requires stored_procedure_connector.*
+    // props that are not set in the test environment. The route is correctly wired (auth passes),
+    // but the Future would fail when StoredProcedureUtils is first accessed, returning 500.
+  }
+
+  // ─── getMigrations ───────────────────────────────────────────────────────────
+
+  feature("Http4s700 getMigrations endpoint") {
+
+    scenario("Reject unauthenticated access to /system/migrations", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/migrations with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/migrations")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetMigrations role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/migrations with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/migrations", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetMigrations.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return migrations list when authenticated with canGetMigrations role", Http4s700RoutesTag) {
+      Given("canGetMigrations role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetMigrations.toString)
+
+      When("GET /obp/v7.0.0/system/migrations with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/migrations", headers)
+
+      Then("Response is 200 with migration_script_logs field")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).keys should contain("migration_script_logs")
+        case _ => fail("Expected JSON object for getMigrations")
+      }
+    }
+  }
+
+  // ─── getCacheNamespaces ──────────────────────────────────────────────────────
+
+  feature("Http4s700 getCacheNamespaces endpoint") {
+
+    scenario("Reject unauthenticated access to /system/cache/namespaces", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/namespaces with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/namespaces")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetCacheNamespaces role", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/system/cache/namespaces with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/namespaces", headers)
+
+      Then("Response is 403 with UserHasMissingRoles")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetCacheNamespaces.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return cache namespaces when authenticated with canGetCacheNamespaces role", Http4s700RoutesTag) {
+      Given("canGetCacheNamespaces role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetCacheNamespaces.toString)
+
+      When("GET /obp/v7.0.0/system/cache/namespaces with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/system/cache/namespaces", headers)
+
+      Then("Response is 200 with namespaces array")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("namespaces") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected namespaces array")
+          }
+        case _ => fail("Expected JSON object for getCacheNamespaces")
       }
     }
   }

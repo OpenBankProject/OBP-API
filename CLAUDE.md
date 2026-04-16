@@ -5,15 +5,15 @@
 
 ## Architecture (Onboarding)
 
-v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 21 of 633 endpoints migrated.
+v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 27 of 633 endpoints migrated.
 
 **Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 **Key files**: `Http4s700.scala` (endpoints), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
 
-**Migrated endpoints** (21): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getFeatures, getScannedApiVersions, getConnectors, getProviders, getUsers, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, getUserByUserId.
+**Migrated endpoints** (27): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getFeatures, getScannedApiVersions, getConnectors, getProviders, getUsers, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, getUserByUserId, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces.
 
-**Tests**: `Http4s700RoutesTest` (69 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
+**Tests**: `Http4s700RoutesTest` (92 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a v6.0.0 Endpoint to v7.0.0
 
@@ -93,6 +93,8 @@ EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } /
 - `getCurrentUser` → `user_id`, `username`, `email`
 
 **Counterparty test setup**: `createCounterparty` only creates `MappedCounterparty`. Must also call `Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterpartyId, counterpartyName)` or endpoint returns 400 `CounterpartyNotFoundByCounterpartyId`.
+
+**`StoredProcedureUtils` in tests**: `StoredProcedureUtils` has a constructor block that requires `stored_procedure_connector.*` props. In the test environment these aren't set, so the first access to the object (inside `Future { StoredProcedureUtils.getHealth() }`) throws and returns 500. Only test the 401/403 scenarios for `getStoredProcedureConnectorHealth` — skip the 200 scenario.
 
 **System owner view** (`"owner"`) has `CAN_GET_COUNTERPARTY` and is granted to `resourceUser1` on all test accounts — safe to use as VIEW_ID in tests.
 
@@ -198,7 +200,8 @@ GET + no body. Purely mechanical — 1:1 copy of `NewStyle.function.*` calls, pi
 | Batch | Endpoints | Status |
 |---|---|---|
 | Batches 1–3 | 9 endpoints | ✓ done |
-| Remaining | ~192 endpoints | todo |
+| Batch 4 | getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces | ✓ done |
+| Remaining | ~186 endpoints | todo |
 
 ### Phase 2 — Account/View/Counterparty GETs (~30 endpoints)
 `withBankAccount` / `withView` / `withCounterparty` helpers ready. Same mechanical pattern.
