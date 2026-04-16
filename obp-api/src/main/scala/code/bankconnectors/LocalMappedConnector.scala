@@ -5904,7 +5904,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[TradingOffer]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate offer ID (auto-generated UUID following OBP design pattern)
     val offerId = randomUUID().toString
@@ -6027,7 +6027,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[MarketOrder]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate order ID (auto-generated UUID following OBP design pattern)
     val orderId = randomUUID().toString
@@ -6094,7 +6094,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[MarketMatch]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate match ID
     val matchId = randomUUID().toString
@@ -6151,7 +6151,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[Settlement]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate settlement ID
     val settlementId = randomUUID().toString
@@ -6186,7 +6186,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[Deposit]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate deposit ID
     val depositId = randomUUID().toString
@@ -6221,7 +6221,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): OBPReturnType[Box[Withdrawal]] = Future {
     // Extract audit fields from CallContext
     val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
-    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
     
     // Generate withdrawal ID (auto-generated UUID following OBP design pattern)
     val withdrawalId = randomUUID().toString

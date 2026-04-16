@@ -946,6 +946,8 @@ object Http4s700 {
           view_id = "owner"
         ),
         executions = List.empty,
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-15T10:30:00Z",
         updated_at = "2026-04-15T10:30:00Z"
       ),
@@ -995,6 +997,8 @@ object Http4s700 {
           view_id = "owner"
         ),
         executions = List.empty,
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-15T10:30:00Z",
         updated_at = "2026-04-15T10:30:00Z"
       ),
@@ -1066,6 +1070,8 @@ object Http4s700 {
               view_id = "owner"
             ),
             executions = List.empty,
+            user_id = "user-abc-123",
+            consent_id = None,
             created_at = "2026-04-15T10:30:00Z",
             updated_at = "2026-04-15T10:30:00Z"
           )
@@ -1147,6 +1153,8 @@ object Http4s700 {
           view_id = "owner"
         ),
         executions = List.empty,
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-15T10:30:00Z",
         updated_at = "2026-04-15T10:35:00Z"
       ),
@@ -1263,6 +1271,8 @@ object Http4s700 {
         quantity = BigDecimal("10.0"),
         account_id = "buyer-fiat-account",
         status = "active",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:30:00Z"
       ),
@@ -1308,6 +1318,8 @@ object Http4s700 {
         quantity = BigDecimal("10.0"),
         account_id = "buyer-fiat-account",
         status = "active",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:30:00Z"
       ),
@@ -1355,6 +1367,8 @@ object Http4s700 {
         quantity = BigDecimal("10.0"),
         account_id = "buyer-fiat-account",
         status = "cancelled",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:35:00Z"
       ),
@@ -1423,6 +1437,8 @@ object Http4s700 {
         counter_order_id = "order-456",
         amount = BigDecimal("5.0"),
         price = BigDecimal("25.0"),
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
@@ -1467,6 +1483,8 @@ object Http4s700 {
         amount = BigDecimal("5.0"),
         price = BigDecimal("25.0"),
         status = "pending",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(TradeNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
@@ -1513,6 +1531,8 @@ object Http4s700 {
         trade_id = "trade-789",
         step = Some("step1"),
         status = "pending",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:45:00Z",
         completed_at = None
       ),
@@ -1583,6 +1603,8 @@ object Http4s700 {
         amount = BigDecimal("100.0"),
         confirmations = 6,
         status = "confirmed",
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:50:00Z"
       ),
       List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
@@ -1643,6 +1665,8 @@ object Http4s700 {
         address = "0xdestination",
         status = "pending",
         tx_hash = None,
+        user_id = "user-abc-123",
+        consent_id = None,
         created_at = "2026-04-16T00:55:00Z"
       ),
       List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
