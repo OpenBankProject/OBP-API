@@ -222,15 +222,9 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            _ <- Helper.booleanToFuture(
-              failMsg = s"$InvalidApiVersionString This server supports only ${ApiVersion.v7_0_0}. Current value: $requestedApiVersionString",
-              failCode = 400,
-              cc = Some(cc)
-            ) {
-              requestedApiVersion == ApiVersion.v7_0_0
-            }
-            http4sOnlyDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs.toList, tags, functions)
-          } yield JSONFactory1_4_0.createResourceDocsJson(http4sOnlyDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
+            allDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
+          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
     }
 

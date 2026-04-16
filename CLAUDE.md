@@ -13,7 +13,7 @@ v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 
 
 **Migrated endpoints** (27): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getFeatures, getScannedApiVersions, getConnectors, getProviders, getUsers, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, getUserByUserId, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces.
 
-**Tests**: `Http4s700RoutesTest` (92 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
+**Tests**: `Http4s700RoutesTest` (93 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a v6.0.0 Endpoint to v7.0.0
 
@@ -95,6 +95,8 @@ EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } /
 **Counterparty test setup**: `createCounterparty` only creates `MappedCounterparty`. Must also call `Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterpartyId, counterpartyName)` or endpoint returns 400 `CounterpartyNotFoundByCounterpartyId`.
 
 **`StoredProcedureUtils` in tests**: `StoredProcedureUtils` has a constructor block that requires `stored_procedure_connector.*` props. In the test environment these aren't set, so the first access to the object (inside `Future { StoredProcedureUtils.getHealth() }`) throws and returns 500. Only test the 401/403 scenarios for `getStoredProcedureConnectorHealth` — skip the 200 scenario.
+
+**`resource-docs` version dispatch**: `GET /obp/v7.0.0/resource-docs/API_VERSION/obp` accepts any valid API version string. Delegates to `ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion)` which dispatches per version (v7.0.0 → `Http4s700.resourceDocs`, v6.0.0 → `OBPAPI6_0_0.allResourceDocs`, etc.). An invalid/unknown version string returns 400.
 
 **System owner view** (`"owner"`) has `CAN_GET_COUNTERPARTY` and is granted to `resourceUser1` on all test accounts — safe to use as VIEW_ID in tests.
 

@@ -584,22 +584,44 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject request for non-v7.0.0 API version", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/resource-docs/v6.0.0/obp — wrong version in path")
+    scenario("Serve v6.0.0 resource docs when v6.0.0 requested via v7 endpoint", Http4s700RoutesTag) {
+      // Previously returned 400 — fixed by delegating to ImplementationsResourceDocs.getResourceDocsList
+      Given("GET /obp/v7.0.0/resource-docs/v6.0.0/obp?functions=getBanks — filtered to avoid timeout")
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making HTTP request to server")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v6.0.0/obp")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v6.0.0/obp?functions=getBanks")
 
-      Then("Response is 400 with InvalidApiVersionString message")
+      Then("Response is 200 OK with resource_docs array")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("resource_docs") match {
+            case Some(JArray(_)) => succeed
+            case _ =>
+              fail("Expected resource_docs field to be an array")
+          }
+        case _ =>
+          fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 for an unrecognised API version string", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/resource-docs/not-a-version/obp")
+      setPropsValues("resource_docs_requires_role" -> "false")
+
+      When("Making HTTP request to server")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/not-a-version/obp")
+
+      Then("Response is 400 with error message containing the bad version string")
       statusCode shouldBe 400
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
             case Some(JString(message)) =>
-              message should include("v6.0.0")
+              message should include("not-a-version")
             case _ =>
-              fail("Expected message field describing the version error")
+              fail("Expected message field")
           }
         case _ =>
           fail("Expected JSON object")
@@ -2057,4 +2079,5 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
   }
+
 }
