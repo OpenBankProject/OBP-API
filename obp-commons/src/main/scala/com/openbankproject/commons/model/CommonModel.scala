@@ -1384,6 +1384,8 @@ case class TradingOffer(
   offerDetails: TradingOfferDetails,
   accountInfo: TradingAccountInfo,
   executions: List[OfferExecution],
+  userId: String,     // Audit: User who created the offer
+  consentId: Option[String],  // Audit: Consent ID if applicable
   createdAt: Date,
   updatedAt: Date
 )
@@ -1420,6 +1422,8 @@ case class MarketOrder(
   quantity: BigDecimal,
   accountId: String,
   status: String,            // "active" | "cancelled" | "filled"
+  userId: String,            // Audit: User who created the order
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date,
   updatedAt: Date
 )
@@ -1430,6 +1434,8 @@ case class MarketMatch(
   counterOrderId: String,
   amount: BigDecimal,
   price: BigDecimal,
+  userId: String,            // Audit: User who created the match
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date
 )
 
@@ -1440,6 +1446,8 @@ case class MarketTrade(
   amount: BigDecimal,
   price: BigDecimal,
   status: String,            // "pending" | "settled"
+  userId: String,            // Audit: User who initiated the trade
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date
 )
 
@@ -1448,6 +1456,8 @@ case class Settlement(
   tradeId: String,
   step: Option[String],
   status: String,            // "pending" | "completed" | "failed"
+  userId: String,            // Audit: User who requested settlement
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date,
   completedAt: Option[Date]
 )
@@ -1460,6 +1470,8 @@ case class Deposit(
   amount: BigDecimal,
   confirmations: Int,
   status: String,            // "confirmed" | "pending"
+  userId: String,            // Audit: User who notified the deposit
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date
 )
 
@@ -1470,5 +1482,7 @@ case class Withdrawal(
   address: String,
   status: String,            // "pending" | "completed" | "failed"
   txHash: Option[String],
+  userId: String,            // Audit: User who requested withdrawal
+  consentId: Option[String], // Audit: Consent ID if applicable
   createdAt: Date
 )

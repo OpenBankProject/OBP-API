@@ -83,6 +83,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     offer_details: OfferDetailsJson,
     account_info: AccountInfoJson,
     executions: List[OfferExecutionJson],
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String,  // ISO 8601
     updated_at: String   // ISO 8601
   )
@@ -148,6 +150,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         executed_at = e.executedAt.toInstant.toString,
         counterpart_offer_id = e.counterpartOfferId
       )),
+      user_id = offer.userId,
+      consent_id = offer.consentId,
       created_at = offer.createdAt.toInstant.toString,
       updated_at = offer.updatedAt.toInstant.toString
     )
@@ -204,6 +208,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     quantity: BigDecimal,
     account_id: String,
     status: String,
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String,  // ISO 8601
     updated_at: String   // ISO 8601
   )
@@ -214,6 +220,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     counter_order_id: String,
     amount: BigDecimal,
     price: BigDecimal,
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String  // ISO 8601
   )
 
@@ -224,6 +232,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     amount: BigDecimal,
     price: BigDecimal,
     status: String,
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String  // ISO 8601
   )
 
@@ -232,6 +242,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     trade_id: String,
     step: Option[String],
     status: String,
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String,           // ISO 8601
     completed_at: Option[String]  // ISO 8601
   )
@@ -244,6 +256,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     amount: BigDecimal,
     confirmations: Int,
     status: String,
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String  // ISO 8601
   )
 
@@ -254,6 +268,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     address: String,
     status: String,
     tx_hash: Option[String],
+    user_id: String,         // Audit field
+    consent_id: Option[String],  // Audit field
     created_at: String  // ISO 8601
   )
 
@@ -266,6 +282,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       quantity = order.quantity,
       account_id = order.accountId,
       status = order.status,
+      user_id = order.userId,
+      consent_id = order.consentId,
       created_at = order.createdAt.toInstant.toString,
       updated_at = order.updatedAt.toInstant.toString
     )
@@ -278,6 +296,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       counter_order_id = marketMatch.counterOrderId,
       amount = marketMatch.amount,
       price = marketMatch.price,
+      user_id = marketMatch.userId,
+      consent_id = marketMatch.consentId,
       created_at = marketMatch.createdAt.toInstant.toString
     )
   }
@@ -290,6 +310,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       amount = trade.amount,
       price = trade.price,
       status = trade.status,
+      user_id = trade.userId,
+      consent_id = trade.consentId,
       created_at = trade.createdAt.toInstant.toString
     )
   }
@@ -300,6 +322,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       trade_id = settlement.tradeId,
       step = settlement.step,
       status = settlement.status,
+      user_id = settlement.userId,
+      consent_id = settlement.consentId,
       created_at = settlement.createdAt.toInstant.toString,
       completed_at = settlement.completedAt.map(_.toInstant.toString)
     )
@@ -314,6 +338,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       amount = deposit.amount,
       confirmations = deposit.confirmations,
       status = deposit.status,
+      user_id = deposit.userId,
+      consent_id = deposit.consentId,
       created_at = deposit.createdAt.toInstant.toString
     )
   }
@@ -326,6 +352,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       address = withdrawal.address,
       status = withdrawal.status,
       tx_hash = withdrawal.txHash,
+      user_id = withdrawal.userId,
+      consent_id = withdrawal.consentId,
       created_at = withdrawal.createdAt.toInstant.toString
     )
   }

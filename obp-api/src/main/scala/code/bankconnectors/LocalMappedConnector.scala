@@ -5902,6 +5902,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     settlementAccountId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[TradingOffer]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate offer ID (auto-generated UUID following OBP design pattern)
     val offerId = randomUUID().toString
 
@@ -5925,6 +5929,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         viewId = "owner" // Default view
       ),
       executions = List.empty,
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date(),
       updatedAt = new Date()
     )
@@ -6019,6 +6025,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     settlementAccountId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate order ID (auto-generated UUID following OBP design pattern)
     val orderId = randomUUID().toString
 
@@ -6030,6 +6040,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       quantity = quantity,
       accountId = settlementAccountId,
       status = "active",
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date(),
       updatedAt = new Date()
     )
@@ -6080,6 +6092,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     price: BigDecimal,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketMatch]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate match ID
     val matchId = randomUUID().toString
 
@@ -6090,6 +6106,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       counterOrderId = counterOrderId,
       amount = amount,
       price = price,
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date()
     )
 
@@ -6105,6 +6123,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       amount = amount,
       price = price,
       status = "pending",
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date()
     )
     marketTrades.put(tradeId, trade)
@@ -6129,6 +6149,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     step: Option[String],
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Settlement]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate settlement ID
     val settlementId = randomUUID().toString
 
@@ -6138,6 +6162,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       tradeId = tradeId,
       step = step,
       status = "pending",
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date(),
       completedAt = None
     )
@@ -6158,6 +6184,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     confirmations: Int,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Deposit]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate deposit ID
     val depositId = randomUUID().toString
 
@@ -6170,6 +6200,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       amount = amount,
       confirmations = confirmations,
       status = "confirmed",
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date()
     )
 
@@ -6187,6 +6219,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     address: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Withdrawal]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId = callContext.flatMap(_.implementedByPartialFunction.flatMap(_.consent.map(_.consentId)))
+    
     // Generate withdrawal ID (auto-generated UUID following OBP design pattern)
     val withdrawalId = randomUUID().toString
 
@@ -6198,6 +6234,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       address = address,
       status = "pending",
       txHash = None,
+      userId = userId,
+      consentId = consentId,
       createdAt = new Date()
     )
 
