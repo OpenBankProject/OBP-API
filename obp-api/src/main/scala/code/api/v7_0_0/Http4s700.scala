@@ -1193,39 +1193,44 @@ object Http4s700 {
 
     // ── Market Endpoints (Phase 2) ─────────────────────────────────────────
 
-    // Route: POST /obp/v7.0.0/market/orders
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders
     val createMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "market" / "orders" =>
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" =>
         EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketOrderRequestJson, JSONFactory700.MarketOrderJson](req) { (user, createOrderJson, cc) =>
           for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
             // Validate side
             _ <- Helper.booleanToFuture(
               failMsg = InvalidOrderSide,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(createOrderJson.side == "BUY" || createOrderJson.side == "SELL")
 
             // Validate price
             _ <- Helper.booleanToFuture(
               failMsg = InvalidTradingAmount,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(createOrderJson.price > 0)
 
             // Validate quantity
             _ <- Helper.booleanToFuture(
               failMsg = InvalidTradingAmount,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(createOrderJson.quantity > 0)
 
             // Invoke connector
-            (order, callContext) <- NewStyle.function.createMarketOrder(
+            (order, callContext2) <- NewStyle.function.createMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
               createOrderJson.side,
               createOrderJson.price,
               createOrderJson.quantity,
-              createOrderJson.account_id,
-              Some(cc)
+              createOrderJson.settlement_account_id,
+              callContext
             )
           } yield JSONFactory700.createMarketOrderJson(order)
         }
@@ -1236,7 +1241,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(createMarketOrder),
       "POST",
-      "/market/orders",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders",
       "Create Market Order",
       """Create a new market order to buy or sell assets.
         |
@@ -1249,7 +1254,7 @@ object Http4s700 {
         side = "BUY",
         price = BigDecimal("25.0"),
         quantity = BigDecimal("10.0"),
-        account_id = "buyer-fiat-account"
+        settlement_account_id = "buyer-fiat-account"
       ),
       JSONFactory700.MarketOrderJson(
         order_id = "550e8400-e29b-41d4-a716-446655440000",
@@ -1261,17 +1266,26 @@ object Http4s700 {
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:30:00Z"
       ),
-      List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, UnknownError),
+      List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketOrder)
     )
 
-    // Route: GET /obp/v7.0.0/market/orders/ORDER_ID
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID
     val getMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "market" / "orders" / orderId =>
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" / orderId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            (order, callContext) <- NewStyle.function.getMarketOrder(orderId, Some(cc))
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Get order
+            (order, callContext2) <- NewStyle.function.getMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
+              orderId,
+              callContext
+            )
           } yield JSONFactory700.createMarketOrderJson(order)
         }
     }
@@ -1281,7 +1295,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getMarketOrder),
       "GET",
-      "/market/orders/ORDER_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
       "Get Market Order",
       """Get details of a specific market order.
         |
@@ -1297,17 +1311,26 @@ object Http4s700 {
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:30:00Z"
       ),
-      List(OrderNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketOrder)
     )
 
-    // Route: DELETE /obp/v7.0.0/market/orders/ORDER_ID
+    // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID
     val cancelMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "market" / "orders" / orderId =>
+      case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" / orderId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            (order, callContext) <- NewStyle.function.cancelMarketOrder(orderId, Some(cc))
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Cancel order
+            (order, callContext2) <- NewStyle.function.cancelMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
+              orderId,
+              callContext
+            )
           } yield JSONFactory700.createMarketOrderJson(order)
         }
     }
@@ -1317,7 +1340,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(cancelMarketOrder),
       "DELETE",
-      "/market/orders/ORDER_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
       "Cancel Market Order",
       """Cancel an active market order.
         |
@@ -1335,37 +1358,42 @@ object Http4s700 {
         created_at = "2026-04-16T00:30:00Z",
         updated_at = "2026-04-16T00:35:00Z"
       ),
-      List(OrderNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(cancelMarketOrder)
     )
 
-    // Route: POST /obp/v7.0.0/market/matches
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/matches
     val createMarketMatch: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "market" / "matches" =>
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "matches" =>
         EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketMatchRequestJson, JSONFactory700.MarketMatchJson](req) { (user, createMatchJson, cc) =>
           for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
             // Validate amount
             _ <- Helper.booleanToFuture(
               failMsg = InvalidMatchParameters,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(createMatchJson.amount > 0)
 
             // Validate price
             _ <- Helper.booleanToFuture(
               failMsg = InvalidMatchParameters,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(createMatchJson.price > 0)
 
             // Invoke connector
-            (matchResult, callContext) <- NewStyle.function.createMarketMatch(
+            (matchResult, callContext2) <- NewStyle.function.createMarketMatch(
+              BankId(bankId),
+              AccountId(accountId),
               createMatchJson.order_id,
               createMatchJson.counter_order_id,
               createMatchJson.amount,
               createMatchJson.price,
-              Some(cc)
+              callContext
             )
           } yield JSONFactory700.createMarketMatchJson(matchResult)
         }
@@ -1376,7 +1404,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(createMarketMatch),
       "POST",
-      "/market/matches",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/matches",
       "Create Market Match",
       """Create a match between two market orders.
         |
@@ -1397,17 +1425,26 @@ object Http4s700 {
         price = BigDecimal("25.0"),
         created_at = "2026-04-16T00:40:00Z"
       ),
-      List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, UnknownError),
+      List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketMatch)
     )
 
-    // Route: GET /obp/v7.0.0/market/trades/TRADE_ID
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/trades/TRADE_ID
     val getMarketTrade: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "market" / "trades" / tradeId =>
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "trades" / tradeId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            (trade, callContext) <- NewStyle.function.getMarketTrade(tradeId, Some(cc))
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Get trade
+            (trade, callContext2) <- NewStyle.function.getMarketTrade(
+              BankId(bankId),
+              AccountId(accountId),
+              tradeId,
+              callContext
+            )
           } yield JSONFactory700.createMarketTradeJson(trade)
         }
     }
@@ -1417,7 +1454,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getMarketTrade),
       "GET",
-      "/market/trades/TRADE_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/trades/TRADE_ID",
       "Get Market Trade",
       """Get details of a specific market trade.
         |
@@ -1432,21 +1469,26 @@ object Http4s700 {
         status = "pending",
         created_at = "2026-04-16T00:40:00Z"
       ),
-      List(TradeNotFound, $AuthenticatedUserIsRequired, UnknownError),
+      List(TradeNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketTrade)
     )
 
-    // Route: POST /obp/v7.0.0/market/settlements
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/settlements
     val requestSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "market" / "settlements" =>
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "settlements" =>
         EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestSettlementJson, JSONFactory700.SettlementJson](req) { (user, requestJson, cc) =>
           for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
             // Invoke connector
-            (settlement, callContext) <- NewStyle.function.requestSettlement(
+            (settlement, callContext2) <- NewStyle.function.requestSettlement(
+              BankId(bankId),
+              AccountId(accountId),
               requestJson.trade_id,
               requestJson.step,
-              Some(cc)
+              callContext
             )
           } yield JSONFactory700.createSettlementJson(settlement)
         }
@@ -1457,7 +1499,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(requestSettlement),
       "POST",
-      "/market/settlements",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/settlements",
       "Request Settlement",
       """Request settlement for a completed trade.
         |
@@ -1474,38 +1516,43 @@ object Http4s700 {
         created_at = "2026-04-16T00:45:00Z",
         completed_at = None
       ),
-      List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, UnknownError),
+      List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestSettlement)
     )
 
-    // Route: POST /obp/v7.0.0/market/deposits
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits
     val notifyDeposit: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "market" / "deposits" =>
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "deposits" =>
         EndpointHelpers.withUserAndBodyCreated[JSONFactory700.NotifyDepositJson, JSONFactory700.DepositJson](req) { (user, depositJson, cc) =>
           for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
             // Validate amount
             _ <- Helper.booleanToFuture(
               failMsg = InvalidTradingAmount,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(depositJson.amount > 0)
 
             // Validate confirmations
             _ <- Helper.booleanToFuture(
               failMsg = InvalidMatchParameters,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(depositJson.confirmations >= 0)
 
             // Invoke connector
-            (deposit, callContext) <- NewStyle.function.notifyDeposit(
+            (deposit, callContext2) <- NewStyle.function.notifyDeposit(
+              BankId(bankId),
+              AccountId(accountId),
               depositJson.tx_hash,
               depositJson.from,
               depositJson.to,
               depositJson.amount,
               depositJson.confirmations,
-              Some(cc)
+              callContext
             )
           } yield JSONFactory700.createDepositJson(deposit)
         }
@@ -1516,7 +1563,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(notifyDeposit),
       "POST",
-      "/market/deposits",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits",
       "Notify Deposit",
       """Record a blockchain deposit notification.
         |
@@ -1538,29 +1585,34 @@ object Http4s700 {
         status = "confirmed",
         created_at = "2026-04-16T00:50:00Z"
       ),
-      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, UnknownError),
+      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(notifyDeposit)
     )
 
-    // Route: POST /obp/v7.0.0/market/withdrawals
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals
     val requestWithdrawal: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "market" / "withdrawals" =>
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
         EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
           for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
             // Validate amount
             _ <- Helper.booleanToFuture(
               failMsg = InvalidTradingAmount,
               failCode = 400,
-              cc = Some(cc)
+              cc = callContext
             )(withdrawalJson.amount > 0)
 
             // Invoke connector
-            (withdrawal, callContext) <- NewStyle.function.requestWithdrawal(
-              withdrawalJson.account_id,
+            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
+              BankId(bankId),
+              AccountId(accountId),
+              withdrawalJson.settlement_account_id,
               withdrawalJson.amount,
               withdrawalJson.address,
-              Some(cc)
+              callContext
             )
           } yield JSONFactory700.createWithdrawalJson(withdrawal)
         }
@@ -1571,7 +1623,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(requestWithdrawal),
       "POST",
-      "/market/withdrawals",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
       "Request Withdrawal",
       """Request a withdrawal to a blockchain address.
         |
@@ -1580,7 +1632,7 @@ object Http4s700 {
         |
         |Authentication is required.""",
       JSONFactory700.RequestWithdrawalJson(
-        account_id = "account-123",
+        settlement_account_id = "account-123",
         amount = BigDecimal("50.0"),
         address = "0xdestination"
       ),
@@ -1593,7 +1645,7 @@ object Http4s700 {
         tx_hash = None,
         created_at = "2026-04-16T00:55:00Z"
       ),
-      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, UnknownError),
+      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestWithdrawal)
     )

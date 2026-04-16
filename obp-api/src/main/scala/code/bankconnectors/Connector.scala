@@ -2144,16 +2144,20 @@ trait Connector extends MdcLoggable {
 
   // Market Trading Methods
   def createMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     side: String,
     price: BigDecimal,
     quantity: BigDecimal,
-    accountId: String,
+    settlementAccountId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
     (Failure(setUnimplementedError(nameOf(createMarketOrder _))), callContext)
   }
 
   def getMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
@@ -2161,6 +2165,8 @@ trait Connector extends MdcLoggable {
   }
 
   def cancelMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
@@ -2168,6 +2174,8 @@ trait Connector extends MdcLoggable {
   }
 
   def createMarketMatch(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     counterOrderId: String,
     amount: BigDecimal,
@@ -2178,6 +2186,8 @@ trait Connector extends MdcLoggable {
   }
 
   def getMarketTrade(
+    bankId: BankId,
+    accountId: AccountId,
     tradeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketTrade]] = Future {
@@ -2185,6 +2195,8 @@ trait Connector extends MdcLoggable {
   }
 
   def requestSettlement(
+    bankId: BankId,
+    accountId: AccountId,
     tradeId: String,
     step: Option[String],
     callContext: Option[CallContext]
@@ -2193,6 +2205,8 @@ trait Connector extends MdcLoggable {
   }
 
   def notifyDeposit(
+    bankId: BankId,
+    accountId: AccountId,
     txHash: String,
     from: String,
     to: String,
@@ -2204,7 +2218,9 @@ trait Connector extends MdcLoggable {
   }
 
   def requestWithdrawal(
-    accountId: String,
+    bankId: BankId,
+    accountId: AccountId,
+    settlementAccountId: String,
     amount: BigDecimal,
     address: String,
     callContext: Option[CallContext]

@@ -6011,10 +6011,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   // Market Trading Methods Implementation
   override def createMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     side: String,
     price: BigDecimal,
     quantity: BigDecimal,
-    accountId: String,
+    settlementAccountId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
     // Generate order ID (auto-generated UUID following OBP design pattern)
@@ -6026,7 +6028,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       side = side,
       price = price,
       quantity = quantity,
-      accountId = accountId,
+      accountId = settlementAccountId,
       status = "active",
       createdAt = new Date(),
       updatedAt = new Date()
@@ -6039,6 +6041,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
@@ -6047,6 +6051,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def cancelMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
@@ -6066,6 +6072,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def createMarketMatch(
+    bankId: BankId,
+    accountId: AccountId,
     orderId: String,
     counterOrderId: String,
     amount: BigDecimal,
@@ -6105,6 +6113,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getMarketTrade(
+    bankId: BankId,
+    accountId: AccountId,
     tradeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketTrade]] = Future {
@@ -6113,6 +6123,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def requestSettlement(
+    bankId: BankId,
+    accountId: AccountId,
     tradeId: String,
     step: Option[String],
     callContext: Option[CallContext]
@@ -6137,6 +6149,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def notifyDeposit(
+    bankId: BankId,
+    accountId: AccountId,
     txHash: String,
     from: String,
     to: String,
@@ -6166,7 +6180,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def requestWithdrawal(
-    accountId: String,
+    bankId: BankId,
+    accountId: AccountId,
+    settlementAccountId: String,
     amount: BigDecimal,
     address: String,
     callContext: Option[CallContext]
@@ -6177,7 +6193,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // Create withdrawal
     val withdrawal = Withdrawal(
       withdrawalId = withdrawalId,
-      accountId = accountId,
+      accountId = settlementAccountId,
       amount = amount,
       address = address,
       status = "pending",
