@@ -262,7 +262,7 @@ jobs:
             for pkg in $ALL_PKGS; do
               covered=false
               for prefix in $ASSIGNED; do
-                if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* ]]; then
+                if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* || "$prefix" == "$pkg."* ]]; then
                   covered=true; break
                 fi
               done
