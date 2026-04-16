@@ -1146,7 +1146,6 @@ object Http4s700 {
               createOrderJson.price,
               createOrderJson.quantity,
               createOrderJson.account_id,
-              createOrderJson.idempotency_key,
               Some(cc)
             )
           } yield JSONFactory700.createMarketOrderJson(order)
@@ -1164,14 +1163,14 @@ object Http4s700 {
         |
         |The order will be matched against existing orders in the order book.
         |The order_id is automatically generated as a UUID.
+        |Each request creates a new order with a unique order_id.
         |
         |Authentication is required.""",
       JSONFactory700.CreateMarketOrderRequestJson(
         side = "BUY",
         price = BigDecimal("25.0"),
         quantity = BigDecimal("10.0"),
-        account_id = "buyer-fiat-account",
-        idempotency_key = "order-12345"
+        account_id = "buyer-fiat-account"
       ),
       JSONFactory700.MarketOrderJson(
         order_id = "550e8400-e29b-41d4-a716-446655440000",
@@ -1482,7 +1481,6 @@ object Http4s700 {
               withdrawalJson.account_id,
               withdrawalJson.amount,
               withdrawalJson.address,
-              withdrawalJson.idempotency_key,
               Some(cc)
             )
           } yield JSONFactory700.createWithdrawalJson(withdrawal)
@@ -1498,14 +1496,14 @@ object Http4s700 {
       "Request Withdrawal",
       """Request a withdrawal to a blockchain address.
         |
-        |This operation is idempotent via the idempotency_key.
+        |The withdrawal_id is automatically generated as a UUID.
+        |Each request creates a new withdrawal with a unique withdrawal_id.
         |
         |Authentication is required.""",
       JSONFactory700.RequestWithdrawalJson(
         account_id = "account-123",
         amount = BigDecimal("50.0"),
-        address = "0xdestination",
-        idempotency_key = "withdrawal-456"
+        address = "0xdestination"
       ),
       JSONFactory700.WithdrawalJson(
         withdrawal_id = "withdrawal-303",

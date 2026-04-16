@@ -850,7 +850,6 @@ object ErrorMessages {
   val OfferNotFound = "OBP-71001: Trading offer not found."
   val InvalidOfferType = "OBP-71002: Invalid offer type. Must be 'BUY' or 'SELL'."
   val InvalidTradingAmount = "OBP-71003: Invalid amount. Must be a positive number."
-  val DuplicateIdempotencyKey = "OBP-71004: Duplicate idempotency key."
   val CreateTradingOfferError = "OBP-71005: Could not create trading offer."
 
   // Market Trading Exceptions (OBP-72XXX)

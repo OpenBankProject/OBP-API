@@ -2138,7 +2138,6 @@ trait Connector extends MdcLoggable {
     price: BigDecimal,
     quantity: BigDecimal,
     accountId: String,
-    idempotencyKey: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
     (Failure(setUnimplementedError(nameOf(createMarketOrder _))), callContext)
@@ -2198,7 +2197,6 @@ trait Connector extends MdcLoggable {
     accountId: String,
     amount: BigDecimal,
     address: String,
-    idempotencyKey: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Withdrawal]] = Future {
     (Failure(setUnimplementedError(nameOf(requestWithdrawal _))), callContext)

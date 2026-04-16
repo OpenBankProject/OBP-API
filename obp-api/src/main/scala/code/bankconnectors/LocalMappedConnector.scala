@@ -110,8 +110,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   private val settlements = new java.util.concurrent.ConcurrentHashMap[String, Settlement]()
   private val deposits = new java.util.concurrent.ConcurrentHashMap[String, Deposit]()
   private val withdrawals = new java.util.concurrent.ConcurrentHashMap[String, Withdrawal]()
-  private val orderIdempotencyKeys = new java.util.concurrent.ConcurrentHashMap[String, String]()
-  private val withdrawalIdempotencyKeys = new java.util.concurrent.ConcurrentHashMap[String, String]()
 
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
@@ -5989,38 +5987,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     price: BigDecimal,
     quantity: BigDecimal,
     accountId: String,
-    idempotencyKey: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
-    // Check idempotency
-    val existingOrderId = Option(orderIdempotencyKeys.get(idempotencyKey))
-    existingOrderId match {
-      case Some(orderId) =>
-        // Return existing order
-        val existingOrder = Option(marketOrders.get(orderId))
-        (Box(existingOrder), callContext)
-      case None =>
-        // Generate order ID
-        val orderId = randomUUID().toString
+    // Generate order ID (auto-generated UUID following OBP design pattern)
+    val orderId = randomUUID().toString
 
-        // Create order
-        val order = MarketOrder(
-          orderId = orderId,
-          side = side,
-          price = price,
-          quantity = quantity,
-          accountId = accountId,
-          status = "active",
-          createdAt = new Date(),
-          updatedAt = new Date()
-        )
+    // Create order
+    val order = MarketOrder(
+      orderId = orderId,
+      side = side,
+      price = price,
+      quantity = quantity,
+      accountId = accountId,
+      status = "active",
+      createdAt = new Date(),
+      updatedAt = new Date()
+    )
 
-        // Store order and idempotency key
-        marketOrders.put(orderId, order)
-        orderIdempotencyKeys.put(idempotencyKey, orderId)
+    // Store order
+    marketOrders.put(orderId, order)
 
-        (Full(order), callContext)
-    }
+    (Full(order), callContext)
   }
 
   override def getMarketOrder(
@@ -6154,37 +6141,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     accountId: String,
     amount: BigDecimal,
     address: String,
-    idempotencyKey: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Withdrawal]] = Future {
-    // Check idempotency
-    val existingWithdrawalId = Option(withdrawalIdempotencyKeys.get(idempotencyKey))
-    existingWithdrawalId match {
-      case Some(withdrawalId) =>
-        // Return existing withdrawal
-        val existingWithdrawal = Option(withdrawals.get(withdrawalId))
-        (Box(existingWithdrawal), callContext)
-      case None =>
-        // Generate withdrawal ID
-        val withdrawalId = randomUUID().toString
+    // Generate withdrawal ID (auto-generated UUID following OBP design pattern)
+    val withdrawalId = randomUUID().toString
 
-        // Create withdrawal
-        val withdrawal = Withdrawal(
-          withdrawalId = withdrawalId,
-          accountId = accountId,
-          amount = amount,
-          address = address,
-          status = "pending",
-          txHash = None,
-          createdAt = new Date()
-        )
+    // Create withdrawal
+    val withdrawal = Withdrawal(
+      withdrawalId = withdrawalId,
+      accountId = accountId,
+      amount = amount,
+      address = address,
+      status = "pending",
+      txHash = None,
+      createdAt = new Date()
+    )
 
-        // Store withdrawal and idempotency key
-        withdrawals.put(withdrawalId, withdrawal)
-        withdrawalIdempotencyKeys.put(idempotencyKey, withdrawalId)
+    // Store withdrawal
+    withdrawals.put(withdrawalId, withdrawal)
 
-        (Full(withdrawal), callContext)
-    }
+    (Full(withdrawal), callContext)
   }
 
 }

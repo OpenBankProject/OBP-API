@@ -161,8 +161,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     side: String,                 // "BUY" | "SELL"
     price: BigDecimal,
     quantity: BigDecimal,
-    account_id: String,
-    idempotency_key: String
+    account_id: String
   )
 
   case class CreateMarketMatchRequestJson(
@@ -188,8 +187,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class RequestWithdrawalJson(
     account_id: String,
     amount: BigDecimal,
-    address: String,
-    idempotency_key: String
+    address: String
   )
 
   // Market Response Models

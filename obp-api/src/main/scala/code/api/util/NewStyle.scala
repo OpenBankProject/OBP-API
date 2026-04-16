@@ -4620,11 +4620,10 @@ object NewStyle extends MdcLoggable{
       price: BigDecimal,
       quantity: BigDecimal,
       accountId: String,
-      idempotencyKey: String,
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
       Connector.connector.vend.createMarketOrder(
-        side, price, quantity, accountId, idempotencyKey, callContext
+        side, price, quantity, accountId, callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
       }
@@ -4700,11 +4699,10 @@ object NewStyle extends MdcLoggable{
       accountId: String,
       amount: BigDecimal,
       address: String,
-      idempotencyKey: String,
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.Withdrawal] = {
       Connector.connector.vend.requestWithdrawal(
-        accountId, amount, address, idempotencyKey, callContext
+        accountId, amount, address, callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$WithdrawalFailed"), i._2)
       }
