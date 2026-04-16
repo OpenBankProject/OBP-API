@@ -172,18 +172,17 @@ The 12 pure-unit suites (172 tests, 1.3s total):
 
 **`ResourceDocsTest` / `SwaggerDocsTest`** — 34s + 24s = 58s, averaging 0.85s/test — the slowest per-test cost in the suite. Each test serializes the entire API surface (633+ endpoints) into JSON/Swagger. Cost scales linearly with endpoint count. Will worsen as the http4s migration adds endpoints unless ResourceDoc serialization is cached or the heavy tests are isolated.
 
-**Shard imbalance**: shard2 runs ~100s longer than shard3 because it holds `API1_2_1Test`. Reassigning that one suite to its own shard or splitting it would balance all three shards to ~9m15s.
-
 ### Shard assignment
 
-Shards are defined by explicit package-prefix allowlists in `.github/workflows/build_pull_request.yml` (lines 89–139). Shard 3 also runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1 or 2 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 3:"`.
+Shards are defined by explicit package-prefix allowlists in `.github/workflows/build_pull_request.yml` (lines 89–143). Shard 4 also runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1–3 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 4:"`.
 
 | Package prefix | Shard |
 |---|---|
-| `code.api.v4_0_0`, `code.api.v5_0_0`, `code.api.v3_0_0`, `code.api.v2_*`, `code.api.v1_[34]_0`, `code.api.UKOpenBanking`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container` | 1 |
-| `code.api.v1_2_1`, `code.api.v6_0_0`, `code.api.ResourceDocs1_4_0`, `code.api.util`, `code.api.berlin`, `code.management`, `code.metrics`, `code.model`, `code.views`, `code.usercustomerlinks`, `code.customer`, `code.errormessages` | 2 |
-| `code.api.v5_1_0`, `code.api.v3_1_0`, `code.api.http4sbridge`, `code.api.v7_0_0`, `code.api.Authentication*`, `code.api.DirectLoginTest`, `code.api.dauthTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.util`, `code.connector` | 3 |
-| anything else | **3** (catch-all) |
+| `code.api.v4_0_0` | 1 |
+| `code.api.v6_0_0`, `code.api.v5_0_0`, `code.api.v3_0_0`, `code.api.v2_*`, `code.api.v1_[34]_0`, `code.api.UKOpenBanking`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container` | 2 |
+| `code.api.v1_2_1`, `code.api.ResourceDocs1_4_0`, `code.api.util`, `code.api.berlin`, `code.management`, `code.metrics`, `code.model`, `code.views`, `code.usercustomerlinks`, `code.customer`, `code.errormessages` | 3 |
+| `code.api.v5_1_0`, `code.api.v3_1_0`, `code.api.http4sbridge`, `code.api.v7_0_0`, `code.api.Authentication*`, `code.api.DirectLoginTest`, `code.api.dauthTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.util`, `code.connector` | 4 |
+| anything else | **4** (catch-all) |
 
 To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically.
 

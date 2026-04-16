@@ -10,12 +10,12 @@ env:
 
 # ---------------------------------------------------------------------------
 # compile  — compiles everything once, packages the JAR, uploads classes
-# test     — 3-way matrix downloads compiled output and runs a shard of tests
+# test     — 4-way matrix downloads compiled output and runs a shard of tests
 # docker   — downloads compiled output, builds and pushes the container image
 #
 # Wall-clock target:
 #   compile ~10 min  (parallel with setup of test shards)
-#   tests   ~8 min   (3 shards in parallel after compile finishes)
+#   tests   ~8 min   (4 shards in parallel after compile finishes)
 #   docker  ~3 min   (after all shards pass)
 #   total   ~21 min  (vs ~30 min single-job)
 # ---------------------------------------------------------------------------
@@ -68,12 +68,13 @@ jobs:
           path: push/
 
   # --------------------------------------------------------------------------
-  # Job 2: test (3-way matrix)
+  # Job 2: test (4-way matrix)
   #
-  # Shard assignment (based on actual build #48 timings):
-  #   Shard 1  ~440s  v4_0_0(292) v5_0_0(47) v3_0_0(42) v2_1_0(37) v2_2_0(11) …
-  #   Shard 2  ~460s  v1_2_1(175) v6_0_0(162) ResourceDocs(82) util(15) berlin(41) …
-  #   Shard 3  ~420s  v5_1_0(156) v3_1_0(124) http4sbridge(53) v7_0_0(27) code.api(26) …
+  # Shard assignment (based on actual clean-run timings):
+  #   Shard 1  ~258s  v4_0_0(258)
+  #   Shard 2  ~267s  v6_0_0(122) v5_0_0(42) v3_0_0(39) v2_1_0(35) v2_2_0(12) …
+  #   Shard 3  ~252s  v1_2_1(137) ResourceDocs(67) berlin(34) util(12) …
+  #   Shard 4  ~232s  v5_1_0(79) v3_1_0(65) http4sbridge(52) v7_0_0(45) … + catch-all
   # --------------------------------------------------------------------------
   test:
     needs: compile
@@ -83,11 +84,15 @@ jobs:
       matrix:
         include:
           - shard: 1
-            name: "v4 + v5_0 + v3_0 + v2 + small"
-            # ~440s of test work
-            # Space-separated package prefixes for scalatest wildcardSuites (-w)
+            name: "v4 only"
+            # ~258s of test work
             test_filter: >-
               code.api.v4_0_0
+          - shard: 2
+            name: "v6 + v5_0 + v3_0 + v2 + small"
+            # ~267s of test work
+            test_filter: >-
+              code.api.v6_0_0
               code.api.v5_0_0
               code.api.v3_0_0
               code.api.v2_1_0
@@ -105,12 +110,11 @@ jobs:
               code.bankaccountcreation
               code.bankconnectors
               code.container
-          - shard: 2
-            name: "v1_2_1 + v6 + ResourceDocs + util + berlin + small"
-            # ~460s of test work
+          - shard: 3
+            name: "v1_2_1 + ResourceDocs + berlin + util + small"
+            # ~252s of test work
             test_filter: >-
               code.api.v1_2_1
-              code.api.v6_0_0
               code.api.ResourceDocs1_4_0
               code.api.util
               code.api.berlin
@@ -121,9 +125,9 @@ jobs:
               code.usercustomerlinks
               code.customer
               code.errormessages
-          - shard: 3
+          - shard: 4
             name: "v5_1 + v3_1 + http4sbridge + v7 + code.api + util + connector"
-            # ~420s of test work
+            # ~232s of test work + catch-all for any new packages
             # Root-level code.api tests use class-name prefix matching (lowercase classes)
             test_filter: >-
               code.api.v5_1_0
@@ -238,19 +242,20 @@ jobs:
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
 
-          # Shard 3 is the catch-all: append any test package not explicitly
-          # assigned to shard 1 or shard 2, so new packages are never silently skipped.
-          if [ "${{ matrix.shard }}" = "3" ]; then
-            SHARD1="code.api.v4_0_0 code.api.v5_0_0 code.api.v3_0_0 code.api.v2_1_0 \
+          # Shard 4 is the catch-all: append any test package not explicitly
+          # assigned to shards 1–3, so new packages are never silently skipped.
+          if [ "${{ matrix.shard }}" = "4" ]; then
+            SHARD1="code.api.v4_0_0"
+            SHARD2="code.api.v6_0_0 code.api.v5_0_0 code.api.v3_0_0 code.api.v2_1_0 \
                     code.api.v2_2_0 code.api.v2_0_0 code.api.v1_4_0 code.api.v1_3_0 \
                     code.api.UKOpenBanking code.atms code.branches code.products code.crm \
                     code.accountHolder code.entitlement code.bankaccountcreation \
                     code.bankconnectors code.container"
-            SHARD2="code.api.v1_2_1 code.api.v6_0_0 code.api.ResourceDocs1_4_0 \
+            SHARD3="code.api.v1_2_1 code.api.ResourceDocs1_4_0 \
                     code.api.util code.api.berlin code.management code.metrics \
                     code.model code.views code.usercustomerlinks code.customer \
                     code.errormessages"
-            ASSIGNED="$SHARD1 $SHARD2 ${{ matrix.test_filter }}"
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
@@ -269,7 +274,7 @@ jobs:
               [ "$covered" = "false" ] && EXTRAS="$EXTRAS,$pkg"
             done
 
-            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard 3:$EXTRAS"
+            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard 4:$EXTRAS"
             FILTER="${FILTER}${EXTRAS}"
           fi
 
