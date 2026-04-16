@@ -255,10 +255,14 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     to: String,
     amount: BigDecimal,
     confirmations: Int,
+    required_confirmations: Int,  // Number of confirmations required
     status: String,
-    user_id: String,         // Audit field
-    consent_id: Option[String],  // Audit field
-    created_at: String  // ISO 8601
+    nonce: Option[Long],          // Transaction nonce
+    gas_used: Option[Long],       // Gas consumed
+    error_message: Option[String], // Error details if failed
+    user_id: String,              // Audit field
+    consent_id: Option[String],   // Audit field
+    created_at: String            // ISO 8601
   )
 
   case class WithdrawalJson(
@@ -268,9 +272,14 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     address: String,
     status: String,
     tx_hash: Option[String],
-    user_id: String,         // Audit field
-    consent_id: Option[String],  // Audit field
-    created_at: String  // ISO 8601
+    confirmations: Option[Int],    // Current confirmations
+    required_confirmations: Int,   // Required confirmations
+    nonce: Option[Long],           // Transaction nonce
+    gas_used: Option[Long],        // Gas consumed
+    error_message: Option[String], // Error details if failed
+    user_id: String,               // Audit field
+    consent_id: Option[String],    // Audit field
+    created_at: String             // ISO 8601
   )
 
   // Market Conversion Functions
@@ -337,7 +346,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       to = deposit.to,
       amount = deposit.amount,
       confirmations = deposit.confirmations,
+      required_confirmations = deposit.requiredConfirmations,
       status = deposit.status,
+      nonce = deposit.nonce,
+      gas_used = deposit.gasUsed,
+      error_message = deposit.errorMessage,
       user_id = deposit.userId,
       consent_id = deposit.consentId,
       created_at = deposit.createdAt.toInstant.toString
@@ -352,6 +365,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       address = withdrawal.address,
       status = withdrawal.status,
       tx_hash = withdrawal.txHash,
+      confirmations = withdrawal.confirmations,
+      required_confirmations = withdrawal.requiredConfirmations,
+      nonce = withdrawal.nonce,
+      gas_used = withdrawal.gasUsed,
+      error_message = withdrawal.errorMessage,
       user_id = withdrawal.userId,
       consent_id = withdrawal.consentId,
       created_at = withdrawal.createdAt.toInstant.toString

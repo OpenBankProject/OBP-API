@@ -2212,6 +2212,7 @@ trait Connector extends MdcLoggable {
     to: String,
     amount: BigDecimal,
     confirmations: Int,
+    requiredConfirmations: Int,  // Number of confirmations required
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Deposit]] = Future {
     (Failure(setUnimplementedError(nameOf(notifyDeposit _))), callContext)
@@ -2223,6 +2224,7 @@ trait Connector extends MdcLoggable {
     settlementAccountId: String,
     amount: BigDecimal,
     address: String,
+    requiredConfirmations: Int,  // Number of confirmations required
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Withdrawal]] = Future {
     (Failure(setUnimplementedError(nameOf(requestWithdrawal _))), callContext)

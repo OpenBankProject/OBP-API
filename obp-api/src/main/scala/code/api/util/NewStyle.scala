@@ -4712,10 +4712,11 @@ object NewStyle extends MdcLoggable{
       to: String,
       amount: BigDecimal,
       confirmations: Int,
+      requiredConfirmations: Int,
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.Deposit] = {
       Connector.connector.vend.notifyDeposit(
-        bankId, accountId, txHash, from, to, amount, confirmations, callContext
+        bankId, accountId, txHash, from, to, amount, confirmations, requiredConfirmations, callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidTradingAmount"), i._2)
       }
@@ -4727,10 +4728,11 @@ object NewStyle extends MdcLoggable{
       settlementAccountId: String,
       amount: BigDecimal,
       address: String,
+      requiredConfirmations: Int,
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.Withdrawal] = {
       Connector.connector.vend.requestWithdrawal(
-        bankId, accountId, settlementAccountId, amount, address, callContext
+        bankId, accountId, settlementAccountId, amount, address, requiredConfirmations, callContext
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$WithdrawalFailed"), i._2)
       }

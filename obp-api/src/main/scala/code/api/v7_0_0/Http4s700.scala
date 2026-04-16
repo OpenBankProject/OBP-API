@@ -1572,6 +1572,7 @@ object Http4s700 {
               depositJson.to,
               depositJson.amount,
               depositJson.confirmations,
+              12,  // Ethereum mainnet standard: 12 confirmations required
               callContext
             )
           } yield JSONFactory700.createDepositJson(deposit)
@@ -1602,7 +1603,11 @@ object Http4s700 {
         to = "0xreceiver",
         amount = BigDecimal("100.0"),
         confirmations = 6,
-        status = "confirmed",
+        required_confirmations = 12,
+        status = "pending",
+        nonce = Some(123456L),
+        gas_used = Some(21000L),
+        error_message = None,
         user_id = "user-abc-123",
         consent_id = None,
         created_at = "2026-04-16T00:50:00Z"
@@ -1634,6 +1639,7 @@ object Http4s700 {
               withdrawalJson.settlement_account_id,
               withdrawalJson.amount,
               withdrawalJson.address,
+              12,  // Ethereum mainnet standard: 12 confirmations required
               callContext
             )
           } yield JSONFactory700.createWithdrawalJson(withdrawal)
@@ -1665,6 +1671,11 @@ object Http4s700 {
         address = "0xdestination",
         status = "pending",
         tx_hash = None,
+        confirmations = None,
+        required_confirmations = 12,
+        nonce = None,
+        gas_used = None,
+        error_message = None,
         user_id = "user-abc-123",
         consent_id = None,
         created_at = "2026-04-16T00:55:00Z"

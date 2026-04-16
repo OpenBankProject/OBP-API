@@ -1469,9 +1469,13 @@ case class Deposit(
   to: String,
   amount: BigDecimal,
   confirmations: Int,
-  status: String,            // "confirmed" | "pending"
-  userId: String,            // Audit: User who notified the deposit
-  consentId: Option[String], // Audit: Consent ID if applicable
+  requiredConfirmations: Int,  // Number of confirmations required (e.g., 12 for Ethereum mainnet)
+  status: String,              // "confirmed" | "pending"
+  nonce: Option[Long],         // Transaction nonce from blockchain
+  gasUsed: Option[Long],       // Gas consumed by the transaction
+  errorMessage: Option[String], // Error details if transaction failed
+  userId: String,              // Audit: User who notified the deposit
+  consentId: Option[String],   // Audit: Consent ID if applicable
   createdAt: Date
 )
 
@@ -1480,9 +1484,14 @@ case class Withdrawal(
   accountId: String,
   amount: BigDecimal,
   address: String,
-  status: String,            // "pending" | "completed" | "failed"
+  status: String,              // "pending" | "completed" | "failed"
   txHash: Option[String],
-  userId: String,            // Audit: User who requested withdrawal
-  consentId: Option[String], // Audit: Consent ID if applicable
+  confirmations: Option[Int],  // Current number of confirmations (if tx submitted)
+  requiredConfirmations: Int,  // Number of confirmations required
+  nonce: Option[Long],         // Transaction nonce from blockchain
+  gasUsed: Option[Long],       // Gas consumed by the transaction
+  errorMessage: Option[String], // Error details if transaction failed
+  userId: String,              // Audit: User who requested withdrawal
+  consentId: Option[String],   // Audit: Consent ID if applicable
   createdAt: Date
 )

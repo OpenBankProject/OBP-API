@@ -6182,6 +6182,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     to: String,
     amount: BigDecimal,
     confirmations: Int,
+    requiredConfirmations: Int,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Deposit]] = Future {
     // Extract audit fields from CallContext
@@ -6191,6 +6192,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // Generate deposit ID
     val depositId = randomUUID().toString
 
+    // Determine status based on confirmations
+    val status = if (confirmations >= requiredConfirmations) "confirmed" else "pending"
+
     // Create deposit
     val deposit = Deposit(
       depositId = depositId,
@@ -6199,7 +6203,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       to = to,
       amount = amount,
       confirmations = confirmations,
-      status = "confirmed",
+      requiredConfirmations = requiredConfirmations,
+      status = status,
+      nonce = None,  // TODO: Extract from blockchain transaction
+      gasUsed = None,  // TODO: Extract from blockchain transaction receipt
+      errorMessage = None,
       userId = userId,
       consentId = consentId,
       createdAt = new Date()
@@ -6217,6 +6225,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     settlementAccountId: String,
     amount: BigDecimal,
     address: String,
+    requiredConfirmations: Int,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Withdrawal]] = Future {
     // Extract audit fields from CallContext
@@ -6233,7 +6242,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       amount = amount,
       address = address,
       status = "pending",
-      txHash = None,
+      txHash = None,  // Will be set when transaction is submitted to blockchain
+      confirmations = None,  // Will be updated as blockchain confirms
+      requiredConfirmations = requiredConfirmations,
+      nonce = None,  // TODO: Will be set when transaction is submitted
+      gasUsed = None,  // TODO: Will be set after transaction is mined
+      errorMessage = None,
       userId = userId,
       consentId = consentId,
       createdAt = new Date()
