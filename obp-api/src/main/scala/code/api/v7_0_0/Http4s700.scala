@@ -1076,6 +1076,85 @@ object Http4s700 {
       http4sPartialFunction = Some(getTradingOffers)
     )
 
+    // Route: PUT /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
+    val updateTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.UpdateOfferRequestJson, JSONFactory700.TradingOfferJson](req) { (user, updateJson, cc) =>
+          for {
+            // Validate price_amount if provided
+            _ <- updateJson.price_amount match {
+              case Some(price) => Helper.booleanToFuture(
+                failMsg = InvalidTradingAmount,
+                failCode = 400,
+                cc = Some(cc)
+              )(price > 0)
+              case None => Future.successful(())
+            }
+
+            // Parse expiry_datetime if provided (simple approach - parse outside for-comprehension if needed)
+            expiryDateOpt = updateJson.expiry_datetime.map(dateStr => APIUtil.parseDate(dateStr).getOrElse(new java.util.Date()))
+
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.updateTradingOffer(
+              offerId,
+              updateJson.price_amount,
+              expiryDateOpt,
+              updateJson.minimum_fill,
+              Some(cc)
+            )
+          } yield JSONFactory700.createTradingOfferJson(offer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateTradingOffer),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
+      "Update Trading Offer",
+      """Update an existing trading offer.
+        |
+        |Only certain fields can be updated:
+        |- price_amount: New price per unit
+        |- expiry_datetime: New expiration date (ISO 8601 format)
+        |- minimum_fill: New minimum fill amount
+        |
+        |All fields are optional - only provided fields will be updated.
+        |
+        |Authentication is required.""",
+      JSONFactory700.UpdateOfferRequestJson(
+        price_amount = Some(BigDecimal("1.60")),
+        expiry_datetime = Some("2026-12-31T23:59:59Z"),
+        minimum_fill = Some(BigDecimal("10.00"))
+      ),
+      JSONFactory700.TradingOfferJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "active",
+        offer_details = JSONFactory700.OfferDetailsJson(
+          offer_type = "BUY",
+          asset_code = "OGCR",
+          asset_amount = BigDecimal("100.00"),
+          price_currency = "EUR",
+          price_amount = BigDecimal("1.60"),
+          settlement_account_id = "settlement-account-123",
+          expiry_datetime = Some("2026-12-31T23:59:59Z"),
+          minimum_fill = Some(BigDecimal("10.00"))
+        ),
+        account_info = JSONFactory700.AccountInfoJson(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          view_id = "owner"
+        ),
+        executions = List.empty,
+        created_at = "2026-04-15T10:30:00Z",
+        updated_at = "2026-04-15T10:35:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidTradingAmount, InvalidDateFormat, OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: Nil,
+      http4sPartialFunction = Some(updateTradingOffer)
+    )
+
     // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>

@@ -4602,6 +4602,18 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    def updateTradingOffer(
+      offerId: String,
+      priceAmount: Option[BigDecimal],
+      expiryDatetime: Option[Date],
+      minimumFill: Option[BigDecimal],
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.updateTradingOffer(offerId, priceAmount, expiryDatetime, minimumFill, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
     def getTradingOffers(
       bankId: BankId,
       accountId: AccountId,

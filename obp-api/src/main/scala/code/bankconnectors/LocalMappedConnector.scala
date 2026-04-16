@@ -5962,6 +5962,34 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def updateTradingOffer(
+    offerId: String,
+    priceAmount: Option[BigDecimal],
+    expiryDatetime: Option[Date],
+    minimumFill: Option[BigDecimal],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+
+    offer match {
+      case Some(o) =>
+        // Update only the fields that are provided
+        val updatedDetails = o.offerDetails.copy(
+          priceAmount = priceAmount.getOrElse(o.offerDetails.priceAmount),
+          expiryDatetime = expiryDatetime.orElse(o.offerDetails.expiryDatetime),
+          minimumFill = minimumFill.orElse(o.offerDetails.minimumFill)
+        )
+        val updatedOffer = o.copy(
+          offerDetails = updatedDetails,
+          updatedAt = new Date()
+        )
+        tradingOffers.put(offerId, updatedOffer)
+        (Full(updatedOffer), callContext)
+      case None =>
+        (Empty, callContext)
+    }
+  }
+
   override def getTradingOffers(
     bankId: BankId,
     accountId: AccountId,

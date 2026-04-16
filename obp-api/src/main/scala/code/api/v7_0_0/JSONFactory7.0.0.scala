@@ -70,6 +70,12 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     minimum_fill: Option[BigDecimal] = None
   )
 
+  case class UpdateOfferRequestJson(
+    price_amount: Option[BigDecimal],
+    expiry_datetime: Option[String],  // ISO 8601
+    minimum_fill: Option[BigDecimal]
+  )
+
   // Response Models
   case class TradingOfferJson(
     offer_id: String,
