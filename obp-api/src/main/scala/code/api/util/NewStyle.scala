@@ -4737,6 +4737,63 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, s"$WithdrawalFailed"), i._2)
       }
     }
+
+    // TCC Payment Authorization NewStyle Wrappers
+    def createPaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      tradeId: String,
+      buyerAccountId: String,
+      sellerAccountId: String,
+      amountFiat: BigDecimal,
+      currency: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.createPaymentAuth(
+        bankId, accountId, tradeId, buyerAccountId, sellerAccountId, amountFiat, currency, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreatePaymentAuthError"), i._2)
+      }
+    }
+
+    def capturePaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.capturePaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidPaymentAuthState"), i._2)
+      }
+    }
+
+    def releasePaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.releasePaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidPaymentAuthState"), i._2)
+      }
+    }
+
+    def getPaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.getPaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$PaymentAuthNotFound"), i._2)
+      }
+    }
   }
 
 }

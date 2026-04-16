@@ -110,6 +110,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   private val settlements = new java.util.concurrent.ConcurrentHashMap[String, Settlement]()
   private val deposits = new java.util.concurrent.ConcurrentHashMap[String, Deposit]()
   private val withdrawals = new java.util.concurrent.ConcurrentHashMap[String, Withdrawal]()
+  private val paymentAuths = new java.util.concurrent.ConcurrentHashMap[String, PaymentAuth]()
 
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
@@ -6257,6 +6258,134 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     withdrawals.put(withdrawalId, withdrawal)
 
     (Full(withdrawal), callContext)
+  }
+
+  // TCC Payment Authorization Implementation
+  override def createPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    buyerAccountId: String,
+    sellerAccountId: String,
+    amountFiat: BigDecimal,
+    currency: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate auth ID (auto-generated UUID following OBP design pattern)
+    val authId = randomUUID().toString
+    val now = new Date()
+
+    // Create payment authorization in PREAUTH state
+    val auth = PaymentAuth(
+      authId = authId,
+      tradeId = tradeId,
+      buyerAccountId = buyerAccountId,
+      sellerAccountId = sellerAccountId,
+      amountFiat = amountFiat,
+      currency = currency,
+      state = "PREAUTH",  // Initial state: funds are frozen
+      holdId = None,  // TODO: P5 integration - create account hold
+      errorMessage = None,
+      userId = userId,
+      consentId = consentId,
+      createdAt = now,
+      updatedAt = now
+    )
+
+    // Store payment authorization
+    paymentAuths.put(authId, auth)
+
+    (Full(auth), callContext)
+  }
+
+  override def capturePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve existing authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) =>
+        // Validate state transition: only PREAUTH can be captured
+        auth.state match {
+          case "PREAUTH" =>
+            // Update to CAPTURED state (funds are actually deducted)
+            val updatedAuth = auth.copy(
+              state = "CAPTURED",
+              updatedAt = new Date()
+            )
+            paymentAuths.put(authId, updatedAuth)
+            (Full(updatedAuth), callContext)
+          
+          case "CAPTURED" =>
+            (Failure(ErrorMessages.PaymentAuthAlreadyCaptured), callContext)
+          
+          case "RELEASED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot capture a released authorization."), callContext)
+          
+          case "FAILED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot capture a failed authorization."), callContext)
+          
+          case _ =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState), callContext)
+        }
+      
+      case None =>
+        (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
+  }
+
+  override def releasePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve existing authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) =>
+        // Validate state transition: PREAUTH or CAPTURED can be released
+        auth.state match {
+          case "PREAUTH" | "CAPTURED" =>
+            // Update to RELEASED state (funds are unfrozen/refunded)
+            val updatedAuth = auth.copy(
+              state = "RELEASED",
+              updatedAt = new Date()
+            )
+            paymentAuths.put(authId, updatedAuth)
+            (Full(updatedAuth), callContext)
+          
+          case "RELEASED" =>
+            (Failure(ErrorMessages.PaymentAuthAlreadyReleased), callContext)
+          
+          case "FAILED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot release a failed authorization."), callContext)
+          
+          case _ =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState), callContext)
+        }
+      
+      case None =>
+        (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
+  }
+
+  override def getPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve payment authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) => (Full(auth), callContext)
+      case None => (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
   }
 
 }

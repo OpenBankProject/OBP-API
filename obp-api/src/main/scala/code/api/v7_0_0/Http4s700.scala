@@ -1685,6 +1685,245 @@ object Http4s700 {
       http4sPartialFunction = Some(requestWithdrawal)
     )
 
+    // ── TCC Payment Authorization Endpoints (Phase 3 - P3) ─────────────────
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths
+    val createPaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreatePaymentAuthRequestJson, JSONFactory700.PaymentAuthJson](req) { (user, createAuthJson, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+            
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = callContext
+            )(createAuthJson.amount_fiat > 0)
+            
+            // Invoke connector to create payment authorization (PREAUTH state)
+            (auth, callContext2) <- NewStyle.function.createPaymentAuth(
+              BankId(bankId),
+              AccountId(accountId),
+              createAuthJson.trade_id,
+              createAuthJson.buyer_account_id,
+              createAuthJson.seller_account_id,
+              createAuthJson.amount_fiat,
+              createAuthJson.currency,
+              callContext
+            )
+          } yield JSONFactory700.createPaymentAuthJson(auth)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createPaymentAuth),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths",
+      "Create Payment Authorization (TCC Preauth)",
+      """Create a payment authorization for a trade settlement using the Try-Confirm-Cancel (TCC) pattern.
+        |
+        |This creates a PREAUTH state authorization that freezes funds for the trade.
+        |The auth_id is automatically generated as a UUID.
+        |
+        |TCC Flow:
+        |- PREAUTH: Funds are frozen (this endpoint)
+        |- CAPTURED: Funds are actually deducted (capture endpoint)
+        |- RELEASED: Funds are unfrozen/refunded (release endpoint)
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreatePaymentAuthRequestJson(
+        trade_id = "trade-789",
+        buyer_account_id = "buyer-account-456",
+        seller_account_id = "seller-account-789",
+        amount_fiat = BigDecimal("1000.0"),
+        currency = "EUR"
+      ),
+      JSONFactory700.PaymentAuthJson(
+        auth_id = "auth-101",
+        trade_id = "trade-789",
+        buyer_account_id = "buyer-account-456",
+        seller_account_id = "seller-account-789",
+        amount_fiat = BigDecimal("1000.0"),
+        currency = "EUR",
+        state = "PREAUTH",
+        hold_id = None,
+        error_message = None,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-17T10:00:00Z",
+        updated_at = "2026-04-17T10:00:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidTradingAmount, CreatePaymentAuthError, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(createPaymentAuth)
+    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/capture
+    val capturePaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId / "capture" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+            
+            // Invoke connector to capture payment (PREAUTH → CAPTURED)
+            (auth, callContext2) <- NewStyle.function.capturePaymentAuth(
+              BankId(bankId),
+              AccountId(accountId),
+              authId,
+              callContext
+            )
+          } yield JSONFactory700.createPaymentAuthJson(auth)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(capturePaymentAuth),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/capture",
+      "Capture Payment Authorization (TCC Confirm)",
+      """Capture a payment authorization to complete the trade settlement.
+        |
+        |This transitions the authorization from PREAUTH to CAPTURED state.
+        |Funds are actually deducted from the buyer's account.
+        |
+        |Only PREAUTH state authorizations can be captured.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.PaymentAuthJson(
+        auth_id = "auth-101",
+        trade_id = "trade-789",
+        buyer_account_id = "buyer-account-456",
+        seller_account_id = "seller-account-789",
+        amount_fiat = BigDecimal("1000.0"),
+        currency = "EUR",
+        state = "CAPTURED",
+        hold_id = None,
+        error_message = None,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-17T10:00:00Z",
+        updated_at = "2026-04-17T10:05:00Z"
+      ),
+      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyCaptured, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(capturePaymentAuth)
+    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/release
+    val releasePaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId / "release" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+            
+            // Invoke connector to release payment (PREAUTH/CAPTURED → RELEASED)
+            (auth, callContext2) <- NewStyle.function.releasePaymentAuth(
+              BankId(bankId),
+              AccountId(accountId),
+              authId,
+              callContext
+            )
+          } yield JSONFactory700.createPaymentAuthJson(auth)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(releasePaymentAuth),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/release",
+      "Release Payment Authorization (TCC Cancel)",
+      """Release a payment authorization to cancel the trade settlement.
+        |
+        |This transitions the authorization to RELEASED state.
+        |Frozen funds are unfrozen (if PREAUTH) or refunded (if CAPTURED).
+        |
+        |Both PREAUTH and CAPTURED state authorizations can be released.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.PaymentAuthJson(
+        auth_id = "auth-101",
+        trade_id = "trade-789",
+        buyer_account_id = "buyer-account-456",
+        seller_account_id = "seller-account-789",
+        amount_fiat = BigDecimal("1000.0"),
+        currency = "EUR",
+        state = "RELEASED",
+        hold_id = None,
+        error_message = None,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-17T10:00:00Z",
+        updated_at = "2026-04-17T10:10:00Z"
+      ),
+      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyReleased, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(releasePaymentAuth)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID
+    val getPaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+            
+            // Invoke connector to get payment authorization
+            (auth, callContext2) <- NewStyle.function.getPaymentAuth(
+              BankId(bankId),
+              AccountId(accountId),
+              authId,
+              callContext
+            )
+          } yield JSONFactory700.createPaymentAuthJson(auth)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getPaymentAuth),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID",
+      "Get Payment Authorization",
+      """Get details of a payment authorization.
+        |
+        |Returns the current state and details of the authorization.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.PaymentAuthJson(
+        auth_id = "auth-101",
+        trade_id = "trade-789",
+        buyer_account_id = "buyer-account-456",
+        seller_account_id = "seller-account-789",
+        amount_fiat = BigDecimal("1000.0"),
+        currency = "EUR",
+        state = "PREAUTH",
+        hold_id = None,
+        error_message = None,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-17T10:00:00Z",
+        updated_at = "2026-04-17T10:00:00Z"
+      ),
+      List(PaymentAuthNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagMarket :: Nil,
+      http4sPartialFunction = Some(getPaymentAuth)
+    )
+
     // ── End Market Endpoints (Phase 2) ─────────────────────────────────────
 
     // All routes combined (without middleware - for direct use).

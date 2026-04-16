@@ -860,6 +860,13 @@ object ErrorMessages {
   val SettlementFailed = "OBP-72005: Settlement request failed."
   val WithdrawalFailed = "OBP-72006: Withdrawal request failed."
 
+  // TCC Payment Authorization Exceptions (OBP-73XXX)
+  val PaymentAuthNotFound = "OBP-73001: Payment authorization not found."
+  val InvalidPaymentAuthState = "OBP-73002: Invalid payment authorization state transition."
+  val PaymentAuthAlreadyCaptured = "OBP-73003: Payment authorization has already been captured."
+  val PaymentAuthAlreadyReleased = "OBP-73004: Payment authorization has already been released."
+  val CreatePaymentAuthError = "OBP-73005: Could not create payment authorization."
+
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
   val CannotDeleteCascadePersonalEntity = "OBP-80002: Cannot delete cascade for personal entities (hasPersonalEntity=true). Please delete the records and definition separately."

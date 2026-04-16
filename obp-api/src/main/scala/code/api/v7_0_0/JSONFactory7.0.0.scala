@@ -282,6 +282,31 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     created_at: String             // ISO 8601
   )
 
+  // TCC Payment Authorization Request/Response JSON
+  case class CreatePaymentAuthRequestJson(
+    trade_id: String,
+    buyer_account_id: String,
+    seller_account_id: String,
+    amount_fiat: BigDecimal,
+    currency: String
+  )
+
+  case class PaymentAuthJson(
+    auth_id: String,
+    trade_id: String,
+    buyer_account_id: String,
+    seller_account_id: String,
+    amount_fiat: BigDecimal,
+    currency: String,
+    state: String,                 // PREAUTH | CAPTURED | RELEASED | FAILED
+    hold_id: Option[String],       // Link to OBP Account Hold
+    error_message: Option[String], // Error details if failed
+    user_id: String,               // Audit field
+    consent_id: Option[String],    // Audit field
+    created_at: String,            // ISO 8601
+    updated_at: String             // ISO 8601
+  )
+
   // Market Conversion Functions
   def createMarketOrderJson(order: com.openbankproject.commons.model.MarketOrder): MarketOrderJson = {
     MarketOrderJson(
@@ -373,6 +398,24 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       user_id = withdrawal.userId,
       consent_id = withdrawal.consentId,
       created_at = withdrawal.createdAt.toInstant.toString
+    )
+  }
+
+  def createPaymentAuthJson(auth: com.openbankproject.commons.model.PaymentAuth): PaymentAuthJson = {
+    PaymentAuthJson(
+      auth_id = auth.authId,
+      trade_id = auth.tradeId,
+      buyer_account_id = auth.buyerAccountId,
+      seller_account_id = auth.sellerAccountId,
+      amount_fiat = auth.amountFiat,
+      currency = auth.currency,
+      state = auth.state,
+      hold_id = auth.holdId,
+      error_message = auth.errorMessage,
+      user_id = auth.userId,
+      consent_id = auth.consentId,
+      created_at = auth.createdAt.toInstant.toString,
+      updated_at = auth.updatedAt.toInstant.toString
     )
   }
 }

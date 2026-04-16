@@ -1479,6 +1479,23 @@ case class Deposit(
   createdAt: Date
 )
 
+// TCC (Try-Confirm-Cancel) Payment Authorization for atomic settlement
+case class PaymentAuth(
+  authId: String,
+  tradeId: String,                    // Link to the trade being settled
+  buyerAccountId: String,             // Buyer's fiat account (EUR)
+  sellerAccountId: String,            // Seller's fiat account (EUR)
+  amountFiat: BigDecimal,             // Amount to authorize in fiat currency
+  currency: String,                   // Currency code (e.g., "EUR")
+  state: String,                      // "PREAUTH" | "CAPTURED" | "RELEASED" | "FAILED"
+  holdId: Option[String],             // Link to OBP Account Hold (P5 integration)
+  errorMessage: Option[String],       // Error details if state is FAILED
+  userId: String,                     // Audit: User who created the authorization
+  consentId: Option[String],          // Audit: Consent ID if applicable
+  createdAt: Date,
+  updatedAt: Date
+)
+
 case class Withdrawal(
   withdrawalId: String,
   accountId: String,

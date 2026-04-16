@@ -2229,4 +2229,45 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[Withdrawal]] = Future {
     (Failure(setUnimplementedError(nameOf(requestWithdrawal _))), callContext)
   }
+
+  // TCC Payment Authorization Methods
+  def createPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    buyerAccountId: String,
+    sellerAccountId: String,
+    amountFiat: BigDecimal,
+    currency: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(createPaymentAuth _))), callContext)
+  }
+
+  def capturePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(capturePaymentAuth _))), callContext)
+  }
+
+  def releasePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(releasePaymentAuth _))), callContext)
+  }
+
+  def getPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(getPaymentAuth _))), callContext)
+  }
 }
