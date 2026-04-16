@@ -194,19 +194,19 @@ Per-endpoint integration test cost stays roughly constant as endpoints move Lift
 
 ## TODO / Phase Progress
 
-### Phase 1 — Simple GETs (~192 remaining)
+### Phase 1 — Simple GETs (98 remaining in v6.0.0)
 GET + no body. Purely mechanical — 1:1 copy of `NewStyle.function.*` calls, pick helper from Rule 4 matrix, 3 test scenarios per endpoint (401 / 403 / 200).
 
 | Batch | Endpoints | Status |
 |---|---|---|
 | Batches 1–3 | 9 endpoints | ✓ done |
 | Batch 4 | getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces | ✓ done |
-| Remaining | ~186 endpoints | todo |
+| Remaining | 98 GETs | todo |
 
-### Phase 2 — Account/View/Counterparty GETs (~30 endpoints)
+### Phase 2 — Account/View/Counterparty GETs (subset of the 98 above)
 `withBankAccount` / `withView` / `withCounterparty` helpers ready. Same mechanical pattern.
 
-### Phase 3 — POST / PUT / DELETE (~256 endpoints)
+### Phase 3 — POST / PUT / DELETE (57 + 33 + 26 = 116 endpoints in v6.0.0)
 Body helpers and DELETE 204 helpers ready. Velocity: 6–8 endpoints/day.
 
 ### Phase 4 — Complex endpoints (~50 endpoints)
