@@ -1215,14 +1215,14 @@ case class ChatRoomJsonV600(
   name: String,
   description: String,
   joining_key: String,
-  created_by: String,
+  created_by_user_id: String,
   created_by_username: String,
   created_by_provider: String,
   is_open_room: Boolean,
   is_archived: Boolean,
   last_message_at: Option[java.util.Date],
   last_message_preview: Option[String],
-  last_message_sender: Option[String],
+  last_message_sender_username: Option[String],
   unread_count: Option[Long],
   created_at: java.util.Date,
   updated_at: java.util.Date,
@@ -3022,7 +3022,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     unreadCount: Option[Long] = None,
     participantCount: Long = 0L
   ): ChatRoomJsonV600 = {
-    val creator = code.users.Users.users.vend.getUserByUserId(room.createdBy)
+    val creator = code.users.Users.users.vend.getUserByUserId(room.createdByUserId)
     val hasLastMessage = room.lastMessageAt.isDefined
     ChatRoomJsonV600(
       chat_room_id = room.chatRoomId,
@@ -3030,14 +3030,14 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       name = room.name,
       description = room.description,
       joining_key = room.joiningKey,
-      created_by = room.createdBy,
+      created_by_user_id = room.createdByUserId,
       created_by_username = creator.map(_.name).getOrElse(""),
       created_by_provider = creator.map(_.provider).getOrElse(""),
       is_open_room = room.isOpenRoom,
       is_archived = room.isArchived,
       last_message_at = room.lastMessageAt,
       last_message_preview = if (hasLastMessage) Some(room.lastMessagePreview) else None,
-      last_message_sender = if (hasLastMessage) Some(room.lastMessageSender) else None,
+      last_message_sender_username = if (hasLastMessage) Some(room.lastMessageSenderUsername) else None,
       unread_count = unreadCount,
       created_at = room.createdDate,
       updated_at = room.updatedDate,
