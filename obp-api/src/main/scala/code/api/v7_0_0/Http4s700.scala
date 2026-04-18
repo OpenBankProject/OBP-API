@@ -645,8 +645,8 @@ object Http4s700 {
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
-            users <- UserVend.users.vend.getUsers(obpQueryParams)
-          } yield JSONFactory600.createUsersInfoJsonV600(users)
+            rows <- UserVend.users.vend.getUsersV600F(obpQueryParams)
+          } yield JSONFactory600.createUsersInfoJsonV600(rows)
         }
     }
 

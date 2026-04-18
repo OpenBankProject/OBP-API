@@ -1775,17 +1775,25 @@ trait APIMethods600 {
       "GET",
       "/users",
       "Get all Users",
-      s"""Get all users
+      s"""Get all users, optionally filtered.
+         |
+         |All query parameters are optional and may be combined.
          |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetAnyUser entitlement is required,
+         |CanGetAnyUser entitlement is required.
          |
          |${urlParametersDocument(false, false)}
-         |* locked_status (if null ignore)
+         |* provider (if null ignore) - filter by identity provider, exact match
+         |* username (if null ignore) - filter by username, exact match
+         |* email (if null ignore) - filter by email, exact match (may return multiple users — duplicate emails are allowed in OBP by design)
+         |* user_id (if null ignore) - filter by user_id, exact match
+         |* locked_status (if null ignore) - "active" or "locked"
          |* is_deleted (default: false)
          |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
          |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
+         |
+         |Returns an empty list (not 404) when no users match.
          |
       """.stripMargin,
       EmptyBody,
@@ -1802,15 +1810,20 @@ trait APIMethods600 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
+        logger.info(s"getUsers says: GET /users called, url=${cc.url}")
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ = logger.info(s"getUsers says: authenticated user_id=${u.userId} provider=${u.provider}")
+          _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
           httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
           (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
             httpParams,
-            cc.callContext
+            callContext
           )
-          users <- code.users.Users.users.vend.getUsers(obpQueryParams)
+          rows <- code.users.Users.users.vend.getUsersV600F(obpQueryParams)
+          _ = logger.info(s"getUsers says: returning ${rows.size} user(s) to user_id=${u.userId}")
         } yield {
-          (JSONFactory600.createUsersInfoJsonV600(users), HttpCode.`200`(callContext))
+          (JSONFactory600.createUsersInfoJsonV600(rows), HttpCode.`200`(callContext))
         }
       }
     }
@@ -1830,7 +1843,7 @@ trait APIMethods600 {
          |
       """.stripMargin,
       EmptyBody,
-      userInfoJsonV600,
+      userInfoDetailJsonV600,
       List(
         $AuthenticatedUserIsRequired,
         UserHasMissingRoles,

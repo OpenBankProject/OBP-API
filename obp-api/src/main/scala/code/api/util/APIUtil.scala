@@ -1220,6 +1220,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "customer_id" => Full(OBPCustomerId(values.head))
         case "locked_status" => Full(OBPLockedStatus(values.head))
         case "role_name" => Full(OBPRoleName(values.head))
+        case "provider" => Full(OBPProvider(values.head))
+        case "username" => Full(OBPUsername(values.head))
+        case "email" => Full(OBPEmail(values.head))
         case _ => Full(OBPEmpty())
       }
     } yield
@@ -1269,6 +1272,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
       lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
       roleName <- getHttpParamValuesByName(httpParams, "role_name")
+      provider <- getHttpParamValuesByName(httpParams, "provider")
+      username <- getHttpParamValuesByName(httpParams, "username")
+      email <- getHttpParamValuesByName(httpParams, "email")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
       // Extract the sort field name from the sort_by query param (e.g. "url", "date").
@@ -1282,8 +1288,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, sortBy, fromDate, toDate,
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-        includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, deletedStatus
+        includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions,
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1338,6 +1344,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
     val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
     val roleName =  getHttpRequestUrlParam(httpRequestUrl, "role_name")
+    val provider =  getHttpRequestUrlParam(httpRequestUrl, "provider")
+    val username =  getHttpRequestUrlParam(httpRequestUrl, "username")
+    val email =  getHttpRequestUrlParam(httpRequestUrl, "email")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -1371,7 +1380,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("customer_id", customerId),
       HTTPParam("is_deleted", isDeleted),
       HTTPParam("locked_status", lockedStatus),
-      HTTPParam("role_name", roleName)
+      HTTPParam("role_name", roleName),
+      HTTPParam("provider", provider),
+      HTTPParam("username", username),
+      HTTPParam("email", email)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
 
