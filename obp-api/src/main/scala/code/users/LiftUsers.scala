@@ -233,16 +233,24 @@ object LiftUsers extends Users with MdcLoggable{
     val lockedStat: Option[String]  = queryParams.collectFirst { case OBPLockedStatus(v) => v }
     val roleName:   Option[String]  = queryParams.collectFirst { case OBPRoleName(v) => v }
     val bankId:     Option[String]  = queryParams.collectFirst { case OBPBankId(v) => v }
+    val ordering:   Option[OBPOrdering] = queryParams.collectFirst { case o: OBPOrdering => o }
+    val sortBy:     Option[String]  = ordering.flatMap(_.field)
+    // When no sort_by is supplied we fall back to `ru.id ASC` for stable pagination.
+    // When sort_by IS supplied we honour sort_direction, which defaults to DESC per OBP convention.
+    val sortAsc:    Boolean         =
+      if (sortBy.isEmpty) true
+      else ordering.exists(_.order == OBPAscending)
     val limit:  Int = queryParams.collectFirst { case OBPLimit(v) => v }.getOrElse(100)
     val offset: Int = queryParams.collectFirst { case OBPOffset(v) => v }.getOrElse(0)
 
     logger.info(
       s"getUsersV600F says: filters provider=$provider username=$username email=$email userId=$userId " +
-      s"isDeleted=$isDeleted lockedStatus=$lockedStat roleName=$roleName bankId=$bankId limit=$limit offset=$offset"
+      s"isDeleted=$isDeleted lockedStatus=$lockedStat roleName=$roleName bankId=$bankId " +
+      s"sortBy=$sortBy sortAsc=$sortAsc limit=$limit offset=$offset"
     )
 
     val started = System.currentTimeMillis()
-    val rows = DoobieUserQueries.getUsers(provider, username, email, userId, isDeleted, lockedStat, roleName, bankId, limit, offset)
+    val rows = DoobieUserQueries.getUsers(provider, username, email, userId, isDeleted, lockedStat, roleName, bankId, sortBy, sortAsc, limit, offset)
     logger.info(s"getUsersV600F says: DoobieUserQueries.getUsers returned ${rows.size} row(s) in ${System.currentTimeMillis() - started}ms")
 
     if (rows.isEmpty) Nil

@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.{CertificateUtil, Glossary}
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, RateLimitingUtil}
+import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, OBPSortBy, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -1792,6 +1792,10 @@ trait APIMethods600 {
          |* is_deleted (default: false)
          |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
          |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
+         |* sort_by (if null ignore) - sort by field; allowed values: ${code.users.DoobieUserQueries.SortableColumns.keySet.toSeq.sorted.mkString(", ")}
+         |* sort_direction (if null defaults to DESC) - "asc" or "desc" (case-insensitive)
+         |
+         |When sort_by is omitted, results are ordered by insertion order ascending (stable pagination).
          |
          |Returns an empty list (not 404) when no users match.
          |
@@ -1801,6 +1805,9 @@ trait APIMethods600 {
       List(
         $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
+        FilterSortByError,
+        FilterSortByNotAllowedForEndpoint,
+        FilterSortDirectionError,
         UnknownError
       ),
       List(apiTagUser),
@@ -1820,6 +1827,16 @@ trait APIMethods600 {
             httpParams,
             callContext
           )
+          _ <- Future {
+            val requestedSort = obpQueryParams.collectFirst { case OBPSortBy(v) => v }
+            val allowed = code.users.DoobieUserQueries.SortableColumns.keySet
+            val valid: Box[Unit] = requestedSort match {
+              case Some(v) if !allowed.contains(v) =>
+                Failure(ErrorMessages.filterSortByNotAllowedForEndpointDetail("GET /users", v, allowed))
+              case _ => Full(())
+            }
+            unboxFullOrFail(valid, callContext, ErrorMessages.FilterSortByNotAllowedForEndpoint, 400)
+          }
           rows <- code.users.Users.users.vend.getUsersV600F(obpQueryParams)
           _ = logger.info(s"getUsers says: returning ${rows.size} user(s) to user_id=${u.userId}")
         } yield {

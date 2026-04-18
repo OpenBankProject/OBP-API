@@ -20,6 +20,24 @@ import java.sql.{Date => SqlDate, Timestamp}
 object DoobieUserQueries {
 
   /**
+   * Per-endpoint whitelist of sort_by field names accepted by [[getUsers]],
+   * mapping the wire name to a hardcoded SQL column expression.
+   *
+   * Keys must all appear in `SortFields.All` so the global validator passes
+   * them through; the map itself is the per-endpoint narrowing. Values are
+   * spliced via `Fragment.const` — never accept untrusted strings here, the
+   * map constrains that to a known-safe set.
+   */
+  val SortableColumns: Map[String, String] = Map(
+    "user_id"      -> "ru.userid_",
+    "username"     -> "ru.name_",
+    "email"        -> "ru.email",
+    "provider"     -> "ru.provider_",
+    "created_date" -> "au.createdat",
+    "updated_date" -> "au.updatedat"
+  )
+
+  /**
    * Row returned by [[getUsers]]. Fields sourced from AuthUser are Option
    * because external-IdP users may not have an AuthUser row. ResourceUser
    * string columns also use Option since legacy rows may have NULLs even
@@ -78,6 +96,9 @@ object DoobieUserQueries {
    * @param lockedStatus "active" / "locked" — filters via MappedBadLoginAttempt
    * @param roleName     require EXISTS an entitlement with this role
    * @param bankId       when roleName is given, scope it to this bank
+   * @param sortBy       wire name of the column to sort by (must be a key in
+   *                     [[SortableColumns]]); unknown or None falls back to `ru.id`
+   * @param sortAsc      true = ASC, false = DESC
    * @param limit        max rows (server cap applied by caller)
    * @param offset       rows to skip
    */
@@ -90,6 +111,8 @@ object DoobieUserQueries {
     lockedStatus: Option[String],
     roleName: Option[String],
     bankId: Option[String],
+    sortBy: Option[String],
+    sortAsc: Boolean,
     limit: Int,
     offset: Int
   ): List[UserSearchRow] = {
@@ -120,6 +143,12 @@ object DoobieUserQueries {
       case None => Fragment.empty
     }
 
+    // sortBy is looked up in SortableColumns, an internal-only whitelist — never
+    // interpolate an arbitrary caller-supplied string into Fragment.const.
+    val sortColumn: String = sortBy.flatMap(SortableColumns.get).getOrElse("ru.id")
+    val sortDir:    String = if (sortAsc) "ASC" else "DESC"
+    val orderBy:   Fragment = Fragment.const(s"ORDER BY $sortColumn $sortDir")
+
     val query: ConnectionIO[List[UserSearchRow]] =
       (selectColumns ++ fr"$maxBadLogin THEN true ELSE false END AS is_locked" ++
         joinTables ++
@@ -131,7 +160,7 @@ object DoobieUserQueries {
         deletedFilter ++
         lockedFilter ++
         roleFilter ++
-        fr"ORDER BY ru.id ASC" ++
+        orderBy ++
         fr"LIMIT $limit OFFSET $offset")
         .query[UserSearchRow]
         .to[List]
