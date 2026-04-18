@@ -351,8 +351,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
 
-      // Test with URL encoded values that should still be invalid
-      val encodedInvalidStatuses = List("book%65d", "pend%69ng", "bot%68")
+      // Values decode to "bad", "bookedx", "pendingz" — none of booked/pending/both.
+      val encodedInvalidStatuses = List("%62%61%64", "boo%6b%65%64x", "pend%69ngz")
       
       encodedInvalidStatuses.foreach { encodedStatus =>
         val requestGetWithEncodedStatus = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1) <<? List(("bookingStatus", encodedStatus))

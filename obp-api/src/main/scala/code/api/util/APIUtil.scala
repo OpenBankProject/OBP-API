@@ -1415,7 +1415,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val raw = pairs.getOrElse(name, "")
     // URL-decode percent-escaped values (e.g. %40 → @, %20 → space). Without this, ?email=simon%40tesobe.com
     // reached filter code as the literal 18-char string containing `%40`, which never matched any DB row.
-    if (raw.isEmpty) raw else java.net.URLDecoder.decode(raw, "UTF-8")
+    // Fall back to raw on malformed escapes so SQL-LIKE wildcard values (e.g. `%users%`) still work.
+    if (raw.isEmpty) raw
+    else try java.net.URLDecoder.decode(raw, "UTF-8")
+         catch { case _: IllegalArgumentException => raw }
   }
   //ended -- Filtering and Paging relevant methods  ////////////////////////////
 

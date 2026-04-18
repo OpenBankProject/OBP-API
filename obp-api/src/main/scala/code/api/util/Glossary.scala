@@ -5211,6 +5211,49 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "Chat Room",
+		description =
+			s"""
+				 |# Chat Room
+				 |
+				 |A **Chat Room** is a named space where users and consumers (apps/bots) exchange messages. Each room is either **system-level** or scoped to a single **bank**.
+				 |
+				 |See also the broader [Chat](/glossary#Chat) entry, which covers messages, threads, reactions, mentions, typing indicators, gRPC streaming, and the full permissions model.
+				 |
+				 |## Identity and scope
+				 |- **chat_room_id** — UUID identifying the room.
+				 |- **bank_id** — non-empty for bank-scoped rooms, empty string for system-level rooms.
+				 |- **name** — unique within scope (per bank, or globally for system-level).
+				 |
+				 |## Open vs Closed rooms
+				 |The **is_open_room** flag controls how membership works:
+				 |
+				 |- **Closed room** (`is_open_room = false`): only users with an explicit Participant record can read or post. New members must present the room's joining_key.
+				 |- **Open room** (`is_open_room = true`): every authenticated user is treated as an **implicit participant** (see `ChatPermissions.isParticipant`). They can read and post without a Participant record, but have no special permissions. Open rooms also appear in `GET /chat-rooms` for everyone, not just existing members.
+				 |
+				 |The auto-created system room **general** is open by default.
+				 |
+				 |## Joining keys
+				 |Each Chat Room has a **joining_key** (UUID). To join a room explicitly, a user calls `POST /chat-room-participants` with `{ joining_key }` — the key alone identifies the room.
+				 |
+				 |- For closed rooms, the key is the only way in. It is exposed in `GET /chat-rooms` and `GET /chat-rooms/{id}` to existing participants only, who then share it out-of-band (chat, email, link).
+				 |- For open rooms, the key still exists but is rarely needed, since users are already implicit participants. Joining explicitly creates a Participant record so the user can be granted permissions, mute the room, or track last_read_at.
+				 |- The key can be rotated by a participant with the **can_refresh_joining_key** permission, via `PUT /chat-rooms/{id}/joining-key`. The old key becomes invalid.
+				 |
+				 |## Lifecycle flags
+				 |- **is_archived** — archived rooms reject new messages and new participants but remain readable for audit.
+				 |- **created_by / created_by_username / created_by_provider** — identifies the room creator. The creator is granted all participant permissions.
+				 |
+				 |## Endpoints
+				 |Each Chat Room operation has both a system-level and bank-scoped variant:
+				 |- System-level: `/obp/v6.0.0/chat-rooms/...`
+				 |- Bank-scoped: `/obp/v6.0.0/banks/BANK_ID/chat-rooms/...`
+				 |
+				 |See the API Explorer with the **Chat** tag for the full list.
+				 |
+""")
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////
