@@ -15,7 +15,7 @@ import code.api.util.FutureUtil.EndpointContext
 import code.api.util.{CertificateUtil, Glossary}
 import code.api.util.JsonSchemaGenerator
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, RateLimitingUtil}
+import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, OBPSortBy, RateLimitingUtil}
 import net.liftweb.json
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util.newstyle.ViewNewStyle
@@ -1775,17 +1775,29 @@ trait APIMethods600 {
       "GET",
       "/users",
       "Get all Users",
-      s"""Get all users
+      s"""Get all users, optionally filtered.
+         |
+         |All query parameters are optional and may be combined.
          |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetAnyUser entitlement is required,
+         |CanGetAnyUser entitlement is required.
          |
          |${urlParametersDocument(false, false)}
-         |* locked_status (if null ignore)
+         |* provider (if null ignore) - filter by identity provider, exact match
+         |* username (if null ignore) - filter by username, exact match
+         |* email (if null ignore) - filter by email, exact match (may return multiple users — duplicate emails are allowed in OBP by design)
+         |* user_id (if null ignore) - filter by user_id, exact match
+         |* locked_status (if null ignore) - "active" or "locked"
          |* is_deleted (default: false)
          |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
          |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
+         |* sort_by (if null ignore) - sort by field; allowed values: ${code.users.DoobieUserQueries.SortableColumns.keySet.toSeq.sorted.mkString(", ")}
+         |* sort_direction (if null defaults to DESC) - "asc" or "desc" (case-insensitive)
+         |
+         |When sort_by is omitted, results are ordered by insertion order ascending (stable pagination).
+         |
+         |Returns an empty list (not 404) when no users match.
          |
       """.stripMargin,
       EmptyBody,
@@ -1793,6 +1805,9 @@ trait APIMethods600 {
       List(
         $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
+        FilterSortByError,
+        FilterSortByNotAllowedForEndpoint,
+        FilterSortDirectionError,
         UnknownError
       ),
       List(apiTagUser),
@@ -1802,15 +1817,30 @@ trait APIMethods600 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => { cc =>
         implicit val ec = EndpointContext(Some(cc))
+        logger.info(s"getUsers says: GET /users called, url=${cc.url}")
         for {
+          (Full(u), callContext) <- authenticatedAccess(cc)
+          _ = logger.info(s"getUsers says: authenticated user_id=${u.userId} provider=${u.provider}")
+          _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
           httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
           (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
             httpParams,
-            cc.callContext
+            callContext
           )
-          users <- code.users.Users.users.vend.getUsers(obpQueryParams)
+          _ <- Future {
+            val requestedSort = obpQueryParams.collectFirst { case OBPSortBy(v) => v }
+            val allowed = code.users.DoobieUserQueries.SortableColumns.keySet
+            val valid: Box[Unit] = requestedSort match {
+              case Some(v) if !allowed.contains(v) =>
+                Failure(ErrorMessages.filterSortByNotAllowedForEndpointDetail("GET /users", v, allowed))
+              case _ => Full(())
+            }
+            unboxFullOrFail(valid, callContext, ErrorMessages.FilterSortByNotAllowedForEndpoint, 400)
+          }
+          rows <- code.users.Users.users.vend.getUsersV600F(obpQueryParams)
+          _ = logger.info(s"getUsers says: returning ${rows.size} user(s) to user_id=${u.userId}")
         } yield {
-          (JSONFactory600.createUsersInfoJsonV600(users), HttpCode.`200`(callContext))
+          (JSONFactory600.createUsersInfoJsonV600(rows), HttpCode.`200`(callContext))
         }
       }
     }
@@ -1830,7 +1860,7 @@ trait APIMethods600 {
          |
       """.stripMargin,
       EmptyBody,
-      userInfoJsonV600,
+      userInfoDetailJsonV600,
       List(
         $AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -12825,14 +12855,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -12896,14 +12926,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -12966,14 +12996,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13028,14 +13058,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13090,14 +13120,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13153,14 +13183,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13216,14 +13246,14 @@ trait APIMethods600 {
         name = "Updated Name",
         description = "Updated description",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13289,14 +13319,14 @@ trait APIMethods600 {
         name = "Updated Name",
         description = "Updated description",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13457,14 +13487,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = true,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13522,14 +13552,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = true,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13590,14 +13620,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "username",
         created_by_provider = "provider",
         is_open_room = true,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -13659,14 +13689,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "username",
         created_by_provider = "provider",
         is_open_room = true,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -16307,14 +16337,14 @@ trait APIMethods600 {
         name = "General Discussion",
         description = "A place to discuss general topics",
         joining_key = "abc123key",
-        created_by = "user-id-123",
+        created_by_user_id = "user-id-123",
         created_by_username = "robert.x.0.gh",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello everyone!"),
-        last_message_sender = Some("robert.x.0.gh"),
+        last_message_sender_username =Some("robert.x.0.gh"),
         unread_count = Some(3),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -16396,14 +16426,14 @@ trait APIMethods600 {
         name = "DM with robert.x.0.gh",
         description = "",
         joining_key = "abc123key",
-        created_by = "user-id-456",
+        created_by_user_id = "user-id-456",
         created_by_username = "alice",
         created_by_provider = "https://github.com",
         is_open_room = false,
         is_archived = false,
         last_message_at = Some(new java.util.Date()),
         last_message_preview = Some("Hello!"),
-        last_message_sender = Some("alice"),
+        last_message_sender_username =Some("alice"),
         unread_count = Some(0),
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()

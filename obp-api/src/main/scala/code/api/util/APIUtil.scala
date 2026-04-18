@@ -1188,7 +1188,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             value <- tryo(values.head.toBoolean) ?~! FilterIsDeletedFormatError
             deleted = OBPIsDeleted(value)
           } yield deleted
-        case "sort_by" => Full(OBPSortBy(values.head))
+        case "sort_by" =>
+          if (SortFields.All.contains(values.head)) Full(OBPSortBy(values.head))
+          else Failure(FilterSortByError)
         case "status" => Full(OBPStatus(values.head))
         case "consumer_id" => Full(OBPConsumerId(values.head))
         case "azp" => Full(OBPAzp(values.head))
@@ -1220,6 +1222,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "customer_id" => Full(OBPCustomerId(values.head))
         case "locked_status" => Full(OBPLockedStatus(values.head))
         case "role_name" => Full(OBPRoleName(values.head))
+        case "provider" => Full(OBPProvider(values.head))
+        case "username" => Full(OBPUsername(values.head))
+        case "email" => Full(OBPEmail(values.head))
         case _ => Full(OBPEmpty())
       }
     } yield
@@ -1269,6 +1274,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
       lockedStatus <- getHttpParamValuesByName(httpParams, "locked_status")
       roleName <- getHttpParamValuesByName(httpParams, "role_name")
+      provider <- getHttpParamValuesByName(httpParams, "provider")
+      username <- getHttpParamValuesByName(httpParams, "username")
+      email <- getHttpParamValuesByName(httpParams, "email")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
     }yield{
       // Extract the sort field name from the sort_by query param (e.g. "url", "date").
@@ -1282,8 +1290,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, sortBy, fromDate, toDate,
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-        includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, deletedStatus
+        includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions,
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1338,6 +1346,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customer_id")
     val lockedStatus =  getHttpRequestUrlParam(httpRequestUrl, "locked_status")
     val roleName =  getHttpRequestUrlParam(httpRequestUrl, "role_name")
+    val provider =  getHttpRequestUrlParam(httpRequestUrl, "provider")
+    val username =  getHttpRequestUrlParam(httpRequestUrl, "username")
+    val email =  getHttpRequestUrlParam(httpRequestUrl, "email")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -1371,7 +1382,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("customer_id", customerId),
       HTTPParam("is_deleted", isDeleted),
       HTTPParam("locked_status", lockedStatus),
-      HTTPParam("role_name", roleName)
+      HTTPParam("role_name", roleName),
+      HTTPParam("provider", provider),
+      HTTPParam("username", username),
+      HTTPParam("email", email)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
 
@@ -1388,8 +1402,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
     val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
-    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
-    if (queryStrings.contains(name)&& queryStrings.length > queryStrings.indexOf(name)+1) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
+    // Parse each `k=v` pair individually. The previous implementation flattened everything into a single
+    // array and then used indexOf(name), which collided when a param VALUE happened to equal another
+    // param's NAME (e.g. `?sort_by=email` would cause lookups for `email` to return the next element).
+    val pairs: Map[String, String] = urlAndQueryString.split("&").iterator.flatMap { pair =>
+      pair.split("=", 2) match {
+        case Array(k, v) if k.nonEmpty => Some(k -> v)
+        case Array(k)    if k.nonEmpty => Some(k -> "")
+        case _                         => None
+      }
+    }.toMap
+    val raw = pairs.getOrElse(name, "")
+    // URL-decode percent-escaped values (e.g. %40 → @, %20 → space). Without this, ?email=simon%40tesobe.com
+    // reached filter code as the literal 18-char string containing `%40`, which never matched any DB row.
+    // Fall back to raw on malformed escapes so SQL-LIKE wildcard values (e.g. `%users%`) still work.
+    if (raw.isEmpty) raw
+    else try java.net.URLDecoder.decode(raw, "UTF-8")
+         catch { case _: IllegalArgumentException => raw }
   }
   //ended -- Filtering and Paging relevant methods  ////////////////////////////
 
@@ -2168,6 +2197,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |* offset=NUMBER ==> default value: 0
          |
          |eg1:?limit=100&offset=0
+         |
+         |**URL encoding:** query parameter values containing `&`, `=`, `+`, `#`, `%`, or spaces must be URL-encoded (e.g. `+` → `%2B`, space → `%20`). Most other characters (including `@` in emails) are safe unencoded, but encoding is always permitted.
          |""". stripMargin
 
     val sortDirectionParameters = if (containsSortDirection) {

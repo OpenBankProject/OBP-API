@@ -14,7 +14,7 @@ trait ChatRoomProvider {
     bankId: String,
     name: String,
     description: String,
-    createdBy: String
+    createdByUserId: String
   ): Box[ChatRoomTrait]
 
   def getChatRoom(chatRoomId: String): Box[ChatRoomTrait]
@@ -56,13 +56,13 @@ trait ChatRoomTrait {
   def name: String
   def description: String
   def joiningKey: String
-  def createdBy: String
+  def createdByUserId: String
   /** Whether this is an "open room" where all users are implicit participants. */
   def isOpenRoom: Boolean
   def isArchived: Boolean
   def lastMessageAt: Option[Date]
   def lastMessagePreview: String
-  def lastMessageSender: String
+  def lastMessageSenderUsername: String
   def createdDate: Date
   def updatedDate: Date
 }

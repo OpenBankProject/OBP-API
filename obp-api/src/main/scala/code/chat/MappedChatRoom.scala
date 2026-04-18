@@ -13,14 +13,14 @@ object MappedChatRoomProvider extends ChatRoomProvider {
     bankId: String,
     name: String,
     description: String,
-    createdBy: String
+    createdByUserId: String
   ): Box[ChatRoomTrait] = {
     tryo {
       ChatRoom.create
         .BankId(bankId)
         .Name(name)
         .Description(description)
-        .CreatedBy(createdBy)
+        .CreatedByUserId(createdByUserId)
         .IsArchived(false)
         .saveMe()
     }
@@ -130,7 +130,7 @@ object MappedChatRoomProvider extends ChatRoomProvider {
       tryo {
         room.LastMessageAt(lastMessageAt)
           .LastMessagePreview(if (preview.length > 100) preview.substring(0, 100) else preview)
-          .LastMessageSender(senderUsername)
+          .LastMessageSenderUsername(senderUsername)
           .saveMe()
       }
     }
@@ -165,11 +165,13 @@ object MappedChatRoomProvider extends ChatRoomProvider {
       case Full(room) => Full(room)
       case _ =>
         tryo {
+          // "system" here is a sentinel, not a real user_id — the default room is
+          // auto-provisioned and has no human creator. Every other caller passes a real user_id.
           ChatRoom.create
             .BankId("")
             .Name("general")
             .Description("Default system-wide chat room for all users")
-            .CreatedBy("system")
+            .CreatedByUserId("system")
             .IsOpenRoom(true)
             .IsArchived(false)
             .saveMe()
@@ -187,24 +189,24 @@ class ChatRoom extends ChatRoomTrait with LongKeyedMapper[ChatRoom] with IdPK wi
   object Name extends MappedString(this, 255)
   object Description extends MappedText(this)
   object JoiningKey extends MappedUUID(this)
-  object CreatedBy extends MappedString(this, 36)
+  object CreatedByUserId extends MappedString(this, 36)
   object IsOpenRoom extends MappedBoolean(this)
   object IsArchived extends MappedBoolean(this)
   object LastMessageAt extends MappedDateTime(this)
   object LastMessagePreview extends MappedString(this, 100)
-  object LastMessageSender extends MappedString(this, 255)
+  object LastMessageSenderUsername extends MappedString(this, 255)
 
   override def chatRoomId: String = ChatRoomId.get
   override def bankId: String = BankId.get
   override def name: String = Name.get
   override def description: String = Description.get
   override def joiningKey: String = JoiningKey.get
-  override def createdBy: String = CreatedBy.get
+  override def createdByUserId: String = CreatedByUserId.get
   override def isOpenRoom: Boolean = IsOpenRoom.get
   override def isArchived: Boolean = IsArchived.get
   override def lastMessageAt: Option[Date] = Option(LastMessageAt.get)
   override def lastMessagePreview: String = LastMessagePreview.get
-  override def lastMessageSender: String = LastMessageSender.get
+  override def lastMessageSenderUsername: String = LastMessageSenderUsername.get
   override def createdDate: Date = createdAt.get
   override def updatedDate: Date = updatedAt.get
 }

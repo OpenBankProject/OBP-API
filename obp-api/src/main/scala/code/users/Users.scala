@@ -51,6 +51,17 @@ trait Users {
 
   def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
 
+  /**
+   * Get users via a Doobie-based SQL JOIN across resourceuser, authuser and
+   * mappedbadloginattempt. Returns pre-joined rows plus the user's entitlements
+   * and most-recent-per-type agreements, fetched in batch.
+   *
+   * Supported OBPQueryParam filters: OBPProvider, OBPUsername, OBPIsDeleted,
+   * OBPLockedStatus, OBPRoleName, OBPBankId, OBPLimit, OBPOffset.
+   */
+  def getUsersV600F(queryParams: List[OBPQueryParam])
+    : Future[List[(DoobieUserQueries.UserSearchRow, List[code.entitlement.Entitlement], List[UserAgreement])]]
+
   def createResourceUser(provider: String,
                          providerId: Option[String],
                          createdByConsentId: Option[String],
