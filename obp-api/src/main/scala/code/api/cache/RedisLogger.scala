@@ -2,8 +2,11 @@ package code.api.cache
 
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole}
+import code.logcache.LogCacheEventBus
 
 import net.liftweb.common.{Box, Empty, Failure => LiftFailure, Full, Logger}
+import net.liftweb.json
+import net.liftweb.json.Serialization.write
 import redis.clients.jedis.{Jedis, Pipeline}
 
 import java.util.concurrent.{Executors, ScheduledThreadPoolExecutor, TimeUnit}
@@ -108,10 +111,7 @@ object RedisLogger {
     while (attempt < maxRetries) {
       try {
         withPipeline { pipeline =>
-          // log to requested level
-          configs.get(level).foreach(cfg => pushLog(pipeline, cfg, message))
-          // also log to ALL
-          configs.get(LogLevel.ALL).foreach(cfg => pushLog(pipeline, cfg, s"[$level] $message"))
+          writeAndPublish(pipeline, level, message)
           pipeline.sync()
         }
 
@@ -212,8 +212,7 @@ object RedisLogger {
       try {
         withPipeline { pipeline =>
           entriesToFlush.asScala.foreach { logEntry =>
-            configs.get(logEntry.level).foreach(cfg => pushLog(pipeline, cfg, logEntry.message))
-            configs.get(LogLevel.ALL).foreach(cfg => pushLog(pipeline, cfg, s"[${logEntry.level}] ${logEntry.message}"))
+            writeAndPublish(pipeline, logEntry.level, logEntry.message)
           }
           pipeline.sync()
         }
@@ -267,6 +266,24 @@ object RedisLogger {
       pipeline.lpush(cfg.queueName, msg)
       pipeline.ltrim(cfg.queueName, 0, cfg.maxEntries - 1)
     }
+  }
+
+  private implicit val streamFormats = json.DefaultFormats
+
+  /**
+   * Write a log entry to the REST-facing Redis lists (level queue + ALL queue)
+   * and publish it once to the gRPC stream bus. All commands go through the
+   * caller's pipeline so the whole thing is one Redis round-trip.
+   */
+  private def writeAndPublish(pipeline: Pipeline, level: LogLevel.LogLevel, message: String): Unit = {
+    configs.get(level).foreach(cfg => pushLog(pipeline, cfg, message))
+    configs.get(LogLevel.ALL).foreach(cfg => pushLog(pipeline, cfg, s"[$level] $message"))
+    val payload = write(Map(
+      "level"   -> level.toString,
+      "message" -> message,
+      "ts"      -> System.currentTimeMillis()
+    ))
+    LogCacheEventBus.publishInPipeline(pipeline, level, payload)
   }
 
   case class LogTailEntry(level: String, message: String)

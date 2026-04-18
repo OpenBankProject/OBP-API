@@ -1,0 +1,44 @@
+syntax = "proto3";
+package code.obp.grpc.metricsstream.g1;
+
+import "google/protobuf/timestamp.proto";
+
+// Server-side filters. Empty string = no filter on that field.
+// Filters AND together: passing consumer_id + verb = events matching BOTH.
+// url_substring matches if the event's url contains the given substring.
+message StreamMetricsRequest {
+  string consumer_id                      = 1;
+  string user_id                          = 2;
+  string verb                             = 3;
+  string url_substring                    = 4;
+  string implemented_by_partial_function  = 5;
+  string app_name                         = 6;
+}
+
+// Per-REST-call metric record, mirrors APIMetrics.saveMetric args.
+// response_body is intentionally omitted — can be large and contain PII;
+// fetch via the REST /management/metrics endpoint if needed.
+message MetricEvent {
+  string url                              = 1;
+  google.protobuf.Timestamp date          = 2;
+  int64  duration_ms                      = 3;
+  string user_id                          = 4;
+  string user_name                        = 5;
+  string app_name                         = 6;
+  string developer_email                  = 7;
+  string consumer_id                      = 8;
+  string implemented_by_partial_function  = 9;
+  string implemented_in_version           = 10;
+  string verb                             = 11;
+  int32  http_code                        = 12;
+  string correlation_id                   = 13;
+  string source_ip                        = 14;
+  string target_ip                        = 15;
+}
+
+// Live tail of API metrics as they are written.
+// History is served by the REST endpoint GET /management/metrics; this
+// service delivers only new metrics via a Redis pub/sub channel.
+service MetricsStreamService {
+  rpc StreamMetrics(StreamMetricsRequest) returns (stream MetricEvent);
+}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+package code.obp.grpc.logcache.g1;
+
+import "google/protobuf/timestamp.proto";
+
+// Log level. Wire format: varint int32. Mirrors RedisLogger.LogLevel.
+// ALL is the aggregate firehose — gated by canGetSystemLogCacheAll entitlement.
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  TRACE   = 1;
+  DEBUG   = 2;
+  INFO    = 3;
+  WARNING = 4;
+  ERROR   = 5;
+  ALL     = 6;
+}
+
+message StreamLogCacheRequest {
+  LogLevel level = 1;
+}
+
+message LogCacheEntry {
+  LogLevel level = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// Live tail of the Redis-backed log cache.
+// History is served by the REST endpoints GET /system/log-cache/{level};
+// this service delivers only new entries via Redis pub/sub channels.
+//
+// Per-level channels: subscribing to TRACE only delivers TRACE; ALL is a
+// separate firehose requiring canGetSystemLogCacheAll.
+service LogCacheStreamService {
+  rpc StreamLogCacheEntries(StreamLogCacheRequest) returns (stream LogCacheEntry);
+}
