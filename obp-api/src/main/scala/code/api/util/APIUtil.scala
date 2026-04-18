@@ -1188,7 +1188,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             value <- tryo(values.head.toBoolean) ?~! FilterIsDeletedFormatError
             deleted = OBPIsDeleted(value)
           } yield deleted
-        case "sort_by" => Full(OBPSortBy(values.head))
+        case "sort_by" =>
+          if (SortFields.All.contains(values.head)) Full(OBPSortBy(values.head))
+          else Failure(FilterSortByError)
         case "status" => Full(OBPStatus(values.head))
         case "consumer_id" => Full(OBPConsumerId(values.head))
         case "azp" => Full(OBPAzp(values.head))

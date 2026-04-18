@@ -117,6 +117,7 @@ object ErrorMessages {
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
+  val FilterSortByError = s"OBP-10042: sort_by parameter value is not in the global whitelist. Allowed values are: ${SortFields.All.toSeq.sorted.mkString(", ")}."
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
