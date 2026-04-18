@@ -1402,8 +1402,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
     val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
-    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
-    if (queryStrings.contains(name)&& queryStrings.length > queryStrings.indexOf(name)+1) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
+    // Parse each `k=v` pair individually. The previous implementation flattened everything into a single
+    // array and then used indexOf(name), which collided when a param VALUE happened to equal another
+    // param's NAME (e.g. `?sort_by=email` would cause lookups for `email` to return the next element).
+    val pairs: Map[String, String] = urlAndQueryString.split("&").iterator.flatMap { pair =>
+      pair.split("=", 2) match {
+        case Array(k, v) if k.nonEmpty => Some(k -> v)
+        case Array(k)    if k.nonEmpty => Some(k -> "")
+        case _                         => None
+      }
+    }.toMap
+    val raw = pairs.getOrElse(name, "")
+    // URL-decode percent-escaped values (e.g. %40 → @, %20 → space). Without this, ?email=simon%40tesobe.com
+    // reached filter code as the literal 18-char string containing `%40`, which never matched any DB row.
+    if (raw.isEmpty) raw else java.net.URLDecoder.decode(raw, "UTF-8")
   }
   //ended -- Filtering and Paging relevant methods  ////////////////////////////
 
@@ -2182,6 +2194,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |* offset=NUMBER ==> default value: 0
          |
          |eg1:?limit=100&offset=0
+         |
+         |**URL encoding:** query parameter values containing `&`, `=`, `+`, `#`, `%`, or spaces must be URL-encoded (e.g. `+` → `%2B`, space → `%20`). Most other characters (including `@` in emails) are safe unencoded, but encoding is always permitted.
          |""". stripMargin
 
     val sortDirectionParameters = if (containsSortDirection) {
