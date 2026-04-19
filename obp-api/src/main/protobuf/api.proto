@@ -218,16 +218,13 @@ message AccountsBalancesV310JsonGrpc {
 }
 
 service ObpService {
-  // Sends a greeting
   rpc getBanks(google.protobuf.Empty) returns (BanksJson400Grpc) {}
 
-  //Returns the list of accounts at BANK_ID that the user has access to.
-  //For each account the API returns the account ID and the available views.
-  rpc getPrivateAccountsAtOneBank(BankIdUserIdGrpc) returns (AccountsGrpc) {}
-
-  //Get the Balances for the Accounts of the current User at one bank.
-  rpc getBankAccountsBalances(BankIdGrpc) returns (AccountsBalancesV310JsonGrpc) {}
-
-  //Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
-  rpc getCoreTransactionsForBankAccount(BankIdAccountIdAndUserIdGrpc) returns (CoreTransactionsJsonV300Grpc) {}
+  // Temporarily disabled — see ApiProto.scala javaDescriptor filter and
+  // ObpServiceGrpc.scala bindService. Re-enable by un-commenting here and
+  // in those files.
+  //
+  //rpc getPrivateAccountsAtOneBank(BankIdUserIdGrpc) returns (AccountsGrpc) {}
+  //rpc getBankAccountsBalances(BankIdGrpc) returns (AccountsBalancesV310JsonGrpc) {}
+  //rpc getCoreTransactionsForBankAccount(BankIdAccountIdAndUserIdGrpc) returns (CoreTransactionsJsonV300Grpc) {}
 }
