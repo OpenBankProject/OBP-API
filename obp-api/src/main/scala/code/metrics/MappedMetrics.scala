@@ -113,7 +113,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String): Unit = {
+                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String): Unit = {
     MetricBatchWriter.enqueue(
       MetricBatchWriter.MetricRow(
         userId = userId,
@@ -131,7 +131,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         correlationId = correlationId,
         responseBody = responseBody,
         sourceIp = sourceIp,
-        targetIp = targetIp
+        targetIp = targetIp,
+        apiInstanceId = apiInstanceId
       )
     )
   }
@@ -140,7 +141,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   appName: String, developerEmail: String, consumerId: String,
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
-                                  responseBody: String, sourceIp: String, targetIp: String): Unit = {
+                                  responseBody: String, sourceIp: String, targetIp: String,
+                                  apiInstanceId: String): Unit = {
     val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
     metric
       .metricId(primaryKey)
@@ -159,6 +161,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .responseBody(responseBody)
       .sourceIp(sourceIp)
       .targetIp(targetIp)
+      .apiInstanceId(apiInstanceId)
 
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -640,6 +643,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object responseBody extends MappedText(this)
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
+  object apiInstanceId extends MappedString(this, 255)
 
   override def getMetricId(): Long = id.get
   override def getUrl(): String = url.get
@@ -658,6 +662,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getResponseBody(): String = responseBody.get
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
+  override def getApiInstanceId(): String = apiInstanceId.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
@@ -698,6 +703,7 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   object responseBody extends MappedText(this)
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
+  object apiInstanceId extends MappedString(this, 255)
 
 
   override def getMetricId(): Long = metricId.get
@@ -717,6 +723,7 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getResponseBody(): String = responseBody.get
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
+  override def getApiInstanceId(): String = apiInstanceId.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes = 

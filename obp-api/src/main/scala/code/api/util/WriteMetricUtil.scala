@@ -82,7 +82,8 @@ object WriteMetricUtil extends MdcLoggable {
               cc.correlationId,
               responseBodyToWrite,
               sourceIp,
-              targetIp
+              targetIp,
+              code.api.Constant.ApiInstanceId
             )
             publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
               developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
@@ -173,7 +174,8 @@ object WriteMetricUtil extends MdcLoggable {
           correlationId,
           "Not enabled for old style endpoints",
           sourceIp,
-          targetIp
+          targetIp,
+          code.api.Constant.ApiInstanceId
         )
         publishMetricEvent(userId, url, date, duration, userName, appName, developerEmail, consumerId,
           implementedByPartialFunction, implementedInVersion, verb, None, correlationId, sourceIp, targetIp)
@@ -223,7 +225,8 @@ object WriteMetricUtil extends MdcLoggable {
         "http_code"                       -> httpCode.getOrElse(0),
         "correlation_id"                  -> Option(correlationId).getOrElse(""),
         "source_ip"                       -> Option(sourceIp).getOrElse(""),
-        "target_ip"                       -> Option(targetIp).getOrElse("")
+        "target_ip"                       -> Option(targetIp).getOrElse(""),
+        "api_instance_id"                 -> code.api.Constant.ApiInstanceId
       ))
       MetricsEventBus.publish(payload)
     } catch {

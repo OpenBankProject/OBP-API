@@ -37,6 +37,7 @@ object LogCacheProto {
         .addField(enumField("level", 1, ".code.obp.grpc.logcache.g1.LogLevel"))
         .addField(stringField("message", 2))
         .addField(messageField("timestamp", 3, ".google.protobuf.Timestamp"))
+        .addField(stringField("api_instance_id", 4))
       )
       // LogCacheStreamService
       .addService(ServiceDescriptorProto.newBuilder()

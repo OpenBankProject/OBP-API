@@ -3191,7 +3191,8 @@ object SwaggerDefinitionsJSON {
     source_ip = ExampleValue.ipAddressExample.value,
     target_ip = ExampleValue.ipAddressExample.value,
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
-    operation_id = "OBPv4.0.0-getBanks"
+    operation_id = "OBPv4.0.0-getBanks",
+    api_instance_id = "obp_node_a"
   )
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)

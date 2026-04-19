@@ -21,7 +21,8 @@ final case class MetricEvent(
     httpCode: _root_.scala.Int = 0,
     correlationId: _root_.scala.Predef.String = "",
     sourceIp: _root_.scala.Predef.String = "",
-    targetIp: _root_.scala.Predef.String = ""
+    targetIp: _root_.scala.Predef.String = "",
+    apiInstanceId: _root_.scala.Predef.String = ""
     ) extends scalapb.GeneratedMessage with scalapb.Message[MetricEvent] with scalapb.lenses.Updatable[MetricEvent] {
     @transient
     private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
@@ -46,6 +47,7 @@ final case class MetricEvent(
       if (correlationId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(13, correlationId) }
       if (sourceIp != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(14, sourceIp) }
       if (targetIp != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(15, targetIp) }
+      if (apiInstanceId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(16, apiInstanceId) }
       __size
     }
     final override def serializedSize: _root_.scala.Int = {
@@ -76,6 +78,7 @@ final case class MetricEvent(
       { val __v = correlationId; if (__v != "") _output__.writeString(13, __v) };
       { val __v = sourceIp; if (__v != "") _output__.writeString(14, __v) };
       { val __v = targetIp; if (__v != "") _output__.writeString(15, __v) };
+      { val __v = apiInstanceId; if (__v != "") _output__.writeString(16, __v) };
     }
     def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.metricsstream.api.MetricEvent = {
       var __url = this.url
@@ -93,6 +96,7 @@ final case class MetricEvent(
       var __correlationId = this.correlationId
       var __sourceIp = this.sourceIp
       var __targetIp = this.targetIp
+      var __apiInstanceId = this.apiInstanceId
       var _done__ = false
       while (!_done__) {
         val _tag__ = _input__.readTag()
@@ -114,6 +118,7 @@ final case class MetricEvent(
           case 106 => __correlationId = _input__.readString()
           case 114 => __sourceIp = _input__.readString()
           case 122 => __targetIp = _input__.readString()
+          case 130 => __apiInstanceId = _input__.readString()
           case tag => _input__.skipField(tag)
         }
       }
@@ -132,7 +137,8 @@ final case class MetricEvent(
           httpCode = __httpCode,
           correlationId = __correlationId,
           sourceIp = __sourceIp,
-          targetIp = __targetIp
+          targetIp = __targetIp,
+          apiInstanceId = __apiInstanceId
       )
     }
     def withUrl(__v: _root_.scala.Predef.String): MetricEvent = copy(url = __v)
@@ -152,6 +158,7 @@ final case class MetricEvent(
     def withCorrelationId(__v: _root_.scala.Predef.String): MetricEvent = copy(correlationId = __v)
     def withSourceIp(__v: _root_.scala.Predef.String): MetricEvent = copy(sourceIp = __v)
     def withTargetIp(__v: _root_.scala.Predef.String): MetricEvent = copy(targetIp = __v)
+    def withApiInstanceId(__v: _root_.scala.Predef.String): MetricEvent = copy(apiInstanceId = __v)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => { val __t = url; if (__t != "") __t else null }
@@ -169,6 +176,7 @@ final case class MetricEvent(
         case 13 => { val __t = correlationId; if (__t != "") __t else null }
         case 14 => { val __t = sourceIp; if (__t != "") __t else null }
         case 15 => { val __t = targetIp; if (__t != "") __t else null }
+        case 16 => { val __t = apiInstanceId; if (__t != "") __t else null }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -189,6 +197,7 @@ final case class MetricEvent(
         case 13 => _root_.scalapb.descriptors.PString(correlationId)
         case 14 => _root_.scalapb.descriptors.PString(sourceIp)
         case 15 => _root_.scalapb.descriptors.PString(targetIp)
+        case 16 => _root_.scalapb.descriptors.PString(apiInstanceId)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -215,7 +224,8 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
       __fieldsMap.getOrElse(__fields.get(11), 0).asInstanceOf[_root_.scala.Int],
       __fieldsMap.getOrElse(__fields.get(12), "").asInstanceOf[_root_.scala.Predef.String],
       __fieldsMap.getOrElse(__fields.get(13), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(14), "").asInstanceOf[_root_.scala.Predef.String]
+      __fieldsMap.getOrElse(__fields.get(14), "").asInstanceOf[_root_.scala.Predef.String],
+      __fieldsMap.getOrElse(__fields.get(15), "").asInstanceOf[_root_.scala.Predef.String]
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.metricsstream.api.MetricEvent] = _root_.scalapb.descriptors.Reads{
@@ -236,7 +246,8 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -269,6 +280,7 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
     def correlationId: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.correlationId)((c_, f_) => c_.copy(correlationId = f_))
     def sourceIp: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.sourceIp)((c_, f_) => c_.copy(sourceIp = f_))
     def targetIp: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.targetIp)((c_, f_) => c_.copy(targetIp = f_))
+    def apiInstanceId: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.apiInstanceId)((c_, f_) => c_.copy(apiInstanceId = f_))
   }
   final val URL_FIELD_NUMBER = 1
   final val DATE_FIELD_NUMBER = 2
@@ -285,4 +297,5 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
   final val CORRELATION_ID_FIELD_NUMBER = 13
   final val SOURCE_IP_FIELD_NUMBER = 14
   final val TARGET_IP_FIELD_NUMBER = 15
+  final val API_INSTANCE_ID_FIELD_NUMBER = 16
 }

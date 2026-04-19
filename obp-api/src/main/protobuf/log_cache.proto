@@ -23,6 +23,11 @@ message LogCacheEntry {
   LogLevel level = 1;
   string message = 2;
   google.protobuf.Timestamp timestamp = 3;
+  // Identifies which OBP instance (pod) emitted this entry. Sourced from
+  // the `api_instance_id` prop — either a configured value suffixed with a
+  // per-JVM UUID, or a pure UUID if the prop is unset. See
+  // code.api.constant.Constant.ApiInstanceId.
+  string api_instance_id = 4;
 }
 
 // Live tail of the Redis-backed log cache.

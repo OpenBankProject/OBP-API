@@ -43,6 +43,7 @@ object MetricsStreamProto {
         .addField(stringField("correlation_id", 13))
         .addField(stringField("source_ip", 14))
         .addField(stringField("target_ip", 15))
+        .addField(stringField("api_instance_id", 16))
       )
       // MetricsStreamService
       .addService(ServiceDescriptorProto.newBuilder()

@@ -279,9 +279,10 @@ object RedisLogger {
     configs.get(level).foreach(cfg => pushLog(pipeline, cfg, message))
     configs.get(LogLevel.ALL).foreach(cfg => pushLog(pipeline, cfg, s"[$level] $message"))
     val payload = write(Map(
-      "level"   -> level.toString,
-      "message" -> message,
-      "ts"      -> System.currentTimeMillis()
+      "level"           -> level.toString,
+      "message"         -> message,
+      "ts"              -> System.currentTimeMillis(),
+      "api_instance_id" -> code.api.Constant.ApiInstanceId
     ))
     LogCacheEventBus.publishInPipeline(pipeline, level, payload)
   }

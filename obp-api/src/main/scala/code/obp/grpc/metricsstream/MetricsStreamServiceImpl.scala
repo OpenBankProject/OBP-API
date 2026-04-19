@@ -115,7 +115,8 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
       httpCode                     = (jv \ "http_code").extractOrElse[Int](0),
       correlationId                = (jv \ "correlation_id").extractOrElse[String](""),
       sourceIp                     = (jv \ "source_ip").extractOrElse[String](""),
-      targetIp                     = (jv \ "target_ip").extractOrElse[String]("")
+      targetIp                     = (jv \ "target_ip").extractOrElse[String](""),
+      apiInstanceId                = (jv \ "api_instance_id").extractOrElse[String]("")
     )
   }
 }

@@ -34,6 +34,11 @@ message MetricEvent {
   string correlation_id                   = 13;
   string source_ip                        = 14;
   string target_ip                        = 15;
+  // Identifies which OBP instance (pod) served this request. Sourced from
+  // the `api_instance_id` prop — either a configured value suffixed with a
+  // per-JVM UUID, or a pure UUID if the prop is unset. See
+  // code.api.constant.Constant.ApiInstanceId.
+  string api_instance_id                  = 16;
 }
 
 // Live tail of API metrics as they are written.

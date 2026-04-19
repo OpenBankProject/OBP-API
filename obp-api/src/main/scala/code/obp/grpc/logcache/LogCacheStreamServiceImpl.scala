@@ -91,7 +91,8 @@ object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStrea
     LogCacheEntry(
       level = levelInt,
       message = (jv \ "message").extractOrElse[String](""),
-      timestamp = timestamp
+      timestamp = timestamp,
+      apiInstanceId = (jv \ "api_instance_id").extractOrElse[String]("")
     )
   }
 }
