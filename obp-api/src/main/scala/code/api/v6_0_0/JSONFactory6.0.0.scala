@@ -445,6 +445,7 @@ case class MetricJsonV600(
     source_ip: String,
     target_ip: String,
     response_body: net.liftweb.json.JValue,
+    status_code: Int,
     operation_id: String,
     api_instance_id: String
 )
@@ -1645,6 +1646,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
       response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
+      status_code = metric.getHttpCode(),
       operation_id = operationId,
       api_instance_id = metric.getApiInstanceId()
     )

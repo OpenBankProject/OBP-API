@@ -1,8 +1,6 @@
 syntax = "proto3";
 package code.obp.grpc.metricsstream.g1;
 
-import "google/protobuf/timestamp.proto";
-
 // Server-side filters. Empty string = no filter on that field.
 // Filters AND together: passing consumer_id + verb = events matching BOTH.
 // url_substring matches if the event's url contains the given substring.
@@ -15,30 +13,35 @@ message StreamMetricsRequest {
   string app_name                         = 6;
 }
 
-// Per-REST-call metric record, mirrors APIMetrics.saveMetric args.
-// response_body is intentionally omitted — can be large and contain PII;
+// Per-REST-call metric record, mirrors APIMetrics.saveMetric args and
+// MetricJsonV600 (REST v6.0.0). Field names track REST v6.0.0 verbatim.
+//
+// `response_body` is intentionally omitted — can be large and contain PII;
 // fetch via the REST /management/metrics endpoint if needed.
 message MetricEvent {
   string url                              = 1;
-  google.protobuf.Timestamp date          = 2;
-  int64  duration_ms                      = 3;
+  // ISO-8601 UTC, seconds precision — matches REST v6.0.0 (yyyy-MM-dd'T'HH:mm:ss'Z').
+  string date                             = 2;
+  int64  duration                         = 3;
   string user_id                          = 4;
-  string user_name                        = 5;
+  string username                         = 5;
   string app_name                         = 6;
   string developer_email                  = 7;
   string consumer_id                      = 8;
   string implemented_by_partial_function  = 9;
   string implemented_in_version           = 10;
   string verb                             = 11;
-  int32  http_code                        = 12;
+  int32  status_code                      = 12;
   string correlation_id                   = 13;
   string source_ip                        = 14;
   string target_ip                        = 15;
   // Identifies which OBP instance (pod) served this request. Sourced from
   // the `api_instance_id` prop — either a configured value suffixed with a
   // per-JVM UUID, or a pure UUID if the prop is unset. See
-  // code.api.constant.Constant.ApiInstanceId.
+  // code.api.Constant.ApiInstanceId.
   string api_instance_id                  = 16;
+  // OBP operation id, e.g. "OBPv6.0.0-getBanks". Matches MetricJsonV600.operation_id.
+  string operation_id                     = 17;
 }
 
 // Live tail of API metrics as they are written.

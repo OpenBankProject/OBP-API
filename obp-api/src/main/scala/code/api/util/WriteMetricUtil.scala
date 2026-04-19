@@ -87,7 +87,7 @@ object WriteMetricUtil extends MdcLoggable {
             )
             publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
               developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
-              cc.httpCode, cc.correlationId, sourceIp, targetIp)
+              cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""))
           }
         }
       case _ =>
@@ -178,7 +178,8 @@ object WriteMetricUtil extends MdcLoggable {
           code.api.Constant.ApiInstanceId
         )
         publishMetricEvent(userId, url, date, duration, userName, appName, developerEmail, consumerId,
-          implementedByPartialFunction, implementedInVersion, verb, None, correlationId, sourceIp, targetIp)
+          implementedByPartialFunction, implementedInVersion, verb, None, correlationId, sourceIp, targetIp,
+          rd.map(_.operationId).getOrElse(""))
       }
 
     }
@@ -205,28 +206,32 @@ object WriteMetricUtil extends MdcLoggable {
                                  httpCode: Option[Int],
                                  correlationId: String,
                                  sourceIp: String,
-                                 targetIp: String): Unit = {
+                                 targetIp: String,
+                                 operationId: String): Unit = {
     if (!MetricsEventBus.isEnabled) return
     try {
       implicit val fmts = metricFormats
-      val dateMs: Long = if (date != null) date.getTime else 0L
+      // Use Lift's date format (same one REST v6.0.0 uses when serializing
+      // MetricJsonV600.date) so the stream string matches byte-for-byte.
+      val dateStr = if (date != null) metricFormats.dateFormat.format(date) else ""
       val payload = write(Map(
         "url"                             -> Option(url).getOrElse(""),
-        "date_ms"                         -> dateMs,
-        "duration_ms"                     -> duration,
+        "date"                            -> dateStr,
+        "duration"                        -> duration,
         "user_id"                         -> Option(userId).getOrElse(""),
-        "user_name"                       -> Option(userName).getOrElse(""),
+        "username"                        -> Option(userName).getOrElse(""),
         "app_name"                        -> Option(appName).getOrElse(""),
         "developer_email"                 -> Option(developerEmail).getOrElse(""),
         "consumer_id"                     -> Option(consumerId).getOrElse(""),
         "implemented_by_partial_function" -> Option(implementedByPartialFunction).getOrElse(""),
         "implemented_in_version"          -> Option(implementedInVersion).getOrElse(""),
         "verb"                            -> Option(verb).getOrElse(""),
-        "http_code"                       -> httpCode.getOrElse(0),
+        "status_code"                     -> httpCode.getOrElse(0),
         "correlation_id"                  -> Option(correlationId).getOrElse(""),
         "source_ip"                       -> Option(sourceIp).getOrElse(""),
         "target_ip"                       -> Option(targetIp).getOrElse(""),
-        "api_instance_id"                 -> code.api.Constant.ApiInstanceId
+        "api_instance_id"                 -> code.api.Constant.ApiInstanceId,
+        "operation_id"                    -> Option(operationId).getOrElse("")
       ))
       MetricsEventBus.publish(payload)
     } catch {

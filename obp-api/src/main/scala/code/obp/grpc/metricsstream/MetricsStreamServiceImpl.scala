@@ -7,7 +7,6 @@ import code.metricsstream.MetricsEventBus
 import code.obp.grpc.chat.AuthInterceptor
 import code.obp.grpc.metricsstream.api._
 import code.util.Helper.MdcLoggable
-import com.google.protobuf.timestamp.Timestamp
 import io.grpc.Status
 import io.grpc.stub.{ServerCallStreamObserver, StreamObserver}
 import net.liftweb.json
@@ -96,27 +95,24 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
   }
 
   private def jsonToMetricEvent(jv: JValue): MetricEvent = {
-    val dateMs = (jv \ "date_ms").extractOrElse[Long](0L)
-    val date =
-      if (dateMs > 0) Some(Timestamp(seconds = dateMs / 1000L, nanos = ((dateMs % 1000L) * 1000000L).toInt))
-      else None
     MetricEvent(
       url                          = (jv \ "url").extractOrElse[String](""),
-      date                         = date,
-      durationMs                   = (jv \ "duration_ms").extractOrElse[Long](0L),
+      date                         = (jv \ "date").extractOrElse[String](""),
+      duration                     = (jv \ "duration").extractOrElse[Long](0L),
       userId                       = (jv \ "user_id").extractOrElse[String](""),
-      userName                     = (jv \ "user_name").extractOrElse[String](""),
+      username                     = (jv \ "username").extractOrElse[String](""),
       appName                      = (jv \ "app_name").extractOrElse[String](""),
       developerEmail               = (jv \ "developer_email").extractOrElse[String](""),
       consumerId                   = (jv \ "consumer_id").extractOrElse[String](""),
       implementedByPartialFunction = (jv \ "implemented_by_partial_function").extractOrElse[String](""),
       implementedInVersion         = (jv \ "implemented_in_version").extractOrElse[String](""),
       verb                         = (jv \ "verb").extractOrElse[String](""),
-      httpCode                     = (jv \ "http_code").extractOrElse[Int](0),
+      statusCode                   = (jv \ "status_code").extractOrElse[Int](0),
       correlationId                = (jv \ "correlation_id").extractOrElse[String](""),
       sourceIp                     = (jv \ "source_ip").extractOrElse[String](""),
       targetIp                     = (jv \ "target_ip").extractOrElse[String](""),
-      apiInstanceId                = (jv \ "api_instance_id").extractOrElse[String]("")
+      apiInstanceId                = (jv \ "api_instance_id").extractOrElse[String](""),
+      operationId                  = (jv \ "operation_id").extractOrElse[String]("")
     )
   }
 }
