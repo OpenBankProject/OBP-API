@@ -248,4 +248,31 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
       banksStatus shouldBe 200
     }
   }
+
+  // ── Rollback on uncaught exception ───────────────────────────────────────
+
+  feature("v7 transaction — rollback on uncaught exception") {
+
+    scenario("Uncaught IO exception triggers rollback — write is not committed", Http4s700TransactionTag) {
+      Given("No TestRollbackSentinel entitlement exists for resourceUser1 before the request")
+      val before = Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser1.userId)
+        .map(_.filter(_.roleName == "TestRollbackSentinel"))
+        .openOr(Nil)
+      before shouldBe empty
+
+      When("POST /obp/v7.0.0/test/rollback-check raises an uncaught IO error after writing")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (status, _, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/test/rollback-check", "{}", headers)
+
+      Then("The server returns 500 (IO error propagated through the stack)")
+      status shouldBe 500
+
+      And("The TestRollbackSentinel row is NOT in the DB — the transaction was rolled back")
+      val after = Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser1.userId)
+        .map(_.filter(_.roleName == "TestRollbackSentinel"))
+        .openOr(Nil)
+      after shouldBe empty
+    }
+  }
 }

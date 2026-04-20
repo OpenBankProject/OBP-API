@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJson
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
@@ -1090,6 +1090,38 @@ object Http4s700 {
     )
 
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
+
+    // ── Test-only rollback endpoint ───────────────────────────────────────────
+    // Enabled only when test.rollback.endpoint.enabled=true (set in test.default.props).
+    // POST /obp/v7.0.0/test/rollback-check: writes one entitlement to DB via
+    // RequestScopeConnection.fromFuture, then raises IO.raiseError so the middleware
+    // hits Outcome.Errored → rollback.  Used by Http4s700TransactionTest to verify
+    // that data written inside a failed request is never committed.
+    if (APIUtil.getPropsAsBoolValue("test.rollback.endpoint.enabled", false)) {
+      val testRollbackEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+        case req @ POST -> `prefixPath` / "test" / "rollback-check" =>
+          val cc = req.callContext
+          cc.user.toOption match {
+            case Some(user) =>
+              RequestScopeConnection.fromFuture(
+                Future(Entitlement.entitlement.vend.addEntitlement("", user.userId, "TestRollbackSentinel"))
+              ).flatMap(_ => IO.raiseError[Response[IO]](new RuntimeException("[test] intentional rollback")))
+            case None =>
+              IO.pure(Response[IO](Status.Unauthorized))
+          }
+      }
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        "testRollbackEndpoint",
+        "POST", "/test/rollback-check", "Test rollback", "Test-only: write then throw to verify rollback",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        Nil,
+        None,
+        http4sPartialFunction = Some(testRollbackEndpoint)
+      )
+    }
 
     // All routes combined (without middleware - for direct use).
     //
