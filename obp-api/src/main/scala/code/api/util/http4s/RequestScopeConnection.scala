@@ -103,16 +103,11 @@ object RequestScopeConnection extends MdcLoggable {
                   else method.invoke(real, args: _*)
                 if (result == null || method.getReturnType == Void.TYPE) null else result
               } catch {
-                case e: java.lang.reflect.InvocationTargetException
-                    if Option(e.getCause).exists(_.isInstanceOf[java.sql.SQLException]) =>
+                case e: java.lang.reflect.InvocationTargetException =>
+                  val cause = Option(e.getCause).getOrElse(e)
                   logger.error(
-                    s"[RequestScopeProxy] method=${method.getName} failed on closed/returned connection. " +
-                    s"This means the request-scoped proxy was handed to code that ran AFTER withRequestTransaction " +
-                    s"committed and closed the underlying connection. " +
-                    s"Likely cause: v7 path fell through to Http4sLiftWebBridge without a transaction scope — " +
-                    s"currentProxy was still set on this thread from a previous fiber or was not cleared. " +
-                    s"Cause: ${e.getCause.getMessage}",
-                    e.getCause
+                    s"[RequestScopeProxy] method=${method.getName} failed: ${cause.getClass.getName}: ${cause.getMessage}",
+                    cause
                   )
                   throw e
               }
