@@ -3282,6 +3282,24 @@ object Glossary extends MdcLoggable  {
 |*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
 |*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
 |
+|### Served URL
+|
+|Dynamic Endpoints are served under a dedicated path prefix, *not* under `/obp/vX.Y.Z/`:
+|
+|`/obp/dynamic-endpoint` + optional `dynamic_endpoints_url_prefix` (from props) + the path declared in the uploaded Swagger file.
+|
+|For example, if your Swagger declares `/fashion-brand-list/{brandId}` and `dynamic_endpoints_url_prefix` is unset (the default), the endpoint will be available at:
+|
+|`/obp/dynamic-endpoint/fashion-brand-list/{brandId}`
+|
+|For Bank / Space level Dynamic Endpoints, OBP automatically prepends `/banks/BANK_ID` to each path in the Swagger file at creation time. So a Swagger path of `/fashion-brand-list` created for bank `gh.29.uk` is served at:
+|
+|`/obp/dynamic-endpoint/banks/gh.29.uk/fashion-brand-list`
+|
+|(plus `dynamic_endpoints_url_prefix` if set.)
+|
+|Note: the `/obp/vX.Y.Z/management/banks/BANK_ID/dynamic-endpoints` routes are only the administrative CRUD endpoints for creating and managing Dynamic Endpoints — they are not the served URLs of the endpoints themselves.
+|
 |The following videos are available:
 |
 |	* [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
