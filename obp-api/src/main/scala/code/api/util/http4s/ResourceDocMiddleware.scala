@@ -134,42 +134,46 @@ object ResourceDocMiddleware extends MdcLoggable {
    * runs outside any transaction on auto-commit vendor connections, so no locks are
    * held while those read-only queries execute.
    *
-   * Borrows a Connection from HikariCP, wraps it in a non-closing proxy (so Lift's
-   * internal DB.use lifecycle cannot commit or return it to the pool prematurely),
-   * and stores it in requestProxyLocal (IOLocal — fiber-local source of truth).
+   * Borrows a Connection from HikariCP via Resource.make so close() is guaranteed
+   * even if commit/rollback throws or the fiber is cancelled.  The proxy prevents
+   * Lift's internal DB.use lifecycle from committing or returning the connection
+   * prematurely.
    *
    * currentProxy (TTL) is NOT set here.  Every DB call goes through
    * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
    * TTL within a single IO.defer block on the compute thread, so the thread is never
    * left dirty after the fromFuture call returns.
    *
-   * On success: commits and closes the real connection.
-   * On exception: rolls back and closes the real connection.
+   * On success: commits, then Resource finalizer closes.
+   * On error/cancellation: rolls back (errors swallowed to preserve original cause),
+   *   then Resource finalizer closes.
    *
    * Metric writes (IO.blocking in recordMetric) run on the blocking pool where
    * currentProxy is not set — they get their own pool connection and commit
    * independently, matching v6 behaviour.
    */
-  private def withRequestTransaction(io: IO[Response[IO]]): IO[Response[IO]] = {
-    for {
-      realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
-      proxy     = RequestScopeConnection.makeProxy(realConn)
-      _        <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
-      // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
-      // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
-      // the TTL within a single IO.defer block on the compute thread.  Setting it
-      // here would leave the compute thread's TTL dirty if guaranteeCase runs on a
-      // different thread.
-      result   <- io.guaranteeCase {
+  private def withRequestTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
+    Resource.make(
+      IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+    )(conn =>
+      IO.blocking { try { conn.close() } catch { case _: Exception => () } }
+    ).use { realConn =>
+      val proxy = RequestScopeConnection.makeProxy(realConn)
+      for {
+        _ <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
+        // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
+        // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
+        // the TTL within a single IO.defer block on the compute thread.
+        result <- io.guaranteeCase {
                     case Outcome.Succeeded(_) =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { try { realConn.commit() } finally { realConn.close() } }
+                        IO.blocking { realConn.commit() }
                     case _ =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { try { realConn.rollback() } finally { realConn.close() } }
+                        IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
                   }
-    } yield result
-  }
+      } yield result
+    }
 
   /**
    * Runs the full validation chain (auth → roles → bank → account → view → counterparty)
