@@ -248,7 +248,8 @@ class Boot extends MdcLoggable {
 
     logger.debug("Boot says:Using database driver: " + APIUtil.driver)
 
-    DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
+    DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier,
+      new code.api.util.http4s.RequestAwareConnectionManager(APIUtil.vendor))
 
     /**
      * Function that determines if foreign key constraints are

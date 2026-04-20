@@ -1,0 +1,251 @@
+package code.api.v7_0_0
+
+import code.Http4sTestServer
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank}
+import code.entitlement.Entitlement
+import code.setup.ServerSetupWithTestData
+import dispatch.Defaults._
+import dispatch._
+import net.liftweb.json.JsonAST.{JObject, JString}
+import net.liftweb.json.JsonParser.parse
+import net.liftweb.json.JValue
+import org.scalatest.Tag
+
+import scala.collection.JavaConverters._
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+/**
+ * Integration tests for the v7 request-scoped transaction feature.
+ *
+ * Each HTTP request handled by the http4s stack runs inside
+ * `ResourceDocMiddleware.withRequestTransaction`, which:
+ *   - Borrows one real JDBC connection from HikariCP
+ *   - Wraps it in a non-closing proxy so Lift Mapper cannot commit early
+ *   - Commits on Outcome.Succeeded (HTTP 2xx or error response)
+ *   - Rolls back on Outcome.Errored / Outcome.Canceled (uncaught exception)
+ *
+ * These tests exercise the observable guarantee: data written inside a
+ * successful request is durably committed; the connection is returned to the
+ * pool so subsequent requests can proceed.
+ *
+ * Commit-on-success is the primary path tested here.  Rollback is only
+ * triggered by an uncaught IO exception (not by a 4xx business-logic
+ * response), so it is verified indirectly: a 4xx response that reaches the
+ * client means the IO succeeded, the connection was committed and released,
+ * and the pool is still healthy.
+ */
+class Http4s700TransactionTest extends ServerSetupWithTestData {
+
+  object Http4s700TransactionTag extends Tag("Http4s700Transaction")
+
+  private val http4sServer = Http4sTestServer
+  private val baseUrl      = s"http://${http4sServer.host}:${http4sServer.port}"
+
+  // ─── HTTP helpers (copied from Http4s700RoutesTest) ───────────────────────
+
+  private def makeHttpRequest(
+    path: String,
+    headers: Map[String, String] = Map.empty
+  ): (Int, JValue, Map[String, String]) = {
+    val request = url(s"$baseUrl$path")
+    val withHdr = headers.foldLeft(request) { case (r, (k, v)) => r.addHeader(k, v) }
+    val response = Http.default(
+      withHdr.setHeader("Accept", "*/*") > as.Response(p =>
+        (p.getStatusCode, p.getResponseBody,
+          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
+      )
+    )
+    val (status, body, hdrs) = Await.result(response, 10.seconds)
+    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+    (status, json, hdrs)
+  }
+
+  private def makeHttpRequestWithBody(
+    method: String,
+    path: String,
+    body: String,
+    headers: Map[String, String] = Map.empty
+  ): (Int, JValue, Map[String, String]) = {
+    val base    = url(s"$baseUrl$path")
+    val withHdr = (headers + ("Content-Type" -> "application/json")).foldLeft(base) {
+      case (r, (k, v)) => r.addHeader(k, v)
+    }
+    val methodReq = method.toUpperCase match {
+      case "POST" => withHdr.POST << body
+      case "PUT"  => withHdr.PUT  << body
+      case _      => withHdr << body
+    }
+    val response = Http.default(
+      methodReq.setHeader("Accept", "*/*") > as.Response(p =>
+        (p.getStatusCode, p.getResponseBody,
+          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
+      )
+    )
+    val (status, responseBody, hdrs) = Await.result(response, 10.seconds)
+    val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
+    (status, json, hdrs)
+  }
+
+  private def makeHttpRequestWithMethod(
+    method: String,
+    path: String,
+    headers: Map[String, String] = Map.empty
+  ): (Int, JValue, Map[String, String]) = {
+    val base    = url(s"$baseUrl$path")
+    val withHdr = headers.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
+    val methodReq = method.toUpperCase match {
+      case "DELETE" => withHdr.DELETE
+      case "POST"   => withHdr.POST
+      case _        => withHdr
+    }
+    val response = Http.default(
+      methodReq.setHeader("Accept", "*/*") > as.Response(p =>
+        (p.getStatusCode, p.getResponseBody,
+          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
+      )
+    )
+    val (status, body, hdrs) = Await.result(response, 10.seconds)
+    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+    (status, json, hdrs)
+  }
+
+  private def entitlementIdFromJson(json: JValue): String =
+    json match {
+      case JObject(fields) =>
+        fields.collectFirst { case f if f.name == "entitlement_id" =>
+          f.value.asInstanceOf[JString].s
+        }.getOrElse(fail("Expected entitlement_id in response"))
+      case _ => fail("Expected JSON object in response")
+    }
+
+  // ─── Commit on successful write ───────────────────────────────────────────
+
+  feature("v7 transaction — commit on successful write") {
+
+    scenario("POST addEntitlement → 201: created row is durable in the DB", Http4s700TransactionTag) {
+      Given("canCreateEntitlementAtAnyBank granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+
+      When("POST /obp/v7.0.0/users/USER_ID/entitlements returns 201")
+      val roleName = "CanGetAnyUser"
+      val body     = s"""{"bank_id":"","role_name":"$roleName"}"""
+      val headers  = Map("DirectLogin" -> s"token=${token1.value}")
+      val (status, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+
+      status shouldBe 201
+
+      Then("The entitlement_id from the response is readable directly from the DB")
+      val entitlementId = entitlementIdFromJson(json)
+      val fromDb = Entitlement.entitlement.vend.getEntitlementById(entitlementId)
+      fromDb.isDefined shouldBe true
+
+      And("The stored row has the expected role and user")
+      fromDb.foreach { e =>
+        e.roleName shouldBe roleName
+        e.userId   shouldBe resourceUser1.userId
+      }
+    }
+
+    scenario("POST addEntitlement: a second request after the first can read committed data", Http4s700TransactionTag) {
+      Given("canCreateEntitlementAtAnyBank and canDeleteEntitlementAtAnyBank granted")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+      addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
+
+      When("Request 1 — POST creates a CanGetCardsForBank entitlement")
+      val body    = s"""{"bank_id":"${testBankId1.value}","role_name":"CanGetCardsForBank"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (status1, json1, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+      status1 shouldBe 201
+      val createdId = entitlementIdFromJson(json1)
+
+      And("Request 2 — DELETE removes the entitlement just created")
+      val (status2, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/entitlements/$createdId", headers)
+
+      Then("The DELETE sees the row committed by the POST (returns 204, not 404)")
+      status2 shouldBe 204
+    }
+  }
+
+  // ─── Commit on successful delete ─────────────────────────────────────────
+
+  feature("v7 transaction — commit on successful delete") {
+
+    scenario("DELETE deleteEntitlement → 204: row is gone from the DB", Http4s700TransactionTag) {
+      Given("canDeleteEntitlementAtAnyBank granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
+
+      And("A target entitlement created directly in the DB")
+      val target = Entitlement.entitlement.vend
+        .addEntitlement(testBankId1.value, resourceUser1.userId, "CanGetCardsForBank")
+        .openOrThrowException("Expected entitlement to be created for DELETE test")
+
+      When(s"DELETE /obp/v7.0.0/entitlements/${target.entitlementId} returns 204")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (status, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/entitlements/${target.entitlementId}", headers)
+
+      status shouldBe 204
+
+      Then("The row is no longer readable from the DB — the DELETE was committed")
+      val afterDelete = Entitlement.entitlement.vend.getEntitlementById(target.entitlementId)
+      afterDelete.isDefined shouldBe false
+    }
+  }
+
+  // ─── Connection pool health ───────────────────────────────────────────────
+
+  feature("v7 transaction — connection pool health across multiple requests") {
+
+    scenario("Ten sequential requests all succeed — connections are returned to the pool", Http4s700TransactionTag) {
+      Given("canCreateEntitlementAtAnyBank granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+      addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      When("10 sequential POST + DELETE pairs are executed")
+      val uniqueRole = "CanGetAnyUser"
+      var allStatuses = List.empty[Int]
+
+      (1 to 10).foreach { _ =>
+        val body = s"""{"bank_id":"","role_name":"$uniqueRole"}"""
+        val (postStatus, postJson, _) = makeHttpRequestWithBody(
+          "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+        allStatuses :+= postStatus
+
+        if (postStatus == 201) {
+          val eid = entitlementIdFromJson(postJson)
+          val (delStatus, _, _) = makeHttpRequestWithMethod(
+            "DELETE", s"/obp/v7.0.0/entitlements/$eid", headers)
+          allStatuses :+= delStatus
+        }
+      }
+
+      Then("All POST responses are 201 and all DELETE responses are 204")
+      // Filter to only the statuses we actually got (no skipped deletes)
+      val postStatuses   = allStatuses.zipWithIndex.collect { case (s, i) if i % 2 == 0 => s }
+      val deleteStatuses = allStatuses.zipWithIndex.collect { case (s, i) if i % 2 == 1 => s }
+      postStatuses.forall(_ == 201) shouldBe true
+      deleteStatuses.forall(_ == 204) shouldBe true
+    }
+
+    scenario("A 4xx error response does not exhaust the connection pool", Http4s700TransactionTag) {
+      Given("An unauthenticated POST request that will return 401")
+      // No auth header — 401 is guaranteed regardless of any prior role grants in this suite.
+      val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
+      val (unauthStatus, _, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body)
+
+      When("The unauthenticated request returns 401")
+      unauthStatus shouldBe 401
+
+      Then("A subsequent public request still works — the pool was not leaked by the 401 path")
+      val (banksStatus, _, _) = makeHttpRequest("/obp/v7.0.0/banks")
+      banksStatus shouldBe 200
+    }
+  }
+}

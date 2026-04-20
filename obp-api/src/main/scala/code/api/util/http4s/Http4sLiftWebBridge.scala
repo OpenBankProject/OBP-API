@@ -54,6 +54,16 @@ object Http4sLiftWebBridge extends MdcLoggable {
             case JsonResponseException(jsonResponse) => jsonResponse
             case e if e.getClass.getName == "net.liftweb.http.rest.ContinuationException" =>
               resolveContinuation(e)
+            case e: Throwable =>
+              logger.error(
+                s"[BRIDGE] Exception inside S.init for $method $uri" +
+                s" | thread=${Thread.currentThread().getName}" +
+                s" | exceptionClass=${e.getClass.getName}" +
+                s" | message=${e.getMessage}" +
+                s" | requestScopeProxy=${code.api.util.http4s.RequestScopeConnection.currentProxy.get()}",
+                e
+              )
+              throw e
           }
         }
       }
@@ -92,7 +102,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
       case Some(run) =>
         try {
           run() match {
-            case Full(resp) => 
+            case Full(resp) =>
               logger.debug(s"Http4sLiftBridge handler returned Full response")
               resp
             case ParamFailure(_, _, _, apiFailure: APIFailure) =>
@@ -110,6 +120,17 @@ object Http4sLiftWebBridge extends MdcLoggable {
           case JsonResponseException(jsonResponse) => jsonResponse
           case e if e.getClass.getName == "net.liftweb.http.rest.ContinuationException" =>
             resolveContinuation(e)
+          case e: Throwable =>
+            logger.error(
+              s"[BRIDGE] Exception in handler run() for ${req.request.method} ${req.request.uri}" +
+              s" | thread=${Thread.currentThread().getName}" +
+              s" | exceptionClass=${e.getClass.getName}" +
+              s" | message=${e.getMessage}" +
+              s" | requestScopeProxy=${code.api.util.http4s.RequestScopeConnection.currentProxy.get()}" +
+              s" | stackTrace=${e.getStackTrace.take(10).mkString(" <- ")}",
+              e
+            )
+            throw e
         }
       case None => 
         logger.debug(s"Http4sLiftBridge no handler found - returning JSON 404 for: ${req.request.method} ${req.request.uri}")

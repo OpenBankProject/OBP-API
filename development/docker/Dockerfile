@@ -8,6 +8,6 @@ RUN cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/r
 RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx3G -Xss2m" mvn install -pl .,obp-commons
 RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx3G -Xss2m" mvn install -DskipTests -pl obp-api
 
-FROM jetty:9.4-jdk11-alpine
-
-COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
+FROM eclipse-temurin:11-jre-alpine
+COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api.jar /app/obp-api.jar
+ENTRYPOINT ["java", "-jar", "/app/obp-api.jar"]
