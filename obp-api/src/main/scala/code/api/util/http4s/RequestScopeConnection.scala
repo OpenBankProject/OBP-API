@@ -39,7 +39,9 @@ import scala.concurrent.Future
  *   2. Wrap it in a non-closing proxy (commit/rollback/close are no-ops).
  *   3. Store the proxy in requestProxyLocal (IOLocal) only — currentProxy (TTL) is
  *      NOT set here to avoid leaving compute threads dirty.
- *   4. Run validateRequest + routes.run inside withRequestTransaction.
+ *   4. Run validateOnly (auth, roles, entity lookups) — outside the transaction, on
+ *      auto-commit vendor connections.  On Left: return error response, no transaction
+ *      opened.  On Right: open the transaction and run routes.run inside it.
  *   5. Each IO.fromFuture call site uses RequestScopeConnection.fromFuture, which in
  *      a single synchronous IO.defer block on compute thread T:
  *        a. Sets currentProxy (TTL) on T.

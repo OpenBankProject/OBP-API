@@ -99,10 +99,21 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Wrap in a request-scoped transaction, then run full validation chain
-            OptionT(withRequestTransaction(
-              validateRequest(req, resourceDoc, pathParams, ccWithDoc, routes)
-            ).map(Option(_)))
+            // Validate first (read-only, outside any transaction), then open a transaction
+            // only for the business logic so we hold no locks during auth / bank / account
+            // lookups.
+            OptionT(
+              validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
+                case Left(errorResponse) =>
+                  IO.pure(Option(errorResponse))
+                case Right(enrichedReq) =>
+                  withRequestTransaction(
+                    routes.run(enrichedReq)
+                      .map(ensureJsonContentType)
+                      .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+                  ).map(Option(_))
+              }
+            )
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
@@ -117,7 +128,11 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
-   * Wraps an IO[Response[IO]] in a request-scoped DB transaction.
+   * Wraps the business-logic IO in a request-scoped DB transaction.
+   *
+   * Called only after validateOnly succeeds — validation (auth, roles, entity lookups)
+   * runs outside any transaction on auto-commit vendor connections, so no locks are
+   * held while those read-only queries execute.
    *
    * Borrows a Connection from HikariCP, wraps it in a non-closing proxy (so Lift's
    * internal DB.use lifecycle cannot commit or return it to the pool prematurely),
@@ -157,21 +172,21 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
-   * Executes the full validation chain for the request.
-   * Returns either an error Response or enriched request routed to the handler.
+   * Runs the full validation chain (auth → roles → bank → account → view → counterparty)
+   * and returns either an error Response or an enriched Request ready for the handler.
+   *
+   * All steps are read-only and execute outside any DB transaction, so no locks are
+   * held during validation.  The caller opens a transaction only after this returns Right.
    */
-  private def validateRequest(
-                               req: Request[IO],
-                               resourceDoc: ResourceDoc,
-                               pathParams: Map[String, String],
-                               cc: CallContext,
-                               routes: HttpRoutes[IO]
-                             ): IO[Response[IO]] = {
+  private def validateOnly(
+                            req: Request[IO],
+                            resourceDoc: ResourceDoc,
+                            pathParams: Map[String, String],
+                            cc: CallContext
+                          ): IO[Either[Response[IO], Request[IO]]] = {
 
-    // Initial context with just CallContext
     val initialContext = ValidationContext(callContext = cc)
 
-    // Compose all validation steps using EitherT
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
       context <- authorizeRoles(resourceDoc, pathParams, context)
@@ -181,12 +196,11 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateCounterparty(pathParams, context)
     } yield context
 
-    // Convert Validation result to Response
-    result.value.flatMap {
-      case Left(errorResponse) => IO.pure(ensureJsonContentType(errorResponse)) // Ensure all error responses are JSON
+    result.value.map {
+      case Left(errorResponse) =>
+        Left(ensureJsonContentType(errorResponse))
       case Right(validCtx) =>
-        // Enrich request with validated CallContext
-        val enrichedReq = req.withAttribute(
+        Right(req.withAttribute(
           Http4sRequestAttributes.callContextKey,
           validCtx.callContext.copy(
             bank = validCtx.bank,
@@ -194,10 +208,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             view = validCtx.view,
             counterparty = validCtx.counterparty
           )
-        )
-        routes.run(enrichedReq)
-          .map(ensureJsonContentType) // Ensure routed response has JSON content type
-          .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+        ))
     }
   }
 
