@@ -1092,12 +1092,14 @@ object Http4s700 {
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
 
     // ── Test-only rollback endpoint ───────────────────────────────────────────
-    // Enabled only when test.rollback.endpoint.enabled=true (set in test.default.props).
+    // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
+    // Props.testMode is set from the JVM system property before any props file loads,
+    // so it is reliably available at object-initialization time unlike file-based props.
     // POST /obp/v7.0.0/test/rollback-check: writes one entitlement to DB via
     // RequestScopeConnection.fromFuture, then raises IO.raiseError so the middleware
     // hits Outcome.Errored → rollback.  Used by Http4s700TransactionTest to verify
     // that data written inside a failed request is never committed.
-    if (APIUtil.getPropsAsBoolValue("test.rollback.endpoint.enabled", false)) {
+    if (net.liftweb.util.Props.testMode) {
       val testRollbackEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
         case req @ POST -> `prefixPath` / "test" / "rollback-check" =>
           val cc = req.callContext
