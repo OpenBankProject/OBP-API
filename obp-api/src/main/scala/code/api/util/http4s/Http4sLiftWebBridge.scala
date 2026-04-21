@@ -27,6 +27,32 @@ object Http4sLiftWebBridge extends MdcLoggable {
   private lazy val continuationTimeoutMs: Long =
     APIUtil.getPropsAsLongValue("http4s.continuation.timeout.ms", 60000L)
 
+  private lazy val apiPathZero: String    = APIUtil.getPropsValue("apiPathZero", "obp")
+  private lazy val v700Path: String       = s"/$apiPathZero/v7.0.0"
+  // Version that the bridge falls back to for unmigrated v7.0.0 paths.
+  private lazy val fallbackVersion: String = APIUtil.getPropsValue("http4s.v700.fallback.version", "v6.0.0")
+  private lazy val fallbackPath: String   = s"/$apiPathZero/$fallbackVersion"
+
+  /**
+   * If the request targets a v7.0.0 path that was not claimed by any http4s handler
+   * (otherwise it would never reach this bridge), rewrite the URI to the configured
+   * fallback version (default v6.0.0) so Lift can serve it transparently.
+   *
+   * Returns the (possibly rewritten) request and the served version string to attach
+   * as X-OBP-Version-Served, or None when no rewrite was needed.
+   */
+  private def rewriteIfV700(req: Request[IO]): (Request[IO], Option[String]) = {
+    val pathStr = req.uri.path.renderString
+    if (pathStr == v700Path || pathStr.startsWith(v700Path + "/")) {
+      val rewrittenPath = fallbackPath + pathStr.drop(v700Path.length)
+      logger.info(s"[BRIDGE] v7.0.0 fallback: $pathStr → $rewrittenPath (served by $fallbackVersion)")
+      val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewrittenPath))
+      (req.withUri(newUri), Some(fallbackVersion))
+    } else {
+      (req, None)
+    }
+  }
+
   def routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req => dispatch(req)
   }
@@ -38,12 +64,13 @@ object Http4sLiftWebBridge extends MdcLoggable {
   }
 
   def dispatch(req: Request[IO]): IO[Response[IO]] = {
-    val uri = req.uri.renderString
+    val (effectiveReq, servedVersion) = rewriteIfV700(req)
+    val uri    = req.uri.renderString
     val method = req.method.name
     logger.debug(s"Http4sLiftBridge dispatching: $method $uri, S.inStatefulScope_? = ${S.inStatefulScope_?}")
     val result = for {
-      bodyBytes <- req.body.compile.to(Array)
-      liftReq = buildLiftReq(req, bodyBytes)
+      bodyBytes <- effectiveReq.body.compile.to(Array)
+      liftReq = buildLiftReq(effectiveReq, bodyBytes)
       liftResp <- IO {
         val session = LiftRules.statelessSession.vend.apply(liftReq)
         S.init(Full(liftReq), session) {
@@ -71,7 +98,8 @@ object Http4sLiftWebBridge extends MdcLoggable {
     } yield {
       logger.debug(s"[BRIDGE] Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       logger.debug(s"Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
-      ensureStandardHeaders(req, http4sResponse)
+      val baseResp = ensureStandardHeaders(req, http4sResponse)
+      servedVersion.fold(baseResp)(v => baseResp.putHeaders(Header.Raw(CIString("X-OBP-Version-Served"), v)))
     }
     result.handleErrorWith { e =>
       logger.error(s"[BRIDGE] Uncaught exception in dispatch: $method $uri - ${e.getMessage}", e)

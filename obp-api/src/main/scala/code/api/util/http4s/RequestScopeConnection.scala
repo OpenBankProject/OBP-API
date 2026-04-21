@@ -35,27 +35,28 @@ import scala.concurrent.Future
  *     worker thread — so the Future body sees the same proxy as the IO fiber.
  *
  * FLOW per request (ResourceDocMiddleware):
- *   1. Borrow a real Connection from HikariCP.
- *   2. Wrap it in a non-closing proxy (commit/rollback/close are no-ops).
- *   3. Store the proxy in requestProxyLocal (IOLocal) only — currentProxy (TTL) is
- *      NOT set here to avoid leaving compute threads dirty.
- *   4. Run validateOnly (auth, roles, entity lookups) — outside the transaction, on
- *      auto-commit vendor connections.  On Left: return error response, no transaction
- *      opened.  On Right (GET/HEAD): run routes.run directly on auto-commit connections.
- *      On Right (POST/PUT/DELETE/PATCH): open the transaction and run routes.run inside it.
- *   5. Each IO.fromFuture call site uses RequestScopeConnection.fromFuture, which in
- *      a single synchronous IO.defer block on compute thread T:
- *        a. Sets currentProxy (TTL) on T.
- *        b. Evaluates `fut` — the Future is submitted; TtlRunnable captures T's TTL.
- *        c. Removes currentProxy from T immediately after submission (T is clean).
- *        d. Awaits the already-submitted future asynchronously.
- *   6. Inside the Future, Lift Mapper calls DB.use(DefaultConnectionIdentifier).
- *      RequestAwareConnectionManager.newConnection reads currentProxy (TTL — set by
- *      TtlRunnable on the worker thread) and returns the proxy → all mapper calls
- *      share one underlying Connection.
- *   7. The proxy's no-op commit/close prevents Lift from committing or releasing
- *      the connection at the end of each individual DB.use scope.
- *   8. At request end: commit (or rollback on exception) and close the real connection.
+ *   1. Set requestLazyAcquire to a once-only acquisition IO — no connection borrowed yet.
+ *   2. Run validateOnly (auth, roles, entity lookups) — outside any transaction, on
+ *      auto-commit vendor connections.  On Left: return error response, clean up IOLocals.
+ *      On Right (GET/HEAD): run routes.run directly on auto-commit connections.
+ *      On Right (POST/PUT/DELETE/PATCH): run routes.run inside the lazy transaction scope.
+ *   3. On the FIRST fromFuture call that touches DB:
+ *        a. ensureProxy reads requestProxyLocal — fast path if already cached in this fiber.
+ *        b. Falls through to requestLazyAcquire: invokes the once-only IO which borrows
+ *           a real Connection, wraps it in a non-closing proxy, and completes the request-
+ *           scoped Deferred.  Concurrent callers that lose the race discard their connection
+ *           and wait for the Deferred — all fibers end up with the same proxy.
+ *        c. Caches the proxy in requestProxyLocal (fiber-local) for subsequent calls.
+ *        d. Sets currentProxy (TTL) on compute thread T so TtlRunnable carries it to the
+ *           Future worker thread.
+ *   4. Inside the Future, Lift Mapper calls DB.use(DefaultConnectionIdentifier).
+ *      RequestAwareConnectionManager.newConnection reads currentProxy (TTL) and returns
+ *      the proxy → all mapper calls share one underlying Connection.
+ *   5. The proxy's no-op commit/close prevents Lift from committing or releasing the
+ *      connection at the end of each individual DB.use scope.
+ *   6. At request end: deferred.tryGet (held in withBusinessDBTransaction's closure):
+ *      - None  → endpoint made zero DB calls; pool unaffected, nothing to commit or close.
+ *      - Some(realConn, _) → commit (or rollback on error/cancel), then close realConn.
  *
  * METRIC WRITES: recordMetric runs in IO.blocking (blocking pool, no TTL from compute
  * thread). currentProxy.get() returns null there, so RequestAwareConnectionManager
@@ -69,11 +70,24 @@ import scala.concurrent.Future
 object RequestScopeConnection extends MdcLoggable {
 
   /**
-   * Fiber-local proxy reference.  Readable from any IO step in the request fiber
-   * regardless of which compute thread runs it.  This is the source of truth.
+   * Fiber-local proxy reference.  Set lazily on the first fromFuture call that
+   * needs a DB connection.  Used as a fast-path cache on subsequent calls in the
+   * same fiber so the IOLocal / Deferred lookup is skipped.
    */
   val requestProxyLocal: IOLocal[Option[Connection]] =
     IOLocal[Option[Connection]](None).unsafeRunSync()(IORuntime.global)
+
+  /**
+   * Fiber-local handle to the once-only acquisition IO installed by
+   * withBusinessDBTransaction.  None outside a transaction scope (GET/HEAD, or before
+   * the first POST/PUT/DELETE request scope is set up).
+   *
+   * The IO[Connection] value is the same object reference across all fibers that
+   * inherit it (IOLocal copy-on-fork copies the reference, not the IO's internal
+   * Deferred state), so concurrent callers safely serialise through the Deferred.
+   */
+  val requestLazyAcquire: IOLocal[Option[IO[Connection]]] =
+    IOLocal[Option[IO[Connection]]](None).unsafeRunSync()(IORuntime.global)
 
   /**
    * Thread-local proxy reference, propagated to Future workers via TtlRunnable.
@@ -119,8 +133,9 @@ object RequestScopeConnection extends MdcLoggable {
   /**
    * Drop-in replacement for IO.fromFuture(IO(fut)).
    *
-   * Reads the request proxy from the IOLocal (reliable across IO thread switches),
-   * then — in a single synchronous IO.defer block on the current compute thread T:
+   * Ensures a proxy connection is available (acquiring lazily on first call if
+   * withBusinessDBTransaction set up a lazy acquisition scope), then — in a single
+   * synchronous IO.defer block on the current compute thread T:
    *   1. Sets TTL on T so TtlRunnable captures it at Future-submission time.
    *   2. Evaluates `fut`, which submits the Future to the OBP EC; the TtlRunnable
    *      wraps the submitted task and carries the proxy to the Future's worker thread.
@@ -132,13 +147,34 @@ object RequestScopeConnection extends MdcLoggable {
    * proxy via the TtlRunnable captured in step 2.
    */
   def fromFuture[A](fut: => Future[A]): IO[A] =
-    requestProxyLocal.get.flatMap { proxyOpt =>
+    ensureProxy.flatMap { proxyOpt =>
       IO.defer {
         proxyOpt.foreach(currentProxy.set)  // (1) set TTL on current thread T
         val f = fut                          // (2) submit Future; TtlRunnable captures proxy from T
         currentProxy.remove()               // (3) clear TTL on T — T is clean after this point
         IO.fromFuture(IO.pure(f))           // await the already-submitted future
       }
+    }
+
+  /**
+   * Returns the proxy for the current fiber, acquiring it lazily on first call.
+   *
+   * Fast path: requestProxyLocal is already set (same fiber, subsequent call) → O(1).
+   * Slow path: requestLazyAcquire holds an acquisition IO → invoke it, cache proxy in
+   *   requestProxyLocal for this fiber's future calls.
+   * No-op: neither is set (GET/HEAD, or no transaction scope) → None, TTL stays clear.
+   */
+  private def ensureProxy: IO[Option[Connection]] =
+    requestProxyLocal.get.flatMap {
+      case some @ Some(_) => IO.pure(some)
+      case None =>
+        requestLazyAcquire.get.flatMap {
+          case None          => IO.pure(None)
+          case Some(acquire) =>
+            acquire.flatMap { proxy =>
+              requestProxyLocal.set(Some(proxy)).as(Some(proxy))
+            }
+        }
     }
 }
 
