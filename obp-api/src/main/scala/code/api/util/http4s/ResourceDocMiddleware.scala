@@ -226,8 +226,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
     val io =
-      if (needsAuth) RequestScopeConnection.fromFuture(APIUtil.authenticatedAccess(ctx.callContext))
-      else RequestScopeConnection.fromFuture(APIUtil.anonymousAccess(ctx.callContext))
+      if (needsAuth) IO.fromFuture(IO(APIUtil.authenticatedAccess(ctx.callContext)))
+      else IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
 
     EitherT(
       io.attempt.flatMap {
@@ -285,7 +285,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     pathParams.get("BANK_ID") match {
       case Some(bankId) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((bank, Some(updatedCC))) => IO.pure(Right(ctx.copy(bank = Some(bank), callContext = updatedCC)))
               case Right((bank, None))             => IO.pure(Right(ctx.copy(bank = Some(bank))))
@@ -303,7 +303,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
       case (Some(bankId), Some(accountId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((acc, Some(updatedCC))) => IO.pure(Right(ctx.copy(account = Some(acc), callContext = updatedCC)))
               case Right((acc, None))            => IO.pure(Right(ctx.copy(account = Some(acc))))
@@ -321,7 +321,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
       case (Some(bankId), Some(accountId), Some(viewId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext)))
+          IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext))))
             .attempt.flatMap {
               case Right(view) => IO.pure(Right(ctx.copy(view = Some(view))))
               case Left(e: APIFailureNewStyle) => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
@@ -338,7 +338,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
       case (Some(bankId), Some(accountId), Some(counterpartyId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))
