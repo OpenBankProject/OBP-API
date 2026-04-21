@@ -3321,6 +3321,50 @@ object Glossary extends MdcLoggable  {
    |
    |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
    |
+   |### Mapping structure
+   |
+   |Each entry in `request_mapping` / `response_mapping` is keyed by the JSON field name you want in the Dynamic Endpoint's request or response payload, and its value is an object of the form:
+   |
+   |```
+   |"<jsonFieldName>": {
+   |  "entity": "<DynamicEntityName>",
+   |  "field":  "<dynamicEntityFieldName>",
+   |  "query":  "<dynamicEntityLookupField>"
+   |}
+   |```
+   |
+   |What each key does at runtime:
+   |
+   |* **`entity`** — the name of the Dynamic Entity to read from / write to. The current implementation only supports **one entity per mapping**; only the first `entity` value encountered is used.
+   |* **`field`** — the Dynamic Entity field whose value populates the `<jsonFieldName>` in the output JSON. When the Dynamic Endpoint URL includes a query string (e.g. `?status=available`), `field` is also the Dynamic Entity field used to filter records.
+   |* **`query`** — the Dynamic Entity field used as the **lookup key** when the URL has a path parameter whose name contains "id" (e.g. `/pet/{petId}`). OBP uses the **first** `query` value in the mapping as this lookup key, so by convention all entries in a mapping repeat the same `query` value (it is per-mapping, not per-field, in practice).
+   |
+   |Worked example. Endpoint served URL `/obp/dynamic-endpoint/pet/{petId}` with mapping:
+   |
+   |```
+   |{
+   |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+   |  "request_mapping": {},
+   |  "response_mapping": {
+   |    "id":     { "entity": "PetEntity", "field": "field1", "query": "field1" },
+   |    "name":   { "entity": "PetEntity", "field": "field4", "query": "field1" },
+   |    "status": { "entity": "PetEntity", "field": "field8", "query": "field1" }
+   |  }
+   |}
+   |```
+   |
+   |When called as `GET /pet/123`, OBP:
+   |
+   |1. Takes the first `query` value — `"field1"` — and the URL path value `123`.
+   |2. Finds the `PetEntity` record where `field1 == 123`.
+   |3. Builds the response body by copying that record's `field1` → `id`, `field4` → `name`, `field8` → `status`.
+   |
+   |Notes and caveats:
+   |
+   |* Non-id-named path parameters (anything that does not contain "id") are not used for lookup.
+   |* URL query-string filtering uses `field`, **not** `query`. A call like `GET /pets?status=available` filters `PetEntity` records by the `field` value on the mapping entry whose key matches `status` — in the example above, by `field8 == "available"`.
+   |* `request_mapping` is used on write operations (POST/PUT) to translate the inbound payload to a Dynamic Entity record; leave it as `{}` for read-only operations.
+   |
 	 |For more details and a walk through, please see the following video:
 	 |
 	 |	* [Endpoint Mapping](https://vimeo.com/553369108)
