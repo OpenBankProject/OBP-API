@@ -9,6 +9,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonParser.parse
 import org.scalatest.Tag
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -105,6 +106,16 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       case e: Exception =>
         throw e
     }
+  }
+
+  private def makeHttp4sOptionsRequest(path: String): (Int, Map[String, String]) = {
+    val request = url(s"$baseUrl$path").OPTIONS
+    val response = Http.default(
+      request.setHeader("Accept", "*/*") > as.Response(p =>
+        (p.getStatusCode, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
+      )
+    )
+    Await.result(response, 10.seconds)
   }
 
   private def makeHttp4sDeleteRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) = {
@@ -361,7 +372,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
 
     scenario("Server handles Lift bridge routes for v3.1.0 (known limitation)", Http4sServerIntegrationTag) {
       Given("HTTP4S test server is running with Lift bridge")
-      
+
       When("We make a GET request to a v3.1.0 endpoint (Lift bridge)")
       try {
         makeHttp4sGetRequest("/obp/v3.1.0/banks")
@@ -372,6 +383,46 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
           e.getMessage should include("404")
           info("v3.1.0 bridge support is a known limitation - see HTTP4S_INTEGRATION_TEST_FINDINGS.md")
       }
+    }
+  }
+
+  // ─── CORS preflight ──────────────────────────────────────────────────────────
+  // corsHandler sits above Http4s700 in Http4sApp and is only reachable via the
+  // real server — in-process route tests cannot exercise it.
+
+  feature("HTTP4S CORS preflight") {
+
+    scenario("OPTIONS /obp/v7.0.0/banks returns 204 with CORS headers", Http4sServerIntegrationTag) {
+      When("OPTIONS /obp/v7.0.0/banks — a browser preflight request")
+      val (statusCode, headers) = makeHttp4sOptionsRequest("/obp/v7.0.0/banks")
+
+      Then("Response is 204 No Content")
+      statusCode should equal(204)
+
+      And("All required CORS headers are present")
+      headers.find { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") }
+        .map(_._2) should equal(Some("*"))
+      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Methods") } should be(true)
+      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Headers") } should be(true)
+      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Credentials") } should be(true)
+    }
+
+    scenario("OPTIONS /obp/v7.0.0/cards returns 204 — no auth required for preflight", Http4sServerIntegrationTag) {
+      When("OPTIONS /obp/v7.0.0/cards — preflight for an authenticated endpoint")
+      val (statusCode, headers) = makeHttp4sOptionsRequest("/obp/v7.0.0/cards")
+
+      Then("Response is 204 No Content without requiring authentication")
+      statusCode should equal(204)
+      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") } should be(true)
+    }
+
+    scenario("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards returns 204 with CORS headers", Http4sServerIntegrationTag) {
+      When("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards — preflight for a nested endpoint")
+      val (statusCode, headers) = makeHttp4sOptionsRequest("/obp/v7.0.0/banks/testBank0/cards")
+
+      Then("Response is 204 No Content with CORS headers")
+      statusCode should equal(204)
+      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") } should be(true)
     }
   }
 }
