@@ -39,7 +39,10 @@ import scala.concurrent.Future
  *   2. Wrap it in a non-closing proxy (commit/rollback/close are no-ops).
  *   3. Store the proxy in requestProxyLocal (IOLocal) only — currentProxy (TTL) is
  *      NOT set here to avoid leaving compute threads dirty.
- *   4. Run validateRequest + routes.run inside withRequestTransaction.
+ *   4. Run validateOnly (auth, roles, entity lookups) — outside the transaction, on
+ *      auto-commit vendor connections.  On Left: return error response, no transaction
+ *      opened.  On Right (GET/HEAD): run routes.run directly on auto-commit connections.
+ *      On Right (POST/PUT/DELETE/PATCH): open the transaction and run routes.run inside it.
  *   5. Each IO.fromFuture call site uses RequestScopeConnection.fromFuture, which in
  *      a single synchronous IO.defer block on compute thread T:
  *        a. Sets currentProxy (TTL) on T.
@@ -101,16 +104,11 @@ object RequestScopeConnection extends MdcLoggable {
                   else method.invoke(real, args: _*)
                 if (result == null || method.getReturnType == Void.TYPE) null else result
               } catch {
-                case e: java.lang.reflect.InvocationTargetException
-                    if Option(e.getCause).exists(_.isInstanceOf[java.sql.SQLException]) =>
+                case e: java.lang.reflect.InvocationTargetException =>
+                  val cause = Option(e.getCause).getOrElse(e)
                   logger.error(
-                    s"[RequestScopeProxy] method=${method.getName} failed on closed/returned connection. " +
-                    s"This means the request-scoped proxy was handed to code that ran AFTER withRequestTransaction " +
-                    s"committed and closed the underlying connection. " +
-                    s"Likely cause: v7 path fell through to Http4sLiftWebBridge without a transaction scope — " +
-                    s"currentProxy was still set on this thread from a previous fiber or was not cleared. " +
-                    s"Cause: ${e.getCause.getMessage}",
-                    e.getCause
+                    s"[RequestScopeProxy] method=${method.getName} failed: ${cause.getClass.getName}: ${cause.getMessage}",
+                    cause
                   )
                   throw e
               }
@@ -162,7 +160,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
     if (proxy != null) {
       // Guard: if the underlying connection is already closed, the proxy is stale — it
       // was captured in a TtlRunnable submitted during a prior request and that request's
-      // withRequestTransaction has already committed and closed the real connection.
+      // withBusinessDBTransaction has already committed and closed the real connection.
       // Returning a stale proxy would throw "Connection is closed" inside the caller's
       // DB.use and, if that caller is inside authenticate, would be caught as Left(_)
       // and silently turned into a 401 response.
@@ -184,7 +182,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
   }
 
   /**
-   * If conn is our request proxy, skip release — it is managed by withRequestTransaction.
+   * If conn is our request proxy, skip release — it is managed by withBusinessDBTransaction.
    * Otherwise delegate to the original vendor (which does HikariCP ProxyConnection.close()).
    *
    * Reference equality is safe: one proxy instance per request, same object throughout.
@@ -192,7 +190,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
   override def releaseConnection(conn: Connection): Unit = {
     val proxy = RequestScopeConnection.currentProxy.get()
     if (proxy != null && (conn eq proxy.asInstanceOf[AnyRef])) {
-      // Skip release — this connection is managed by withRequestTransaction.
+      // Skip release — this connection is managed by withBusinessDBTransaction.
     } else {
       delegate.releaseConnection(conn)
     }

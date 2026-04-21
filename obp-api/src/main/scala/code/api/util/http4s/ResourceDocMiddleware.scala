@@ -99,10 +99,25 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Wrap in a request-scoped transaction, then run full validation chain
-            OptionT(withRequestTransaction(
-              validateRequest(req, resourceDoc, pathParams, ccWithDoc, routes)
-            ).map(Option(_)))
+            // Validate first (read-only, outside any transaction), then run business logic.
+            // GET/HEAD are safe methods — no writes, no transaction needed; they run on
+            // auto-commit vendor connections (same as validation).  All other methods
+            // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
+            OptionT(
+              validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
+                case Left(errorResponse) =>
+                  IO.pure(Option(errorResponse))
+                case Right(enrichedReq) =>
+                  val routeIO =
+                    routes.run(enrichedReq)
+                      .map(ensureJsonContentType)
+                      .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+                  val executed =
+                    if (req.method == Method.GET || req.method == Method.HEAD) routeIO
+                    else withBusinessDBTransaction(routeIO)
+                  executed.map(Option(_))
+              }
+            )
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
@@ -117,61 +132,69 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
-   * Wraps an IO[Response[IO]] in a request-scoped DB transaction.
+   * Wraps the business-logic IO in a request-scoped DB transaction.
    *
-   * Borrows a Connection from HikariCP, wraps it in a non-closing proxy (so Lift's
-   * internal DB.use lifecycle cannot commit or return it to the pool prematurely),
-   * and stores it in requestProxyLocal (IOLocal — fiber-local source of truth).
+   * Called only for mutating methods (POST/PUT/DELETE/PATCH) after validateOnly succeeds.
+   * GET/HEAD bypass this entirely and run on auto-commit vendor connections, avoiding
+   * a pool borrow + empty-commit overhead on every read request.
+   *
+   * Borrows a Connection from HikariCP via Resource.make so close() is guaranteed
+   * even if commit/rollback throws or the fiber is cancelled.  The proxy prevents
+   * Lift's internal DB.use lifecycle from committing or returning the connection
+   * prematurely.
    *
    * currentProxy (TTL) is NOT set here.  Every DB call goes through
    * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
    * TTL within a single IO.defer block on the compute thread, so the thread is never
    * left dirty after the fromFuture call returns.
    *
-   * On success: commits and closes the real connection.
-   * On exception: rolls back and closes the real connection.
+   * On success: commits, then Resource finalizer closes.
+   * On error/cancellation: rolls back (errors swallowed to preserve original cause),
+   *   then Resource finalizer closes.
    *
    * Metric writes (IO.blocking in recordMetric) run on the blocking pool where
    * currentProxy is not set — they get their own pool connection and commit
    * independently, matching v6 behaviour.
    */
-  private def withRequestTransaction(io: IO[Response[IO]]): IO[Response[IO]] = {
-    for {
-      realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
-      proxy     = RequestScopeConnection.makeProxy(realConn)
-      _        <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
-      // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
-      // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
-      // the TTL within a single IO.defer block on the compute thread.  Setting it
-      // here would leave the compute thread's TTL dirty if guaranteeCase runs on a
-      // different thread.
-      result   <- io.guaranteeCase {
+  private def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
+    Resource.make(
+      IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+    )(conn =>
+      IO.blocking { try { conn.close() } catch { case _: Exception => () } }
+    ).use { realConn =>
+      val proxy = RequestScopeConnection.makeProxy(realConn)
+      for {
+        _ <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
+        // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
+        // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
+        // the TTL within a single IO.defer block on the compute thread.
+        result <- io.guaranteeCase {
                     case Outcome.Succeeded(_) =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { try { realConn.commit() } finally { realConn.close() } }
+                        IO.blocking { realConn.commit() }
                     case _ =>
                       RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { try { realConn.rollback() } finally { realConn.close() } }
+                        IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
                   }
-    } yield result
-  }
+      } yield result
+    }
 
   /**
-   * Executes the full validation chain for the request.
-   * Returns either an error Response or enriched request routed to the handler.
+   * Runs the full validation chain (auth → roles → bank → account → view → counterparty)
+   * and returns either an error Response or an enriched Request ready for the handler.
+   *
+   * All steps are read-only and execute outside any DB transaction, so no locks are
+   * held during validation.  The caller opens a transaction only after this returns Right.
    */
-  private def validateRequest(
-                               req: Request[IO],
-                               resourceDoc: ResourceDoc,
-                               pathParams: Map[String, String],
-                               cc: CallContext,
-                               routes: HttpRoutes[IO]
-                             ): IO[Response[IO]] = {
+  private def validateOnly(
+                            req: Request[IO],
+                            resourceDoc: ResourceDoc,
+                            pathParams: Map[String, String],
+                            cc: CallContext
+                          ): IO[Either[Response[IO], Request[IO]]] = {
 
-    // Initial context with just CallContext
     val initialContext = ValidationContext(callContext = cc)
 
-    // Compose all validation steps using EitherT
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
       context <- authorizeRoles(resourceDoc, pathParams, context)
@@ -181,12 +204,11 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateCounterparty(pathParams, context)
     } yield context
 
-    // Convert Validation result to Response
-    result.value.flatMap {
-      case Left(errorResponse) => IO.pure(ensureJsonContentType(errorResponse)) // Ensure all error responses are JSON
+    result.value.map {
+      case Left(errorResponse) =>
+        Left(ensureJsonContentType(errorResponse))
       case Right(validCtx) =>
-        // Enrich request with validated CallContext
-        val enrichedReq = req.withAttribute(
+        Right(req.withAttribute(
           Http4sRequestAttributes.callContextKey,
           validCtx.callContext.copy(
             bank = validCtx.bank,
@@ -194,10 +216,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             view = validCtx.view,
             counterparty = validCtx.counterparty
           )
-        )
-        routes.run(enrichedReq)
-          .map(ensureJsonContentType) // Ensure routed response has JSON content type
-          .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+        ))
     }
   }
 
@@ -207,8 +226,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
     val io =
-      if (needsAuth) RequestScopeConnection.fromFuture(APIUtil.authenticatedAccess(ctx.callContext))
-      else RequestScopeConnection.fromFuture(APIUtil.anonymousAccess(ctx.callContext))
+      if (needsAuth) IO.fromFuture(IO(APIUtil.authenticatedAccess(ctx.callContext)))
+      else IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
 
     EitherT(
       io.attempt.flatMap {
@@ -266,7 +285,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     pathParams.get("BANK_ID") match {
       case Some(bankId) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((bank, Some(updatedCC))) => IO.pure(Right(ctx.copy(bank = Some(bank), callContext = updatedCC)))
               case Right((bank, None))             => IO.pure(Right(ctx.copy(bank = Some(bank))))
@@ -284,7 +303,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID")) match {
       case (Some(bankId), Some(accountId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((acc, Some(updatedCC))) => IO.pure(Right(ctx.copy(account = Some(acc), callContext = updatedCC)))
               case Right((acc, None))            => IO.pure(Right(ctx.copy(account = Some(acc))))
@@ -302,7 +321,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("VIEW_ID")) match {
       case (Some(bankId), Some(accountId), Some(viewId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext)))
+          IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext))))
             .attempt.flatMap {
               case Right(view) => IO.pure(Right(ctx.copy(view = Some(view))))
               case Left(e: APIFailureNewStyle) => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
@@ -319,7 +338,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     (pathParams.get("BANK_ID"), pathParams.get("ACCOUNT_ID"), pathParams.get("COUNTERPARTY_ID")) match {
       case (Some(bankId), Some(accountId), Some(counterpartyId)) =>
         EitherT(
-          RequestScopeConnection.fromFuture(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext)))
+          IO.fromFuture(IO(NewStyle.function.getCounterpartyTrait(BankId(bankId), AccountId(accountId), counterpartyId, Some(ctx.callContext))))
             .attempt.flatMap {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))
